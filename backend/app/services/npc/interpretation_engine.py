@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/npc/interpretation_engine.py
 """
@@ -15,7 +15,6 @@ DEPRECATED модули, логика которых перенесена сюд
 Зависимости: DistortionProfile, InterpretationResult, EventContext, константы из app.core.constants
 Основные сущности: InterpretationEngine
 
-TODO:
 - В будущем может включать эмоциональную реакцию, прогнозирование поведения и т.д.
 - Важно: InterpretationEngine НЕ мутирует NPCState — он вычисляет интерпретацию на основе текущего стейта и события, но не изменяет его. Все изменения стейта происходят в StateApplicator на основе интерпретации.
 - Возможно стоит добавить "contextual modifiers" — дополнительные факторы, влияющие на интерпретацию (например, текущее расположение, время дня, присутствие других NPC).

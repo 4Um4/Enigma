@@ -200,12 +200,14 @@ def main() -> None:
                                 ) as _hr:
                                     if _hr.status == 200:
                                         _backend_ok = True
+                                        print(f"\n  [DIAG_LAUNCH] Health OK on attempt {_attempt}", flush=True)
                                         break
-                            except Exception:
-                                pass
+                            except Exception as _e:
+                                print(f"\n  [DIAG_LAUNCH] Wait exception: {_e}", flush=True)
                             print(".", end="", flush=True)
                             _time.sleep(1)
                         print()
+                        print(f"  [DIAG_LAUNCH] Backend OK: {_backend_ok}", flush=True)
                         
                         _reset_ok = False
                         if _backend_ok:

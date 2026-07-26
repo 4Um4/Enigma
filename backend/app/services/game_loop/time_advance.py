@@ -1,4 +1,4 @@
-"""
+﻿"""
 Продвижение игрового времени на основе действий игрока.
 
 Формула для диалогов: базовое время + 0.5 секунды на символ, максимум 30 секунд.
@@ -71,13 +71,15 @@ def advance_game_time(
     if _delta_seconds == 0:
         return
 
-    # Текущее время из shared_context (новый путь) или из строки (legacy)
-    if shared_context and hasattr(shared_context, "game_time_seconds"):
-        _current_total = shared_context.game_time_seconds
-    else:
-        _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
-        _seconds_in_day = Calendar.parse_hhmm(_env_time)
-        _current_total = _seconds_in_day  # legacy: без дня/года
+    # S139 FIX: SSOT — абсолютное время читается ТОЛЬКО из scene_state.
+    # §12: Строгая типизация int (DTO требует int, float ломает UI и логику).
+    _current_total = int(scene_state.get("game_time_seconds", 0))
+    if _current_total == 0:
+        # Fallback только для легаси-сцен, где game_time_seconds ещё не проинициализирован
+        _env_time = scene_state.get("environment", {}).get("time_of_day", "12:00")
+        _current_total = Calendar.parse_hhmm(_env_time)
+
+    logger.info(f"[PROBE_ADV_READ] action={action_type} scene_time={_current_total}")
 
     _new_total = Calendar.advance(_current_total, _delta_seconds)
 
@@ -87,6 +89,8 @@ def advance_game_time(
 
     # Сохраняем абсолютное время в scene_state для персистенции (Фаза 10)
     scene_state["game_time_seconds"] = _new_total
+
+    logger.info(f"[PROBE_ADV_WRITE] new_total={_new_total}")
 
     # Обновляем time_of_day в scene_state для совместимости
     # (scene_state_manager._select_time_variant читает строку)
@@ -98,3 +102,4 @@ def advance_game_time(
         logger.warning(
             f"[TIME_ADVANCE] {_old_hhmm} → {_new_hhmm} (+{_delta_seconds // 60} мин)"
         )
+

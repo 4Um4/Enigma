@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: backend/app/services/game_loop/scene_init.py
 Назначение: Инициализация состояния сцены на старте тика.
 Зависимости: SceneManager, LifeEngine, EconomyTracker, Calendar
@@ -31,11 +31,13 @@ def _resolve_initial_time(
 
 
 def _extract_preserved_time(shared_context: Any) -> float | None:
-    """БАГ H: Извлекает абсолютное время из shared_context до реинициализации."""
+    """БАГ H: Извлекает абсолютное время из shared_context до реинициализации.
+    S139 FIX: 0.0 означает новую игру или сброс — игнорируем, чтобы использовать metadata."""
     if (
         shared_context
         and hasattr(shared_context, "game_time_seconds")
         and shared_context.game_time_seconds is not None
+        and shared_context.game_time_seconds > 0
     ):
         return shared_context.game_time_seconds
     return None
@@ -81,12 +83,23 @@ def _update_player_position(
 
 
 def _sync_game_time(scene_state: dict, shared_context: Any) -> None:
-    """Синхронизирует game_time_seconds: scene_state → shared_context."""
-    if scene_state.get("game_time_seconds") is not None:
-        shared_context.game_time_seconds = scene_state["game_time_seconds"]
-    else:
+    """Синхронизирует game_time_seconds: scene_state (SSOT) → shared_context (Mirror).
+    
+    §14.1 Law of Singular Time: scene_state — единственный авторитет.
+    shared_context выступает строго как downstream projection (§15).
+    Обратное заражение scene_state из shared_context — DOUBLE TRUTH.
+    """
+    _scene_time = scene_state.get("game_time_seconds")
+
+    # Если в scene_state нет валидного времени (> 0), восстанавливаем из legacy time_of_day
+    if not _scene_time or _scene_time <= 0:
         env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
-        shared_context.game_time_seconds = Calendar.parse_hhmm(env_time)
+        _scene_time = Calendar.parse_hhmm(env_time)
+        scene_state["game_time_seconds"] = _scene_time
+
+    # shared_context — строго downstream mirror, всегда перезаписывается значением из scene_state
+    if shared_context is not None:
+        shared_context.game_time_seconds = _scene_time
 
 
 def _inject_spatial_service(
@@ -166,10 +179,13 @@ def _run_life_engine_tick(
     _inject_spatial_service(engine, campaign_id, scene_state)
     _reconcile_elapsed_time(engine, campaign_id, scene_state)
 
+    from app.services.tick_utils import get_npc_runtime_path
+    _runtime_path = get_npc_runtime_path(campaign_id)
+
     life_changes, life_intents = engine.tick(
         campaign_id,
         scene_state,
-        runtime_path=loop._get_npc_runtime_path(campaign_id),
+        runtime_path=_runtime_path,
     )
     _apply_life_changes(
         loop,
@@ -224,7 +240,9 @@ def _load_or_create_scene(
         campaign_id, location, time_of_day
     )
 
-    if preserved_game_time is not None:
+    # S139 FIX: Если preserved_game_time == 0 (новая игра), не перетираем время,
+    # которое могло быть установлено из shared_context (43200) в initialize_scene.
+    if preserved_game_time is not None and preserved_game_time > 0:
         scene_state["game_time_seconds"] = preserved_game_time
 
     # ADR-0XX: Сохраняем монотонный тик при перезагрузке сцены
@@ -287,14 +305,26 @@ def init_scene_state(
 
 
 def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
-    """Определяет текущую локацию из сохранения, fallback — DEFAULT_LOCATION_ID."""
-    try:
-        existing = loop.scene_manager._read_campaign_json(campaign_id)
-        raw = existing.get("scene_state", existing)
-        if isinstance(raw, dict) and raw.get("location_id"):
-            return raw["location_id"]
-    except Exception as e:
-        logger.warning(f"[GAME_LOOP] Ошибка получения location_id: {e}")
+    """Определяет текущую локацию из сохранения, fallback — DEFAULT_LOCATION_ID.
+    
+    FIX: Читаем из авторитетного источника (SQLite), а не из JSON-зеркала,
+    чтобы избежать рассинхрона и постоянного пересоздания сцены с дефолтным временем.
+    """
+    if loop.scene_manager._persistence:
+        try:
+            scene = loop.scene_manager._persistence.load_scene(campaign_id)
+            if scene and scene.get("location_id"):
+                return scene["location_id"]
+        except Exception as e:
+            logger.warning(f"[GAME_LOOP] Ошибка получения location_id из SQLite: {e}")
+    else:
+        try:
+            existing = loop.scene_manager._read_campaign_json(campaign_id)
+            raw = existing.get("scene_state", existing)
+            if isinstance(raw, dict) and raw.get("location_id"):
+                return raw["location_id"]
+        except Exception as e:
+            logger.warning(f"[GAME_LOOP] Ошибка получения location_id из JSON: {e}")
     from app.core.constants import DEFAULT_LOCATION_ID
 
     return DEFAULT_LOCATION_ID
@@ -357,3 +387,4 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
             loop.scene_manager.save_scene_state(campaign_id, scene_state)
 
     return scene_state
+

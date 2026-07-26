@@ -66,7 +66,7 @@
     },
     "sleeping": {
       "location": "city_gate",
-      "position": "guard_post",
+      "position": "guard_bed",
       "display": "sleeping"
     },
     "guarding_gate": {

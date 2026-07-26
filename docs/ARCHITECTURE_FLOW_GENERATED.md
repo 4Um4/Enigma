@@ -334,7 +334,7 @@ flowchart TD
     TraitDriftEvent -->|"appends drift record"| L1Chronicle
     BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
     CrystallizedBeliefStore -->|"provides L2.5 beliefs for projection"| DriveResolver
-    DriveResolver -->|""| EffectiveDrives
+    DriveResolver --> EffectiveDrives
     CoreOrientation -->|"initializes at spawn"| LifeProject
     BreakProgressEngine -->|"triggers with identity_crisis=True"| LifeProjectResolver
     LifeProjectResolver -->|"computes new direction"| LifeProject
@@ -1201,30 +1201,6 @@ participant SceneState
 TickOrchestrator->>SceneChange: 1. Emits SceneChange(cause='traversal_complete')
 SceneChange->>SceneStateManager: 2. apply_changes receives change
 SceneStateManager->>SceneState: 3. Snaps local_position. Calls transition_traversal(MOVING->COMPLETED). DOES NOT create new traversal.
-```
-
-### Interaction
-
-```mermaid
-sequenceDiagram
-```
-
-### Interaction
-
-```mermaid
-sequenceDiagram
-```
-
-### Interaction
-
-```mermaid
-sequenceDiagram
-```
-
-### Interaction
-
-```mermaid
-sequenceDiagram
 ```
 
 ### NPC Verbalization Flow (Phase 5-7)

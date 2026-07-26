@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/spatial/graph_compiler.py
 # Назначение: Компилирует editor JSON → runtime graph + alias_map
@@ -7,7 +7,6 @@ from __future__ import annotations
 # Строит alias_map для обратной совместимости: {"bar_area": "tavern_silver_wolf:bar_area"}
 # Зависимости: app.models.spatial_contracts, app.services.spatial.role_resolver, stdlib
 """
-TODO:
 - Добавить поддержку editor_tags, когда UI будет их отдавать
 - В будущем: поддержка многоязычных лейблов (сейчас только русский и английский) — может потребоваться более сложная NLP-логика в RoleResolver
 - Возможно, добавить в alias_map обратные ссылки для удобства (canonical_id → editor_id), если это будет нужно для UI
@@ -767,10 +766,10 @@ def _create_boundary_nodes(
 
     # P4-01A: Геометрические центры границ локации
     _DIR_TO_XY = {
-        "north": (_ox + _w / 2.0, _oy + _h),
-        "south": (_ox + _w / 2.0, _oy),
-        "east": (_ox + _w, _oy + _h / 2.0),
-        "west": (_ox, _oy + _h / 2.0),
+        "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+        "south": (_ox + _w / 2.0, _oy + 1.0),
+        "east": (_ox + _w - 1.0, _oy + _h / 2.0),
+        "west": (_ox + 1.0, _oy + _h / 2.0),
     }
 
     for direction, neighbor_loc_id in adjacency.items():

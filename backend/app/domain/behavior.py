@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # path: backend/app/domain/behavior.py
 # Назначение: Контракты наблюдаемого поведения NPC (The Fool Epistemic Boundary).
@@ -6,7 +6,6 @@ from __future__ import annotations
 # Никаких эмоций, интентов или внутренних мотивов.
 
 """
-TODO:
 
 """
 

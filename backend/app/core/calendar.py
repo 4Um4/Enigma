@@ -101,7 +101,8 @@ class Calendar:
     def format_time(total_seconds: int) -> str:
         """Формирует строку времени: '14:05'."""
         pt = Calendar.decompose(total_seconds)
-        return f"{pt.hour:02d}:{pt.minute:02d}"
+        # ADR-FIX: Python 3.13 strict typing requires explicit int conversion for :d format
+        return f"{int(pt.hour):02d}:{int(pt.minute):02d}"
 
     @staticmethod
     def format_date(total_seconds: int) -> str:

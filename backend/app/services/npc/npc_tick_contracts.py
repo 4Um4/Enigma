@@ -51,7 +51,6 @@ class NpcTickInput:
     effective_drives_map: Optional[Dict[str, "EffectiveDrives"]] = (
         None  # STEP B: L3 проекция от TickOrchestrator (SSOT)
     )
-    """TODO:effective_drives_map: Optional[Dict[str, Any]] = None  # STEP B: L3 проекция от TickOrchestrator (SSOT)"""
 
 
 @dataclass

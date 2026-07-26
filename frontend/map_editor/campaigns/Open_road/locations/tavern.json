@@ -287,7 +287,27 @@
         "serving_station"
       ],
       "connections": [
-        "door_kitchen"
+        "door_kitchen",
+        "kitchen_bed_1",
+        "kitchen_bed_2"
+      ]
+    },
+    "kitchen_bed_1": {
+      "x": 14.48,
+      "y": 6.11,
+      "label": "Кровать на кухне 1",
+      "role": "bed",
+      "connections": [
+        "kitchen"
+      ]
+    },
+    "kitchen_bed_2": {
+      "x": 17.5,
+      "y": 6.04,
+      "label": "Кровать на кухне 2",
+      "role": "bed",
+      "connections": [
+        "kitchen"
       ]
     }
   },
@@ -1170,7 +1190,7 @@
       "type": "bed",
       "position": {
         "x": 14.48611111111111,
-        "y": 6.118055555555555
+        "y": 6.61
       },
       "size": {
         "w": 2.0,
@@ -1196,7 +1216,7 @@
       "type": "bed",
       "position": {
         "x": 17.5,
-        "y": 6.048611111111112
+        "y": 6.54
       },
       "size": {
         "w": 2.0,

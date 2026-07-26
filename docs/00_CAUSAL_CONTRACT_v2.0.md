@@ -11,7 +11,7 @@ ENIGMA — это **единая каузальная система**, где �
 
 ### 1.1. Трёхуровневая архитектура восприятия
 
-```
+```text
 L0 (PERCEPTION) — Мир → Восприятие → NPC/Игрок
 L1 (BODY) — Живой агент (NPCState) с инерцией личности
 L2 (BEHAVIOR) — Решения на основе давления и архетипа
@@ -37,16 +37,13 @@ L2 (BEHAVIOR) — Решения на основе давления и архе�
 > ⚠️ **ВНИМАНИЕ:** Соответствие конкретных модулей ENIGMA этим инвариантам описано в ненормативном документе `docs/CURRENT_IMPLEMENTATION_MAPPING.md`.
 
 **Invariant IV — Semantic Validity**
+> Любое состояние, принимаемое симуляцией, должно быть валидно не только по типу и структуре, но и относительно законов домена, в котором оно существует.
 
-> Любое состояние, принимаемое симуляцией, должно быть валидно
-> не только по типу и структуре, но и относительно законов домена,
-> в котором оно существует.
-
+```text
 Schema validity ≠ Domain validity.
 Domain validity ≠ Causal validity.
-
-Система не должна принимать структурно корректное,
-но семантически невозможное состояние.
+```
+Система не должна принимать структурно корректное, но семантически невозможное состояние.
 
 ---
 
@@ -67,59 +64,44 @@ Domain validity ≠ Causal validity.
 | **Отношения NPC-NPC** | `RelationshipStore` (SSOT, масштаб 0-100) | `DecisionHub` через `social_modifiers_map` | Персистенция `relationship_cache` внутри `NPCState` |
 | **Каузальная случайность** | `KernelRNG(tick, npc_id, salt)` (ADR-O-301) | `_TickContext.rng_factory` | `random.*` в kernel layer. `DecisionHub()` без `rng`. `KernelRNG` без `salt` |
 | **Идентичность NPC** | `L1Chronicle` (append-only, SQLite-персистентно) | `PatternDetector` → `EvidenceOfPersistence` → `BeliefCrystallizationEngine` | Удаление из `L1Chronicle`. `BeliefCrystallizationEngine` читает L1 напрямую (только через `EvidenceOfPersistence`) |
-| **Пространственная согласованность** |
-`SpatialCoherenceValidator` над
-`location_id + local_position + current_node + SpatialService` |
-`SpatialCoherenceValidator.validate()` |
-Запуск движения при рассогласовании координат, узла и графа |
+| **Пространственная согласованность** | `SpatialCoherenceValidator` над `location_id + local_position + current_node + SpatialService` | `SpatialCoherenceValidator.validate()` | Запуск движения при рассогласовании координат, узла и графа |
 
 ### 2.1.1. Spatial Coherence Contract
 
 Для каждого живого пространственно присутствующего агента:
 
-    scene_state.npc_positions[npc_id]
-        ↓
-    local_position
-        ↓
-    SpatialService.resolve_node(local_position)
-        ↓
-    current_node
-        ↓
-    SpatialService.graph
-        ↓
-    TraversalEngine
+```text
+scene_state.npc_positions[npc_id]
+    ↓
+local_position
+    ↓
+SpatialService.resolve_node(local_position)
+    ↓
+current_node
+    ↓
+SpatialService.graph
+    ↓
+TraversalEngine
+```
 
 должны представлять одну и ту же физическую реальность.
 
-Обязательные инварианты:
-
-SC-1. `local_position` не может быть `(0.0, 0.0)`,
-если `(0.0, 0.0)` не является явно валидной координатой данной локации.
-
-SC-2. `local_position` должен принадлежать текущей `location_id`.
-
-SC-3. `current_node` должен существовать в текущем `SpatialService`.
-
-SC-4. `current_node` должен быть разрешим из `local_position`
-с использованием единого алгоритма node resolution.
-
-SC-5. `SpatialService` должен быть собран из авторитетной topology source.
-
-SC-6. Активное движение запрещено до прохождения
-Spatial Coherence Validation.
-
-SC-7. Persistence не может считаться авторитетной,
-если сохранённое пространственное состояние нарушает SC-1...SC-5.
-
-SC-8. Recovery из старого или повреждённого состояния должен быть
-детерминированным и наблюдаемым.
+**Обязательные инварианты:**
+- **SC-1.** `local_position` не может быть `(0.0, 0.0)`, если `(0.0, 0.0)` не является явно валидной координатой данной локации.
+- **SC-2.** `local_position` должен принадлежать текущей `location_id`.
+- **SC-3.** `current_node` должен существовать в текущем `SpatialService`.
+- **SC-4.** `current_node` должен быть разрешим из `local_position` с использованием единого алгоритма node resolution.
+- **SC-5.** `SpatialService` должен быть собран из авторитетной topology source.
+- **SC-6.** Активное движение запрещено до прохождения Spatial Coherence Validation.
+- **SC-7.** Persistence не может считаться авторитетной, если сохранённое пространственное состояние нарушает SC-1...SC-5.
+- **SC-8.** Recovery из старого или повреждённого состояния должен быть детерминированным и наблюдаемым.
 
 ### 2.2. Движение = Результат, не Команда
 
 **SceneChange — это projection свершившегося, а не триггер.**
 
 Истинная физика:
-```
+```text
 Intent → IntentParametersDTO → IntentPressureResolver
   → WillpowerGate (проверка конфликта)
   → DecisionHub (Фаза 5, принятие решения)
@@ -187,7 +169,7 @@ L3 (`EffectiveDrives`) — строго эфемерная проекция, в�
 TickOrchestrator `_run_core_phases()` — единая точка входа. Нет ветвления player/idle (ADR-TZ08-2).
 
 ### Фаза 0: Simulation (LifeEngine)
-```
+```text
 LifeEngine.tick() → SceneChange (cognitive) + MovementIntent (schedule/need/random)
   → apply_with_shadow_observation() (Dual Rail, ADR-O-201)
   → _process_traversals() (STL Phase 1, boundary resolution)
@@ -195,7 +177,7 @@ LifeEngine.tick() → SceneChange (cognitive) + MovementIntent (schedule/need/ra
 ```
 
 ### Фаза 0.5: Time-Driven Decay
-```
+```text
 idle_handlers → DynamicAffordanceField (purge + decay)
   → PE Decay (ExpectationStore)
   → Affective Decay, Perceptual Decay
@@ -205,7 +187,7 @@ idle_handlers → DynamicAffordanceField (purge + decay)
 **Выполняется ВСЕГДА.** Время не останавливается (ADR-002). `game_time_seconds` — единственный источник времени (ADR-O-302).
 
 ### Фаза 1: Input Merge (NPIC Normalize → Intervention Routing → WillpowerGate)
-```
+```text
 InterventionEvent → _process_player_dm_action() / _process_player_action()
   → DirectiveInterpretationSubscriber (с инъекцией all_npcs_raw)
   → WillpowerGate (ОДИН раз за цикл, ADR-036)
@@ -214,26 +196,26 @@ InterventionEvent → _process_player_dm_action() / _process_player_action()
 **Ядро не знает 'player' или 'dm_ctx'.** Только `InterventionEvent` (ADR-TZ08-1).
 
 ### Фаза 2: EventBus (Spatial Events)
-```
+```text
 SpatialEventDetector (old vs new positions) → NPC_MOVED, NPC_PROXIMITY_CLOSE/LEAVE
   → EventBus (первичная волна)
 ```
 Early exit, если нет изменений позиций.
 
 ### Фаза 3: Memory Phase
-```
+```text
 MemoryManager.apply() для затронутых NPC
 ```
 Early exit, если нет phase_2_events.
 
 ### Фаза 4: Pre-Decision (TopicExtractor)
-```
+```text
 phase_2_events + STM buffer → topic для каждого NPC
   → fallback "наблюдение" (никогда не пустой)
 ```
 
 ### Фаза 5: Decision (Unified Execution Kernel, ADR-TZ09-1)
-```
+```text
 TickState (immutable snapshot, preloaded data) → NpcTickPipeline.run() (pure reducer)
   → TickMutation (npc_deltas, communication_intents, movement_intents, l1_drift_events, memory_events)
   → apply (orchestrator): build_npc_contexts, process_movement_intents
@@ -241,21 +223,21 @@ TickState (immutable snapshot, preloaded data) → NpcTickPipeline.run() (pure r
 **Pure function:** `svc` параметр убит (ADR-TZ10-1). I/O мутации отложены.
 
 ### Фаза 6: Post-Decision (IntentEventAdapter + Windup Write Gate)
-```
+```text
 CommunicationIntent → IntentEventAdapter → EventDTO → EventBus
   ATTACK → ActionWindup (held_intent_id, 2 тика подготовки, ADR-O-310)
   DIALOGUE → QueuedTask → scene_state["pending_tasks"] (ADR-O-313)
 ```
 
 ### Фаза 7: Windup Resolution (Execution Gate)
-```
+```text
 windup_registry → completed windups → release held intent
   → Stale Intent Validation (actor alive? target alive? in scene?)
   → EventDTO publish или INTERRUPTED
 ```
 
 ### Фаза 8: Layered Reduction (drain + handle)
-```
+```text
 drain_events → handle (детерминированный порядок):
   perception → reaction → social → combat → homeostasis
   → Phase8Result → delta_buffer
@@ -264,21 +246,21 @@ drain_events → handle (детерминированный порядок):
 ```
 
 ### Фаза 9: Integration (CFRM + WorldSnapshot)
-```
+```text
 LocalCausalSolver → FieldDisturbance → EventBuffer
   → BeliefCrystallizationEngine (L2.5, только при phase_2_events)
   → WorldSnapshotBuilder → WorldSnapshotDTO
 ```
 
 ### Фаза 9.1: Affective Pipeline
-```
+```text
 integrate_affective_pressure() (единый владелец Active Inference + Hysteresis)
   → Tuple[new_load, new_memory]
   → EmotionTransition (if load > threshold)
 ```
 
 ### Фаза 10: Persistence (Atomic Commit)
-```
+```text
 SceneStateManager.commit_tick_result() → SQLitePersistenceAdapter.atomic_commit()
   → INSERT OR REPLACE (State перезаписан)
 L1Chronicle → SQLite (append-only)
@@ -286,7 +268,7 @@ DRFBus → drain()
 ```
 
 ### Фаза 10+: Player Perception (Explicit Snapshot Step, ADR-TZ08-8)
-```
+```text
 GameLoop (не ядро): PerceptionProjector
   → PhenomenologyProjectionService (PerceptionEvent)
   → PerceptualAttentionService (фильтр по бюджету)
@@ -299,7 +281,6 @@ GameLoop (не ядро): PerceptionProjector
 ## 4. ЗАПРЕТЫ (HARD CONSTRAINTS)
 
 ### 4.1. Запреты на Движение
-
 1. **Прямая мутация позиции:** `npc["position"] = ...` ❌
 2. **Чтение позиции из неавторитетного источника:** `scene_state["player_spatial"]` ❌ → используй `SpatialQueryService` (player_spatial удалён, ADR-O-314)
 3. **Телепортация Игрока:** `if target == player: bypass latency` ❌ → Игрок подвержен мембранам, как и NPC
@@ -312,7 +293,6 @@ GameLoop (не ядро): PerceptionProjector
 10. **Двойная обработка интента:** `MovementIntent` с `processed=True` → `RuntimeError` (инвариант одного исполнения)
 
 ### 4.2. Запреты на Волю и Давление
-
 11. **Решение без происхождения:** `MovementIntent` без `pressure_sources` ❌
 12. **Давление без видимости:** Получение давления через мембрану с `attenuation=0.0` ❌
 13. **Double Invocation:** WillpowerGate вызывается ОДИН раз за цикл ❌ → Фаза 1 только переводит семантику
@@ -322,7 +302,6 @@ GameLoop (не ядро): PerceptionProjector
 17. **Мёртвый Вектор Эмоций:** Возврат дефолтного `EmotionalVector()` для `ActionType.ATTACK` ❌ (ADR-088)
 
 ### 4.3. Запреты на Восприятие и UI
-
 18. **Телепатия в UI:** Передача Игроку информации о внутренних состояниях NPC ❌ → только внешние наблюдения ("замер", "дрожит")
 19. **Повторное вычисление в восприятии:** `PerceptualAttentionService` читает `StateDeltas.fear_delta` ❌ → только `PerceptionEvent.salience`
 20. **Лаг в ввод:** `perceptual_latency` для задержки ввода ❌ → только визуальный `desync` (шлейфы, инерция камеры)
@@ -332,7 +311,6 @@ GameLoop (не ядро): PerceptionProjector
 24. **DM читает ментальные объекты:** DM-агент читает `stress_delta`, `trust_delta`, `real_state`, `recalled_facts` ❌ → только `observed_state` + `embodied_traces` (ADR-TZ08-4/6)
 
 ### 4.4. Запреты на Ретро-симуляцию и Кэширование
-
 25. **Ретро-симуляция:** `TICK_CATCHUP` с циклом `LifeEngine.tick()` ❌ → только `reconcile_state(elapsed_seconds)` (ADR-047)
 26. **Кэш-фантомы:** Не очищен `__pycache__` после рефакторинга DTO ❌ → обязательная очистка перед запуском
 27. **Кэширование EffectiveDrives (L3):** Эфемерная проекция, пересчитывается каждый тик. Кэш = рассинхрон идентичности (L3-P1)
@@ -340,7 +318,6 @@ GameLoop (не ядро): PerceptionProjector
 29. **Phantom Identity Drift:** Запуск `check_identity_promotion` (L2.5) в idle без `phase_2_events` ❌ → память не генерирует идентичность без каузального входа (ADR-S86.7)
 
 ### 4.5. Запреты на Время и Пространство
-
 30. **Зависимость времени от игрока:**
     ❌ `tick += 1` внутри `player.action()`
     ✅ `game_time_seconds += GAME_TICK_INTERVAL_SECONDS` в Фазе 0.5 (всегда)
@@ -354,7 +331,6 @@ GameLoop (не ядро): PerceptionProjector
 38. **Голый DecisionHub():** `DecisionHub()` без `rng` ❌ (ADR-O-301)
 
 ### 4.6. Запреты на Физиологию и Бой
-
 39. **HP Death:** `hp <= 0` как источник смерти ❌ → единственный владелец — `evaluate_vital_state()` (ADR-123)
 40. **Death Lock:** `if state.body_state:` (falsy dict) ❌ → `is not None`. Decay для мёртвых запрещён. Переход `DEAD → ALIVE` через физиологию запрещён (ADR-127)
 41. **Shock Immortality:** `shock_impulse` без decay ❌ → перманентный шок (ADR-109)
@@ -364,18 +340,13 @@ GameLoop (не ядро): PerceptionProjector
 45. **Мёртвый NPC в pipeline:** Генерация интентов/дельт для NPC с `life_status="DEAD"` ❌ → исключение до Фазы 1 (ADR-S93.1)
 
 ### 4.7. Запреты на LLM и Материализацию
-
 46. **LLM в ядре:** Вызов LLM или блокирующего I/O внутри `TickOrchestrator` / `DecisionHub` ❌ → только через `TaskScheduler` + `TaskExecutor` (ADR-O-313)
 47. **Фейковый нарратив:** Фейковый нарратив при краше LLM ("Твоё сознание мутнеет...") ❌ → честная ошибка + retry (ADR-113)
 48. **MockProvider в production:** `settings.environment == "production"` + `MockProvider` ❌
 49. **Парсинг JSON в DM-агенте:** `dm_agent.py` парсит JSON-схемы ❌ → `DMResponseNormalizer` (ADR-TZ05-2)
 
 ### 4.8. Предусловия исполнения движения
-
-Движение не может быть запущено только на основании наличия
-`MovementIntent`.
-
-Перед созданием `TraversalState` должны быть подтверждены:
+Движение не может быть запущено только на основании наличия `MovementIntent`. Перед созданием `TraversalState` должны быть подтверждены:
 
 1. Actor Spatial State valid.
 2. Actor `location_id` совпадает с graph zone.
@@ -386,12 +357,9 @@ GameLoop (не ядро): PerceptionProjector
 7. A* graph был скомпилирован из актуальной topology source.
 8. Required topology connections существуют.
 9. Dynamic obstacles не делают маршрут непроходимым.
-10. Если `start_node == target_node`, результатом является `ALREADY_AT_TARGET`,
-    а не `A_STAR_FAILED`.
-11. Если `find_path()` возвращает `[start_node]`, это успешное состояние
-    с нулевым traversal distance.
-12. `A_STAR_FAILED` должен означать именно отсутствие маршрута,
-    а не:
+10. Если `start_node == target_node`, результатом является `ALREADY_AT_TARGET`, а не `A_STAR_FAILED`.
+11. Если `find_path()` возвращает `[start_node]`, это успешное состояние с нулевым traversal distance.
+12. `A_STAR_FAILED` должен означать именно отсутствие маршрута, а не:
     - actor position corruption;
     - missing target node;
     - disconnected graph;
@@ -417,7 +385,6 @@ GameLoop (не ядро): PerceptionProjector
 
 ### 6.1. Инерция личности (от L1)
 Личность **сопротивляется** изменениям. Запрещена моментальная мутация статов.
-
 ```python
 new_value = (old_value * core.rigidity) + (delta * (1 - core.rigidity))
 ```
@@ -430,7 +397,7 @@ new_value = (old_value * core.rigidity) + (delta * (1 - core.rigidity))
 
 ### 6.4. Каузальная труба диалогов (ADR-O-313)
 Тяжёлые процессы (разговор, торговля) отделены от симуляции:
-```
+```text
 Need → Decision (Intent) → Task (Queue) → Materialization (Worker) → Event (Projection)
 ```
 `TickOrchestrator` создаёт `Task`, кладёт в `scene_state["pending_tasks"]`. `TaskScheduler` (в `game_loop`) исполняет через `TaskExecutor`, возвращает `Artifact`. `Materializer` публикует `WorldEvent` в `EventBus`.
@@ -444,7 +411,6 @@ L1Chronicle каждого NPC — персонализированная зап
 ---
 
 ## 7. МИГРАЦИЯ ЗНАНИЙ: Из чего взяли этот контракт
-
 - **ADR-031** (WillpowerGate & Hybrid Consciousness)
 - **ADR-035** (Semantic Compression)
 - **ADR-037** (Affective Distortion)
@@ -499,18 +465,18 @@ L1Chronicle каждого NPC — персонализированная зап
 - `test_apply_changes_does_not_overwrite_active_traversal`
 - `test_apply_changes_snaps_position_on_traversal_complete`
 - `test_asymmetric_trauma_x6`
-test_spatial_state_rejects_invalid_zero_position
-test_spatial_state_reconciles_stale_persistence
-test_position_resolves_to_current_topology_node
-test_current_node_belongs_to_current_spatial_service
-test_location_id_matches_spatial_graph
-test_start_node_equals_target_is_success
-test_single_node_path_is_not_astar_failure
-test_missing_topology_edge_is_diagnosed
-test_blocked_edge_reports_obstacle_cause
-test_door_wall_id_opens_wall_segment
-test_adjacency_compiles_boundary_node
-test_movement_requires_spatial_coherence
+- `test_spatial_state_rejects_invalid_zero_position`
+- `test_spatial_state_reconciles_stale_persistence`
+- `test_position_resolves_to_current_topology_node`
+- `test_current_node_belongs_to_current_spatial_service`
+- `test_location_id_matches_spatial_graph`
+- `test_start_node_equals_target_is_success`
+- `test_single_node_path_is_not_astar_failure`
+- `test_missing_topology_edge_is_diagnosed`
+- `test_blocked_edge_reports_obstacle_cause`
+- `test_door_wall_id_opens_wall_segment`
+- `test_adjacency_compiles_boundary_node`
+- `test_movement_requires_spatial_coherence`
 
 Invariant Probe Tests (IPT) запускаются до коммита: `python backend/tests/IPT.py`.
 

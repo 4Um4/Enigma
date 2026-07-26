@@ -279,7 +279,7 @@ class MovementEngine:
                                         tick=tick,
                                         target_location_id=target_loc,
                                         target_local_xy=(target_node_obj.x, target_node_obj.y),
-                                        traversal_proposal=None, # Мгновенный перенос (портал)
+                                        traversal_proposal=None, # Мгновенный перенос (портал), контракт не требуется
                                     )
                                 ])
                                 continue # Переходим к следующему NPC, этот уже материализован

@@ -299,6 +299,57 @@ class EventCompiler:
         NPC уже завершил движение, материализуем в новом чанке.
         SceneChange = semantic, EventCompiler = geometric resolver.
         """
+        # S-142 FIX: Кросс-локационный перенос (snap) не является traversal.
+        _explicit_target_loc = getattr(change, "target_location_id", "")
+        # S-142.2: Доверяем cause от MovementEngine (SSOT физики). 
+        # Если он пометил change как cross_loc_materialize — это snap, даже если snapshot desync'нут.
+        _is_cross_loc_snap = "cross_loc_materialize" in getattr(change, "cause", "")
+        
+        if _is_cross_loc_snap or (_explicit_target_loc and _explicit_target_loc != snapshot.location_id):
+            _target_loc = _explicit_target_loc or snapshot.location_id
+            
+            # S-142.1: Честный source_xy из snapshot. Нельзя подставлять (0.0, 0.0) — это ложный факт.
+            _src_xy = (0.0, 0.0)
+            _npc_pos = snapshot.npc_positions.get(change.target, {})
+            _lp = _npc_pos.get("local_position")
+            if isinstance(_lp, dict) and isinstance(_lp.get("x"), (int, float)):
+                _src_xy = (float(_lp["x"]), float(_lp["y"]))
+
+            # Формируем spatial без source_node, так как мы покинули старую локацию
+            spatial = SpatialResolution(
+                source_location=snapshot.location_id,
+                target_location=_target_loc,
+                source_node="",
+                target_node=change.value,
+                source_xy=_src_xy,
+                target_xy=getattr(change, "target_local_xy", (0.0, 0.0)),
+            )
+            return ThickSceneChange(
+                change_type=change.type.value,
+                target=change.target,
+                field=change.field,
+                value=change.value,
+                cause=change.cause,
+                tick=change.tick,
+                target_local_xy=getattr(change, "target_local_xy", None),
+                target_location_id=_target_loc,
+                spatial=spatial,
+                motion=MotionPlan(
+                    is_teleport=True,
+                    is_path_blocked=False,
+                    waypoints=(),
+                    distance=0.0,
+                    duration_ticks=0,
+                    speed=0.0,
+                ),
+                traversal=None, # ADR-TRAV-FSM: Snap не создаёт traversal
+                boundary=BoundaryResolution(
+                    is_boundary=True,
+                    neighbor_chunk=_target_loc,
+                    entry_node=change.value,
+                ),
+            )
+
         # E18-E19: Boundary resolution (из snapshot, не из live query)
         is_boundary = False
         neighbor_chunk = ""

@@ -5,9 +5,6 @@
 НЕ ЗНАЕТ о MovementIntent. Искривляет только utility-space цели.
 Зависимости: app.domain.events, app.models.cfrm
 Основные сущности: DirectiveInterpretationSubscriber
-
-
-TODO
 """
 
 import logging

@@ -75,8 +75,8 @@
       "display": "serving_tables"
     },
     "sleeping": {
-      "location": "tavern_silver_wolf",
-      "position": "kitchen",
+      "location": "tavern",
+      "position": "kitchen_bed_1",
       "display": "sleeping"
     },
     "eating": {

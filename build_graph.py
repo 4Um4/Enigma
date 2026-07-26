@@ -142,7 +142,10 @@ class ArchitectureGraphBuilder:
             else:
                 arrow = "-->"
 
-            out += f'    {from_node} {arrow}|"{label}"| {to_node}\n'
+            if label:
+                out += f'    {from_node} {arrow}|"{label}"| {to_node}\n'
+            else:
+                out += f'    {from_node} {arrow} {to_node}\n'
 
         out += "\n    %% === АРХИТЕКТУРНЫЕ ЗАПРЕТЫ ===\n"
         for constraint in self.constraints:
@@ -160,6 +163,9 @@ class ArchitectureGraphBuilder:
         out = "\n## ⏱ Временные Диаграммы (Sequence Diagrams)\n\n"
 
         for seq in self.sequences:
+            if not seq.get("steps"):
+                continue
+
             title = seq.get("title", "Interaction")
             out += f"### {title}\n\n"
             out += "```mermaid\n"

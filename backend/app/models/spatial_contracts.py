@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/models/spatial_contracts.py
 # Назначение: Контракты SpatialService v1.2 — типы, Enum, dataclass
@@ -7,7 +7,6 @@ from __future__ import annotations
 # Основные сущности: NodeRole, Urgency, NodeRef, SpatialOverlay, NPCPathState
 
 """
-TODO:
 - Возможно, добавить дополнительные поля в NodeRef для поддержки будущих фич (например, size, capacity, etc.)
 - В SpatialOverlay можно добавить методы для удобного обновления состояния (например, блокировка узла, открытие двери, установка плотности толпы)
 - В NPCPathState можно добавить поле для хранения предыдущего пути, чтобы при инвалидации кэша можно было сравнить новый путь с предыдущим и принять решение о необходимости пересчёта

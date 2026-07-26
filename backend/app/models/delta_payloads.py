@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 path: backend/app/models/delta_payloads.py
 Назначение: Типизированные payload'ы для StateDeltas v2 (Domain-Tagged Typed Payloads).
@@ -9,7 +9,6 @@ path: backend/app/models/delta_payloads.py
 Это предотвращает «Unity syndrome» — потерю discoverability через string keys.
 IDE видит поля, опечатка вызывает TypeError, рефакторинг делается в один клик.
 
-TODO:
 - Добавить SpatialPayload для пространственных дельт.
 """
 

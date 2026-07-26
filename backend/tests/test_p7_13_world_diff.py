@@ -70,12 +70,9 @@ class TestP713WorldDiff:
         assert "maid_lusya_escape" in diff.world_events
 
     def test_diff_contains_relationship_changes(self, setup):
-        truth, fate, faction, fabric, model = setup
-        builder = WorldDiffBuilder()
-        diff = builder.build(truth, fate, faction, fabric, model)
-        
-        assert "maid_lusya" in diff.relationship_changes
-        assert diff.relationship_changes["maid_lusya"]["trust"] == -30.0
+        # P7-13 FIX: Отношения не переносятся между кампаниями (строгий контракт WorldStateDiff).
+        # Этот тест удалён, так как поле relationship_changes больше не существует.
+        pytest.skip("P7-13: Отношения не переносятся между кампаниями")
 
     def test_diff_contains_faction_reputation(self, setup):
         truth, fate, faction, fabric, model = setup

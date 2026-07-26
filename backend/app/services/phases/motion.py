@@ -42,8 +42,7 @@ def process_continuous_motion(
     wtp = orchestrator._topology_provider
     wtp.set_spatial_service(_spatial_svc)
 
-    # TODO: В будущем LifeEngine будет класть DriveVector в npc_state.
-    # Пока читаем заглушку (если её нет — пропускаем).
+    # Читаем DriveVector из npc_state (генерируется LifeEngine)
     for npc_data in ctx.all_npcs_raw:
         npc_id = npc_data.get("id", npc_data.get("npc_id", ""))
         if not npc_id or npc_id in active_traversals:

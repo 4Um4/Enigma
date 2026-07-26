@@ -266,7 +266,9 @@ class BackendContract:
     def new_game(self, campaign_id: str, continuity_mode: str = "isolated", source_campaign_id: str = "") -> dict:
         """ADR-O-146: POST /api/game/new/{campaign_id}"""
         payload = {"continuity_mode": continuity_mode, "source_campaign_id": source_campaign_id}
+        print(f"[DIAG_HTTP] POST /api/game/new/{campaign_id} payload={payload}", flush=True)
         result = self._t.post(f"/api/game/new/{campaign_id}", payload)
+        print(f"[DIAG_HTTP] POST result: {result}", flush=True)
         if not isinstance(result, dict):
             raise BackendError(f"Backend returned non-dict for new_game: {result}")
         return result
@@ -296,26 +298,21 @@ class BackendContract:
             {"campaign_id": campaign_id, "world_id": world_id},
         )
 
-    def new_game(
-        self,
-        campaign_id: str,
-        continuity_mode: str = "isolated",
-        source_campaign_id: str = ""
-    ) -> dict:
-        """ADR-O-146: Сброс runtime мира к чистому static. Опционально применяет WorldStateDiff."""
-        ...
-
     @staticmethod
     def _map_action_response(raw: dict) -> GameActionResponse:
         """Маппинг JSON → доменный объект. Единственное место с полями ответа."""
+        _world_snapshot = raw.get("world_snapshot") or {}
         return GameActionResponse(
             dm_response=raw.get("response", ""),
             npc_reactions=raw.get("npc_reactions", []),
             world_changes=raw.get("world_changes", []),
             journal_entry_id=raw.get("journal_entry_id"),
-            game_time_seconds=raw.get("game_time_seconds", 0),
+            game_time_seconds=raw.get(
+                "game_time_seconds",
+                _world_snapshot.get("game_time_seconds", 0),
+            ),
             # TASK 1: Force Merge — пробрасываем snapshot позиций (ADR-0014)
-            world_snapshot=raw.get("world_snapshot"),
+            world_snapshot=_world_snapshot,
             npc_positions=raw.get("npc_positions"),
             # Resistance Medium: Проброс конфликта воли
             will_conflict_data=raw.get("will_conflict_data"),
@@ -751,12 +748,17 @@ class FallbackGateway:
     ) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
+            print(f"[DIAG_CLIENT] Calling primary.new_game... (type: {type(self._primary).__name__})", flush=True)
             result = self._primary.new_game(campaign_id, continuity_mode, source_campaign_id)
+            print(f"[DIAG_CLIENT] Primary returned: {result} (type: {type(result).__name__})", flush=True)
             self._primary_healthy = True
             return result
-        except Exception:
+        except Exception as e:
+            print(f"[DIAG_CLIENT] Primary failed: {e}", flush=True)
             self._primary_healthy = False
-            return self._fallback.new_game(campaign_id, continuity_mode, source_campaign_id)
+            fb_result = self._fallback.new_game(campaign_id, continuity_mode, source_campaign_id)
+            print(f"[DIAG_CLIENT] Fallback returned: {fb_result}", flush=True)
+            return fb_result
 
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
         try:

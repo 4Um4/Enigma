@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/events/perception_subscriber.py
 #
@@ -13,7 +13,6 @@ path: backend/app/services/events/perception_subscriber.py
 Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
 Основные сущности: PerceptionSubscriber (Phase8Handler)
 
-TODO:
 - [ ] Phase 3B.4: поддержка асинхронной очереди для world_tick
 - [ ] Phase 3E: расширение для FactionSystem (восприятие по фракциям)
 - [ ] Логирование и метрики: сколько NPC воспринимает каждое событие, какие типы событий чаще всего влияют на восприятие

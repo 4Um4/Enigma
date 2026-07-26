@@ -40,6 +40,7 @@ from app.services.llm.provider_manager import get_model_pool
 from app.services.llm.router import get_router
 from app.services.player_session_service import player_session_service
 from app.services.readiness import ReadinessService
+from app.services.spatial.spatial_observatory_service import SpatialObservatoryService
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ router = APIRouter()
 readiness_service = ReadinessService()
 character_service = CharacterService(root=str(settings.saves_dir))
 combat_service = CombatService()
+observatory_service = SpatialObservatoryService()
 # knowledge_ingest создаётся внутри функции (строка 198)
 campaign_service = get_campaign_state_service()
 
@@ -189,7 +191,6 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     Делегирует GameLoop.idle_tick() → TickOrchestrator (10 фаз, Устав §3).
     """
     try:
-        print(f"[ARCHAE_ROUTE_IDLE] campaign_id={campaign_id}")
         _result = game_loop.idle_tick(campaign_id)
 
         # npc_positions из world_snapshot через конвертер (обратная совместимость)
@@ -851,3 +852,34 @@ def select_player(request: PlayerSelectRequest) -> PlayerSelectResponse:
         )
     player_session_service.select_player(request.campaign_id, request.player)
     return PlayerSelectResponse(status="ok", player=request.player)
+
+# ── ADR-O-330: Spatial Observatory API ──────────────────────────────
+@router.post("/spatial/observatory")
+async def spatial_observatory_inspect(payload: dict = Body(...)):
+    """
+    Принимает черновик карты (editor_data) и опционально агентов (agents_data),
+    прогоняет их через канонический Spatial Kernel и возвращает ObservatoryDTO.
+    """
+    from dataclasses import asdict
+    
+    campaign_id = payload.get("campaign_id", "Open_road")
+    location_id = payload.get("location_id", "tavern_silver_wolf")
+    editor_data = payload.get("editor_data", {})
+    agents_data = payload.get("agents_data", {}) # Опционально, для topology-only inspection
+    
+    if not editor_data:
+        raise HTTPException(status_code=400, detail="editor_data is required")
+        
+    try:
+        result_dto = observatory_service.inspect(
+            campaign_id=campaign_id,
+            location_id=location_id,
+            editor_data=editor_data,
+            agents_data=agents_data
+        )
+        return asdict(result_dto)
+    except Exception as e:
+        import traceback
+        traceback.print_exc() # Выводим полный traceback в консоль
+        logger.error(f"[OBSERVATORY_API] Error during inspection: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

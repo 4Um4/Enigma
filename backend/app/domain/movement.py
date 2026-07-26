@@ -1,10 +1,9 @@
-"""
+﻿"""
 path: backend/app/domain/movement.py
 Назначение: Intent перемещения NPC. Пересекает границу Decision → Execution.
 Зависимости: dataclasses
 Основные сущности: MovementIntent
 
-TODO:
 - В будущем можно расширить до более сложной иерархии (например, MacroMovementIntent, LocalSteeringIntent), если потребуется более четкое разделение между разными типами перемещения.
 """
 from __future__ import annotations
@@ -40,7 +39,8 @@ class MacroMovementGoal:
     """
 
     actor_id: str  # ADR-O-314: Actor-Agnostic ("player", "tornin")
-    target_node_id: str  # "behind_bar", "corner_table", "main_hall"
+    target_node_id: str = ""  # ADR-O-330: Заполняется адаптером, если есть target_intent
+    target_intent: Optional[SpatialTargetIntent] = None  # ADR-O-330: Семантическая цель
     from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
     location_id: str = ""  # для загрузки правильного графа
     reason: str = ""  # "need_driven:hunger", "schedule:working"

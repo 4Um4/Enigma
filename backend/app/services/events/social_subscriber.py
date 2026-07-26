@@ -1,29 +1,24 @@
-from __future__ import annotations
-
-# backend/app/services/events/social_subscriber.py
-#
-# Устав §5.1: EventBus.publish() — единственная точка входа событий.
-# SocialSubscriber подписан на шину, накапливает EventDTO.
-# Фаза 8: drain_events() + handle() — детерминированный drain-этап.
-# Шина для фактов, Фаза 8 для обработки. Никаких мета-событий.
-#
-# propagate_social_rumors() — чистая функция, возвращает List[StateDeltas].
-# Оркестратор применяет дельты к all_npcs_raw в _apply_phase8_result().
-# TODO: trust_delta → RelationshipStore (нужен target от SocialEngine).
-"""
+﻿"""
 path: backend/app/services/events/social_subscriber.py
 Назначение: Phase8Handler — социальная пропагация (Устав §5.1 + §3 Фаза 8)
 Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
 Основные сущности: SocialSubscriber (Phase8Handler)
 
-TODO:
+Устав §5.1: EventBus.publish() — единственная точка входа событий.
+SocialSubscriber подписан на шину, накапливает EventDTO.
+Фаза 8: drain_events() + handle() — детерминированный drain-этап.
+Шина для фактов, Фаза 8 для обработки. Никаких мета-событий.
+
+propagate_social_rumors() — чистая функция, возвращает List[StateDeltas].
+Оркестратор применяет дельты к all_npcs_raw в _apply_phase8_result().
+
 - [ ] Phase 3B.4: поддержка асинхронной очереди для world_tick
 - [ ] Phase 3E: расширение для FactionSystem (пропагация по фракциям)
 - [ ] Логирование и метрики: сколько NPC затрагивает социальная пропагация, какие типы событий чаще всего влияют на социальные отношения
 - [ ] Тесты: юнит-тесты для SocialSubscriber, интеграционные тесты с EventBus и SocialEngine
 """
 
-
+from __future__ import annotations
 import logging
 from typing import Any, Callable, Dict, List, Optional
 

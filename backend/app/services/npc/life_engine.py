@@ -289,8 +289,8 @@ class LifeEngine:
         - Стресс: нормализуется к baseline
         - События: агрегированная вероятность
         """
-        # TODO: Восстановить get_idle_seconds после рефакторинга TimeSkip.
-        # Временно отключено, так как метод был утерян при рефакторинге.
+        # ADR-O-302: get_idle_seconds удалён. Ретросимуляция запрещена.
+        # macro_simulate вырождена в tick() до полной ликвидации мёртвого кода.
         idle_seconds = 0.0
 
         if idle_seconds < MACRO_SIM_THRESHOLD_SECONDS:
@@ -1310,7 +1310,6 @@ class LifeEngine:
                 npc["location_id"] = npc.get("location", DEFAULT_LOCATION_ID)
         return npcs
 
-    # TODO Rename this here and in `_load_npcs`
     def _extracted_from__load_npcs_14(self, arg0, campaign_id):
         npcs = json.loads(arg0.read_text(encoding="utf-8"))
         npcs = self._normalize_runtime_npcs(npcs)
@@ -1396,17 +1395,16 @@ class LifeEngine:
         npc_id = npc.get("id", "unknown")
         location = npc.get("location_id", DEFAULT_LOCATION_ID)
 
-        # Резолвим BAR узел через SpatialService v1.2, fallback на хардкод
-        bar_target = "bar_area"  # @deprecated: fallback
-        if self._spatial_service:
-            from app.models.spatial_contracts import NodeRole
+        from app.domain.spatial_target import SpatialTargetIntent, SpatialTargetType
 
-            if bar_ref := self._spatial_service.resolve_node(
-                role=NodeRole.BAR,
-                origin_zone=location,
-            ):
-                # MovementEngine ожидает legacy-ID, денормализуем
-                bar_target = self._spatial_service.denormalize_id(bar_ref.node_id)
+        # ADR-O-330: LifeEngine формирует только семантическое намерение (SA-1).
+        # Поиск физического узла делегирован SpatialTargetResolver.
+        bar_intent = SpatialTargetIntent(
+            target_type=SpatialTargetType.ANCHOR,
+            target_id="bar",
+            reason="random:wanders_to_bar",
+            confidence=0.8
+        )
 
         events = [
             # NPC переходит к стойке поговорить с кем-то
@@ -1424,7 +1422,7 @@ class LifeEngine:
                 ],
                 MacroMovementGoal(
                     actor_id=npc_id,
-                    target_node_id=bar_target,
+                    target_intent=bar_intent,
                     from_node_id=npc.get("position", ""),
                     location_id=location,
                     reason="random:wanders_to_bar",
@@ -2189,10 +2187,12 @@ class LifeEngine:
             )
 
         if new_activity == prev_activity:
+            print(f"[DIAG_S140] {npc_id}: new={new_activity} == prev={prev_activity}")
             # S140: Spatial Verification. Если активность не сменилась, но NPC не на месте —
             # продолжаем генерировать MacroMovementGoal, пока он не дойдёт.
             _resolved = self._resolve_position(npc, new_activity)
             if not _resolved:
+                print(f"[DIAG_S140] {npc_id}: _resolve_position returned None (1)")
                 return [], None
 
             _exp_loc, _exp_pos, _ = _resolved
@@ -2202,6 +2202,7 @@ class LifeEngine:
             # Нормализуем для сравнения
             _norm_exp_pos = _exp_pos if ":" in _exp_pos else f"{_exp_loc}:{_exp_pos}"
             _norm_cur_pos = _cur_pos if ":" in _cur_pos else f"{_cur_loc}:{_cur_pos}"
+            print(f"[DIAG_S140] {npc_id}: exp_pos={_norm_exp_pos} cur_pos={_norm_cur_pos}")
 
             if _norm_exp_pos == _norm_cur_pos:
                 logger.debug(f"[LIFE_ENGINE] {npc_id}: already at {_exp_pos} for {new_activity}.")
@@ -2218,7 +2219,9 @@ class LifeEngine:
                 else 0.0
             )
             _stress = npc.get("stress", 0.0)
+            print(f"[DIAG_GAP9] {npc_id}: threat={_threat:.2f} stress={_stress:.2f}")
             if _threat > 0.3 or _stress > 50:
+                print(f"[DIAG_GAP9] {npc_id}: SLEEP BYPASSED!")
                 logger.debug(
                     f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}"
                 )

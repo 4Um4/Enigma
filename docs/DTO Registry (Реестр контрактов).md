@@ -161,6 +161,7 @@
 - **`NPCState.body_state`** (`models/npc_state.py`): Dict. Ключи: `current_hp`, `pain` (0-100), `fatigue` (0-100), `blood_loss` (0-1.0), `consciousness` (0-1.0), `shock_impulse` (0-1.0), `injuries`, **`life_status` (str: "ALIVE"/"DEAD", ADR-123/127)**. **ADR-100/127:** Обязательная сериализация.
 - **`NPCState.hp` / `NPCState.max_hp`** (`models/npc_state.py`): DEPRECATED. Канонический источник HP — `body_state["current_hp"]`. Свойства `effective_hp` и `effective_max_hp` читают из `body_state` с fallback на `hp` (ADR-HP-UNIFICATION, S86).
 - **`ImpactIntentDTO`** (`models/impact.py`): Контракт физического контакта (удар, касание). Генерируется CombatSubscriber, потребляется ImpactEngine.
+- **`attack_roll`** (`services/combat/combat_math.py`): **Канонический контракт боевой математики (ADR-164)**. Функция вычисления броска атаки (D&D 5e) с использованием `KernelRNG`. Возвращает результат маппинга на `ContactLevel` (MISS, GLANCING, PARTIAL, SOLID, PERFECT). Вызывается исключительно в `ImpactEngine._resolve_contact`.
 - **`ImpactEngine`** (`services/combat/impact_engine.py`): Физический интегратор. **ADR-164 (S118):** `_resolve_contact` переведён с `rng.random()` на вызов `attack_roll` из `combat_math.py` (D&D 5e). Результаты (Hit/Miss/Crit) маппятся на `ContactLevel` (MISS, GLANCING, PARTIAL, SOLID, PERFECT).
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Контракт §4.2):**

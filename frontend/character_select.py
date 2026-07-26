@@ -644,13 +644,13 @@ class CharacterSelectScreen:
                 elif self._dialog_focus == key:
                     # Курсор
                     cursor_surf = self.font_desc.render(
-                        "|", True, _COLORS["accent_blue"]
+                        "|", True, _COLORS["accent_amber"]
                     )
                     self.screen.blit(cursor_surf, (field_rect.x + 6, field_rect.y + 6))
             elif key == "archetype":
                 val = self._archetypes[self._archetype_idx]
                 text_surf = self.font_desc.render(
-                    f"<  {val}  >", True, _COLORS["accent_blue"]
+                    f"<  {val}  >", True, _COLORS["accent_amber"]
                 )
                 self.screen.blit(
                     text_surf, text_surf.get_rect(center=field_rect.center)
@@ -658,7 +658,7 @@ class CharacterSelectScreen:
             elif key == "temperament":
                 val = self._temperaments[self._temperament_idx]
                 text_surf = self.font_desc.render(
-                    f"<  {val}  >", True, _COLORS["accent_blue"]
+                    f"<  {val}  >", True, _COLORS["accent_amber"]
                 )
                 self.screen.blit(
                     text_surf, text_surf.get_rect(center=field_rect.center)

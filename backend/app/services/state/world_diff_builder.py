@@ -68,7 +68,6 @@ class WorldDiffBuilder:
 
         return WorldStateDiff(
             npc_fates=npc_fates,
-            relationship_changes=rel_changes,
             faction_alignments=faction_alignments,
             secrets_exposed=secrets_exposed,
             world_events=world_events,

@@ -93,8 +93,8 @@
       "display": "drinking"
     },
     "sleeping": {
-      "location": "tavern_silver_wolf",
-      "position": "fireplace",
+      "location": "tavern",
+      "position": "kitchen_bed_2",
       "display": "sleeping"
     }
   },

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
+    print(f"[DIAG_SIM_RUN] ENTER for tick={ctx.tick_number}")
     """LifeEngine: need-driven, schedule, random events. Чистый Python.
 
     Применяет изменения сразу — phase 5 (Decision) должен видеть свежий state.

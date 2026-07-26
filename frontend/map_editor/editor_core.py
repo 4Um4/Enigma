@@ -5,6 +5,8 @@ map_editor/editor_core.py
 
 import json
 import math
+import urllib.request
+import urllib.error
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -305,6 +307,19 @@ class EditorCore:
             on_toggle=lambda s: self._set_tool(TOOL_DELETE) if s else None,
         )
         self.toolbar_buttons.append(self.btn_tool_delete)
+
+        # Группа: Observatory (ADR-O-330)
+        x += 100
+        self.btn_simulate = Button(
+            x,
+            toolbar_y,
+            120,
+            32,
+            "▶ Симуляция",
+            on_click=self._toggle_simulation,
+        )
+        self.toolbar_buttons.append(self.btn_simulate)
+        self.observatory_data = None
 
         # === Панель свойств ===
         panel_x = screen_w - self.panel_width
@@ -682,6 +697,73 @@ class EditorCore:
             self.dm.save(self.current_file)
         self._rebuild_spatial_registry()
         self._show_toast(f"Сохранено: {self.current_file}")
+
+    def _toggle_simulation(self):
+        """Включает/выключает режим Spatial Observatory."""
+        if not self.current_file or self.mode != MODE_LOCAL:
+            self._show_toast("Симуляция доступна только в локации")
+            return
+
+        if self.observatory_data:
+            self.observatory_data = None
+            self._show_toast("Симуляция выключена")
+            return
+
+        self._show_toast("Запрос симуляции...")
+        import urllib.request
+        import json
+
+        # 1. Собираем данные карты из памяти редактора
+        editor_data = self.dm.locations.get(self.current_file)
+        if not editor_data:
+            self._show_toast("Нет данных локации")
+            return
+
+        # 2. Собираем фиктивных агентов для теста путей
+        # (В будущем будем брать реальных NPC из сцены)
+        agents_data = {}
+        for npc in editor_data.get("npcs", []):
+            npc_id = npc.get("ref_id")
+            pos = npc.get("position", {"x": 5.0, "y": 5.0})
+            if npc_id:
+                agents_data[npc_id] = {
+                    "position": "",  # Канонический ID узла неизвестен редактору, оставляем пустым для overlay
+                    "local_position": pos,  # Координаты для Observatory и Resolver
+                    "intent": {
+                        "target_type": "ANCHOR",
+                        "target_id": "bar", # Тестовая цель для всех
+                        "reason": "test_sim"
+                    }
+                }
+
+        # 3. Отправляем POST запрос на бэкенд
+        payload = {
+            "campaign_id": "Open_road",
+            "location_id": self.current_file.replace(".json", ""),
+            "editor_data": editor_data,
+            "agents_data": agents_data
+        }
+        
+        try:
+            req = urllib.request.Request(
+                "http://localhost:8000/api/spatial/observatory",
+                data=json.dumps(payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=5.0) as response:
+                self.observatory_data = json.loads(response.read().decode('utf-8'))
+            self._show_toast("Симуляция загружена")
+        except urllib.error.HTTPError as e:
+            # Читаем тело ответа с ошибкой от FastAPI
+            error_body = e.read().decode('utf-8')
+            print(f"[OBSERVATORY_API_ERROR] {error_body}")  # Вывод в консоль
+            self._show_toast(f"Ошибка 500: {error_body[:200]}")
+            self.observatory_data = None
+        except Exception as e:
+            print(f"[OBSERVATORY_ERROR] {e}")
+            self._show_toast(f"Ошибка API: {e}")
+            self.observatory_data = None
 
     def _dialog_save_as(self):
         """Сохраняет локацию в выбранную папку через проводник"""
@@ -2807,6 +2889,46 @@ class EditorCore:
 
         # Выделение
         self._draw_selection()
+
+        # ADR-O-330: Spatial Observatory Overlay
+        if self.observatory_data:
+            self._draw_observatory()
+
+    def _draw_observatory(self):
+        """Рисует топологию и пути из ObservatoryDTO."""
+        if not self.observatory_data:
+            return
+
+        # 1. Рисуем ребра графа (топология)
+        for edge in self.observatory_data.get("topology", {}).get("edges", []):
+            from_node = next((n for n in self.observatory_data["topology"]["nodes"] if n["node_id"] == edge["from_node_id"]), None)
+            to_node = next((n for n in self.observatory_data["topology"]["nodes"] if n["node_id"] == edge["to_node_id"]), None)
+            if from_node and to_node:
+                p1 = self.world_to_screen(from_node["position"][0], from_node["position"][1])
+                p2 = self.world_to_screen(to_node["position"][0], to_node["position"][1])
+                color = (50, 50, 50) if edge.get("traversable", True) else (255, 0, 0)
+                pygame.draw.line(self.screen, color, p1, p2, 1)
+
+        # 2. Рисуем узлы графа
+        for node in self.observatory_data.get("topology", {}).get("nodes", []):
+            sx, sy = self.world_to_screen(node["position"][0], node["position"][1])
+            color = (255, 255, 0) if node.get("is_boundary") else (0, 255, 255)
+            pygame.draw.circle(self.screen, color, (int(sx), int(sy)), 4)
+
+        # 3. Рисуем пути NPC
+        for agent in self.observatory_data.get("agents", []):
+            path = agent.get("path")
+            if not path or not path.get("points"):
+                continue
+            
+            points = []
+            for p in path["points"]:
+                sx, sy = self.world_to_screen(p[0], p[1])
+                points.append((int(sx), int(sy)))
+            
+            if len(points) >= 2:
+                color = (0, 255, 0) if path.get("status") == "OK" else (255, 0, 0)
+                pygame.draw.lines(self.screen, color, False, points, 2)
 
     def _draw_local_grid(self):
         """Отрисовывает локальную сетку"""

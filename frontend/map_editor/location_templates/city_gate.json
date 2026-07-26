@@ -2823,84 +2823,6 @@
       }
     },
     {
-      "id": "obj_100",
-      "name": "Кровать №1",
-      "type": "bed",
-      "position": {
-        "x": 43.0,
-        "y": -18.5
-      },
-      "size": {
-        "w": 2.0,
-        "h": 1.0,
-        "d": 0.6
-      },
-      "rotation": "",
-      "passability": {
-        "walk": false,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.2,
-      "color": "#8B4513",
-      "show_name": false,
-      "properties": {}
-    },
-    {
-      "id": "obj_101",
-      "name": "Кровать №2",
-      "type": "bed",
-      "position": {
-        "x": -8.0,
-        "y": -23.5
-      },
-      "size": {
-        "w": 2.0,
-        "h": 1.0,
-        "d": 0.6
-      },
-      "rotation": "",
-      "passability": {
-        "walk": false,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.2,
-      "color": "#8B4513",
-      "show_name": false,
-      "properties": {}
-    },
-    {
-      "id": "obj_102",
-      "name": "Кровать №3",
-      "type": "bed",
-      "position": {
-        "x": -9.5,
-        "y": 30.5
-      },
-      "size": {
-        "w": 2.0,
-        "h": 1.0,
-        "d": 0.6
-      },
-      "rotation": "",
-      "passability": {
-        "walk": false,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.2,
-      "color": "#8B4513",
-      "show_name": false,
-      "properties": {}
-    },
-    {
       "id": "obj_103",
       "name": "Кровать №4",
       "type": "bed",
@@ -2951,12 +2873,43 @@
       "color": "#8B4513",
       "show_name": false,
       "properties": {}
+    },
+    {
+      "id": "obj_107",
+      "name": "Кровать №8",
+      "type": "bed",
+      "position": {
+        "x": 14.34463537102131,
+        "y": 0.6299310844462855
+      },
+      "size": {
+        "w": 2.0,
+        "h": 1.0,
+        "d": 0.6
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.2,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
     }
   ],
   "passages": [],
   "npcs": [],
   "labels": [],
   "nodes": {},
-  "modified_at": "2026-06-12T19:41:16.770455",
-  "global_coords": true
+  "modified_at": "2026-07-26T21:31:53.160813",
+  "global_coords": true,
+  "player_spawn": {
+    "x": 20.833333333333332,
+    "y": 0.9583333333333334,
+    "z": 0
+  }
 }

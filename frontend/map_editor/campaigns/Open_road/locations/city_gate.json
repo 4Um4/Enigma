@@ -2004,7 +2004,17 @@
         "guard_post"
       ],
       "connections": [
-        "gate_arch"
+        "gate_arch",
+        "guard_bed"
+      ]
+    },
+    "guard_bed": {
+      "x": 17.0,
+      "y": 3.5,
+      "label": "Кровать в караульне",
+      "role": "bed",
+      "connections": [
+        "guard_post"
       ]
     },
     "gate_courtyard": {
@@ -2012,7 +2022,9 @@
       "y": 13.5,
       "label": "Внутренний двор",
       "connections": [
-        "gate_arch"
+        "gate_arch",
+        "tent_1",
+        "tent_4"
       ]
     },
     "entrance": {
@@ -2021,6 +2033,98 @@
       "label": "Вход с площади",
       "connections": [
         "gate_arch"
+      ]
+    },
+    "tent_1": {
+      "x": 31.5,
+      "y": 7.0,
+      "label": "Палатка №1",
+      "role": "bed",
+      "connections": [
+        "gate_courtyard",
+        "tent_2"
+      ]
+    },
+    "tent_2": {
+      "x": 36.0,
+      "y": 7.5,
+      "label": "Палатка №2",
+      "role": "bed",
+      "connections": [
+        "tent_1",
+        "tent_3"
+      ]
+    },
+    "tent_3": {
+      "x": 41.0,
+      "y": 7.0,
+      "label": "Палатка №3",
+      "role": "bed",
+      "connections": [
+        "tent_2",
+        "tent_6"
+      ]
+    },
+    "tent_4": {
+      "x": 32.0,
+      "y": 11.5,
+      "label": "Палатка №4",
+      "role": "bed",
+      "connections": [
+        "gate_courtyard",
+        "tent_5",
+        "tent_7"
+      ]
+    },
+    "tent_5": {
+      "x": 36.5,
+      "y": 11.5,
+      "label": "Палатка №5",
+      "role": "bed",
+      "connections": [
+        "tent_4",
+        "tent_6"
+      ]
+    },
+    "tent_6": {
+      "x": 41.5,
+      "y": 12.0,
+      "label": "Палатка №6",
+      "role": "bed",
+      "connections": [
+        "tent_3",
+        "tent_5",
+        "tent_9"
+      ]
+    },
+    "tent_7": {
+      "x": 31.5,
+      "y": 15.5,
+      "label": "Палатка №7",
+      "role": "bed",
+      "connections": [
+        "tent_4",
+        "tent_8"
+      ]
+    },
+    "tent_8": {
+      "x": 36.0,
+      "y": 15.5,
+      "label": "Палатка №8",
+      "role": "bed",
+      "connections": [
+        "tent_7",
+        "tent_9"
+      ]
+    },
+    "tent_9": {
+      "x": 41.5,
+      "y": 15.5,
+      "label": "Палатка №9",
+      "role": "bed",
+      "connections": [
+        "tent_6",
+        "tent_8"
       ]
     }
   },

@@ -74,8 +74,8 @@
       "display": "eating"
     },
     "sleeping": {
-      "location": "tavern_silver_wolf",
-      "position": "fireplace",
+      "location": "city_gate",
+      "position": "tent_2",
       "display": "sleeping"
     }
   },

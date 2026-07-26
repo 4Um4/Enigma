@@ -257,15 +257,6 @@ def build_perception_context(
         event_type = event.type
         params = event.payload
         actor = event.source or "кто-то"
-    elif hasattr(event, "event_type"):
-        # TODO: временная заглушка — будет удалена после полного удаления GameEvent
-        event_type = str(
-            event.event_type.name
-            if hasattr(event.event_type, "name")
-            else event.event_type
-        )
-        params = getattr(event, "parameters", {})
-        actor = getattr(event, "actor_id", "кто-то")
     elif isinstance(event, dict):
         event_type = str(event.get("event_type", ""))
         params = event.get("parameters", {})

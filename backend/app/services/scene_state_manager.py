@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
@@ -39,11 +39,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from app.core.calendar import Calendar
 from app.core.config import settings
 from app.services.scene_change import ChangeType, SceneChange
 
 # ADR-102: load_graph удалён — заменён на SpatialService
 from app.services.spatial.spatial_runtime import euclidean_distance
+from app.services.spatial.geometry_kernel import point_in_rect
 from app.services.state.persistence_port import PersistencePort
 
 logger = logging.getLogger(__name__)
@@ -280,6 +282,7 @@ class SceneStateManager:
             if isinstance(result_snapshot, dict)
             else []
         )
+        _time_in = result_snapshot.get("game_time_seconds", "MISSING")
         logger.debug(
             f"[COMMIT_TRACE] campaign={campaign_id} tick={result_snapshot.get('tick')} trav_keys={_trav_keys} id={id(result_snapshot)}"
         )
@@ -287,6 +290,7 @@ class SceneStateManager:
             self._tick_scene = copy.deepcopy(result_snapshot)
             try:
                 _recog = self._tick_scene.get("player_recognition", {})
+                _time_out = self._tick_scene.get("game_time_seconds", "MISSING")
                 logger.debug(f"[COMMIT] campaign={campaign_id} recog_keys={list(_recog.keys())}")
             except Exception as e:
                 logger.warning(f"[COMMIT] error reading recog_keys: {e}")
@@ -876,6 +880,19 @@ class SceneStateManager:
                 player_spawn_node = self._nearest_node_to_xy(
                     editor_data, spawn.get("x", 0), spawn.get("y", 0)
                 )
+                # S144 FIX: Игрок добавляется в npc_positions как полноправный агент (ADR-O-315).
+                # Без этого SpatialService и MovementEngine не могут разрешить цели, и все coords=None.
+                npc_positions["player"] = {
+                    "name": "player",
+                    "location_id": location_id,
+                    "position": player_spawn_node or "entrance",
+                    "activity": "",
+                    "visible": True,
+                    "local_position": {
+                        "x": spawn.get("x", 0.0),
+                        "y": spawn.get("y", 0.0),
+                    },
+                }
 
             # --- Стены и блокирующие объекты для коллизий (делегирование в GraphCompiler) ---
             spatial_walls, spatial_obstacles = self._build_spatial_data(editor_data)
@@ -979,6 +996,8 @@ class SceneStateManager:
             "active_traversals": {},  # dict[npc_id, traversal_dict]
             # ── ADR-O-146: Новая игра начинается с tick=0, время 12:00 ──
             "tick": 0,
+            # ── S139 FIX: SSOT времени — всегда инициализируем game_time_seconds ──
+            "game_time_seconds": Calendar.parse_hhmm(time_of_day),
             # ─────────────────────────────────────────────────────────────────
         }
 
@@ -1696,7 +1715,17 @@ class SceneStateManager:
                     and not (lp.get("x") == 0.0 and lp.get("y") == 0.0)
                 )
                 if _is_valid:
-                    continue  # Координаты уже есть и валидны, не трогаем!
+                    # S-03 FIX: Проверка, не оказался ли NPC внутри препятствия
+                    _lx = lp.get("x", 0.0)
+                    _ly = lp.get("y", 0.0)
+                    _inside_obstacle = False
+                    for obs in scene_state.get("spatial_obstacles", []):
+                        if point_in_rect((_lx, _ly), obs.get("x", 0), obs.get("y", 0), obs.get("w", 0), obs.get("h", 0)):
+                            _inside_obstacle = True
+                            break
+                    if not _inside_obstacle:
+                        continue  # Координаты валидны и вне препятствий, не трогаем!
+                    logger.warning(f"[SCENE] NPC {npc_id} inside obstacle at ({_lx},{_ly}), relocating to node center")
 
                 if node := svc.get_node(current_node):
                     entry["local_position"] = {"x": node.x, "y": node.y}
@@ -2082,3 +2111,4 @@ def get_scene_state_manager() -> SceneStateManager:
     if _scene_state_manager is None:
         _scene_state_manager = SceneStateManager()
     return _scene_state_manager
+

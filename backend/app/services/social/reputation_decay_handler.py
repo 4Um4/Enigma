@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 path: backend/app/services/social/reputation_decay_handler.py
 Назначение: Time-driven дрейф репутации фракций → base_reputation.
@@ -12,7 +12,6 @@ path: backend/app/services/social/reputation_decay_handler.py
 - nps не используются (фракции не привязаны к конкретным NPC-снапшотам),
   но сигнатура единая для IdleTickHandler.
 
-TODO:
 - В будущем можно расширить логику, учитывая дополнительные факторы (например, события в кампании), но сейчас фокус на базовом дрейфе репутации.
 """
 from __future__ import annotations

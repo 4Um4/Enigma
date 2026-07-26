@@ -554,6 +554,14 @@ class GameLoop:
         except Exception as e:
             logger.warning(f"[NEW_GAME] SQLite memory cleanup failed: {e}")
 
+        # P-MVP-1: Инициализация эпистемического фасада для новой кампании
+        if self.mvp_controller:
+            try:
+                self.mvp_controller.init_campaign(campaign_id)
+                logger.info(f"[NEW_GAME] MVP controller initialized for '{campaign_id}'")
+            except Exception as e:
+                logger.error(f"[NEW_GAME] MVP controller init failed: {e}")
+
         logger.info(
             f"[NEW_GAME] Campaign '{campaign_id}' fully reset. Removed: {removed}"
         )
@@ -802,7 +810,6 @@ class GameLoop:
         return self.character_service.list_characters(campaign_id)
 
     def idle_tick(self, campaign_id: str) -> dict:
-        print(f"[ARCHAE_IDLE_ENTRY] campaign_id={campaign_id}")
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 
         Вызывается когда игрок бездействует (таймер pygame).
@@ -819,23 +826,23 @@ class GameLoop:
         # Шаг 1: Подготовка — гарантируем что сцена существует (стены, NPC, время)
         from app.services.game_loop.scene_init import ensure_scene_initialized
 
-        ensure_scene_initialized(self, campaign_id)
+        _prepped_scene = ensure_scene_initialized(self, campaign_id)
 
-        # Шаг 2: location_id из campaign_state (S82 canonical source), не из get_scene_state()
-        from app.services.campaign_state_service import get_campaign_state_service
-
-        _campaign_svc = get_campaign_state_service()
-        _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
+        # Шаг 2: location_id из подготовленной сцены (SSOT), избегаем split-brain с metadata
         from app.core.constants import DEFAULT_LOCATION_ID
 
-        _loc_id = (
-            _cs.metadata.get("current_location", "") if _cs else ""
-        ) or DEFAULT_LOCATION_ID
+        _loc_id = _prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID
+        if not _loc_id:
+            _loc_id = DEFAULT_LOCATION_ID
+
+        print(f"[DIAG_IDLE_TICK] step_2 loc_id={_loc_id} prepped_scene_keys={list(_prepped_scene.keys()) if _prepped_scene else 'None'}")
 
         # Шаг 3: LOCK — единственный источник truth для этого тика
         _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
         if _scene is None:
+            print("[DIAG_IDLE_TICK] step_3 _scene is None! Return no_scene.")
             return {"status": "no_scene", "npc_positions": {}}
+        print(f"[DIAG_IDLE_TICK] step_3 _scene locked. tick={_scene.get('tick')} game_time={_scene.get('game_time_seconds')}")
 
         # Шаг 4: Монотонный каузальный тик
         _scene["tick"] = _scene.get("tick", 0) + 1
@@ -923,11 +930,6 @@ class GameLoop:
         # мы должны коммитить result.final_scene_state, а не устаревший _scene.
         _scene_to_commit = result.final_scene_state or _scene
         if self.scene_manager and self.scene_manager._tick_campaign_id == campaign_id:
-            try:
-                _recog = _scene_to_commit.get("player_recognition", {})
-                print(f"[DEBUG_IDLE_COMMIT] campaign={campaign_id} recog_keys={list(_recog.keys())}")
-            except Exception as e:
-                print(f"[DEBUG_IDLE_COMMIT] error: {e}")
             self.scene_manager.commit_tick_result(campaign_id, _scene_to_commit)
 
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
@@ -1378,12 +1380,14 @@ class GameLoop:
             logger.warning(f"[DM] {_preview_q}")
             logger.warning(f"[NPC] {_preview_a}")
 
+        _ss_scene = state.shared_context.scene_state or {}
         yield {
             "type": "done",
             "tokens": token_count,
             "ms": elapsed_ms,
             "tps": tps,
-            "game_time_seconds": state.shared_context.game_time_seconds or 0,
+            # S139 FIX: SSOT — время читается из scene_state, а не из shared_context (mirror)
+            "game_time_seconds": _ss_scene.get("game_time_seconds", 0),
             # ADR-075: Проброс Эмбодимента через SSE. Фронтенд собирает GameActionResponse из этого словаря.
             "will_conflict_data": state.shared_context.will_conflict_data
             if state.shared_context
@@ -1576,12 +1580,21 @@ class GameLoop:
         # ADR-SCENE-LOCK: Блокируем scene_state на время тика.
         # Все get_scene_state() внутри тика вернут ТОТ ЖЕ объект.
         # Без этого каждый вызов создаёт новый dict из persistence → traversals теряются.
-        scene_state = self.scene_manager.lock_for_tick(campaign_id, location)
+        # FIX: Используем актуальный location_id из подготовленной сцены, а не из req,
+        # чтобы избежать рассинхрона с idle_tick и создания новой сцены с дефолтным временем.
+        from app.services.game_loop.scene_init import ensure_scene_initialized
+
+        _prepped_scene = ensure_scene_initialized(self, campaign_id)
+        _loc_id = _prepped_scene.get("location_id", "") if _prepped_scene else location
+        if not _loc_id:
+            _loc_id = location
+
+        scene_state = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
         if scene_state is None:
             scene_state = init_scene_state(
                 self,
                 campaign_id,
-                location,
+                _loc_id,
                 shared_context,
                 campaign_state,
                 player_position=player_position,

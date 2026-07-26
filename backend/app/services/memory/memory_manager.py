@@ -1,11 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend\app\services\memory\memory_manager.py
 """
 R1.1 + R5.3 — MemoryManager.
 Фасад всей памяти. Теперь поддерживает создание EventMemory с реальным clarity.
 
-TODO:
 
 """
 

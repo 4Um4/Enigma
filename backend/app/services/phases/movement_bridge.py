@@ -43,6 +43,49 @@ def process_movement_intents(
 
     _spatial_svc = orchestrator._resolve_spatial_service(ctx)
     if _spatial_svc:
+        # ADR-O-330: Адаптер для SpatialTargetIntent (SA-2, SA-4, SA-5)
+        from app.services.spatial.spatial_target_resolver import SpatialTargetResolver
+        from app.domain.spatial_target import TargetResolutionStatus, SpatialResolutionMode
+        from app.domain.movement import LocalSteeringGoal
+
+        resolver = SpatialTargetResolver(_spatial_svc)
+        _npc_positions = ctx.scene_state.get("npc_positions", {})
+        _resolved_intents = []
+        
+        for intent in _merged_intents:
+            if hasattr(intent, 'target_intent') and intent.target_intent:
+                resolved = resolver.resolve(
+                    intent.target_intent,
+                    npc_positions=_npc_positions,
+                    actor_id=intent.actor_id,
+                    location_id=getattr(intent, 'location_id', None)
+                )
+                
+                if resolved.resolution_status != TargetResolutionStatus.RESOLVED:
+                    logger.warning(f"[MOVEMENT_BRIDGE] Target resolution failed for {intent.actor_id}: {resolved.resolution_reason}")
+                    continue  # SA-4: Неразрешённая цель отбрасывается
+                
+                if resolved.mode == SpatialResolutionMode.NAV_NODE:
+                    # Конвертируем в старый макро-интент
+                    intent.target_node_id = resolved.anchor_node_id
+                    _resolved_intents.append(intent)
+                elif resolved.mode == SpatialResolutionMode.LOCAL_POSITION:
+                    if resolved.position is None:
+                        logger.error("[MOVEMENT_BRIDGE] RESOLVED LOCAL_POSITION without position")
+                        continue
+                    # Конвертируем в микро-интент (LOD0)
+                    micro_goal = LocalSteeringGoal(
+                        actor_id=intent.actor_id,
+                        local_target_xy=resolved.position,
+                        reason=intent.reason,
+                        priority=intent.priority
+                    )
+                    _resolved_intents.append(micro_goal)
+            else:
+                _resolved_intents.append(intent)
+        
+        _merged_intents = _resolved_intents
+
         orchestrator._apply_drf_scoring_overlay(_merged_intents, ctx)
         me = MovementEngine()
         me.set_spatial_service(_spatial_svc)

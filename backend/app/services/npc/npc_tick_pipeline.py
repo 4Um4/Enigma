@@ -104,7 +104,7 @@ class NpcTickPipeline:
     """
     TZ-09: Execution Kernel as Pure Deterministic Reducer.
 
-    Инварианты (TODO: полное внедрение на следующих шагах):
+    Инварианты (внедрены в S97, ADR-TZ10-1):
     - НИКАКИХ вызовов MemoryManager, StateApplicator или SQLite внутри.
     - НИКАКИХ скрытых мутаций состояния.
     - Принимает TickState, возвращает TickMutation.
@@ -997,167 +997,25 @@ def _resolve_reactive_movement(
             return None
 
         if threat_x is not None and threat_y is not None:
-            if spatial_service:
-                # ADR-102: Не исключаем текущий узел из FLEE-кандидатов.
-                # Если NPC уже в самом дальнем узле от угрозы — get_furthest() вернёт его,
-                # и проверка target_node_id != _norm_current отменит бессмысленный flee.
-                # Исключение текущего узла вызывало осцилляцию: с 2 узлами NPC
-                # всегда бежит в другой, а на следующем тике — обратно.
-                _exclude = set()
-                furthest_ref = spatial_service.get_furthest(
-                    zone_id=location_id,
-                    origin_xy=(threat_x, threat_y),
-                    exclude_node_ids=_exclude,
-                )
-                _furthest_id = (
-                    getattr(furthest_ref, "node_id", None) if furthest_ref else None
-                )
-                logger.debug(
-                    f"[FLEE_RESOLVE] npc={npc_id} current={current_node} threat={_target_id} furthest={_furthest_id}"
-                )
-                if furthest_ref:
-                    # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
-                    target_node_id = getattr(furthest_ref, "node_id", str(furthest_ref))
-                else:
-                    # S100 FIX: FLEE fallback при пустом графе (location_id mismatch).
-                    # get_furthest() вернул None — граф пуст или zone_id не совпадает с JSON.
-                    # Падаем обратно к micro-FLEE: инвертированный вектор от угрозы.
-                    logger.warning(
-                        f"[FLEE_NAV] get_furthest() вернул None для zone={location_id}. Fallback на micro-FLEE."
-                    )
-                    npc_entry = _pos(npc_id)
-                    npc_lp = npc_entry.get("local_position", {})
-                    npc_x = npc_lp.get("x", threat_x)
-                    npc_y = npc_lp.get("y", threat_y)
-                    _dx = float(npc_x) - float(threat_x)
-                    _dy = float(npc_y) - float(threat_y)
-                    _dist = (_dx**2 + _dy**2) ** 0.5
-                    if _dist > 0.01:
-                        # Нормируем и инвертируем (убегаем ОТ угрозы)
-                        _ndx = -_dx / _dist
-                        _ndy = -_dy / _dist
-                        return LocalSteeringGoal(
-                            actor_id=npc_id,
-                            target_local_xy=(
-                                _ndx * 3.0 + float(npc_x),
-                                _ndy * 3.0 + float(npc_y),
-                            ),
-                            reason="reactive:flee:micro",
-                            priority=PRIORITY_REACTIVE,
-                        )
-            if not target_node_id:
-                # ADR-102: SpatialService — единственный авторитет. Fallback на load_graph убит.
-                # Если узел не найден и micro-FLEE не сработал — NPC останется на месте.
-                logger.warning(
-                    f"[FLEE_NAV] SpatialService не нашёл узел для zone={location_id}. Fallback на load_graph отменён (ADR-102)."
-                )
+            from app.domain.spatial_target import SpatialTargetIntent, SpatialTargetType
 
-            # ADR-102: Нормализация перед сравнением (legacy 'room_1' != canonical 'tavern:room_1')
-            _norm_current = (
-                spatial_service.normalize_id(current_node)
-                if spatial_service and current_node
-                else current_node
+            # ADR-O-330: Формируем семантическое намерение убежать (SA-1).
+            # Поиск физической цели (макро-узел или микро-позиция) делегирован SpatialTargetResolver.
+            flee_intent = SpatialTargetIntent(
+                target_type=SpatialTargetType.REGION,
+                target_id=None,
+                reason="flee",
+                confidence=0.9,
+                context_ref=_target_id  # ID угрозы
             )
-            if target_node_id and target_node_id != _norm_current:
-                logger.debug(
-                    f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}"
-                )
-                return MacroMovementGoal(
-                    actor_id=npc_id,
-                    target_node_id=target_node_id,
-                    from_node_id=current_node,
-                    location_id=location_id,
-                    reason="reactive:flee",
-                    priority=PRIORITY_REACTIVE,
-                )
-            elif target_node_id and target_node_id == _norm_current:
-                # LOD0 Micro-FLEE: NPC уже в безопасной комнате — отходит от угрозы внутри комнаты
-                _room_ref = (
-                    spatial_service.get_node(target_node_id)
-                    if spatial_service
-                    else None
-                )
-                if _room_ref:
-                    # Направление от угрозы через центроид комнаты — безопасная сторона
-                    rdx = _room_ref.x - threat_x
-                    rdy = _room_ref.y - threat_y
-                    rdist = (rdx * rdx + rdy * rdy) ** 0.5
-                    if rdist > 0.1:
-                        # Детерминированный джиттер по npc_id чтобы NPC не сходились
-                        _h = hash(npc_id)
-                        _jx = ((_h % 17) - 8) * 0.25
-                        _jy = (((_h // 17) % 17) - 8) * 0.25
-                        # Идём от центроида в направлении от угрозы на 2м + джиттер
-                        _flee_x = _room_ref.x + (rdx / rdist) * 2.0 + _jx
-                        _flee_y = _room_ref.y + (rdy / rdist) * 2.0 + _jy
-                        # Зажимаем к радиусу 3м от центроида — не выходим за пределы комнаты
-                        MAX_R = 3.0
-                        _fdx = _flee_x - _room_ref.x
-                        _fdy = _flee_y - _room_ref.y
-                        _fdist = (_fdx * _fdx + _fdy * _fdy) ** 0.5
-                        if _fdist > MAX_R:
-                            _flee_x = _room_ref.x + _fdx * MAX_R / _fdist
-                            _flee_y = _room_ref.y + _fdy * MAX_R / _fdist
-                        # CEI-1: Constraint Enforcement Injection — micro_flee не может пройти сквозь стены
-                        # ВАЖНО: проверяем только стены (is_blocked_by_wall), НЕ мебель.
-                        # Мебель — LOD0 obstacle, NPC обходит при микро-рулежке.
-                        # is_movement_blocked отвергает legit flee через стол.
-                        _cei1_orig = (_flee_x, _flee_y)
-                        try:
-                            from app.services.spatial.spatial_runtime import (
-                                is_blocked_by_wall,
-                            )
-
-                            _npc_lp = _pos(npc_id).get("local_position", {})
-                            _npc_cx = (
-                                _npc_lp.get("x")
-                                if isinstance(_npc_lp.get("x"), (int, float))
-                                else _room_ref.x
-                            )
-                            _npc_cy = (
-                                _npc_lp.get("y")
-                                if isinstance(_npc_lp.get("y"), (int, float))
-                                else _room_ref.y
-                            )
-                            _blocked = is_blocked_by_wall(
-                                _npc_cx, _npc_cy, _flee_x, _flee_y, scene_state
-                            )
-                            if _blocked:
-                                # Бинарный поиск вдоль луча — ближайшая точка перед стеной
-                                _lo, _hi = 0.0, 1.0
-                                for _ in range(8):  # ~0.4м точность
-                                    _mid = (_lo + _hi) / 2
-                                    _mx = _npc_cx + (_flee_x - _npc_cx) * _mid
-                                    _my = _npc_cy + (_flee_y - _npc_cy) * _mid
-                                    if not is_blocked_by_wall(
-                                        _npc_cx, _npc_cy, _mx, _my, scene_state
-                                    ):
-                                        _lo = _mid
-                                    else:
-                                        _hi = _mid
-                                if _lo > 0.01:
-                                    _flee_x = _npc_cx + (_flee_x - _npc_cx) * _lo
-                                    _flee_y = _npc_cy + (_flee_y - _npc_cy) * _lo
-                                else:
-                                    # Полностью заблокирован — остаёмся у центроида
-                                    _flee_x, _flee_y = _room_ref.x, _room_ref.y
-                        except Exception as e:
-                            logger.warning(
-                                f"[B5-FIX] silent failure suppressed: {e}"
-                            )  # spatial_walls может отсутствовать — безопасный пропуск
-                        if (_flee_x, _flee_y) != _cei1_orig:
-                            logger.debug(
-                                f"[CEI-1] npc={npc_id} flee adjusted from ({_cei1_orig[0]:.1f},{_cei1_orig[1]:.1f}) to ({_flee_x:.1f},{_flee_y:.1f})"
-                            )
-                        logger.debug(
-                            f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_flee target_xy=({_flee_x:.1f},{_flee_y:.1f})"
-                        )
-                        return LocalSteeringGoal(
-                            actor_id=npc_id,
-                            local_target_xy=(_flee_x, _flee_y),
-                            reason="reactive:micro_flee",
-                            priority=PRIORITY_REACTIVE,
-                        )
+            return MacroMovementGoal(
+                actor_id=npc_id,
+                target_intent=flee_intent,
+                from_node_id=current_node,
+                location_id=location_id,
+                reason="reactive:flee",
+                priority=PRIORITY_REACTIVE,
+            )
         return None
 
     # ADR-045: Проверка на нахождение в одной макро-зоне (нормализация префиксов)

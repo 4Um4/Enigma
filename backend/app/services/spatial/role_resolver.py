@@ -1,11 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/spatial/role_resolver.py
 # Назначение: Семантический маппинг — выводит NodeRole из label/type/manifest
 # Приоритет: manifest_override > editor_type > keyword matching > DEFAULT
 # Зависимости: app.models.spatial_contracts.NodeRole
 """
-TODO:
 - Добавить поддержку editor_tags, когда UI будет их отдавать
 - Возможно, расширить словарь ключевых слов для более точного определения ролей
 - В будущем: поддержка многоязычных лейблов (сейчас только русский и английский) — может потребоваться более сложная NLP-логика

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/events/reaction_subscriber.py
 """
@@ -25,7 +25,6 @@ path: backend/app/services/events/reaction_subscriber.py
 Зависимости: app.models.phase8, app.models.state_delta, app.domain.events, app.domain.constants, app.services.events.event_types, app.services.events.event_bus
 Основные сущности: ReactionSubscriber (Phase8Handler)
 
-TODO:
 - в будущем можно расширить реакцию, добавив не только стресс/страх/доверие, но и другие аспекты (напр. злость, симпатия) или более сложные формулы (напр. учитывать отношения между наблюдателем и источником). Но для MVP достаточно базовой тройки с простыми правилами.
 - протестировать на реальных событиях из игры и отладить формулы, чтобы реакции были заметными, но не чрезмерными.
 """

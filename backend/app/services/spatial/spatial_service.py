@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/spatial/spatial_service.py
 # Назначение: Единый API SpatialService v1.2 — ядро
@@ -7,7 +7,6 @@ from __future__ import annotations
 # Зависимости: app.models.spatial_contracts, stdlib
 
 """
-TODO:
 - [ ] Кэширование путей с учётом overlay (инвалидируется при изменении overlay)
 - [ ] Методы для получения всех узлов с ролью (для массовых действий NPC)
 - [ ] Методы для получения ближайшего/дальнего узла (для FLEE и SEEK)
@@ -50,17 +49,25 @@ class SpatialService:
         campaign_id: str,
         location_id: str,
         scene_state: Dict[str, Any],
+        editor_data_override: Optional[Dict[str, Any]] = None,
     ) -> Optional["SpatialService"]:
-        """Фабрика: компилирует граф и оверлей для текущей локации и сцены."""
+        """Фабрика: компилирует граф и оверлей для текущей локации и сцены.
+        
+        ADR-O-330: Если передан editor_data_override, использует его вместо чтения с диска.
+        Необходимо для Spatial Observatory (валидация черновика карты).
+        """
         from app.services.spatial.graph_compiler import compile_graph, load_editor_json
         from app.services.spatial.spatial_overlay import build_overlay_from_scene
 
-        editor_data = load_editor_json(campaign_id, location_id)
-        if not editor_data:
-            logger.warning(
-                f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}"
-            )
-            return None
+        if editor_data_override is not None:
+            editor_data = editor_data_override
+        else:
+            editor_data = load_editor_json(campaign_id, location_id)
+            if not editor_data:
+                logger.warning(
+                    f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}"
+                )
+                return None
 
         result = compile_graph(editor_data, location_id)
         # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
@@ -172,7 +179,10 @@ class SpatialService:
             # S129 FIX: P4-04 — Pathfinding учитывает ТОЛЬКО физическую непроходимость (walk).
             # blocks_los не должен разрывать навигационный граф (LoS проверяется отдельно).
             _blocks_walk = not _pass.get("walk", True)
-            if _blocks_walk:
+            # S140 FIX: A* не должен блокировать рёбра через препятствия с jump_over=True.
+            # Граф оставляет такие рёбра, а LocalTraversalPlanner строит JUMP-сегмент.
+            _can_jump = _pass.get("jump_over", False)
+            if _blocks_walk and not _can_jump:
                 if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
                     return True
 

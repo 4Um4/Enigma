@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # path: backend/app/services/affect.py
 # Назначение: Аффективная Резонансная Система (ADR-031 Extension).
@@ -13,7 +13,6 @@ from __future__ import annotations
 Detection (Resonance) и Mutation (Distortion) разделены.
 Иначе мы теряем explainability и убиваем future AI introspection.
 
-TODO:
 """
 
 
