@@ -43,16 +43,12 @@ class EconomyTracker:
 
     def record_income(self, npc_id: str, amount: float) -> None:
         """Регистрация дохода NPC (от продажи, контракта, кражи)."""
-        # TODO: временная заглушка — метод не подключен к TransactionEngine
-        # будет удалено после: Фаза 2 (кража) или Фаза 3 (craft) — интеграция TradeResolver
         if amount <= 0:
             return
         self._daily_income[npc_id] = self._daily_income.get(npc_id, 0.0) + amount
 
     def record_talk(self, npc_id: str, tick: int) -> None:
         """Регистрация разговора NPC (любой диалог)."""
-        # TODO: временная заглушка — нет точки вызова (NPC говорят через DM в R3_DIRECT)
-        # будет удалено после: вербализация NPC через отдельный агент или экстракция из DM-ответа
         self._last_talk_tick[npc_id] = tick
 
     def check_daily_needs(

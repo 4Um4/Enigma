@@ -192,17 +192,6 @@ def filter_perceiving_npcs(
         radius = event.radius
         location = event.payload.get("location", "")
         event_type = event.type
-    elif hasattr(event, "visible_to"):
-        # TODO: временная заглушка — будет удалена после полного удаления GameEvent
-        visible_to = event.visible_to or []
-        audible_to = event.audible_to or []
-        radius = float(getattr(event, "radius", 999.0))
-        location = getattr(event, "location", "")
-        event_type = str(
-            event.event_type.name
-            if hasattr(event.event_type, "name")
-            else event.event_type
-        )
     elif isinstance(event, dict):
         visible_to = event.get("visible_to", [])
         audible_to = event.get("audible_to", [])

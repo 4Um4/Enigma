@@ -221,6 +221,7 @@ def _build_perceived_scene(
 # A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
 # Плавная интерполяция между DTO-снимками — отдельная задача
 from api_client import ActionQueue, create_game_gateway  # noqa: E402
+from end_screen_renderer import EndScreenRenderer  # noqa: E402
 
 # Тайминги опроса backend из constants.py (frontend-side)
 from constants import (  # noqa: E402
@@ -513,6 +514,9 @@ class GameScreen:
         self._resistance_visual_intensity = (
             0.0  # B1.2-FIX: визуальный интенсити для тремора
         )
+        # MVP Mini-game: состояние финального экрана
+        self.show_end_screen = False
+        self.end_screen_data = None
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
@@ -868,9 +872,19 @@ class GameScreen:
             _moved = False
 
             if move.cooldown <= 0:
-                # Спринт 31: Elastic Time. Движение — это Intent, подтвержденный бэкендом.ц
+                # Спринт 31: Elastic Time. Движение — это Intent, подтвержденный бэкендом.
                 npc_positions = scene_state.get("npc_positions", {})
                 px, py = _player_xy(scene_state)
+                
+                # MVP Mini-game: Триггер выхода из таверны (X >= 18.0)
+                if px >= 18.0 and not self.show_end_screen:
+                    try:
+                        # Сначала финализируем кампанию (сохраняем diff), потом читаем экран
+                        _gateway.finalize_campaign(campaign_folder)
+                        self.end_screen_data = _gateway.get_end_screen(campaign_folder)
+                        self.show_end_screen = True
+                    except Exception as e:
+                        system_log.append(f"[END_SCREEN] API Error: {e}")
 
                 # Движение к NPC: отправляем намерение, бэкенд строит маршрут
                 if move.target_npc_id and move.target_npc_id in npc_positions:
@@ -1936,6 +1950,28 @@ class GameScreen:
                 format_world_date(self.game_time_seconds), True, COLOR_TEXT_MUTED
             )
             self.screen.blit(time_surf, (self.screen.get_width() - 380, 4))
+
+            # MVP Mini-game: End Screen Rendering
+            if self.show_end_screen and self.end_screen_data:
+                _es_renderer = EndScreenRenderer(self.screen)
+                _es_renderer.render(self.end_screen_data)
+                
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                        action_queue.stop()
+                        running = False
+                        return
+
+            # MVP Mini-game: End Screen Rendering
+            if self.show_end_screen and self.end_screen_data:
+                _es_renderer = EndScreenRenderer(self.screen)
+                _es_renderer.render(self.end_screen_data)
+                
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                        action_queue.stop()
+                        running = False
+                        return
 
             # === ADR-127: DEATH OVERLAY (P2) — фронтенд видит смерть ===
             _av = scene_state.get("avatar_state")

@@ -15,30 +15,10 @@ from typing import Optional
 
 import pygame
 from i18n import t
+from ui_theme import COLORS as _COLORS
 
 # Путь к кампаниям — исходники из редактора
 _CAMPAIGNS_DIR = Path(__file__).parent / "map_editor" / "campaigns"
-
-# Цветовая схема — дублируем из game_menu для изоляции (TODO: вынести в общий ui_theme.py)
-_COLORS = {
-    "bg_dark": (18, 18, 23),
-    "bg_panel": (28, 28, 33),
-    "bg_selected": (40, 55, 75),
-    "bg_hover": (35, 45, 60),
-    "text": (220, 220, 220),
-    "text_dim": (140, 140, 140),
-    "text_highlight": (255, 255, 255),
-    "btn_primary": (70, 100, 130),
-    "btn_primary_hover": (90, 130, 160),
-    "btn_danger": (150, 60, 60),
-    "btn_danger_hover": (180, 80, 80),
-    "btn_secondary": (80, 80, 90),
-    "btn_secondary_hover": (100, 100, 110),
-    "border": (60, 60, 70),
-    "border_highlight": (100, 180, 255),
-    "accent_blue": (70, 170, 255),
-    "accent_yellow": (255, 200, 80),
-}
 
 
 @dataclass
@@ -220,7 +200,7 @@ class CampaignSelectScreen:
 
         # Заголовок
         title_surf = self.font_title.render(
-            t("ui:campaign_select_title"), True, _COLORS["accent_blue"]
+            t("ui:campaign_select_title"), True, _COLORS["accent_amber"]
         )
         self.screen.blit(
             title_surf, (w // 2 - title_surf.get_width() // 2, self._title_y)

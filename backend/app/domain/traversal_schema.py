@@ -141,6 +141,7 @@ class MovementPlanStatus(Enum):
     ACCEPTED = "ACCEPTED"  # MACRO_TRAVERSAL
     REJECTED = "REJECTED"
     MICRO_MOVEMENT = "MICRO_MOVEMENT"  # ADR-O-323: Snap или микро-перемещение, не создаёт TraversalProposal
+    ALREADY_AT_TARGET = "ALREADY_AT_TARGET"  # S-141: NPC уже на цели, NO-OP
 
 
 @dataclass(frozen=True)

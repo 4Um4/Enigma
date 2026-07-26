@@ -34,6 +34,7 @@ class NpcDialogueSubscriber:
         avatar_service: Any = None,
         spatial_query_provider: Any = None,
         l1_chronicle: Any = None,
+        tick_provider: Any = None,  # H-01 FIX: callable() -> int (симуляционный тик)
     ) -> None:
         self.memory = memory_manager
         self.relationships = relationship_store
@@ -42,17 +43,20 @@ class NpcDialogueSubscriber:
         self._avatar_service = avatar_service
         self._get_spatial_query = spatial_query_provider
         self._l1_chronicle = l1_chronicle
+        self._get_tick = tick_provider or (lambda: 0)
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
         if hasattr(event, "payload"):
             speaker = getattr(event, "source", "")
             payload = getattr(event, "payload", {}) or {}
-            tick = getattr(event, "timestamp", 0)
         else:
             speaker = event.get("source", "")
             payload = event.get("payload", {})
-            tick = event.get("timestamp", 0)
+        
+        # H-01 FIX: Используем каноничный симуляционный тик (ctx.tick_number / scene_state["tick"])
+        # вместо event.timestamp (wall-clock time), чтобы удовлетворить контракт L1Chronicle (INTEGER).
+        tick = int(self._get_tick())
 
         listener = payload.get("target_id")
         text = payload.get("text", "")

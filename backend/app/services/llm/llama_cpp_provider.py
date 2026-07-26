@@ -224,14 +224,19 @@ class LlamaCppProvider(StreamingLlmProvider):
         """Прервать текущую генерацию (server — HTTP abort, CLI — kill процесса)."""
         if self._use_server and self.server_url:
             try:
+                # H-03 FIX: llama-server может не поддерживать /abort endpoint.
+                # Тихо игнорируем 404/405, чтобы не засорять логи warning'ами.
                 _abort_req = urllib.request.Request(
                     self.server_url.rstrip("/") + "/abort",
                     data=b"",
                     method="POST",
                 )
                 urllib.request.urlopen(_abort_req, timeout=2)
+            except urllib.error.HTTPError as e:
+                # 404 / 405 ожидаем, если сервер не поддерживает abort
+                logger.debug(f"[B5-FIX] abort endpoint not supported by server: {e.code}")
             except Exception as e:
-                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
+                logger.debug(f"[B5-FIX] abort_generation silent failure: {e}")
         else:
             self._kill_cli_process()
 

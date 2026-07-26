@@ -843,3 +843,25 @@ esolve() сохраняет сигнатуру Tuple[float, float], чтобы �
   - **Очистка:** Убраны magic numbers (`-20`, `30`) из `SocialTargetResolver`.
   - **Validation:** IPT 5/5 passed. Каузальная топология восстановлена: Фаза 5 читает только первопричинные данные.
   Files: backend/app/core/constants.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/npc/decision_hub.py, backend/app/services/npc/social_target_resolver.py
+
+- 🔵 **S136** ТЗ: UI Integration & Epistemic Closure (MVP Mini-game).
+  - **Контекст:** Замыкание каузального контура мини-игры "Таверна Серебряный Волк". Подключение Pygame frontend к эпистемическому бэкенду (`MvpTavernController`), извлечение `secret_id` из сырого текста, реализация опционального наследия мира между кампаниями.
+  - **Sprint 1 (End-Screen UI):**
+    - Добавлен API-эндпоинт `GET /api/game/end_screen/{campaign_id}`.
+    - Создан `frontend/end_screen_renderer.py` для отрисовки финальной оценки (счёт, найденные секреты, методы).
+    - В `frontend/game_screen.py` внедрён триггер выхода (`px >= 18.0`), который запрашивает данные и отрисовывает экран, блокируя возврат в игру до нажатия ENTER.
+  - **Sprint 2 (Semantic Pipeline):**
+    - Создан `backend/app/services/player_cognition/action_semantic_resolver.py`. Компонент изолирует MVP-эвристику извлечения `secret_id` и `ActionType` из текста игрока, не загрязняя `GameLoop`.
+    - `GameLoop` теперь делегирует парсинг резолверу, который возвращает готовый `PlayerAction`.
+    - Каузальная цепь `raw_text -> ActionSemanticResolver -> PlayerAction -> ActionConsequenceCompiler -> EvidenceLink -> PlayerBeliefModel` полностью замкнута и покрыта сквозным тестом `test_resolver_to_belief_pipeline`.
+  - **Sprint 3 (World Continuity):**
+    - Внедрён доменный тип `WorldContinuityMode` (`ISOLATED` / `CONTINUOUS`) в `app/models/world_continuity.py`. Устранён дублирующий Enum.
+    - Создан `WorldStateApplicator` — единственный легитимный шлюз применения последствий к новой кампании. Удаляет сбежавших NPC, помечает убитых как `DEAD`.
+    - `WorldStateDiff` очищен от `relationship_changes` (защита от скрытой утечки персистентности).
+    - `GameLoop.new_game()` принимает `continuity_mode` и `source_campaign_id`. Применение diff происходит строго после wipe'а чистого мира, но до атомарного коммита.
+    - Реализовано persistent-хранилище diff'ов (`saves/_world_diffs.json`). `WorldStateDiff` более не теряется при рестарте бэкенда.
+    - `api_client.py` полностью синхронизирован: `GameGateway`, `BackendContract`, `HttpGameGateway`, `DirectGameGateway`, `FallbackGateway` обновлены.
+    - `game_launcher.py` рефакторинг: убран прямой `HttpClient`, используется `create_game_gateway()`. При ошибке сброса мира запуск `GameScreen` блокируется.
+    - В `frontend/character_select.py` добавлен UI-переключатель "Чистый мир / Наследие" (только для кампании `Open_road`). Возврат `CharacterSelectScreen` изменён со `str` на `dict`.
+  - **Validation:** IPT 5/5 passed. `test_world_continuity.py` (2 passed), `test_end_screen_api.py` (1 passed), `test_action_semantic_resolver.py` (3 passed), `test_mvp_tavern_integration.py` (3 passed). Всего 9 тестов зелёные.
+  Files: backend/app/api/routes.py, backend/app/services/game_loop/__init__.py, backend/app/services/player_cognition/action_semantic_resolver.py, backend/app/services/state/world_diff_applicator.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/models/world_continuity.py, backend/app/models/world_state_diff.py, frontend/api_client.py, frontend/game_screen.py, frontend/character_select.py, frontend/end_screen_renderer.py, frontend/i18n.py, game_launcher.py

@@ -1,7 +1,3 @@
-"""
-Запуск: python scripts/diag_graph.py
-"""
-
 import json
 from pathlib import Path
 import sys
@@ -27,7 +23,6 @@ graph = result[0]
 
 print("\n--- Checking Isolated Nodes ---")
 for node_id, node in graph.items():
-    # Проверяем атрибут neighbors, если connections нет
     neighbors = getattr(node, "neighbors", getattr(node, "connections", None))
     if not neighbors:
         print(f"[ISOLATED] {node_id} at ({node.x}, {node.y})")

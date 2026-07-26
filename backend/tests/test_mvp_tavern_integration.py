@@ -32,6 +32,35 @@ class TestMvpTavernIntegration:
         assert controller.fate_tracker is not None
         # ... остальные трекеры
 
+    def test_resolver_to_belief_pipeline(self, controller: MvpTavernController):
+        """Сквозной тест: Сырой текст -> Resolver -> Compiler -> EvidenceLink -> Belief."""
+        from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
+        
+        resolver = ActionSemanticResolver(controller.truth_state)
+        raw_text = "Я шантажирую тебя, я знаю про подвал!"
+        
+        # 1. Resolver парсит текст
+        action = resolver.resolve(
+            raw_text=raw_text,
+            tick=10,
+            target_id="maid_lusya"
+        )
+        assert action.action_type == ActionType.BLACKMAIL
+        assert action.secret_id == "lusya_basement"
+        
+        # 2. Compiler применяет действие
+        controller.action_compiler.process_action(action)
+        
+        # 3. Проверяем, что EvidenceLink создан
+        evidence_links = controller.observation_log.get_evidence_for_secret("lusya_basement")
+        assert len(evidence_links) == 1
+        assert evidence_links[0].secret_id == "lusya_basement"
+        assert evidence_links[0].evidence_strength == 1.0
+        
+        # 4. Проверяем, что уверенность игрока обновилась
+        belief_conf = controller.belief_model.get_confidence_for_secret("lusya_basement")
+        assert belief_conf >= 0.9
+
     def test_full_flow_action_to_end_screen(self, controller: MvpTavernController):
         """Полный цикл: Действие -> Проверка выхода -> Экран результатов."""
         # 1. Игрок шантажирует Люсю
@@ -45,6 +74,15 @@ class TestMvpTavernIntegration:
             description="Я знаю про подвал"
         )
         controller.action_compiler.process_action(action)
+        
+        # 1.1 Проверяем, что EvidenceLink создан и уверенность игрока обновлена
+        evidence_links = controller.observation_log.get_evidence_for_secret("lusya_basement")
+        assert len(evidence_links) == 1
+        assert evidence_links[0].secret_id == "lusya_basement"
+        assert evidence_links[0].evidence_strength == 1.0
+        
+        belief_conf = controller.belief_model.get_confidence_for_secret("lusya_basement")
+        assert belief_conf >= 0.9
         
         # 2. Проверяем выход (игрок еще внутри)
         scene_inside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 5.0}}}}

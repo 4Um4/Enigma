@@ -1,22 +1,23 @@
 from __future__ import annotations
+"""
+Путь: backend/app/services/simulation/world_state.py
 
-# backend/app/services/simulation/world_state.py
-#
-# Phase 3B.2 — WorldState + World Token Budget
-#
-# Принцип: НЕ заменяет SceneStateManager.
-# WorldState — тонкая обёртка: добавляет к существующему SceneState
-# два новых поля:
-#   recent_events  — последние N GameEvent для контекста DM/NPC
-#   other_locations — сжатые сводки соседних локаций
-#
-# WorldTokenBudget — встроен сюда же.
-# Два места проверки (из roadmap v8.1):
-#   A. world_state.record_event()  — фоновое сжатие при добавлении события
-#   B. build_context_slice()       — финальный срез перед отправкой агентам
-#
-# Лимит: 2048 токенов на весь контекст мира.
-# Оценка: ~4 символа/токен (быстро, без tiktoken).
+Phase 3B.2 — WorldState + World Token Budget
+
+Принцип: НЕ заменяет SceneStateManager.
+WorldState — тонкая обёртка: добавляет к существующему SceneState
+два новых поля:
+recent_events  — последние N EventDTO для контекста DM/NPC
+other_locations — сжатые сводки соседних локаций
+
+WorldTokenBudget — встроен сюда же.
+Два места проверки (из roadmap v8.1):
+A. world_state.record_event()  — фоновое сжатие при добавлении события
+B. build_context_slice()       — финальный срез перед отправкой агентам
+
+Лимит: 2048 токенов на весь контекст мира.
+Оценка: ~4 символа/токен (быстро, без tiktoken).
+"""
 import dataclasses
 import json
 import logging
@@ -204,7 +205,7 @@ class WorldTokenBudget:
 class WorldState:
     """
     Обёртка над SceneState с поддержкой:
-      - recent_events  (последние GameEvent)
+      - recent_events  (последние EventDTO)
       - WorldTokenBudget (срез для агентов)
 
     Не дублирует SceneStateManager — использует его для чтения/записи.

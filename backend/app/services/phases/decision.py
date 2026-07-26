@@ -239,6 +239,17 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
     _crystallized_beliefs_map = {}
     _identity_traits_map = {}
 
+    # Вычисляем player_distances один раз для всех NPC (SpatialQueryService - pure reader)
+    _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+    if not _spatial_query and ctx.scene_state:
+        from app.services.spatial.spatial_query_service import SpatialQueryService
+        _spatial_query = SpatialQueryService(
+            npc_positions=ctx.scene_state.get("npc_positions", {}),
+            scene_state=ctx.scene_state,
+        )
+    _npc_ids = [n.get("id") or n.get("npc_id") for n in alive_npcs]
+    _player_dists = _spatial_query.player_distances(_npc_ids) if _spatial_query else {}
+
     if _svc:
         for n in alive_npcs:
             _nid = n.get("id") or n.get("npc_id")
@@ -265,12 +276,10 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
                 )
 
             if _svc.social_engine:
-                # P2-08 FIX: Передаём обязательные аргументы, чтобы избежать TypeError.
-                # TODO: В будущем player_distances должен пробрасываться из SpatialQueryService.
                 _social_modifiers_map[_nid] = (
                     _svc.social_engine.compute_social_modifiers(
                         npc_id=_nid,
-                        player_distances={},
+                        player_distances=_player_dists,
                         event_type=getattr(ctx.shared_context, "action_type", None) or "idle"
                     )
                 )

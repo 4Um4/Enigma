@@ -119,7 +119,7 @@ def evaluate_vital_state(body_state: Dict[str, Any]) -> LifeStatus:
     # Pathway 1: Hemorrhagic death
     blood_loss = float(body_state.get("blood_loss", 0.0))
     if blood_loss >= _BLOOD_LOSS_FATAL:
-        # ADR-124 TODO: death_cause = "HEMORRHAGIC", reversibility = 0.3
+        # TODO (Backlog): death_cause = "HEMORRHAGIC", reversibility = 0.3
         # Подготовка слота для DeathState (каузальная классификация смерти)
         return LifeStatus.DEAD
 
@@ -138,7 +138,7 @@ def evaluate_vital_state(body_state: Dict[str, Any]) -> LifeStatus:
             logger.warning(
                 f"[STRUCTURAL_DEATH] total={_total_structural:.3f} >= {_STRUCTURAL_COLLAPSE} injuries={len(_injuries)}"
             )
-            # ADR-124 TODO: death_cause = "STRUCTURAL", reversibility = 0.05
+            # TODO (Backlog): death_cause = "STRUCTURAL", reversibility = 0.05
             # Подготовка слота для DeathState (каузальная классификация смерти)
             return LifeStatus.DEAD
 

@@ -28,26 +28,7 @@ from i18n import t  # noqa: E402
 _SAVES_DIR = Path(__file__).parent.parent / "saves"
 _CAMPAIGNS_DIR = Path(__file__).parent / "map_editor" / "campaigns"
 
-# Цветовая схема — из campaign_select.py (TODO: вынести в общий ui_theme.py)
-_COLORS = {
-    "bg_dark": (18, 18, 23),
-    "bg_panel": (28, 28, 33),
-    "bg_selected": (40, 55, 75),
-    "bg_hover": (35, 45, 60),
-    "text": (220, 220, 220),
-    "text_dim": (140, 140, 140),
-    "text_highlight": (255, 255, 255),
-    "btn_primary": (70, 100, 130),
-    "btn_primary_hover": (90, 130, 160),
-    "btn_secondary": (80, 80, 90),
-    "btn_secondary_hover": (100, 100, 110),
-    "border": (60, 60, 70),
-    "border_highlight": (100, 180, 255),
-    "accent_blue": (70, 170, 255),
-    "accent_yellow": (255, 200, 80),
-    "hp_green": (80, 200, 120),
-    "hp_red": (200, 80, 80),
-}
+from ui_theme import COLORS as _COLORS  # noqa: E402
 
 
 @dataclass
@@ -120,6 +101,11 @@ class CharacterSelectScreen:
         # Данные
         self._characters = _load_characters(campaign_id)
         self._selected_index: int = -1
+
+        # P7-13: World Continuity Mode (только для Open_road / Tavern MVP)
+        self._supports_continuity = (campaign_id == "Open_road")
+        self._continuity_mode = "isolated"  # "isolated" | "continuous"
+        self._btn_continuity_rect = pygame.Rect(0, 0, 0, 0)
         # Двойной клик
         self._last_click_time: float = 0.0
         self._last_click_pos: tuple[int, int] = (0, 0)
@@ -169,9 +155,13 @@ class CharacterSelectScreen:
         self._btn_create_rect = pygame.Rect(w // 2 - 80, btn_y, 160, 40)
         self._btn_back_rect = pygame.Rect(w // 2 - 290, btn_y, 130, 40)
         self._btn_play_rect = pygame.Rect(w // 2 + 160, btn_y, 130, 40)
+        
+        # P7-13: Переключатель наследия мира
+        if self._supports_continuity:
+            self._btn_continuity_rect = pygame.Rect(w // 2 - 75, btn_y - 40, 150, 30)
 
-    def run(self) -> Optional[str]:
-        """Запускает цикл экрана, возвращает имя персонажа или None"""
+    def run(self) -> Optional[dict]:
+        """Запускает цикл экрана, возвращает {'character_id': str, 'continuity_mode': str} или None"""
         self._result = None
         self._selected_index = 0 if self._characters else -1
 
@@ -205,7 +195,10 @@ class CharacterSelectScreen:
                         and 0 <= self._selected_index < len(self._characters)
                     ):
                         if self._list_rect.collidepoint(event.pos):
-                            self._result = self._characters[self._selected_index].name
+                            self._result = {
+                                "character_id": self._characters[self._selected_index].name,
+                                "continuity_mode": self._continuity_mode
+                            }
                 elif event.type == pygame.KEYDOWN:
                     if self._dialog_active:
                         self._handle_dialog_key(event)
@@ -219,7 +212,17 @@ class CharacterSelectScreen:
                             self._selected_index += 1
                     elif event.key == pygame.K_RETURN:
                         if 0 <= self._selected_index < len(self._characters):
-                            self._result = self._characters[self._selected_index].name
+                            self._result = {
+                                "character_id": self._characters[self._selected_index].name,
+                                "continuity_mode": self._continuity_mode
+                            }
+                    elif (
+                        event.key == pygame.K_c 
+                        and self._supports_continuity 
+                        and not self._dialog_active
+                    ):
+                        # Переключение режима наследия мира (C)
+                        self._continuity_mode = "continuous" if self._continuity_mode == "isolated" else "isolated"
 
             self._draw()
             pygame.display.flip()
@@ -243,7 +246,15 @@ class CharacterSelectScreen:
         if self._btn_play_rect.collidepoint(pos) and 0 <= self._selected_index < len(
             self._characters
         ):
-            self._result = self._characters[self._selected_index].name
+            self._result = {
+                "character_id": self._characters[self._selected_index].name,
+                "continuity_mode": self._continuity_mode
+            }
+            return
+
+        # P7-13: Клик по переключателю наследия мира
+        if self._supports_continuity and self._btn_continuity_rect.collidepoint(pos):
+            self._continuity_mode = "continuous" if self._continuity_mode == "isolated" else "isolated"
             return
 
         # Кнопка «Создать персонажа»
@@ -414,7 +425,7 @@ class CharacterSelectScreen:
 
         # Заголовок
         title_surf = self.font_title.render(
-            t("ui:char_select_title"), True, _COLORS["accent_blue"]
+            t("ui:char_select_title"), True, _COLORS["accent_amber"]
         )
         self.screen.blit(
             title_surf, (w // 2 - title_surf.get_width() // 2, self._title_y)
@@ -514,6 +525,20 @@ class CharacterSelectScreen:
                     self._list_rect.y + 30,
                 ),
             )
+
+        # P7-13: Переключатель наследия мира
+        if self._supports_continuity:
+            toggle_hovered = self._btn_continuity_rect.collidepoint(pygame.mouse.get_pos())
+            toggle_color = (
+                _COLORS["btn_primary_hover"] if toggle_hovered else 
+                _COLORS["btn_primary"] if self._continuity_mode == "continuous" else 
+                _COLORS["btn_secondary"]
+            )
+            pygame.draw.rect(self.screen, toggle_color, self._btn_continuity_rect, border_radius=6)
+            
+            mode_str = t("ui:toggle_continuity_on") if self._continuity_mode == "continuous" else t("ui:toggle_continuity_off")
+            toggle_surf = self.font_button.render(mode_str, True, _COLORS["text"])
+            self.screen.blit(toggle_surf, toggle_surf.get_rect(center=self._btn_continuity_rect.center))
 
         # Кнопка «Создать персонажа»
         create_hovered = self._btn_create_rect.collidepoint(pygame.mouse.get_pos())

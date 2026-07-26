@@ -1,0 +1,16 @@
+2026-07-26 12:17:21,569 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260726_121721.log
+2026-07-26 12:17:21,569 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-26 12:17:21,569 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-26 12:17:21,615 app.services.vram_monitor INFO: [VRAM_MONITOR] Baseline auto-set: 1051 MB
+2026-07-26 12:17:21,616 app.services.vram_monitor INFO: [VRAM_SESSION] Started: baseline=1051MB
+2026-07-26 12:17:21,664 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-26 12:17:21,680 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-26 12:17:21,683 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-26 12:17:21,693 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-07-26 12:17:21,693 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-07-26 12:17:21,695 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-07-26 12:17:21,697 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-26 12:17:21,700 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-26 12:17:26,128 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 503 Service Unavailable"
+2026-07-26 12:17:28,797 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-26 12:17:28,816 app.main INFO: [STARTUP] LLM (сервер): доступен

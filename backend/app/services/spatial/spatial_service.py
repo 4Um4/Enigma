@@ -638,6 +638,39 @@ class SpatialService:
                 best_node = node
         return best_node
 
+    def get_nearest_safe_node(
+        self, zone_id: str, origin_xy: Tuple[float, float]
+    ) -> Optional[NodeRef]:
+        """S-03.1: Возвращает ближайший узел, не изолированный и не находящийся внутри walk=False препятствия."""
+        candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+        if not candidates:
+            return None
+
+        best: Optional[NodeRef] = None
+        best_dist = float("inf")
+        for node in candidates:
+            # 1. Отсеиваем изолированные узлы (нет связей)
+            if not self._connections.get(node.node_id):
+                continue
+
+            # 2. Проверяем, не находится ли узел внутри непроходимого препятствия
+            _is_safe = True
+            for obs in self._spatial_obstacles:
+                _pass = obs.get("passability", {})
+                if not _pass.get("walk", True):
+                    _ox, _oy = obs.get("x", 0.0), obs.get("y", 0.0)
+                    _ow, _oh = obs.get("w", 0.0), obs.get("h", 0.0)
+                    if _ox <= node.x <= _ox + _ow and _oy <= node.y <= _oy + _oh:
+                        _is_safe = False
+                        break
+            
+            if _is_safe:
+                d = self.world_distance(origin_xy, node.xy)
+                if d < best_dist:
+                    best_dist = d
+                    best = node
+        return best
+
     def get_nearest(
         self,
         zone_id: str,

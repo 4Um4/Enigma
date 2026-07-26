@@ -84,3 +84,16 @@ class MvpTavernController:
             last_words_system=self.last_words_system,
             social_fabric=self.social_fabric
         )
+
+    def build_world_diff(self):
+        """Собирает WorldStateDiff для передачи в следующую кампанию."""
+        if not self.truth_state:
+            raise RuntimeError("TruthState not loaded")
+            
+        return self.world_diff_builder.build(
+            truth_state=self.truth_state,
+            fate_tracker=self.fate_tracker,
+            faction_tracker=self.faction_tracker,
+            social_fabric=self.social_fabric,
+            beliefs=self.belief_model
+        )

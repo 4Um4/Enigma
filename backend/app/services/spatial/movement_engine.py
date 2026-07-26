@@ -21,6 +21,11 @@ from app.domain.traversal import (
     TraversalPlan,
     TraversalQuery,
 )
+from app.domain.movement_contract import (
+    MovementFailure,
+    MovementTrace,
+    PathStatus,
+)
 from app.domain.traversal_schema import (
     MovementPlanResult,
     MovementPlanStatus,
@@ -658,12 +663,33 @@ class MovementEngine:
 
         # S140: Ищем топологический маршрут через A*
         path_nodes = svc.find_path(source_xy, target_node_obj)
+        
+        # S-141: Инициализируем MovementTrace для диагностики
+        _trace = MovementTrace(
+            actor_id=intent.actor_id,
+            source_position=source_xy,
+            source_node=source_node_obj,
+            target_node=target_node_obj
+        )
+        
+        # S140.1 FIX: Если A* вернул ровно 1 узел — NPC уже стоит на цели.
+        if path_nodes and len(path_nodes) == 1:
+            _trace.path_status = PathStatus.ALREADY_AT_TARGET
+            logger.debug(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=ALREADY_AT_TARGET node={path_nodes[0].node_id}")
+            return []
+            
         if not path_nodes or len(path_nodes) < 2:
-            logger.warning(f"[GATE_B3] npc={intent.actor_id} reason=A_STAR_FAILED No path found to {intent.target_node_id}")
+            _trace.path_status = PathStatus.NO_PATH
+            _trace.failure = MovementFailure.NO_PATH
+            _trace.reason = f"A* no path to {intent.target_node_id}"
+            logger.warning(f"[MOVEMENT_TRACE] npc={intent.actor_id} failure={_trace.failure.value} reason={_trace.reason}")
             return []
         
+        _trace.path_status = PathStatus.VALID_PATH
+        _trace.path_nodes = path_nodes
+        
         if intent.actor_id == "guard_borko":
-            print(f"[BORKO_ASTAR] current_pos={current_pos} source_xy={source_xy} target={target_node_obj.node_id} path={[n.node_id for n in path_nodes]}")
+            logger.debug(f"[BORKO_ASTAR] current_pos={current_pos} source_xy={source_xy} target={target_node_obj.node_id} path={[n.node_id for n in path_nodes]}")
 
         # Берём первый шаг маршрута (следующий waypoint)
         next_node = path_nodes[1]
@@ -709,6 +735,8 @@ class MovementEngine:
         logger.debug(
             f"[GATE_B3] npc={intent.actor_id} reason=SUCCESS target={next_node.node_id} loc={location_id}"
         )
+        _trace.traversal_created = True
+        logger.info(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=VALID_PATH path_len={len(path_nodes)} traversal=CREATED")
         return [
             SceneChange(
                 type=ChangeType.NPC_POSITION,

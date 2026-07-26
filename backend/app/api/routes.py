@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from app.core.config import settings
 
@@ -349,7 +349,7 @@ async def game_turn(
 
 @router.get("/api/game/end_screen/{campaign_id}")
 def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
-    """Возвращает финальный экран оценки игрока (MVP Mini-game)."""
+    """Возвращает финальный экран оценки игрока (MVP Mini-game). Чистое чтение."""
     if not game_loop.mvp_controller:
         return {"error": "MVP controller not initialized"}
     
@@ -365,6 +365,18 @@ def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         "secrets_missed": ev.secrets_missed,
         "methods_used": ev.methods_used,
     }
+
+@router.post("/api/game/finalize/{campaign_id}")
+def finalize_campaign(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+    """Финализирует кампанию: собирает WorldStateDiff и сохраняет его в GameLoop для будущей кампании."""
+    if not game_loop.mvp_controller:
+        return {"error": "MVP controller not initialized"}
+    
+    diff = game_loop.mvp_controller.build_world_diff()
+    game_loop._campaign_diffs[campaign_id] = diff
+    game_loop._save_diff_to_disk(campaign_id, diff)
+    
+    return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True}
 
 @router.post("/game/action")
 async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
@@ -762,11 +774,22 @@ def get_player_session(campaign_id: str) -> PlayerSessionResponse:
         return PlayerSessionResponse(player=None, active=False)
 
 
+from pydantic import BaseModel
+from app.models.world_continuity import WorldContinuityMode
+
+class NewGameRequest(BaseModel):
+    """Контракт команды начала новой игры."""
+    continuity_mode: WorldContinuityMode = WorldContinuityMode.ISOLATED
+    source_campaign_id: Optional[str] = None
+
 @router.post("/game/new/{campaign_id}")
-def new_game(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
-    """ADR-O-146: Сброс runtime мира к чистому static. Оставляет персонажей."""
-    result = game_loop.new_game(campaign_id)
-    return result
+def new_game(campaign_id: str, request: NewGameRequest, game_loop=Depends(get_game_loop)) -> dict:
+    """ADR-O-146: New Game = сброс runtime мира к чистому static."""
+    return game_loop.new_game(
+        campaign_id=campaign_id,
+        continuity_mode=request.continuity_mode,
+        source_campaign_id=request.source_campaign_id
+    )
 
 
 @router.post("/game/{campaign_id}/scene_state")

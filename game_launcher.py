@@ -182,48 +182,61 @@ def main() -> None:
                 select_screen = CampaignSelectScreen(screen, clock)
                 selected_folder = select_screen.run()
                 if selected_folder is not None:
-                    # ADR-O-146: New Game = сброс runtime мира
-                    # Ждём готовности backend (race condition: uvicorn мог ещё не подняться)
-                    import time as _time
-
-                    _backend_ok = False
-                    print("  ○ Ожидание готовности backend...", end="", flush=True)
-                    # Ждём до _BACKEND_STARTUP_TIMEOUT секунд (бэкенд грузит LLM)
-                    for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
-                        try:
-                            import urllib.request as _ur
-
-                            with _ur.urlopen(
-                                f"{_BACKEND_URL}/api/health", timeout=2
-                            ) as _hr:
-                                if _hr.status == 200:
-                                    _backend_ok = True
-                                    break
-                        except Exception:
-                            pass
-                        print(".", end="", flush=True)
-                        _time.sleep(1)
-                    print()
-                    if _backend_ok:
-                        try:
-                            from api_client import HttpClient
-
-                            _http = HttpClient(base_url=_BACKEND_URL)
-                            _http.post(f"/api/game/new/{selected_folder}", payload={})
-                            print(f"  ✓ Runtime сброшен для '{selected_folder}'")
-                        except Exception as e:
-                            print(f"  ⚠ New game reset failed: {e}")
-                    else:
-                        print(
-                            f"  ⚠ Backend не отвечает {_BACKEND_STARTUP_TIMEOUT}с, сброс пропущен"
-                        )
                     screen = pygame.display.get_surface()
                     char_screen = CharacterSelectScreen(screen, clock, selected_folder)
-                    selected_char = char_screen.run()
-                    if selected_char is not None:
-                        screen = pygame.display.get_surface()
-                        game_screen = GameScreen(screen, clock)
-                        game_screen.run(selected_folder, selected_char)
+                    selected_data = char_screen.run()
+                    if selected_data is not None:
+                        # ADR-O-146: New Game = сброс runtime мира через шлюз
+                        # Ждём готовности backend (race condition: uvicorn мог ещё не подняться)
+                        import time as _time
+
+                        _backend_ok = False
+                        print("  ○ Ожидание готовности backend...", end="", flush=True)
+                        for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
+                            try:
+                                import urllib.request as _ur
+                                with _ur.urlopen(
+                                    f"{_BACKEND_URL}/api/health", timeout=2
+                                ) as _hr:
+                                    if _hr.status == 200:
+                                        _backend_ok = True
+                                        break
+                            except Exception:
+                                pass
+                            print(".", end="", flush=True)
+                            _time.sleep(1)
+                        print()
+                        
+                        _reset_ok = False
+                        if _backend_ok:
+                            try:
+                                from api_client import create_game_gateway
+                                _gateway, _ = create_game_gateway()
+                                
+                                _result = _gateway.new_game(
+                                    campaign_id=selected_folder,
+                                    continuity_mode=selected_data.get("continuity_mode", "isolated"),
+                                    source_campaign_id=selected_folder  # MVP: source = self
+                                )
+                                if not isinstance(_result, dict):
+                                    raise RuntimeError(f"Gateway returned non-dict: {_result}")
+                                _reset_ok = bool(_result.get("reset"))
+                                if _reset_ok:
+                                    print(f"  ✓ Runtime сброшен для '{selected_folder}'")
+                                else:
+                                    print(f"  ⚠ New game reset failed: {_result.get('error', 'Unknown')}")
+                            except Exception as e:
+                                print(f"  ⚠ Gateway initialization failed: {e}")
+                        else:
+                            print(f"  ⚠ Backend не отвечает {_BACKEND_STARTUP_TIMEOUT}с, сброс пропущен")
+                        
+                        # Запускаем игру только если сброс мира прошёл успешно
+                        if _reset_ok:
+                            screen = pygame.display.get_surface()
+                            game_screen = GameScreen(screen, clock)
+                            game_screen.run(selected_folder, selected_data["character_id"])
+                        else:
+                            print("  ✖ Запуск игры отменён из-за ошибки сброса мира.")
                 # Возвращаемся в меню — пересоздаём поверхность и меню
                 screen, clock, menu = _init_menu_display()
 
@@ -235,11 +248,11 @@ def main() -> None:
                 if selected_folder is not None:
                     screen = pygame.display.get_surface()
                     char_screen = CharacterSelectScreen(screen, clock, selected_folder)
-                    selected_char = char_screen.run()
-                    if selected_char is not None:
+                    selected_data = char_screen.run()
+                    if selected_data is not None:
                         screen = pygame.display.get_surface()
                         game_screen = GameScreen(screen, clock)
-                        game_screen.run(selected_folder, selected_char)
+                        game_screen.run(selected_folder, selected_data["character_id"])
                 # Возвращаемся в меню — пересоздаём поверхность и меню
                 screen, clock, menu = _init_menu_display()
 

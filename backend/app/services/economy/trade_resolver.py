@@ -10,7 +10,6 @@ NPC хочет TRADE → TradeResolver определяет что/у кого �
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -18,7 +17,7 @@ from app.core.constants import GOODS_PRICES
 from app.models.economy import EconomicProfile, NeedType
 from app.services.economy.transaction_engine import TransactionEngine
 
-logger = logging.getLogger(__name__)
+
 
 
 @dataclass
@@ -138,34 +137,14 @@ class TradeResolver:
                 continue
             needed_good = self._determine_needed_good(profile)
             if not needed_good:
-                # TODO: временная диагностика — удалить после починки 0.1
-                urgent = profile.get_urgent_needs(threshold=0.6)
-                if urgent:
-                    food_stock = profile.goods.get("food", 0.0)
-                    logger.debug(
-                        f"[TRADE2] {npc_id}: urgency={urgent[0].effective_urgency:.2f} но food={food_stock} → не покупает"
-                    )
                 continue
             needed_amount = self._calculate_needed_amount(profile, needed_good)
             seller_id = self._find_seller(profiles, npc_id, needed_good, needed_amount)
             if not seller_id:
-                # TODO: временная диагностика — удалить после починки 0.1
-                stocks = {
-                    nid: p.stock_for_sale.get(needed_good, 0)
-                    for nid, p in profiles.items()
-                    if nid != npc_id
-                }
-                logger.debug(
-                    f"[TRADE2] {npc_id}: нужен {needed_good} но нет продавца. stocks={stocks}"
-                )
                 continue
             seller = profiles[seller_id]
             price = self._calculate_price(needed_good, needed_amount, seller)
             if not profile.can_afford(price):
-                # TODO: временная диагностика — удалить после починки 0.1
-                logger.debug(
-                    f"[TRADE2] {npc_id}: не может позволить {price}G (есть {profile.gold}G)"
-                )
                 continue
             tx = self.tx_engine.execute_sale(
                 buyer=profile,

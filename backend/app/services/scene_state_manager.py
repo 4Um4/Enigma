@@ -1690,8 +1690,13 @@ class SceneStateManager:
                 # Если local_position уже валиден (из пайплайна или сохранения), НЕ перезаписываем его координатами узла.
                 # Перезапись разрешена ТОЛЬКО если local_position отсутствует или битый.
                 lp = entry.get("local_position", {})
-                if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
-                    continue  # Координаты уже есть, не трогаем!
+                # S-03.2 FIX: ADR-121 запрещает (0,0). Старые сейвы могут содержать (0,0) — считаем их невалидными.
+                _is_valid = (
+                    isinstance(lp, dict) and isinstance(lp.get("x"), (int, float))
+                    and not (lp.get("x") == 0.0 and lp.get("y") == 0.0)
+                )
+                if _is_valid:
+                    continue  # Координаты уже есть и валидны, не трогаем!
 
                 if node := svc.get_node(current_node):
                     entry["local_position"] = {"x": node.x, "y": node.y}
@@ -1740,6 +1745,33 @@ class SceneStateManager:
                     logger.error(
                         f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' — ГРАФ ПУСТ! NPC skipped."
                     )
+
+            # S-03: NPC Position Validation — если NPC оказался внутри walk=False объекта, вытаскиваем его
+            _lp = entry.get("local_position", {})
+            if isinstance(_lp, dict) and isinstance(_lp.get("x"), (int, float)) and editor_data:
+                _px, _py = _lp.get("x", 0.0), _lp.get("y", 0.0)
+                _is_stuck = False
+                for obj in editor_data.get("objects", []):
+                    _pass = obj.get("passability", {})
+                    if not _pass.get("walk", True):
+                        _pos = obj.get("position", {})
+                        _size = obj.get("size", {})
+                        _ox, _oy = _pos.get("x", 0.0), _pos.get("y", 0.0)
+                        _ow, _oh = _size.get("w", 0.0), _size.get("h", 0.0)
+                        if _ox <= _px <= _ox + _ow and _oy <= _py <= _oy + _oh:
+                            _is_stuck = True
+                            _stuck_obj_id = obj.get("id", "unknown")
+                            break
+                
+                if _is_stuck and svc:
+                    # S-03.1: Ищем действительно безопасный узел через SpatialService API
+                    _safe_node = svc.get_nearest_safe_node(zone_id=location_id, origin_xy=(_px, _py))
+                    if _safe_node:
+                        entry["local_position"] = {"x": _safe_node.x, "y": _safe_node.y}
+                        logger.warning(
+                            f"[S-03_OBSTACLE_RECOVERY] NPC '{npc_id}' застрял внутри препятствия '{_stuck_obj_id}'. "
+                            f"Перемещён на безопасный узел '{_safe_node.node_id}'."
+                        )
 
     def update_npc_position(
         self,

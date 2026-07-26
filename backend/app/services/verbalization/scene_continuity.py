@@ -15,6 +15,8 @@ path: backend/app/services/verbalization/scene_continuity.py
 from dataclasses import dataclass, field
 from typing import Dict, List, Set
 
+from app.core.constants import SCENE_MAX_ACTIVE_FLAGS, SCENE_MAX_RECENT_EVENTS
+
 
 @dataclass
 class SceneContinuity:
@@ -45,18 +47,12 @@ class SceneContinuity:
         }
     )
 
-    # TODO: миграция в core/constants.py после калибровки
-    # Капы
-    MAX_RECENT: int = 5
-    MAX_FLAGS: int = 20
-
     def add_flag(self, flag: str) -> None:
         """Добавить флаг произошедшего события."""
         self.active_flags.add(flag)
         # Кап
-        if len(self.active_flags) > self.MAX_FLAGS:
-            # Удаляем самые старые (произвольно из set)
-            self.active_flags = set(list(self.active_flags)[-self.MAX_FLAGS :])
+        if len(self.active_flags) > SCENE_MAX_ACTIVE_FLAGS:
+            self.active_flags = set(list(self.active_flags)[-SCENE_MAX_ACTIVE_FLAGS:])
 
     def has_flag(self, flag: str) -> bool:
         """Проверить было ли событие."""
@@ -67,8 +63,8 @@ class SceneContinuity:
         if event in self.recent_events:
             return
         self.recent_events.append(event)
-        if len(self.recent_events) > self.MAX_RECENT:
-            self.recent_events = self.recent_events[-self.MAX_RECENT :]
+        if len(self.recent_events) > SCENE_MAX_RECENT_EVENTS:
+            self.recent_events = self.recent_events[-SCENE_MAX_RECENT_EVENTS:]
 
     def add_fact(self, fact: str) -> None:
         """Добавить факт сцены."""

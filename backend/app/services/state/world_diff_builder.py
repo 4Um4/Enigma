@@ -41,16 +41,8 @@ class WorldDiffBuilder:
                 npc_fates[state.npc_id] = state.resolved_fate.value
                 world_events.append(f"{state.npc_id}_{state.resolved_fate.value}")
 
-        # 2. Изменения отношений (текущее состояние для MVP)
-        rel_changes: Dict[str, Dict[str, float]] = {}
-        for key, snap in social_fabric._current.items():
-            src, tgt = key
-            if tgt == "player": # Сохраняем только отношения к игроку
-                rel_changes[src] = {
-                    "trust": snap.trust,
-                    "fear": snap.fear
-                }
-
+        # P7-13 FIX: Отношения не переносятся между кампаниями (строгий контракт WorldStateDiff).
+        rel_changes: Dict[str, Any] = {}  # P7-13: Изоляция отношений
         # 3. Фракции
         faction_alignments: Dict[str, float] = {}
         player_reputation: Dict[str, str] = {}

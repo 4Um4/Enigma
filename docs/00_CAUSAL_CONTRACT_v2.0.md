@@ -36,6 +36,18 @@ L2 (BEHAVIOR) — Решения на основе давления и архе�
 
 > ⚠️ **ВНИМАНИЕ:** Соответствие конкретных модулей ENIGMA этим инвариантам описано в ненормативном документе `docs/CURRENT_IMPLEMENTATION_MAPPING.md`.
 
+**Invariant IV — Semantic Validity**
+
+> Любое состояние, принимаемое симуляцией, должно быть валидно
+> не только по типу и структуре, но и относительно законов домена,
+> в котором оно существует.
+
+Schema validity ≠ Domain validity.
+Domain validity ≠ Causal validity.
+
+Система не должна принимать структурно корректное,
+но семантически невозможное состояние.
+
 ---
 
 ## 2. ОНТОЛОГИЧЕСКИЕ ПОСТУЛАТЫ
@@ -55,6 +67,52 @@ L2 (BEHAVIOR) — Решения на основе давления и архе�
 | **Отношения NPC-NPC** | `RelationshipStore` (SSOT, масштаб 0-100) | `DecisionHub` через `social_modifiers_map` | Персистенция `relationship_cache` внутри `NPCState` |
 | **Каузальная случайность** | `KernelRNG(tick, npc_id, salt)` (ADR-O-301) | `_TickContext.rng_factory` | `random.*` в kernel layer. `DecisionHub()` без `rng`. `KernelRNG` без `salt` |
 | **Идентичность NPC** | `L1Chronicle` (append-only, SQLite-персистентно) | `PatternDetector` → `EvidenceOfPersistence` → `BeliefCrystallizationEngine` | Удаление из `L1Chronicle`. `BeliefCrystallizationEngine` читает L1 напрямую (только через `EvidenceOfPersistence`) |
+| **Пространственная согласованность** |
+`SpatialCoherenceValidator` над
+`location_id + local_position + current_node + SpatialService` |
+`SpatialCoherenceValidator.validate()` |
+Запуск движения при рассогласовании координат, узла и графа |
+
+### 2.1.1. Spatial Coherence Contract
+
+Для каждого живого пространственно присутствующего агента:
+
+    scene_state.npc_positions[npc_id]
+        ↓
+    local_position
+        ↓
+    SpatialService.resolve_node(local_position)
+        ↓
+    current_node
+        ↓
+    SpatialService.graph
+        ↓
+    TraversalEngine
+
+должны представлять одну и ту же физическую реальность.
+
+Обязательные инварианты:
+
+SC-1. `local_position` не может быть `(0.0, 0.0)`,
+если `(0.0, 0.0)` не является явно валидной координатой данной локации.
+
+SC-2. `local_position` должен принадлежать текущей `location_id`.
+
+SC-3. `current_node` должен существовать в текущем `SpatialService`.
+
+SC-4. `current_node` должен быть разрешим из `local_position`
+с использованием единого алгоритма node resolution.
+
+SC-5. `SpatialService` должен быть собран из авторитетной topology source.
+
+SC-6. Активное движение запрещено до прохождения
+Spatial Coherence Validation.
+
+SC-7. Persistence не может считаться авторитетной,
+если сохранённое пространственное состояние нарушает SC-1...SC-5.
+
+SC-8. Recovery из старого или повреждённого состояния должен быть
+детерминированным и наблюдаемым.
 
 ### 2.2. Движение = Результат, не Команда
 
@@ -312,6 +370,36 @@ GameLoop (не ядро): PerceptionProjector
 48. **MockProvider в production:** `settings.environment == "production"` + `MockProvider` ❌
 49. **Парсинг JSON в DM-агенте:** `dm_agent.py` парсит JSON-схемы ❌ → `DMResponseNormalizer` (ADR-TZ05-2)
 
+### 4.8. Предусловия исполнения движения
+
+Движение не может быть запущено только на основании наличия
+`MovementIntent`.
+
+Перед созданием `TraversalState` должны быть подтверждены:
+
+1. Actor Spatial State valid.
+2. Actor `location_id` совпадает с graph zone.
+3. Actor `local_position` не является запрещённым sentinel.
+4. Actor position разрешается в topology node.
+5. Target node существует.
+6. Target node принадлежит допустимой spatial zone.
+7. A* graph был скомпилирован из актуальной topology source.
+8. Required topology connections существуют.
+9. Dynamic obstacles не делают маршрут непроходимым.
+10. Если `start_node == target_node`, результатом является `ALREADY_AT_TARGET`,
+    а не `A_STAR_FAILED`.
+11. Если `find_path()` возвращает `[start_node]`, это успешное состояние
+    с нулевым traversal distance.
+12. `A_STAR_FAILED` должен означать именно отсутствие маршрута,
+    а не:
+    - actor position corruption;
+    - missing target node;
+    - disconnected graph;
+    - invalid topology;
+    - start already at target;
+    - stale persistence;
+    - obstacle compilation error.
+
 ---
 
 ## 5. ПРИНЦИП НАБЛЮДАЕМОСТИ (CDS Non-Invasiveness)
@@ -411,6 +499,18 @@ L1Chronicle каждого NPC — персонализированная зап
 - `test_apply_changes_does_not_overwrite_active_traversal`
 - `test_apply_changes_snaps_position_on_traversal_complete`
 - `test_asymmetric_trauma_x6`
+test_spatial_state_rejects_invalid_zero_position
+test_spatial_state_reconciles_stale_persistence
+test_position_resolves_to_current_topology_node
+test_current_node_belongs_to_current_spatial_service
+test_location_id_matches_spatial_graph
+test_start_node_equals_target_is_success
+test_single_node_path_is_not_astar_failure
+test_missing_topology_edge_is_diagnosed
+test_blocked_edge_reports_obstacle_cause
+test_door_wall_id_opens_wall_segment
+test_adjacency_compiles_boundary_node
+test_movement_requires_spatial_coherence
 
 Invariant Probe Tests (IPT) запускаются до коммита: `python backend/tests/IPT.py`.
 

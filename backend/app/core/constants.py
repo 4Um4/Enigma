@@ -347,3 +347,46 @@ SOCIAL_TRUST_HIGH_THRESHOLD: float = 50.0
 
 # Порог координаты X для выхода из таверны (ТЗ Миниигра «Таверна Серебряный Волк»)
 EXIT_X_THRESHOLD: Final[float] = 18.0
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# BREAK_STAGES — Коэффициенты стадий слома (R8)
+# ═══════════════════════════════════════════════════════════════════════
+
+BREAK_STAGE_RESISTANCE: Final[float] = 1.0
+BREAK_STAGE_CRACKS: Final[float] = 0.8
+BREAK_STAGE_RATIONALIZATION: Final[float] = 0.6
+BREAK_STAGE_ADAPTATION: Final[float] = 0.4
+BREAK_STAGE_DEFORMATION: Final[float] = 0.2
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# BREAK_SYSTEM — Механика психологического слома
+# ═══════════════════════════════════════════════════════════════════════
+
+# Базовые дельты стадий (инвариант поведения)
+BREAK_DELTA_RESISTANCE: Final[float] = -0.01
+BREAK_DELTA_CRACKS: Final[float] = -0.03
+BREAK_DELTA_RATIONALIZATION: Final[float] = -0.02
+BREAK_DELTA_ADAPTATION: Final[float] = -0.05
+BREAK_DELTA_DEFORMATION: Final[float] = -0.1
+
+# Пороги и модификаторы давления
+BREAK_SUPPORT_PRESSURE_REDUCTION: Final[float] = 20.0  # поддержка снижает давление
+BREAK_RECOVERY_PRESSURE_THRESHOLD: Final[float] = 10.0  # порог восстановления (ниже = рост)
+BREAK_RECOVERY_BASE_RATE: Final[float] = 0.001  # базовая скорость асимптотического восстановления
+BREAK_RESISTANCE_PRESSURE_THRESHOLD: Final[float] = 50.0  # порог для роста сопротивления
+BREAK_RESISTANCE_GAIN: Final[float] = 0.1  # рост сопротивления при давлении
+BREAK_RESISTANCE_DECAY: Final[float] = -0.05  # затухание сопротивления без давления
+
+# Пороги аффективной нагрузки для recent_failures
+BREAK_FAILURE_AFFECT_THRESHOLD: Final[float] = 50.0  # выше = рост неудач
+BREAK_WILL_BROKEN_PRESSURE_THRESHOLD: Final[float] = 80.0  # порог для перехода WillState.BROKEN
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# VERBALIZATION — Нарратив и непрерывность сцены
+# ═══════════════════════════════════════════════════════════════════════
+
+SCENE_MAX_RECENT_EVENTS: Final[int] = 5
+SCENE_MAX_ACTIVE_FLAGS: Final[int] = 20

@@ -105,8 +105,13 @@ class GameGateway(Protocol):
         """Проверка здоровья backend."""
         ...
 
-    def new_game(self, campaign_id: str) -> dict:
-        """ADR-O-146: Сброс runtime мира к чистому static."""
+    def new_game(
+        self,
+        campaign_id: str,
+        continuity_mode: str = "isolated",
+        source_campaign_id: str = ""
+    ) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static. Опционально применяет WorldStateDiff."""
         ...
 
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
@@ -250,6 +255,22 @@ class BackendContract:
     def get_session_state(self, campaign_id: str) -> dict:
         return self._t.get(f"/api/session/state/{campaign_id}")
 
+    def get_end_screen(self, campaign_id: str) -> dict:
+        """MVP Mini-game: GET /api/game/end_screen/{campaign_id}"""
+        return self._t.get(f"/api/game/end_screen/{campaign_id}")
+
+    def finalize_campaign(self, campaign_id: str) -> dict:
+        """MVP Mini-game: POST /api/game/finalize/{campaign_id}"""
+        return self._t.post(f"/api/game/finalize/{campaign_id}", {})
+
+    def new_game(self, campaign_id: str, continuity_mode: str = "isolated", source_campaign_id: str = "") -> dict:
+        """ADR-O-146: POST /api/game/new/{campaign_id}"""
+        payload = {"continuity_mode": continuity_mode, "source_campaign_id": source_campaign_id}
+        result = self._t.post(f"/api/game/new/{campaign_id}", payload)
+        if not isinstance(result, dict):
+            raise BackendError(f"Backend returned non-dict for new_game: {result}")
+        return result
+
     def get_characters(self, campaign_id: str) -> list[dict]:
         result = self._t.get(f"/api/characters/{campaign_id}")
         return result.get("characters", [])
@@ -275,8 +296,13 @@ class BackendContract:
             {"campaign_id": campaign_id, "world_id": world_id},
         )
 
-    def new_game(self, campaign_id: str) -> dict:
-        """ADR-O-146: Сброс runtime мира к чистому static."""
+    def new_game(
+        self,
+        campaign_id: str,
+        continuity_mode: str = "isolated",
+        source_campaign_id: str = ""
+    ) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static. Опционально применяет WorldStateDiff."""
         ...
 
     @staticmethod
@@ -332,15 +358,26 @@ class HttpGameGateway:
     def health(self) -> dict:
         return self._contract.health()
 
-    def new_game(self, campaign_id: str) -> dict:
+    def new_game(
+        self,
+        campaign_id: str,
+        continuity_mode: str = "isolated",
+        source_campaign_id: str = ""
+    ) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
-        return self._contract.new_game(campaign_id)
+        return self._contract.new_game(campaign_id, continuity_mode, source_campaign_id)
 
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
         return self._contract.create_player_session(campaign_id, player_name)
 
     def get_session_state(self, campaign_id: str) -> dict:
         return self._contract.get_session_state(campaign_id)
+
+    def get_end_screen(self, campaign_id: str) -> dict:
+        return self._contract.get_end_screen(campaign_id)
+
+    def set_continuity_mode(self, mode: str) -> dict:
+        return self._contract.set_continuity_mode(mode)
 
     def get_characters(self, campaign_id: str) -> list[dict]:
         return self._contract.get_characters(campaign_id)
@@ -471,19 +508,35 @@ class DirectGameGateway:
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}
 
-    def new_game(self, campaign_id: str) -> dict:
+    def new_game(
+        self,
+        campaign_id: str,
+        continuity_mode: str = "isolated",
+        source_campaign_id: str = ""
+    ) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
             from game_loop_bridge import get_game_loop_bridge
+            from app.models.world_continuity import WorldContinuityMode
 
             _bridge = get_game_loop_bridge()
+            mode = WorldContinuityMode(continuity_mode)
+            src = source_campaign_id if source_campaign_id else None
+            
             if (
                 _bridge.ready
                 and hasattr(_bridge, "_loop")
                 and hasattr(_bridge._loop, "new_game")
             ):
-                return _bridge._loop.new_game(campaign_id)
-            return {"reset": True, "campaign_id": campaign_id, "files_removed": []}
+                result = _bridge._loop.new_game(
+                    campaign_id=campaign_id,
+                    continuity_mode=mode,
+                    source_campaign_id=src
+                )
+                if not isinstance(result, dict):
+                    raise RuntimeError(f"GameLoop.new_game returned non-dict: {result}")
+                return result
+            return {"reset": False, "campaign_id": campaign_id, "error": "Game loop bridge not ready"}
         except Exception as e:
             return {"reset": False, "campaign_id": campaign_id, "error": str(e)}
 
@@ -496,6 +549,32 @@ class DirectGameGateway:
 
     def get_session_state(self, campaign_id: str) -> dict:
         return {"campaign_id": campaign_id}
+
+    def get_end_screen(self, campaign_id: str) -> dict:
+        """MVP Mini-game: Direct mode — получение EndScreenData из GameLoop."""
+        if not self._bridge.ready or not self._bridge._loop:
+            return {}
+        if hasattr(self._bridge._loop, "mvp_controller") and self._bridge._loop.mvp_controller:
+            end_screen = self._bridge._loop.mvp_controller.build_end_screen()
+            ev = end_screen.evaluation
+            return {
+                "score": ev.score,
+                "secrets_total": ev.secrets_total,
+                "secrets_identified": ev.secrets_identified,
+                "secrets_misidentified": ev.secrets_misidentified,
+                "secrets_missed": ev.secrets_missed,
+                "methods_used": ev.methods_used,
+            }
+        return {}
+
+    def set_continuity_mode(self, mode: str) -> dict:
+        if not self._bridge.ready or not self._bridge._loop:
+            return {"error": "Bridge not ready"}
+        from app.models.world_continuity import WorldContinuityMode
+        if mode not in [WorldContinuityMode.ISOLATED.value, WorldContinuityMode.CONTINUOUS.value]:
+            return {"error": f"Invalid mode: {mode}"}
+        self._bridge._loop._continuity_mode = WorldContinuityMode(mode)
+        return {"status": "ok", "mode": self._bridge._loop._continuity_mode.value}
 
     def get_characters(self, campaign_id: str) -> list[dict]:
         # ADR-O-146: Через bridge, не через файлы. Law 1.1 — frontend не читает backend данные напрямую.
@@ -664,15 +743,20 @@ class FallbackGateway:
             self._primary_healthy = False
             return {"status": "degraded", "mode": "direct_fallback"}
 
-    def new_game(self, campaign_id: str) -> dict:
+    def new_game(
+        self,
+        campaign_id: str,
+        continuity_mode: str = "isolated",
+        source_campaign_id: str = ""
+    ) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
-            result = self._primary.new_game(campaign_id)
+            result = self._primary.new_game(campaign_id, continuity_mode, source_campaign_id)
             self._primary_healthy = True
             return result
         except Exception:
             self._primary_healthy = False
-            return self._fallback.new_game(campaign_id)
+            return self._fallback.new_game(campaign_id, continuity_mode, source_campaign_id)
 
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
         try:
@@ -691,6 +775,24 @@ class FallbackGateway:
         except Exception:
             self._primary_healthy = False
             return self._fallback.get_session_state(campaign_id)
+
+    def get_end_screen(self, campaign_id: str) -> dict:
+        if self._primary_healthy is False:
+            return self._fallback.get_end_screen(campaign_id)
+        try:
+            return self._primary.get_end_screen(campaign_id)
+        except Exception:
+            self._primary_healthy = False
+            return self._fallback.get_end_screen(campaign_id)
+
+    def set_continuity_mode(self, mode: str) -> dict:
+        if self._primary_healthy is False:
+            return self._fallback.set_continuity_mode(mode)
+        try:
+            return self._primary.set_continuity_mode(mode)
+        except Exception:
+            self._primary_healthy = False
+            return self._fallback.set_continuity_mode(mode)
 
     def get_characters(self, campaign_id: str) -> list[dict]:
         if self._primary_healthy is False:

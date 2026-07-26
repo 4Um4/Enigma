@@ -17,11 +17,11 @@ TODO:
 
 import json
 import logging
+from pathlib import Path
+from app.errors import SimulationIntegrityError
 import math
 from collections import deque
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.services.spatial.role_resolver import resolve_role
 
@@ -391,6 +391,7 @@ def _validate_navigation_geometry(
                 continue
 
             is_blocked = False
+            _is_wall_block = False  # S-142: Честный флаг блокировки стены
             _blocker = ""
             # 1. Проверка стен
             for wall in spatial_walls:
@@ -399,6 +400,7 @@ def _validate_navigation_geometry(
                     wall["x1"], wall["y1"], wall["x2"], wall["y2"]
                 ):
                     is_blocked = True
+                    _is_wall_block = True
                     _blocker = f"WALL {wall}"
                     break
 
@@ -418,9 +420,17 @@ def _validate_navigation_geometry(
                                 break
 
             if is_blocked:
+                # S-142 Topology Gate: Пересечение неразрезанной стены — критическая ошибка карты.
+                # Стена уже разрезана дверями (wall_id) на этапе _build_spatial_data.
+                # Если ребро пересекает оставшийся сегмент — это архитектурная ошибка карты.
+                if _is_wall_block:
+                    raise SimulationIntegrityError(
+                        invariant_id="INV-TOPOLOGY-WALL-CROSS",
+                        message=f"Edge {from_id} -> {to_id} crosses solid wall. Missing door wall_id? Blocker: {_blocker}",
+                        suspect_files=[__file__],
+                        file=__file__, line=385,
+                    )
                 print(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
-
-            if is_blocked:
                 logger.warning(
                     f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
                     f"is geometrically blocked! Edge removed from graph."

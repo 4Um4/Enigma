@@ -1,6 +1,5 @@
 {
   "filename": "tavern.json",
-  "location_id": "tavern_silver_wolf",
   "label": "Таверна Серебряного Волка",
   "size": {
     "w": 20,
@@ -12,27 +11,27 @@
     {
       "id": "room_0",
       "name": "Главный зал",
-      "x": 1.9975999999999985,
-      "y": 1.9992,
+      "x": 1.9999999999999987,
+      "y": 2.0359999999999996,
       "width": 12.0,
       "height": 10.0,
       "area_sqm": 120.0,
       "polygon": [
         [
-          1.9975999999999985,
-          1.9992
+          1.9999999999999987,
+          2.0359999999999996
         ],
         [
-          13.997599999999995,
-          1.9992
+          13.999999999999998,
+          2.0359999999999996
         ],
         [
-          13.997599999999995,
-          11.9992
+          13.999999999999998,
+          12.036
         ],
         [
-          1.9975999999999985,
-          11.9992
+          1.9999999999999987,
+          12.036
         ]
       ]
     },
@@ -161,7 +160,7 @@
       ]
     },
     "main_hall_south": {
-      "x": 6.0,
+      "x": 5.5,
       "y": 6.0,
       "label": "Юго-запад зала",
       "role": "default",
@@ -171,8 +170,8 @@
       ]
     },
     "main_hall": {
-      "x": 8.0,
-      "y": 6.0,
+      "x": 6.5,
+      "y": 5.5,
       "label": "Центр зала",
       "role": "default",
       "connections": [
@@ -186,13 +185,12 @@
       "label": "Проём на кухню",
       "role": "passage",
       "connections": [
-        "main_hall",
-        "kitchen",
-        "fireplace"
+        "fireplace",
+        "kitchen"
       ]
     },
     "bar_area": {
-      "x": 4.5,
+      "x": 5.5,
       "y": 6.5,
       "label": "У стойки",
       "role": "bar",
@@ -202,7 +200,7 @@
       ]
     },
     "bar_west": {
-      "x": 4.5,
+      "x": 5.5,
       "y": 4.5,
       "label": "У южной стойки",
       "role": "default",
@@ -212,9 +210,9 @@
       ]
     },
     "bar_pass_north": {
-      "x": 2.5,
+      "x": 2.2,
       "y": 6.0,
-      "label": "Северный обход (по стене)",
+      "label": "Северный обход стойки",
       "role": "default",
       "connections": [
         "bar_west",
@@ -222,22 +220,12 @@
       ]
     },
     "bar_side": {
-      "x": 2.5,
+      "x": 2.2,
       "y": 3.5,
       "label": "Обход стойки",
       "role": "default",
       "connections": [
         "bar_pass_north",
-        "bar_pass_south"
-      ]
-    },
-    "bar_pass_south": {
-      "x": 2.5,
-      "y": 3.0,
-      "label": "Южный обход (по стене)",
-      "role": "default",
-      "connections": [
-        "bar_side",
         "behind_bar"
       ]
     },
@@ -251,7 +239,7 @@
         "inn_desk"
       ],
       "connections": [
-        "bar_pass_south"
+        "bar_side"
       ]
     },
     "fireplace": {
@@ -279,8 +267,8 @@
       ]
     },
     "right_table": {
-      "x": 10.0,
-      "y": 6.0,
+      "x": 10.5,
+      "y": 6.5,
       "label": "За правым столом",
       "role": "table",
       "connections": [
@@ -305,35 +293,10 @@
   },
   "objects": [
     {
-      "type": "door",
-      "position": {
-        "x": 14.0,
-        "y": 3.75
-      },
-      "size": {
-        "w": 0.2,
-        "h": 1.5
-      },
-      "rotation": 0,
-      "wall_id": "wall_1",
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#8B4513",
-      "id": "obj_door_kitchen",
-      "name": "Дверь на кухню",
-      "show_name": false
-    },
-    {
       "type": "bar",
       "position": {
         "x": 4.6,
-        "y": 3.5742992
+        "y": 3.4250000000000003
       },
       "size": {
         "w": 3.0,
@@ -406,8 +369,8 @@
     {
       "type": "chair",
       "position": {
-        "x": 7.0,
-        "y": 5.0
+        "x": 6.625,
+        "y": 4.875
       },
       "size": {
         "w": 0.5,
@@ -509,7 +472,7 @@
       "type": "table",
       "position": {
         "x": 3.5,
-        "y": 5.0
+        "y": 5.125
       },
       "size": {
         "w": 1.5,
@@ -659,7 +622,7 @@
       "type": "chair",
       "position": {
         "x": 8.0,
-        "y": 7.5
+        "y": 7.8
       },
       "size": {
         "w": 0.5,
@@ -683,8 +646,8 @@
       "name": "Стул №4",
       "type": "chair",
       "position": {
-        "x": 8.0,
-        "y": 6.5
+        "x": 7.95,
+        "y": 6.225
       },
       "size": {
         "w": 0.52,
@@ -708,8 +671,8 @@
       "name": "Стул №5",
       "type": "chair",
       "position": {
-        "x": 9.0,
-        "y": 9.0
+        "x": 9.25,
+        "y": 8.975
       },
       "size": {
         "w": 0.5,
@@ -733,7 +696,7 @@
       "name": "Стул №6",
       "type": "chair",
       "position": {
-        "x": 7.0,
+        "x": 6.75,
         "y": 9.0
       },
       "size": {
@@ -759,7 +722,7 @@
       "type": "chair",
       "position": {
         "x": 12.0,
-        "y": 9.0
+        "y": 8.95
       },
       "size": {
         "w": 0.5,
@@ -785,6 +748,31 @@
       "position": {
         "x": 12.0,
         "y": 7.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.5
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.3,
+      "color": "#A0522D",
+      "properties": {}
+    },
+    {
+      "id": "obj_19",
+      "name": "Стул №9",
+      "type": "chair",
+      "position": {
+        "x": 12.0,
+        "y": 4.5
       },
       "size": {
         "w": 0.5,
@@ -833,8 +821,8 @@
       "name": "Стул №11",
       "type": "chair",
       "position": {
-        "x": 3.5,
-        "y": 4.5
+        "x": 2.45,
+        "y": 4.3
       },
       "size": {
         "w": 0.5,
@@ -858,8 +846,8 @@
       "name": "Стул №12",
       "type": "chair",
       "position": {
-        "x": 3.5,
-        "y": 5.5
+        "x": 4.8,
+        "y": 5.075
       },
       "size": {
         "w": 0.5,
@@ -933,8 +921,8 @@
       "name": "Стул №15",
       "type": "chair",
       "position": {
-        "x": 3.5,
-        "y": 8.5
+        "x": 3.475,
+        "y": 8.15
       },
       "size": {
         "w": 0.5,
@@ -958,8 +946,8 @@
       "name": "Стул №16",
       "type": "chair",
       "position": {
-        "x": 3.5,
-        "y": 9.5
+        "x": 3.55,
+        "y": 9.775
       },
       "size": {
         "w": 0.5,
@@ -987,8 +975,8 @@
         "y": 2.5
       },
       "size": {
-        "w": 3.86,
-        "h": 1.51,
+        "w": 4.23,
+        "h": 1.49,
         "d": 0.8
       },
       "rotation": 0,
@@ -1008,12 +996,12 @@
       "name": "Стул №17",
       "type": "chair",
       "position": {
-        "x": 15.4,
-        "y": 3.49
+        "x": 15.28125,
+        "y": 3.3993055555555554
       },
       "size": {
-        "w": 0.98,
-        "h": 1.13,
+        "w": 0.5,
+        "h": 0.5,
         "d": 0.5
       },
       "rotation": 0,
@@ -1076,6 +1064,7 @@
         "d": 2.2
       },
       "rotation": "wall_1",
+      "wall_id": "wall_1",
       "passability": {
         "walk": true,
         "jump_over": false,
@@ -1154,15 +1143,15 @@
       "name": "Стул №18",
       "type": "chair",
       "position": {
-        "x": 17.005,
-        "y": 3.525
+        "x": 16.739583333333332,
+        "y": 3.4375
       },
       "size": {
-        "w": 0.95,
-        "h": 0.92,
+        "w": 0.5,
+        "h": 0.5,
         "d": 0.5
       },
-      "rotation": 0.0,
+      "rotation": 0,
       "passability": {
         "walk": false,
         "jump_over": true,
@@ -1180,8 +1169,8 @@
       "name": "Кровать №1",
       "type": "bed",
       "position": {
-        "x": 17.5,
-        "y": 6.0
+        "x": 14.48611111111111,
+        "y": 6.118055555555555
       },
       "size": {
         "w": 2.0,
@@ -1206,8 +1195,8 @@
       "name": "Кровать №2",
       "type": "bed",
       "position": {
-        "x": 14.5,
-        "y": 6.0521024
+        "x": 17.5,
+        "y": 6.048611111111112
       },
       "size": {
         "w": 2.0,
@@ -1226,70 +1215,6 @@
       "color": "#8B4513",
       "show_name": false,
       "properties": {}
-    },
-    {
-      "id": "obj_38",
-      "name": "Окно №1",
-      "type": "window",
-      "position": {
-        "x": 2.035328000000001,
-        "y": 5.135808
-      },
-      "size": {
-        "w": 0.2,
-        "h": 2.53,
-        "d": 1.5
-      },
-      "rotation": "wall_1",
-      "passability": {
-        "walk": false,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#87CEEB",
-      "show_name": false,
-      "properties": {
-        "opacity": 0.3,
-        "destructible": true,
-        "durability": 15,
-        "sound_attenuation": 0.3,
-        "visibility_through": 0.8
-      }
-    },
-    {
-      "id": "obj_39",
-      "name": "Окно №2",
-      "type": "window",
-      "position": {
-        "x": 2.0353280000000016,
-        "y": 9.469631999999999
-      },
-      "size": {
-        "w": 0.2,
-        "h": 3.02,
-        "d": 1.5
-      },
-      "rotation": "wall_1",
-      "passability": {
-        "walk": false,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#87CEEB",
-      "show_name": false,
-      "properties": {
-        "opacity": 0.3,
-        "destructible": true,
-        "durability": 15,
-        "sound_attenuation": 0.3,
-        "visibility_through": 0.8
-      }
     }
   ],
   "portals": [
@@ -1359,7 +1284,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-06-13T18:24:17.653530",
+  "modified_at": "2026-07-25T17:45:12.365634",
   "origin": {
     "x": 0,
     "y": 0
@@ -1369,24 +1294,24 @@
     {
       "ref_id": "maid_lusya",
       "position": {
-        "x": 4.5,
-        "y": 5.0
+        "x": 15.870833333333334,
+        "y": 6.002777777777778
       },
       "room_id": "room_0"
     },
     {
       "ref_id": "guard_borko",
       "position": {
-        "x": 11.5,
-        "y": 10.5
+        "x": 13.325,
+        "y": 9.375
       },
       "room_id": "room_0"
     },
     {
       "ref_id": "blacksmith_orm",
       "position": {
-        "x": 10.5,
-        "y": 5.0
+        "x": 17.40763888888889,
+        "y": 4.423611111111111
       },
       "room_id": "room_0"
     },
@@ -1401,18 +1326,18 @@
     {
       "ref_id": "thief_shadow",
       "position": {
-        "x": 11.5,
-        "y": 9.5
+        "x": 2.625,
+        "y": 10.049999999999999
       },
       "room_id": "room_0"
     },
     {
       "ref_id": "merchant_goran",
       "position": {
-        "x": 9.0,
-        "y": 9.0
+        "x": 10.151388888888889,
+        "y": 6.1409722222222225
       },
-      "room_id": "room_0"
+      "room_id": "room_1"
     }
   ],
   "player_spawn": {
@@ -1422,6 +1347,7 @@
   },
   "global_coords": true,
   "labels": [],
+  "location_id": "tavern",
   "adjacency": {
     "east": "city_gate",
     "south": "market_square"

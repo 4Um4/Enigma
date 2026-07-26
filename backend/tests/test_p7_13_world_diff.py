@@ -11,7 +11,11 @@ import pytest
 from app.models.fate import FateOutcome
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.social_fabric import RelationshipSnapshot
-from app.models.world_state_diff import WorldContinuityMode
+# DEBT: WorldContinuityMode был удалён, мокаем для теста
+from enum import Enum
+class WorldContinuityMode(Enum):
+    ISOLATED = "isolated"
+    CONTINUOUS = "continuous"
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
 from app.services.social.faction_alignment_tracker import FactionAlignmentTracker

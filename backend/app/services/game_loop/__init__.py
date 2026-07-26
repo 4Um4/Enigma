@@ -151,6 +151,10 @@ class GameLoop:
         from app.services.social.mvp_tavern_controller import MvpTavernController
         _canon_path = PathLib(self.data_dir).parent / "config" / "canon" / "truth_state_tavern.json"
         self.mvp_controller = MvpTavernController(_canon_path) if _canon_path.exists() else None
+        
+        # P7-13: Опциональная персистентность мира. GameLoop выступает хранилищем diff'ов между кампаниями.
+        self._campaign_diffs: Dict[str, "WorldStateDiff"] = {}
+        self._diffs_path = self._saves_dir / "_world_diffs.json"
         self.dm_orchestrator = dm_orchestrator
         self.scene_manager = scene_manager
         self.world_scheduler = world_scheduler
@@ -265,6 +269,7 @@ class GameLoop:
                 avatar_service=self.avatar_service,
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
                 l1_chronicle=self._tick_orch.l1_chronicle,
+                tick_provider=lambda: getattr(self, "_current_tick", 0),
             )
 
             from app.services.events.event_types import EventType
@@ -294,9 +299,54 @@ class GameLoop:
     # ПУБЛИЧНЫЙ API
     # ────────────────────────────────────────────────────────────────────────────
 
+    def _save_diff_to_disk(self, campaign_id: str, diff: "WorldStateDiff") -> None:
+        """Сохраняет WorldStateDiff на диск, чтобы он пережил рестарт бэкенда."""
+        import json
+        from dataclasses import asdict
+        
+        try:
+            all_diffs = {}
+            if self._diffs_path.exists():
+                with open(self._diffs_path, "r", encoding="utf-8") as f:
+                    all_diffs = json.load(f)
+            
+            all_diffs[campaign_id] = asdict(diff)
+            
+            self._diffs_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._diffs_path, "w", encoding="utf-8") as f:
+                json.dump(all_diffs, f, ensure_ascii=False, indent=2)
+            logger.info(f"[WORLD_DIFF] Saved diff for '{campaign_id}' to disk.")
+        except Exception as e:
+            logger.error(f"[WORLD_DIFF] Failed to save diff for '{campaign_id}': {e}")
+
+    def _load_diff_from_disk(self, campaign_id: str) -> Optional["WorldStateDiff"]:
+        """Загружает WorldStateDiff с диска, если он там есть."""
+        import json
+        from app.models.world_state_diff import WorldStateDiff
+        
+        try:
+            if not self._diffs_path.exists():
+                return None
+            with open(self._diffs_path, "r", encoding="utf-8") as f:
+                all_diffs = json.load(f)
+            
+            diff_data = all_diffs.get(campaign_id)
+            if diff_data:
+                return WorldStateDiff(**diff_data)
+            return None
+        except Exception as e:
+            logger.error(f"[WORLD_DIFF] Failed to load diff for '{campaign_id}': {e}")
+            return None
+
     # ADR-O-146: New Game Reset — сброс runtime мира при сохранении static
-    def new_game(self, campaign_id: str) -> dict:
+    def new_game(
+        self,
+        campaign_id: str,
+        continuity_mode: "WorldContinuityMode" = None,
+        source_campaign_id: Optional[str] = None
+    ) -> dict:
         """Сбрасывает runtime состояние кампании к чистому static.
+        Опционально применяет WorldStateDiff из source_campaign_id (если continuity_mode == CONTINUOUS).
 
         Полная очистка: SQLite + JSON + все кэши.
         Переинициализация: сцена из editor JSON + NPC со здоровым body_state.
@@ -305,6 +355,10 @@ class GameLoop:
 
         Returns: {"reset": True, "campaign_id": str, "files_removed": [str]}
         """
+        from app.models.world_continuity import WorldContinuityMode
+        if continuity_mode is None:
+            continuity_mode = WorldContinuityMode.ISOLATED
+
         import logging
         self._current_campaign_id = campaign_id
 
@@ -366,6 +420,21 @@ class GameLoop:
             _npcs_for_commit = engine.reset_campaign(campaign_id) or []
         except Exception as e:
             logger.warning(f"[NEW_GAME] LifeEngine NPC reset failed: {e}")
+
+        # === 5.1 WORLD CONTINUITY (P7-13) ===
+        # Если режим CONTINUOUS, применяем WorldStateDiff из source-кампании к чистым NPC до коммита
+        if continuity_mode == WorldContinuityMode.CONTINUOUS and source_campaign_id and _npcs_for_commit:
+            source_diff = self._campaign_diffs.get(source_campaign_id)
+            if not source_diff:
+                source_diff = self._load_diff_from_disk(source_campaign_id)
+            if source_diff:
+                from app.services.state.world_diff_applicator import WorldStateApplicator
+                _applicator = WorldStateApplicator(mode=continuity_mode)
+                # Превращаем list[dict] в dict[npc_id, dict] для мутации
+                _npc_cache = {n.get("npc_id"): n for n in _npcs_for_commit if n.get("npc_id")}
+                _applicator.apply(diff=source_diff, npc_cache=_npc_cache)
+                _npcs_for_commit = list(_npc_cache.values())
+                logger.info(f"[NEW_GAME] Applied WorldStateDiff from '{source_campaign_id}' to {campaign_id}")
 
         # === 6. ПЕРЕИНИЦИАЛИЗАЦИЯ СЦЕНЫ из editor JSON ===
         # КОРЕНЬ БАГА: раньше сцена не пересоздавалась → get_scene_state() = None
@@ -770,6 +839,8 @@ class GameLoop:
 
         # Шаг 4: Монотонный каузальный тик
         _scene["tick"] = _scene.get("tick", 0) + 1
+        # H-01 FIX: Сохраняем симуляционный тик для NpcDialogueSubscriber (L1Chronicle contract)
+        self._current_tick = _scene["tick"]
 
         # S83: Tick Coherence — idle_tick тоже использует Spatial Oracle.
         _loc_id = _scene.get("location_id", "")
@@ -1546,6 +1617,8 @@ class GameLoop:
         scene_state["tick"] = scene_state.get("tick", 0) + 1
         if hasattr(shared_context, "current_tick"):
             shared_context.current_tick = scene_state["tick"]
+        # H-01 FIX: Сохраняем симуляционный тик для NpcDialogueSubscriber (L1Chronicle contract)
+        self._current_tick = scene_state["tick"]
 
         # ФАЗА 1-3: DM классификация + EventBus + STM + время
         _match = None  # Инициализация во избежание UnboundLocalError
@@ -1587,20 +1660,12 @@ class GameLoop:
 
             # P7-14 MVP: Каузальный мост действий игрока
             if self.mvp_controller and getattr(shared_context, "player_target_id", None):
-                from app.models.player_action import PlayerAction, ActionType
-                _act_type = ActionType.DIALOGUE
-                if "blackmail" in _raw_action.lower() or "шантаж" in _raw_action.lower():
-                    _act_type = ActionType.BLACKMAIL
-                elif "help" in _raw_action.lower() or "помочь" in _raw_action.lower():
-                    _act_type = ActionType.HELP
-                
-                _action = PlayerAction(
-                    action_id=f"player_act_{shared_context.tick}",
+                from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
+                _resolver = ActionSemanticResolver(self.mvp_controller.truth_state)
+                _action = _resolver.resolve(
+                    raw_text=_raw_action,
                     tick=shared_context.tick,
-                    actor_id="player",
-                    action_type=_act_type,
-                    target_id=shared_context.player_target_id,
-                    description=_raw_action
+                    target_id=shared_context.player_target_id
                 )
                 self.mvp_controller.action_compiler.process_action(_action)
 
@@ -1810,8 +1875,11 @@ class GameLoop:
                 and _avatar_state != _avatar_state_before
             ):
                 self.avatar_service.save_state(campaign_id, _avatar_state)
+                # H-02 FIX: CharacterSheet имеет hp, а NPCState имеет effective_hp (ADR-HP-UNIFICATION).
+                # Безопасное чтение для логирования, чтобы избежать AttributeError на CharacterSheet.
+                _avatar_hp = getattr(_avatar_state, "effective_hp", getattr(_avatar_state, "hp", 0))
                 logger.warning(
-                    f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_state.effective_hp}"
+                    f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_hp}"
                 )
 
             # S115 FIX: Обновляем кэш LifeEngine с мутированным all_npcs_raw.

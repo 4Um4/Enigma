@@ -20,6 +20,27 @@ ADR-TIFL-003: Двигатель Кристаллизации Идентично
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from app.core.constants import (
+    BREAK_DELTA_ADAPTATION,
+    BREAK_DELTA_CRACKS,
+    BREAK_DELTA_DEFORMATION,
+    BREAK_DELTA_RATIONALIZATION,
+    BREAK_DELTA_RESISTANCE,
+    BREAK_FAILURE_AFFECT_THRESHOLD,
+    BREAK_RECOVERY_BASE_RATE,
+    BREAK_RECOVERY_PRESSURE_THRESHOLD,
+    BREAK_RESISTANCE_DECAY,
+    BREAK_RESISTANCE_GAIN,
+    BREAK_RESISTANCE_PRESSURE_THRESHOLD,
+    BREAK_STAGE_ADAPTATION,
+    BREAK_STAGE_CRACKS,
+    BREAK_STAGE_DEFORMATION,
+    BREAK_STAGE_RATIONALIZATION,
+    BREAK_STAGE_RESISTANCE,
+    BREAK_SUPPORT_PRESSURE_REDUCTION,
+    BREAK_WILL_BROKEN_PRESSURE_THRESHOLD,
+)
+
 from app.models.npc_state import NPCState, WillState
 
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
@@ -46,14 +67,6 @@ class BreakProgressEngine:
     Чистая функция: state + event → дельты слома.
     Вызывается перед DecisionHub для обновления психологических параметров.
     """
-
-    # TODO: миграция в core/constants.py после калибровки
-    # Пороги стадий (identity_integrity)
-    STAGE_RESISTANCE = 1.0
-    STAGE_CRACKS = 0.8
-    STAGE_RATIONALIZATION = 0.6
-    STAGE_ADAPTATION = 0.4
-    STAGE_DEFORMATION = 0.2
 
     @staticmethod
     def calculate(
@@ -88,7 +101,7 @@ class BreakProgressEngine:
         willpower_factor = willpower / 100  # 0–1
         effective_pressure = raw_pressure / (1 + willpower_factor)
         if support_present:
-            effective_pressure -= 20  # поддержка снижает давление
+            effective_pressure -= BREAK_SUPPORT_PRESSURE_REDUCTION
 
         pressure = max(0, min(100, effective_pressure))
 
@@ -96,21 +109,21 @@ class BreakProgressEngine:
         integrity = state.identity_integrity
 
         # Базовые дельты стадий (инвариант поведения)
-        if integrity > BreakProgressEngine.STAGE_CRACKS:
+        if integrity > BREAK_STAGE_CRACKS:
             stage = "resistance"
-            base_delta = -0.01
-        elif integrity > BreakProgressEngine.STAGE_RATIONALIZATION:
+            base_delta = BREAK_DELTA_RESISTANCE
+        elif integrity > BREAK_STAGE_RATIONALIZATION:
             stage = "cracks"
-            base_delta = -0.03
-        elif integrity > BreakProgressEngine.STAGE_ADAPTATION:
+            base_delta = BREAK_DELTA_CRACKS
+        elif integrity > BREAK_STAGE_ADAPTATION:
             stage = "rationalization"
-            base_delta = -0.02
-        elif integrity > BreakProgressEngine.STAGE_DEFORMATION:
+            base_delta = BREAK_DELTA_RATIONALIZATION
+        elif integrity > BREAK_STAGE_DEFORMATION:
             stage = "adaptation"
-            base_delta = -0.05
+            base_delta = BREAK_DELTA_ADAPTATION
         else:
             stage = "deformation"
-            base_delta = -0.1
+            base_delta = BREAK_DELTA_DEFORMATION
 
         # Минимальное давление — чтобы не было -0.0
         pressure_factor = max(0.1, pressure / 100)
@@ -118,20 +131,20 @@ class BreakProgressEngine:
         # BUG 6 FIX: Восстановление identity_integrity.
         # Если давление спадает (ниже 10%), личность медленно восстанавливается к 1.0.
         # Формула асимптотическая: чем ближе к 1.0, тем медленнее рост.
-        if pressure < 10.0 and integrity < BreakProgressEngine.STAGE_RESISTANCE:
-            integrity_delta = 0.001 * (1.0 - integrity)
+        if pressure < BREAK_RECOVERY_PRESSURE_THRESHOLD and integrity < BREAK_STAGE_RESISTANCE:
+            integrity_delta = BREAK_RECOVERY_BASE_RATE * (1.0 - integrity)
         else:
             # Давление усиливает разрушение (единая формула для всех стадий)
             integrity_delta = base_delta * (1 + pressure_factor)
 
         # Anti-abuse: сопротивление растёт при спаме
-        resistance_delta = 0.1 if pressure > 50 else -0.05  # затухает если нет давления
+        resistance_delta = BREAK_RESISTANCE_GAIN if pressure > BREAK_RESISTANCE_PRESSURE_THRESHOLD else BREAK_RESISTANCE_DECAY
 
         # L2.7: Динамика recent_failures. Если аффективная нагрузка высока, неудачи накапливаются.
         # Если NPC спокоен (pressure < 10), счётчик затухает.
-        if _affect > 50.0:
+        if _affect > BREAK_FAILURE_AFFECT_THRESHOLD:
             failures_delta = 1
-        elif pressure < 10.0:
+        elif pressure < BREAK_RECOVERY_PRESSURE_THRESHOLD:
             failures_delta = -1
         else:
             failures_delta = 0
@@ -141,7 +154,7 @@ class BreakProgressEngine:
         identity_crisis = False
         if stage == "deformation":
             identity_crisis = True
-            if pressure > 80 and state.will_state != WillState.BROKEN:
+            if pressure > BREAK_WILL_BROKEN_PRESSURE_THRESHOLD and state.will_state != WillState.BROKEN:
                 will_override = WillState.BROKEN
 
         return BreakDeltas(
