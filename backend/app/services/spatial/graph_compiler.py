@@ -682,7 +682,7 @@ def load_editor_json(
         loc_file = d / f"{location_id}.json"
         if loc_file.exists():
             try:
-                with open(loc_file, "r", encoding="utf-8") as f:
+                with open(loc_file, "r", encoding="utf-8-sig") as f:
                     return json.load(f)
             except Exception as e:
                 logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {loc_file}: {e}")
@@ -692,7 +692,7 @@ def load_editor_json(
             if json_file.name == "campaign.json":
                 continue
             try:
-                with open(json_file, "r", encoding="utf-8") as f:
+                with open(json_file, "r", encoding="utf-8-sig") as f:
                     data = json.load(f)
                     file_loc_id = data.get("location_id", data.get("id", ""))
                     if file_loc_id == location_id:
@@ -707,7 +707,7 @@ def load_editor_json(
     campaign_file = campaign_dir / "campaign.json"
     if campaign_file.exists():
         try:
-            with open(campaign_file, "r", encoding="utf-8") as f:
+            with open(campaign_file, "r", encoding="utf-8-sig") as f:
                 data = json.load(f)
                 if "locations" in data:
                     for loc in data["locations"]:

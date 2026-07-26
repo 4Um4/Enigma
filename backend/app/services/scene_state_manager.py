@@ -663,7 +663,7 @@ class SceneStateManager:
         path = self._templates_file()
         if path.exists():
             try:
-                self._templates_cache = json.loads(path.read_text(encoding="utf-8"))
+                self._templates_cache = json.loads(path.read_text(encoding="utf-8-sig"))
                 return self._templates_cache
             except (json.JSONDecodeError, OSError) as e:
                 raise RuntimeError(f"[SCENE] Ошибка чтения шаблонов: {e}")
@@ -686,7 +686,7 @@ class SceneStateManager:
                 continue
             for json_file in loc_dir.glob("*.json"):
                 try:
-                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     lid = data.get("location_id", "")
                     label = data.get("label", "")
                     # Точное совпадение
@@ -727,7 +727,7 @@ class SceneStateManager:
                 continue
             for json_file in loc_dir.glob("*.json"):
                 try:
-                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("rooms") or data.get("walls"):
                         logger.info(f"[SCENE] Fallback: первая локация из {json_file}")
                         return data
@@ -753,7 +753,7 @@ class SceneStateManager:
                 continue
             for json_file in sorted(loc_dir.glob("*.json")):
                 try:
-                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("player_spawn") and data.get("npcs"):
                         return data.get("location_id", json_file.stem)
                 except (json.JSONDecodeError, OSError):
@@ -764,7 +764,7 @@ class SceneStateManager:
                 continue
             for json_file in sorted(loc_dir.glob("*.json")):
                 try:
-                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("player_spawn"):
                         return data.get("location_id", json_file.stem)
                 except (json.JSONDecodeError, OSError):
@@ -775,7 +775,7 @@ class SceneStateManager:
                 continue
             for json_file in sorted(loc_dir.glob("*.json")):
                 try:
-                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("rooms") or data.get("walls") or data.get("nodes"):
                         return data.get("location_id", json_file.stem)
                 except (json.JSONDecodeError, OSError):

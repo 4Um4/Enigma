@@ -67,7 +67,7 @@
     "planning_revenge": false,
     "is_dead": false
   },
-  "location": "tavern_silver_wolf",
+  "location": "tavern",
   "routine": {
     "schedule": {
       "06:00-12:00": "working",
@@ -78,17 +78,17 @@
   },
   "activity_map": {
     "working": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "behind_bar",
       "display": "innkeeping"
     },
     "resting": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "fireplace",
       "display": "resting"
     },
     "drinking": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "bar_area",
       "display": "drinking"
     },

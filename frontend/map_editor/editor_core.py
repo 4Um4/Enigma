@@ -5,6 +5,7 @@ map_editor/editor_core.py
 
 import json
 import math
+import threading
 import urllib.request
 import urllib.error
 from copy import deepcopy
@@ -320,6 +321,11 @@ class EditorCore:
         )
         self.toolbar_buttons.append(self.btn_simulate)
         self.observatory_data = None
+        self._observatory_revision = 0
+        self._geometry_hash = 0
+        self._last_edit_time = 0
+        self._spatial_dirty = False
+        self._observatory_lock = threading.Lock()
 
         # === Панель свойств ===
         panel_x = screen_w - self.panel_width
@@ -704,39 +710,72 @@ class EditorCore:
             self._show_toast("Симуляция доступна только в локации")
             return
 
-        if self.observatory_data:
+        if self.observatory_data is not None:
             self.observatory_data = None
+            self._spatial_dirty = False
             self._show_toast("Симуляция выключена")
             return
 
         self._show_toast("Запрос симуляции...")
-        import urllib.request
-        import json
+        # Временно устанавливаем пустой словарь, чтобы _update_observatory не вышел сразу
+        self.observatory_data = {}  
+        self._spatial_dirty = True
+        self._last_edit_time = 0  # 0 заставит немедленно отправить запрос
+        self._update_observatory()
 
-        # 1. Собираем данные карты из памяти редактора
-        editor_data = self.dm.locations.get(self.current_file)
-        if not editor_data:
-            self._show_toast("Нет данных локации")
+    def _update_observatory(self):
+        """
+        Вызывается каждый кадр. Проверяет изменение геометрии через snapshot diffing.
+        Если изменения есть и прошло >200мс с последнего редактирования — запрашивает обновление.
+        """
+        if self.observatory_data is None or not self.current_file:
             return
 
-        # 2. Собираем фиктивных агентов для теста путей
-        # (В будущем будем брать реальных NPC из сцены)
+        editor_data = self.dm.locations.get(self.current_file)
+        if not editor_data:
+            return
+
+        # S-OBS-05: Хэшируем весь editor_data. Любая мутация (стены, мебель, двери) изменит хэш.
+        # default=str защищает от не-сериализуемых объектов (например, цветов), которые могли быть добавлены в память.
+        try:
+            current_hash = hash(json.dumps(editor_data, sort_keys=True, default=str))
+        except Exception:
+            current_hash = 0
+
+        if current_hash != self._geometry_hash:
+            self._geometry_hash = current_hash
+            self._spatial_dirty = True
+            self._last_edit_time = pygame.time.get_ticks()
+
+        if self._spatial_dirty and (pygame.time.get_ticks() - self._last_edit_time > 200):
+            self._spatial_dirty = False
+            self._request_observatory_update()
+
+    def _request_observatory_update(self):
+        """Асинхронно запрашивает обновление ObservatoryDTO с latest-state-wins."""
+        self._observatory_revision += 1
+        revision = self._observatory_revision
+        
+        # S-OBS-05: Immutable snapshot для потока
+        editor_data = deepcopy(self.dm.locations.get(self.current_file))
+        if not editor_data:
+            return
+            
         agents_data = {}
         for npc in editor_data.get("npcs", []):
             npc_id = npc.get("ref_id")
             pos = npc.get("position", {"x": 5.0, "y": 5.0})
             if npc_id:
                 agents_data[npc_id] = {
-                    "position": "",  # Канонический ID узла неизвестен редактору, оставляем пустым для overlay
-                    "local_position": pos,  # Координаты для Observatory и Resolver
+                    "position": "",
+                    "local_position": pos,
                     "intent": {
                         "target_type": "ANCHOR",
-                        "target_id": "bar", # Тестовая цель для всех
+                        "target_id": "bar",
                         "reason": "test_sim"
                     }
                 }
 
-        # 3. Отправляем POST запрос на бэкенд
         payload = {
             "campaign_id": "Open_road",
             "location_id": self.current_file.replace(".json", ""),
@@ -744,26 +783,27 @@ class EditorCore:
             "agents_data": agents_data
         }
         
-        try:
-            req = urllib.request.Request(
-                "http://localhost:8000/api/spatial/observatory",
-                data=json.dumps(payload).encode('utf-8'),
-                headers={'Content-Type': 'application/json'},
-                method='POST'
-            )
-            with urllib.request.urlopen(req, timeout=5.0) as response:
-                self.observatory_data = json.loads(response.read().decode('utf-8'))
-            self._show_toast("Симуляция загружена")
-        except urllib.error.HTTPError as e:
-            # Читаем тело ответа с ошибкой от FastAPI
-            error_body = e.read().decode('utf-8')
-            print(f"[OBSERVATORY_API_ERROR] {error_body}")  # Вывод в консоль
-            self._show_toast(f"Ошибка 500: {error_body[:200]}")
-            self.observatory_data = None
-        except Exception as e:
-            print(f"[OBSERVATORY_ERROR] {e}")
-            self._show_toast(f"Ошибка API: {e}")
-            self.observatory_data = None
+        def fetch_data():
+            try:
+                req = urllib.request.Request(
+                    "http://localhost:8000/api/spatial/observatory",
+                    data=json.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'},
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, timeout=5.0) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+                    # S-OBS-05: Latest-state-wins validation
+                    with self._observatory_lock:
+                        if revision == self._observatory_revision:
+                            self.observatory_data = data
+            except urllib.error.HTTPError as e:
+                error_body = e.read().decode('utf-8')
+                print(f"[OBSERVATORY_API_ERROR] {error_body}")
+            except Exception as e:
+                print(f"[OBSERVATORY_ERROR] {e}")
+                
+        threading.Thread(target=fetch_data, daemon=True).start()
 
     def _dialog_save_as(self):
         """Сохраняет локацию в выбранную папку через проводник"""
@@ -1268,6 +1308,7 @@ class EditorCore:
                 else:
                     self._handle_event(event)
 
+            self._update_observatory()
             self._update()
             self._draw()
             pygame.display.flip()
@@ -1609,6 +1650,11 @@ class EditorCore:
 
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
+                # S-OBS-05: Прямой триггер обновления Observatory при отпускании мыши
+                if self.observatory_data is not None:
+                    self._spatial_dirty = True
+                    self._last_edit_time = pygame.time.get_ticks() - 300  # Немедленный запрос
+
                 if self._resizing:
                     obj = next(
                         (
@@ -2895,25 +2941,64 @@ class EditorCore:
             self._draw_observatory()
 
     def _draw_observatory(self):
-        """Рисует топологию и пути из ObservatoryDTO."""
+        """Рисует топологию и пути из ObservatoryDTO с каузальной диагностикой."""
         if not self.observatory_data:
             return
 
-        # 1. Рисуем ребра графа (топология)
-        for edge in self.observatory_data.get("topology", {}).get("edges", []):
-            from_node = next((n for n in self.observatory_data["topology"]["nodes"] if n["node_id"] == edge["from_node_id"]), None)
-            to_node = next((n for n in self.observatory_data["topology"]["nodes"] if n["node_id"] == edge["to_node_id"]), None)
+        # Визуальный дебаг Observatory
+        status_text = f"OBS REV: {self._observatory_revision} | DIRTY: {self._spatial_dirty}"
+        font = pygame.font.SysFont("Arial", 16)
+        text_surf = font.render(status_text, True, (255, 255, 0))
+        self.screen.blit(text_surf, (10, self.menu_height + self.toolbar_height + 30))
+
+        # Диагностика содержимого DTO
+        topo = self.observatory_data.get("topology", {})
+        nodes = topo.get("nodes", [])
+        edges = topo.get("edges", [])
+        agents = self.observatory_data.get("agents", [])
+        
+        diag_text = f"Nodes: {len(nodes)} | Edges: {len(edges)} | Agents: {len(agents)}"
+        diag_surf = font.render(diag_text, True, (255, 255, 0))
+        self.screen.blit(diag_surf, (10, self.menu_height + self.toolbar_height + 50))
+        
+        # Диагностика координат первого узла
+        if nodes:
+            n = nodes[0]
+            pos = n.get("position", [0, 0])
+            sx, sy = self.world_to_screen(pos[0], pos[1])
+            node_text = f"Node 0: ({pos[0]:.1f}, {pos[1]:.1f}) -> screen ({sx}, {sy})"
+            node_surf = font.render(node_text, True, (255, 255, 0))
+            self.screen.blit(node_surf, (10, self.menu_height + self.toolbar_height + 70))
+            
+            # Рисуем огромный фиолетовый круг в позиции первого узла
+            pygame.draw.circle(self.screen, (255, 0, 255), (sx, sy), 30)
+        nodes = topo.get("nodes", [])
+        edges = topo.get("edges", [])
+
+        # 1. Рисуем ребра (валидные и заблокированные)
+        for edge in edges:
+            from_node = next((n for n in nodes if n["node_id"] == edge["from_node_id"]), None)
+            to_node = next((n for n in nodes if n["node_id"] == edge["to_node_id"]), None)
             if from_node and to_node:
                 p1 = self.world_to_screen(from_node["position"][0], from_node["position"][1])
                 p2 = self.world_to_screen(to_node["position"][0], to_node["position"][1])
-                color = (50, 50, 50) if edge.get("traversable", True) else (255, 0, 0)
-                pygame.draw.line(self.screen, color, p1, p2, 1)
+                
+                if edge.get("traversable", True):
+                    pygame.draw.line(self.screen, (100, 100, 100), p1, p2, 2)
+                else:
+                    # Заблокированное ребро: красная линия с белым крестиком
+                    pygame.draw.line(self.screen, (255, 50, 50), p1, p2, 2)
+                    mid_x = (p1[0] + p2[0]) // 2
+                    mid_y = (p1[1] + p2[1]) // 2
+                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x - 5, mid_y - 5), (mid_x + 5, mid_y + 5), 3)
+                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x + 5, mid_y - 5), (mid_x - 5, mid_y + 5), 3)
 
         # 2. Рисуем узлы графа
-        for node in self.observatory_data.get("topology", {}).get("nodes", []):
+        for node in nodes:
             sx, sy = self.world_to_screen(node["position"][0], node["position"][1])
-            color = (255, 255, 0) if node.get("is_boundary") else (0, 255, 255)
-            pygame.draw.circle(self.screen, color, (int(sx), int(sy)), 4)
+            color = (255, 215, 0) if node.get("role") == "ANCHOR" else (0, 255, 255)
+            pygame.draw.circle(self.screen, color, (int(sx), int(sy)), 8)
+            pygame.draw.circle(self.screen, (255, 255, 255), (int(sx), int(sy)), 3)
 
         # 3. Рисуем пути NPC
         for agent in self.observatory_data.get("agents", []):
@@ -2927,8 +3012,8 @@ class EditorCore:
                 points.append((int(sx), int(sy)))
             
             if len(points) >= 2:
-                color = (0, 255, 0) if path.get("status") == "OK" else (255, 0, 0)
-                pygame.draw.lines(self.screen, color, False, points, 2)
+                color = (50, 255, 50) if path.get("status") == "OK" else (255, 50, 50)
+                pygame.draw.lines(self.screen, color, False, points, 4)
 
     def _draw_local_grid(self):
         """Отрисовывает локальную сетку"""

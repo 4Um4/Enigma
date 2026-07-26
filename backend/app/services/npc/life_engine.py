@@ -542,7 +542,14 @@ class LifeEngine:
                 )
                 continue
 
-            if _current_loc and _npc_loc and _npc_loc != _current_loc:
+            # S144 FIX: Нормализация локации. "tavern" в конфиге NPC и "tavern_silver_wolf" в scene_state
+            # должны считаться одной локацией, иначе NPC будут пропущены как оффскрин.
+            _loc_match = (
+                _npc_loc == _current_loc
+                or _npc_loc in _current_loc
+                or _current_loc in _npc_loc
+            )
+            if _current_loc and _npc_loc and not _loc_match:
                 logger.debug(
                     f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped"
                 )
@@ -1311,7 +1318,7 @@ class LifeEngine:
         return npcs
 
     def _extracted_from__load_npcs_14(self, arg0, campaign_id):
-        npcs = json.loads(arg0.read_text(encoding="utf-8"))
+        npcs = json.loads(arg0.read_text(encoding="utf-8-sig"))
         npcs = self._normalize_runtime_npcs(npcs)
         self._npc_cache[campaign_id] = npcs
         return npcs

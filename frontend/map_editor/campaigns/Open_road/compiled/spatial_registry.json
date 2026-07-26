@@ -1,7 +1,7 @@
 {
   "version": 1,
   "campaign_id": "Open_road",
-  "compiled_at": "2026-06-13T18:24:06.715242",
+  "compiled_at": "2026-07-26T23:29:33.926445",
   "chunks": [
     {
       "location_id": "city_gate",
@@ -12,7 +12,7 @@
       "height": 20.0,
       "is_outdoor": true,
       "label": "Городские ворота",
-      "content_hash": "c26c8b025e5e2af3181753a66f81cb4c"
+      "content_hash": "46610b038539e640970c478cb7c59f2f"
     },
     {
       "location_id": "market_square",
@@ -23,10 +23,10 @@
       "height": 25.0,
       "is_outdoor": true,
       "label": "Торговая площадь",
-      "content_hash": "b8c795a4828a5eb165c4b39f58374f2c"
+      "content_hash": "a30060d42387ba4df726e89b661afa6c"
     },
     {
-      "location_id": "tavern_silver_wolf",
+      "location_id": "tavern",
       "filename": "tavern.json",
       "origin_x": 0.0,
       "origin_y": 0.0,
@@ -34,7 +34,7 @@
       "height": 15.0,
       "is_outdoor": false,
       "label": "Таверна Серебряного Волка",
-      "content_hash": "196951ddb61face11410f4fc4a926490"
+      "content_hash": "03796497d2d35261e08e306face48b39"
     }
   ],
   "adjacency": [
@@ -49,7 +49,7 @@
     },
     {
       "location_a": "city_gate",
-      "location_b": "tavern_silver_wolf",
+      "location_b": "tavern",
       "contact_axis": "x",
       "contact_coord": 19.96,
       "overlap_start": 0.04,
@@ -58,7 +58,7 @@
     },
     {
       "location_a": "market_square",
-      "location_b": "tavern_silver_wolf",
+      "location_b": "tavern",
       "contact_axis": "y",
       "contact_coord": 14.94,
       "overlap_start": 0.0,

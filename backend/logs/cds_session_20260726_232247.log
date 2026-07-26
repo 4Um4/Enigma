@@ -1,0 +1,34 @@
+2026-07-26 23:22:47,855 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260726_232247.log
+2026-07-26 23:22:47,855 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-26 23:22:47,855 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-26 23:22:47,855 app.main ERROR: [STARTUP] Monitor init failed: 'VramMonitor' object has no attribute 'start_session'
+2026-07-26 23:22:47,995 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-26 23:22:48,016 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-26 23:22:48,034 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-26 23:22:48,065 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-07-26 23:22:48,065 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-07-26 23:22:48,074 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-07-26 23:22:48,094 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-26 23:22:48,118 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-26 23:22:52,706 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:22:52,706 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:22:59,298 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-26 23:22:59,314 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-26 23:22:59,874 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:22:59,874 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:00,691 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:00,691 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:01,537 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:01,537 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:04,035 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:04,035 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:04,525 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:04,525 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:10,267 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:10,267 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:11,268 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:11,268 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:12,126 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:12,127 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-26 23:23:13,032 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-26 23:23:13,032 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)

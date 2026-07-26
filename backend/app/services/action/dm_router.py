@@ -27,7 +27,7 @@ _module_logger = logging.getLogger(__name__)
 
 _INSULTS_PATH = Path(__file__).parent.parent.parent.parent / "data" / "insults_ru.json"
 try:
-    _INSULT_ROOTS: set[str] = set(json.loads(_INSULTS_PATH.read_text("utf-8"))["roots"])
+    _INSULT_ROOTS: set[str] = set(json.loads(_INSULTS_PATH.read_text("utf-8-sig"))["roots"])
 except Exception as _insult_err:
     # ИСПРАВЛЕНО: раньше empty set молча глотал ошибку → оскорбления
     # не распознавались без видимой причины. Теперь WARN в лог.

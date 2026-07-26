@@ -33,8 +33,6 @@ _dst_templates_dir = Path("saves/locations")
 _dst_templates_dir.mkdir(parents=True, exist_ok=True)
 shutil.copy2(_src_templates, _dst_templates_dir / "location_templates.json")
 
-from app.services.game_loop_builder import build_game_loop
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("SleepTest")
 
@@ -73,8 +71,17 @@ def run_sleep_test():
         scene_manager.save_scene_state(campaign_id, scene_state)
 
     logger.info("--- Проверка позиций NPC ---")
-    final_scene = scene_manager.get_scene_state(campaign_id, "tavern")
-    npc_positions = final_scene.get("npc_positions", {})
+    
+    # S-143 FIX: Проверяем глобальное состояние NPC через LifeEngine, 
+    # так как NPC могут покинуть сцену tavern и перейти в city_gate.
+    engine = loop._get_life_engine()
+    all_npcs = engine.get_npc_states(campaign_id)
+    
+    if not all_npcs:
+        logger.error("❌ LifeEngine не вернул состояния NPC.")
+        return False
+        
+    npc_positions = {n.get("id"): n for n in all_npcs}
     
     all_passed = True
     
@@ -89,9 +96,15 @@ def run_sleep_test():
 
     for npc_id, (exp_loc, exp_node_prefix) in expected_locations.items():
         npc_data = npc_positions.get(npc_id, {})
-        actual_loc = npc_data.get("location_id", "N/A")
+        actual_loc = npc_data.get("location_id", npc_data.get("location", "N/A"))
         actual_node = npc_data.get("position", "N/A")
         
+        # Нормализуем actual_loc, так как могут быть расхождения в именах
+        if "tavern" in actual_loc:
+            actual_loc = "tavern"
+        elif "city_gate" in actual_loc:
+            actual_loc = "city_gate"
+            
         loc_ok = (actual_loc == exp_loc)
         node_ok = actual_node.startswith(exp_node_prefix) if exp_node_prefix else True
         

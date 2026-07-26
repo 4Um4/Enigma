@@ -53,8 +53,8 @@
     "planning_revenge": false,
     "is_dead": false
   },
-  "location": "tavern_silver_wolf",
-  "position": "tavern_silver_wolf:fireplace",
+  "location": "tavern",
+  "position": "tavern:fireplace",
   "local_position": {
     "x": 10.5,
     "y": 5.0
@@ -75,12 +75,12 @@
       "display": "working"
     },
     "resting": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "fireplace",
       "display": "drinking"
     },
     "drinking": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "bar_area",
       "display": "drinking"
     },

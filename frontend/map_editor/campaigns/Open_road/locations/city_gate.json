@@ -2130,9 +2130,14 @@
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-07-25T17:45:12.362910",
+  "modified_at": "2026-07-26T23:29:36.330541",
   "adjacency": {
     "west": "tavern_silver_wolf",
     "south": "market_square"
+  },
+  "player_spawn": {
+    "x": 20.91666666666666,
+    "y": 1.0416666666666667,
+    "z": 0
   }
 }

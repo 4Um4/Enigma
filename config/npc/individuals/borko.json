@@ -60,7 +60,7 @@
   },
   "activity_map": {
     "drinking": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "bar_area",
       "display": "drinking"
     },
@@ -80,7 +80,7 @@
       "display": "guarding_gate"
     }
   },
-  "location": "tavern_silver_wolf",
+  "location": "tavern",
   "hp": 30,
   "max_hp": 30,
   "origin_events": [

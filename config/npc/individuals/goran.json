@@ -1,4 +1,4 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "merchant",
@@ -51,25 +51,25 @@
     "planning_revenge": false,
     "is_dead": false
   },
-  "location": "tavern_silver_wolf",
+  "location": "tavern",
   "activity_map": {
     "working": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "right_table",
       "display": "haggling"
     },
     "resting": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "fireplace",
       "display": "resting"
     },
     "drinking": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "bar_area",
       "display": "drinking"
     },
     "eating": {
-      "location": "tavern_silver_wolf",
+      "location": "tavern",
       "position": "main_hall",
       "display": "eating"
     },
