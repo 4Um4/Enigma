@@ -5,10 +5,6 @@
   "visible_markers": ["maid_dress", "tray"],
   "carried_objects": ["maid_dress", "tray"],
   "routine": {
-    "schedule": {
-      "14:00-06:00": "serving_tables",
-      "06:00-14:00": "sleeping"
-    }
   },
   "body_profile": {
     "max_hp": 80,

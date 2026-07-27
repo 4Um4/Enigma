@@ -54,6 +54,9 @@
 - Устранено дублирование цветовой схемы фронтенда (`ui_theme.py`).
 - `SocialEngine` начал честно получать `player_distances` от `SpatialQueryService`.
 
+- 🟢 **S143** ENIGMA SELF-HEALING (Уровень 0-2, 7): Внедрена система защиты от тихих отказов. MvpTavernController подписан на TICK_COMPLETED (N2/M-03). TruthState получил discovered_secrets (M-02), ActionCompiler отмечает секреты (M-07/M-08) и применяет delta к фракциям (M-12). N4 (NameError в _fallback_to_astar) и N7 (zombie traversal) исправлены. N3 (ambient routing dead code) и N6 (dup method) исправлены. Добавлен /api/health telemetry dashboard (Уровень 7) для мониторинга mvp_controller.
+  Files: backend/app/services/game_loop/__init__.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/services/events/event_types.py, backend/app/services/tick_orchestrator.py, backend/app/services/player_cognition/action_consequence_compiler.py, backend/app/models/truth_state.py, backend/app/api/routes.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/spatial/movement_engine.py
+
 ---
 
 ## 2. ИЗВЛЕЧЕННЫЕ АРХИТЕКТУРНЫЕ ИСТИНЫ

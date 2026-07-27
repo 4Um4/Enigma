@@ -119,59 +119,70 @@
   "labels": [],
   "nodes": {
     "square_center": {
-      "x": 12.5,
-      "y": 12.5,
+      "x": 12.922664000000001,
+      "y": 27.281368,
       "label": "Центр площади",
       "connections": [
         "merchant_row",
         "alley_shadows",
         "north_approach",
-        "workshop_area"
+        "workshop_area",
+        "node_5"
       ]
     },
     "merchant_row": {
-      "x": 22.5,
-      "y": 10.0,
+      "x": 18.2664,
+      "y": 27.539199999999997,
       "label": "Торговые ряды",
       "connections": [
         "square_center"
       ]
     },
     "alley_shadows": {
-      "x": 22.5,
-      "y": 20.0,
+      "x": 6.652672000000007,
+      "y": 39.801888,
       "label": "Теневой переулок",
       "connections": [
-        "square_center"
+        "square_center",
+        "node_5"
       ]
     },
     "north_approach": {
-      "x": 2.5,
-      "y": 12.5,
+      "x": 12.575000000000001,
+      "y": 15.775,
       "label": "Северный подход",
       "connections": [
         "square_center"
       ]
     },
     "workshop_area": {
-      "x": 5.0,
-      "y": 8.0,
+      "x": 6.850000000000001,
+      "y": 21.625,
       "label": "Кузница",
       "connections": [
+        "square_center"
+      ]
+    },
+    "node_5": {
+      "x": 12.5,
+      "y": 39.0,
+      "label": "Узел",
+      "connections": [
+        "alley_shadows",
         "square_center"
       ]
     }
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-07-26T23:29:36.332906",
+  "modified_at": "2026-07-27T22:42:27.602851",
   "adjacency": {
-    "north": "tavern_silver_wolf",
+    "north": "tavern",
     "east": "city_gate"
   },
   "player_spawn": {
-    "x": -4.0,
-    "y": 15.875,
+    "x": 12.5,
+    "y": 15.5,
     "z": 0
   }
 }

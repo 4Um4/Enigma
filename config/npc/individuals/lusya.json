@@ -65,7 +65,9 @@
   "routine": {
     "schedule": {
       "07:00-21:00": "working",
-      "21:00-07:00": "sleeping"
+      "21:00-07:00": "sleeping",
+      "14:00-06:00": "sleeping",
+      "06:00-14:00": "working"
     }
   },
   "activity_map": {

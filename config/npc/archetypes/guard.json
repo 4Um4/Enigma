@@ -4,12 +4,6 @@
   "_inherits": "_base_humanoid",
   "visible_markers": ["city_guard_armor", "spear", "city_emblem"],
   "carried_objects": ["spear", "city_guard_armor", "city_emblem"],
-  "routine": {
-    "schedule": {
-      "07:00-19:00": "guarding_gate",
-      "19:00-07:00": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 120,
     "abilities": {

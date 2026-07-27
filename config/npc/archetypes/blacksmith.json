@@ -4,12 +4,6 @@
   "_inherits": "_base_humanoid",
   "visible_markers": ["hammer", "leather_apron", "burn_scars", "soot"],
   "carried_objects": ["hammer", "tongs", "leather_apron"],
-  "routine": {
-    "schedule": {
-      "06:00-20:00": "working",
-      "20:00-06:00": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 130,
     "abilities": {

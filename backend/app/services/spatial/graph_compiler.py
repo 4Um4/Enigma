@@ -522,12 +522,25 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
     # Разрезаем стены проёмами (двери)
     # S129 FIX: P4-02 — Честный контракт wall_id вместо переиспользования rotation.
     wall_openings: dict[str, list[dict]] = {}
+    
+    # 1. Читаем проёмы из objects (двери-переходы между локациями)
     for obj in editor_data.get("objects", []):
         if not obj.get("passability", {}).get("walk", True):
             continue # Непроходимые объекты не могут быть дверными проёмами
-        wall_id = obj.get("wall_id")
+        wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
+        # S143 FIX: Fallback на rotation для старых JSON-карт, где wall_id не был сохранён
+        if not wall_id:
+            rot = obj.get("rotation")
+            if isinstance(rot, str) and rot.startswith("wall_"):
+                wall_id = rot
         if wall_id:
             wall_openings.setdefault(wall_id, []).append(obj)
+
+    # 2. Читаем проёмы из passages (внутренние двери, созданные инструментом Passage)
+    for p in editor_data.get("passages", []):
+        wall_id = p.get("wall_id")
+        if wall_id:
+            wall_openings.setdefault(wall_id, []).append(p)
 
     for wall in editor_data.get("walls", []):
         wall_id = wall.get("id")

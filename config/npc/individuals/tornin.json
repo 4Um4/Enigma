@@ -96,6 +96,11 @@
       "location": "tavern",
       "position": "kitchen_bed_2",
       "display": "sleeping"
+    },
+    "eating": {
+      "location": "tavern",
+      "position": "right_table",
+      "display": "Обедает за столом"
     }
   },
   "hp": 40,

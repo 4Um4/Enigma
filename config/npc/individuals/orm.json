@@ -88,6 +88,11 @@
       "location": "city_gate",
       "position": "tent_1",
       "display": "sleeping"
+    },
+    "eating": {
+      "location": "tavern",
+      "position": "main_hall",
+      "display": "Обедает в общем зале"
     }
   },
   "hp": 45,

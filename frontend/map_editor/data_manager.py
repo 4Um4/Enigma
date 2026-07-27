@@ -1213,36 +1213,43 @@ class DataManager:
         z: int = 0,
         properties: Optional[Dict] = None,
     ) -> str:
-        """Создаёт проход в стене. Возвращает id 'pass_N'."""
+        """Создаёт проход в стене. Возвращает id 'pass_N'.
+        S143 FIX: Сохраняет проход как Object с wall_id, чтобы graph_compiler мог разрезать стену.
+        """
         loc = self.locations[filename]
-        passage_id = f"pass_{len(loc['passages'])}"
-        # Свойства по умолчанию в зависимости от типа
-        default_props: Dict[str, Any] = {
-            "open": True,
-            "locked": False,
-            "width": 1.0,
-            "durability": 20,
-            "visibility_through": 0.1,
-        }
+        passage_id = self._next_id(loc["objects"], "obj_")
+        
+        # Размеры в зависимости от типа (дверь по умолчанию 1х1)
+        w, h = 1.0, 1.0
         if passage_type == "window":
-            default_props.update(
-                {"open": False, "durability": 15, "visibility_through": 0.8}
-            )
-        elif passage_type == "gap":
-            default_props.update(
-                {"open": True, "durability": 0, "visibility_through": 1.0, "width": 1.5}
-            )
-        if properties:
-            default_props.update(properties)
-        passage = {
+            w, h = 1.0, 0.5
+            
+        obj = {
             "id": passage_id,
-            "type": passage_type,
-            "wall_id": wall_id,
+            "name": f"Проход {passage_type} #{len(loc['objects'])}",
+            "type": "door" if passage_type == "door" else passage_type,
             "position": {"x": round(position["x"], 2), "y": round(position["y"], 2)},
-            "z": z,
-            "properties": default_props,
+            "size": {"w": w, "h": h, "d": 1.0},
+            "rotation": wall_id,  # S129: Совместимость со старым контрактом
+            "wall_id": wall_id,   # S143: Честный wall_id для graph_compiler
+            "passability": {
+                "walk": True,
+                "jump_over": False,
+                "crawl_under": False,
+                "climb_on": False,
+                "walk_around": True
+            },
+            "cover": 0.0,
+            "color": "#FFD700",
+            "show_name": False,
+            "properties": {
+                "open": True,
+                "locked": False,
+                "durability": 20,
+                "visibility_through": 0.1
+            }
         }
-        loc["passages"].append(passage)
+        loc["objects"].append(obj)
         return passage_id
 
     def remove_passage(self, filename: str, passage_id: str) -> bool:

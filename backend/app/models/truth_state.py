@@ -45,9 +45,15 @@ class TruthState:
     """Полная карта правды мира. Доступна ТОЛЬКО EvaluationEngine."""
     secrets: Mapping[str, Secret] = field(default_factory=dict)
     relations: Tuple[TruthRelation, ...] = field(default_factory=tuple)
+    discovered_secrets: Set[str] = field(default_factory=set)  # M-02 FIX: Mutable set for discovered secrets
 
     def get_secret(self, secret_id: str) -> Secret:
         return self.secrets[secret_id]
+
+    def mark_discovered(self, secret_id: str) -> None:
+        """M-02 FIX: Отмечает секрет как раскрытый."""
+        if secret_id in self.secrets:
+            self.discovered_secrets.add(secret_id)
 
     def get_relations_for(self, secret_id: str) -> List[TruthRelation]:
         return [r for r in self.relations if r.source_secret_id == secret_id or r.target_secret_id == secret_id]

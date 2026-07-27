@@ -132,12 +132,14 @@ class TaskScheduler:
             t for t in pending if t.get("task_id") != _task_id
         ]
 
+        # N3 FIX: Извлекаем task_type из payload и передаём явно
+        _task_type = _eligible.payload.get("task_type", "canonical")
         # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick
         self._executor_pool.submit(
-            self._process_tasks_async, scene_state, [task_dict], campaign_id
+            self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type
         )
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = ""):
+    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical"):
         """Фоновая обработка задач LLM."""
         import time
         bus = get_event_bus()
@@ -154,7 +156,6 @@ class TaskScheduler:
                 continue
 
             # Блокер 5: Маршрутизация ambient -> NpcConversation, canonical -> DialogueExecutor
-            _task_type = _eligible.payload.get("task_type", "canonical") if '_eligible' in locals() else "canonical"
             if _task_type == "ambient":
                 executor = self._ambient_executor
             else:

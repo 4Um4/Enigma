@@ -234,7 +234,9 @@ class MovementEngine:
                         current_loc, campaign_id, scene_state
                     )
                     if current_svc:
+                        print(f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}")
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
+                        print(f"[DIAG_BOUNDARY] result={boundary_node}")
                         logger.debug(f"[BORKO_CROSS_BOUNDARY] tick={tick} boundary_node={boundary_node}")
                         if boundary_node:
                             # S-04: Проверяем, не стоит ли NPC уже на boundary node.
@@ -268,6 +270,13 @@ class MovementEngine:
                                         suspect_files=["frontend/map_editor/campaigns/Open_road/locations/"],
                                         file=__file__, line=188,
                                     )
+
+                                # N7 FIX: Очищаем активный транзит при кросс-локационной материализации
+                                _active_traversals = scene_state.get("active_traversals", [])
+                                _entry = next((e for e in _active_traversals if e.get("npc_id") == intent.actor_id), None)
+                                if _entry:
+                                    _active_traversals.remove(_entry)
+                                    logger.debug(f"Cleared traversal for {intent.actor_id} after materialize")
 
                                 changes.extend([
                                     SceneChange(
@@ -477,6 +486,8 @@ class MovementEngine:
         """S131.1: Fallback на A* ТОЛЬКО если локальная геометрия недоступна.
         Если геометрия была доступна, но план отклонён (физический запрет) — этот метод не вызывается.
         """
+        # N4 FIX: defensive default для segment_arc_heights, чтобы избежать NameError
+        segment_arc_heights = []
         path = svc.find_path(source_xy, target_node_obj) if hasattr(svc, "find_path") else None
         if not path or len(path) < 2:
             return MovementPlanResult(
@@ -609,17 +620,6 @@ class MovementEngine:
             status=MovementPlanStatus.ACCEPTED,
             proposal=proposal,
         )
-
-    def _resolve_macro_relocation(
-        self,
-        intent: MacroMovementGoal,
-        svc: Any,
-        location_id: str,
-        tick: int,
-        current_pos: str,
-        current_xy: Dict[str, float],
-    ) -> List[SceneChange]:
-        """S131: LOD1 макро-перемещение. Делегирует планирование LocalTraversalPlanner'u."""
 
     def _resolve_macro_relocation(
         self,

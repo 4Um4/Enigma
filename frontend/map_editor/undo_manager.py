@@ -347,6 +347,27 @@ class RemoveNodeCommand(Command):
 
 
 @dataclass
+class AddConnectionCommand(Command):
+    """Добавление связи между навигационными узлами"""
+
+    dm: Any = None
+    filename: str = ""
+    node_id: str = ""
+    target_id: str = ""
+
+    def __post_init__(self):
+        self.label = "Связь узлов"
+
+    def do(self):
+        self.dm.add_connection(self.filename, self.node_id, self.target_id)
+        self.dm.add_connection(self.filename, self.target_id, self.node_id)
+
+    def undo(self):
+        self.dm.remove_connection(self.filename, self.node_id, self.target_id)
+        self.dm.remove_connection(self.filename, self.target_id, self.node_id)
+
+
+@dataclass
 class AddObjectCommand(Command):
     """Добавление объекта (мебель, декор)"""
 

@@ -43,8 +43,8 @@ class TestP713WorldDiff:
         fate.trigger_fate("maid_lusya", FateOutcome.ESCAPE, tick=10, cause="test", description="test")
         
         faction = FactionAlignmentTracker()
-        faction.set_initial("thieves_guild")
-        faction.apply_delta("thieves_guild", -80.0)
+        faction.set_initial("гильдия_воров")
+        faction.apply_delta("гильдия_воров", -80.0)
         
         fabric = SocialFabricTracker()
         fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
@@ -79,8 +79,8 @@ class TestP713WorldDiff:
         builder = WorldDiffBuilder()
         diff = builder.build(truth, fate, faction, fabric, model)
         
-        assert diff.faction_alignments["thieves_guild"] == -80.0
-        assert diff.player_reputation["thieves_guild"] == "enemy"
+        assert diff.faction_alignments["гильдия_воров"] == -80.0
+        assert diff.player_reputation["гильдия_воров"] == "enemy"
 
     def test_diff_contains_exposed_secrets(self, setup):
         truth, fate, faction, fabric, model = setup

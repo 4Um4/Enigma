@@ -635,13 +635,14 @@ class SpatialService:
 
     def get_central_node(self):
         """Возвращает центральную ноду графа (ближайшую к среднему арифметическому координат)."""
-        if not self._graph.nodes:
+        # N5 FIX: _graph — это Dict[str, NodeRef], у него нет атрибута .nodes
+        if not self._graph:
             return None
         best_node = None
         min_dist = float("inf")
-        cx = sum(n.x for n in self._graph.nodes.values()) / len(self._graph.nodes)
-        cy = sum(n.y for n in self._graph.nodes.values()) / len(self._graph.nodes)
-        for node in self._graph.nodes.values():
+        cx = sum(n.x for n in self._graph.values()) / len(self._graph)
+        cy = sum(n.y for n in self._graph.values()) / len(self._graph)
+        for node in self._graph.values():
             d = (node.x - cx) ** 2 + (node.y - cy) ** 2
             if d < min_dist:
                 min_dist = d

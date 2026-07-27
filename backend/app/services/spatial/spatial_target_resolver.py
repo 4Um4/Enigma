@@ -44,7 +44,7 @@ class SpatialTargetResolver:
         Разрешает намерение в физическую координату и точку входа в граф.
         """
         if intent.target_type == SpatialTargetType.ANCHOR:
-            return self._resolve_anchor_target(intent)
+            return self._resolve_anchor_target(intent, location_id)
             
         if intent.target_type == SpatialTargetType.REGION and intent.reason == "flee":
             return self._resolve_flee_target(intent, npc_positions, actor_id, location_id)
@@ -56,7 +56,7 @@ class SpatialTargetResolver:
             resolution_reason=f"Unsupported target_type: {intent.target_type}"
         )
 
-    def _resolve_anchor_target(self, intent: SpatialTargetIntent) -> ResolvedSpatialTarget:
+    def _resolve_anchor_target(self, intent: SpatialTargetIntent, location_id: Optional[str] = None) -> ResolvedSpatialTarget:
         target_id = intent.target_id
         if not target_id:
             return ResolvedSpatialTarget(
@@ -69,7 +69,13 @@ class SpatialTargetResolver:
         
         # 2. Если нет, пытаемся найти по семантической роли (например, "bar")
         if not node:
-            node = self._spatial_service.resolve_node(target_id)
+            from app.models.spatial_contracts import NodeRole
+            try:
+                # S143 FIX: Конвертируем строку в Enum, так как resolve_node ожидает NodeRole
+                role_enum = NodeRole(target_id)
+                node = self._spatial_service.resolve_node(role=role_enum, origin_zone=location_id)
+            except ValueError:
+                pass  # Строка не соответствует ни одной роли NodeRole
             
         if not node:
             return ResolvedSpatialTarget(
