@@ -46,7 +46,8 @@ class EvaluationEngine:
             was_correct = False
             was_misidentified = False
 
-            if belief and belief.belief_value == BeliefValue.TRUE and confidence >= 0.8:
+            if (secret_id in truth.discovered_secrets) or \
+               (belief and belief.belief_value == BeliefValue.TRUE and confidence >= 0.8):
                 secrets_identified += 1
                 was_correct = True
             elif belief and belief.belief_value == BeliefValue.FALSE and confidence <= -0.8:

@@ -52,11 +52,9 @@ def evaluate_behavior_and_identity(
 
         try:
             _npc_state = NPCStateAdapter.from_legacy(npc_dict)
-            _willpower = (
-                getattr(_npc_state.psyche, "willpower", 50.0)
-                if hasattr(_npc_state, "psyche")
-                else 50.0
-            )
+            # V8-PSY-2 FIX: Willpower читается из NPCPersonality (L0), а не из несуществующего psyche
+            _personality = getattr(_npc_state, "personality", None)
+            _willpower = getattr(_personality, "willpower", 50.0) if _personality else 50.0
 
             # Шаг 1.1: Вычисление social_pressure на основе реальных trust и fear из RelationshipStore (SSOT)
             _social_pressure = 0.0

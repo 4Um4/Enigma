@@ -62,11 +62,15 @@ class MemoryManager:
         return self._dialogue_sessions[key]
 
     def add_dialogue_turn(
-        self, campaign_id: str, npc_id: str, speaker: str, text: str
+        self, campaign_id: str, npc_id: str, speaker: str, text: str,
+        target_id: str = "", intent: str = "", tone: str = "", tick: int = 0
     ) -> None:
         """Добавляет реплику в STM конкретного NPC."""
         session = self.get_dialogue_session(campaign_id, npc_id)
-        session.add(speaker, text)
+        session.add_turn(
+            speaker=speaker, text=text, target_id=target_id,
+            intent=intent, tone=tone, tick=tick
+        )
 
     def clear_dialogue_session(self, campaign_id: str, npc_id: str) -> None:
         """Очищает STM при завершении диалога (NPC ушёл, смена сцены)."""
@@ -88,6 +92,11 @@ class MemoryManager:
         key = f"{campaign_id}:{npc_id}"
         session = self._dialogue_sessions.get(key)
         return "" if session is None else session.to_prompt_block()
+
+    def get_stm_prompt_block_pair(self, campaign_id: str, npc_a: str, npc_b: str) -> str:
+        """Возвращает STM для пары NPC (заглушка до Этапа 4)."""
+        # Пока берём сессию спикера (npc_a), так как ключи пока не парные
+        return self.get_stm_prompt_block(campaign_id, npc_a)
 
     # ──────────────────────────────────────────────────────────────────────
     # EventBus и фазовая модель
@@ -219,6 +228,18 @@ class MemoryManager:
                 campaign_id=campaign_id,
                 mem_data=mem,
             )
+
+        # V8-MEM-3 FIX: Оживление belief pipeline (assess_beliefs)
+        # Вызывается после записи в narrative_cache, чтобы агрегатор имел свежие данные.
+        try:
+            _tick = payload.get("tick", 0)
+            self.assess_beliefs(
+                campaign_id=campaign_id,
+                npc_id=npc_id,
+                current_tick=_tick,
+            )
+        except Exception as e:
+            logger.warning(f"[MEMORY_MANAGER] assess_beliefs failed for {npc_id}: {e}")
 
         return npc_state
 

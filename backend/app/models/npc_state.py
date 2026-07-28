@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
-from app.models.behavior_mask import BehaviorMaskState
+from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 
 if TYPE_CHECKING:
     from app.models.physical import Condition, Wound
@@ -1047,6 +1047,12 @@ class NPCStateAdapter:
             affective_memory=float(npc_dict.get("affective_memory", 0.0)),
             # social_input_ema — восстановление поля социального давления
             social_input_ema=float(npc_dict.get("social_input_ema", 0.0)),
+            # V8-PSY-5 FIX: Восстановление behavior_mask из psyche sub-dict
+            behavior_mask=BehaviorMaskState(
+                mask=BehaviorMask(psyche.get("behavior_mask", "none")),
+                intensity=float(psyche.get("behavior_mask_intensity", 0.0)),
+                applied_at_day=int(psyche.get("behavior_mask_applied_at_day", 0))
+            ),
             # emotion — восстановление текущей эмоции (ADR-116)
             # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
             emotion=_emotion_from_str(npc_dict.get("emotion", "neutral")),

@@ -44,6 +44,13 @@ _SOCIAL_EVENT_TYPES: list[EventType] = [
     EventType.INTIMIDATION,
     EventType.BETRAYAL,
     EventType.SAVED_LIFE,
+    # V8-SOC-1 FIX: Добавлены события NPC↔NPC для социальных последствий
+    EventType.ACTOR_ATTACKS,
+    EventType.NPC_INTERACTS_NPC,
+    EventType.NPC_SPOKE,
+    EventType.NPC_MOVED,
+    EventType.NPC_PROXIMITY_CLOSE,
+    EventType.NPC_PROXIMITY_LEAVE,
 ]
 
 

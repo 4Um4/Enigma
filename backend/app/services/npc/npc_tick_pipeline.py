@@ -579,7 +579,8 @@ class NpcTickPipeline:
             if state.relationship_store:
                 try:
                     applicator = StateApplicator(
-                        relationship_store=state.relationship_store
+                        relationship_store=state.relationship_store,
+                        l1_chronicle=state.l1_chronicle # V8-PSY-1 FIX
                     )
                     _new_state = applicator.apply(
                         state=state_l2, result=decision, campaign_id=state.campaign_id

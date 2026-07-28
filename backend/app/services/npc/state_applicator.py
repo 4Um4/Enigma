@@ -79,10 +79,12 @@ class StateApplicator:
         self,
         relationship_store: RelationshipStore,
         reputation_engine: Any = None,
+        l1_chronicle: Optional[Any] = None, # V8-PSY-1 FIX
     ) -> None:
         self._rel_store = relationship_store
         # ReputationEngine — опциональная зависимость (DI)
         self._reputation_engine = reputation_engine
+        self._l1_chronicle = l1_chronicle # V8-PSY-1 FIX
 
     def apply(
         self,
@@ -817,17 +819,16 @@ class StateApplicator:
                     for trait, delta in _drive_mutations.items()
                 ]
                 # Запись в L1Chronicle (если есть в state)
-                _chronicle = getattr(state, "_l1_chronicle", None)
+                _chronicle = getattr(self, "_l1_chronicle", None)
                 if _chronicle is not None:
                     _chronicle.commit_tick_buffer(_events, _tick)
                 else:
                     # ADR-O-208: L3-P1. Прямая мутация drives_runtime запрещена.
-                    # Если L1Chronicle не подключён, мутация игнорируется.
                     import logging
 
                     logging.getLogger(__name__).warning(
-                        f"[STATE_APPLICATOR] L1Chronicle not attached to state {state.npc_id}. "
-                        f"Drive mutation ignored (L3 strictly ephemeral)."
+                        f"[STATE_APPLICATOR] L1Chronicle not attached to StateApplicator. "
+                        f"Drive mutation for {state.npc_id} ignored (L3 strictly ephemeral)."
                     )
 
         # --- Физиология (Physiology Domain) ---

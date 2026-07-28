@@ -54,6 +54,10 @@ def propagate_social_rumors(
                 _intensity = float(_ev_intensity)
                 _event_type = _ev.payload.get("action_type", _ev.type)
                 _actor_id = _ev.source
+                # V8-SOC-4 FIX: Если событие NPC-to-NPC (ACTOR_ATTACKS, NPC_INTERACTS_NPC),
+                # извлекаем target_id из payload, чтобы снять player-centric gate.
+                if _ev.source != "player" and _ev.type in ("ACTOR_ATTACKS", "NPC_INTERACTS_NPC"):
+                    _target_id = _ev.payload.get("target_id", _target_id)
 
     # Fallback: legacy путь через dm_result.event_context
     if _intensity == 0.0:

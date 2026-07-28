@@ -10,128 +10,137 @@
   "rooms": [
     {
       "id": "room_0",
-      "name": "Главный зал",
-      "x": 1.0,
-      "y": 1.0,
-      "width": 13.0,
-      "height": 11.0,
+      "name": "Комната 0",
+      "x": 0.5,
+      "y": 0.5,
+      "width": 13.5,
+      "height": 12.5,
       "polygon": [
         [
-          1.0,
-          1.0
+          0.5,
+          0.5
         ],
         [
           14.0,
-          1.0
+          0.5
         ],
         [
           14.0,
-          12.0
+          13.0
         ],
         [
-          1.0,
-          12.0
+          0.5,
+          13.0
         ]
       ],
-      "area_sqm": 143.0
+      "area_sqm": 168.8
     },
     {
       "id": "room_1",
-      "name": "Кухня",
-      "x": 14.004166666666666,
-      "y": 1.0026388888888889,
-      "width": 5.0,
-      "height": 7.0,
+      "name": "Комната 1",
+      "x": 14.0,
+      "y": 0.5,
+      "width": 5.5,
+      "height": 7.5,
       "polygon": [
         [
-          14.004166666666666,
-          1.0026388888888889
+          14.0,
+          0.5
         ],
         [
-          19.004166666666666,
-          1.0026388888888889
+          19.5,
+          0.5
         ],
         [
-          19.004166666666666,
-          8.002638888888889
+          19.5,
+          8.0
         ],
         [
-          14.004166666666666,
-          8.002638888888889
+          14.0,
+          8.0
         ]
       ],
-      "area_sqm": 35.0
+      "area_sqm": 41.2
     }
   ],
   "walls": [
     {
-      "id": "wall_0",
+      "id": "wall_3",
       "type": "wall",
-      "x1": 1.0,
-      "y1": 1.0,
-      "x2": 14.0,
-      "y2": 1.0,
+      "x1": 0.5,
+      "y1": 13.0,
+      "x2": 0.5,
+      "y2": 0.5,
       "thickness": 0.2
     },
     {
       "id": "wall_2",
       "type": "wall",
       "x1": 14.0,
-      "y1": 12.0,
-      "x2": 1.0,
-      "y2": 12.0,
+      "y1": 13.0,
+      "x2": 0.5,
+      "y2": 13.0,
       "thickness": 0.2
     },
     {
-      "id": "wall_3",
+      "id": "wall_1",
       "type": "wall",
-      "x1": 1.0,
-      "y1": 12.0,
-      "x2": 1.0,
-      "y2": 1.0,
+      "x1": 14.0,
+      "y1": 0.5,
+      "x2": 14.0,
+      "y2": 13.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_0",
+      "type": "wall",
+      "x1": 0.5,
+      "y1": 0.5,
+      "x2": 14.0,
+      "y2": 0.5,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_7",
+      "type": "wall",
+      "x1": 14.0,
+      "y1": 8.0,
+      "x2": 14.0,
+      "y2": 0.5,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_6",
+      "type": "wall",
+      "x1": 19.5,
+      "y1": 8.0,
+      "x2": 14.0,
+      "y2": 8.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_5",
+      "type": "wall",
+      "x1": 19.5,
+      "y1": 0.5,
+      "x2": 19.5,
+      "y2": 8.0,
       "thickness": 0.2
     },
     {
       "id": "wall_4",
       "type": "wall",
       "x1": 14.0,
-      "y1": 1.0,
-      "x2": 19.0,
-      "y2": 1.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_5",
-      "type": "wall",
-      "x1": 19.0,
-      "y1": 1.0,
-      "x2": 19.0,
-      "y2": 8.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_6",
-      "type": "wall",
-      "x1": 14.0,
-      "y1": 12.0,
-      "x2": 14.0,
-      "y2": 1.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_6",
-      "type": "wall",
-      "x1": 14.0,
-      "y1": 8.0,
-      "x2": 19.0,
-      "y2": 8.0,
+      "y1": 0.5,
+      "x2": 19.5,
+      "y2": 0.5,
       "thickness": 0.2
     }
   ],
   "nodes": {
     "entrance": {
-      "x": 7.973877957818929,
-      "y": 12.054591049382717,
+      "x": 8.14382394547325,
+      "y": 13.0258487654321,
       "label": "Вход",
       "role": "entrance",
       "connections": [
@@ -236,9 +245,9 @@
       "role": "default",
       "connections": [
         "right_table",
-        "node_15",
         "main_hall",
-        "behind_bar"
+        "behind_bar",
+        "node_16"
       ]
     },
     "corner_table": {
@@ -267,8 +276,8 @@
       ]
     },
     "kitchen": {
-      "x": 16.0,
-      "y": 5.0,
+      "x": 16.612863297325102,
+      "y": 3.9551183127572016,
       "label": "Кухня",
       "role": "kitchen_counter",
       "tags": [
@@ -282,8 +291,8 @@
       ]
     },
     "kitchen_bed_1": {
-      "x": 15.0,
-      "y": 5.0,
+      "x": 15.003264531893004,
+      "y": 6.162567515432099,
       "label": "Кровать на кухне 1",
       "role": "bed",
       "connections": [
@@ -291,30 +300,20 @@
       ]
     },
     "kitchen_bed_2": {
-      "x": 17.5,
-      "y": 5.0,
+      "x": 18.123281893004112,
+      "y": 6.283140432098766,
       "label": "Кровать на кухне 2",
       "role": "bed",
       "connections": [
         "kitchen"
       ]
     },
-    "node_15": {
-      "x": 14.0,
-      "y": 2.8761574074074074,
-      "label": "Узел",
-      "connections": [
-        "fireplace",
-        "node_16"
-      ]
-    },
     "node_16": {
-      "x": 16.5,
-      "y": 2.0,
+      "x": 13.975000000000001,
+      "y": 3.075,
       "label": "Узел",
       "connections": [
-        "kitchen",
-        "node_15"
+        "fireplace"
       ]
     }
   },
@@ -373,8 +372,8 @@
       "name": "Декорация №1",
       "type": "decoration",
       "position": {
-        "x": 7.0,
-        "y": 11.5
+        "x": 6.602141203703703,
+        "y": 12.597125771604938
       },
       "size": {
         "w": 0.5,
@@ -399,8 +398,8 @@
       "name": "Декорация №2",
       "type": "decoration",
       "position": {
-        "x": 9.0,
-        "y": 11.5
+        "x": 9.530478395061728,
+        "y": 12.657407407407408
       },
       "size": {
         "w": 0.5,
@@ -1056,15 +1055,15 @@
       "name": "Кровать №1",
       "type": "bed",
       "position": {
-        "x": 14.920833333333333,
-        "y": 5.149166666666666
+        "x": 15.181185699588475,
+        "y": 7.3571463477366255
       },
       "size": {
         "w": 2.0,
         "h": 1.0,
         "d": 0.6
       },
-      "rotation": 270.0,
+      "rotation": 180.0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1082,15 +1081,15 @@
       "name": "Кровать №2",
       "type": "bed",
       "position": {
-        "x": 17.542361111111106,
-        "y": 5.174305555555556
+        "x": 18.271350951646085,
+        "y": 7.288165509259259
       },
       "size": {
         "w": 2.0,
         "h": 1.0,
         "d": 0.6
       },
-      "rotation": 270.0,
+      "rotation": 0.0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1105,49 +1104,18 @@
     },
     {
       "id": "obj_38",
-      "name": "Дверь №1",
-      "type": "door",
-      "position": {
-        "x": 14.0,
-        "y": 3.0
-      },
-      "size": {
-        "w": 0.2,
-        "h": 1.47,
-        "d": 2.2
-      },
-      "rotation": "wall_6",
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#D2691E",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 20,
-        "visibility_through": 0.1
-      }
-    },
-    {
-      "id": "obj_39",
       "name": "Дверь переход №1",
       "type": "door_transition",
       "position": {
-        "x": 8.0,
-        "y": 12.0
+        "x": 8.175,
+        "y": 13.0
       },
       "size": {
-        "w": 1.66,
+        "w": 2.0,
         "h": 0.2,
         "d": 2.2
       },
-      "rotation": "wall_2",
+      "rotation": 0,
       "passability": {
         "walk": true,
         "jump_over": false,
@@ -1164,8 +1132,76 @@
         "durability": 25,
         "visibility_through": 0.0,
         "target_file": "",
-        "target_portal": ""
-      }
+        "target_portal": "",
+        "wall_id": "wall_2"
+      },
+      "wall_id": "wall_2"
+    },
+    {
+      "id": "obj_41",
+      "name": "Дверь №3",
+      "type": "door",
+      "position": {
+        "x": 14.0,
+        "y": 3.125
+      },
+      "size": {
+        "w": 0.2,
+        "h": 1.8,
+        "d": 2.2
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 20,
+        "visibility_through": 0.1,
+        "wall_id": "wall_1"
+      },
+      "wall_id": "wall_1"
+    },
+    {
+      "id": "obj_42",
+      "name": "Дверь №2",
+      "type": "door",
+      "position": {
+        "x": 14.0,
+        "y": 5.625
+      },
+      "size": {
+        "w": 0.2,
+        "h": 1.38,
+        "d": 2.2
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 20,
+        "visibility_through": 0.1,
+        "wall_id": "wall_1"
+      },
+      "wall_id": "wall_1"
     }
   ],
   "portals": [
@@ -1235,7 +1271,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-07-27T22:42:27.603258",
+  "modified_at": "2026-07-28T21:40:08.693753",
   "origin": {
     "x": 0,
     "y": 0
@@ -1299,8 +1335,8 @@
     "south": "market_square"
   },
   "player_spawn": {
-    "x": 8.0,
-    "y": 11.5,
+    "x": 8.204957561728396,
+    "y": 11.90991512345679,
     "z": 0
   }
 }

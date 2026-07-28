@@ -58,6 +58,8 @@ def create_tick_state(
     # S129: Bridge 7 — Тема и адресат ответа из Фазы 4
     npc_topics: Optional[Dict[str, Any]] = None,
     response_targets: Optional[Dict[str, Any]] = None,
+    # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
+    l1_chronicle: Optional[Any] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -98,6 +100,8 @@ def create_tick_state(
         spatial_query=spatial_query,
         npc_topics=frozen(npc_topics) if npc_topics else {},
         response_targets=frozen(response_targets) if response_targets else {},
+        # V8-PSY-1 FIX
+        l1_chronicle=l1_chronicle,
     )
 
 
@@ -156,6 +160,8 @@ class TickState:
     relationship_store: Optional[Any] = None
     spatial_service: Optional[Any] = None
     spatial_query: Optional[Any] = None
+    # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
+    l1_chronicle: Optional[Any] = None
     # S129: Bridge 7
     npc_topics: Dict[str, Any] = field(default_factory=dict)
     response_targets: Dict[str, Any] = field(default_factory=dict)

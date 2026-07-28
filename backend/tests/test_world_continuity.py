@@ -17,10 +17,10 @@ class TestWorldContinuity:
         """Diff, где Горан мёртв, а Люся сбежала."""
         return WorldStateDiff(
             npc_fates={"merchant_goran": "killed_by_guild", "maid_lusya": "escaped"},
-            faction_alignments={"thieves_guild": -100.0},
+            faction_alignments={"гильдия_воров": -100.0},
             secrets_exposed={"goran_contraband": True},
             world_events=["goran_killed", "lusya_escaped"],
-            player_reputation={"thieves_guild": "enemy"}
+            player_reputation={"гильдия_воров": "enemy"}
         )
 
     def test_isolated_mode_ignores_diff(self, mock_diff: WorldStateDiff):

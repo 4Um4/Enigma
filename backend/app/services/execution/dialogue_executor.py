@@ -27,8 +27,10 @@ class DialogueExecutor:
         router=None,
         context_provider: Optional[Callable[[str, str], dict]] = None,
         belief_store=None,
+        memory_manager=None,
     ):
         self._router = router
+        self._memory_manager = memory_manager
         self._get_context = context_provider or (
             lambda npc_id, camp_id: {"name": npc_id, "description": ""}
         )
@@ -135,6 +137,15 @@ class DialogueExecutor:
         _history_text = ""
         if getattr(req, "npc_npc_context", ""):
             _history_text = f"Твои воспоминания об этой встрече: {req.npc_npc_context} "
+
+        # BUG-DL-02 FIX: Инъекция STM-блока (контекст текущего разговора)
+        _stm_text = ""
+        if self._memory_manager is not None and task.campaign_id:
+            _stm_text = self._memory_manager.get_stm_prompt_block_pair(
+                task.campaign_id, task.owner_id, req.target_id
+            )
+        if _stm_text:
+            _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"
 
         # L-03 FIX: Добавляем voice_profile, backstory, author_notes для уникального голоса
         user_prompt = (

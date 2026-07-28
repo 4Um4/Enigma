@@ -32,10 +32,10 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None):
+    def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None, memory_manager=None):
         from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
-            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store)
+            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager)
         }
         # Блокер 5: Sims-слой для ambient-диалогов без LLM
         self._ambient_executor: NpcConversation = NpcConversation()
@@ -269,6 +269,7 @@ class TaskScheduler:
                     exposure=ExposureLevel(semantic=payload_dict.get("exposure_semantic", "normal")),
                     intent_type=payload_dict.get("intent_type", "talk"),
                     emotional_state=_emotional_state,
+                    npc_npc_context=payload_dict.get("npc_npc_context", ""),
                 )
             except Exception as e:
                 logger.error(

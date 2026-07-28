@@ -56,6 +56,18 @@ def test_full_playthrough_end_screen_non_empty(mvp_controller):
         description="Вот тебе денег на долг."
     )
     mvp.action_compiler.process_action(action_help)
+
+    # V8-MVP-7: Игрок говорит без target, но с ключевым словом секрета
+    action_dialogue = PlayerAction(
+        action_id="act_3",
+        tick=3,
+        actor_id="player",
+        action_type=ActionType.DIALOGUE,
+        target_id="", # БЕЗ TARGET!
+        secret_id="tornin_debt",
+        description="Торнин, у тебя долги перед гильдией?"
+    )
+    mvp.action_compiler.process_action(action_dialogue)
     
     # 4. Проверяем End-Screen
     end_screen = mvp.build_end_screen()
@@ -66,9 +78,10 @@ def test_full_playthrough_end_screen_non_empty(mvp_controller):
     # M-02: Должен быть раскрыт хотя бы 1 секрет
     # (В текущей реализации это может быть пусто, если M-02 не реализован)
     # Ожидаем, что тест упадёт, если M-02 не починен.
-    assert len(mvp.truth_state.discovered_secrets) >= 1, (
-        f"Expected >=1 discovered secrets, got {len(mvp.truth_state.discovered_secrets)}. "
-        "Check M-02 (discovered_secrets Set) and M-07/M-08 (evidence)."
+    assert mvp.truth_state is not None, "TruthState is None"
+    assert len(mvp.truth_state.discovered_secrets) >= 2, (
+        f"Expected >=2 discovered secrets, got {len(mvp.truth_state.discovered_secrets)}. "
+        "Check M-02 (discovered_secrets Set), M-07/M-08 (evidence), V8-MVP-7 (dialogue without target)."
     )
     
     # M-03: Fate tracker должен иметь состояния (обновляется через TICK_COMPLETED)

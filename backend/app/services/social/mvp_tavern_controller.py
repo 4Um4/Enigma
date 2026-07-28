@@ -5,7 +5,10 @@
 """
 
 from pathlib import Path
+import logging
 from typing import Optional, Dict, Any, List
+
+logger = logging.getLogger(__name__)
 from app.services.truth_state_loader import TruthStateLoader
 from app.models.truth_state import TruthState
 from app.services.player_cognition.observation_log import ObservationLog
@@ -168,3 +171,60 @@ class MvpTavernController:
             social_fabric=self.social_fabric,
             beliefs=self.belief_model
         )
+
+    def serialize_end_screen(self) -> Dict[str, Any]:
+        """V8-MVP-3 FIX: Сериализует EndScreenData и трекеры в dict для API."""
+        end_screen = self.build_end_screen()
+        ev = end_screen.evaluation
+        
+        _npc_fates_data = [
+            {
+                "npc_id": f.npc_id,
+                "fate_outcome": f.fate_outcome,
+                "last_word": {
+                    "npc_id": f.last_word.npc_id,
+                    "quote": f.last_word.quote,
+                    "tone": f.last_word.tone.value
+                } if f.last_word else None
+            } for f in end_screen.npc_fates
+        ]
+        
+        _contradictions_data = [
+            {
+                "contradiction_id": c.contradiction_id,
+                "description": c.description,
+                "emotional_weight": c.emotional_weight
+            } for c in end_screen.contradictions
+        ]
+
+        _faction_alignments = {}
+        for fa in self.faction_tracker.get_all():
+            _faction_alignments[fa.faction_id] = {
+                "alignment": fa.alignment,
+                "known_to_faction": fa.known_to_faction
+            }
+
+        _social_fabric_deltas = []
+        for d in self.social_fabric.get_all_deltas():
+            _social_fabric_deltas.append({
+                "tick": d.tick,
+                "source_id": d.source_id,
+                "target_id": d.target_id,
+                "trust_delta": d.trust_delta,
+                "fear_delta": d.fear_delta,
+                "cause": d.cause
+            })
+        
+        return {
+            "exited": True,
+            "score": ev.score,
+            "secrets_total": ev.secrets_total,
+            "secrets_identified": ev.secrets_identified,
+            "secrets_misidentified": ev.secrets_misidentified,
+            "secrets_missed": ev.secrets_missed,
+            "methods_used": ev.methods_used,
+            "npc_fates": _npc_fates_data,
+            "contradictions": _contradictions_data,
+            "faction_alignments": _faction_alignments,
+            "social_fabric_deltas": _social_fabric_deltas,
+        }

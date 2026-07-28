@@ -46,56 +46,63 @@ class ActionSemanticResolver:
             description=raw_text
         )
 
-    def _extract_secret_id(self, raw_lower: str, target_id: str) -> Optional[str]:
-        """MVP-эвристика: матчит ключевые слова к секретам target_id."""
-        # Если Люся
-        if target_id == "maid_lusya":
-            if "подвал" in raw_lower or "тайный ход" in raw_lower:
-                return "lusya_basement"
-            if "тень" in raw_lower and ("приказ" in raw_lower or "дело" in raw_lower):
-                return "lusya_shadow_orders"
-            if "орм" in raw_lower and ("спать" in raw_lower or "любовник" in raw_lower):
-                return "lusya_orm_borko"
-            if "борко" in raw_lower and ("люблю" in raw_lower or "влюб" in raw_lower):
-                return "lusya_borko_crush"
-                
-        # Если Борко
-        elif target_id == "guard_borko":
-            if "подгляд" in raw_lower:
-                return "borko_voyeur"
-            if ("взятк" in raw_lower) or ("горан" in raw_lower and ("золото" in raw_lower or "платить" in raw_lower)):
-                return "borko_bribe"
-            if "караван" in raw_lower or "труп" in raw_lower:
-                return "borko_negligence"
-                
-        # Если Горан
-        elif target_id == "merchant_goran":
-            if "шёлк" in raw_lower or "контрабанд" in raw_lower:
-                return "goran_contraband"
-            if "борко" in raw_lower and ("золото" in raw_lower or "платить" in raw_lower):
-                return "goran_bribe"
-                
-        # Если Орм
-        elif target_id == "blacksmith_orm":
-            if "торнин" in raw_lower and ("заказ" in raw_lower or "ковал" in raw_lower):
-                return "orm_tornin_order"
-            if "мастер" in raw_lower and ("секрет" in raw_lower or "умер" in raw_lower):
-                return "orm_craft"
-                
-        # Если Тень
-        elif target_id == "thief_shadow":
-            if "предатель" in raw_lower or "шёлк" in raw_lower:
-                return "shadow_investigation"
-            if "люся" in raw_lower and "подозрев" in raw_lower:
-                return "shadow_suspects_lusya"
-            if "убил" in raw_lower or "первый" in raw_lower and "убийство" in raw_lower:
-                return "shadow_first_kill"
-                
-        # Если Торнин
-        elif target_id == "tavern_keeper_tornin":
-            if "долг" in raw_lower or ("гильдия" in raw_lower and "должен" in raw_lower):
-                return "tornin_debt"
-            if "подвал" in raw_lower and ("знаешь" in raw_lower or "притворя" in raw_lower):
-                return "tornin_basement"
-                
+    def _extract_secret_id(self, raw_lower: str, target_id: Optional[str]) -> Optional[str]:
+        """MVP-эвристика: матчит ключевые слова к секретам target_id (или всем, если target_id is None)."""
+        # V8-MVP-7 FIX: Если target_id не указан, ищем по всем известным NPC
+        _targets_to_check = [target_id] if target_id else [
+            "maid_lusya", "guard_borko", "merchant_goran", "blacksmith_orm", "thief_shadow", "tavern_keeper_tornin"
+        ]
+
+        for _target in _targets_to_check:
+            # Если Люся
+            if _target == "maid_lusya":
+                if "подвал" in raw_lower or "тайный ход" in raw_lower:
+                    return "lusya_basement"
+                if "тень" in raw_lower and ("приказ" in raw_lower or "дело" in raw_lower):
+                    return "lusya_shadow_orders"
+                if "орм" in raw_lower and ("спать" in raw_lower or "любовник" in raw_lower):
+                    return "lusya_orm_borko"
+                if "борко" in raw_lower and ("люблю" in raw_lower or "влюб" in raw_lower):
+                    return "lusya_borko_crush"
+                    
+            # Если Борко
+            elif _target == "guard_borko":
+                if "подгляд" in raw_lower:
+                    return "borko_voyeur"
+                if ("взятк" in raw_lower) or ("горан" in raw_lower and ("золото" in raw_lower or "платить" in raw_lower)):
+                    return "borko_bribe"
+                if "караван" in raw_lower or "труп" in raw_lower:
+                    return "borko_negligence"
+                    
+            # Если Горан
+            elif _target == "merchant_goran":
+                if "шёлк" in raw_lower or "контрабанд" in raw_lower:
+                    return "goran_contraband"
+                if "борко" in raw_lower and ("золото" in raw_lower or "платить" in raw_lower):
+                    return "goran_bribe"
+                    
+            # Если Орм
+            elif _target == "blacksmith_orm":
+                if "торнин" in raw_lower and ("заказ" in raw_lower or "ковал" in raw_lower):
+                    return "orm_tornin_order"
+                if "мастер" in raw_lower and ("секрет" in raw_lower or "умер" in raw_lower):
+                    return "orm_craft"
+                    
+            # Если Тень
+            elif _target == "thief_shadow":
+                if "предатель" in raw_lower or "шёлк" in raw_lower:
+                    return "shadow_investigation"
+                if "люся" in raw_lower and "подозрев" in raw_lower:
+                    return "shadow_suspects_lusya"
+                # V8-MVP-8 FIX: Исправлен приоритет операторов (and bindе tighter than or)
+                if "убил" in raw_lower or ("первый" in raw_lower and "убийство" in raw_lower):
+                    return "shadow_first_kill"
+                    
+            # Если Торнин
+            elif _target == "tavern_keeper_tornin":
+                if "долг" in raw_lower or ("гильдия" in raw_lower and "должен" in raw_lower):
+                    return "tornin_debt"
+                if "подвал" in raw_lower and ("знаешь" in raw_lower or "притворя" in raw_lower):
+                    return "tornin_basement"
+                    
         return None

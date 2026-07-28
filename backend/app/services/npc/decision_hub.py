@@ -364,6 +364,7 @@ class DecisionHub:
             intent_type=intent_value,
             emotional_state=emotion_value,
             exposure_level=ExposureLevel.from_semantic("normal"),
+            target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
         )
 
     def compute(
@@ -724,7 +725,8 @@ class DecisionHub:
         pressure = best_score - current_score  # >0 значит новый лучше
 
         # Reactive urgency: высокая тревога → принудительная смена
-        fear_value = state.stress if hasattr(state, "stress") else 0.0
+        # V8-PSY-4 FIX: state.stress имеет шкалу 0-100, REACTIVE_URGENCY_THRESHOLD = 0.8 (шкала 0-1)
+        fear_value = (state.stress / 100.0) if hasattr(state, "stress") else 0.0
         force_switch = fear_value > REACTIVE_URGENCY_THRESHOLD
 
         # ── Pressure Accumulation: накопление давления по парам ──

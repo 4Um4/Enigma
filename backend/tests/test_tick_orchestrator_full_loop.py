@@ -9,6 +9,8 @@ TODO:
 - Добавить больше сценариев (player_intimidates, player_flees и т.д.)
 - Проверить, что реакции NPC корректно влияют на их состояние (stress, drives и т.д.)
 - В будущем: интеграционные тесты с реальными LLM (можно пометить как @pytest.mark.integration) для проверки всей цепочки от восприятия до генерации реакций.
+
+Запуск: cd backend; python -m pytest tests/test_tick_orchestrator_full_loop.py -v; cd ..
 """
 
 from unittest.mock import MagicMock

@@ -1682,13 +1682,14 @@ class GameLoop:
             shared_context.intent_resolution = _resolution
 
             # P7-14 MVP: Каузальный мост действий игрока
-            if self.mvp_controller and getattr(shared_context, "player_target_id", None):
+            # V8-MVP-7 FIX: Убран gate по player_target_id. DIALOGUE без target должен обрабатываться.
+            if self.mvp_controller:
                 from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
                 _resolver = ActionSemanticResolver(self.mvp_controller.truth_state)
                 _action = _resolver.resolve(
                     raw_text=_raw_action,
                     tick=shared_context.tick,
-                    target_id=shared_context.player_target_id
+                    target_id=getattr(shared_context, "player_target_id", None)
                 )
                 self.mvp_controller.action_compiler.process_action(_action)
 
@@ -1965,7 +1966,7 @@ class GameLoop:
             _ctx = self._get_life_engine().get_npc_observed_state
             _et = self._svc.economy_tracker
             _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)
-            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs)
+            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager)
             self._task_scheduler = _scheduler
         return self._task_scheduler
 

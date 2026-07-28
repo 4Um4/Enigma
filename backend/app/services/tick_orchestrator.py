@@ -1235,6 +1235,7 @@ class TickOrchestrator:
             identity_traits_map=_identity_traits_map,
             spatial_service=_spatial_svc_for_pipeline,
             spatial_query=_spatial_query_for_pipeline,
+            l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)

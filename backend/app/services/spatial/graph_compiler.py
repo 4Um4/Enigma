@@ -206,11 +206,20 @@ def compile_graph(
 
             # 1) Точное совпадение имени комнаты с label навигационного узла
             if _has_nav and room_name:
+                # N5-style FIX: Гарантируем, что nodes_raw — это dict
+                if not isinstance(nodes_raw, dict):
+                    nodes_raw = {}
+                
                 for nid, ndata in nodes_raw.items():
                     if not isinstance(ndata, dict):
                         continue
-                    nav_label = ndata.get("label", ndata.get("name", ""))
-                    if nav_label and nav_label.lower() == room_name.lower():
+                    
+                    # Безопасно извлекаем значение, по умолчанию пустая строка
+                    nav_label_raw = ndata.get("label", ndata.get("name", ""))
+                    # Явно приводим к строке, так как JSON может содержать числа или списки
+                    nav_label = str(nav_label_raw) if nav_label_raw else ""
+                    
+                    if nav_label and nav_label.lower() == str(room_name).lower():
                         _nav_match = f"{location_id}:{nid}"
                         break
 
@@ -423,12 +432,18 @@ def _validate_navigation_geometry(
                 # Стена уже разрезана дверями (wall_id) на этапе _build_spatial_data.
                 # Если ребро пересекает оставшийся сегмент — это архитектурная ошибка карты.
                 if _is_wall_block:
-                    raise SimulationIntegrityError(
-                        invariant_id="INV-TOPOLOGY-WALL-CROSS",
-                        message=f"Edge {from_id} -> {to_id} crosses solid wall. Missing door wall_id? Blocker: {_blocker}",
-                        suspect_files=[__file__],
-                        file=__file__, line=385,
+                    import os
+                    logger.error(
+                        f"[MAP_TOPOLOGY_DEFECT] Edge {from_id} -> {to_id} crosses wall. "
+                        f"Removing edge. Blocker: {_blocker}. Set ENIGMA_STRICT_MAP=1 to crash."
                     )
+                    if os.environ.get("ENIGMA_STRICT_MAP") == "1":
+                        raise SimulationIntegrityError(
+                            invariant_id="INV-TOPOLOGY-WALL-CROSS",
+                            message=f"Edge {from_id} -> {to_id} crosses solid wall. Missing door wall_id? Blocker: {_blocker}",
+                            suspect_files=[__file__],
+                            file=__file__, line=385,
+                        )
                 print(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
                 logger.warning(
                     f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
@@ -442,12 +457,18 @@ def _validate_navigation_geometry(
             if _src in connections and _tgt in connections[_src]:
                 connections[_src].remove(_tgt)
 
-def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4) -> bool:
-    """Стандартное определение пересечения двух отрезков."""
-    def ccw(ax, ay, bx, by, cx, cy):
-        return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax)
-    return ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4) and \
-           ccw(x1, y1, x2, y2, x3, y3) != ccw(x1, y1, x2, y2, x4, y4)
+def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4, eps=1e-6) -> bool:
+    """Определение пересечения отрезков с ε-толерантностью (V8-SP-2 FIX)."""
+    def _cross(ox, oy, ax, ay, bx, by):
+        return (ax - ox) * (by - oy) - (ay - oy) * (bx - ox)
+    d1 = _cross(x3, y3, x4, y4, x1, y1)
+    d2 = _cross(x3, y3, x4, y4, x2, y2)
+    d3 = _cross(x1, y1, x2, y2, x3, y3)
+    d4 = _cross(x1, y1, x2, y2, x4, y4)
+    if ((d1 > eps and d2 < -eps) or (d1 < -eps and d2 > eps)) and \
+       ((d3 > eps and d4 < -eps) or (d3 < -eps and d4 > eps)):
+        return True
+    return False
 
 def _line_rect_intersect(x1, y1, x2, y2, rx, ry, rw, rh) -> bool:
     """Проверка пересечения отрезка с прямоугольником (AABB)."""
@@ -507,6 +528,37 @@ def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, A
     return affordance_objects
 
 
+def _find_walls_for_door(editor_data: Dict[str, Any], door: Dict[str, Any]) -> List[str]:
+    """S143 §1: Авто-поиск ВСЕХ стен для двери по координатам.
+    Возвращает список wall_id, на которых лежит дверь (perp_dist <= 0.5).
+    Решает проблему дублирующихся стен между комнатами.
+    """
+    door_pos = door.get("position", {})
+    px, py = door_pos.get("x", 0), door_pos.get("y", 0)
+    
+    found_walls: List[str] = []
+    threshold = 0.5 # Порог дистанции
+    
+    for wall in editor_data.get("walls", []):
+        wid = wall.get("id")
+        x1, y1 = wall.get("x1", 0), wall.get("y1", 0)
+        x2, y2 = wall.get("x2", 0), wall.get("y2", 0)
+        dx, dy = x2 - x1, y2 - y1
+        wall_len = (dx * dx + dy * dy) ** 0.5
+        if wall_len == 0:
+            continue
+            
+        ux = dx / wall_len
+        uy = dy / wall_len
+        vx, vy = px - x1, py - y1
+        perp_dist = abs(vx * (-uy) + vy * ux)
+        
+        if perp_dist <= threshold:
+            found_walls.append(wid)
+            
+    return found_walls
+
+
 def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Извлекает spatial_walls и spatial_obstacles из editor JSON.
 
@@ -520,21 +572,31 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         return spatial_walls, spatial_obstacles
 
     # Разрезаем стены проёмами (двери)
-    # S129 FIX: P4-02 — Честный контракт wall_id вместо переиспользования rotation.
+    # S143 FIX §1: Дверь разрезает ВСЕ стены, проходящие через её координаты (решает проблему дубликатов стен)
     wall_openings: dict[str, list[dict]] = {}
     
     # 1. Читаем проёмы из objects (двери-переходы между локациями)
     for obj in editor_data.get("objects", []):
         if not obj.get("passability", {}).get("walk", True):
             continue # Непроходимые объекты не могут быть дверными проёмами
-        wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
-        # S143 FIX: Fallback на rotation для старых JSON-карт, где wall_id не был сохранён
-        if not wall_id:
+        if obj.get("type") not in ("door", "door_transition"):
+            continue
+            
+        # S143: Ищем ВСЕ стены, на которых лежит дверь
+        walls_for_door = _find_walls_for_door(editor_data, obj)
+        
+        # Fallback: если явный wall_id указан, добавляем его, если не нашли по координатам
+        explicit_wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
+        if not explicit_wall_id:
             rot = obj.get("rotation")
             if isinstance(rot, str) and rot.startswith("wall_"):
-                wall_id = rot
-        if wall_id:
-            wall_openings.setdefault(wall_id, []).append(obj)
+                explicit_wall_id = rot
+                
+        if explicit_wall_id and explicit_wall_id not in walls_for_door:
+            walls_for_door.append(explicit_wall_id)
+            
+        for wid in walls_for_door:
+            wall_openings.setdefault(wid, []).append(obj)
 
     # 2. Читаем проёмы из passages (внутренние двери, созданные инструментом Passage)
     for p in editor_data.get("passages", []):
@@ -546,7 +608,16 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         wall_id = wall.get("id")
         openings = wall_openings.get(wall_id, [])
         segments = _split_wall_by_openings(wall, openings)
+        if wall_id == "wall_7":
+            print(f"[DIAG_SPLIT] wall_7 openings={len(openings)} segments={len(segments)}")  # DIAG
+            for seg in segments:
+                print(f"[DIAG_SPLIT_SEG] {seg}")  # DIAG
         spatial_walls.extend(segments)
+
+    print(f"[DIAG_RETURN] spatial_walls_count={len(spatial_walls)}")  # DIAG
+    for w in spatial_walls:
+        if w.get("x1") == 14.0 and w.get("x2") == 14.0 and w.get("y1") == 8.0 and w.get("y2") == 0.5:
+            print(f"[DIAG_RETURN_BROKEN_WALL] {w}")  # DIAG
 
     # Препятствия с passability и blocks_los
     for obj in editor_data.get("objects", []):

@@ -168,6 +168,7 @@ class ServiceFactory:
     def get_state_applicator(
         self,
         relationship_store: Any = None,
+        l1_chronicle: Any = None, # V8-PSY-1 FIX
     ) -> Any:
         """Ленивая инициализация StateApplicator с ReputationEngine.
 
@@ -182,6 +183,7 @@ class ServiceFactory:
         self._state_applicator = StateApplicator(
             relationship_store=relationship_store,
             reputation_engine=_rep_engine,
+            l1_chronicle=l1_chronicle, # V8-PSY-1 FIX
         )
         logger.info(
             "[STATE_APPLICATOR] Initialized with ReputationEngine=%s",

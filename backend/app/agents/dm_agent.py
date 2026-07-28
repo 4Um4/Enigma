@@ -225,6 +225,11 @@ class DmAgent:
         if _recent_speech:
             builder.add_npc_stm("\n".join(_recent_speech))
 
+        # BUG-DL-03 FIX: Targeted STM block — контекст диалога с целевым NPC
+        _targeted_stm = (context or {}).get("npc_stm_block_targeted", "")
+        if _targeted_stm:
+            builder.add_npc_stm(_targeted_stm)
+
         # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты)
         # скрыты от DM-агента. DM описывает только то, что физически проявлено.
 

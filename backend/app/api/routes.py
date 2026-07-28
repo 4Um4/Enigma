@@ -2,8 +2,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import List, Literal, Optional
-
+from typing import List, Literal, Optional, Dict, Any
 from app.core.config import settings
 
 # A2-FIX: snapshot_npc_positions_to_dict удалён (canonical Dict)
@@ -370,23 +369,13 @@ async def game_turn(
 
 
 @router.get("/api/game/end_screen/{campaign_id}")
-def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> Dict[str, Any]:
     """Возвращает финальный экран оценки игрока (MVP Mini-game). Чистое чтение."""
     if not game_loop.mvp_controller:
         return {"error": "MVP controller not initialized"}
     
-    end_screen = game_loop.mvp_controller.build_end_screen()
-    ev = end_screen.evaluation
-    
-    return {
-        "exited": True,
-        "score": ev.score,
-        "secrets_total": ev.secrets_total,
-        "secrets_identified": ev.secrets_identified,
-        "secrets_misidentified": ev.secrets_misidentified,
-        "secrets_missed": ev.secrets_missed,
-        "methods_used": ev.methods_used,
-    }
+    # V8-MVP-3: Сериализация вынесена в MvpTavernController
+    return game_loop.mvp_controller.serialize_end_screen()
 
 @router.post("/api/game/finalize/{campaign_id}")
 def finalize_campaign(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:

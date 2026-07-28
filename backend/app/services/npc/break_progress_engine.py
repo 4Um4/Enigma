@@ -156,6 +156,9 @@ class BreakProgressEngine:
             identity_crisis = True
             if pressure > BREAK_WILL_BROKEN_PRESSURE_THRESHOLD and state.will_state != WillState.BROKEN:
                 will_override = WillState.BROKEN
+        elif stage == "resistance" and state.will_state == WillState.BROKEN:
+            # V8-PSY-3 FIX: Recovery path from BROKEN to FREE
+            will_override = WillState.FREE
 
         return BreakDeltas(
             identity_integrity_delta=round(integrity_delta, 4),
@@ -203,7 +206,7 @@ def compute_mutation(state: "NPCState", trauma_type: str) -> Dict[str, float]:
     drive_deltas = topology.get("drives", {})
 
     if not drive_deltas:
-        return []
+        return {}
 
     # Безопасное чтение rigidity
     rigidity = 0.5

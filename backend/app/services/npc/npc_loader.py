@@ -269,6 +269,12 @@ _RUNTIME_PSYCHE_KEYS = frozenset(
         "pressure_resistance",
         "resentment",
         "dependency",
+        "recent_failures", # V8-PSY-5 FIX
+        "life_project", # V8-PSY-5 FIX
+        "life_project_state", # V8-PSY-5 FIX
+        "behavior_mask", # V8-PSY-5 FIX
+        "behavior_mask_intensity", # V8-PSY-5 FIX
+        "behavior_mask_applied_at_day", # V8-PSY-5 FIX
     }
 )
 _RUNTIME_TOP_LEVEL_KEYS = frozenset(
@@ -287,6 +293,8 @@ _RUNTIME_TOP_LEVEL_KEYS = frozenset(
         "posture",
         "temporary_drives",
         "causal_ledger",
+        "affective_memory", # V8-PSY-5 FIX
+        "social_input_ema", # V8-PSY-5 FIX
         # ADR-117: Вычисленные runtime-поля, которые должны переживать merge
         # Без этого affective_load=0.0 и emotion=MISSING после каждого чтения с диска
         "affective_load",

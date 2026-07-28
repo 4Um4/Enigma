@@ -55,7 +55,8 @@
     "schedule": {
       "18:00-06:00": "observing",
       "06:00-18:00": "sleeping"
-    }
+    },
+    "//_note": "Shadow — nocturnal вор, спит днём 06:00-18:00. Не мигрирует ночью."
   },
   "activity_map": {
     "observing": {

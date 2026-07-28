@@ -117,16 +117,29 @@ class NpcDialogueSubscriber:
         """Полная обработка canonical реплики (с текстом от LLM)."""
         _campaign_id = self._get_campaign_id()
 
-        # 1. STM (Short-Term Memory) — добавляем реплику
+        # 1. STM (Short-Term Memory) — добавляем реплику (BUG-DL-05: симметричная запись)
         try:
             self.memory.add_dialogue_turn(
                 campaign_id=_campaign_id,
                 npc_id=listener,
                 speaker=speaker,
                 text=text,
+                target_id=listener,
+                intent="dialogue",
+                tick=tick,
+            )
+            # Speaker's own session (NEW — чтобы NPC помнил, что сам сказал)
+            self.memory.add_dialogue_turn(
+                campaign_id=_campaign_id,
+                npc_id=speaker,
+                speaker=speaker,
+                text=text,
+                target_id=listener,
+                intent="dialogue",
+                tick=tick,
             )
         except Exception as mem_err:
-            logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}: {mem_err}")
+            logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}/{speaker}: {mem_err}")
 
         # P2-03: AffectiveIntegrator ghost removed. Emotions handled via CFRM P2 and social_pressure.
 

@@ -53,6 +53,13 @@ def run_dm_phase(
         if _target.target_id:
             shared_context.player_target_id = _target.target_id
             shared_context.player_target_name = _target.target_name
+            # BUG-DL-03 FIX: Извлекаем targeted STM block для DM LLM
+            try:
+                shared_context.npc_stm_block_targeted = game_loop.memory_manager.get_stm_prompt_block(
+                    campaign_id=campaign_id, npc_id=_target.target_id
+                )
+            except Exception:
+                shared_context.npc_stm_block_targeted = ""
 
         # ФАЗА 3.1: Spatial Events — детекция переходов расстояний
         try:
@@ -128,13 +135,17 @@ def run_dm_phase(
         # ПОСЛЕ установки intent_resolution — иначе _semantic_action=None
         # STM: реплика игрока в сессию целевого NPC
         # P1 ARCH: STM привязывается к Intent target, не к Shadow state.
-        _stm_target_id = _sem_payload.get("target_id")
+        _stm_target_id = shared_context.player_target_id
         if _raw_type in ("dialogue", "player_interacts") and _stm_target_id:
             game_loop.memory_manager.add_dialogue_turn(
                 campaign_id=campaign_id,
                 npc_id=_stm_target_id,
                 speaker="player",
                 text=raw_input,
+                target_id=_stm_target_id,
+                intent="dialogue",  # TODO: LLM-classify
+                tone="",  # TODO: LLM-classify
+                tick=shared_context.current_tick or 0,
             )
             # SHI-FIX LOVE: L1Chronicle emission for dialogue events.
             # Без этого test_love не находит "dialogue" в L1 trace.
@@ -154,9 +165,12 @@ def run_dm_phase(
                 ],
                 _tick,
             )
-        # STM: игрок ушёл — диалоговые сессии обнуляются
+        # BUG-DL-08 FIX: STM обнуляется только при реальной смене локации
         if _raw_type in ("move", "stealth"):
-            game_loop.memory_manager.clear_all_dialogue_sessions(campaign_id)
+            _new_loc = scene_state.get("location_id", "")
+            _old_loc = (shared_context.scene_state or {}).get("location_id", "")
+            if _new_loc and _old_loc and _new_loc != _old_loc:
+                game_loop.memory_manager.clear_all_dialogue_sessions(campaign_id)
         # Фаза 4 — время продвигается от действий, не от тиков
         advance_game_time(scene_state, _raw_type, raw_input, shared_context)
 

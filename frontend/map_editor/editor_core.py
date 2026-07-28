@@ -444,7 +444,7 @@ class EditorCore:
         """Показывает выпадающее меню File"""
         items = [
             {"label": "Новая кампания...", "action": self._dialog_create_campaign},
-            {"label": "Открыть кампанию...", "action": self._dialog_open_folder},
+            {"label": "Открыть кампанию...", "action": self._dialog_open_campaign},
             {"type": "separator"},
             {
                 "label": "Закрыть кампанию",
@@ -529,18 +529,17 @@ class EditorCore:
             {
                 "key": "choice",
                 "label": "Кампания",
-                "value": options[0],
                 "type": "choice",
                 "options": options,
             }
         ]
 
         def on_confirm(inputs):
-            choice = inputs["choice"]
-            # Безопасный поиск: точное совпадение или по началу строки
+            choice = inputs.get("choice", "")
+            # Безопасный поиск: точное совпадение
             idx = -1
             for i, opt in enumerate(options):
-                if opt == choice or opt.startswith(choice):
+                if opt == choice:
                     idx = i
                     break
             if idx < 0:
@@ -551,7 +550,9 @@ class EditorCore:
                 self.current_file = None
                 self.mode = MODE_WORLD
                 self.undo.clear()
-                self._show_toast(f"Открыта: {self.cm.campaign_data['name']}")
+                # S143 FIX: Защита от KeyError, используем current_campaign_name
+                camp_name = self.cm.current_campaign_name or "Безымянная"
+                self._show_toast(f"Открыта: {camp_name}")
             else:
                 self._show_toast(f"Ошибка: {err}")
 
@@ -1193,8 +1194,31 @@ class EditorCore:
         if etype == "object":
             obj = next((o for o in loc["objects"] if o.get("id") == eid), None)
             if obj:
-                obj["position"]["x"] = orig["x"] + dx
-                obj["position"]["y"] = orig["y"] + dy
+                target_x = orig["x"] + dx
+                target_y = orig["y"] + dy
+                
+                # S143 §1: Snapping дверей к стенам при перетаскивании
+                if obj.get("type") in ("door", "door_transition"):
+                    wall_id = self._find_wall_near(target_x, target_y, threshold=1.5)
+                    if wall_id:
+                        wall = next((w for w in loc["walls"] if w["id"] == wall_id), None)
+                        if wall:
+                            # Проекция точки на отрезок стены (прилипание)
+                            snap_x, snap_y = self._project_point_to_segment(
+                                target_x, target_y, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+                            )
+                            obj["position"]["x"] = snap_x
+                            obj["position"]["y"] = snap_y
+                            obj["wall_id"] = wall_id
+                            return
+                    # Если стены рядом нет — оставляем дверь где есть, но снимаем привязку
+                    obj["position"]["x"] = target_x
+                    obj["position"]["y"] = target_y
+                    obj["wall_id"] = ""
+                    return
+
+                obj["position"]["x"] = target_x
+                obj["position"]["y"] = target_y
                 if orig.get("wall_id"):
                     wall = next(
                         (w for w in loc["walls"] if w["id"] == orig["wall_id"]), None
@@ -1832,6 +1856,13 @@ class EditorCore:
                     abs(gx - self.wall_start[0]) > 0.1
                     or abs(gy - self.wall_start[1]) > 0.1
                 ):
+                    # Валидация наложения стен (§1: запрещаем пересечение отрезков)
+                    if self._check_wall_overlap(self.wall_start[0], self.wall_start[1], gx, gy):
+                        self._show_toast("Ошибка: Стены не могут накладываться друг на друга (кроме стыков в углах).")
+                        self.wall_drawing = False
+                        self.wall_start = None
+                        return
+                    
                     wall_id = self.undo.push(
                         AddWallCommand(
                             self.dm,
@@ -1862,18 +1893,20 @@ class EditorCore:
             # Создаём объект
             preset = OBJECT_PRESETS.get(self.selected_object_type, {})
             ds = preset.get("default_size", {"w": 1.0, "h": 1.0})
-            obj_w, obj_h = ds["w"], ds["h"]
+            obj_w = float(ds.get("w", 1.0))
+            obj_h = float(ds.get("h", 1.0))
             # Проверяем требует ли объект стену
             wall_id = ""
+            # S143: Выравнивание дверей по стене (Snapping) для гарантированной резки (§1)
             if preset.get("requires_wall", False):
-                wall_id = self._find_wall_near(gx, gy, threshold=1.0) or ""
+                wall_id = self._find_wall_near(gx, gy, threshold=1.5) or ""
                 if not wall_id:
                     self._show_toast(
                         "Этот объект должен быть на стене — кликните ближе к стене"
                     )
                     return
-                # Выравниваем объект по оси стены
-                wall = next(
+                # Выравниваем объект по оси стены и проецируем на отрезок
+                wall: Optional[Dict[str, Any]] = next(
                     (
                         w
                         for w in self.dm.locations[self.current_file]["walls"]
@@ -1882,20 +1915,24 @@ class EditorCore:
                     None,
                 )
                 if wall:
+                    # Снаппинг: проекция точки клика на отрезок стены
+                    gx, gy = self._project_point_to_segment(
+                        gx, gy, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+                    )
                     dx = abs(wall["x2"] - wall["x1"])
                     dy = abs(wall["y2"] - wall["y1"])
                     if dy > dx:  # стена более вертикальная — меняем w/h местами
                         obj_w, obj_h = obj_h, obj_w
             idx = self.undo.push(
                 AddObjectCommand(
-                    self.dm,
-                    self.current_file,
-                    self.selected_object_type,
-                    gx,
-                    gy,
-                    obj_w,
-                    obj_h,
-                    wall_id,
+                    dm=self.dm,
+                    filename=self.current_file,
+                    obj_type=self.selected_object_type,
+                    x=gx,
+                    y=gy,
+                    width=obj_w,
+                    height=obj_h,
+                    wall_id=wall_id,
                 )
             )
             self.selected_object = ("object", str(idx))
@@ -2215,6 +2252,56 @@ class EditorCore:
         proj_y = y1 + t * dy
         return math.hypot(px - proj_x, py - proj_y)
 
+    @staticmethod
+    def _project_point_to_segment(
+        px: float, py: float, x1: float, y1: float, x2: float, y2: float
+    ) -> Tuple[float, float]:
+        """Проецирует точку на отрезок. Возвращает (proj_x, proj_y)."""
+        dx, dy = x2 - x1, y2 - y1
+        length_sq = dx * dx + dy * dy
+        if length_sq == 0:
+            return x1, y1
+        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
+        return x1 + t * dx, y1 + t * dy
+
+    def _check_wall_overlap(
+        self, x1: float, y1: float, x2: float, y2: float, tolerance: float = 0.01
+    ) -> bool:
+        """Проверяет, пересекается ли новый отрезок стены с существующими (кроме концов)."""
+        if not self.current_file:
+            return False
+        loc = self.dm.locations[self.current_file]
+        for wall in loc.get("walls", []):
+            # Если отрезки имеют общую точку (стык в углу) — это не overlap
+            # Проверяем пересечение с помощью скалярных произведений (Ориентация)
+            if self._segments_intersect(
+                x1, y1, x2, y2,
+                wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+            ):
+                # Допуск: если они просто касаются концами (расстояние между концами < tolerance)
+                d1 = math.hypot(x1 - wall["x1"], y1 - wall["y1"])
+                d2 = math.hypot(x1 - wall["x2"], y1 - wall["y2"])
+                d3 = math.hypot(x2 - wall["x1"], y2 - wall["y1"])
+                d4 = math.hypot(x2 - wall["x2"], y2 - wall["y2"])
+                if min(d1, d2, d3, d4) < tolerance:
+                    continue
+                return True
+        return False
+
+    @staticmethod
+    def _segments_intersect(
+        x1: float, y1: float, x2: float, y2: float,
+        x3: float, y3: float, x4: float, y4: float
+    ) -> bool:
+        """Стандартный алгоритм проверки пересечения отрезков (CCW)."""
+        def ccw(ax, ay, bx, by, cx, cy):
+            return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax)
+        
+        return (
+            ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4) and
+            ccw(x1, y1, x2, y2, x3, y3) != ccw(x1, y1, x2, y2, x4, y4)
+        )
+
     def _try_select_existing(self, mx: int, my: int) -> bool:
         """Пробует выбрать существующий объект под курсором. Возвращает True если нашёл."""
         if not self.current_file:
@@ -2239,11 +2326,15 @@ class EditorCore:
         # Объекты
         if self.show_objects:
             for obj in loc.get("objects", []):
+                pos = obj.get("position", {})
+                if not pos:
+                    continue
                 sx, sy = self.world_to_screen(
-                    obj["position"]["x"], obj["position"]["y"]
+                    pos.get("x", 0.0), pos.get("y", 0.0)
                 )
-                w = obj["size"]["w"] * SCALE * self.zoom
-                h = obj["size"]["h"] * SCALE * self.zoom
+                sz = obj.get("size", {})
+                w = float(sz.get("w", 1.0)) * SCALE * self.zoom
+                h = float(sz.get("h", 1.0)) * SCALE * self.zoom
                 hit_rect = pygame.Rect(sx - w / 2, sy - h / 2, w, h)
                 if hit_rect.collidepoint(mx, my):
                     self.selected_object = ("object", obj.get("id", ""))
@@ -2336,7 +2427,10 @@ class EditorCore:
         # Объекты
         for i in range(len(loc.get("objects", [])) - 1, -1, -1):
             obj = loc["objects"][i]
-            sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
+            pos = obj.get("position", {})
+            if not pos:
+                continue
+            sx, sy = self.world_to_screen(pos.get("x", 0.0), pos.get("y", 0.0))
             if abs(sx - mx) < 20 and abs(sy - my) < 20:
                 self.undo.push(
                     RemoveObjectCommand(

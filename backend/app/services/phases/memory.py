@@ -104,5 +104,21 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
             NPCState.write_to_legacy(npc_state, npc_dict)
             processed += 1
 
+    # ── Блок 4: V8-MEM-1 FIX — Decay & Resonance (L3 Identity cascade) ──
+    # Раньше run_decay_and_resonance никогда не вызывалась в production.
+    # run_decay_if_needed сам проверяет раз в N тиков, можно вызывать каждый тик.
+    _active_npc_ids = [n.get("id") for n in ctx.npc_states if n.get("id")]
+    if _active_npc_ids:
+        try:
+            _identity_weights = memory_manager.run_decay_if_needed(
+                ctx.campaign_id, ctx.tick_number
+            )
+            if _identity_weights:
+                _resonance = memory_manager.detect_resonance(ctx.campaign_id, actor_id="player")
+                for npc_id in _active_npc_ids:
+                    memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
+        except Exception as e:
+            logger.warning(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}")
+
     logger.debug(f"[TICK_ORCH] Фаза 3: {processed} memory updates")
     return processed

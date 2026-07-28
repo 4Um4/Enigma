@@ -394,20 +394,31 @@ class ModalDialog:
         )
 
         # Создаём поля ввода
-        self.inputs: Dict[str, TextInput] = {}
+        self.inputs: Dict[str, Any] = {}
         y = self.rect.y + 60
         for field in fields:
             key = field["key"]
-            self.inputs[key] = TextInput(
-                self.rect.x + self.padding,
-                y,
-                self.width - self.padding * 2,
-                32,
-                label=field.get("label", key),
-                placeholder=field.get("placeholder", ""),
-                value=str(field.get("value", "")),
-                numeric=field.get("type") in ("int", "float"),
-            )
+            if field.get("type") == "choice":
+                # S143: Выпадающий список для выбора из options
+                self.inputs[key] = Dropdown(
+                    self.rect.x + self.padding,
+                    y,
+                    self.width - self.padding * 2,
+                    32,
+                    options=field.get("options", []),
+                    label=field.get("label", key),
+                )
+            else:
+                self.inputs[key] = TextInput(
+                    self.rect.x + self.padding,
+                    y,
+                    self.width - self.padding * 2,
+                    32,
+                    label=field.get("label", key),
+                    placeholder=field.get("placeholder", ""),
+                    value=str(field.get("value", "")),
+                    numeric=field.get("type") in ("int", "float"),
+                )
             y += self.field_height
 
         # Кнопки
@@ -432,7 +443,13 @@ class ModalDialog:
         )
 
     def _on_ok(self):
-        result = {k: v.get_value() for k, v in self.inputs.items()}
+        result = {}
+        for k, v in self.inputs.items():
+            if isinstance(v, Dropdown):
+                _, val = v.get_selected()
+                result[k] = val
+            else:
+                result[k] = v.get_value()
         self.on_confirm(result)
         self.active = False
 
@@ -460,7 +477,10 @@ class ModalDialog:
 
         # Поля ввода
         for inp in self.inputs.values():
-            inp.draw(self.screen, font, small_font)
+            if isinstance(inp, Dropdown):
+                inp.draw(self.screen, font, small_font)
+            else:
+                inp.draw(font, small_font)
 
         # Кнопки
         self.btn_ok.draw(self.screen, font)
@@ -473,8 +493,19 @@ class ModalDialog:
         # Клик вне окна - закрыть
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not self.rect.collidepoint(event.pos):
-                self._on_cancel()
-                return True
+                # S143 FIX: Если открыт Dropdown, клик вне окна закрывает список, а не диалог
+                is_dropdown_opened = any(
+                    hasattr(inp, 'opened') and inp.opened 
+                    for inp in self.inputs.values()
+                )
+                if is_dropdown_opened:
+                    for inp in self.inputs.values():
+                        if hasattr(inp, 'opened'):
+                            inp.opened = False
+                    return True
+                else:
+                    self._on_cancel()
+                    return True
 
         # Поля ввода
         for inp in self.inputs.values():

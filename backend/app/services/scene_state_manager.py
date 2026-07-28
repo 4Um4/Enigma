@@ -453,10 +453,9 @@ class SceneStateManager:
         return scene
 
     def _enrich_spatial_data(self, campaign_id: str, scene_state: dict) -> None:
-        """Обогащает spatial_walls/obstacles из editor JSON, если их нет."""
-        if "spatial_walls" in scene_state and "spatial_obstacles" in scene_state:
-            return  # Уже обогащено
-
+        """Обогащает spatial_walls/obstacles из editor JSON.
+        S143 FIX: Всегда пересобираем стены из JSON, чтобы гарантировать авто-резку дверями (DOUBLE TRUTH fix).
+        """
         location_id = scene_state.get("location_id", "")
         editor_data = self._find_editor_location(campaign_id, location_id)
         if not editor_data:
