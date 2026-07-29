@@ -892,6 +892,19 @@ class SceneStateManager:
                         "y": spawn.get("y", 0.0),
                     },
                 }
+            else:
+                # V8-SP-3 FIX: Если player_spawn отсутствует, спавним рядом с первым NPC.
+                # Это гарантирует валидность координат (SC-1) и наличие в графе локации.
+                _first_npc = next(iter(npc_positions.values()), None)
+                if _first_npc:
+                    npc_positions["player"] = {
+                        "name": "player",
+                        "location_id": location_id,
+                        "position": _first_npc.get("position", "entrance"),
+                        "activity": "",
+                        "visible": True,
+                        "local_position": _first_npc.get("local_position", {"x": 1.0, "y": 1.0}),
+                    }
 
             # --- Стены и блокирующие объекты для коллизий (делегирование в GraphCompiler) ---
             spatial_walls, spatial_obstacles = self._build_spatial_data(editor_data)
@@ -1116,8 +1129,10 @@ class SceneStateManager:
                         getattr(change, "target_location_id", "") or location_id
                     )
                     if target_loc and change.value:
-                        # Обновляем локацию NPC при кросс-локационном переходе
-                        if target_loc != location_id:
+                        # Обновляем локацию NPC ТОЛЬКО при фактическом материализации (cross_loc_materialize).
+                        # Простое перемещение к boundary node не должно менять location_id,
+                        # иначе NPC выпадает из scene_state текущей локации на следующем тике.
+                        if target_loc != location_id and getattr(change, "cause", "").startswith("cross_loc_materialize"):
                             entry["location_id"] = target_loc
                             entry["location"] = target_loc
                         try:

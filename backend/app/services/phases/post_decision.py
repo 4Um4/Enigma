@@ -64,6 +64,10 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 except Exception as _e:
                     logger.warning(f"[POST_DECISION] T-04: Failed to recall memory for {intent.speaker}: {_e}")
 
+            # BUG-DL-04: Генерируем thread_id для изоляции нити диалога
+            import uuid
+            _thread_id = getattr(intent, "thread_id", "") or f"thread-{uuid.uuid4().hex[:8]}"
+
             _req = DialogueRequest(
                 topic=intent.topic,
                 target_id=_target_id,
@@ -71,6 +75,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 intent_type=intent.intent_type,
                 emotional_state=intent.emotional_state,
                 npc_npc_context=_history_text,
+                thread_id=_thread_id,
             )
 
             _task = QueuedTask(
@@ -106,6 +111,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "intent_type": _req.intent_type,
                     "emotional_state": _req.emotional_state,
                     "npc_npc_context": _req.npc_npc_context,
+                    "thread_id": _req.thread_id,
                 },
                 "created_tick": _task.created_tick,
             }

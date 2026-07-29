@@ -44,9 +44,9 @@ class TaskScheduler:
         }
         # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
         self._economy_tracker = economy_tracker
-        # ADR-O-313: Кэш последних реплик для Speech Bubbles (TTL ~ 10 сек)
+        # BUG-DL-12: Кэш последних реплик для Speech Bubbles (TTL 60 сек игрового времени)
         self._recent_dialogues: list = []
-        self._dialogue_ttl = 10.0
+        self._dialogue_ttl = 60.0  # 1 минута game_time
         # P1 FIX: Асинхронный пул для неблокирующего выполнения LLM
         self._executor_pool = ThreadPoolExecutor(max_workers=2)
         self._spatial_query_service = None
@@ -60,13 +60,11 @@ class TaskScheduler:
 
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO."""
-        # Чистим протухшие. Используем wall-clock time, так как кэш UI-only.
-        import time
-        _now = time.time()
+        # BUG-DL-12: Используем game_time_seconds (current_time) для TTL, не wall-clock.
         self._recent_dialogues = [
             d
             for d in self._recent_dialogues
-            if _now - d.get("timestamp", 0.0) < self._dialogue_ttl
+            if current_time - d.get("game_time", 0.0) < self._dialogue_ttl
         ]
         return self._recent_dialogues
 
@@ -235,7 +233,8 @@ class TaskScheduler:
                             "speaker_id": ev.source,
                             "target_id": ev.payload.get("target_id", ""),
                             "text": ev.payload.get("text", ""),
-                            "timestamp": time.time(),  # §15.2: UI Cache TTL uses wall-clock
+                            "timestamp": time.time(),  # для UI staleness
+                            "game_time": scene_state.get("game_time_seconds", 0.0),  # BUG-DL-12: для response_targets TTL
                         }
                         self._recent_dialogues.append(_dlg_entry)
                         # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
@@ -270,6 +269,7 @@ class TaskScheduler:
                     intent_type=payload_dict.get("intent_type", "talk"),
                     emotional_state=_emotional_state,
                     npc_npc_context=payload_dict.get("npc_npc_context", ""),
+                    thread_id=payload_dict.get("thread_id", ""),
                 )
             except Exception as e:
                 logger.error(

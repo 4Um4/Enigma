@@ -276,8 +276,8 @@
       ]
     },
     "kitchen": {
-      "x": 16.612863297325102,
-      "y": 3.9551183127572016,
+      "x": 16.712863297325104,
+      "y": 2.3801183127572014,
       "label": "Кухня",
       "role": "kitchen_counter",
       "tags": [
@@ -291,8 +291,8 @@
       ]
     },
     "kitchen_bed_1": {
-      "x": 15.003264531893004,
-      "y": 6.162567515432099,
+      "x": 14.878264531893002,
+      "y": 4.762567515432099,
       "label": "Кровать на кухне 1",
       "role": "bed",
       "connections": [
@@ -300,8 +300,8 @@
       ]
     },
     "kitchen_bed_2": {
-      "x": 18.123281893004112,
-      "y": 6.283140432098766,
+      "x": 18.325,
+      "y": 4.725,
       "label": "Кровать на кухне 2",
       "role": "bed",
       "connections": [
@@ -309,11 +309,26 @@
       ]
     },
     "node_16": {
-      "x": 13.975000000000001,
-      "y": 3.075,
+      "x": 13.5,
+      "y": 3.0,
       "label": "Узел",
       "connections": [
-        "fireplace"
+        "fireplace",
+        "kitchen",
+        "exit_east"
+      ]
+    },
+    "exit_east": {
+      "x": 19.0,
+      "y": 4.5,
+      "label": "Выход в Город",
+      "role": "boundary",
+      "tags": [
+        "boundary:exit"
+      ],
+      "connections": [
+        "kitchen",
+        "node_16"
       ]
     }
   },
@@ -1055,15 +1070,15 @@
       "name": "Кровать №1",
       "type": "bed",
       "position": {
-        "x": 15.181185699588475,
-        "y": 7.3571463477366255
+        "x": 15.531185699588475,
+        "y": 6.407146347736625
       },
       "size": {
         "w": 2.0,
         "h": 1.0,
         "d": 0.6
       },
-      "rotation": 180.0,
+      "rotation": 270.0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1081,15 +1096,15 @@
       "name": "Кровать №2",
       "type": "bed",
       "position": {
-        "x": 18.271350951646085,
-        "y": 7.288165509259259
+        "x": 17.946350951646085,
+        "y": 6.388165509259259
       },
       "size": {
         "w": 2.0,
         "h": 1.0,
         "d": 0.6
       },
-      "rotation": 0.0,
+      "rotation": 90.0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1107,11 +1122,11 @@
       "name": "Дверь переход №1",
       "type": "door_transition",
       "position": {
-        "x": 8.175,
+        "x": 8.075000000000003,
         "y": 13.0
       },
       "size": {
-        "w": 2.0,
+        "w": 2.5,
         "h": 0.2,
         "d": 2.2
       },
@@ -1147,40 +1162,7 @@
       },
       "size": {
         "w": 0.2,
-        "h": 1.8,
-        "d": 2.2
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#D2691E",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 20,
-        "visibility_through": 0.1,
-        "wall_id": "wall_1"
-      },
-      "wall_id": "wall_1"
-    },
-    {
-      "id": "obj_42",
-      "name": "Дверь №2",
-      "type": "door",
-      "position": {
-        "x": 14.0,
-        "y": 5.625
-      },
-      "size": {
-        "w": 0.2,
-        "h": 1.38,
+        "h": 2.94,
         "d": 2.2
       },
       "rotation": 0,
@@ -1271,7 +1253,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-07-28T21:40:08.693753",
+  "modified_at": "2026-07-29T21:07:18.035116",
   "origin": {
     "x": 0,
     "y": 0
@@ -1281,8 +1263,8 @@
     {
       "ref_id": "maid_lusya",
       "position": {
-        "x": 12.76236111111111,
-        "y": 2.701388888888889
+        "x": 7.98736111111111,
+        "y": 1.8263888888888888
       },
       "room_id": "room_0"
     },

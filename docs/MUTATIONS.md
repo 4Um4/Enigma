@@ -57,6 +57,15 @@
 - 🟢 **S143** ENIGMA SELF-HEALING (Уровень 0-2, 7): Внедрена система защиты от тихих отказов. MvpTavernController подписан на TICK_COMPLETED (N2/M-03). TruthState получил discovered_secrets (M-02), ActionCompiler отмечает секреты (M-07/M-08) и применяет delta к фракциям (M-12). N4 (NameError в _fallback_to_astar) и N7 (zombie traversal) исправлены. N3 (ambient routing dead code) и N6 (dup method) исправлены. Добавлен /api/health telemetry dashboard (Уровень 7) для мониторинга mvp_controller.
   Files: backend/app/services/game_loop/__init__.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/services/events/event_types.py, backend/app/services/tick_orchestrator.py, backend/app/services/player_cognition/action_consequence_compiler.py, backend/app/models/truth_state.py, backend/app/api/routes.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/spatial/movement_engine.py
 
+- 🟢 **S144** ENIGMA V8.3 DAY 1-4 + END-SCREEN FIX (40+ bugs fixed): Закрыты все Critical MVP blockers (V8-SP-1/2, V8-PSY-1..5, V8-MEM-1..3), NPC↔NPC social consequences (V8-SOC-1/3/4), и 30+ quick-fix багов (V8-PSY-7/10/13/14/16/18/19/21/23, V8-MEM-4/5/8, V8-SP-3/4/5/9, V8-SOC-8, V8-TICK-1/5, V8-WL-4/6, V8-MVP-6/8/9/10, V8-FC-01/02). L1Chronicle проброшен через весь конвейер (TickState -> NpcTickPipeline -> StateApplicator). Trauma pipeline, L3 Identity cascade, belief pipeline, attack windup оживлены. SocialDeltaEngine нормализован. Player coords гарантированы. 
+  END-SCREEN FIX: Исправлен двойной префикс `/api/api/` в FastAPI (404 Not Found), триггер выхода привязан к южной двери (py >= 12.5), добавлены методы в FallbackGateway.
+  CLEANUP: Убран спам `print()` из `game_loop`, `simulation.py`, `movement_engine.py`, `life_engine.py`. Добавлена заглушка `start_session` для VramMonitor.
+  IPT 6/6 passed.
+  Files: backend/app/services/spatial/graph_compiler.py, movement_engine.py, scene_state_manager.py; backend/app/services/npc/break_progress_engine.py, decision_hub.py, life_engine.py, state_applicator.py, npc_tick_pipeline.py; backend/app/services/phases/decision.py, memory.py, simulation.py; backend/app/services/memory/memory_manager.py, resonance_engine.py; backend/app/services/events/social_subscriber.py; backend/app/services/social/propagation.py, social_deltas.py, social_fabric_tracker.py, mvp_tavern_controller.py; backend/app/services/tick_orchestrator.py; backend/app/services/drf_bus.py; backend/app/services/affective/affective_decay_handler.py; backend/app/services/combat/physiology_decay_handler.py; backend/app/services/player_avatar_service.py; backend/app/services/vram_monitor.py; backend/app/services/game_loop/__init__.py; backend/app/domain/tick.py; backend/app/services/pipeline_runner.py; backend/app/models/npc_state.py; backend/app/services/npc/npc_loader.py; backend/app/api/routes.py; frontend/game_screen.py; frontend/api_client.py
+
+- 🟢 **S145** ENIGMA DIALOGUE THREAD SYSTEM (Этапы 1-4): Внедрена структурная память диалогов. Реплика игрока теперь доходит до STM целевого NPC (BUG-DL-01), а STM не стирается при ходьбе внутри локации (BUG-DL-08). DialogueExecutor инжектит STM-блок для NPC↔NPC (BUG-DL-02). DM-агент получает targeted STM (BUG-DL-03) и L2 Memory (BUG-DL-11). Внедрены Per-pair sessions (BUG-DL-05, ключ `campaign:npc:partner`) и `thread_id` (BUG-DL-04). Реализована отложенная запись реплик в `narrative_cache` (BUG-DL-06) и суммаризация диалога в EventMemory при очистке (BUG-DL-07). TTL реплик переведён на `game_time_seconds` (BUG-DL-12). Добавлен Hard Contract: запрет на вызов LLM без STM (кроме greeting/approach). Добавлен `INV-DIALOGUE-STM` в IPT.
+  Files: backend/app/services/memory/memory_manager.py, backend/app/services/memory/dialogue_session.py, backend/app/services/memory/dialogue_update_extractor.py, backend/app/services/memory/dialogue_consolidator.py, backend/app/services/game_loop/dm_phase.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/events/npc_dialogue_subscriber.py, backend/app/services/execution/dialogue_executor.py, backend/app/services/phases/post_decision.py, backend/app/agents/dm_agent.py, backend/app/domain/communication.py, backend/tests/IPT.py
+
 ---
 
 ## 2. ИЗВЛЕЧЕННЫЕ АРХИТЕКТУРНЫЕ ИСТИНЫ
@@ -78,3 +87,10 @@
 - **ID ADR:** Берётся как максимальный существующий числовой ID + 1. Перед созданием ADR обязательно читать индекс.
 - **Формат работы:** Строго пошаговый. Один шаг = одно изменение. Перед изменением кода обязательна археология (PowerShell / print-диагностика) для понимания ownership.
 - **Тестирование:** `python backend/tests/IPT.py` — до и после фикса. `DriftLaboratory` — для воспроизведения.
+
+
+
+
+
+
+

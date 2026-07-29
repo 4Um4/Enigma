@@ -876,14 +876,16 @@ class GameScreen:
                 npc_positions = scene_state.get("npc_positions", {})
                 px, py = _player_xy(scene_state)
                 
-                # MVP Mini-game: Триггер выхода из таверны (X >= 18.0)
-                if px >= 18.0 and not self.show_end_screen:
+                # MVP Mini-game: Триггер выхода из таверны (через южную дверь, Y >= 12.5)
+                if py >= 12.5 and not self.show_end_screen:
                     try:
                         # Сначала финализируем кампанию (сохраняем diff), потом читаем экран
-                        _gateway.finalize_campaign(campaign_folder)
+                        if hasattr(_gateway, "finalize_campaign"):
+                            _gateway.finalize_campaign(campaign_folder)
                         self.end_screen_data = _gateway.get_end_screen(campaign_folder)
                         self.show_end_screen = True
                     except Exception as e:
+                        print(f"[END_SCREEN_ERROR] {e}", flush=True)
                         system_log.append(f"[END_SCREEN] API Error: {e}")
 
                 # Движение к NPC: отправляем намерение, бэкенд строит маршрут

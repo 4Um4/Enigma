@@ -285,4 +285,5 @@ def _closing_drift(current: float, target: float) -> float:
 
 def _get_statuses(npc: NPCStateSnapshot) -> list:
     """Извлекает текущие статусы из снапшота."""
-    return npc.get("statuses", [])
+    # V8-PSY-14 FIX: Статусы хранятся в body_state, а не в root-level
+    return npc.get("body_state", {}).get("statuses", [])

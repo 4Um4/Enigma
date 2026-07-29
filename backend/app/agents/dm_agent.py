@@ -230,6 +230,11 @@ class DmAgent:
         if _targeted_stm:
             builder.add_npc_stm(_targeted_stm)
 
+        # BUG-DL-11 FIX: L2 Memory block — долгая память о прошлых встречах
+        _l2_memory_block = (context or {}).get("npc_l2_memory_block", "")
+        if _l2_memory_block:
+            builder.add_npc_l2_memory(_l2_memory_block)
+
         # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты)
         # скрыты от DM-агента. DM описывает только то, что физически проявлено.
 

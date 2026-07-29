@@ -91,10 +91,11 @@ from app.core.constants import (
 # Позже можно заменить на интеграцию с NeedEngine через DTO
 
 # Маппинг: имя потребности → активность в activity_map
-_NEED_TO_ACTIVITY: Dict[str, str] = {
+_NEED_TO_ACTIVITY = {
     "hunger": "eating",
-    "shelter_urge": "resting",
+    "shelter_urge": "sleeping",  # Фикс C: shelter_urge должен вести в кровать, а не к камину
     "social_urge": "socializing",
+    "fatigue": "sleeping",
 }
 
 # Порог: если value >= threshold → NPC идёт удовлетворять потребность
@@ -519,6 +520,24 @@ class LifeEngine:
         all_changes: list[SceneChange] = []
         all_intents: list["MacroMovementGoal"] = []  # ADR-049: Сборка намерений
         npcs_updated = False
+
+        # S-145 FIX: Синхронизация location_id и position из scene_state в _npc_cache.
+        # Это исправляет DOUBLE TRUTH, когда position уже "city_gate:...", а location_id="tavern".
+        _ss_positions = scene_state.get("npc_positions", {}) if scene_state else {}
+        for npc in npcs:
+            npc_id = npc.get("id", "?")
+            _ss_data = _ss_positions.get(npc_id)
+            if isinstance(_ss_data, dict):
+                _ss_pos = _ss_data.get("position")
+                _ss_loc = _ss_data.get("location_id")
+                if _ss_pos and ":" in _ss_pos:
+                    _pos_loc = _ss_pos.split(":")[0]
+                    if _ss_loc != _pos_loc:
+                        npc["location_id"] = _pos_loc
+                        npc["location"] = _pos_loc
+                    elif _ss_loc and npc.get("location_id") != _ss_loc:
+                        npc["location_id"] = _ss_loc
+                        npc["location"] = _ss_loc
 
         for npc in npcs:
             tier = npc.get("tier", "major")
@@ -1583,7 +1602,11 @@ class LifeEngine:
         candidates: list["MacroMovementGoal"] = []
 
         # 1. Need-driven: только если ROUTINE жизнеспособен
-        if IntentDomain.ROUTINE in _viable:
+        # Фикс A: Sleep schedule non-interruptible. Если по расписанию NPC должен спать,
+        # потребности (shelter_urge, social_urge) его не прерывают.
+        _routine_dict = npc.get("routine", {})
+        _scheduled_activity = self._get_current_activity(_routine_dict.get("schedule", {}), current_time)
+        if IntentDomain.ROUTINE in _viable and _scheduled_activity != "sleeping":
             self._tick_needs(npc)
             if need_intent := self._check_need_driven_movement(npc):
                 need_intent.domain = IntentDomain.ROUTINE
@@ -2107,7 +2130,7 @@ class LifeEngine:
         """
         npc_id = npc.get("id", "unknown")
         _routine = npc.get("routine") or {}
-        print(f"[DIAG_ROUTINE] npc={npc_id} routine={_routine}")
+        logger.debug(f"[DIAG_ROUTINE] npc={npc_id} routine={_routine}")
         schedule = _routine.get("schedule", {})
 
         # ADR-123: Мёртвые NPC не обновляют расписание. Зомби-NPC запрещены.
@@ -2194,12 +2217,12 @@ class LifeEngine:
             )
 
         if new_activity == prev_activity:
-            print(f"[DIAG_S140] {npc_id}: new={new_activity} == prev={prev_activity}")
+            logger.debug(f"[DIAG_S140] {npc_id}: new={new_activity} == prev={prev_activity}")
             # S140: Spatial Verification. Если активность не сменилась, но NPC не на месте —
             # продолжаем генерировать MacroMovementGoal, пока он не дойдёт.
             _resolved = self._resolve_position(npc, new_activity)
             if not _resolved:
-                print(f"[DIAG_S140] {npc_id}: _resolve_position returned None (1)")
+                logger.debug(f"[DIAG_S140] {npc_id}: _resolve_position returned None (1)")
                 return [], None
 
             _exp_loc, _exp_pos, _ = _resolved
@@ -2209,7 +2232,7 @@ class LifeEngine:
             # Нормализуем для сравнения
             _norm_exp_pos = _exp_pos if ":" in _exp_pos else f"{_exp_loc}:{_exp_pos}"
             _norm_cur_pos = _cur_pos if ":" in _cur_pos else f"{_cur_loc}:{_cur_pos}"
-            print(f"[DIAG_S140] {npc_id}: exp_pos={_norm_exp_pos} cur_pos={_norm_cur_pos}")
+            logger.debug(f"[DIAG_S140] {npc_id}: exp_pos={_norm_exp_pos} cur_pos={_norm_cur_pos}")
 
             if _norm_exp_pos == _norm_cur_pos:
                 logger.debug(f"[LIFE_ENGINE] {npc_id}: already at {_exp_pos} for {new_activity}.")
@@ -2225,13 +2248,15 @@ class LifeEngine:
                 if _kernel
                 else 0.0
             )
-            _stress = npc.get("stress", 0.0)
-            print(f"[DIAG_GAP9] {npc_id}: threat={_threat:.2f} stress={_stress:.2f}")
+            _stress = npc.get("psyche", {}).get("stress", 0.0) # V8-PSY-10 FIX
+            logger.debug(f"[DIAG_GAP9] {npc_id}: threat={_threat:.2f} stress={_stress:.2f}")
             if _threat > 0.3 or _stress > 50:
-                print(f"[DIAG_GAP9] {npc_id}: SLEEP BYPASSED!")
+                logger.debug(f"[DIAG_GAP9] {npc_id}: SLEEP BYPASSED!")
                 logger.debug(
                     f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}"
                 )
+                # V8-PSY-FIX: Обновляем рутину на sleeping, чтобы DecisionHub подавил социализацию.
+                npc["routine"]["current"] = "sleeping"
                 return [], None
 
         resolved = self._resolve_position(npc, new_activity)

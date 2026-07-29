@@ -121,6 +121,27 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         # Собираем ID всех живых NPC для фильтрации
         _all_npc_ids = [n.get("npc_id", n.get("id")) for n in ctx.all_npcs_raw if n.get("npc_id", n.get("id"))]
 
+        # BUG-DL-06: Применяем отложенные диалоговые события (из предыдущего тика)
+        _pending_dialogue_events = _svc.memory_manager.drain_pending_dialogue_memories()
+        for _mem_evt in _pending_dialogue_events:
+            _npc_id = _mem_evt.payload.get("npc_id")
+            if not _npc_id:
+                continue
+            _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
+            if not _npc_dict:
+                continue
+            try:
+                _npc_state = load_l2_state_from_runtime_dict(_npc_dict)
+                _npc_state = _svc.memory_manager.apply(
+                    event=_mem_evt,
+                    npc_state=_npc_state,
+                    campaign_id=ctx.campaign_id,
+                    spatial_query=_spatial_query,
+                )
+                NPCState.write_to_legacy(_npc_state, _npc_dict)
+            except Exception as e:
+                logger.warning(f"[PIPELINE_RUNNER] Pending dialogue apply failed for {_npc_id}: {e}")
+
         for _mem_evt in mutation.memory_events:
             _npc_id = _mem_evt.payload.get("npc_id")
             if not _npc_id:

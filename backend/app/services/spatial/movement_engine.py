@@ -212,13 +212,16 @@ class MovementEngine:
                 # SceneStateManager и EventCompiler становятся чистыми потребителями.
                 # S91.1: Cross-location routing intercept (ДОЛГ 6.2)
                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
-                current_loc = (
-                    npc_positions.get(intent.actor_id, {}).get(
-                        "location_id", scene_state.get("location_id", "")
-                    )
-                    if scene_state
-                    else ""
-                )
+                _npc_pos_data = npc_positions.get(intent.actor_id, {}) if scene_state else {}
+                _pos_str = _npc_pos_data.get("position", "")
+                current_loc = _npc_pos_data.get("location_id", scene_state.get("location_id", ""))
+                # S-145 FIX: Если position содержит префикс локации (напр. "city_gate:entrance"),
+                # а location_id устарел (DOUBLE TRUTH), доверяем position.
+                if ":" in _pos_str:
+                    _pos_loc = _pos_str.split(":")[0]
+                    if _pos_loc != current_loc:
+                        logger.debug(f"[CROSS_LOC_SYNC] npc={intent.actor_id} syncing current_loc='{current_loc}' to pos_loc='{_pos_loc}'")
+                        current_loc = _pos_loc
                 # ADR-FIX: Надёжно определяем целевую локацию из префикса target_node_id (напр. "city_gate:exit_west")
                 if ":" in intent.target_node_id:
                     target_loc = intent.target_node_id.split(":")[0]
@@ -234,9 +237,9 @@ class MovementEngine:
                         current_loc, campaign_id, scene_state
                     )
                     if current_svc:
-                        print(f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}")
+                        logger.debug(f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}")
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
-                        print(f"[DIAG_BOUNDARY] result={boundary_node}")
+                        logger.debug(f"[DIAG_BOUNDARY] result={boundary_node}")
                         logger.debug(f"[BORKO_CROSS_BOUNDARY] tick={tick} boundary_node={boundary_node}")
                         if boundary_node:
                             # S-04: Проверяем, не стоит ли NPC уже на boundary node.
@@ -252,9 +255,14 @@ class MovementEngine:
                                 if hasattr(boundary_node, "x") and isinstance(boundary_node.x, (int, float)):
                                     logger.debug(f"[BORKO_DIST] tick={tick} cur_xy=({_cur_x:.1f}, {_cur_y:.1f}) boundary_xy=({boundary_node.x:.1f}, {boundary_node.y:.1f}) dist={_dist_to_boundary:.2f}")
 
-                            if _dist_to_boundary < 0.5:
+                            if _dist_to_boundary < 1.5:
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
+
+                                # V8-SP-5 FIX: Проверка target_svc на None (защита от AttributeError)
+                                if not target_svc:
+                                    logger.warning(f"[CROSS_LOC_INTERCEPT] target_svc is None for {target_loc}, skipping materialize for {intent.actor_id}")
+                                    continue
 
                                 # Ищем целевой узел в новой локации (строгий контракт, без случайных fallback'ов)
                                 _target_node_id_short = intent.target_node_id.split(":")[-1]
@@ -271,11 +279,17 @@ class MovementEngine:
                                         file=__file__, line=188,
                                     )
 
-                                # N7 FIX: Очищаем активный транзит при кросс-локационной материализации
-                                _active_traversals = scene_state.get("active_traversals", [])
-                                _entry = next((e for e in _active_traversals if e.get("npc_id") == intent.actor_id), None)
+                                # V8-SP-4 FIX: active_traversals — это dict, а не list.
+                                # Итерация по dict выдаёт ключи (строки), а .remove() ломает everything.
+                                _active_traversals = scene_state.get("active_traversals", {})
+                                _traversal_items = _active_traversals.values() if isinstance(_active_traversals, dict) else _active_traversals
+                                _entry = next((e for e in _traversal_items if isinstance(e, dict) and e.get("npc_id") == intent.actor_id), None)
                                 if _entry:
-                                    _active_traversals.remove(_entry)
+                                    if isinstance(_active_traversals, dict):
+                                        # Удаляем по ключу (npc_id), если это dict
+                                        _active_traversals.pop(intent.actor_id, None)
+                                    else:
+                                        _active_traversals.remove(_entry)
                                     logger.debug(f"Cleared traversal for {intent.actor_id} after materialize")
 
                                 changes.extend([

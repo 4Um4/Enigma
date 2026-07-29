@@ -155,11 +155,11 @@ class ResonanceEngine:
         ]
 
         if len(betrayal_events) < _MIN_EVENTS_FOR_PATTERN:
-            return None
+            return [] # V8-MEM-8 FIX: return [] instead of None
 
         raw = sum(e.importance for e in betrayal_events)
         if raw < _TRAIT_FORMATION_THRESHOLD:
-            return None
+            return [] # V8-MEM-8 FIX
 
         density = self._temporal_density(betrayal_events)
         strength = raw * density
@@ -187,11 +187,11 @@ class ResonanceEngine:
         ]
 
         if len(help_events) < _MIN_EVENTS_FOR_PATTERN:
-            return None
+            return [] # V8-MEM-8 FIX
 
         raw = sum(e.importance for e in help_events)
         if raw < _TRAIT_FORMATION_THRESHOLD:
-            return None
+            return [] # V8-MEM-8 FIX
 
         density = self._temporal_density(help_events)
         strength = raw * density
@@ -216,7 +216,7 @@ class ResonanceEngine:
         Trait модулируется по drives_base если передана personality.
         """
         if len(events) < _MIN_EVENTS_FOR_PATTERN:
-            return None
+            return [] # V8-MEM-8 FIX
 
         # Классифицируем последние события по теме
         classified = []
@@ -238,11 +238,11 @@ class ResonanceEngine:
         )
 
         if transitions < 2:
-            return None
+            return [] # V8-MEM-8 FIX
 
         strength = sum(e.importance for e in events[-6:]) / 6.0
         if strength < 0.25:
-            return None
+            return [] # V8-MEM-8 FIX
 
         delta = min(_MAX_PATTERN_DELTA, round(strength * 0.18, 4))
         return ResonancePattern(
@@ -332,7 +332,7 @@ class ResonanceEngine:
 
         raw = sum(e.importance for e in negative)
         if raw < _TRAIT_FORMATION_THRESHOLD:
-            return None  # type: ignore[return-value]
+            return [] # V8-MEM-8 FIX
 
         density = self._temporal_density(negative)
         strength = raw * density

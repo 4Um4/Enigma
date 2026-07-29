@@ -271,6 +271,9 @@ class GameLoop:
                 logger.warning("[GAME_LOOP] Cannot register NpcDialogueSubscriber — missing memory or relationships")
                 return
 
+            from app.services.memory.dialogue_update_extractor import DialogueUpdateExtractor
+            _extractor = DialogueUpdateExtractor(router=self.dm_agent.router)
+
             _subscriber = NpcDialogueSubscriber(
                 memory_manager=memory_manager,
                 relationship_store=rel_store,
@@ -280,6 +283,7 @@ class GameLoop:
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
                 l1_chronicle=self._tick_orch.l1_chronicle,
                 tick_provider=lambda: getattr(self, "_current_tick", 0),
+                dialogue_update_extractor=_extractor,
             )
 
             from app.services.events.event_types import EventType
@@ -845,17 +849,18 @@ class GameLoop:
         if not _loc_id:
             _loc_id = DEFAULT_LOCATION_ID
 
-        print(f"[DIAG_IDLE_TICK] step_2 loc_id={_loc_id} prepped_scene_keys={list(_prepped_scene.keys()) if _prepped_scene else 'None'}")
+        logger.debug(f"[DIAG_IDLE_TICK] step_2 loc_id={_loc_id} prepped_scene_keys={list(_prepped_scene.keys()) if _prepped_scene else 'None'}")
 
         # Шаг 3: LOCK — единственный источник truth для этого тика
         _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
         if _scene is None:
-            print("[DIAG_IDLE_TICK] step_3 _scene is None! Return no_scene.")
+            logger.debug("[DIAG_IDLE_TICK] step_3 _scene is None! Return no_scene.")
             return {"status": "no_scene", "npc_positions": {}}
-        print(f"[DIAG_IDLE_TICK] step_3 _scene locked. tick={_scene.get('tick')} game_time={_scene.get('game_time_seconds')}")
+        logger.debug(f"[DIAG_IDLE_TICK] step_3 _scene locked. tick={_scene.get('tick')} game_time={_scene.get('game_time_seconds')}")
 
         # Шаг 4: Монотонный каузальный тик
         _scene["tick"] = _scene.get("tick", 0) + 1
+        _scene["game_time_seconds"] = _scene.get("game_time_seconds", 0) + 60.0
         # H-01 FIX: Сохраняем симуляционный тик для NpcDialogueSubscriber (L1Chronicle contract)
         self._current_tick = _scene["tick"]
 

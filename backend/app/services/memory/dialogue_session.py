@@ -175,6 +175,13 @@ class DialogueSession:
         summary_parts = [f"Диалог с {self.partner_id} ({len(self.buffer)} реплик)"]
         if self.topic:
             summary_parts.append(f"Тема: {self.topic}")
+        
+        # Включаем последние 2-3 реплики в summary для контекста
+        if self.buffer:
+            _recent_turns = self.buffer[-3:]
+            _turns_text = "; ".join(f"{t.speaker}: {t.text}" for t in _recent_turns)
+            summary_parts.append(f"Последние реплики: {_turns_text}")
+            
         if self.claims:
             open = [c for c in self.claims if c.status == "open"]
             if open:

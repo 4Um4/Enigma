@@ -65,6 +65,7 @@ def format_game_time(total_seconds: int) -> str:
 
 def format_world_date(total_seconds: int) -> str:
     """Переводит абсолютные секунды симуляции в дату мира: 'Год X, День Y, HH:MM'."""
+    total_seconds = int(total_seconds)
     if total_seconds < 0:
         total_seconds = 0
 

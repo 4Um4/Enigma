@@ -22,12 +22,15 @@ PlayerAvatarService — живой аватар персонажа игрока.
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.character import CharacterProfile
 from app.models.npc_state import (
+    EmotionTag,
     NPCState,
+    WillState,
+    _emotion_from_str,
     _pk_from_dict,
 )
 from app.models.physical import Condition, Wound
@@ -337,7 +340,7 @@ class PlayerAvatarService:
             dependency=float(data.get("dependency", 0.0)),
             identity_integrity=float(data.get("identity_integrity", 1.0)),
             pressure_resistance=float(data.get("pressure_resistance", 0.0)),
-            will_state=data.get("will_state", "free"),
+            will_state=WillState(data.get("will_state", "free")),
             behavior_mask=mask,
             trauma_markers=set(data.get("trauma_markers", [])),
             current_role=data.get("current_role", ""),
@@ -352,7 +355,7 @@ class PlayerAvatarService:
             # ADR-128: affective_load — интеграл давления. Без этого
             # эмоциональный pipeline сбрасывается в 0.0 при каждой загрузке.
             affective_load=float(data.get("affective_load", 0.0)),
-            emotion=data.get("emotion", "neutral"),
+            emotion=_emotion_from_str(data.get("emotion", "neutral")),
             emotion_delta=float(data.get("emotion_delta", 0.0)),
             state_modifiers=data.get("state_modifiers", {}),
             # ADR-128: perceptual_kernel — субъективная модель восприятия.

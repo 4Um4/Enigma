@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from app.domain.identity_events import TraitDriftEvent
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
-from app.models.npc_state import NPCState, NPCStateAdapter
+from app.models.npc_state import NPCState, NPCStateAdapter, EmotionTag
 from app.models.will import WillState
 from app.services.npc.break_progress_engine import BreakProgressEngine
 
@@ -52,44 +52,55 @@ def evaluate_behavior_and_identity(
 
         try:
             _npc_state = NPCStateAdapter.from_legacy(npc_dict)
+            # V8-PSY-19 FIX: Инкремент tick_age и удаление истёкших temporary_drives
+            from app.models.npc_state import age_drives
+            _npc_state.temporary_drives = age_drives(_npc_state.temporary_drives)
+
             # V8-PSY-2 FIX: Willpower читается из NPCPersonality (L0), а не из несуществующего psyche
             _personality = getattr(_npc_state, "personality", None)
             _willpower = getattr(_personality, "willpower", 50.0) if _personality else 50.0
 
             # Шаг 1.1: Вычисление social_pressure на основе реальных trust и fear из RelationshipStore (SSOT)
             _social_pressure = 0.0
+            _support_present = False # V8-PSY-7 FIX: вычисляем наличие союзников
             if relationship_store:
                 _rels = relationship_store.get_all_for_source(campaign_id, npc_id)
                 if _rels:
                     # Берём минимальный trust и максимальный fear по всем связям NPC
-                    _min_trust = min((v.get("trust", 50.0) for v in _rels.values()), default=50.0)
+                    _min_trust = min((v.get("trust", 0.0) for v in _rels.values()), default=0.0)
                     _max_fear = max((v.get("fear", 0.0) for v in _rels.values()), default=0.0)
 
-                    # Шкала RelationshipStore: -1.0..1.0, где 0.5 - нейтральное значение.
-                    # Давление растёт плавно при падении trust ниже 0.5.
-                    # trust=0.5 -> pressure=0, trust=0.0 -> pressure=10, trust=-1.0 -> pressure=20
-                    _trust_pressure = max(0.0, (0.5 - _min_trust)) * 20.0
+                    # V8-MEM-4 FIX: Шкала RelationshipStore: -100..100, где 0.0 - нейтральное.
+                    # Давление растёт при падении trust ниже 0.
+                    # trust=0 -> pressure=0, trust=-50 -> pressure=10, trust=-100 -> pressure=20
+                    _trust_pressure = max(0.0, -_min_trust) / 100.0 * 20.0
                     _social_pressure += min(20.0, _trust_pressure)
 
-                    # Давление растёт плавно при росте fear выше 0.5.
-                    # fear=0.5 -> pressure=0, fear=1.0 -> pressure=20
-                    _fear_pressure = max(0.0, (_max_fear - 0.5)) * 40.0
+                    # Давление растёт при росте fear выше 0.
+                    # fear=0 -> pressure=0, fear=50 -> pressure=10, fear=100 -> pressure=20
+                    _fear_pressure = max(0.0, _max_fear) / 100.0 * 20.0
                     _social_pressure += min(20.0, _fear_pressure)
 
                     logger.info(f"[BREAK_PROGRESS] npc={npc_id} trust_min={_min_trust:.1f} fear_max={_max_fear:.1f} social_pressure={_social_pressure:.1f}")
 
                     # Эмерджентные эмоции: высокое давление -> ANGRY/FEARFUL
-                    # Порог снижен до 5.0, чтобы даже moderate pressure (trust=0.3) вызывало раздражение
+                    # Порог снижен до 5.0, чтобы даже moderate pressure вызывало раздражение
                     if _social_pressure > 5.0:
-                        _npc_state.emotion = "fearful" if _max_fear > 0.5 else "angry"
-                        logger.info(f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion} (social_pressure={_social_pressure:.1f})")
+                        _npc_state.emotion = EmotionTag.FEARFUL if _max_fear > 50.0 else EmotionTag.ANGRY
+                        logger.info(f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion.value} (social_pressure={_social_pressure:.1f})")
+
+                    # V8-PSY-7 FIX: Поддержка есть, если у NPC есть хотя бы один союзник (trust > 50)
+                    for _rel in _rels.values():
+                        if _rel.get("trust", 0.0) > 50.0:
+                            _support_present = True
+                            break
 
             # ADR-S86.3: Расчёт слома воли
             _break_deltas = BreakProgressEngine.calculate(
                 state=_npc_state,
                 willpower=_willpower,
                 recent_failures=getattr(_npc_state, "recent_failures", 0),
-                support_present=getattr(_npc_state, "support_present", False),
+                support_present=_support_present, # V8-PSY-7 FIX: передаём вычисленное значение
                 social_pressure=_social_pressure,
             )
 
@@ -210,16 +221,8 @@ def evaluate_behavior_and_identity(
                     mask=_new_mask, intensity=_mask_intensity, applied_at_day=game_day
                 )
 
-            # Прямая мутация npc_dict для Fast Path (serializers)
-            npc_dict["identity_integrity"] = _npc_state.identity_integrity
-            npc_dict["pressure_resistance"] = _npc_state.pressure_resistance
-            npc_dict["will_state"] = (
-                _npc_state.will_state.value
-                if hasattr(_npc_state.will_state, "value")
-                else _npc_state.will_state
-            )
-            npc_dict["behavior_mask"] = _npc_state.behavior_mask.mask.value
-            npc_dict["behavior_mask_intensity"] = _npc_state.behavior_mask.intensity
+            # V8-PSY-18 FIX: Удалены root-level writes. write_to_legacy() уже корректно
+            # сохраняет эти поля в psyche sub-dict, который читает from_legacy.
 
         except Exception as e:
             logger.error(f"[BREAK_PROGRESS] failed for {npc_id}: {e}")

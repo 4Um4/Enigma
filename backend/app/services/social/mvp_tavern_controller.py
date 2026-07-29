@@ -97,8 +97,8 @@ class MvpTavernController:
             for faction_id, faction_data in factions_data.get("factions", {}).items():
                 base_rep = float(faction_data.get("base_reputation", 0.0))
                 self.faction_tracker.set_initial(faction_id, alignment=base_rep, known=True)
-        except FileNotFoundError:
-            logger.error(f"Factions config not found at {factions_path}. Skipping pre-seeding.")
+        except (FileNotFoundError, json.JSONDecodeError, PermissionError) as e: # V8-MVP-10 FIX
+            logger.error(f"Failed to load/parse factions config at {factions_path}: {e}. Skipping pre-seeding.")
 
     def on_tick_completed(self, event: Any) -> None:
         """M-03 FIX: Обновление трекеров по событию TICK_COMPLETED."""
@@ -110,8 +110,9 @@ class MvpTavernController:
         for npc in ctx.all_npcs_raw:
             npc_id = npc.get("id", npc.get("npc_id"))
             if not npc_id: continue
-            stability = 1.0 - (float(npc.get("stress", 0)) / 100.0)
-            threat = float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))
+            # V8-MVP-6 FIX: Clamping значений в [0.0, 1.0], чтобы избежать ValueError
+            stability = max(0.0, min(1.0, 1.0 - (float(npc.get("stress", 0)) / 100.0)))
+            threat = max(0.0, min(1.0, float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))))
             self.fate_tracker.update_state(npc_id, stability, threat)
             
         # DilemmaEngine: проверяем триггеры

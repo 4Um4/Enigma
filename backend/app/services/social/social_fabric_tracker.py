@@ -18,10 +18,10 @@ class SocialFabricTracker:
         self._deltas: List[RelationshipDelta] = []
 
     def set_baseline(self, source_id: str, target_id: str, snapshot: RelationshipSnapshot) -> None:
-        """Устанавливает базовое состояние. Выбрасывает ошибку при повторной установке."""
+        """Устанавливает базовое состояние. Идемпотентно (V8-MVP-9 FIX)."""
         key = (source_id, target_id)
         if key in self._baseline:
-            raise ValueError(f"Baseline for {key} already exists and cannot be overwritten.")
+            return # V8-MVP-9 FIX: Skip if already set
         self._baseline[key] = snapshot
         self._current[key] = snapshot
 

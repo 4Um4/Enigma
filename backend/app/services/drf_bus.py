@@ -72,5 +72,5 @@ _DRF_PRESSURE_WEIGHTS = {
     "SOCIAL": 0.10,  # Социальное (approach) — средний бонус
     "ROUTINE": 0.02,  # Рутина (schedule) — минимальный
 }
-_DRF_ALIGNED = 1.0  # claim vector совпадает с intent reason — полный вес
-_DRF_MISALIGNED = 0.3  # частичное давление при несовпадении вектора
+# V8-PSY-23 FIX: Мёртвые константы удалены.
+# Канонические значения (_DRF_ALIGNED = 1.2, _DRF_MISALIGNED = 0.8) определены локально в tick_orchestrator.py::_apply_drf_scoring_overlay

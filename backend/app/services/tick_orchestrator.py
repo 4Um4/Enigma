@@ -614,6 +614,7 @@ class TickOrchestrator:
             _fast_actor = None
             _fast_target_xy = None
             _target_id = getattr(_params, "target_id", None) if _params else None
+            _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX
 
             if _movement_req:
                 _fast_actor = _movement_req.actor_id
@@ -672,10 +673,9 @@ class TickOrchestrator:
                                     hasattr(delta.payload, "stress_delta")
                                     and delta.payload.stress_delta != 0
                                 ):
-                                    _npc_state.setdefault("emotion", {})["stress"] = (
-                                        _npc_state.get("emotion", {}).get("stress", 0.0)
-                                        + delta.payload.stress_delta
-                                    )
+                                    # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
+                                    _psyche = _npc_state.setdefault("psyche", {})
+                                    _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + delta.payload.stress_delta))
                                 if (
                                     hasattr(delta.payload, "fear_delta")
                                     and delta.payload.fear_delta != 0
@@ -860,10 +860,9 @@ class TickOrchestrator:
                                 hasattr(delta.payload, "stress_delta")
                                 and delta.payload.stress_delta != 0
                             ):
-                                _npc_state.setdefault("emotion", {})["stress"] = (
-                                    _npc_state.get("emotion", {}).get("stress", 0.0)
-                                    + delta.payload.stress_delta
-                                )
+                                # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
+                                _psyche = _npc_state.setdefault("psyche", {})
+                                _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + delta.payload.stress_delta))
                             if (
                                 hasattr(delta.payload, "fear_delta")
                                 and delta.payload.fear_delta != 0

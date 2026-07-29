@@ -61,8 +61,8 @@ def run_sleep_test():
     scene_state["game_time_seconds"] = 2 * 3600
     scene_manager.save_scene_state(campaign_id, scene_state)
 
-    logger.info("Прогон 3 тиков симуляции...")
-    for i in range(3):
+    logger.info("Прогон 40 тиков симуляции...")
+    for i in range(40):
         loop.idle_tick(campaign_id)
         # Сохраняем время 02:00, чтобы они точно уснули
         scene_state = scene_manager.get_scene_state(campaign_id, "tavern")
@@ -106,7 +106,10 @@ def run_sleep_test():
             actual_loc = "city_gate"
             
         loc_ok = (actual_loc == exp_loc)
-        node_ok = actual_node.startswith(exp_node_prefix) if exp_node_prefix else True
+        # S-145 FIX: actual_node может содержать префикс локации (напр. "tavern:kitchen_bed_1").
+        # Отрезаем префикс перед проверкой startswith.
+        _pure_node = actual_node.split(":")[-1] if ":" in actual_node else actual_node
+        node_ok = _pure_node.startswith(exp_node_prefix) if exp_node_prefix else True
         
         if loc_ok and node_ok:
             logger.info(f"✅ {npc_id}: loc={actual_loc}, node={actual_node}")

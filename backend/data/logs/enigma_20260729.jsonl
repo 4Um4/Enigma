@@ -1,0 +1,36 @@
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-29T21:17:21.939843", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-07-29T21:17:21.940326", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 3291, "status": "complete"}
+{"timestamp": "2026-07-29T21:17:32.669942", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-07-29T21:17:32.670372", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 987, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-29T21:37:43.048467", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-07-29T21:37:43.049184", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1209, "status": "complete"}
+{"timestamp": "2026-07-29T21:38:13.147161", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-07-29T21:38:13.147691", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1601, "status": "complete"}
+{"timestamp": "2026-07-29T21:38:35.868679", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-07-29T21:38:35.869216", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1199, "status": "complete"}
+{"timestamp": "2026-07-29T21:38:47.041815", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-07-29T21:38:47.042305", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1570, "status": "complete"}

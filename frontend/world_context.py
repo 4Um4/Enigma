@@ -316,11 +316,41 @@ class SpatialDataLoader:
         walls = []
         wall_openings: dict[str, list[dict]] = {}
         for obj in editor_data.get("objects", []):
-            wall_id = obj.get("rotation")
-            if not wall_id:
+            if not obj.get("passability", {}).get("walk", True):
                 continue
-            if obj.get("passability", {}).get("walk", False):
-                wall_openings.setdefault(wall_id, []).append(obj)
+            if obj.get("type") not in ("door", "door_transition"):
+                continue
+            
+            # S143 FIX §1: Порт 3-stage lookup из backend graph_compiler.py
+            walls_for_door = []
+            door_pos = obj.get("position", {})
+            px, py = door_pos.get("x", 0), door_pos.get("y", 0)
+            for wall in editor_data.get("walls", []):
+                wid = wall.get("id")
+                x1, y1 = wall.get("x1", 0), wall.get("y1", 0)
+                x2, y2 = wall.get("x2", 0), wall.get("y2", 0)
+                dx, dy = x2 - x1, y2 - y1
+                wall_len = (dx * dx + dy * dy) ** 0.5
+                if wall_len == 0:
+                    continue
+                ux = dx / wall_len
+                uy = dy / wall_len
+                vx, vy = px - x1, py - y1
+                perp_dist = abs(vx * (-uy) + vy * ux)
+                if perp_dist <= 0.5:
+                    walls_for_door.append(wid)
+            
+            explicit_wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
+            if not explicit_wall_id:
+                rot = obj.get("rotation")
+                if isinstance(rot, str) and rot.startswith("wall_"):
+                    explicit_wall_id = rot
+                    
+            if explicit_wall_id and explicit_wall_id not in walls_for_door:
+                walls_for_door.append(explicit_wall_id)
+                
+            for wid in walls_for_door:
+                wall_openings.setdefault(wid, []).append(obj)
 
         for wall in editor_data.get("walls", []):
             wall_id = wall.get("id", "")

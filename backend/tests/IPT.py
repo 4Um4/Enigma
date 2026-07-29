@@ -226,6 +226,36 @@ def inv_npc_has_name(world: TestWorld) -> InvariantResult:
         ],
     )
 
+def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
+    """INV-DIALOGUE-STM: реплика игрока записывается в STM целевого NPC."""
+    mm = world.game_loop.memory_manager
+    campaign = world.campaign_id
+    target_npc = "tavern_keeper_tornin"
+    
+    # Имитируем запись реплики игрока (как это делает dm_phase.py)
+    try:
+        mm.add_dialogue_turn(
+            campaign_id=campaign, npc_id=target_npc, speaker="player", text="тестовая реплика"
+        )
+        stm_block = mm.get_stm_prompt_block(campaign, target_npc)
+    finally:
+        # Очищаем, чтобы не портить другие тесты
+        mm.clear_dialogue_session(campaign, target_npc)
+    
+    if "тестовая реплика" in stm_block:
+        return InvariantResult("INV-DIALOGUE-STM", "CRITICAL", True, "", [])
+    return InvariantResult(
+        "INV-DIALOGUE-STM",
+        "CRITICAL",
+        False,
+        "Реплика игрока не найдена в STM блоке NPC.",
+        [
+            "backend/app/services/memory/memory_manager.py",
+            "backend/app/services/memory/dialogue_session.py",
+            "backend/app/services/game_loop/dm_phase.py",
+        ],
+    )
+
 
 INVARIANTS: List[Callable] = [
     inv_time_grows,
@@ -233,6 +263,7 @@ INVARIANTS: List[Callable] = [
     inv_npc_moves,
     inv_active_traversals_dict,
     inv_npc_has_name,
+    inv_dialogue_stm,
 ]
 
 

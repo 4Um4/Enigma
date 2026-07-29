@@ -16,6 +16,11 @@ from app.domain.execution import Artifact, QueuedTask
 logger = logging.getLogger(__name__)
 
 
+class DialogueContractViolation(Exception):
+    """Нарушение контракта диалоговой системы (например, отсутствие STM)."""
+    pass
+
+
 class DialogueExecutor:
     """
     Исполнитель диалоговых задач.
@@ -80,7 +85,18 @@ class DialogueExecutor:
             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
         else:
-            text = self._generate_with_router(task, req)
+            try:
+                text = self._generate_with_router(task, req)
+            except DialogueContractViolation as e:
+                logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
+                yield Artifact(
+                    task_id=task.task_id,
+                    success=False,
+                    result_type="error",
+                    data={},
+                    error_message=str(e),
+                )
+                return
 
         if not text:
             text = f"[Заглушка] {task.owner_id} молчит."
@@ -144,6 +160,15 @@ class DialogueExecutor:
             _stm_text = self._memory_manager.get_stm_prompt_block_pair(
                 task.campaign_id, task.owner_id, req.target_id
             )
+        
+        # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
+        # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
+        if not _stm_text and req.intent_type not in ("greeting", "approach"):
+            raise DialogueContractViolation(
+                f"NPC {task.owner_id} cannot speak to {req.target_id} without STM block. "
+                "Emit approach/greeting intent first."
+            )
+        
         if _stm_text:
             _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"
 

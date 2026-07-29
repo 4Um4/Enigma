@@ -135,9 +135,12 @@ class SocialDeltaEngine:
         # 1. Определить тип события
         _et = event.event_type
         _et_val = _et.value if hasattr(_et, "value") else str(_et)
+        # V8-SOC-3 FIX: Нормализация регистра. _BASE_DELTAS использует lowercase,
+        # но EventType.value возвращает UPPERCASE. Без .lower() lookup всегда падал.
+        _et_val_lower = _et_val.lower()
 
         # 2. Найти базовые дельты
-        base = _BASE_DELTAS.get(_et_val)
+        base = _BASE_DELTAS.get(_et_val_lower)
         if base is None:
             return []  # Неизвестный тип события — нет социальных дельт
 
@@ -180,7 +183,7 @@ class SocialDeltaEngine:
         result_deltas = []
         if s_trust != 0.0 or s_fear != 0.0:
             # S129 FIX: NEW-2 — NPC-NPC события должны писаться к actor_id, не к player.
-            if _et_val.startswith("npc_"):
+            if _et_val_lower.startswith("npc_"):
                 # Если NPC сам является актором действия, его отношение к себе не меняется
                 if state.npc_id == event.actor_id:
                     return []

@@ -651,6 +651,19 @@ class FallbackGateway:
         logger.warning("[FALLBACK_GATEWAY] skip_time not available, returning empty")
         return {"status": "skipped", "ticks": 0}
 
+    # V8-FIX: Добавлены методы для End-Screen, чтобы избежать AttributeError
+    def finalize_campaign(self, campaign_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "finalize_campaign"):
+            return self._primary.finalize_campaign(campaign_id)
+        logger.warning("[FALLBACK_GATEWAY] finalize_campaign not available, returning empty")
+        return {}
+
+    def get_end_screen(self, campaign_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "get_end_screen"):
+            return self._primary.get_end_screen(campaign_id)
+        logger.warning("[FALLBACK_GATEWAY] get_end_screen not available, returning empty")
+        return {}
+
     """
     HTTP приоритет, Direct fallback при обрыве.
     

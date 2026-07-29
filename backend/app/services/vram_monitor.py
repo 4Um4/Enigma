@@ -10,6 +10,10 @@ logger = logging.getLogger(__name__)
 
 class VramMonitor:
     """Пассивный монитор VRAM (заглушка)."""
+    async def start_session(self) -> None:
+        """Инициализация сессии мониторинга (заглушка)."""
+        pass
+
     async def get_vram_mb(self) -> int:
         return 0
 

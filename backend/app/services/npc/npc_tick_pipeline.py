@@ -442,6 +442,14 @@ class NpcTickPipeline:
             if _effective_drives is None:
                 continue
 
+            # V8-PSY-FIX: Если NPC должен спать, подавляем проактивные интенты и FLEE,
+            # чтобы он не повышал стресс и мог уснуть (GAP9 контракт).
+            if _current_activity in ("sleeping", "resting", "спит"):
+                from app.services.npc.decision_hub import PROACTIVE_INTENTS
+                for _p_intent in PROACTIVE_INTENTS:
+                    _all_modifiers[_p_intent] = _all_modifiers.get(_p_intent, 0.0) - 10.0
+                _all_modifiers["flee"] = _all_modifiers.get("flee", 0.0) - 10.0
+
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id)
             _all_npc_ids = [
@@ -515,8 +523,15 @@ class NpcTickPipeline:
                     _intent_value = "approach"
                     decision.intent_target = "player"
 
-            _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "talk", "change_role"}
-            if _intent_value in _MOVE_INTENTS:
+            _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "change_role"} # V8-SOC-8 FIX: убран "talk"
+            # S-143 FIX: Sleep non-interruptible. Если NPC спит, блокируем реактивные движения.
+            _current_routine = _npc_dict_for_write.get("routine", {})
+            if _intent_value in _MOVE_INTENTS and _current_routine.get("current") == "sleeping":
+                logger.info(f"[SLEEP_GUARD] npc={npc_id} routine=sleeping, blocking reactive movement={_intent_value}")
+                _intent_value = "idle"
+                import dataclasses
+                from app.models.npc_state import Intent
+                decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE))
                 _movement = _resolve_reactive_movement(
                     npc_id=npc_id,
                     intent=_intent_value,

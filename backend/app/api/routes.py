@@ -368,7 +368,7 @@ async def game_turn(
         raise HTTPException(status_code=412, detail=str(exc))
 
 
-@router.get("/api/game/end_screen/{campaign_id}")
+@router.get("/game/end_screen/{campaign_id}")
 def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> Dict[str, Any]:
     """Возвращает финальный экран оценки игрока (MVP Mini-game). Чистое чтение."""
     if not game_loop.mvp_controller:
@@ -377,7 +377,7 @@ def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> Dict[s
     # V8-MVP-3: Сериализация вынесена в MvpTavernController
     return game_loop.mvp_controller.serialize_end_screen()
 
-@router.post("/api/game/finalize/{campaign_id}")
+@router.post("/game/finalize/{campaign_id}")
 def finalize_campaign(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """Финализирует кампанию: собирает WorldStateDiff и сохраняет его в GameLoop для будущей кампании."""
     if not game_loop.mvp_controller:

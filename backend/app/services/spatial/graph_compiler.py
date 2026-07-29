@@ -609,15 +609,16 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         openings = wall_openings.get(wall_id, [])
         segments = _split_wall_by_openings(wall, openings)
         if wall_id == "wall_7":
-            print(f"[DIAG_SPLIT] wall_7 openings={len(openings)} segments={len(segments)}")  # DIAG
+            logger.debug(f"[DIAG_SPLIT] wall_7 openings={len(openings)} segments={len(segments)}")
             for seg in segments:
-                print(f"[DIAG_SPLIT_SEG] {seg}")  # DIAG
+                logger.debug(f"[DIAG_SPLIT_SEG] {seg}")
         spatial_walls.extend(segments)
 
-    print(f"[DIAG_RETURN] spatial_walls_count={len(spatial_walls)}")  # DIAG
+    # V8-SP-9 FIX: print() заменены на logger.debug() для чистоты stdout в production
+    logger.debug(f"[DIAG_RETURN] spatial_walls_count={len(spatial_walls)}")
     for w in spatial_walls:
         if w.get("x1") == 14.0 and w.get("x2") == 14.0 and w.get("y1") == 8.0 and w.get("y2") == 0.5:
-            print(f"[DIAG_RETURN_BROKEN_WALL] {w}")  # DIAG
+            logger.debug(f"[DIAG_RETURN_BROKEN_WALL] {w}")
 
     # Препятствия с passability и blocks_los
     for obj in editor_data.get("objects", []):

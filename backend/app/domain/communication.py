@@ -60,6 +60,8 @@ class DialogueRequest:
     emotional_state: str = "нейтрально"
     # T-04: Строка с историей взаимодействий (npc_npc_context), сформированная в post_decision.
     npc_npc_context: str = ""
+    # BUG-DL-04: ID нити диалога для пер-парной изоляции памяти.
+    thread_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,7 @@ class CommunicationIntent:
     target_id: Optional[str] = (
         None  # GAP8 FIX: ID цели директивы (для NPC-to-NPC Social Physics)
     )
+    thread_id: str = ""  # BUG-DL-04: ID нити диалога
 
     def __post_init__(self) -> None:
         # Устав 7.2: пустой topic = LLM плывёт по ассоциациям

@@ -78,6 +78,9 @@ class AffectiveDecayHandler:
                         domain=DeltaDomain.EMOTION,
                         target="system",
                         payload=EmotionPayload(
+                            # V8-PSY-13: stress не затухает здесь. Two-path design:
+                            # stress восстанавливается через life_engine.recover_stress_tick
+                            # с разными скоростями для спящих и бодрствующих.
                             stress_delta=0.0,
                             emotion_delta=0.0,
                             emotion_tag=new_emotion,

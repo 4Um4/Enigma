@@ -22,6 +22,7 @@ from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage, NPCSt
 from app.services.memory import LayeredMemory
 from app.services.memory.contradiction_resolver import resolve_all
 from app.services.memory.dialogue_session import DialogueSession
+from app.services.memory.dialogue_consolidator import DialogueConsolidator
 from app.services.memory.importance_engine import score_event
 from app.services.memory.promotion_engine import MemoryPromotionEngine
 from app.services.memory.relationship_store import RelationshipStore
@@ -45,6 +46,13 @@ class MemoryManager:
         self._identity_cache: Dict[str, Dict[str, float]] = {}
         # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
         self._dialogue_sessions: Dict[str, DialogueSession] = {}
+        
+        # BUG-DL-06: Буфер отложенных диалоговых событий для записи в L2 (narrative_cache).
+        # Заполняется в Фазе 6 (NpcDialogueSubscriber), опустошается в Фазе 3 следующего тика.
+        self._pending_dialogue_memories: List[EventDTO] = []
+        
+        # BUG-DL-07: Экземпляр DialogueConsolidator для суммаризации STM перед очисткой.
+        self._dialogue_consolidator = DialogueConsolidator()
 
     @property
     def working_memory(self) -> WorkingMemory:
@@ -54,30 +62,54 @@ class MemoryManager:
     # STM: кратковременная память диалога (Этап 1)
     # ──────────────────────────────────────────────────────────────────────
 
-    def get_dialogue_session(self, campaign_id: str, npc_id: str) -> DialogueSession:
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         """Возвращает сессию диалога для NPC. Создаёт если нет."""
-        key = f"{campaign_id}:{npc_id}"
+        key = f"{campaign_id}:{npc_id}:{partner_id}"
         if key not in self._dialogue_sessions:
-            self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id)
+            self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
         return self._dialogue_sessions[key]
 
     def add_dialogue_turn(
         self, campaign_id: str, npc_id: str, speaker: str, text: str,
-        target_id: str = "", intent: str = "", tone: str = "", tick: int = 0
+        target_id: str = "", intent: str = "", tone: str = "", tick: int = 0,
+        partner_id: str = "player"
     ) -> None:
         """Добавляет реплику в STM конкретного NPC."""
-        session = self.get_dialogue_session(campaign_id, npc_id)
+        session = self.get_dialogue_session(campaign_id, npc_id, partner_id)
         session.add_turn(
             speaker=speaker, text=text, target_id=target_id,
             intent=intent, tone=tone, tick=tick
         )
 
-    def clear_dialogue_session(self, campaign_id: str, npc_id: str) -> None:
+    def clear_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> None:
         """Очищает STM при завершении диалога (NPC ушёл, смена сцены)."""
-        key = f"{campaign_id}:{npc_id}"
-        session = self._dialogue_sessions.pop(key, None)
-        if session is not None:
-            session.clear()
+        key = f"{campaign_id}:{npc_id}:{partner_id}"
+        session = self._dialogue_sessions.get(key)
+        if session is None:
+            return
+        
+        # BUG-DL-07: Consolidation в EventMemory перед discard
+        summary = self._dialogue_consolidator.consolidate(session)
+        if summary:
+            self._pending_dialogue_memories.append(
+                EventDTO.create(
+                    event_type="dialogue_consolidated",
+                    source=npc_id,
+                    payload={
+                        "npc_id": npc_id,
+                        "text": summary,
+                        "topic": session.topic or "unknown",
+                        "scene_state": {},
+                        "npc_stress": 0.0,
+                    },
+                    visibility="private",
+                    radius=0.0,
+                    persistence_level="session",
+                )
+            )
+        
+        session.clear()
+        self._dialogue_sessions.pop(key, None)
 
     def clear_all_dialogue_sessions(self, campaign_id: str) -> None:
         """Очищает все STM-сессии кампании — игрок ушёл из локации."""
@@ -85,18 +117,35 @@ class MemoryManager:
             k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")
         ]
         for key in keys_to_remove:
-            self._dialogue_sessions.pop(key)
+            # Извлекаем npc_id из ключа "campaign_id:npc_id"
+            parts = key.split(":")
+            if len(parts) >= 2:
+                npc_id = parts[1]
+                self.clear_dialogue_session(campaign_id, npc_id)
+            else:
+                self._dialogue_sessions.pop(key, None)
 
-    def get_stm_prompt_block(self, campaign_id: str, npc_id: str) -> str:
+    def add_pending_dialogue_memory(self, event: EventDTO) -> None:
+        """Добавляет событие диалога в буфер отложенной записи в L2."""
+        self._pending_dialogue_memories.append(event)
+
+    def drain_pending_dialogue_memories(self) -> List[EventDTO]:
+        """Извлекает и очищает буфер отложенных диалоговых событий."""
+        if not self._pending_dialogue_memories:
+            return []
+        drained = self._pending_dialogue_memories
+        self._pending_dialogue_memories = []
+        return drained
+
+    def get_stm_prompt_block(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> str:
         """Возвращает текстуализацию STM для промпта. Пустую строку если нет сессии."""
-        key = f"{campaign_id}:{npc_id}"
+        key = f"{campaign_id}:{npc_id}:{partner_id}"
         session = self._dialogue_sessions.get(key)
         return "" if session is None else session.to_prompt_block()
 
     def get_stm_prompt_block_pair(self, campaign_id: str, npc_a: str, npc_b: str) -> str:
-        """Возвращает STM для пары NPC (заглушка до Этапа 4)."""
-        # Пока берём сессию спикера (npc_a), так как ключи пока не парные
-        return self.get_stm_prompt_block(campaign_id, npc_a)
+        """Возвращает STM-блок для пары NPC (собственная нить спикера)."""
+        return self.get_stm_prompt_block(campaign_id, npc_a, partner_id=npc_b)
 
     # ──────────────────────────────────────────────────────────────────────
     # EventBus и фазовая модель
@@ -655,7 +704,8 @@ class MemoryManager:
                 if isinstance(e, dict):
                     if e.get("actor") == tid or e.get("target") == tid:
                         recent_pressure += e.get("importance", 0.0)
-                elif hasattr(e, "npc_id") and e.npc_id == npc_id:
+                # V8-MEM-5 FIX: Фильтруем по target_id или actor_id, а не по npc_id
+                elif (hasattr(e, "target_id") and e.target_id == tid) or (hasattr(e, "actor_id") and e.actor_id == tid):
                     recent_pressure += e.importance
 
             graph_weights[tid] = {
