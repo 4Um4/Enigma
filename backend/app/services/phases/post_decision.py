@@ -68,6 +68,50 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             import uuid
             _thread_id = getattr(intent, "thread_id", "") or f"thread-{uuid.uuid4().hex[:8]}"
 
+            # V8-DLG-10 FIX: Собираем prepared_prompt через VerbalizationContext
+            _prepared_prompt = ""
+            if _svc and _svc.memory_manager:
+                try:
+                    import copy
+                    from app.services.npc.npc_tick_pipeline import build_verbalization_context
+                    from app.services.npc.npc_loader import load_l2_state_from_runtime_dict, load_profile_from_legacy_json
+
+                    _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == intent.speaker or n.get("id") == intent.speaker), None)
+                    if _npc_dict:
+                        _npc_dict_copy = copy.deepcopy(dict(_npc_dict))
+                        _profile_l0 = load_profile_from_legacy_json(_npc_dict_copy)
+                        _state_l2 = load_l2_state_from_runtime_dict(_npc_dict_copy)
+
+                        _hub_event = ctx.interventions[0] if ctx.interventions else None
+                        _raw_input = getattr(_hub_event, "payload", {}).get("raw_input", "") if _hub_event else ""
+
+                        _v_ctx = build_verbalization_context(
+                            memory_manager=_svc.memory_manager,
+                            profile_l0=_profile_l0,
+                            state_for_llm=_state_l2,
+                            intent_value=intent.intent_type,
+                            intent_target=_target_id,
+                            hub_event=_hub_event,
+                            raw_input=_raw_input,
+                            campaign_id=ctx.campaign_id,
+                            topic=intent.topic
+                        )
+                        
+                        # V8-DLG-10 FIX: Собираем статическую часть промпта из VerbalizationContext.
+                        # Динамическая часть (STM, beliefs) будет добавлена в DialogueExecutor.
+                        _prepared_prompt = (
+                            f"Твоё имя: {_v_ctx.npc_name}. "
+                            f"Краткое описание твоей натуры: {_v_ctx.backstory or 'неизвестно'}. "
+                        )
+                        if _v_ctx.voice_profile:
+                            _prepared_prompt += f"Твоя манера речи: {_v_ctx.voice_profile}. "
+                        if _v_ctx.author_notes:
+                            _prepared_prompt += f"Важные ограничения: {_v_ctx.author_notes}. "
+                        if _v_ctx.emotional_nuance:
+                            _prepared_prompt += f"Твоё текущее состояние: {_v_ctx.emotional_nuance}. "
+                except Exception as _e:
+                    logger.warning(f"[POST_DECISION] V8-DLG-10: Failed to build prepared_prompt for {intent.speaker}: {_e}")
+
             _req = DialogueRequest(
                 topic=intent.topic,
                 target_id=_target_id,
@@ -76,6 +120,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 emotional_state=intent.emotional_state,
                 npc_npc_context=_history_text,
                 thread_id=_thread_id,
+                prepared_prompt=_prepared_prompt,
             )
 
             _task = QueuedTask(
@@ -112,6 +157,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "emotional_state": _req.emotional_state,
                     "npc_npc_context": _req.npc_npc_context,
                     "thread_id": _req.thread_id,
+                    "prepared_prompt": _req.prepared_prompt, # V8-DLG-10 FIX
                 },
                 "created_tick": _task.created_tick,
             }

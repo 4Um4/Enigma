@@ -90,6 +90,9 @@ class ActionSemanticResolver:
                     
             # Если Тень
             elif _target == "thief_shadow":
+                # V8-MVP-14 FIX: Распознавание вопроса о членстве в гильдии воров
+                if "гильд" in raw_lower and "вор" in raw_lower:
+                    return "shadow_guild_membership"
                 if "предатель" in raw_lower or "шёлк" in raw_lower:
                     return "shadow_investigation"
                 if "люся" in raw_lower and "подозрев" in raw_lower:

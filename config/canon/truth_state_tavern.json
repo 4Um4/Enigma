@@ -143,6 +143,17 @@
       "discovery_surface": ["dialogue"]
     },
     {
+      "secret_id": "shadow_guild_membership",
+      "npc_id": "thief_shadow",
+      "participants": ["thief_shadow"],
+      "category": "criminal",
+      "canonical_truth": "Тень — действующий член гильдии воров",
+      "importance": 0.9,
+      "initial_holders": ["thief_shadow"],
+      "discovery_surface": ["dialogue"],
+      "confession_keywords": ["гильдия воров", "я из гильдии", "состою в гильдии", "вор гильдии"]
+    },
+    {
       "secret_id": "tornin_debt",
       "npc_id": "tavern_keeper_tornin",
       "participants": ["tavern_keeper_tornin", "thief_shadow"],

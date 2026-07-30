@@ -33,6 +33,7 @@ def build_tick_state(
     spatial_service: Optional[Any] = None,  # P5 FIX: Явная инъекция от оркестратора
     spatial_query: Optional[Any] = None,    # P5 FIX: Явная инъекция от оркестратора
     l1_chronicle: Optional[Any] = None,     # V8-PSY-1 FIX: Инъекция L1Chronicle
+    idle_pressure_map: Optional[Any] = None, # V8-SOC-5 FIX: Инъекция idle_pressure
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run()."""
     _dm_ctx = None
@@ -75,6 +76,7 @@ def build_tick_state(
         npc_topics=ctx.npc_topics,
         response_targets=ctx.response_targets,
         l1_chronicle=l1_chronicle, # V8-PSY-1 FIX
+        idle_pressure_map=idle_pressure_map, # V8-SOC-5 FIX
     )
     return _tick_state
 

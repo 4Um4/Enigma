@@ -134,6 +134,10 @@ class NpcTickPipeline:
         )
 
         _is_player_turn = state.hub_event is not None
+        _idle_pressure_updates: Dict[Any, float] = {} # V8-SOC-5 FIX
+        
+        # V8-SOC-5 FIX: Константы для аккумуляции давления
+        from app.core.constants import IDLE_PRESSURE_ACCUM_RATE, IDLE_PRESSURE_DECAY_RATE
         _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
 
         logger.debug(
@@ -481,6 +485,28 @@ class NpcTickPipeline:
                 f"[DECISION_HUB] {npc_id}: intent=Intent.{decision.intent.value} score={decision.score:.3f} event={_evt_type}"
             )
 
+            # V8-SOC-5 FIX: Накопление idle_pressure
+            _key = (state.campaign_id, npc_id)
+            _current_pressure = state.idle_pressure_map.get(_key, 0.0)
+            _intent_val = decision.intent.value if decision.intent else "none"
+            if decision.intent and _intent_val != "idle":
+                _pressure_delta = decision.score * IDLE_PRESSURE_ACCUM_RATE
+            else:
+                _pressure_delta = -_current_pressure * IDLE_PRESSURE_DECAY_RATE
+            _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
+            _idle_pressure_updates[_key] = _new_pressure
+
+            # V8-SOC-5 FIX: Накопление idle_pressure
+            _key = (state.campaign_id, npc_id)
+            _current_pressure = state.idle_pressure_map.get(_key, 0.0)
+            _intent_val = decision.intent.value if decision.intent else "none"
+            if decision.intent and _intent_val != "idle":
+                _pressure_delta = decision.score * IDLE_PRESSURE_ACCUM_RATE
+            else:
+                _pressure_delta = -_current_pressure * IDLE_PRESSURE_DECAY_RATE
+            _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
+            _idle_pressure_updates[_key] = _new_pressure
+
             _is_move_command = False
             if state.hub_event:
                 _payload = getattr(state.hub_event, "payload", {})
@@ -626,6 +652,7 @@ class NpcTickPipeline:
             movement_intents=movement_intents,
             l1_drift_events=l1_drift_events,
             memory_events=memory_events,
+            idle_pressure_updates=_idle_pressure_updates, # V8-SOC-5 FIX
         )
 
 
@@ -808,7 +835,8 @@ def build_verbalization_context(
     memory_manager: Any,
     profile_l0: Any,
     state_for_llm: Any,
-    decision: Any,
+    intent_value: str,
+    intent_target: Optional[str],
     hub_event: Any,
     raw_input: str,
     campaign_id: str = "",
@@ -826,7 +854,7 @@ def build_verbalization_context(
     # DecisionHub должен видеть ТЕКУЩИЕ драйвы (с учётом мутаций), не seed.
     # ИСПРАВЛЕНО: аргумент называется state_for_llm, не state. NameError на `state`.
     # ADR-O-208: L3-P2. VerbalizationContext использует эфемерную проекцию (L3).
-    _ed = state.effective_drives_map.get(profile_l0.id)
+    _ed = state_for_llm.effective_drives_map.get(profile_l0.id) if hasattr(state_for_llm, 'effective_drives_map') else None
     _drives_raw = _ed.values if _ed else profile_l0.drives_base
     if isinstance(_drives_raw, dict) and _drives_raw:
         _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
@@ -859,7 +887,7 @@ def build_verbalization_context(
     # Инвариант 2: Намерение → Физика. LLM знает о движении только через этот флаг.
     _movement_intents = {"APPROACH", "FLEE", "RETREAT", "FOLLOW", "PATROL"}
     _is_moving = (
-        decision.intent.value in _movement_intents
+        intent_value in _movement_intents
         and _interpreter.derive_can_move(
             state_for_llm.posture, state_for_llm.conditions, state_for_llm.effective_hp
         )
@@ -872,8 +900,8 @@ def build_verbalization_context(
         emotion=state_for_llm.emotion.value,
         will_state=state_for_llm.will_state.value,
         physical_state=_npc_desc.physical_state,  # GAP5 FIX: Витализм
-        intent=decision.intent.value,
-        intent_target=decision.intent_target,
+        intent=intent_value,
+        intent_target=intent_target,
         topic=topic,
         scene_hint=_scene_hint,
         emotional_nuance=generate_emotional_nuance(state_for_llm),

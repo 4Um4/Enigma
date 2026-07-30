@@ -65,7 +65,15 @@ def _ensure_backend_running() -> subprocess.Popen:
     # чтобы print()-маркеры (DRF_EMIT, IDLE_TRACE, TRAV_CREATE_PRE и т.д.)
     # были видны CausalObserver. Без этого 89 критических маркеров слепы.
     _cds_log_for_subprocess = Path(_BACKEND_DIR) / "logs" / "cds_backend.log"
+    # Создаем папку logs, если её нет (для портативной установки)
+    _cds_log_for_subprocess.parent.mkdir(parents=True, exist_ok=True)
     _subprocess_log = open(str(_cds_log_for_subprocess), "a", encoding="utf-8")
+    
+    # Дополнение А (п. А.3.2): Флаг CREATE_NO_WINDOW для скрытия консоли uvicorn
+    _creation_flags = 0
+    if sys.platform == 'win32':
+        _creation_flags = 0x08000000  # CREATE_NO_WINDOW
+        
     proc = subprocess.Popen(
         [
             sys.executable,
@@ -80,6 +88,7 @@ def _ensure_backend_running() -> subprocess.Popen:
         cwd=_BACKEND_DIR,
         stdout=_subprocess_log,
         stderr=_subprocess_log,
+        creationflags=_creation_flags,
     )
 
     # Ждём готовности
@@ -144,8 +153,7 @@ def main() -> None:
     _cds_log_path = None
     try:
         _logs_dir = Path(_BACKEND_DIR) / "logs"
-        _logs_dir.mkdir(exist_ok=True)
-        # Фиксированный путь, чтобы подпроцесс Uvicorn тоже мог писать в этот файл
+        _logs_dir.mkdir(parents=True, exist_ok=True)
         _cds_log_path = _logs_dir / "cds_backend.log"
         # Очищаем лог при старте новой сессии
         with open(_cds_log_path, "w", encoding="utf-8") as f:

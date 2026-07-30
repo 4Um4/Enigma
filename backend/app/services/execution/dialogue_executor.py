@@ -33,6 +33,7 @@ class DialogueExecutor:
         context_provider: Optional[Callable[[str, str], dict]] = None,
         belief_store=None,
         memory_manager=None,
+        confession_parser=None, # V8-MVP-12 FIX
     ):
         self._router = router
         self._memory_manager = memory_manager
@@ -40,6 +41,7 @@ class DialogueExecutor:
             lambda npc_id, camp_id: {"name": npc_id, "description": ""}
         )
         self._belief_store = belief_store
+        self._confession_parser = confession_parser
         # L-02: Валидатор реплик NPC
         from dataclasses import dataclass, field
         from uuid import uuid4
@@ -100,6 +102,18 @@ class DialogueExecutor:
 
         if not text:
             text = f"[Заглушка] {task.owner_id} молчит."
+
+        # V8-MVP-12 FIX: Парсим ответ NPC на предмет признаний
+        if self._confession_parser:
+            try:
+                self._confession_parser.parse_and_record(
+                    npc_id=task.owner_id,
+                    reply_text=text,
+                    tick=task.tick, # Используем поле tick из QueuedTask
+                    target_id=req.target_id
+                )
+            except Exception as e:
+                logger.error(f"[DIALOGUE_EXEC] ConfessionParser failed: {e}", exc_info=True)
 
         yield Artifact(
             task_id=task.task_id,
@@ -172,18 +186,23 @@ class DialogueExecutor:
         if _stm_text:
             _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"
 
-        # L-03 FIX: Добавляем voice_profile, backstory, author_notes для уникального голоса
-        user_prompt = (
-            f"Твоё имя: {ctx.get('name', task.owner_id)}. "
-            f"Краткое описание твоей натуры: {ctx.get('description', 'неизвестно')}. "
-        )
-        if ctx.get("voice_profile"):
-            user_prompt += f"Твоя манера речи: {ctx['voice_profile']}. "
-        if ctx.get("backstory"):
-            user_prompt += f"Твоё прошлое: {ctx['backstory']}. "
-        if ctx.get("author_notes"):
-            user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
+        # V8-DLG-10 FIX: Используем prepared_prompt (из VerbalizationContext) или fallback на ручную сборку
+        if req.prepared_prompt:
+            user_prompt = req.prepared_prompt
+        else:
+            # L-03 FIX: Добавляем voice_profile, backstory, author_notes для уникального голоса
+            user_prompt = (
+                f"Твоё имя: {ctx.get('name', task.owner_id)}. "
+                f"Краткое описание твоей натуры: {ctx.get('description', 'неизвестно')}. "
+            )
+            if ctx.get("voice_profile"):
+                user_prompt += f"Твоя манера речи: {ctx['voice_profile']}. "
+            if ctx.get("backstory"):
+                user_prompt += f"Твоё прошлое: {ctx['backstory']}. "
+            if ctx.get("author_notes"):
+                user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
 
+        # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
         user_prompt += (
             f"Ты обращаешься к: {_target_name}. "
             f"{_beliefs_text}"

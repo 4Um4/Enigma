@@ -234,11 +234,18 @@ class LifeEngine:
 
         # TemporalEngine — единая точка времени/decay (перенесено из LifeEngine)
         from app.services.temporal.temporal_engine import TemporalEngine
-
         self._temporal = TemporalEngine(sessions_dir=self.sessions_dir)
 
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
         self._movement_engine = MovementEngine()
+
+    def get_idle_pressure_map(self) -> dict:
+        """V8-SOC-5 FIX: Возвращает текущее давление разговоров для TickState."""
+        return self._idle_pressure.copy()
+
+    def update_idle_pressure(self, updates: dict) -> None:
+        """V8-SOC-5 FIX: Обновляет давление разговоров из TickMutation."""
+        self._idle_pressure.update(updates)
 
         # Слой 3: SpatialService v1.2 — семантическая навигация (инжекция извне)
         self._spatial_service: Optional[Any] = None
@@ -530,14 +537,19 @@ class LifeEngine:
             if isinstance(_ss_data, dict):
                 _ss_pos = _ss_data.get("position")
                 _ss_loc = _ss_data.get("location_id")
+                # V8-SP-19 FIX: Синхронизируем position и location_id из scene_state (SSOT).
+                # Если position содержит префикс (loc:node), извлекаем локацию из него.
+                # Иначе доверяем location_id из scene_state.
+                _resolved_loc = _ss_loc
                 if _ss_pos and ":" in _ss_pos:
-                    _pos_loc = _ss_pos.split(":")[0]
-                    if _ss_loc != _pos_loc:
-                        npc["location_id"] = _pos_loc
-                        npc["location"] = _pos_loc
-                    elif _ss_loc and npc.get("location_id") != _ss_loc:
-                        npc["location_id"] = _ss_loc
-                        npc["location"] = _ss_loc
+                    _resolved_loc = _ss_pos.split(":")[0]
+                
+                if _resolved_loc:
+                    if npc.get("location_id") != _resolved_loc:
+                        npc["location_id"] = _resolved_loc
+                        npc["location"] = _resolved_loc
+                if _ss_pos and npc.get("position") != _ss_pos:
+                    npc["position"] = _ss_pos
 
         for npc in npcs:
             tier = npc.get("tier", "major")

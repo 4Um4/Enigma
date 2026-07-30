@@ -32,6 +32,7 @@ class Secret:
     importance: float
     initial_holders: Tuple[str, ...]
     discovery_surface: Tuple[str, ...] # Как это можно обнаружить
+    confession_keywords: Tuple[str, ...] = field(default_factory=tuple) # V8-MVP-CK1 FIX: Ключевые слова для парсинга признаний NPC
 
 @dataclass(frozen=True)
 class TruthRelation:

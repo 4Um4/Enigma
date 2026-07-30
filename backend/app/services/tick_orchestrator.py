@@ -615,6 +615,10 @@ class TickOrchestrator:
             _fast_target_xy = None
             _target_id = getattr(_params, "target_id", None) if _params else None
             _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX
+            
+            # V8-TICK-1 FIX: определяем семантические переменные для directive_payload
+            _sem_action = getattr(_params, "semantic_action", "") if _params else ""
+            _sem_target = getattr(_params, "target_reference", "") if _params else ""
 
             if _movement_req:
                 _fast_actor = _movement_req.actor_id
@@ -1220,6 +1224,9 @@ class TickOrchestrator:
                 npc_positions=ctx.scene_state.get("npc_positions", {}),
                 scene_state=ctx.scene_state,
             )
+        _life_engine = self._get_life_engine()
+        _idle_pressure_map = _life_engine.get_idle_pressure_map() if _life_engine else {}
+
         _tick_state = build_tick_state(
             ctx=ctx,
             alive_npcs=_alive_npcs,
@@ -1235,10 +1242,15 @@ class TickOrchestrator:
             spatial_service=_spatial_svc_for_pipeline,
             spatial_query=_spatial_query_for_pipeline,
             l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX
+            idle_pressure_map=_idle_pressure_map, # V8-SOC-5 FIX
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+
+        # V8-SOC-5 FIX: Обновляем idle_pressure в LifeEngine
+        if _life_engine and _mutation.idle_pressure_updates:
+            _life_engine.update_idle_pressure(_mutation.idle_pressure_updates)
 
         # 4. Committer: Применение мутаций к контексту
         build_npc_contexts_from_intents(ctx, _mutation)

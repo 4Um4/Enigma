@@ -60,6 +60,8 @@ def create_tick_state(
     response_targets: Optional[Dict[str, Any]] = None,
     # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
     l1_chronicle: Optional[Any] = None,
+    # V8-SOC-5 FIX: Передаём текущее idle_pressure в редюсер
+    idle_pressure_map: Optional[Any] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -102,6 +104,8 @@ def create_tick_state(
         response_targets=frozen(response_targets) if response_targets else {},
         # V8-PSY-1 FIX
         l1_chronicle=l1_chronicle,
+        # V8-SOC-5 FIX
+        idle_pressure_map=frozen(idle_pressure_map) if idle_pressure_map else {},
     )
 
 
@@ -162,6 +166,8 @@ class TickState:
     spatial_query: Optional[Any] = None
     # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
     l1_chronicle: Optional[Any] = None
+    # V8-SOC-5 FIX: Текущее давление разговоров (читается из LifeEngine)
+    idle_pressure_map: Any = field(default_factory=dict)
     # S129: Bridge 7
     npc_topics: Dict[str, Any] = field(default_factory=dict)
     response_targets: Dict[str, Any] = field(default_factory=dict)
@@ -179,6 +185,8 @@ class TickMutation:
     movement_intents: List[Any]  # List[MovementIntent]
     l1_drift_events: List[Any] = field(default_factory=list)  # List[TraitDriftEvent]
     memory_events: List[Any] = field(default_factory=list)  # List[EventDTO]
+    # V8-SOC-5 FIX: Обновлённое давление разговоров (пишется в LifeEngine)
+    idle_pressure_updates: Dict[Any, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

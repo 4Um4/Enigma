@@ -255,6 +255,7 @@ class MovementEngine:
                                 if hasattr(boundary_node, "x") and isinstance(boundary_node.x, (int, float)):
                                     logger.debug(f"[BORKO_DIST] tick={tick} cur_xy=({_cur_x:.1f}, {_cur_y:.1f}) boundary_xy=({boundary_node.x:.1f}, {boundary_node.y:.1f}) dist={_dist_to_boundary:.2f}")
 
+                            # S-145 FIX: Материализация если NPC стоит на boundary node ИЛИ очень близко к ней.
                             if _dist_to_boundary < 1.5:
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
@@ -716,15 +717,18 @@ class MovementEngine:
 
         _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
         if _dist < 0.1:
+            # V8-SP-16 FIX: Обновляем node_id (position), чтобы A* продвигался по маршруту.
+            # Иначе micro_snap бесконечно снаппит local_position к next_node, не обновляя текущий узел.
             return [
                 SceneChange(
                     type=ChangeType.NPC_POSITION,
                     target=intent.actor_id,
-                    field="local_position",
-                    value={"x": target_xy[0], "y": target_xy[1]},
+                    field="position",
+                    value=next_node.node_id,
                     cause=f"micro_snap:{intent.reason}",
                     tick=tick,
                     target_location_id=location_id,
+                    target_local_xy=(next_node.x, next_node.y),
                 )
             ]
 

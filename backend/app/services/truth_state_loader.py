@@ -33,7 +33,8 @@ class TruthStateLoader:
                 canonical_truth=s_data["canonical_truth"],
                 importance=float(s_data.get("importance", 0.5)),
                 initial_holders=tuple(s_data.get("initial_holders", [])),
-                discovery_surface=tuple(s_data.get("discovery_surface", []))
+                discovery_surface=tuple(s_data.get("discovery_surface", [])),
+                confession_keywords=tuple(s_data.get("confession_keywords", [])) # V8-MVP-CK1 FIX
             )
             secrets[secret.secret_id] = secret
 

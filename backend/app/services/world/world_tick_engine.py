@@ -119,6 +119,7 @@ class WorldTickEngine:
             Intent.SPREAD_RUMOR,
             Intent.CALL_FOR_HELP,
             Intent.CHANGE_ROLE,
+            Intent.TALK, # V8-SOC-6 FIX: Разрешаем NPC инициировать разговоры
         }
 
         for npc_id, state_l2, profile_l0 in npc_data:

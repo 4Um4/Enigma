@@ -277,7 +277,7 @@ class GameLoop:
             _subscriber = NpcDialogueSubscriber(
                 memory_manager=memory_manager,
                 relationship_store=rel_store,
-                npc_states_provider=None,
+                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 avatar_service=self.avatar_service,
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
@@ -286,11 +286,22 @@ class GameLoop:
                 dialogue_update_extractor=_extractor,
             )
 
+            # V8-DLG-06 FIX: Регистрируем DialogueMemorySubscriber для записи в L2
+            from app.services.events.dialogue_memory_subscriber import DialogueMemorySubscriber
+            _mem_subscriber = DialogueMemorySubscriber(
+                memory_manager=memory_manager,
+                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],
+                campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+                spatial_query_provider=self._get_spatial_query_for_subscriber
+            )
+
             from app.services.events.event_types import EventType
             _bus = get_event_bus()
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+            _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+            _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
             self._npc_dialogue_subscriber = _subscriber
-            logger.info("[GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke")
+            logger.info("[GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered")
         except Exception as e:
             logger.exception(f"[GAME_LOOP] Failed to register NpcDialogueSubscriber: {e}")
 
@@ -1971,7 +1982,8 @@ class GameLoop:
             _ctx = self._get_life_engine().get_npc_observed_state
             _et = self._svc.economy_tracker
             _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)
-            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager)
+            _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None
+            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp)
             self._task_scheduler = _scheduler
         return self._task_scheduler
 

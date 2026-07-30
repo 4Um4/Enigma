@@ -62,6 +62,8 @@ class DialogueRequest:
     npc_npc_context: str = ""
     # BUG-DL-04: ID нити диалога для пер-парной изоляции памяти.
     thread_id: str = ""
+    # V8-DLG-10 FIX: Готовый промпт от VerbalizationContext, собранный в post_decision
+    prepared_prompt: str = ""
 
 
 @dataclass(frozen=True)

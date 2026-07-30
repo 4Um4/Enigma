@@ -58,6 +58,14 @@ class MvpTavernController:
             truth_state=None,
             faction_tracker=self.faction_tracker
         )
+        
+        # V8-MVP-12 FIX: Парсер признаний NPC
+        from app.services.player_cognition.npc_confession_parser import NpcConfessionParser
+        self.confession_parser = NpcConfessionParser(
+            truth_state=None,
+            observation_log=self.observation_log,
+            belief_model=self.belief_model
+        )
 
         # WIRING ASSERTIONS — ловит M-03..M-10, N2
         assert self.observation_log is not None, "ObservationLog must init"
@@ -86,6 +94,7 @@ class MvpTavernController:
         
         # M-02/M-12 FIX: Инжектируем загруженный truth_state в action_compiler
         self.action_compiler._truth = self.truth_state
+        self.confession_parser._truth = self.truth_state # V8-MVP-12 FIX
         
         # N11 FIX: Pre-seed фракций из factions.json
         import json
@@ -111,7 +120,9 @@ class MvpTavernController:
             npc_id = npc.get("id", npc.get("npc_id"))
             if not npc_id: continue
             # V8-MVP-6 FIX: Clamping значений в [0.0, 1.0], чтобы избежать ValueError
-            stability = max(0.0, min(1.0, 1.0 - (float(npc.get("stress", 0)) / 100.0)))
+            # V8-MVP-20 FIX: stress хранится в npc["psyche"]["stress"], не в npc["stress"]
+            _psyche = npc.get("psyche", {}) if isinstance(npc.get("psyche"), dict) else {}
+            stability = max(0.0, min(1.0, 1.0 - (float(_psyche.get("stress", 0.0)) / 100.0)))
             threat = max(0.0, min(1.0, float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))))
             self.fate_tracker.update_state(npc_id, stability, threat)
             
