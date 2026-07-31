@@ -235,6 +235,19 @@ class DmAgent:
         if _l2_memory_block:
             builder.add_npc_l2_memory(_l2_memory_block)
 
+        # V8-DLG-14 FIX: Hard Contract "нет STM → молчи" для DM-агента.
+        # Если игрок обращается к NPC (есть target_id), но STM пуст — это greeting/approach (инициация игроком).
+        _target_id = context.get("player_target_id", "") if context else ""
+        _has_target = bool(_target_id)
+        _has_stm = bool(_recent_speech) or bool(_targeted_stm)
+        _is_intro = _is_session_start
+        # Если игрок сам обращается к NPC (target_id есть), пустое STM допустимо — это старт диалога.
+        if not _has_target and not _has_stm and not _is_intro:
+            raise ValueError(
+                f"[DM_CONTRACT_VIOLATION] NPC has no target and STM is empty. "
+                "NPC cannot reply without short-term memory context."
+            )
+
         # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты)
         # скрыты от DM-агента. DM описывает только то, что физически проявлено.
 

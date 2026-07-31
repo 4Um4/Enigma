@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 518, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1203, in run_turn
+    _scene = self.scene_manager._tick_scene if self.scene_manager else None
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SceneStateManager' object has no attribute '_tick_scene'. Did you mean: '_tick_scenes'?

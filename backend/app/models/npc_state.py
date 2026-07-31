@@ -360,6 +360,11 @@ class NPCPersonality:
     # Режиссёрская подсказка — instructions для LLM, не показывается NPC.
     # Пример: "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию."
     author_notes: str = ""
+    
+    # V8-PSY-1 FIX: Пластичность личности (0.0 - текучая, 1.0 - монолит)
+    identity_rigidity: float = 0.5
+    # V8-PSY-11 FIX: Социальный гомеостаз (0.0 - отшельник, 1.0 - экстраверт)
+    gregariousness: float = 0.5
 
     def __post_init__(self) -> None:
         total = sum(self.drives_base.values())

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from app.domain.identity_events import EffectiveDrives
 from app.domain.intent import IntentDTO
 from app.models.cfrm import ClusterOccupancy, EventBuffer
 from app.models.state_delta import DeltaDomain
@@ -94,6 +95,8 @@ class _TickContext:
     response_targets: dict = field(default_factory=dict)
     # Фаза 5: CommunicationIntent для каждого NPC (пока пустой — legacy pipeline)
     communication_intents: list = field(default_factory=list)
+    # V8-TICK-2/7 FIX: Добавлено объявление movement_intents (используется в pipeline_runner и tick_orchestrator)
+    movement_intents: list = field(default_factory=list)
     # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.
     npc_contexts: list = field(default_factory=list)
     # Sprint P9: Список строк фактов для DMContractBuilder

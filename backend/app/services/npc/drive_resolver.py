@@ -5,8 +5,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from app.domain.identity_events import CrystallizedBelief
-from app.models.npc_state import NPCPersonality
+from app.domain.identity_events import CrystallizedBelief, EffectiveDrives
+from app.models.npc_state import NPCPersonality, NPCIdentityL1
 
 # Множитель влияния убеждений (L2.5) на проекцию драйвов (L3)
 _BELIEF_MODIFIER: float = 0.5
@@ -26,15 +26,21 @@ class DriveResolver:
         archetype: NPCPersonality,
         beliefs: Optional[List[CrystallizedBelief]] = None,
         body_state: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, float]:
+        identity_l1: Optional["NPCIdentityL1"] = None, # V8-PSY-9 FIX: Инъекция L1
+    ) -> EffectiveDrives:
         """
-        Pure function: L0 + L2.5(Beliefs) + BodyState -> L3 Projection.
+        Pure function: L0 + L1(Identity) + L2.5(Beliefs) + BodyState -> L3 Projection.
         Вызывается каждый тик заново. Результат нигде не сохраняется.
         ADR-O-211: L1 не мутирует скаляры напрямую, только через Belief Layer.
         P5-08: Драйвы модулируются физиологией (fatigue, pain).
+        V8-PSY-9: L1 черты (resentment, dependency) оверлеятся поверх L0.
         """
         # 1. Клонируем базовый архетип (L0)
         drives = dict(archetype.drives_base)
+
+        # V8-PSY-9 FIX: Накладываем кристаллизованные черты L1 поверх L0
+        if identity_l1 and hasattr(identity_l1, "overlay_drives"):
+            drives = identity_l1.overlay_drives(drives)
 
         # 2. Накладываем деформации (L2.5) через убеждения
         if beliefs:
@@ -74,6 +80,4 @@ class DriveResolver:
                 drives[trait] /= total_mass
 
         # L3-P1: Возвращаем неизменяемую проекцию.
-        from app.domain.identity_events import EffectiveDrives
-
         return EffectiveDrives.from_dict(drives)

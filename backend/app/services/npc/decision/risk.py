@@ -78,7 +78,8 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
 
     # Память и давление — только для агрессивных событий
     if _et_val not in _social_events:
-        _pressure = state.relationship_cache.get("recent_pressure", 0.0)
+        _rel_data = state.relationship_cache.get("player", {})
+        _pressure = _rel_data.get("recent_pressure", 0.0)
         if _pressure > 0.01:
             base_risk += min(_pressure * 0.5, 0.3)
 

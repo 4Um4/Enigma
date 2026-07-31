@@ -1,0 +1,6 @@
+{
+    "gpu_name": "NVIDIA GPU",
+    "vram_total_mb": 8192,
+    "n_gpu_layers": 99,
+    "fallback_to_cpu": false
+}

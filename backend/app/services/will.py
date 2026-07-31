@@ -12,7 +12,7 @@ TODO: В будущем этот слой может быть расширен �
 import logging
 from typing import Any, Dict, Optional
 
-from app.domain.intent import IntentDTO
+from app.domain.intent import IntentDTO, IntentParametersDTO
 from app.domain.intent_profile import CrowdThreatLevel, SocialSignal
 from app.models.will import (
     EmbodiedVector,
@@ -86,7 +86,7 @@ def resolve_intent_pressure(
     # The Fool Phase 2: Игрок — источник приказа, а не цель.
     # Подчинение чужой воле (identity_deviation) и социальный риск (social_exposure)
     # испытывает ЦЕЛЬ (NPC), а не ИСТОЧНИК (Игрок).
-    # Для игрока, отдающего приказ, давление минимально.
+    # Для игрока, отдающего приказ, давление минимально, но моральная ответственность остаётся.
     elif action in (
         "player_social",
         "player_moves",
@@ -95,10 +95,14 @@ def resolve_intent_pressure(
         "halt",
         "order",
     ):
+        # V8-WL-2 FIX: Приказ насилия/риска несёт моральную ответственность для игрока.
+        _is_order = action == "order"
         pressure = IntentPressureProfile(
             identity_deviation=0.05,  # Игрок проявляет агентность, не подчиняется
             social_exposure=0.05,  # Минимальный социальный фрикшн
             humiliation=0.0,  # Игрок не унижается, отдавая приказ
+            moral_violation=0.4 if _is_order else 0.0,  # Приказ = моральный выбор
+            self_risk=0.3 if _is_order else 0.0,        # Приказ = ответственность за риск
         )
 
     elif action in (
@@ -242,18 +246,18 @@ def _generate_counter_offer(
     if pressure.violence > 0.6:
         # Предлагает избежать прямого насилия
         return IntentDTO(
-            action="flee", target="", parameters={"reason": "avoid_violence"}
+            action="flee", target="", parameters=IntentParametersDTO()
         )
 
     if pressure.social_exposure > 0.6:
         # Предлагает скрытный путь
         return IntentDTO(
-            action="stealth", target="", parameters={"reason": "avoid_shame"}
+            action="stealth", target="", parameters=IntentParametersDTO()
         )
 
     if pressure.self_risk > 0.6:
         # Предлагает переговоры или подчинение ради выживания
-        return IntentDTO(action="yield", target="", parameters={"reason": "survival"})
+        return IntentDTO(action="yield", target="", parameters=IntentParametersDTO())
 
     return None
 
@@ -336,7 +340,7 @@ def _resolve_embodied_vector(
         return EmbodiedVector.FREEZE, SocialSignal.DISCOMFORT, CrowdThreatLevel.LOW
 
     # Дефолтный инстинкт: осторожное отступление без массовой паники.
-    return EmbodiedVector.WITHDRAW, SocialSignal.FEAR, CrowdThreatLevel.LOW
+    return EmbodiedVector.AVOIDANCE, SocialSignal.FEAR, CrowdThreatLevel.LOW
 
 
 def compose_pressure_from_tags(

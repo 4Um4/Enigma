@@ -287,7 +287,8 @@
       "connections": [
         "kitchen_bed_1",
         "kitchen_bed_2",
-        "node_16"
+        "node_16",
+        "entrance"
       ]
     },
     "kitchen_bed_1": {

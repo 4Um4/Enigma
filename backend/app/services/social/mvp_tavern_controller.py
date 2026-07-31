@@ -17,6 +17,8 @@ from app.services.player_cognition.action_consequence_compiler import ActionCons
 from app.services.player_cognition.cognitive_dissonance_tracker import CognitiveDissonanceTracker
 from app.services.social.social_fabric_tracker import SocialFabricTracker
 from app.services.social.fate_tracker import FateTracker
+from app.models.fate import FateOutcome
+from app.models.fate import FateTrajectory, FateOutcome
 from app.services.social.faction_alignment_tracker import FactionAlignmentTracker
 from app.services.social.dilemma_engine import DilemmaEngine
 from app.services.social.evaluation_engine import EvaluationEngine
@@ -96,6 +98,9 @@ class MvpTavernController:
         self.action_compiler._truth = self.truth_state
         self.confession_parser._truth = self.truth_state # V8-MVP-12 FIX
         
+        # V8-MVP-18 TODO: Дилеммы должны загружаться из отдельного канона (dilemmas.json)
+        # или расширения TruthState, когда они будут добавлены в JSON.
+
         # N11 FIX: Pre-seed фракций из factions.json
         import json
         from app.core.config import BASE_DIR
@@ -124,7 +129,29 @@ class MvpTavernController:
             _psyche = npc.get("psyche", {}) if isinstance(npc.get("psyche"), dict) else {}
             stability = max(0.0, min(1.0, 1.0 - (float(_psyche.get("stress", 0.0)) / 100.0)))
             threat = max(0.0, min(1.0, float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))))
-            self.fate_tracker.update_state(npc_id, stability, threat)
+            _fate_state = self.fate_tracker.update_state(npc_id, stability, threat)
+            
+            # V8-MVP-17 FIX: Вызов trigger_fate при критической траектории
+            if _fate_state and _fate_state.fate_trajectory == FateTrajectory.CRITICAL and not _fate_state.resolved_fate:
+                self.fate_tracker.trigger_fate(
+                    npc_id=npc_id,
+                    outcome=FateOutcome.BROKEN,
+                    tick=getattr(ctx, 'tick', 0),
+                    cause="critical_stability",
+                    description="NPC сломался под давлением критической угрозы и нестабильности."
+                )
+            
+            # V8-MVP-17 FIX: Вызов trigger_fate при критической траектории
+            _fate_state = self.fate_tracker._states.get(npc_id)
+            if _fate_state and _fate_state.fate_trajectory.name == "CRITICAL" and not _fate_state.resolved_fate:
+                _tick_num = ctx.tick_number if hasattr(ctx, 'tick_number') else 0
+                self.fate_tracker.trigger_fate(
+                    npc_id=npc_id,
+                    outcome=FateOutcome.DEATH,
+                    tick=_tick_num,
+                    cause="critical_trajectory",
+                    description=f"{npc_id} достиг критической траектории судьбы."
+                )
             
         # DilemmaEngine: проверяем триггеры
         if self.truth_state:

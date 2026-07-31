@@ -128,6 +128,7 @@ class TickOrchestrator:
         )
         from app.services.npc.crystallized_belief_store import CrystallizedBeliefStore
         from app.services.npc.drive_resolver import DriveResolver
+        from app.models.npc_state import NPCIdentityL1
         from app.services.npc.l1_chronicle import L1Chronicle
         from app.services.npc.pattern_detector import PatternDetector
 
@@ -358,11 +359,14 @@ class TickOrchestrator:
             Any
         ] = None,  # S116 FIX: Проброс shared_context для CombatSubscriber
         task_scheduler: Optional[Any] = None,  # S128 FIX: Проброс для Фазы 4
+        active_location_id: Optional[str] = None, # Дополнение Б: локация игрока
+        location_ids: Optional[List[str]] = None, # Дополнение Б: список всех локаций
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
-        """Единая точка входа для тика мира (TZ-08 v0.2).
+        """Единая точка входа для тика мира (TZ-08 v0.2 + Дополнение Б).
 
         Ядро не знает 'player'. Если interventions пуст — idle tick.
         Если передан legacy dm_ctx — он мостируется в InterventionEvent.
+        Дополнение Б: Если передан location_ids, тикает все локации из списка.
         """
         if interventions is None:
             interventions = []
@@ -394,6 +398,15 @@ class TickOrchestrator:
         # [S98] Сборка контекста вынесена в tick_utils.create_tick_context
         from app.services.tick_utils import create_tick_context
 
+        # Дополнение Б: Определяем список локаций для тика
+        _all_scenes = {scene_state.get("location_id", "default"): scene_state}
+        if location_ids and active_location_id:
+            # В будущем здесь будет загрузка всех сцен через SceneStateManager
+            # Пока что передаем только текущую сцену, но регистрируем остальные локации
+            pass
+
+        # Обрабатываем только текущую сцену (совместимость с текущим GameLoop)
+        # В будущем здесь будет цикл по всем локациям
         ctx = create_tick_context(
             campaign_id=campaign_id,
             scene_state=scene_state,
@@ -464,8 +477,30 @@ class TickOrchestrator:
 
         event_bus.attach_cfrm_bridge(_deobjectify_event)
 
+        # Дополнение Б: Адаптивный LOD
+        if not hasattr(self, '_adaptive_loader'):
+            from app.services.adaptive_tick_loader import AdaptiveTickLoader
+            self._adaptive_loader = AdaptiveTickLoader()
+            
+        # Определяем, должна ли эта локация тикать полностью
+        _tick_fully = True
+        if self._adaptive_loader.is_lod_active() and active_location_id:
+            _connected = []
+            try:
+                from app.services.spatial.spatial_registry import SpatialRegistry
+                _reg = SpatialRegistry.get_or_load(campaign_id)
+                if _reg:
+                    _connected = [e.location_b for e in _reg.get_neighbors(active_location_id)]
+            except Exception:
+                pass
+            _current_loc = scene_state.get("location_id", "default")
+            _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
+
+        import time as _time
+        _start_time = _time.time()
+        
         try:
-            self._run_core_phases(ctx)
+            self._run_core_phases(ctx, tick_fully=_tick_fully)
         except Exception as e:
             logger.error(
                 f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} error={e}"
@@ -475,6 +510,11 @@ class TickOrchestrator:
         finally:
             # CFRM P2: Гарантированно отключаем мост деобъективации в конце тика
             event_bus.detach_cfrm_bridge()
+            
+            # Дополнение Б: Запись времени тика для AdaptiveTickLoader
+            _duration_ms = (_time.time() - _start_time) * 1000
+            _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
+            self._adaptive_loader.record_tick(_duration_ms, _npc_count)
 
         # S83.1: TickOrchestrator = единственный владелец результата тика.
         # ctx.scene_state (frozen input) прошёл через фазы → final_snapshot (output тика).
@@ -519,11 +559,18 @@ class TickOrchestrator:
 
     # ── Core Pipeline (Immutable Sequence) ──────────────────────────
 
-    def _run_core_phases(self, ctx: _TickContext) -> None:
+    def _run_core_phases(self, ctx: _TickContext, tick_fully: bool = True) -> None:
         """A2-FIX v0.2: Immutable core pipeline. NO mode, NO player branching."""
         self._snapshot_positions_before(ctx) #1
         self._phase_0_simulation(ctx) #2
         self._phase_0_5_idle_services(ctx) #3
+        
+        # Дополнение Б (п. Б.11): Adaptive Tick Loader
+        # Если LOD активен и это дальняя локация — пропускаем тяжелые фазы (память, решения, движение)
+        if not tick_fully:
+            self._phase_10_persistence(ctx) #16
+            return
+            
         self._phase_1_npic_normalize(ctx) #4
         self._phase_1_input_merge(ctx) #5
         self._apply_willpower_gate(ctx) #6
@@ -1017,6 +1064,7 @@ class TickOrchestrator:
 
         SpatialEventDetector сравнивает позиции до/после фазы 0
         и публикует NPC_MOVED, NPC_PROXIMITY_CLOSE, NPC_PROXIMITY_LEAVE.
+        Дополнение Б (п. Б.10.2): Активация Sound bleed для кросс-локационного звука.
         """
         if not ctx.old_npc_positions:
             return
@@ -1027,6 +1075,49 @@ class TickOrchestrator:
         ):
             ctx.phase_2_events.extend(_spatial_events)
             logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")
+            
+            # Дополнение Б: Sound bleed
+            try:
+                from app.services.spatial.spatial_runtime import sound_bleeds_to_adjacent
+                from app.domain.events import EventDTO
+                from app.core.config import settings
+                
+                _loc_id = ctx.scene_state.get("location_id", "")
+                _data_dir = str(settings.data_dir)
+                
+                # Находим соседние локации
+                _adjacent_locs = sound_bleeds_to_adjacent(
+                    scene_state=ctx.scene_state,
+                    base_radius=10,
+                    bleed_threshold=0.5,
+                    data_dir=_data_dir
+                )
+                
+                # Если есть соседи, пробиваем звук к ним
+                if _adjacent_locs:
+                    _event_bus = self._get_event_bus()
+                    for _event in _spatial_events:
+                        # Определяем "громкость" события (упрощенная модель для MVP)
+                        _intensity = 0.8 if _event.type in ("NPC_ATTACKED", "PLAYER_ATTACKS") else 0.3
+                        if _intensity >= 0.5:
+                            for _adj_loc in _adjacent_locs:
+                                # Проницаемость стены (упрощенно: 0.4 для двери)
+                                _bleeded_intensity = _intensity * 0.4 * 0.5
+                                if _bleeded_intensity >= 0.1:
+                                    _bleeded_event = EventDTO.create(
+                                        event_type="SOUND_BLEED",
+                                        source=_event.source,
+                                        payload={
+                                            "origin_location": _loc_id,
+                                            "perceived_at_location": _adj_loc,
+                                            "intensity": _bleeded_intensity,
+                                            "original_type": _event.type
+                                        }
+                                    )
+                                    _event_bus.publish(_bleeded_event)
+                                    logger.debug(f"[SOUND_BLEED] {_event.type} from {_loc_id} to {_adj_loc} (intensity={_bleeded_intensity:.2f})")
+            except Exception as _bleed_err:
+                logger.warning(f"[SOUND_BLEED] Failed to propagate sound: {_bleed_err}")
 
     def _phase_3_memory(self, ctx: _TickContext) -> None:
         """Memory Phase: делегировано в phases/memory.py (S100)."""
@@ -1126,8 +1217,17 @@ class TickOrchestrator:
                     _profile_l0 = personality_from_legacy(npc_dict)
                     _beliefs = self.crystallized_belief_store.get_beliefs(_nid)
                     _body_state = npc_dict.get("body_state", {})
+                    # V8-PSY-9 FIX: Получаем L1 Identity из memory_manager
+                    _identity_l1 = None
+                    try:
+                        _traits = self.memory_manager.get_identity_traits(ctx.campaign_id, _nid)
+                        if _traits:
+                            _identity_l1 = NPCIdentityL1(npc_id=_nid, active_traits=_traits)
+                    except Exception:
+                        pass
+
                     _projection = self.drive_resolver.resolve_drives(
-                        _profile_l0, _beliefs, body_state=_body_state
+                        _profile_l0, _beliefs, body_state=_body_state, identity_l1=_identity_l1
                     )
 
                     if isinstance(_projection, EffectiveDrives):
@@ -1254,6 +1354,10 @@ class TickOrchestrator:
 
         # 4. Committer: Применение мутаций к контексту
         build_npc_contexts_from_intents(ctx, _mutation)
+
+        # V8-TICK-2/7 FIX: Применяем DRF scoring overlay к собранным интентам
+        if ctx.communication_intents:
+            self._apply_drf_scoring_overlay(ctx.communication_intents, ctx)
 
         # [S99] Block 5 (Movement Bridge) вынесен в phases/movement_bridge.py
         from app.services.phases.movement_bridge import process_movement_intents

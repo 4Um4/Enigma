@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_query_service import SpatialQueryService
+    from app.models.npc.beliefs import BeliefType, BeliefFragment
 
 from app.core.constants import DECAY_EVERY, NARRATIVE_CACHE_MAX
 from app.domain.events import CONTRACT_TAGS, EventDTO
@@ -29,6 +30,8 @@ from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.resonance_engine import ResonanceEngine
 from app.services.memory.working_memory import WorkingMemory
 from app.services.npc.perception_filter import calculate_clarity
+from app.models.npc_state import MemoryStage
+
 
 
 class MemoryManager:
@@ -43,7 +46,12 @@ class MemoryManager:
         # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
         # Ключ: f"{campaign_id}:{npc_id}", значение: {trait_name: weight}
         # WRITE: только через apply_identity_weights()
-        self._identity_cache: Dict[str, Dict[str, float]] = {}
+        # V8-MEM-7 FIX: Загружаем identity_cache из SQLite/JSON при старте
+        # Safe call: SqliteMemoryStore может не иметь load_state (legacy gap)
+        if hasattr(self._layered.store, "load_state"):
+            self._identity_cache: Dict[str, Dict[str, float]] = self._layered.store.load_state("identity_cache")
+        else:
+            self._identity_cache: Dict[str, Dict[str, float]] = {}
         # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
         self._dialogue_sessions: Dict[str, DialogueSession] = {}
         
@@ -64,10 +72,16 @@ class MemoryManager:
 
     def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         """Возвращает сессию диалога для NPC. Создаёт если нет."""
-        key = f"{campaign_id}:{npc_id}:{partner_id}"
+        # V8-DLG-13 FIX: Используем сортированный ключ для изоляции пар A↔B от A↔C
+        pair_key = tuple(sorted((npc_id, partner_id)))
+        key = f"{campaign_id}:{pair_key[0]}:{pair_key[1]}"
         if key not in self._dialogue_sessions:
             self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
         return self._dialogue_sessions[key]
+
+    def get_dialogue_session_pair(self, campaign_id: str, npc_a: str, npc_b: str) -> DialogueSession:
+        """V8-DLG-13: Явный метод для получения пер-парной сессии."""
+        return self.get_dialogue_session(campaign_id, npc_a, npc_b)
 
     def add_dialogue_turn(
         self, campaign_id: str, npc_id: str, speaker: str, text: str,
@@ -89,8 +103,7 @@ class MemoryManager:
             return
         
         # BUG-DL-07: Consolidation в EventMemory перед discard
-        summary = self._dialogue_consolidator.consolidate(session)
-        if summary:
+        if summary := self._dialogue_consolidator.consolidate(session):
             self._pending_dialogue_memories.append(
                 EventDTO.create(
                     event_type="dialogue_consolidated",
@@ -139,9 +152,9 @@ class MemoryManager:
 
     def get_stm_prompt_block(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> str:
         """Возвращает текстуализацию STM для промпта. Пустую строку если нет сессии."""
-        key = f"{campaign_id}:{npc_id}:{partner_id}"
-        session = self._dialogue_sessions.get(key)
-        return "" if session is None else session.to_prompt_block()
+        # V8-DLG-13 FIX: Используем get_dialogue_session для консистентности ключей
+        session = self.get_dialogue_session(campaign_id, npc_id, partner_id)
+        return session.to_prompt_block()
 
     def get_stm_prompt_block_pair(self, campaign_id: str, npc_a: str, npc_b: str) -> str:
         """Возвращает STM-блок для пары NPC (собственная нить спикера)."""
@@ -180,7 +193,7 @@ class MemoryManager:
         scene_state = payload.get("scene_state", {})
         from app.services.npc.perception_filter import _npc_distance
 
-        distance = _npc_distance(npc_id, spatial_query)
+        distance = _npc_distance(npc_id, spatial_query) if spatial_query else 99.9
         light_level = scene_state.get("environment", {}).get("light_level", "dim")
         npc_stress = payload.get("npc_stress", getattr(npc_state, "stress", 0.0))
 
@@ -271,8 +284,9 @@ class MemoryManager:
         # 8. SQLite persistence — runtime truth (Закон 4.2.1)
         # event.id как mem_id — трассируемая связь EventDTO → EventMemory
         _store = self._layered.store
-        if hasattr(_store, "save_event_memory"):
-            _store.save_event_memory(
+        _save_mem = getattr(_store, "save_event_memory", None)
+        if callable(_save_mem):
+            _save_mem(
                 mem_id=str(event.id),
                 campaign_id=campaign_id,
                 mem_data=mem,
@@ -304,10 +318,11 @@ class MemoryManager:
         """Загружает narrative_cache из SQLite. Возвращает None если нет данных —
         вызывающая сторона fallback'ится на JSON (обратная совместимость)."""
         _store = self._layered.store
-        if not hasattr(_store, "load_event_memories"):
+        _load_mems = getattr(_store, "load_event_memories", None)
+        if not callable(_load_mems):
             return None
 
-        raw_list = _store.load_event_memories(campaign_id, npc_id)
+        raw_list: Any = _load_mems(campaign_id, npc_id) or []
         if not raw_list:
             return None
 
@@ -683,7 +698,9 @@ class MemoryManager:
         beliefs: List[Dict[str, Any]],
         new_event: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
-        return resolve_all(beliefs, new_event)
+        _result = resolve_all(beliefs, new_event)
+        # V8-FIX: resolve_all возвращает кортеж (beliefs, resolved), возвращаем первый элемент
+        return _result[0] if isinstance(_result, tuple) else _result
 
     def get_weights_for_decision(
         self,
@@ -751,7 +768,7 @@ class MemoryManager:
         campaign_id: str,
         npc_id: str,
         current_tick: int,
-    ) -> List[Tuple["BeliefType", "BeliefFragment"]]:
+    ) -> List[Tuple[BeliefType, BeliefFragment]]:
         """
         R8: Оценить убеждения NPC из накопленных воспоминаний.
         Вызывается независимо от decay — разная частота.
@@ -778,6 +795,7 @@ class MemoryManager:
     def detect_resonance(
         self,
         campaign_id: str,
+        npc_id: str,
         actor_id: str = "player",
     ) -> List[Tuple[str, float]]:
         """
@@ -785,7 +803,9 @@ class MemoryManager:
         Вызывается из python_engines после run_decay_if_needed.
         Возвращает List[(trait_name, delta)] — тот же формат что и run_decay_if_needed.
         """
-        events = self._working.get(campaign_id)
+        # V8-MEM-13 FIX: Фильтруем буфер по npc_id, а не по всей кампании
+        key = f"{campaign_id}:{npc_id}"
+        events = self._working.get(key)
         if not events:
             return []
 
@@ -811,6 +831,9 @@ class MemoryManager:
         for trait, delta in weights:
             current = cache.get(trait, 0.0)
             cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
+        
+        # V8-MEM-7 FIX: Персистируем обновлённый identity_cache
+        self._layered.store.save_state("identity_cache", self._identity_cache)
 
     def get_identity_traits(
         self,

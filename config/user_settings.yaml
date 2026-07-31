@@ -14,7 +14,10 @@ content:
 controls:
   keybindings: {}
 graphics:
-  resolution: 1920x1080
+  display_mode: windowed
+  resolution:
+    height: 1050
+    width: 1680
 interface:
   language: ru
 performance:

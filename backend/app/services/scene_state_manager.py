@@ -55,6 +55,9 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 
 _DATA_DIR = Path(settings.data_dir)
+# Защита от относительного пути: если data_dir="data", привязываем к backend/
+if not _DATA_DIR.is_absolute():
+    _DATA_DIR = Path(__file__).resolve().parents[2] / _DATA_DIR
 _LOG_DIR = _DATA_DIR / "logs"
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -211,7 +214,8 @@ class SceneStateManager:
         # Без этого get_scene_state() создаёт новый dict при каждом вызове → split-brain.
         self._tick_locked: bool = False
         self._tick_campaign_id: str | None = None
-        self._tick_scene: dict | None = None
+        # Дополнение Б (п. Б.6.1): Словарь сцен вместо одиночного слота
+        self._tick_scenes: Dict[str, dict] = {}
 
     # ── Tick-Scoped Identity API (ADR-SCENE-LOCK) ──────────────────────
 
@@ -220,13 +224,13 @@ class SceneStateManager:
         возвращают ТОТ ЖЕ объект. Вызывать ОДИН раз в начале _run_pipeline()."""
         if self._tick_locked:
             # Уже заблокирован — возвращаем кэш (безопасно для повторного вызова)
-            return self._tick_scene
+            return self._tick_scenes.get(location_id)
         # ADR-SCENE-LOCK: Загружаем актуальное состояние (с traversals от прошлого тика)
         scene = self.get_scene_state_uncached(campaign_id, location_id)
         if scene is not None:
             self._tick_locked = True
             self._tick_campaign_id = campaign_id
-            self._tick_scene = scene
+            self._tick_scenes[location_id] = scene
             try:
                 _recog = scene.get("player_recognition", {})
                 logger.debug(f"[LOCK] campaign={campaign_id} recog_keys={list(_recog.keys())}")
@@ -234,27 +238,32 @@ class SceneStateManager:
                 logger.warning(f"[LOCK] error reading recog_keys: {e}")
         return scene
 
+    def lock_all_for_tick(self, campaign_id: str, location_ids: list[str]) -> None:
+        """Дополнение Б (п. Б.6.1): Загружает и блокирует несколько локаций разом."""
+        if self._tick_locked:
+            return
+        self._tick_locked = True
+        self._tick_campaign_id = campaign_id
+        self._tick_scenes = {}
+        for _loc_id in location_ids:
+            scene = self.get_scene_state_uncached(campaign_id, _loc_id)
+            if scene is not None:
+                self._tick_scenes[_loc_id] = scene
+
     def unlock_tick(self, campaign_id: str) -> None:
         """Разблокирует тик. Персистит кэш.
         ADR-SCENE-LOCK: НЕ очищаем _tick_scene сразу — bridge может читать его
         в SSE-потоке после unlock. Кэш живёт до следующего lock_for_tick()."""
         if self._tick_locked and self._tick_campaign_id == campaign_id:
-            # Диагностика: что мы СОХРАНЯЕМ?
-            _trav_before = (
-                list(self._tick_scene.get("active_traversals", {}).keys())
-                if self._tick_scene
-                else []
-            )
-            logger.debug(
-                f"[UNLOCK_TRACE] BEFORE SAVE: traversals={_trav_before} locked={self._tick_locked}"
-            )
             # СНИМАЕМ LOCK ДО save — иначе guard в save_scene_state() сделает return!
             self._tick_locked = False
-            # Финальный персист кэшированного состояния
-            if self._tick_scene is not None:
-                self.save_scene_state(campaign_id, self._tick_scene)
+            # Дополнение Б: Финальный персист всех кэшированных сцен
+            for _loc_id, _scene in self._tick_scenes.items():
+                if _scene is not None:
+                    self.save_scene_state(campaign_id, _scene)
             # Диагностика: round-trip проверка — пережил ли traversal save→load?
-            if self._persistence:
+            if self._persistence and self._tick_scenes:
+                # Проверяем первую попавшуюся сцену из кэша
                 _verify = self._persistence.load_scene(campaign_id)
                 _trav_after = (
                     list(_verify.get("active_traversals", {}).keys())
@@ -262,7 +271,7 @@ class SceneStateManager:
                     else "LOAD_FAILED"
                 )
                 logger.debug(f"[UNLOCK_TRACE] AFTER LOAD: traversals={_trav_after}")
-            # НЕ очищаем _tick_scene! Bridge может читать его в SSE-потоке.
+            # НЕ очищаем _tick_scenes! Bridge может читать их в SSE-потоке.
             # Кэш будет заменён при следующем lock_for_tick().
 
     def commit_tick_result(self, campaign_id: str, result_snapshot: dict) -> None:
@@ -287,18 +296,20 @@ class SceneStateManager:
             f"[COMMIT_TRACE] campaign={campaign_id} tick={result_snapshot.get('tick')} trav_keys={_trav_keys} id={id(result_snapshot)}"
         )
         if self._tick_campaign_id == campaign_id:
-            self._tick_scene = copy.deepcopy(result_snapshot)
+            # Дополнение Б: Обновляем словарь сцен, а не одиночный слот
+            _loc_id = result_snapshot.get("location_id", "default")
+            self._tick_scenes[_loc_id] = copy.deepcopy(result_snapshot)
             try:
-                _recog = self._tick_scene.get("player_recognition", {})
-                _time_out = self._tick_scene.get("game_time_seconds", "MISSING")
-                logger.debug(f"[COMMIT] campaign={campaign_id} recog_keys={list(_recog.keys())}")
+                _recog = self._tick_scenes[_loc_id].get("player_recognition", {})
+                _time_out = self._tick_scenes[_loc_id].get("game_time_seconds", "MISSING")
+                logger.debug(f"[COMMIT] campaign={campaign_id} loc={_loc_id} recog_keys={list(_recog.keys())}")
             except Exception as e:
                 logger.warning(f"[COMMIT] error reading recog_keys: {e}")
             logger.debug(
-                f"[COMMIT_TRACE] _tick_scene updated, trav_keys_after={list(self._tick_scene.get('active_traversals', {}).keys())}"
+                f"[COMMIT_TRACE] _tick_scenes[{_loc_id}] updated, trav_keys_after={list(self._tick_scenes[_loc_id].get('active_traversals', {}).keys())}"
             )
             logger.debug(
-                f"[S83.1] commit_tick_result: persistence target updated for {campaign_id}"
+                f"[S83.1] commit_tick_result: persistence target updated for {campaign_id}:{_loc_id}"
             )
         else:
             logger.warning(
@@ -399,9 +410,9 @@ class SceneStateManager:
         if (
             self._tick_locked
             and self._tick_campaign_id == campaign_id
-            and self._tick_scene is not None
+            and location_id in self._tick_scenes
         ):
-            return self._tick_scene
+            return self._tick_scenes[location_id]
         # Устав 4.2.1: читаем из порта (SQLite) если доступен
         if self._persistence:
             scene = self._persistence.load_scene(campaign_id)
@@ -477,7 +488,9 @@ class SceneStateManager:
         # TICK-SCOPED IDENTITY: Внутри тика обновляем кэш, НЕ пишем на диск.
         # Запись на диск происходит один раз в unlock_tick().
         if self._tick_locked and self._tick_campaign_id == campaign_id:
-            # Кэш должен ссылаться на тот же объект — просто пропускаем персист
+            # Дополнение Б: обновляем кэш для конкретной локации
+            _loc_id = scene_state.get("location_id", "default")
+            self._tick_scenes[_loc_id] = scene_state
             return
         # ДИАГНОСТИКА: Реальный персист — проверяем что traversals доходят
         _trav_keys = (
@@ -785,6 +798,9 @@ class SceneStateManager:
         """Переинициализация сцены кампании из editor JSON.
         Вызывается из new_game() ПОСЛЕ очистки persistence.
         Находит начальную локацию и создаёт свежую сцену."""
+        # V8-SP-18 FIX: инвалидируем cache SpatialFactory при переинициализации
+        from app.services.spatial.spatial_factory import SpatialFactory
+        SpatialFactory.invalidate_cache(campaign_id)
         starting_location = self.find_starting_location(campaign_id)
         scene = self.initialize_scene(campaign_id, starting_location)
         logger.info(
@@ -904,6 +920,16 @@ class SceneStateManager:
                         "activity": "",
                         "visible": True,
                         "local_position": _first_npc.get("local_position", {"x": 1.0, "y": 1.0}),
+                    }
+                else:
+                    # V8-SP-3 FALLBACK: Если NPC тоже нет, спавним на entrance с дефолтными координатами
+                    npc_positions["player"] = {
+                        "name": "player",
+                        "location_id": location_id,
+                        "position": "entrance",
+                        "activity": "",
+                        "visible": True,
+                        "local_position": {"x": 1.0, "y": 1.0},
                     }
 
             # --- Стены и блокирующие объекты для коллизий (делегирование в GraphCompiler) ---
@@ -1198,9 +1224,9 @@ class SceneStateManager:
                                             scene_state.setdefault("active_traversals", {})[
                                                 change.target
                                             ] = _traversal_dict
-                                    elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete":
+                                    elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):
                                         # Контракт: macro relocation (field="position") обязан иметь proposal.
-                                        # Исключение: traversal_complete (snap позиции, proposal не нужен).
+                                        # Исключение: traversal_complete и cross_loc_materialize (snap позиции, proposal не нужен).
                                         # Микро-перемещения (field="local_position") его не требуют.
                                         logger.error(
                                             f"[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] "

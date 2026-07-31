@@ -14,6 +14,7 @@
 import logging
 from typing import Any, Dict, Optional
 
+from app.services.events.event_types import EventType
 from app.services.game_loop.time_advance import advance_game_time
 from app.services.npc.decision_hub import EventContext as HubEventContext
 from app.services.scene.scene_event_layer import emit_and_accumulate_scene_events
@@ -190,8 +191,8 @@ def run_dm_phase(
             _old_loc = (shared_context.scene_state or {}).get("location_id", "")
             if _new_loc and _old_loc and _new_loc != _old_loc:
                 game_loop.memory_manager.clear_all_dialogue_sessions(campaign_id)
-        # Фаза 4 — время продвигается от действий, не от тиков
-        advance_game_time(scene_state, _raw_type, raw_input, shared_context)
+        # V8-TICK-3 FIX: Убран двойной счётчик времени. Ядро (tick_orchestrator) уже сдвигает время на 60 сек в Фазе 0.5.
+        # advance_game_time(scene_state, _raw_type, raw_input, shared_context)
 
     # Scene Event Layer — всегда, даже если DM ошибся
     _scene_events = emit_and_accumulate_scene_events(
@@ -234,7 +235,7 @@ def run_dm_phase(
             _base_event = _raw_event
         else:
             _base_event = HubEventContext(
-                event_type=getattr(_raw_event, "type", "player_interacts"),
+                event_type=EventType(getattr(_raw_event, "type", "player_interacts")),
                 actor_id=getattr(_raw_event, "source", "player"),
             )
         # _sem_payload уже инициализирован наверху функции (Rule 47 fix)

@@ -45,6 +45,9 @@ class DialogueMaterializer:
                 "topic": data.get("topic"),
                 "exposure": exposure_semantic,
                 "tone": _tone,
+                # V8-SOC-7 FIX: Передаём пустой список listener_ids, 
+                # SocialInputProjector заполнит его на основе радиуса и LoS.
+                "listener_ids": [],
             },
             visibility=visibility,
             radius=10.0,  # Упрощённый радиус для материализатора

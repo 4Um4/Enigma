@@ -1824,6 +1824,11 @@ class LifeEngine:
                         origin_zone=npc.get("location_id"),
                         owner=npc.get("id") # пока передаём ID, чтобы在未来 фильтровать палатки
                     )
+                    # S-146 FIX: Фоллбэк на роль BED, если в карте нет affordance_objects
+                    if not _ref:
+                        _ref = self._spatial_service.resolve_node(
+                            role=NodeRole.BED, origin_zone=npc.get("location_id")
+                        )
                 else:
                     _ref = self._spatial_service.resolve_node(
                         role=_role, origin_zone=npc.get("location_id")

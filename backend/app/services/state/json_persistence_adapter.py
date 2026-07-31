@@ -33,7 +33,22 @@ class JsonPersistenceAdapter(PersistencePort):
         self._npcs_path = data_dir / "npcs" / "major_npcs.json"
 
     def save_scene(self, campaign_id: str, scene_state: Dict[str, Any]) -> None:
-        """Сохраняет scene_state в campaign_state.json."""
+        """Дополнение Б: shim для legacy-кода. Сохраняет сцену в scenes dict."""
+        _loc_id = scene_state.get("location_id", "default") if isinstance(scene_state, dict) else "default"
+        self.save_scene_at(campaign_id, _loc_id, scene_state)
+
+    def load_scene(self, campaign_id: str) -> Dict[str, Any] | None:
+        """Дополнение Б: shim. Загружает default сцену, иначе первую попавшуюся."""
+        _all_scenes = self.load_all_scenes(campaign_id)
+        if "default" in _all_scenes:
+            return _all_scenes["default"]
+        if _all_scenes:
+            return next(iter(_all_scenes.values()))
+        return None
+
+    # НОВЫЕ МЕТОДЫ (Дополнение Б, п. Б.5.3)
+    def save_scene_at(self, campaign_id: str, location_id: str, scene_state: Dict[str, Any]) -> None:
+        """Сохраняет состояние конкретной локации в campaign_state.json."""
         campaign_file = self._saves_dir / campaign_id / "campaign_state.json"
         try:
             campaign_file.parent.mkdir(parents=True, exist_ok=True)
@@ -41,25 +56,43 @@ class JsonPersistenceAdapter(PersistencePort):
             if campaign_file.exists():
                 with open(campaign_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-            data["scene_state"] = scene_state
+            
+            if "scenes" not in data:
+                data["scenes"] = {}
+            
+            data["scenes"][location_id] = scene_state
+            
             with open(campaign_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            logger.debug(f"[PERSISTENCE] Scene saved: {campaign_id}")
+            logger.debug(f"[PERSISTENCE] Scene saved: {campaign_id}:{location_id}")
         except OSError as e:
-            logger.error(f"[PERSISTENCE] Error saving scene: {e}")
+            logger.error(f"[PERSISTENCE] Error saving scene_at: {e}")
 
-    def load_scene(self, campaign_id: str) -> Dict[str, Any] | None:
-        """Загружает scene_state из campaign_state.json. None если нет."""
+    def load_scene_at(self, campaign_id: str, location_id: str) -> Dict[str, Any] | None:
+        """Загружает состояние конкретной локации. None если нет."""
         campaign_file = self._saves_dir / campaign_id / "campaign_state.json"
         if not campaign_file.exists():
             return None
         try:
             with open(campaign_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return data.get("scene_state")
+            return data.get("scenes", {}).get(location_id)
         except (OSError, json.JSONDecodeError) as e:
-            logger.error(f"[PERSISTENCE] Error loading scene: {e}")
+            logger.error(f"[PERSISTENCE] Error loading scene_at: {e}")
             return None
+
+    def load_all_scenes(self, campaign_id: str) -> Dict[str, Dict[str, Any]]:
+        """Загружает все локации кампании."""
+        campaign_file = self._saves_dir / campaign_id / "campaign_state.json"
+        if not campaign_file.exists():
+            return {}
+        try:
+            with open(campaign_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("scenes", {})
+        except (OSError, json.JSONDecodeError) as e:
+            logger.error(f"[PERSISTENCE] Error loading all scenes: {e}")
+            return {}
 
     def save_npcs(self, npc_dicts: List[Dict[str, Any]]) -> None:
         """Сохраняет NPC в major_npcs.json."""

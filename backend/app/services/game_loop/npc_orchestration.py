@@ -157,16 +157,67 @@ def run_npc_orchestration(
         },
         tick=shared_context.current_tick or 0,
     )
-    _tick_result = tick_orchestrator.execute(
-        campaign_id=campaign_id,
-        scene_state=shared_context.scene_state,
-        tick_number=shared_context.current_tick or 0,
-        interventions=[_intervention],
-        npc_services=_npc_svc,
-        spatial_service=_spatial_svc,
-        all_npcs_raw=ctx.all_npcs_raw,
-        shared_context=shared_context,
-    )
+    # Дополнение Б: Получаем список всех локаций для глобального тика
+    _location_ids = []
+    _active_loc = shared_context.scene_state.get("location_id", "")
+    try:
+        from app.services.spatial.spatial_registry import SpatialRegistry
+        _registry = SpatialRegistry.get_or_load(campaign_id)
+        if _registry:
+            _location_ids = _registry.get_all_location_ids()
+    except Exception as _loc_err:
+        logger.warning(f"[NPC_ORCH] Failed to get location_ids: {_loc_err}")
+
+    if not _location_ids:
+        _location_ids = [_active_loc]
+
+    _scene_manager = getattr(game_loop, "scene_manager", None)
+    _tick_result = None
+
+    # Дополнение Б: Глобальный цикл тика для хода игрока
+    for _loc_id in _location_ids:
+        # Активная локация использует shared_context.scene_state, остальные грузим из менеджера
+        if _loc_id == _active_loc:
+            _current_scene = shared_context.scene_state
+        else:
+            _current_scene = _scene_manager.get_scene_state(campaign_id, _loc_id) if _scene_manager else None
+        
+        if _current_scene is None:
+            continue
+
+        # Инъекция SpatialService для каждой локации
+        _loc_spatial_svc = None
+        try:
+            from app.services.spatial.spatial_factory import SpatialFactory
+            _loc_spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_loc_id, scene_state=_current_scene)
+        except Exception:
+            pass
+
+        # Передаем interventions только для активной локации
+        _current_interventions = [_intervention] if _loc_id == _active_loc else []
+
+        _loc_result = tick_orchestrator.execute(
+            campaign_id=campaign_id,
+            scene_state=_current_scene,
+            tick_number=shared_context.current_tick or 0,
+            interventions=_current_interventions,
+            npc_services=_npc_svc,
+            spatial_service=_loc_spatial_svc,
+            all_npcs_raw=ctx.all_npcs_raw,
+            shared_context=shared_context if _loc_id == _active_loc else None,
+            active_location_id=_active_loc,
+            location_ids=_location_ids,
+        )
+        
+        # Коммитим результат тика для каждой локации
+        if _loc_result.final_scene_state is not None and _scene_manager:
+            if _scene_manager._tick_campaign_id == campaign_id:
+                _scene_manager.commit_tick_result(campaign_id, _loc_result.final_scene_state)
+        
+        # Сохраняем результат активной локации
+        if _loc_id == _active_loc:
+            _tick_result = _loc_result
+            shared_context.scene_state = _loc_result.final_scene_state
 
     # ADR-311 FIX: Коммит final_scene_state в SceneStateManager.
     # Без этого все мутации ядра (время, traversals, эмоции) теряются в пути игрока.

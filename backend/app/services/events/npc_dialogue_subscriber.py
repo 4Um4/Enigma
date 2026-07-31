@@ -64,7 +64,8 @@ class NpcDialogueSubscriber:
         text = payload.get("text", "")
         tone = payload.get("tone", "NEUTRAL")
         topic = payload.get("topic", "")
-        is_canonical = "Stub LLM" not in text and text != ""
+        # V8-SOC-11 FIX: Распознаём русскую заглушку "[Заглушка]" как ambient
+        is_canonical = "Stub LLM" not in text and "[Заглушка]" not in text and text != ""
 
         if not speaker or not listener or listener == "all":
             return

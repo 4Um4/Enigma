@@ -114,14 +114,27 @@ class SqlitePersistenceAdapter(PersistencePort):
             return None
 
     def save_scene(self, campaign_id: str, scene_state: Dict[str, Any]) -> None:
-        """Сохраняет состояние сцены."""
+        """Сохраняет состояние сцены (с поддержкой location_id)."""
         with self._lock:
             try:
-                self._upsert(f"scene:{campaign_id}", scene_state)
+                # Дополнение Б: извлекаем location_id из scene_state, если есть
+                _loc_id = scene_state.get("location_id", "default") if isinstance(scene_state, dict) else "default"
+                self._upsert(f"scene:{campaign_id}:{_loc_id}", scene_state)
                 self._get_conn().commit()
-                logger.debug(f"[SQLITE_PERSISTENCE] Scene saved: {campaign_id}")
+                logger.debug(f"[SQLITE_PERSISTENCE] Scene saved: {campaign_id}:{_loc_id}")
             except sqlite3.Error as e:
                 logger.error(f"[SQLITE_PERSISTENCE] Error saving scene: {e}")
+                self._get_conn().rollback()
+
+    # НОВЫЕ МЕТОДЫ (Дополнение Б, п. Б.5.2)
+    def save_scene_at(self, campaign_id: str, location_id: str, scene_state: Dict[str, Any]) -> None:
+        """Сохраняет состояние конкретной локации."""
+        with self._lock:
+            try:
+                self._upsert(f"scene:{campaign_id}:{location_id}", scene_state)
+                self._get_conn().commit()
+            except sqlite3.Error as e:
+                logger.error(f"[SQLITE_PERSISTENCE] Error saving scene_at: {e}")
                 self._get_conn().rollback()
 
     def save_npcs(self, npc_dicts: List[Dict[str, Any]]) -> None:
@@ -174,8 +187,38 @@ class SqlitePersistenceAdapter(PersistencePort):
                 self._get_conn().rollback()
 
     def load_scene(self, campaign_id: str) -> Dict[str, Any] | None:
-        """Загружает состояние сцены из SQLite."""
-        return self._select(f"scene:{campaign_id}")
+        """Дополнение Б: shim для legacy-кода. Возвращает "default" сцену, если она есть, иначе первую попавшуюся."""
+        _default_scene = self._select(f"scene:{campaign_id}:default")
+        if _default_scene:
+            return _default_scene
+            
+        # Ищем любую сцену этой кампании
+        _all_scenes = self.load_all_scenes(campaign_id)
+        if _all_scenes:
+            return next(iter(_all_scenes.values()))
+        return None
+
+    def load_scene_at(self, campaign_id: str, location_id: str) -> Dict[str, Any] | None:
+        """Загружает состояние конкретной локации."""
+        return self._select(f"scene:{campaign_id}:{location_id}")
+
+    def load_all_scenes(self, campaign_id: str) -> Dict[str, Dict[str, Any]]:
+        """Загружает все локации кампании."""
+        with self._lock:
+            try:
+                _conn = self._get_conn()
+                _cursor = _conn.cursor()
+                _prefix = f"scene:{campaign_id}:%"
+                _cursor.execute("SELECT key, value FROM state_kv WHERE key LIKE ?", (_prefix,))
+                _rows = _cursor.fetchall()
+                _result = {}
+                for _key, _value in _rows:
+                    _loc_id = _key.split(":")[-1]
+                    _result[_loc_id] = json.loads(_value)
+                return _result
+            except Exception as e:
+                logger.error(f"[SQLITE_PERSISTENCE] Error loading all scenes: {e}")
+                return {}
 
     def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
         """Загружает runtime-состояние NPC из сессии."""

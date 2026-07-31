@@ -1,6 +1,6 @@
 """
-Назначение: Экран настроек игры (пока только переключатель контента)
-Зависимости: pygame, app.core.config, app.core.content_policy
+Назначение: Экран настроек игры (Графика и Контент)
+Зависимости: pygame, app.core.config, app.core.content_policy, display_manager
 Основные сущности: SettingsScreen
 
 path: /frontend/settings_screen.py
@@ -19,6 +19,7 @@ sys.path.insert(0, str(_ROOT))
 
 from app.core.config import settings
 from app.core.content_policy import save_content_policy
+from display_manager import load_display_settings, save_display_settings, get_available_resolutions, create_window
 
 # === Минимальная цветовая схема (как в game_menu.py) ===
 _MENU_COLORS = {
@@ -76,53 +77,96 @@ class SettingsScreen:
         self.screen = screen
         self.clock = clock
         self._result: Optional[str] = None  # "back" or None
+        self._active_tab = "graphics" # По умолчанию открываем Графику
         
         self.font_title = pygame.font.SysFont("consolas", 36, bold=True)
         self.font_button = pygame.font.SysFont("consolas", 20, bold=True)
         self.font_small = pygame.font.SysFont("consolas", 14)
         
-        self.current_preset = self._get_current_preset()
+        # Настройки графики
+        self._gfx_settings = load_display_settings()
+        self._resolutions = get_available_resolutions()
+        self._display_modes = ['windowed', 'borderless', 'exclusive']
+        self._mode_names = {'windowed': 'Оконный', 'borderless': 'Безрамочный', 'exclusive': 'Полноэкранный'}
+        
+        # Настройки контента (заглушка, если не удалось получить)
+        self.current_preset = getattr(settings.content_policy, "preset", "moderate")
+        
         self.buttons = self._build_buttons()
 
-    def _get_current_preset(self) -> str:
-        path = settings.user_settings_path
-        if not path.exists():
-            return "explicit"
-        try:
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-            return data.get("content", {}).get("preset", "explicit")
-        except Exception:
-            return "explicit"
-
-    def _set_preset(self, preset: str):
-        save_content_policy(settings, preset)
-        self.current_preset = preset
-        self.buttons = self._build_buttons() # Перестраиваем кнопки для обновления выделения
-
     def _build_buttons(self):
-        screen_w, screen_h = self.screen.get_size()
-        btn_w, btn_h = 400, 50
+        buttons = []
+        # Кнопки вкладок
+        tab_w, tab_h = 200, 50
         gap = 20
-        start_y = screen_h // 2 - (btn_h * 4 + gap * 3) // 2
-        x = screen_w // 2 - btn_w // 2
+        start_x = (self.screen.get_width() - (tab_w * 2 + gap)) // 2
+        start_y = 120
         
-        return [
-            _SettingsButton(x, start_y, btn_w, btn_h, "Семейный (0+)",
-                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"],
-                            lambda: self._set_preset("off"), self.current_preset == "off",
-                            tooltip="Никакого мата, секса, детального насилия. Подходит для чувствительной аудитории."),
-            _SettingsButton(x, start_y + btn_h + gap, btn_w, btn_h, "Подростковый (16+)",
-                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"],
-                            lambda: self._set_preset("moderate"), self.current_preset == "moderate",
-                            tooltip="Лёгкая ругань, намёки на секс, физиологичное насилие без садизма."),
-            _SettingsButton(x, start_y + 2*(btn_h + gap), btn_w, btn_h, "Взрослый (18+)",
-                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"],
-                            lambda: self._set_preset("explicit"), self.current_preset == "explicit",
-                            tooltip="Полный 18+ контент: мат, explicit-секс, детальная жестокость, табу-практики."),
-            _SettingsButton(x, start_y + 3*(btn_h + gap), btn_w, btn_h, "Назад",
-                            _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"],
-                            lambda: setattr(self, "_result", "back")),
-        ]
+        buttons.append(_SettingsButton(start_x, start_y, tab_w, tab_h, "Графика", _MENU_COLORS["btn_primary"], _MENU_COLORS["btn_primary_hover"], lambda: self._switch_tab("graphics"), self._active_tab == "graphics"))
+        buttons.append(_SettingsButton(start_x + tab_w + gap, start_y, tab_w, tab_h, "Контент", _MENU_COLORS["btn_primary"], _MENU_COLORS["btn_primary_hover"], lambda: self._switch_tab("content"), self._active_tab == "content"))
+        
+        btn_w, btn_h = 300, 50
+        x = (self.screen.get_width() - btn_w) // 2
+        start_y = 220
+        
+        if self._active_tab == "graphics":
+            # Кнопка переключения разрешения
+            curr_res = self._gfx_settings.get('resolution', {'width': 1400, 'height': 900})
+            res_str = f"Разрешение: {curr_res['width']}x{curr_res['height']}"
+            buttons.append(_SettingsButton(x, start_y, btn_w, btn_h, res_str, _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], self._cycle_resolution))
+            
+            # Кнопки режимов экрана
+            for i, mode in enumerate(self._display_modes):
+                is_sel = self._gfx_settings.get('display_mode', 'windowed') == mode
+                buttons.append(_SettingsButton(x, start_y + (i+1)*(btn_h+gap), btn_w, btn_h, self._mode_names[mode], _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda m=mode: self._set_mode(m), is_sel))
+                
+            # Кнопка Применить
+            buttons.append(_SettingsButton(x, start_y + 4*(btn_h+gap), btn_w, btn_h, "Применить", _MENU_COLORS["accent_green"], _MENU_COLORS["btn_primary_hover"], self._apply_graphics))
+            buttons.append(_SettingsButton(x, start_y + 5*(btn_h+gap), btn_w, btn_h, "Назад", _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], lambda: setattr(self, "_result", "back")))
+
+        elif self._active_tab == "content":
+            # Кнопки контента
+            buttons.append(_SettingsButton(x, start_y, btn_w, btn_h, "Безопасный (12+)", _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda: self._set_preset("safe"), self.current_preset == "safe", tooltip="Никакого мата, секса, детального насилия."))
+            buttons.append(_SettingsButton(x, start_y + btn_h + gap, btn_w, btn_h, "Подростковый (16+)", _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda: self._set_preset("moderate"), self.current_preset == "moderate", tooltip="Лёгкая ругань, намёки на секс, физиологичное насилие без садизма."))
+            buttons.append(_SettingsButton(x, start_y + 2*(btn_h + gap), btn_w, btn_h, "Взрослый (18+)", _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda: self._set_preset("explicit"), self.current_preset == "explicit", tooltip="Полный 18+ контент: мат, explicit-секс, детальная жестокость, табу-практики."))
+            buttons.append(_SettingsButton(x, start_y + 3*(btn_h + gap), btn_w, btn_h, "Назад", _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], lambda: setattr(self, "_result", "back")))
+
+        return buttons
+
+    def _switch_tab(self, tab):
+        self._active_tab = tab
+        self.buttons = self._build_buttons()
+
+    def _cycle_resolution(self):
+        curr_res = self._gfx_settings.get('resolution', {'width': 1400, 'height': 900})
+        curr_tuple = (curr_res['width'], curr_res['height'])
+        try:
+            idx = self._resolutions.index(curr_tuple)
+            next_idx = (idx + 1) % len(self._resolutions)
+        except ValueError:
+            next_idx = 0
+        next_res = self._resolutions[next_idx]
+        self._gfx_settings['resolution'] = {'width': next_res[0], 'height': next_res[1]}
+        self.buttons = self._build_buttons()
+
+    def _set_mode(self, mode):
+        self._gfx_settings['display_mode'] = mode
+        self.buttons = self._build_buttons()
+
+    def _apply_graphics(self):
+        save_display_settings(self._gfx_settings)
+        # Пересоздаем окно немедленно
+        self.screen = create_window()
+        self.buttons = self._build_buttons()
+
+    def _set_preset(self, preset):
+        self.current_preset = preset
+        try:
+            settings.content_policy.preset = preset
+            save_content_policy(settings)
+        except Exception as e:
+            print(f"Failed to save content policy: {e}")
+        self.buttons = self._build_buttons()
 
     def run(self):
         self._result = None
@@ -136,30 +180,23 @@ class SettingsScreen:
                     self.buttons = self._build_buttons()
                 else:
                     for btn in self.buttons:
-                        btn.handle_event(event)
-                        
+                        if btn.handle_event(event):
+                            break
+                            
             self.screen.fill(_MENU_COLORS["bg_dark"])
             
-            title_surf = self.font_title.render("Настройки Контента", True, _MENU_COLORS["text"])
-            title_rect = title_surf.get_rect(center=(self.screen.get_width() // 2, 100))
+            title_surf = self.font_title.render("Настройки", True, _MENU_COLORS["text"])
+            title_rect = title_surf.get_rect(center=(self.screen.get_width() // 2, 60))
             self.screen.blit(title_surf, title_rect)
-            
-            desc = "Выберите уровень разрешённого контента. Это повлияет на речь NPC и описание сцены."
-            desc_surf = self.font_small.render(desc, True, _MENU_COLORS["text_dim"])
-            desc_rect = desc_surf.get_rect(center=(self.screen.get_width() // 2, 150))
-            self.screen.blit(desc_surf, desc_rect)
             
             for btn in self.buttons:
                 btn.draw(self.screen, self.font_button)
             
-            # Отрисовка тултипа для наведённой кнопки
+            # Отрисовка тултипа
             hovered_btn = next((b for b in self.buttons if b.hovered and b.tooltip), None)
             if hovered_btn:
-                # Фон для тултипа
                 tip_surf = self.font_small.render(hovered_btn.tooltip, True, _MENU_COLORS["text"])
                 tip_rect = tip_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() - 60))
-                
-                # Рамка
                 pad = 10
                 bg_rect = tip_rect.inflate(pad * 2, pad)
                 pygame.draw.rect(self.screen, _MENU_COLORS["btn_secondary"], bg_rect, border_radius=4)

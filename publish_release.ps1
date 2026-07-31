@@ -30,18 +30,28 @@ if ($parts.Length -gt 0) {
 Set-Content -Path $VersionFile -Value $NewVersion -NoNewline
 Write-Host "Версия обновлена: v$NewVersion" -ForegroundColor Yellow
 
-# 2. Компиляция Bloodloom.exe (бывший updater) через PyInstaller
-Write-Host "🔨 Компиляция Bloodloom.exe..." -ForegroundColor Cyan
-# Убери --icon=Bloodloom.ico, если файла иконки пока нет
+# 2. Компиляция Bloodloom.exe (бывший updater) и Splash Screen через PyInstaller
+Write-Host "🔨 Компиляция Bloodloom.exe и Splash Screen..." -ForegroundColor Cyan
+# Компилируем Splash Screen
+python -m PyInstaller --onefile --noconsole --name Bloodloom_splash --icon=Bloodloom.ico splash.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Ошибка компиляции splash.py!" -ForegroundColor Red
+    exit
+}
+Move-Item -Path "dist\Bloodloom_splash.exe" -Destination "Bloodloom_splash.exe" -Force
+
+# Компилируем Обновлятор/Лаунчер
 python -m PyInstaller --onefile --noconsole --name Bloodloom --icon=Bloodloom.ico updater.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Ошибка компиляции updater.py!" -ForegroundColor Red
     exit
 }
 Move-Item -Path "dist\Bloodloom.exe" -Destination "Bloodloom.exe" -Force
+
 Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "Bloodloom.spec" -Force -ErrorAction SilentlyContinue
-Write-Host "✅ Bloodloom.exe собран" -ForegroundColor Green
+Remove-Item -Path "Bloodloom_splash.spec" -Force -ErrorAction SilentlyContinue
+Write-Host "✅ Bloodloom.exe и Splash Screen собраны" -ForegroundColor Green
 
 # 3. Компиляция установщика с помощью Inno Setup
 Write-Host "🔨 Компиляция установочника Inno Setup..." -ForegroundColor Cyan

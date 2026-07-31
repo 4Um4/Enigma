@@ -208,9 +208,11 @@ def compute_mutation(state: "NPCState", trauma_type: str) -> Dict[str, float]:
     if not drive_deltas:
         return {}
 
-    # Безопасное чтение rigidity
+    # V8-PSY-1 FIX: Читаем identity_rigidity из personality (SSOT), с фолбэком на psyche dict
     rigidity = 0.5
-    if hasattr(state, "psyche"):
+    if hasattr(state, "personality") and hasattr(state.personality, "identity_rigidity"):
+        rigidity = state.personality.identity_rigidity
+    elif hasattr(state, "psyche"):
         if isinstance(state.psyche, dict):
             rigidity = state.psyche.get("identity_rigidity", 0.5)
         elif hasattr(state.psyche, "identity_rigidity"):

@@ -5,6 +5,13 @@
 # 4. VRAM baseline устанавливается здесь (не в GameOrchestrator.__init__)
 # 5. Migrated from @app.on_event to lifespan (FastAPI best practice)
 
+import os
+import sys
+
+# Принудительно включаем UTF-8 для всего процесса бэкенда, чтобы не падать на символах типа ✓
+os.environ["PYTHONIOENCODING"] = "utf-8"
+os.environ["PYTHONUTF8"] = "1"
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -81,7 +88,7 @@ def _restart_llama_server() -> bool:
             "--host",
             "localhost",
             "-ngl",
-            str(settings.gpu_layers),
+            str(settings.effective_gpu_layers),
             "-c",
             str(settings.ctx_size),
             "-t",
@@ -296,7 +303,7 @@ async def lifespan(app: FastAPI):
                         "localhost",
                         "-ngl",
                         str(
-                            settings.gpu_layers
+                            settings.effective_gpu_layers
                         ),  # GPU offload — без этого 5.4ГБ грузится на CPU → таймаут
                         "-c",
                         str(settings.ctx_size),  # размер контекста
@@ -352,7 +359,7 @@ async def lifespan(app: FastAPI):
                                 await asyncio.sleep(2)
                         if _server_ready:
                             print(
-                                f"✓ llama-server запущен ({settings.llama_cpp_server_url}, GPU={settings.gpu_layers}, ctx={settings.ctx_size})"
+                                f"✓ llama-server запущен ({settings.llama_cpp_server_url}, GPU={settings.effective_gpu_layers}, ctx={settings.ctx_size})"
                             )
                             logger.info(
                                 f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})"

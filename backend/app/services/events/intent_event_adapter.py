@@ -32,10 +32,20 @@ class IntentEventAdapter:
             "shout": "public",
         }
 
+        # V8-SOC-2 FIX: Маппим интенты в каноничные EventType, чтобы социальная пропагация работала
+        _intent_val = getattr(intent, "intent_type", "")
+        _event_type = "npc_spoke"
+        if _intent_val == "attack":
+            _event_type = "actor_attacks"
+        elif _intent_val == "help":
+            _event_type = "help"
+        elif _intent_val in ("theft", "steal", "rob"):
+            _event_type = "theft"
+        elif _intent_val == "intimidate":
+            _event_type = "intimidation"
+
         return EventDTO.create(
-            event_type="actor_attacks"
-            if getattr(intent, "intent_type", "") == "attack"
-            else "npc_spoke",
+            event_type=_event_type,
             source=intent.speaker,
             payload={
                 "npc_id": intent.speaker,

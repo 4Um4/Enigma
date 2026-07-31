@@ -89,7 +89,7 @@ def run_sleep_test():
         "guard_borko": ("city_gate", "guard_bed"),
         "blacksmith_orm": ("city_gate", "tent_"),
         "merchant_goran": ("city_gate", "tent_"),
-        "thief_shadow": ("city_gate", "tent_"),
+        # thief_shadow спит днём (06:00-18:00), ночью он в tavern
         "maid_lusya": ("tavern", "kitchen_bed_"),
         "tavern_keeper_tornin": ("tavern", "kitchen_bed_")
     }

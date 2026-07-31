@@ -49,6 +49,8 @@ class EventBus:
         self._event_log: List[EventDTO] = []  # последние 100 событий для debug
         # P2 CFRM: Мост для деобъективации событий в возмущения поля
         self._cfrm_bridge: Optional[Callable[[EventDTO], None]] = None
+        # V8-DEC-11 FIX: Dead Letter Queue для событий, упавших после retry
+        self._dlq: List[EventDTO] = []
 
     # ── CFRM Buffer Control ───────────────────────────────────────────────
 
@@ -108,19 +110,34 @@ class EventBus:
         results: List[EventDTO] = []
         # S122 FIX: Нормализация ключа. subscribe использует .value (строку),
         # поэтому publish также обязан искать по строке, иначе обработчики не найдутся.
-        _evt_type = event.type.value if hasattr(event.type, "value") else str(event.type)
+        _evt_type = event.type if isinstance(event.type, str) else getattr(event.type, "value", str(event.type))
         handlers = self._handlers.get(_evt_type, [])
 
         for handler in handlers:
-            try:
-                result = handler(event)
-                if isinstance(result, EventDTO):
-                    results.append(result)
-            except Exception as e:
-                logger.error(
-                    f"[EVENT_BUS] Обработчик упал: {handler.__qualname__} → {e}",
-                    exc_info=True
-                )
+            # V8-DEC-11 FIX: Retry (1 attempt) + DLQ on final failure
+            _success = False
+            for _attempt in range(2):
+                try:
+                    result = handler(event)
+                    if isinstance(result, EventDTO):
+                        results.append(result)
+                    _success = True
+                    break
+                except Exception as e:
+                    if _attempt == 0:
+                        logger.warning(
+                            f"[EVENT_BUS] Обработчик упал (попытка 1/2): {handler.__qualname__} → {e}. Retrying..."
+                        )
+                    else:
+                        logger.error(
+                            f"[EVENT_BUS] Обработчик упал (попытка 2/2): {handler.__qualname__} → {e}. Sending to DLQ.",
+                            exc_info=True
+                        )
+            
+            if not _success:
+                self._dlq.append(event)
+                if len(self._dlq) > 100:  # Ограничиваем размер DLQ
+                    self._dlq.pop(0)
 
         # логируем для debug (последние 100)
         self._event_log.append(event)

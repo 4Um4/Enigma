@@ -157,6 +157,9 @@ class NpcTickPipeline:
             )
             _is_attack_target = npc_id == _attack_target
 
+            # V8-TICK-4 FIX: Инициализируем state_l2 до проверки слуха, чтобы избежать UnboundLocalError
+            state_l2 = load_l2_state_from_runtime_dict(npc) if npc_id else None
+
             if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
                 # P1-02: NPC не видит, но может слышать.
                 # Если NPC в радиусе слуха, он записывает обобщённое событие в память, но пропускает DecisionHub.
@@ -167,14 +170,15 @@ class NpcTickPipeline:
                 _dist_to_player = math.hypot(_npc_pos[0] - _player_pos[0], _npc_pos[1] - _player_pos[1])
                 _has_sound = sound_reach(15.0, state.scene_state) >= _dist_to_player
 
-                if _has_sound and state.hub_event:
+                if _has_sound and state.hub_event and state_l2 is not None:
+                    _p_target = state.player_target_id or "player"
                     try:
                         _mem_evt = apply_perception_memory(
                             None,
                             state_l2,
                             state.hub_event,
                             npc_id,
-                            state.player_target_id,
+                            _p_target,
                             "(обрывки разговора)", # Обобщённый текст для слуха
                             state.campaign_id,
                             spatial_query=state.spatial_query,
@@ -216,7 +220,7 @@ class NpcTickPipeline:
                 npc_dict_for_write=_npc_dict_for_write,
                 state_l2=state_l2,
                 action_type=state.action_type,
-                target_id=state.player_target_id,
+                target_id=state.player_target_id or "player",
                 current_tick=state.tick_id,
                 scene_continuity=state.scene_continuity,
                 scene_state=dict(state.scene_state),
@@ -272,7 +276,7 @@ class NpcTickPipeline:
                         state_l2,
                         state.hub_event,
                         npc_id,
-                        state.player_target_id,
+                        state.player_target_id or "player",
                         state.raw_input,
                         state.campaign_id,
                         spatial_query=state.spatial_query,
@@ -547,7 +551,7 @@ class NpcTickPipeline:
             if _intent_value not in {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "talk", "change_role"}:
                 if _is_move_command:
                     _intent_value = "approach"
-                    decision.intent_target = "player"
+                    decision.decision.intent_target = "player"
 
             _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "change_role"} # V8-SOC-8 FIX: убран "talk"
             # S-143 FIX: Sleep non-interruptible. Если NPC спит, блокируем реактивные движения.
@@ -599,11 +603,7 @@ class NpcTickPipeline:
                 from app.domain.communication import CommunicationIntent, ExposureLevel
 
                 _emotion_raw = getattr(state_l2, "emotion", "angry")
-                _attack_emotion = (
-                    _emotion_raw.value
-                    if hasattr(_emotion_raw, "value")
-                    else _emotion_raw
-                )
+                _attack_emotion = getattr(_emotion_raw, "value", _emotion_raw)
                 _attack_intent = CommunicationIntent(
                     speaker=npc_id,
                     audience=decision.intent_target or "player",
@@ -636,7 +636,7 @@ class NpcTickPipeline:
                         decision=decision,
                         npc_id=npc_id,
                         hub_event=_event_for_interp,
-                        player_target_id=state.player_target_id,
+                        player_target_id=state.player_target_id or "player",
                         player_text=state.raw_input,
                         scene_state=dict(state.scene_state),
                         campaign_id=state.campaign_id,

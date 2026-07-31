@@ -256,7 +256,8 @@ class MovementEngine:
                                     logger.debug(f"[BORKO_DIST] tick={tick} cur_xy=({_cur_x:.1f}, {_cur_y:.1f}) boundary_xy=({boundary_node.x:.1f}, {boundary_node.y:.1f}) dist={_dist_to_boundary:.2f}")
 
                             # S-145 FIX: Материализация если NPC стоит на boundary node ИЛИ очень близко к ней.
-                            if _dist_to_boundary < 1.5:
+                            _is_at_boundary = (_npc_pos_data.get("position", "") == boundary_node.node_id)
+                            if _is_at_boundary or _dist_to_boundary < 1.5:
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
 
@@ -268,6 +269,13 @@ class MovementEngine:
                                 # Ищем целевой узел в новой локации (строгий контракт, без случайных fallback'ов)
                                 _target_node_id_short = intent.target_node_id.split(":")[-1]
                                 target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(f"{target_loc}:{_target_node_id_short}")
+
+                                if not target_node_obj:
+                                    # V8-SP-16.3 FIX: Если целевой узел не найден, используем entry_node_hint (напр. exit_west)
+                                    _b_info = current_svc.get_boundary_info(boundary_node.node_id) or {}
+                                    _entry_hint = _b_info.get("entry_node_hint", "")
+                                    if _entry_hint:
+                                        target_node_obj = target_svc.get_node(_entry_hint.split(":")[-1]) or target_svc.get_node(_entry_hint)
 
                                 if not target_node_obj:
                                     # S-04: Topology Violation. Целевой узел отсутствует в новой локации.
@@ -709,16 +717,13 @@ class MovementEngine:
         # Берём первый шаг маршрута (следующий waypoint)
         next_node = path_nodes[1]
         
-        import zlib
-        _hash = zlib.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
-        _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5
-        _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
-        target_xy = (next_node.x + _offset_x, next_node.y + _offset_y)
+        # V8-SP-16.1 FIX: Убрано случайное смещение (_offset_x/_offset_y).
+        # Оно уводило NPC за стены (CLEARANCE_FAIL) при движении к boundary nodes.
+        target_xy = (next_node.x, next_node.y)
 
         _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
         if _dist < 0.1:
             # V8-SP-16 FIX: Обновляем node_id (position), чтобы A* продвигался по маршруту.
-            # Иначе micro_snap бесконечно снаппит local_position к next_node, не обновляя текущий узел.
             return [
                 SceneChange(
                     type=ChangeType.NPC_POSITION,

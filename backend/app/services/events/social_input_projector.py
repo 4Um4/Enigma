@@ -13,7 +13,7 @@ path: backend/app/services/events/social_input_projector.py
 
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from app.domain.events import EventDTO
 from app.models.delta_payloads import SocialPayload
@@ -52,9 +52,8 @@ class SocialInputProjector:
         ]:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
+    def _on_event(self, event: EventDTO) -> None:
         self._pending_events.append(event)
-        return None
 
     @property
     def name(self) -> str:
@@ -80,11 +79,39 @@ class SocialInputProjector:
             if event.type == EventType.NPC_SPOKE:
                 if _src:
                     deltas.append(self._mk_delta(_src, _INPUT_SPEAK))
-                for listener in payload.get("listener_ids", []):
-                    deltas.append(self._mk_delta(listener, _INPUT_LISTEN))
+                
+                # V8-SOC-7 FIX: Если listener_ids не заполнены, вычисляем слушателей через perception_filter
+                _listeners = payload.get("listener_ids", [])
+                if not _listeners and _src:
+                    from app.services.npc.perception_filter import filter_perceiving_npcs
+                    _all_npc_ids = [c["npc_id"] for c in ctx.all_npc_contexts]
+                    _sq = getattr(ctx.shared_context, "spatial_query", None)
+                    if _sq is not None:
+                        _listeners = filter_perceiving_npcs(
+                            npc_ids=_all_npc_ids,
+                            event=event,
+                            scene_state=ctx.shared_context.scene_state or {},
+                            spatial_query=_sq,
+                        )
+                
+                for listener in _listeners:
+                    if listener != _src:
+                        deltas.append(self._mk_delta(listener, _INPUT_LISTEN))
 
             elif event.type == EventType.PLAYER_SPOKE:
-                for listener in payload.get("listener_ids", []):
+                _listeners = payload.get("listener_ids", [])
+                if not _listeners:
+                    from app.services.npc.perception_filter import filter_perceiving_npcs
+                    _all_npc_ids = [c["npc_id"] for c in ctx.all_npc_contexts]
+                    _sq = getattr(ctx.shared_context, "spatial_query", None)
+                    if _sq is not None:
+                        _listeners = filter_perceiving_npcs(
+                            npc_ids=_all_npc_ids,
+                            event=event,
+                            scene_state=ctx.shared_context.scene_state or {},
+                            spatial_query=_sq,
+                        )
+                for listener in _listeners:
                     deltas.append(self._mk_delta(listener, _INPUT_LISTEN))
 
             elif event.type == EventType.NPC_PROXIMITY_CLOSE:

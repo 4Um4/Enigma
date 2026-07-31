@@ -19,11 +19,13 @@ class _SafeMemoryEncoder(json.JSONEncoder):
         if dataclasses.is_dataclass(o) and not isinstance(o, type):
             return dataclasses.asdict(o)
         # Pydantic v2
-        if hasattr(o, "model_dump"):
-            return o.model_dump()
+        _model_dump = getattr(o, "model_dump", None)
+        if callable(_model_dump):
+            return _model_dump()
         # Pydantic v1
-        if hasattr(o, "dict"):
-            return o.dict()
+        _dict_method = getattr(o, "dict", None)
+        if callable(_dict_method):
+            return _dict_method()
         # Множества (set) — конвертируем в список для сохранения структуры
         if isinstance(o, set):
             return list(o)
@@ -67,6 +69,27 @@ class JsonMemoryStore:
         for key in cache_keys:
             self._recent_cache.pop(key, None)
         return entry_id
+
+    def save_state(self, collection: str, payload: Dict[str, Any]) -> None:
+        """Перезаписывает файл состояния (не append). Для state-кэшей."""
+        path = self.root / f"{collection}.json"
+        try:
+            with path.open("w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, cls=_SafeMemoryEncoder)
+        except Exception as e:
+            logger.error(f"Failed to save state to {collection}: {e}")
+
+    def load_state(self, collection: str) -> Dict[str, Any]:
+        """Загружает файл состояния. Возвращает пустой dict если файла нет."""
+        path = self.root / f"{collection}.json"
+        if not path.exists():
+            return {}
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load state from {collection}: {e}")
+            return {}
 
     def recent(self, collection: str, limit: int = 25) -> List[Dict[str, Any]]:
         cache_key = (collection, limit)

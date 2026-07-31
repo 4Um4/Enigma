@@ -74,6 +74,11 @@ def _ensure_backend_running() -> subprocess.Popen:
     if sys.platform == 'win32':
         _creation_flags = 0x08000000  # CREATE_NO_WINDOW
         
+    # Фикс кодировки: заставляем subprocess использовать UTF-8, чтобы не падать на символах типа ✓
+    _env = os.environ.copy()
+    _env["PYTHONIOENCODING"] = "utf-8"
+    _env["PYTHONUTF8"] = "1"
+        
     proc = subprocess.Popen(
         [
             sys.executable,
@@ -89,6 +94,7 @@ def _ensure_backend_running() -> subprocess.Popen:
         stdout=_subprocess_log,
         stderr=_subprocess_log,
         creationflags=_creation_flags,
+        env=_env,
     )
 
     # Ждём готовности
@@ -108,8 +114,9 @@ def _launch_editor() -> None:
 
 def _init_menu_display():
     """Пересоздаёт поверхность и меню при старте и после выхода из подсистем"""
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption("Enigma")
+    from display_manager import create_window
+    screen = create_window()
+    pygame.display.set_caption("Bloodloom")
     clock = pygame.time.Clock()
     menu = GameMenu(screen, clock)
     return screen, clock, menu
@@ -142,6 +149,16 @@ def _kill_zombies():
 def main() -> None:
     """Главная функция — запускает backend, инициализирует pygame, запускает цикл меню"""
     print("\n=== Enigma Startup ===")
+    
+    # Дополнение А (п. А.4): Запуск GPU профайлера перед стартом бэкенда
+    try:
+        from app.core.gpu_probe import run_probe
+        _config_dir = Path(_ROOT) / "config"
+        _ngl = run_probe(_config_dir)
+        print(f"  [GPU_PROBE] Calculated GPU layers: {_ngl}")
+    except Exception as _gpu_err:
+        print(f"  [GPU_PROBE] Failed: {_gpu_err}")
+
     backend_proc = _ensure_backend_running()
     print("=== Pygame Init ===\n")
 
@@ -318,6 +335,10 @@ def main() -> None:
                 pass
     elif backend_proc is not None and backend_proc.poll() is None:
         backend_proc.terminate()
+
+    # Принудительно убиваем процесс игры, чтобы не было зомби (Фикс PyInstaller/Windows)
+    import os
+    os._exit(0)
 
     sys.exit(0)
 

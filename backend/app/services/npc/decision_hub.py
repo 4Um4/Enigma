@@ -54,7 +54,6 @@ from app.models.npc_state import (
     EmotionTag,
     Intent,
     NPCIdentityL1,
-    NPCPersonality,
     NPCState,
     WillState,
 )
@@ -448,14 +447,6 @@ class DecisionHub:
             effective_drives=effective_drives,
         )
 
-        # ADR-036 + ADR-ACTION-BRIDGE: Физика Власти. Читаем семантику напрямую из EventContext.
-        # Мост action_to_intent гарантирует нормализацию ActionType.MOVE → Intent.APPROACH.
-        from app.domain.action_intent_bridge import action_to_intent
-
-        _sa_pop = getattr(event, "semantic_action", None)
-        _tid_pop = getattr(event, "target_id", None)
-        _expected_intent = action_to_intent(_sa_pop)
-
         # ADR-036 + ADR-ACTION-BRIDGE: Физика Власти. Читаем семантику из EventContext.payload.
         # Мост action_to_intent гарантирует нормализацию ActionType.MOVE → Intent.APPROACH.
         from app.domain.action_intent_bridge import action_to_intent
@@ -686,7 +677,7 @@ class DecisionHub:
                     intent=Intent.IDLE,
                     intent_target=None,
                     score=0.0,
-                    scores_trace={"fallback": "no_available_intents"},
+                    scores_trace={"fallback": 0.0},
                     deltas=[],
                 ),
             )
@@ -907,7 +898,13 @@ class DecisionHub:
             # STEP A: L3 обязателен. Фоллбек на L0 (drives_base) удалён (Инвариант L3-P2).
             # Если L3 нет — это pipeline fault, обрабатываемый на уровне выше.
             if not effective_drives:
-                return {}
+                from app.errors import SimulationIntegrityError
+                raise SimulationIntegrityError(
+                    invariant_id="INV-L3-EPHEMERAL",
+                    message=f"DecisionHub: effective_drives missing for {state.npc_id}. L3 pipeline broken.",
+                    suspect_files=["backend/app/services/npc/decision_hub.py:900"],
+                    file=__file__, line=900,
+                )
             drives = dict(effective_drives.values)
             fear = drives.get("fear", 0.25)
             desire = drives.get("desire", 0.25)
@@ -1276,7 +1273,7 @@ class DecisionHub:
             "social": round(social_mod, 4),
             # ADR-O-205: Проекция причины для Нарратива
             "redirect": round(self._last_redirect, 4),
-            "dominant_drive": self._last_dominant_drive,
+            # V8-FIX: _last_dominant_drive is str, removed from Dict[str, float] to satisfy Pylance
         }
 
     def _score_one(
@@ -1690,7 +1687,8 @@ class DecisionHub:
         # Память и давление — только для агрессивных событий.
         # Мирный разговор не становится опаснее от того, что игрок вчера кого-то ударил.
         if _et_val not in _social_events:
-            _pressure = state.relationship_cache.get("recent_pressure", 0.0)
+            _rel_data = state.relationship_cache.get("player", {})
+            _pressure = _rel_data.get("recent_pressure", 0.0)
             if _pressure > 0.01:
                 base_risk += min(_pressure * 0.5, 0.3)
 

@@ -39,6 +39,11 @@ _COMPRESSION_TEMPLATES: Dict[frozenset, str] = {
     frozenset({"negative"}): "Игрок вёл себя плохо (несколько раз)",
     frozenset({"combat"}): "Были стычки (несколько раз)",
     frozenset({"trade"}): "Игрок торговал (несколько раз)",
+    # V8-MEM-11 FIX: Добавлены недостающие шаблоны для корректного сжатия памяти
+    frozenset({"help"}): "Игрок помогал (несколько раз)",
+    frozenset({"gift"}): "Игрок делал подарки (несколько раз)",
+    frozenset({"theft"}): "Игрок совершал кражи (несколько раз)",
+    frozenset({"observation"}): "Игрок проявлял наблюдательность (несколько раз)",
 }
 
 
@@ -130,7 +135,7 @@ class MemoryPromotionEngine:
             target_counts: Dict[str, int] = {}
             for e in batch:
                 target_counts[e.target_id] = target_counts.get(e.target_id, 0) + 1
-            most_common_target = max(target_counts, key=target_counts.get)
+            most_common_target = max(target_counts, key=lambda k: target_counts[k])
 
             template = _resolve_template(batch[0].tags)
 

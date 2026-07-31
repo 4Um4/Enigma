@@ -217,6 +217,10 @@ class SpatialRegistry:
         """Все чанки мира."""
         return list(self._chunks)
 
+    def get_all_location_ids(self) -> List[str]:
+        """Дополнение Б (п. Б.7.2): Возвращает ID всех локаций в кампании."""
+        return list(self._chunks_by_id.keys())
+
     def get_bounds(self, location_id: str) -> Optional[tuple]:
         """(origin_x, origin_y, origin_x+width, origin_y+height) для чанка."""
         chunk = self._chunks_by_id.get(location_id)

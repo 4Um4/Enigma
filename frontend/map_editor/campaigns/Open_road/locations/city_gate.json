@@ -3,8 +3,8 @@
   "location_id": "city_gate",
   "label": "Городские ворота",
   "origin": {
-    "x": 19.91666666666666,
-    "y": 0.041666666666666664
+    "x": 20.0,
+    "y": 0.0
   },
   "size": {
     "w": 30,
@@ -2004,7 +2004,7 @@
   "labels": [],
   "nodes": {
     "gate_road": {
-      "x": 16.450000000000003,
+      "x": 21.5,
       "y": 9.25,
       "label": "Тракт",
       "connections": [
@@ -2090,7 +2090,6 @@
       "connections": [
         "tent_2",
         "tent_6",
-        "kitchen_bed_1",
         "entrance"
       ]
     },

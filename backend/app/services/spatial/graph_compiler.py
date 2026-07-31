@@ -42,11 +42,21 @@ _ROLE_LEGACY_ALIASES: Dict[NodeRole, Set[str]] = {
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 
+from typing import Any, Dict, List, Set, Tuple
 def compile_graph(
     editor_data: Dict[str, Any],
     location_id: str,
     level: Optional[str] = None,
-) -> Tuple[Dict[str, NodeRef], Dict[str, str]]:
+) -> Tuple[
+    Dict[str, NodeRef],
+    Dict[str, Set[str]],
+    Dict[str, str],
+    Dict[str, Dict[str, Any]],
+    Dict[str, List[Tuple[float, float]]],
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+]:
     """Компилирует editor JSON в runtime graph + alias_map.
 
     Аргументы:
@@ -63,7 +73,7 @@ def compile_graph(
         logger.error(
             f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф."
         )
-        return {}, {}, {}, {}
+        return {}, {}, {}, {}, {}, [], [], []
 
     graph: Dict[str, NodeRef] = {}
     connections: Dict[str, Set[str]] = {}
@@ -74,7 +84,7 @@ def compile_graph(
     # "rooms" (list) — физические контейнеры (bounding boxes для LOS/коллизий)
     # Оба слоя существуют одновременно и компилируются параллельно.
     # Ни один слой не деградирует при наличии другого.
-    nodes_raw = editor_data.get("nodes")
+    nodes_raw = editor_data.get("nodes") or {}
     rooms_raw = editor_data.get("rooms")
     _has_nav = isinstance(nodes_raw, dict) and bool(nodes_raw)
     _has_rooms = isinstance(rooms_raw, (list, dict)) and bool(rooms_raw)
@@ -170,7 +180,7 @@ def compile_graph(
 
     if not _has_nav and not rooms:
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
-        return {}, {}, {}, {}
+        return {}, {}, {}, {}, {}, [], [], []
 
     # ── Извлечение физической геометрии (ETKE-IK v1) ─────────────
     # Геометрия комнат нужна WorldTopologyProvider для вычисления AffordanceVector.
@@ -322,8 +332,10 @@ def compile_graph(
             passages = _infer_connections_from_adjacency(rooms)
 
         for passage in passages:
-            from_legacy = passage.get("from")
-            to_legacy = passage.get("to")
+            from_legacy = passage.get("from") or ""
+            to_legacy = passage.get("to") or ""
+            if not from_legacy or not to_legacy:
+                continue
             from_canonical = alias_map.get(from_legacy, f"{location_id}:{from_legacy}")
             to_canonical = alias_map.get(to_legacy, f"{location_id}:{to_legacy}")
             if from_canonical in graph and to_canonical in graph:
@@ -861,7 +873,15 @@ def _create_boundary_nodes(
         if not isinstance(neighbor_loc_id, str):
             continue
 
-        _bx, _by = _DIR_TO_XY.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
+        # V8-SP-15 FIX: Смещаем anchor на 1 метр внутрь локации.
+        # Иначе boundary node оказывается за стеной (снаружи), и валидатор блокирует пути к нему.
+        _DIR_OFFSETS = {
+            "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
+            "west":  (_ox + 1.0,      _oy + _h / 2.0),
+            "north": (_ox + _w / 2.0, _oy + _h - 1.0),
+            "south": (_ox + _w / 2.0, _oy + 1.0),
+        }
+        _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
 
         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
         _nearest_node = None
@@ -881,12 +901,16 @@ def _create_boundary_nodes(
             continue
 
         boundary_id = f"{location_id}:exit_{direction}"
-        # S137.2: Boundary node получает координаты ближайшего навигонного узла,
-        # а не стены. Это гарантирует, что он внутри локации и физически достижим.
+        # V8-SP-15 FIX: Если в JSON уже есть узел exit_east, используем его координаты.
+        # Иначе используем anchor границы.
+        _existing_node = graph.get(boundary_id)
+        _final_x = _existing_node.x if _existing_node else _bx
+        _final_y = _existing_node.y if _existing_node else _by
+
         boundary_node = NodeRef(
             node_id=boundary_id,
-            x=_nearest_node.x,
-            y=_nearest_node.y,
+            x=_final_x,
+            y=_final_y,
             role=NodeRole.BOUNDARY,
             tags=["boundary:exit"],
             zone_id=location_id,

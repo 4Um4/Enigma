@@ -1,16 +1,20 @@
-from __future__ import annotations
+"""
+backend/app/services/game_loop/__init__.py
 
-# backend/app/services/game_loop/__init__.py
-#
-# Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
-#
-# Раньше: orchestrator.run_turn() и stream_turn() — ~400 строк дублирования.
-# Теперь: один _pipeline() содержит общую логику.
-#         run_turn()    — ждёт DM целиком, возвращает ChatTurnResponse.
-#         stream_turn() — стримит DM токены через SSE.
-#
-# GameLoop не знает про FastAPI, HTTP, SSE-формат.
-# Он только вызывает processor + engines + agents + memory.
+Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
+
+Раньше: orchestrator.run_turn() и stream_turn() — ~400 строк дублирования.
+Теперь: один _pipeline() содержит общую логику.
+        run_turn()    — ждёт DM целиком, возвращает ChatTurnResponse.
+        stream_turn() — стримит DM токены через SSE.
+
+GameLoop не знает про FastAPI, HTTP, SSE-формат.
+Он только вызывает processor + engines + agents + memory.
+"""
+
+
+
+from __future__ import annotations
 import asyncio
 import logging
 import threading
@@ -689,11 +693,15 @@ class GameLoop:
                         not _live_body
                     ):  # None или {} — новый аватар без сохранённой физиологии
                         _live_body = dict(BODY_STATE_HEALTHY)
+                    
+                    # V8-WL-3 FIX: fear и willpower лежат внутри psyche dict, а не в корне NPCState
+                    _avatar_psyche = getattr(_avatar_state, "psyche", {})
                     _live_psyche = {
                         "stress": getattr(_avatar_state, "stress", 0.0),
-                        "fear": getattr(_avatar_state, "fear", 0.0),
-                        "willpower": getattr(_avatar_state, "willpower", 1.0),
+                        "fear": _avatar_psyche.get("fear", 0.5),
+                        "willpower": _avatar_psyche.get("willpower", 50.0),
                         "emotion": getattr(_avatar_state, "emotion", "NEUTRAL"),
+                        "identity_rigidity": _avatar_psyche.get("identity_rigidity", 0.5),
                     }
 
                     player_dict = {
@@ -850,92 +858,95 @@ class GameLoop:
 
         # Шаг 1: Подготовка — гарантируем что сцена существует (стены, NPC, время)
         from app.services.game_loop.scene_init import ensure_scene_initialized
-
-        _prepped_scene = ensure_scene_initialized(self, campaign_id)
-
-        # Шаг 2: location_id из подготовленной сцены (SSOT), избегаем split-brain с metadata
         from app.core.constants import DEFAULT_LOCATION_ID
 
-        _loc_id = _prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID
-        if not _loc_id:
-            _loc_id = DEFAULT_LOCATION_ID
+        _prepped_scene = ensure_scene_initialized(self, campaign_id)
+        _active_loc = _prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID
+        if not _active_loc:
+            _active_loc = DEFAULT_LOCATION_ID
 
-        logger.debug(f"[DIAG_IDLE_TICK] step_2 loc_id={_loc_id} prepped_scene_keys={list(_prepped_scene.keys()) if _prepped_scene else 'None'}")
-
-        # Шаг 3: LOCK — единственный источник truth для этого тика
-        _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
-        if _scene is None:
-            logger.debug("[DIAG_IDLE_TICK] step_3 _scene is None! Return no_scene.")
-            return {"status": "no_scene", "npc_positions": {}}
-        logger.debug(f"[DIAG_IDLE_TICK] step_3 _scene locked. tick={_scene.get('tick')} game_time={_scene.get('game_time_seconds')}")
-
-        # Шаг 4: Монотонный каузальный тик
-        _scene["tick"] = _scene.get("tick", 0) + 1
-        _scene["game_time_seconds"] = _scene.get("game_time_seconds", 0) + 60.0
-        # H-01 FIX: Сохраняем симуляционный тик для NpcDialogueSubscriber (L1Chronicle contract)
-        self._current_tick = _scene["tick"]
-
-        # S83: Tick Coherence — idle_tick тоже использует Spatial Oracle.
-        _loc_id = _scene.get("location_id", "")
+        # Дополнение Б: Получаем список всех локаций для глобального тика
+        _location_ids = [_active_loc]
         try:
-            from app.services.campaign_state_service import get_campaign_state_service
-
-            _campaign_svc = get_campaign_state_service()
-            _cs = (
-                _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
-            )
-            if _cs:
-                _saved_wx = _cs.metadata.get("player_world_x")
-                _saved_wy = _cs.metadata.get("player_world_y")
-                # (0,0) — валидная координата. Проверяем is not None (запрет #311).
-                if _saved_wx is not None and _saved_wy is not None:
-                    from app.services.spatial.spatial_registry import SpatialRegistry
-
-                    _registry = SpatialRegistry.get_or_load(campaign_id)
-                    if _registry is not None:
-                        _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
-                        if _actual_chunks:
-                            _oracle_loc = _actual_chunks[0].location_id
-                            if _oracle_loc != _loc_id:
-                                logger.info(
-                                    f"[SPATIAL_ORACLE_IDLE] location_id corrected: "
-                                    f"{_loc_id} → {_oracle_loc} "
-                                    f"(world=({_saved_wx:.1f}, {_saved_wy:.1f}))"
-                                )
-                                _loc_id = _oracle_loc
-                                _scene["location_id"] = _oracle_loc
+            from app.services.spatial.spatial_registry import SpatialRegistry
+            _registry = SpatialRegistry.get_or_load(campaign_id)
+            if _registry:
+                _all_locs = _registry.get_all_location_ids()
+                if _all_locs:
+                    _location_ids = _all_locs
         except Exception as e:
-            logger.warning(
-                f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed, using saved location: {e}"
+            logger.warning(f"[IDLE_TICK] Failed to get all locations: {e}")
+
+        # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
+        self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
+        
+        # Шаг 3: Глобальный цикл тика (Дополнение Б, п. Б.7.1)
+        result: Optional[TickResultDTO] = None
+        for _loc_id in _location_ids:
+            _scene = self.scene_manager.get_scene_state(campaign_id, _loc_id)
+            if _scene is None:
+                continue
+                
+            # Монотонный каузальный тик для каждой локации
+            _scene["tick"] = _scene.get("tick", 0) + 1
+            _scene["game_time_seconds"] = _scene.get("game_time_seconds", 0) + 60.0
+            self._current_tick = _scene["tick"]
+
+            # Spatial Oracle корректирует локацию только для активной сцены
+            if _loc_id == _active_loc:
+                try:
+                    from app.services.campaign_state_service import get_campaign_state_service
+                    _campaign_svc = get_campaign_state_service()
+                    _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
+                    if _cs:
+                        _saved_wx = _cs.metadata.get("player_world_x")
+                        _saved_wy = _cs.metadata.get("player_world_y")
+                        if _saved_wx is not None and _saved_wy is not None:
+                            from app.services.spatial.spatial_registry import SpatialRegistry
+                            _registry = SpatialRegistry.get_or_load(campaign_id)
+                            if _registry is not None:
+                                _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
+                                if _actual_chunks:
+                                    _oracle_loc = _actual_chunks[0].location_id
+                                    if _oracle_loc != _loc_id:
+                                        logger.info(f"[SPATIAL_ORACLE_IDLE] location_id corrected: {_loc_id} → {_oracle_loc}")
+                                        _loc_id = _oracle_loc
+                                        _scene["location_id"] = _oracle_loc
+                except Exception as e:
+                    logger.warning(f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed: {e}")
+
+            # ADR-048: GameLoop собирает SpatialService для текущей локации
+            _spatial_svc = None
+            if _loc_id:
+                from app.services.spatial.spatial_factory import SpatialFactory
+                try:
+                    _spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene)
+                    from app.services.spatial.spatial_query_service import SpatialQueryService
+                    self._current_spatial_query = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
+                except Exception as e:
+                    logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
+                    self._current_spatial_query = None
+
+            _tick_result = self._tick_orch.execute(
+                campaign_id=campaign_id,
+                scene_state=_scene,
+                tick_number=_scene["tick"],
+                spatial_service=_spatial_svc,
+                shared_context=getattr(self, "_idle_shared_context", None),
+                active_location_id=_active_loc,
+                location_ids=_location_ids,
             )
+            
+            # Коммитим результат тика для каждой локации
+            if _tick_result.final_scene_state is not None:
+                self.scene_manager.commit_tick_result(campaign_id, _tick_result.final_scene_state)
+                
+            # Сохраняем результат активной локации для UI (перцепция, нарратив)
+            if _loc_id == _active_loc or _scene.get("location_id") == _active_loc:
+                result = _tick_result
 
-        # ADR-048: GameLoop собирает SpatialService и инжектит в TickOrchestrator.
-        _spatial_svc = None
-        if _loc_id:
-            from app.services.spatial.spatial_factory import SpatialFactory
-
-            try:
-                _spatial_svc = SpatialFactory.build_for_campaign(
-                    campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
-                )
-                from app.services.spatial.spatial_query_service import SpatialQueryService
-                self._current_spatial_query = SpatialQueryService(
-                    npc_positions=_scene.get("npc_positions", {}),
-                    scene_state=_scene,
-                )
-            except Exception as e:
-                logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
-                self._current_spatial_query = None
-
-        result: TickResultDTO = self._tick_orch.execute(
-            campaign_id=campaign_id,
-            scene_state=_scene,
-            tick_number=_scene["tick"],  # Авторитетный источник тика
-            spatial_service=_spatial_svc,  # ИНЪЕКЦИЯ
-            shared_context=getattr(
-                self, "_idle_shared_context", None
-            ),  # S116 FIX: Проброс shared_context для idle tick
-        )
+        if result is None:
+            return {"status": "no_scene", "npc_positions": {}}
 
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
         # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
@@ -951,16 +962,12 @@ class GameLoop:
                 result = dataclasses.replace(result, world_snapshot=_new_ws)
 
         # S83.1 FIX: Ядро больше не вызывает commit_tick_result.
-        # Обновляем _tick_scene явно, до materialization и unlock.
-        # ВАЖНО: Ядро работает с deepcopy (create_tick_context), поэтому
-        # мы должны коммитить result.final_scene_state, а не устаревший _scene.
-        _scene_to_commit = result.final_scene_state or _scene
-        if self.scene_manager and self.scene_manager._tick_campaign_id == campaign_id:
-            self.scene_manager.commit_tick_result(campaign_id, _scene_to_commit)
-
-        # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
+        # Дополнение Б: Мы уже закоммитили результат внутри цикла.
+        # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scenes),
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
-        _auth_scene = self.scene_manager._tick_scene if self.scene_manager else None
+        _auth_scene = self.scene_manager._tick_scenes.get(_active_loc) if self.scene_manager else None
+        if _auth_scene is None:
+            _auth_scene = result.final_scene_state or _scene
         _trav_after = (
             list(_auth_scene.get("active_traversals", {}).keys())
             if _auth_scene
@@ -1192,8 +1199,14 @@ class GameLoop:
         # TASK 1: Force Merge — строим world_snapshot из актуального scene_state (ADR-0014)
         _ws_dict = None
         _npc_pos_dict = None
-        # ADR-TZ09-2: Используем _tick_scene (обновлённое ядром), а не устаревший shared_context.scene_state
-        _scene = self.scene_manager._tick_scene if self.scene_manager else None
+        # ADR-TZ09-2: Используем _tick_scenes (обновлённое ядром), а не устаревший shared_context.scene_state
+        _scene = None
+        if self.scene_manager and hasattr(self.scene_manager, "_tick_scenes"):
+            _loc = getattr(state.shared_context, "location_id", None)
+            if _loc and _loc in self.scene_manager._tick_scenes:
+                _scene = self.scene_manager._tick_scenes[_loc]
+            elif self.scene_manager._tick_scenes:
+                _scene = next(iter(self.scene_manager._tick_scenes.values()), None)
         if _scene is None and hasattr(state, "shared_context") and state.shared_context:
             _scene = state.shared_context.scene_state
         if _scene:
@@ -1704,8 +1717,8 @@ class GameLoop:
                 _resolver = ActionSemanticResolver(self.mvp_controller.truth_state)
                 _action = _resolver.resolve(
                     raw_text=_raw_action,
-                    tick=shared_context.tick,
-                    target_id=getattr(shared_context, "player_target_id", None)
+                    tick=shared_context.current_tick,
+                    target_id=shared_context.player_target_id
                 )
                 self.mvp_controller.action_compiler.process_action(_action)
 
@@ -2024,6 +2037,18 @@ class GameLoop:
         # ADR-O-146: AdventureLoader удалён. Файлов world_lore/npc.json/locations.json не существует.
         loaded: dict = {"status": "not_found", "files": {}}
         self._campaign_world_index[campaign_id] = world_id
+        
+        # Дополнение Б (п. Б.12): Детектор старых сейвов
+        try:
+            from app.services.state.save_format_detector import detect_legacy_saves
+            _legacy_campaigns = detect_legacy_saves(self.saves_dir)
+            if campaign_id in _legacy_campaigns:
+                logger.warning(f"[SAVE_MIGRATION] Обнаружен сейв старого формата для кампании '{campaign_id}'. Удаление...")
+                _old_save_file = self.saves_dir / campaign_id / "campaign_state.json"
+                if _old_save_file.exists():
+                    _old_save_file.unlink()
+        except Exception as _migr_err:
+            logger.error(f"[SAVE_MIGRATION] Ошибка при удалении старого сейва: {_migr_err}")
         for filename, payload in loaded.get("files", {}).items():
             self.memory_manager.persist_world_canon(
                 world_id,

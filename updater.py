@@ -120,7 +120,16 @@ def main():
             _creation_flags = 0x08000000 # CREATE_NO_WINDOW
             
         try:
-            subprocess.Popen([python_exe, launcher_path], creationflags=_creation_flags)
+            _env = os.environ.copy()
+            _env["PYTHONIOENCODING"] = "utf-8"
+            _env["PYTHONUTF8"] = "1"
+            
+            # Запускаем Splash Screen в фоне (если он существует)
+            splash_exe = os.path.join(app_dir, "Bloodloom_splash.exe")
+            if os.path.exists(splash_exe):
+                subprocess.Popen([splash_exe])
+                
+            subprocess.Popen([python_exe, launcher_path], creationflags=_creation_flags, env=_env)
         except Exception as e:
             with open(os.path.join(app_dir, "launch_error.log"), "w", encoding="utf-8") as f:
                 f.write(f"Не удалось запустить python.exe. Ошибка: {e}\n")
@@ -138,3 +147,7 @@ if __name__ == "__main__":
         app_dir = get_app_dir()
         with open(os.path.join(app_dir, "updater_crash.log"), "w", encoding="utf-8") as f:
             f.write(traceback.format_exc())
+    finally:
+        # Принудительно убиваем процесс обновлятора, чтобы не было зомби
+        import os
+        os._exit(0)

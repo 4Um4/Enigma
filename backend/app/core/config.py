@@ -6,13 +6,20 @@
 # Параметры из Before.md: Temp 0.9 + Min-P 0.1 + Repeat-Penalty 1.12
 # Запуск сервера: llama-server.exe -m ... --flash-attn -ngl 99 -c 8192
 
+import sys
 from pathlib import Path
 from typing import Dict, Optional
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parents[3]
+# Железобетонное определение BASE_DIR независимо от того, откуда запущен Python
+if getattr(sys, 'frozen', False):
+    # Если запущено как скомпилированный exe (на будущее)
+    BASE_DIR = Path(sys.executable).resolve().parent
+else:
+    # Если запущено как скрипт (вычисляем на 3 уровня вверх от config.py)
+    BASE_DIR = Path(__file__).resolve().parents[3]
 
 
 class ModelConfig(BaseSettings):
@@ -35,7 +42,7 @@ class Settings(BaseSettings):
     app_name: str = "Enigma — Dark Fantasy RPG"
     default_model: str = "qwen_7b"
     world_tick_minutes: int = 15
-    data_dir: str = str(BASE_DIR / "backend" / "data")
+    data_dir: str = str((BASE_DIR / "backend" / "data").resolve())
     saves_dir: str = str(BASE_DIR / "saves")
     min_cpu_physical_cores: int = 4
     min_ram_gb: int = 12
@@ -71,6 +78,23 @@ class Settings(BaseSettings):
     user_settings_path: Path = BASE_DIR / "config" / "user_settings.yaml"
 
     @property
+    def effective_gpu_layers(self) -> int:
+        """Динамически вычисляет ngl из gpu_profile.json (Дополнение А, п. А.4)."""
+        if not hasattr(self, "_gpu_layers_cache") or self._gpu_layers_cache is None:
+            import json
+            _profile_path = BASE_DIR / "config" / "gpu_profile.json"
+            if _profile_path.exists():
+                try:
+                    with open(_profile_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        self._gpu_layers_cache = data.get("n_gpu_layers", self.gpu_layers)
+                except Exception:
+                    self._gpu_layers_cache = self.gpu_layers
+            else:
+                self._gpu_layers_cache = self.gpu_layers
+        return self._gpu_layers_cache
+
+    @property
     def content_policy(self) -> "ContentPolicy":
         """Кэшированная политика контента. Загружается при первом обращении."""
         if not hasattr(self, "_content_policy_cache") or self._content_policy_cache is None:
@@ -95,7 +119,7 @@ class Settings(BaseSettings):
     # ОС + CUDA:         ~500 MB
     # Буфер:             ~1092 MB
     # ИТОГО:             ~7192 MB (88% VRAM)
-    gpu_layers: int = 99  # 99 > 28 → все слои на GPU
+    gpu_layers: int = 99  # Fallback по умолчанию, если профиль не найден
     threads: int = 8
     ctx_size: int = 8192
 

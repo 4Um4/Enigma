@@ -14,13 +14,14 @@ from typing import Any, Dict, List, Optional
 
 class PersistencePort(ABC):
     """
-    Порт сохранения состояния.
+    Порт сохранения состояния мира.
 
     Реализации:
     - JsonPersistenceAdapter — JSON файлы (текущий MVP)
     - (будущее) SqlitePersistenceAdapter — SQLite для Iron-Man режима
     """
 
+    # СТАРЫЙ API (deprecate, оставить как shim для перехода)
     @abstractmethod
     def save_scene(self, campaign_id: str, scene_state: Dict[str, Any]) -> None:
         """Сохраняет состояние сцены в campaign_state.json."""
@@ -29,6 +30,22 @@ class PersistencePort(ABC):
     @abstractmethod
     def load_scene(self, campaign_id: str) -> Dict[str, Any] | None:
         """Загружает состояние сцены. None если нет сохранения."""
+        ...
+
+    # НОВЫЙ API — multi-scene (Дополнение Б, п. Б.5.1)
+    @abstractmethod
+    def save_scene_at(self, campaign_id: str, location_id: str, scene_state: Dict[str, Any]) -> None:
+        """Сохраняет состояние конкретной локации."""
+        ...
+
+    @abstractmethod
+    def load_scene_at(self, campaign_id: str, location_id: str) -> Dict[str, Any] | None:
+        """Загружает состояние конкретной локации. None если нет сохранения."""
+        ...
+
+    @abstractmethod
+    def load_all_scenes(self, campaign_id: str) -> Dict[str, Dict[str, Any]]:
+        """Загружает все локации кампании. Возвращает dict: location_id -> scene_state."""
         ...
 
     @abstractmethod
