@@ -3,7 +3,7 @@ ENIGMA Drift Laboratory — Каузальная стресс-машина (ADR-
 
 Запуск:
   cd backend
-  python -m tests.sandbox.SUPERBOX.run drift mass_traversal
+  python -m tests.sandbox.SUPERBOX.run drift mass_traversal; cd ..
   python -m tests.sandbox.SUPERBOX.run drift save_load_storm
   python -m tests.sandbox.SUPERBOX.run drift chunk_migration
   python -m tests.sandbox.SUPERBOX.run drift long_horizon

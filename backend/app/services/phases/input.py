@@ -100,7 +100,10 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
     # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
     from app.services.will import compute_willpower, resolve_intent_pressure
 
-    pressure = ctx.player_pressure or resolve_intent_pressure(intent)
+    # V8-WL-6 FIX: Вычисляем pressure один раз и сохраняем в ctx как SSOT
+    if not ctx.player_pressure:
+        ctx.player_pressure = resolve_intent_pressure(intent)
+    pressure = ctx.player_pressure
     psyche = player_dict.get("psyche", {})
 
     # 2. Affect Resonance Scan (Искажение интерпретации реальности)

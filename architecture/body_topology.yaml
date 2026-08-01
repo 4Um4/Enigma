@@ -1,0 +1,152 @@
+meta:
+  version: "1.2"
+  description: |
+    Физическая модель топологии тела для инвентаря (D&D 5e Encumbrance + Bulk System).
+  owner: "BodyTopologyService"
+
+human_body_topology:
+  hands:
+    - slot_id: "right_hand"
+      body_part: "hand_right"
+      slot_type: "hand"
+      accessibility: 1.0
+      visibility: 1.0
+      capacity: 1
+      max_bulk: 5
+    - slot_id: "left_hand"
+      body_part: "hand_left"
+      slot_type: "hand"
+      accessibility: 1.0
+      visibility: 1.0
+      capacity: 1
+      max_bulk: 5
+
+  belt:
+    - slot_id: "belt_sheath"
+      body_part: "waist_left"
+      slot_type: "belt"
+      accessibility: 0.9
+      visibility: 0.9
+      capacity: 1
+      item_type_restriction: "weapon"
+      max_bulk: 3
+    - slot_id: "belt_pouch"
+      body_part: "waist_right"
+      slot_type: "belt"
+      accessibility: 0.95
+      visibility: 0.8
+      capacity: 20
+      item_type_restriction: "small"
+      max_bulk: 4
+    - slot_id: "belt_potion"
+      body_part: "waist_front"
+      slot_type: "belt"
+      accessibility: 0.85
+      visibility: 0.7
+      capacity: 3
+      item_type_restriction: "potion"
+      max_bulk: 2
+
+  pockets:
+    - slot_id: "pocket_left"
+      body_part: "thigh_left"
+      slot_type: "pocket"
+      accessibility: 0.7
+      visibility: 0.2
+      requires_inspection: true
+      capacity: 5
+      item_type_restriction: "small"
+      max_bulk: 2
+    - slot_id: "pocket_right"
+      body_part: "thigh_right"
+      slot_type: "pocket"
+      accessibility: 0.7
+      visibility: 0.2
+      requires_inspection: true
+      capacity: 5
+      item_type_restriction: "small"
+      max_bulk: 2
+    - slot_id: "pocket_inner"
+      body_part: "torso_inner"
+      slot_type: "pocket"
+      accessibility: 0.4
+      visibility: 0.0
+      requires_inspection: true
+      is_locked: true
+      lock_difficulty: 10
+      capacity: 2
+      max_bulk: 2
+
+  backpack:
+    - slot_id: "backpack_main"
+      body_part: "back"
+      slot_type: "backpack"
+      accessibility: 0.5
+      visibility: 0.6
+      capacity: 40
+      max_bulk: 20
+    - slot_id: "backpack_side"
+      body_part: "back_side"
+      slot_type: "backpack"
+      accessibility: 0.8
+      visibility: 0.7
+      capacity: 10
+      max_bulk: 5
+
+  worn:
+    - slot_id: "worn_torso"
+      body_part: "torso"
+      slot_type: "worn"
+      capacity: 1
+      item_type_restriction: "armor_torso"
+      max_bulk: 10
+    - slot_id: "worn_legs"
+      body_part: "legs"
+      slot_type: "worn"
+      capacity: 1
+      max_bulk: 5
+    - slot_id: "worn_feet"
+      body_part: "feet"
+      slot_type: "worn"
+      capacity: 1
+      max_bulk: 2
+    - slot_id: "worn_cloak"
+      body_part: "back_over"
+      slot_type: "worn"
+      capacity: 1
+      max_bulk: 3
+      concealment: 0.6
+
+  hidden:
+    - slot_id: "hidden_boot"
+      body_part: "boot_left_inner"
+      slot_type: "hidden"
+      accessibility: 0.3
+      visibility: 0.0
+      requires_inspection: true
+      is_locked: true
+      lock_difficulty: 15
+      capacity: 1
+      max_bulk: 1
+    - slot_id: "hidden_lining"
+      body_part: "cloak_lining"
+      slot_type: "hidden"
+      accessibility: 0.2
+      visibility: 0.0
+      requires_inspection: true
+      is_locked: true
+      lock_difficulty: 20
+      capacity: 2
+      max_bulk: 1
+
+# Правила Encumbrance (D&D 5e Variant + Bulk)
+encumbrance_rules:
+  # Стандартный множитель: 15 фунтов на очко STR
+  carry_capacity_per_str: 15
+  # Порог легкой нагрузки (Variant Encumbrance): 5 фунтов на очко STR
+  light_load_threshold: 5
+  # Порог средней нагрузки: 10 фунтов на очко STR
+  medium_load_threshold: 10
+  # Штрафы
+  encumbered_speed_penalty: 10 # футов
+  heavily_encumbered_speed_penalty: 20 # футов

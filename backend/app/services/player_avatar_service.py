@@ -292,6 +292,14 @@ class PlayerAvatarService:
             # Без affective_load/emotion/perceptual_kernel аватар
             # сбрасывается в NEUTRAL при каждой загрузке.
             "affective_load": state.affective_load,
+            # V8-WL-9 FIX: Персистируем FSM state (break-progress + drives)
+            "recent_failures": list(state.recent_failures),
+            "life_project": state.life_project,
+            "life_project_state": state.life_project_state,
+            "social_input_ema": dict(state.social_input_ema),
+            "temporary_drives": dict(state.temporary_drives),
+            "drives_runtime": dict(state.drives_runtime),
+            "strain_memory": dict(state.strain_memory),
             "perceptual_kernel": {
                 k: v for k, v in state.perceptual_kernel.__dict__.items()
             }
@@ -348,9 +356,9 @@ class PlayerAvatarService:
             dependency=float(data.get("dependency", 0.0)),
             identity_integrity=float(data.get("identity_integrity", 1.0)),
             pressure_resistance=float(data.get("pressure_resistance", 0.0)),
-            will_state=WillState(data.get("will_state", "free")),
+            will_state=_will_state_from_str(data.get("will_state", "free")),
             behavior_mask=mask,
-            trauma_markers=set(data.get("trauma_markers", [])),
+            trauma_markers=set(data.get("trauma_markers") or []),
             current_role=data.get("current_role", ""),
             hp=int(data.get("hp", 0)),
             max_hp=int(data.get("max_hp", 0)),
@@ -359,7 +367,7 @@ class PlayerAvatarService:
             posture=data.get("posture", "standing"),
             # ADR-128: body_state — SSOT физиологии. Без этого injuries,
             # blood_loss, pain, shock_impulse теряются при каждой загрузке.
-            body_state=dict(data.get("body_state", {})),
+            body_state=dict(data.get("body_state") or {}),
             # ADR-128: affective_load — интеграл давления. Без этого
             # эмоциональный pipeline сбрасывается в 0.0 при каждой загрузке.
             affective_load=float(data.get("affective_load", 0.0)),

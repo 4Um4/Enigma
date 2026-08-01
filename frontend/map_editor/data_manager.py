@@ -1121,7 +1121,50 @@ class DataManager:
             "y": round(y, 2),
             "label": label or node_id,
             "connections": [],
+            "role": "default",  # ADR-O-326: Безопасный дефолт
+            "tags": [],
         }
+        return True
+
+    def update_node(
+        self,
+        filename: str,
+        node_id: str,
+        label: Optional[str] = None,
+        role: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> bool:
+        """Безопасно обновляет свойства навигационного узла"""
+        loc = self.locations[filename]
+        if node_id not in loc["nodes"]:
+            return False
+
+        node = loc["nodes"][node_id]
+
+        # 1. Валидация role (защита от несуществующих в движке ролей)
+        _VALID_ROLES = {
+            "default", "bar", "bed", "entrance", "table",
+            "workbench", "market", "transition", "boundary",
+            "guard_post", "dark_corner", "serving_station",
+            "kitchen_counter", "inn_desk"
+        }
+        if role is not None:
+            if role not in _VALID_ROLES:
+                return False
+            node["role"] = role
+
+        # 2. Валидация tags (защита от мусора)
+        if tags is not None:
+            clean_tags = []
+            for t in tags:
+                t = t.strip()
+                if t:
+                    clean_tags.append(t)
+            node["tags"] = clean_tags
+
+        if label is not None:
+            node["label"] = label
+
         return True
 
     def remove_node(self, filename: str, node_id: str) -> bool:

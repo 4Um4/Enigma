@@ -178,7 +178,9 @@ def _execute_handler(
     if not hasattr(ctx, "shared_context") or ctx.shared_context is None:
         from types import SimpleNamespace
 
-        ctx.shared_context = SimpleNamespace()
+        # BUG-CORE-007 FIX: SimpleNamespace должен содержать scene_state,
+        # иначе social_input_projector упадёт с AttributeError.
+        ctx.shared_context = SimpleNamespace(scene_state=ctx.scene_state)
 
     if (
         not hasattr(ctx.shared_context, "spatial_query")

@@ -75,6 +75,10 @@
       "width": 6.0,
       "height": 7.0,
       "area_sqm": 42.0,
+      "tags": [
+        "workplace:guard",
+        "guard_post"
+      ],
       "polygon": [
         [
           13.0,

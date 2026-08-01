@@ -35,11 +35,17 @@ def build_tick_state(
     l1_chronicle: Optional[Any] = None,     # V8-PSY-1 FIX: Инъекция L1Chronicle
     idle_pressure_map: Optional[Any] = None, # V8-SOC-5 FIX: Инъекция idle_pressure
 ) -> Any:
-    """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run()."""
-    _dm_ctx = None
+    """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
+    
+    ADR-TZ08-1: Ядро не знает 'player' или 'dm_ctx'. Только InterventionEvent.
+    Удалён легаси-мост через DMContextDTO — данные читаются напрямую из
+    авторитетных источников: ctx.hub_event и ctx.shared_context (PipelineContext).
+    """
+    _shared = ctx.shared_context
+    _raw_input = ""
     for interv in ctx.interventions:
-        if interv.source == "player" and "dm_ctx" in interv.payload:
-            _dm_ctx = interv.payload["dm_ctx"]
+        if interv.source == "player":
+            _raw_input = interv.payload.get("text", "")
             break
 
     _svc = ctx.npc_services
@@ -51,17 +57,15 @@ def build_tick_state(
         effective_drives_map=effective_drives_map,
         pe_modifiers_map=pe_mods_map,
         interventions=ctx.interventions,
-        hub_event=_dm_ctx.hub_event if _dm_ctx else None,
-        player_target_id=_dm_ctx.player_target_id if _dm_ctx else None,
-        action_type=_dm_ctx.action_type if _dm_ctx else "idle",
-        raw_input=_dm_ctx.raw_input if _dm_ctx else "",
-        is_session_start=_dm_ctx.is_session_start if _dm_ctx else False,
-        nearby_npcs=_dm_ctx.nearby_npcs if _dm_ctx else ctx.all_npcs_raw,
-        line_of_sight=_dm_ctx.line_of_sight
-        if _dm_ctx
-        else {n.get("id", n.get("npc_id")): True for n in ctx.all_npcs_raw},
-        scene_continuity=_dm_ctx.scene_continuity if _dm_ctx else None,
-        spatial_events=_dm_ctx.spatial_events if _dm_ctx else [],
+        hub_event=getattr(ctx, "hub_event", None),
+        player_target_id=getattr(_shared, "player_target_id", "") or "",
+        action_type=getattr(_shared, "action_type", "idle") or "idle",
+        raw_input=_raw_input,
+        is_session_start=False,  # Легаси-флаг DMContextDTO, всегда был False при None
+        nearby_npcs=ctx.all_npcs_raw,
+        line_of_sight={n.get("id", n.get("npc_id")): True for n in ctx.all_npcs_raw},
+        scene_continuity=getattr(_shared, "scene_continuity", None),
+        spatial_events=getattr(_shared, "spatial_events", []),
         drf_tick_id=ctx.tick_number,
         memory_weights_map=memory_weights_map,
         narrative_cache_map=narrative_cache_map,

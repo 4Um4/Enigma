@@ -239,14 +239,9 @@ class LifeEngine:
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
         self._movement_engine = MovementEngine()
 
-    def get_idle_pressure_map(self) -> dict:
-        """V8-SOC-5 FIX: Возвращает текущее давление разговоров для TickState."""
-        return self._idle_pressure.copy()
-
-    def update_idle_pressure(self, updates: dict) -> None:
-        """V8-SOC-5 FIX: Обновляет давление разговоров из TickMutation."""
-        self._idle_pressure.update(updates)
-
+        # BUG-CORE-004 FIX: Атрибуты инъекции перенесены в __init__.
+        # Ранее они находились внутри update_idle_pressure, что приводило
+        # к обнулению сервисов каждый тик (S-3: NPC теряли маршрут).
         # Слой 3: SpatialService v1.2 — семантическая навигация (инжекция извне)
         self._spatial_service: Optional[Any] = None
 
@@ -256,6 +251,14 @@ class LifeEngine:
         self._persistence: Optional[Any] = None
 
         self._claim_bus: Optional["DRFBus"] = None  # DRF Causal Bus
+
+    def get_idle_pressure_map(self) -> dict:
+        """V8-SOC-5 FIX: Возвращает текущее давление разговоров для TickState."""
+        return self._idle_pressure.copy()
+
+    def update_idle_pressure(self, updates: dict) -> None:
+        """V8-SOC-5 FIX: Обновляет давление разговоров из TickMutation."""
+        self._idle_pressure.update(updates)
 
     def set_claim_bus(self, bus: "DRFBus") -> None:
         """DRF: Инъекция единой причинной шины из TickOrchestrator."""
@@ -542,7 +545,12 @@ class LifeEngine:
                 # Иначе доверяем location_id из scene_state.
                 _resolved_loc = _ss_loc
                 if _ss_pos and ":" in _ss_pos:
-                    _resolved_loc = _ss_pos.split(":")[0]
+                    _pos_loc = _ss_pos.split(":")[0]
+                    # V8-SP-19 FIX: boundary nodes (exit_*) не определяют location_id
+                    if "exit_" not in _ss_pos and _ss_loc != _pos_loc:
+                        _resolved_loc = _pos_loc
+                    elif _ss_loc:
+                        _resolved_loc = _ss_loc
                 
                 if _resolved_loc:
                     if npc.get("location_id") != _resolved_loc:
@@ -2441,6 +2449,10 @@ class LifeEngine:
             }
             role = _ACTIVITY_TO_ROLE_MAP.get(activity)
             if role:
+                # ADR-O-326: Ищем персональное рабочее место NPC по тегу
+                _npc_id = npc.get("id", "")
+                _workplace_tag = f"workplace:{_npc_id}"
+
                 # ADR-O-330: Affordance Compatibility Adapter для сна
                 _npc_xy = npc.get("local_position", {})
                 _origin_xy = (_npc_xy.get("x", 0.0), _npc_xy.get("y", 0.0))
@@ -2452,6 +2464,12 @@ class LifeEngine:
                         owner=npc.get("id")
                     )
                 else:
+                    ref = self._spatial_service.resolve_node(
+                        role=role, origin_zone=npc.get("location_id"),
+                        filters=[_workplace_tag] if _workplace_tag else None
+                    )
+                # Fallback: Если персонального места нет, ищем любое по роли
+                if not ref:
                     ref = self._spatial_service.resolve_node(
                         role=role, origin_zone=npc.get("location_id")
                     )

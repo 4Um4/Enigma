@@ -568,6 +568,17 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         _traces, ctx.scene_state, tick=ctx.tick_number, observed_facts=_facts_for_dm
     )
 
+    # ТЗ Presentation v2.0: Сборка трёхканальной презентации
+    from dataclasses import asdict
+
+    _visual_dto = _assembler.assemble_visual_dto(
+        perceived_signals=_all_signals,
+        recognition_map=ctx.scene_state.get("player_recognition", {})
+    )
+    _audible_dto = _assembler.assemble_audible_dto(
+        perceived_signals=_all_signals
+    )
+
     # Сборка WorldSnapshotDTO (вне цикла!)
     builder = deps.snapshot_builder
     ctx.world_snapshot = builder.build(
@@ -576,4 +587,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         avatar_state=_avatar_projection,
         all_npcs_raw=ctx.all_npcs_raw,
         player_perception=_player_perception,
+        player_body_topology=ctx.scene_state.get("player_body_topology"),
+        visual_dto=asdict(_visual_dto),
+        audible_dto=asdict(_audible_dto),
     )

@@ -424,7 +424,78 @@ class TickOrchestrator:
             )
             self._rebuild_cluster_occupancy(ctx)
 
+            # BUG-CORE-001 FIX: Мёртвый код (135 строк после return) удалён.
+            # Логика CFRM-моста и AdaptiveTickLoader восстановлена внутри активного цикла.
+
+            # CFRM P2: Мост деобъективации — превращение объективных событий в возмущения поля
+            event_bus = self._get_event_bus()
+
+            def _deobjectify_event(event: "EventDTO") -> None:
+                """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
+                import logging
+
+                from app.models.cfrm import (
+                    CausalAxis,
+                    DisturbanceVector,
+                    FieldDisturbance,
+                    classify_event,
+                )
+
+                result = classify_event(event.type)
+                axis = result.axis
+
+                if result.confidence < 0.5:
+                    logging.warning(
+                        f"[CFRM] classify_event: {event.type} -> {axis.value} (confidence={result.confidence}, source={result.source.value})"
+                    )
+
+                origin_cluster = (
+                    ctx.cluster_occupancy.get_cluster(event.source) or "world:unknown"
+                )
+
+                vectors = []
+                if axis == CausalAxis.PHYSICAL:
+                    vectors.append(DisturbanceVector.KINETIC)
+                    vectors.append(DisturbanceVector.ACOUSTIC)
+                    if event.type in ("PLAYER_ATTACKS", "PLAYER_ATTACKED", "NPC_ATTACKED"):
+                        vectors.append(DisturbanceVector.MATTER)
+                elif axis == CausalAxis.COGNITIVE:
+                    vectors.append(DisturbanceVector.BEHAVIORAL)
+                elif axis == CausalAxis.SOCIAL:
+                    vectors.append(DisturbanceVector.ACOUSTIC)
+                    vectors.append(DisturbanceVector.BEHAVIORAL)
+
+                magnitude = event.payload.get("intensity", 0.5)
+
+                disturbance = FieldDisturbance(
+                    origin_cluster=origin_cluster,
+                    disturbance_type=axis,
+                    magnitude=magnitude,
+                    vectors=tuple(vectors),
+                    source_entity=event.source,
+                )
+                ctx.event_buffer.add(disturbance, axis)
+
+            event_bus.attach_cfrm_bridge(_deobjectify_event)
+
+            # Дополнение Б: Адаптивный LOD
+            if not hasattr(self, '_adaptive_loader'):
+                from app.services.adaptive_tick_loader import AdaptiveTickLoader
+                self._adaptive_loader = AdaptiveTickLoader()
+                
+            # Определяем, должна ли эта локация тикать полностью
             _tick_fully = True
+            if self._adaptive_loader.is_lod_active() and active_location_id:
+                _connected = []
+                try:
+                    from app.services.spatial.spatial_registry import SpatialRegistry
+                    _reg = SpatialRegistry.get_or_load(campaign_id)
+                    if _reg:
+                        _connected = [e.location_b for e in _reg.get_neighbors(active_location_id)]
+                except Exception:
+                    pass
+                _current_loc = _scene.get("location_id", "default")
+                _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
 
             import time as _time
             _start_time = _time.time()
@@ -439,13 +510,45 @@ class TickOrchestrator:
                 return TickResultDTO(status="error", error=str(e))
             finally:
                 # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
-                self._get_event_bus().detach_cfrm_bridge()
+                event_bus.detach_cfrm_bridge()
+                
+                # Дополнение Б: Запись времени тика для AdaptiveTickLoader
+                _duration_ms = (_time.time() - _start_time) * 1000
+                _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
+                self._adaptive_loader.record_tick(_duration_ms, _npc_count)
 
+            # S83.1: TickOrchestrator = единственный владелец результата тика.
+            final_snapshot = ctx.scene_state
+
+            # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
+            _final_facts = getattr(ctx, "observed_facts_for_dm", [])
+            # INV-DEF: Эмиттер сводки тика для CausalObserver (InvariantHealthChecker)
+            _moved_count = sum(
+                1
+                for v in ctx.scene_state.get("active_traversals", {}).values()
+                if getattr(v, "status", None) == "MOVING"
+            )
+            _decisions_count = len(ctx.communication_intents) + sum(
+                1 for i in getattr(ctx, "movement_intents", []) if i
+            )
+            _verbal_count = len(ctx.communication_intents)
+            _game_time = ctx.scene_state.get("game_time_seconds", 0.0)
+            logger.debug(
+                f"[TICK_ORCH] tick={ctx.tick_number} loc={_loc_id} game_time={_game_time} decisions={_decisions_count} verbal={_verbal_count} moved={_moved_count}"
+            )
+
+            logger.debug(
+                f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}"
+            )
             _res = TickResultDTO(
-                status="success",
+                status="ok",
+                changes_count=ctx.changes_count,
+                significant_events=ctx.significant_events,
                 world_snapshot=ctx.world_snapshot,
                 npc_contexts=ctx.npc_contexts,
-                final_scene_state=ctx.scene_state,
+                observed_facts=_final_facts,
+                final_scene_state=final_snapshot,
+                all_npcs_raw=ctx.all_npcs_raw,
             )
             _tick_results.append(_res)
             if _is_active:
@@ -457,148 +560,24 @@ class TickOrchestrator:
             _final_result = TickResultDTO(status="error", error="No scenes ticked")
         return _final_result
 
-        # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
-        self._rebuild_cluster_occupancy(ctx)
-
-        # CFRM P2: Мост деобъективации — превращение объективных событий в возмущения поля
-        event_bus = self._get_event_bus()
-
-        def _deobjectify_event(event: "EventDTO") -> None:
-            """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
-            import logging
-
-            from app.models.cfrm import (
-                CausalAxis,
-                DisturbanceVector,
-                FieldDisturbance,
-                classify_event,
-            )
-
-            result = classify_event(event.type)
-            axis = result.axis
-
-            # Логирование эпистемической неопределённости (событие на границе или неизвестно)
-            if result.confidence < 0.5:
-                logging.warning(
-                    f"[CFRM] classify_event: {event.type} -> {axis.value} (confidence={result.confidence}, source={result.source.value})"
-                )
-
-            # Определяем кластер происхождения (кто вышел из строя реальности?)
-            origin_cluster = (
-                ctx.cluster_occupancy.get_cluster(event.source) or "world:unknown"
-            )
-
-            # Инференс векторов возмущения на основе типа события
-            vectors = []
-            if axis == CausalAxis.PHYSICAL:
-                vectors.append(DisturbanceVector.KINETIC)
-                vectors.append(DisturbanceVector.ACOUSTIC)
-                if event.type in ("PLAYER_ATTACKS", "PLAYER_ATTACKED", "NPC_ATTACKED"):
-                    vectors.append(DisturbanceVector.MATTER)
-            elif axis == CausalAxis.COGNITIVE:
-                vectors.append(DisturbanceVector.BEHAVIORAL)
-            elif axis == CausalAxis.SOCIAL:
-                vectors.append(DisturbanceVector.ACOUSTIC)
-                vectors.append(DisturbanceVector.BEHAVIORAL)
-
-            # Вычисляем базовую магнитуду возмущения
-            magnitude = event.payload.get("intensity", 0.5)
-
-            disturbance = FieldDisturbance(
-                origin_cluster=origin_cluster,
-                disturbance_type=axis,
-                magnitude=magnitude,
-                vectors=tuple(vectors),
-                source_entity=event.source,
-            )
-            ctx.event_buffer.add(disturbance, axis)
-
-        event_bus.attach_cfrm_bridge(_deobjectify_event)
-
-        # Дополнение Б: Адаптивный LOD
-        if not hasattr(self, '_adaptive_loader'):
-            from app.services.adaptive_tick_loader import AdaptiveTickLoader
-            self._adaptive_loader = AdaptiveTickLoader()
-            
-        # Определяем, должна ли эта локация тикать полностью
-        _tick_fully = True
-        if self._adaptive_loader.is_lod_active() and active_location_id:
-            _connected = []
-            try:
-                from app.services.spatial.spatial_registry import SpatialRegistry
-                _reg = SpatialRegistry.get_or_load(campaign_id)
-                if _reg:
-                    _connected = [e.location_b for e in _reg.get_neighbors(active_location_id)]
-            except Exception:
-                pass
-            _current_loc = scene_state.get("location_id", "default")
-            _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
-
-        import time as _time
-        _start_time = _time.time()
-        
-        try:
-            self._run_core_phases(ctx, tick_fully=_tick_fully)
-        except Exception as e:
-            logger.error(
-                f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} error={e}"
-            )
-            logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id}: {e}", exc_info=True)
-            return TickResultDTO(status="error", error=str(e))
-        finally:
-            # CFRM P2: Гарантированно отключаем мост деобъективации в конце тика
-            event_bus.detach_cfrm_bridge()
-            
-            # Дополнение Б: Запись времени тика для AdaptiveTickLoader
-            _duration_ms = (_time.time() - _start_time) * 1000
-            _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
-            self._adaptive_loader.record_tick(_duration_ms, _npc_count)
-
-        # S83.1: TickOrchestrator = единственный владелец результата тика.
-        # ctx.scene_state (frozen input) прошёл через фазы → final_snapshot (output тика).
-        # Важно: мы не клонируем повторно, а передаём ссылку.
-        # S83.1 FIX: Ядро — чистая функция. Возвращает TickResultDTO.
-        # Обновление буфера SceneStateManager (_tick_scene) перенесено в GameLoop.idle_tick.
-        # Мутации происходили in-place внутри ctx.scene_state.
-        final_snapshot = ctx.scene_state
-
-        # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
-        _final_facts = getattr(ctx, "observed_facts_for_dm", [])
-        # INV-DEF: Эмиттер сводки тика для CausalObserver (InvariantHealthChecker)
-        _moved_count = sum(
-            1
-            for v in ctx.scene_state.get("active_traversals", {}).values()
-            if getattr(v, "status", None) == "MOVING"
-        )
-        _decisions_count = len(ctx.communication_intents) + sum(
-            1 for i in getattr(ctx, "movement_intents", []) if i
-        )
-        _verbal_count = len(ctx.communication_intents)
-        _game_time = ctx.scene_state.get("game_time_seconds", 0.0)
-        logger.debug(
-            f"[TICK_ORCH] tick={ctx.tick_number} game_time={_game_time} decisions={_decisions_count} verbal={_verbal_count} moved={_moved_count}"
-        )
-
-        logger.debug(
-            f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}"
-        )
-        return TickResultDTO(
-            status="ok",
-            changes_count=ctx.changes_count,
-            significant_events=ctx.significant_events,
-            world_snapshot=ctx.world_snapshot,
-            npc_contexts=ctx.npc_contexts,
-            observed_facts=_final_facts,
-            final_scene_state=ctx.scene_state,
-            all_npcs_raw=ctx.all_npcs_raw,
-        )
-
     # ── Player Turn (тонкая обёртка) ────────────────────────────────
 
     # ── Core Pipeline (Immutable Sequence) ──────────────────────────
 
     def _run_core_phases(self, ctx: _TickContext, tick_fully: bool = True) -> None:
         """A2-FIX v0.2: Immutable core pipeline. NO mode, NO player branching."""
+        # BUG-CORE-014 FIX: CAUSAL_CONTRACT §4.6.45 — исключаем мёртвых NPC ДО любых фаз.
+        # Ранее фильтр был только в _phase_5_decision, что позволяло мёртвым мутировать state в Фазах 0-4.
+        ctx.all_npcs_raw = [
+            n for n in (ctx.all_npcs_raw or [])
+            if n.get("body_state", {}).get("life_status") != "DEAD"
+        ]
+        if hasattr(ctx, "npc_states") and ctx.npc_states:
+            ctx.npc_states = [
+                n for n in ctx.npc_states
+                if n.get("body_state", {}).get("life_status") != "DEAD"
+            ]
+
         self._snapshot_positions_before(ctx) #1
         self._phase_0_simulation(ctx) #2
         self._phase_0_5_idle_services(ctx) #3
@@ -1228,7 +1207,7 @@ class TickOrchestrator:
         logger.debug(f"[TICK_ORCH] Фаза 4: {len(ctx.npc_topics)} topics извлечено")
 
     def _compute_effective_drives(
-        self, npc_list: list[dict], tick_number: int
+        self, npc_list: list[dict], tick_number: int, campaign_id: str
     ) -> Tuple[
         Dict[str, "EffectiveDrives"],
         Dict[str, Dict[str, float]],
@@ -1247,7 +1226,7 @@ class TickOrchestrator:
         if hasattr(self, "drive_resolver") and hasattr(self, "l1_chronicle"):
             from app.models.npc_state import personality_from_legacy
 
-            _calibration = CalibrationEngine()
+            # V8-PSY-29 FIX: CalibrationEngine — dead code (ADR-O-211), убрано создание неиспользуемого экземпляра
 
             for npc_dict in npc_list:
                 _nid = npc_dict.get("id") or npc_dict.get("npc_id")
@@ -1256,13 +1235,17 @@ class TickOrchestrator:
                     _beliefs = self.crystallized_belief_store.get_beliefs(_nid)
                     _body_state = npc_dict.get("body_state", {})
                     # V8-PSY-9 FIX: Получаем L1 Identity из memory_manager
+                    # BUG-CORE-002 FIX: self.memory_manager не существует (используем _get_memory_manager),
+                    # ctx.campaign_id был недоступен (теперь передаётся как параметр campaign_id).
+                    # Silent except: pass заменён на логирование, чтобы не терять ошибки L1 проекции.
                     _identity_l1 = None
                     try:
-                        _traits = self.memory_manager.get_identity_traits(ctx.campaign_id, _nid)
+                        _mm = self._get_memory_manager()
+                        _traits = _mm.get_identity_traits(campaign_id, _nid)
                         if _traits:
                             _identity_l1 = NPCIdentityL1(npc_id=_nid, active_traits=_traits)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error(f"[L3_PROJECTION] identity traits load failed for npc={_nid}: {e}")
 
                     _projection = self.drive_resolver.resolve_drives(
                         _profile_l0, _beliefs, body_state=_body_state, identity_l1=_identity_l1
@@ -1292,7 +1275,7 @@ class TickOrchestrator:
         )
 
         ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = (
-            self._compute_effective_drives(ctx.npc_states, ctx.tick_number)
+            self._compute_effective_drives(ctx.npc_states, ctx.tick_number, ctx.campaign_id)
         )
 
         # 2. Извлечение данных игрока (если есть)

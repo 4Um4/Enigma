@@ -37,7 +37,7 @@ import random
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from app.core.calendar import Calendar
 from app.core.config import settings
@@ -200,9 +200,11 @@ class SceneStateManager:
         data_dir: Optional[Path] = None,
         persistence: Optional[PersistencePort] = None,
         saves_dir: Optional[Path] = None,
+        life_engine: Optional[Any] = None,
     ):
         self.data_dir = Path(data_dir) if data_dir else _DATA_DIR
         self._persistence = persistence  # PersistencePort для commit()
+        self._life_engine = life_engine
         self.campaigns_dir = self.data_dir / "campaigns"
         # Runtime-сохранения: пишет в saves_dir, читает с fallback в campaigns_dir
         self._saves_dir = Path(saves_dir) if saves_dir else self.campaigns_dir
@@ -536,7 +538,6 @@ class SceneStateManager:
         target_object_id: str | None,
         player_position: str | None = None,
         player_distances: dict | None = None,
-        player_spatial: dict | None = None,
     ) -> None:
         """
         Обновляет поля пространственного контекста игрока в SceneState.
@@ -557,7 +558,7 @@ class SceneStateManager:
         scene_state["player_target_npc_name"] = target_npc_name
         scene_state["player_target_object"] = target_object_id
 
-        # ADR-048 Phase 3: Запись player_distances и player_spatial ЗАПРЕЩЕНА.
+        # ADR-048 Phase 3: Запись player_distances ЗАПРЕЩЕНА.
         # SpatialQueryService является авторитетом. player_distances — derived projection.
         # Narrative-позиция (player_position как строка "стоит") пока оставлена для DM контекста.
         if player_position is not None:
@@ -565,9 +566,6 @@ class SceneStateManager:
 
         # if player_distances is not None:
         #     scene_state["player_distances"] = player_distances
-
-        # if player_spatial is not None:
-        #     scene_state["player_spatial"] = player_spatial
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
@@ -806,9 +804,13 @@ class SceneStateManager:
         """Переинициализация сцены кампании из editor JSON.
         Вызывается из new_game() ПОСЛЕ очистки persistence.
         Находит начальную локацию и создаёт свежую сцену."""
-        # V8-SP-18 FIX: инвалидируем cache SpatialFactory при переинициализации
+        # V8-SP-26 FIX: инвалидируем все кэши при переинициализации
         from app.services.spatial.spatial_factory import SpatialFactory
+        from app.services.spatial.spatial_registry import SpatialRegistry
         SpatialFactory.invalidate_cache(campaign_id)
+        if self._life_engine:
+            self._life_engine.invalidate_cache(campaign_id)
+        SpatialRegistry.invalidate_cache(campaign_id)
         starting_location = self.find_starting_location(campaign_id)
         scene = self.initialize_scene(campaign_id, starting_location)
         logger.info(
@@ -971,11 +973,13 @@ class SceneStateManager:
                         if k not in npc_positions[npc_id]:
                             npc_positions[npc_id][k] = v
                 else:
-                    # NPC нет в editor JSON — создаём из шаблона
-                    pos_entry = dict(pos_data)
-                    pos_entry.setdefault("location_id", location_id)
-                    pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
-                    npc_positions[npc_id] = pos_entry
+                    # NPC нет в editor JSON — это data integrity bug.
+                    # BUG-SPATIAL-006a FIX: Запрещено создавать фантомные позиции (0.0, 0.0) (SC-1).
+                    logger.error(
+                        f"[SCENE_INIT] NPC '{npc_id}' отсутствует в editor JSON локации '{location_id}'. "
+                        f"Создание позиции с (0.0, 0.0) запрещено. NPC пропущен."
+                    )
+                    continue
 
         # --- Среда (всегда из шаблона — время/свет/шум) ---
         time_variant = self._select_time_variant(template, time_of_day)
@@ -1016,18 +1020,8 @@ class SceneStateManager:
             # Обновляется каждый ход через update_player_target()
             # Используется в build_npc_context_block() и _build_scene_description()
             "player_position": "стоит",  # текущая поза/позиция игрока
-            "player_spatial": {
-                "location_id": location_id,
-                "position": player_spawn_node or "entrance",
-                "local_position": {
-                    "x": editor_data.get("player_spawn", {}).get("x", 0.0)
-                    if editor_data
-                    else 0.0,
-                    "y": editor_data.get("player_spawn", {}).get("y", 0.0)
-                    if editor_data
-                    else 0.0,
-                },
-            },
+            # BUG-SPATIAL-004 FIX: Блок пространственного контекста удалён (ADR-O-314).
+            # Игрок инициализируется в npc_positions как обычный агент.
             "player_target_npc": None,  # id NPC к которому обращается
             "player_target_npc_name": None,  # читаемое имя (для промпта)
             "player_target_object": None,  # id объекта взаимодействия
@@ -1253,7 +1247,7 @@ class SceneStateManager:
                     "body_heading",
                 ):
                     entry[change.field] = change.value
-                    # ADR-O-315: Убрано дублирование player_spatial. Игрок читается из npc_positions["player"].
+                    # ADR-O-315: Игрок читается из npc_positions["player"].
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1674,28 +1668,8 @@ class SceneStateManager:
             if "name" not in entry:
                 entry["name"] = _npc_id_to_display(npc_id)
 
-            # ADR-048 FIX: Синхронизация позиционной истины игрока.
-            # Фронтенд пишет в player_spatial, бэкенд читает npc_positions.
-            # Без этого макро-узел игрока всегда "entrance", и NPC идут ко входу.
-            if npc_id == "player":
-                _ps = scene_state.get("player_spatial", {})
-                _plp = _ps.get("local_position", {})
-                if isinstance(_plp, dict) and isinstance(_plp.get("x"), (int, float)):
-                    entry["local_position"] = _plp
-                    if svc:
-                        _px, _py = _plp.get("x", 0.0), _plp.get("y", 0.0)
-                        _p_node_ref = svc.get_nearest(
-                            zone_id=location_id, origin_xy=(_px, _py)
-                        )
-                        if _p_node_ref:
-                            _p_node_id = getattr(
-                                _p_node_ref, "node_id", str(_p_node_ref)
-                            )
-                            if _p_node_id.startswith(f"{location_id}:"):
-                                _p_node_id = _p_node_id.split(":")[-1]
-                            entry["position"] = _p_node_id
-                continue  # Игрок не нуждается в enrichment из editor_coords
-
+            # BUG-SPATIAL-004 FIX: Блок пространственного контекста удалён (ADR-O-314).
+            # Игрок течёт через тот же path, что и NPC (editor_coords / svc.get_node).
             current_node = entry.get("position", "")
             initial_node = initial_nodes.get(npc_id)
 

@@ -47,7 +47,7 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     get_life_engine().set_persistence(persistence)
 
     scene_manager = SceneStateManager(
-        data_dir, persistence=persistence, saves_dir=saves_dir
+        data_dir, persistence=persistence, saves_dir=saves_dir, life_engine=get_life_engine()
     )
     char_service = CharacterService(root=str(saves_dir))
     avatar_service = PlayerAvatarService(root=str(saves_dir))

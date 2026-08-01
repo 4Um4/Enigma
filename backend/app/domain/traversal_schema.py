@@ -173,8 +173,9 @@ def build_traversal_dict(proposal: "TraversalProposal") -> Dict[str, Any]:
 
     ADR-O-323: Не вычисляет семантику пути. Только сериализует авторизованный proposal.
     Единственный разрешённый способ создания traversal_dict.
+    BUG-SPATIAL-005 FIX: Используем transition_traversal() FSM для установки статуса MOVING.
     """
-    return {
+    _traversal_dict = {
         "npc_id": proposal.npc_id,
         "from_node": proposal.source_node,
         "target_node": proposal.target_node,
@@ -183,8 +184,10 @@ def build_traversal_dict(proposal: "TraversalProposal") -> Dict[str, Any]:
         "started_tick": proposal.planned_tick,
         "duration_ticks": proposal.duration_ticks,
         "locomotion": "WALK",
-        "status": "MOVING",
+        "status": "PENDING",
         "current_waypoint_idx": 0,
         "segment_modes": list(proposal.segment_modes),  # S132.1: Сохраняем семантику сегментов
         "segment_arc_heights": list(proposal.segment_arc_heights),  # S132.1: Сохраняем высоту дуги
     }
+    transition_traversal(_traversal_dict, "MOVING")
+    return _traversal_dict

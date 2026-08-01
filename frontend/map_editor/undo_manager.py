@@ -185,6 +185,23 @@ class RemoveRoomCommand(Command):
             loc["rooms"].append(deepcopy(self.room_data))
 
 
+class SimpleNodeUpdateCommand:
+    """Простая команда обновления узла для Undo/Redo (ADR-O-326)"""
+    def __init__(self, dm, filename, node_id, old_name, old_role, old_tags, new_name, new_role, new_tags):
+        self.dm = dm
+        self.filename = filename
+        self.node_id = node_id
+        self.old = {"name": old_name, "role": old_role, "tags": old_tags}
+        self.new = {"name": new_name, "role": new_role, "tags": new_tags}
+        self.label = f"Обновление узла {node_id}"
+
+    def execute(self):
+        self.dm.update_node(self.filename, self.node_id, self.new["name"], self.new["role"], self.new["tags"])
+
+    def undo(self):
+        self.dm.update_node(self.filename, self.node_id, self.old["name"], self.old["role"], self.old["tags"])
+
+
 @dataclass
 class RenameCommand(Command):
     """Универсальное переименование сущности"""

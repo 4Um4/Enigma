@@ -219,7 +219,8 @@ def filter_perceiving_npcs(
             "PLAYER_ATTACKED",
             "PLAYER_SPOKE",
         }
-        if event_type in sound_events:
+        # V8-PSY-30 FIX: Нормализуем event_type к uppercase для case-insensitive match
+        if event_type.upper() in sound_events:
             if _can_hear(npc_id, spatial_query, radius, scene_state):
                 perceiving.append(npc_id)
             continue

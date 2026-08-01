@@ -55,12 +55,9 @@ _REACTION_EVENT_TYPES: list[EventType] = [
     EventType.PLAYER_ATTACKED,
     EventType.PLAYER_THREATENS,
     EventType.PLAYER_INSULTS,
-    EventType.COMBAT,
     EventType.THEFT,
     EventType.INTIMIDATION,
-    EventType.BETRAYAL,
     EventType.HELP,
-    EventType.SAVED_LIFE,
     EventType.OBJECT_DESTROYED,
 ]
 

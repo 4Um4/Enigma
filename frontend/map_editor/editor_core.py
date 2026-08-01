@@ -876,8 +876,13 @@ class EditorCore:
         try:
             from spatial_compilation_gateway import SpatialCompilationGateway
 
-            campaign_id = self.dm.base_dir.parent.name
-            SpatialCompilationGateway.request_rebuild(campaign_id)
+            # V8-ED-5 FIX: Используем campaign_path из CampaignManager, не dm.base_dir
+            if self.cm.campaign_path:
+                campaign_id = self.cm.campaign_path.name
+                SpatialCompilationGateway.request_rebuild(campaign_id)
+            else:
+                import logging as _logging
+                _logging.getLogger(__name__).warning("[EDITOR] _rebuild_spatial_registry: campaign not open, skipping")
         except Exception as e:
             import logging as _logging
 
@@ -1804,13 +1809,56 @@ class EditorCore:
                 self.camera_y += event.rel[1]
 
     def _handle_double_click(self, mx: int, my: int) -> None:
-        """Обрабатывает двойной клик — переименование сущности"""
+        """Обрабатывает двойной клик — редактирование свойств сущности"""
         if not self.current_file or not self.selected_object:
             return
 
         entity_type, entity_id = self.selected_object
         old_name = self.dm.get_entity_name(self.current_file, entity_type, entity_id)
 
+        # ADR-O-326: Для навигационных узлов открываем расширенный редактор
+        if entity_type == "node":
+            node_data = self.dm.locations[self.current_file]["nodes"].get(entity_id, {})
+            old_role = node_data.get("role", "default")
+            old_tags = ", ".join(node_data.get("tags", []))
+
+            fields = [
+                {"key": "name", "label": "Название (Label)", "value": old_name},
+                {
+                    "key": "role",
+                    "label": "Роль (NodeRole)",
+                    "type": "choice",
+                    "value": old_role,
+                    "options": [
+                        "default", "bar", "bed", "entrance", "table",
+                        "workbench", "market", "transition", "boundary",
+                        "guard_post", "dark_corner", "serving_station",
+                        "kitchen_counter", "inn_desk"
+                    ]
+                },
+                {"key": "tags", "label": "Теги (через запятую)", "value": old_tags}
+            ]
+
+            def on_node_confirm(inputs: Dict[str, str]) -> None:
+                new_name = inputs.get("name", "").strip()
+                new_role = inputs.get("role", "default")
+                tags_str = inputs.get("tags", "")
+                new_tags = [t.strip() for t in tags_str.split(",") if t.strip()]
+
+                # Используем простой undo через обновление состояния
+                self.undo.push(
+                    SimpleNodeUpdateCommand(
+                        self.dm, self.current_file, entity_id,
+                        old_name, old_role, node_data.get("tags", []),
+                        new_name, new_role, new_tags
+                    )
+                )
+                self._show_toast(f"Узел обновлён: {new_name}")
+
+            self.dialog = ModalDialog(self.screen, "Свойства узла", fields, on_node_confirm)
+            return
+
+        # Стандартное переименование для остальных объектов
         fields = [{"key": "name", "label": "Новое имя", "value": old_name}]
 
         def on_confirm(inputs: Dict[str, str]) -> None:

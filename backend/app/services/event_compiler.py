@@ -268,7 +268,9 @@ class EventCompiler:
         # Cross-location: target node is in a different location's graph,
         # current svc cannot resolve it. SceneChange already carries
         # target_local_xy from MovementEngine (authoritative source).
-        if target_loc != snapshot.location_id:
+        # ADR-O-326: Если cause указывает на cross_loc_materialize — ВСЕГДА boundary snap,
+        # даже если target_location_id пуст (защита от ложного same-location move).
+        if target_loc != snapshot.location_id or "cross_loc_materialize" in getattr(change, "cause", ""):
             return self._compile_boundary_snap(snapshot, change, None, target_loc, svc)
 
         node = svc.get_node(change.value) or svc.get_node(
@@ -324,6 +326,8 @@ class EventCompiler:
                 source_xy=_src_xy,
                 target_xy=getattr(change, "target_local_xy", (0.0, 0.0)),
             )
+            # ADR-O-326: cross_loc_materialize по определению означает пересечение границы.
+            # is_boundary всегда True, чтобы совпадать с legacy_is_boundary.
             return ThickSceneChange(
                 change_type=change.type.value,
                 target=change.target,
@@ -573,7 +577,41 @@ class EventCompiler:
         if not proposal:
             # Если это макро-перемещение, но нет proposal — это Causal Violation.
             if change.field == "position":
-                # Явный сигнал EquivalenceViolation (Class D - Causal)
+                # ADR-O-326: cross_loc_materialize — мгновенный перенос (boundary crossing).
+                # Не требует TraversalProposal, но должен быть скомпилирован в ThickSceneChange,
+                # иначе Legacy pipeline применит его, а Shadow упадёт (Class D Causal Drift).
+                if getattr(change, "cause", "").startswith("cross_loc_materialize"):
+                    _target_loc = getattr(change, "target_location_id", None)
+                    # ADR-O-326: is_boundary должен быть True только при реальной смене локации,
+                    # чтобы совпадать с legacy_is_boundary (validation.py: _legacy_location != snapshot.location_id)
+                    _is_real_boundary = bool(_target_loc and _target_loc != snapshot.location_id)
+                    return ThickSceneChange(
+                        change_type=change.type.value,
+                        target=change.target,
+                        field=change.field,
+                        value=change.value,
+                        cause=change.cause,
+                        tick=change.tick,
+                        target_location_id=_target_loc,
+                        target_local_xy=getattr(change, "target_local_xy", None),
+                        spatial=spatial,
+                        motion=MotionPlan(
+                            is_teleport=True,
+                            is_path_blocked=False,
+                            waypoints=(),
+                            distance=0.0,
+                            duration_ticks=0,
+                            speed=0.0,
+                        ),
+                        traversal=None, # Мгновенный перенос не создаёт TraversalContract
+                        boundary=BoundaryResolution(
+                            is_boundary=_is_real_boundary,
+                            neighbor_chunk=_target_loc if _is_real_boundary else "",
+                            entry_node=change.value if _is_real_boundary else "",
+                        ),
+                        spatial_mode=SpatialTransitionMode.INTERPOLATED,
+                    )
+                # Иначе — это Causal Violation
                 logger.error(
                     f"[EQUIVALENCE_VIOLATION][MISSING_PROPOSAL] npc={change.target} "
                     f"field={change.field} cause={change.cause} "

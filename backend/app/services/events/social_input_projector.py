@@ -48,7 +48,6 @@ class SocialInputProjector:
             EventType.NPC_SPOKE,
             EventType.PLAYER_SPOKE,
             EventType.NPC_PROXIMITY_CLOSE,
-            EventType.NPC_INTERACTS_NPC,
         ]:
             self._event_bus.subscribe(et, self._on_event)
 
@@ -90,13 +89,9 @@ class SocialInputProjector:
                         _listeners = filter_perceiving_npcs(
                             npc_ids=_all_npc_ids,
                             event=event,
-                            scene_state=ctx.shared_context.scene_state or {},
+                            scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},
                             spatial_query=_sq,
                         )
-                
-                for listener in _listeners:
-                    if listener != _src:
-                        deltas.append(self._mk_delta(listener, _INPUT_LISTEN))
 
             elif event.type == EventType.PLAYER_SPOKE:
                 _listeners = payload.get("listener_ids", [])
@@ -108,7 +103,7 @@ class SocialInputProjector:
                         _listeners = filter_perceiving_npcs(
                             npc_ids=_all_npc_ids,
                             event=event,
-                            scene_state=ctx.shared_context.scene_state or {},
+                            scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},
                             spatial_query=_sq,
                         )
                 for listener in _listeners:
@@ -119,12 +114,6 @@ class SocialInputProjector:
                     deltas.append(self._mk_delta(_src, _INPUT_PRESENCE))
                 if _tgt:
                     deltas.append(self._mk_delta(_tgt, _INPUT_PRESENCE))
-
-            elif event.type == EventType.NPC_INTERACTS_NPC:
-                if _src:
-                    deltas.append(self._mk_delta(_src, _INPUT_INTERACT))
-                if _tgt:
-                    deltas.append(self._mk_delta(_tgt, _INPUT_INTERACT))
 
         if deltas:
             logger.debug(

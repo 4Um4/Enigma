@@ -248,6 +248,17 @@ class WorldSnapshotDTO:
         default_factory=list
     )  # ADR-O-313: Труба диалогов для Speech Bubbles
 
+    # ТЗ Presentation v2.0: Физика Восприятия и Инвентарь
+    player_body_topology: Optional[Dict[str, Any]] = (
+        None  # BodyTopology аватара игрока для UI (сериализованная)
+    )
+    visual_dto: Optional[Dict[str, Any]] = (
+        None  # Канал визуальной презентации (NPC проявления, экипировка)
+    )
+    audible_dto: Optional[Dict[str, Any]] = (
+        None  # Канал аудио презентации (голос, дыхание, шаги)
+    )
+
 
 # A2-FIX: snapshot_npc_positions_to_dict УДАЛЕН.
 # Раньше конвертировал List[NPCPositionDTO] → dict для frontend.

@@ -72,9 +72,9 @@ def validate_shadow_vs_legacy(
 
     # ── ФАЗА 2: Boundary drift (L2) ────────────────────────────
     # Legacy boundary: NPC оказался в другой локации после apply
-    _legacy_is_boundary = bool(
-        _legacy_location and _legacy_location != snapshot.location_id
-    )
+    # ADR-O-201: Boundary вычисляется из SceneChange (cause), а не из мутированного state.
+    # Это устраняет Causal Drift (Class D) при cross_loc_materialize.
+    _legacy_is_boundary = "cross_loc_materialize" in getattr(thick, "cause", "")
     _shadow_is_boundary = bool(thick.boundary and thick.boundary.is_boundary)
     _drifts += orchestrator._equivalence_validator.validate_boundary(
         snapshot_id=snapshot.snapshot_id,

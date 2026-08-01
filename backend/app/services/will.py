@@ -154,7 +154,7 @@ def compute_willpower(
     shame = psyche.get("shame", 0.5)
     aggression = psyche.get("aggression", 0.5)
     curiosity = psyche.get("curiosity", 0.5)
-    gregariousness = psyche.get("gregariousness", 0.5)
+    # V8-PSY-31 FIX: gregariousness удалён (dead variable, не использовался в resistance formula)
 
     # GAP2 FIX: Амнезия Воли. Травмы закаляют идентичность.
     # Обиженный NPC упрямее. Каждая травма повышает resistance к давлению.

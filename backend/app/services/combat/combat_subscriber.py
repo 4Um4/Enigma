@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 _COMBAT_EVENT_TYPES: list[EventType] = [
     EventType.PLAYER_ATTACKS,
     EventType.PLAYER_ATTACKED,
-    EventType.COMBAT,
     EventType.ACTOR_ATTACKS,  # ADR-O-112: Труба NPC агрессии
 ]
 

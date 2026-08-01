@@ -198,8 +198,6 @@ class NpcDialogueSubscriber:
                 persistence_level="session",
             )
             self.memory.add_pending_dialogue_memory(_dialogue_event)
-        except Exception as mem_err:
-            logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}/{speaker}: {mem_err}")
 
         # 3. RelationshipStore
         # NEW-2: Маппим tone на event_type из P2-05 (get_base_delta).

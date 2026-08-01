@@ -83,7 +83,10 @@ class TraversalExecutionSystem:
                     "y": target_xy[1],
                     "z": 0.0,  # S132.1: Завершение прыжка — возврат на землю
                 }
-                trav["status"] = "COMPLETED"
+                # BUG-SPATIAL-026 FIX: Используем transition_traversal() FSM вместо прямой мутации.
+                from app.domain.traversal_schema import transition_traversal
+                if not transition_traversal(trav, "COMPLETED"):
+                    logger.error(f"[TRAV_EXEC_FSM] Failed to transition to COMPLETED for npc={npc_id}")
                 completed_npcs.append(npc_id)
                 logger.debug(
                     f"[TRAV_EXEC] COMPLETED: npc={npc_id} snapped to {target_xy}"

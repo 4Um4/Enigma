@@ -77,8 +77,9 @@ def euclidean_distance(
     Возвращает 999.0 если local_position отсутствует у одной из сущностей."""
     ax, ay = _local(a)
     bx, by = _local(b)
-    # если обе позиции (0,0) по умолчанию — считаем что данных нет
-    if ax == 0.0 and ay == 0.0 and bx == 0.0 and by == 0.0:
+    # BUG-SPATIAL-007 FIX: если ХОТЯ БЫ ОДНА позиция (0,0) — данных нет.
+    # Ранее проверка была через 'and', что возвращало реальное расстояние при одном (0,0).
+    if (ax == 0.0 and ay == 0.0) or (bx == 0.0 and by == 0.0):
         return 999.0
     return round(math.hypot(ax - bx, ay - by), 2)
 

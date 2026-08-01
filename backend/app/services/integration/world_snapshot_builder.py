@@ -41,6 +41,9 @@ class WorldSnapshotBuilder:
             "PlayerPerceptionDTO"
         ] = None,  # ТЗ EMBODIED UI PERCEPTION
         recent_dialogues: Optional[List[Dict]] = None,  # ADR-O-313: Для Speech Bubbles
+        player_body_topology: Optional[Dict] = None,  # ТЗ Presentation v2.0: Инвентарь
+        visual_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал визуальной презентации
+        audible_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал аудио презентации
     ) -> WorldSnapshotDTO:
         """Собирает снимок из финального состояния тика.
 
@@ -94,6 +97,9 @@ class WorldSnapshotBuilder:
             player_perception=self._convert_perception(
                 player_perception, tick=tick
             ),  # ТЗ EMBODIED UI: domain → API DTO конвертация
+            player_body_topology=player_body_topology,  # ТЗ Presentation v2.0
+            visual_dto=visual_dto,  # ТЗ Presentation v2.0
+            audible_dto=audible_dto,  # ТЗ Presentation v2.0
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
             location_id=location_id,

@@ -118,17 +118,18 @@ class TaskScheduler:
                     priority=priority,
                 )
 
+        # BUG-CORE-010 / BUG-DLG-005 FIX: Диалоговые задачи перенесены в DialogueQueue.
+        # Удаляем их из pending_tasks, чтобы предотвратить бесконечный ре-enqueue и спам кучи.
+        # Non-dialogue задачи (если появятся в будущем) остаются в pending.
+        scene_state["pending_tasks"] = [
+            t for t in pending if t.get("kind") != "dialogue"
+        ]
+
         _eligible = self._dialogue_queue.dequeue_next()
         if not _eligible:
             return
 
         task_dict = _eligible.payload.get("task_dict", {})
-        _task_id = task_dict.get("task_id", "")
-
-        # Убираем из pending, чтобы не запустить повторно
-        scene_state["pending_tasks"] = [
-            t for t in pending if t.get("task_id") != _task_id
-        ]
 
         # N3 FIX: Извлекаем task_type из payload и передаём явно
         _task_type = _eligible.payload.get("task_type", "canonical")

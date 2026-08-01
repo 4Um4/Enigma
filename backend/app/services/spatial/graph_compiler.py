@@ -944,8 +944,8 @@ def _create_boundary_nodes(
         boundary_map[boundary_id] = {
             "neighbor_chunk": neighbor_loc_id,
             "node_id": boundary_id,
-            "x": _bx,
-            "y": _by,
+            "x": _final_x,    # V8-SP-28 FIX: используем actual boundary node coords
+            "y": _final_y,
             "direction": direction,
             "entry_direction": _entry_dir,
             "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"

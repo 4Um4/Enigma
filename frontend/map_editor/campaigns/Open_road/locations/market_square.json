@@ -3,8 +3,8 @@
   "location_id": "market_square",
   "label": "Торговая площадь",
   "origin": {
-    "x": -5.0,
-    "y": 14.875
+    "x": 20.0,
+    "y": 15.0
   },
   "size": {
     "w": 25,
@@ -177,8 +177,7 @@
   "created_at": "2026-06-09T00:00:00",
   "modified_at": "2026-07-29T21:07:18.034678",
   "adjacency": {
-    "north": "tavern",
-    "east": "city_gate"
+    "north": "tavern"
   },
   "player_spawn": {
     "x": 12.5,

@@ -2034,6 +2034,20 @@
         "node_16"
       ]
     },
+    "guard_post": {
+      "x": 35.0,
+      "y": 7.0,
+      "label": "Караульня",
+      "role": "guard_post",
+      "tags": [
+        "workplace:guard",
+        "guard_post"
+      ],
+      "connections": [
+        "entrance",
+        "node_15"
+      ]
+    },
     "gate_courtyard": {
       "x": 44.725,
       "y": 10.19,
@@ -2056,7 +2070,8 @@
         "tent_2",
         "tent_5",
         "tent_3",
-        "tent_6"
+        "tent_6",
+        "guard_post"
       ]
     },
     "tent_1": {
@@ -2181,7 +2196,8 @@
         "node_14",
         "guard_bed",
         "entrance",
-        "node_16"
+        "node_16",
+        "guard_post"
       ]
     },
     "node_16": {
@@ -2199,8 +2215,7 @@
   "created_at": "2026-06-09T00:00:00",
   "modified_at": "2026-07-29T21:07:18.032426",
   "adjacency": {
-    "west": "tavern",
-    "south": "market_square"
+    "west": "tavern"
   },
   "player_spawn": {
     "x": 16.5,

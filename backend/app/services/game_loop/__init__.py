@@ -949,18 +949,10 @@ class GameLoop:
         if result is None:
             return {"status": "no_scene", "npc_positions": {}}
 
-        # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
-        # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
-        _all_npcs_raw = result.all_npcs_raw or self._resolve_npcs_snapshot(campaign_id)
-        if result.world_snapshot:
-            _perception = self._project_perception(campaign_id, _scene, _all_npcs_raw)
-            if _perception:
-                import dataclasses
-
-                _new_ws = dataclasses.replace(
-                    result.world_snapshot, player_perception=_perception
-                )
-                result = dataclasses.replace(result, world_snapshot=_new_ws)
+        # BUG-PERC-001 / BUG-CORE-006 FIX: GameLoop больше не перезаписывает perception.
+        # Фаза 9 (integration.py) уже собрала корректный API DTO с observed_facts
+        # и передала его в WorldSnapshotBuilder.build(), где прошла конвертацию.
+        # Повторная проекция здесь приводила к потере observed_facts и структуры DTO.
 
         # S83.1 FIX: Ядро больше не вызывает commit_tick_result.
         # Дополнение Б: Мы уже закоммитили результат внутри цикла.
@@ -1049,6 +1041,9 @@ class GameLoop:
         # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
         if state.shared_context:
             state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
+            # BUG-DLG-003 FIX: Проброс снимка NPC для DM-агента (Block 4.7: Контекст NPC).
+            # Без этого DM LLM не получает описания NPC и генерит пустой нарратив.
+            state.shared_context.all_npcs_raw_snapshot = state.shared_context.all_npcs_raw
 
         if state.shared_context and state.shared_context.scene_state:
             _perception = self._project_perception(
@@ -1639,7 +1634,9 @@ class GameLoop:
                 campaign_state,
                 player_position=player_position,
             )
-            self.scene_manager._tick_scene = scene_state
+            # BUG-CORE-008 FIX: ADR-SCENE-LOCK — _tick_scenes это Dict[str, dict].
+            # Инжект в несуществующий _tick_scene (singular) создавал изолированный атрибут.
+            self.scene_manager._tick_scenes[_loc_id] = scene_state
             self.scene_manager._tick_locked = True
             self.scene_manager._tick_campaign_id = campaign_id
         else:

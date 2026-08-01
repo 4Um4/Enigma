@@ -31,6 +31,7 @@ from app.domain.traversal_schema import (
     MovementPlanStatus,
     TraversalProposal,
 )
+from app.models.spatial_contracts import NodeRole
 from app.services.scene_change import ChangeType, SceneChange
 from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
 
@@ -242,6 +243,9 @@ class MovementEngine:
                         logger.debug(f"[DIAG_BOUNDARY] result={boundary_node}")
                         logger.debug(f"[BORKO_CROSS_BOUNDARY] tick={tick} boundary_node={boundary_node}")
                         if boundary_node:
+                            if not target_loc:
+                                logger.error(f"[CROSS_LOC_MATERIALIZE] target_loc is empty for {intent.actor_id}! Skipping.")
+                                continue
                             # S-04: Проверяем, не стоит ли NPC уже на boundary node.
                             # Используем XY-дистанцию, так как position (node_id) ещё не обновлён до Фазы 8.
                             _npc_data = npc_positions.get(intent.actor_id, {}) if npc_positions else {}
@@ -357,7 +361,9 @@ class MovementEngine:
                 if _npc_id == "guard_borko":
                     logger.debug(f"[BORKO_RELOC] tick={tick} loc={location_id} target={intent.target_node_id} cur_pos={_current_pos} cur_xy={_current_xy}")
                 changes.extend(
-                    self._resolve_macro_relocation(intent, svc, location_id, tick, _current_pos, _current_xy)
+                    self._resolve_macro_relocation(
+                        intent, svc, location_id, tick, npc_positions, campaign_id, scene_state
+                    )
                 )
 
         return changes
@@ -405,13 +411,17 @@ class MovementEngine:
         location_id: str,
         tick: int,
         npc_positions: Optional[Dict],
+        campaign_id: Optional[str] = None,
+        scene_state: Optional[Dict[str, Any]] = None,
     ) -> List[SceneChange]:
         """Обрабатывает один MovementIntent, возвращая список SceneChange."""
         # ADR-060: Строгое разделение физик. Полиморфизм вместо проверки атрибутов.
         if isinstance(intent, LocalSteeringGoal):
             return self._resolve_micro_movement(intent, tick, npc_positions)
 
-        return self._resolve_macro_relocation(intent, svc, location_id, tick)
+        return self._resolve_macro_relocation(
+            intent, svc, location_id, tick, npc_positions, campaign_id, scene_state
+        )
 
     def _resolve_micro_movement(
         self,
@@ -650,10 +660,17 @@ class MovementEngine:
         svc: Any,
         location_id: str,
         tick: int,
-        current_pos: str,
-        current_xy: Dict[str, float],
+        npc_positions: Optional[Dict] = None,
+        campaign_id: Optional[str] = None,
+        scene_state: Optional[Dict[str, Any]] = None,
     ) -> List[SceneChange]:
         """S131: LOD1 макро-перемещение. Делегирует планирование LocalTraversalPlanner'у."""
+        # Получаем текущий узел и координаты NPC из авторитетного состояния
+        _npc_id = intent.actor_id
+        _npc_data = npc_positions.get(_npc_id, {}) if npc_positions else {}
+        current_pos = _npc_data.get("position", "")
+        current_xy = _npc_data.get("local_position", {})
+
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
         if current_pos and current_pos == intent.target_node_id:
             logger.debug(
@@ -722,6 +739,30 @@ class MovementEngine:
         target_xy = (next_node.x, next_node.y)
 
         _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
+
+        # V8-SP-24 FIX: Boundary node micro_snap deadlock
+        if getattr(next_node, "role", None) == NodeRole.BOUNDARY:
+            _b_info = svc.get_boundary_info(next_node.node_id) or {}
+            _materialize_target_loc = _b_info.get("neighbor_chunk", "")
+            _entry_hint = _b_info.get("entry_node_hint", "") or f"{_materialize_target_loc}:entrance"
+            _target_svc = self._resolve_spatial_service(_materialize_target_loc, campaign_id, scene_state) if scene_state else None
+            if _target_svc:
+                _target_node_obj = _target_svc.get_node(_entry_hint.split(":")[-1]) or _target_svc.get_node(_entry_hint)
+                if _target_node_obj:
+                    _active_travs = scene_state.get("active_traversals", {}) if scene_state else {}
+                    if isinstance(_active_travs, dict) and intent.actor_id in _active_travs:
+                        del _active_travs[intent.actor_id]
+                    return [SceneChange(
+                        type=ChangeType.NPC_POSITION, target=intent.actor_id,
+                        field="position", value=_target_node_obj.node_id,
+                        cause=f"cross_loc_materialize:{intent.reason}", tick=tick,
+                        target_location_id=_materialize_target_loc,
+                        target_local_xy=(_target_node_obj.x, _target_node_obj.y),
+                        traversal_proposal=None,
+                    )]
+            logger.error(f"[MICRO_SNAP_BOUNDARY_DEADLOCK] npc={intent.actor_id} next_node={next_node.node_id}")
+            return []
+
         if _dist < 0.1:
             # V8-SP-16 FIX: Обновляем node_id (position), чтобы A* продвигался по маршруту.
             return [

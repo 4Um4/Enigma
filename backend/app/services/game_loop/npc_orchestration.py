@@ -223,7 +223,7 @@ def run_npc_orchestration(
     # ADR-311 FIX: Коммит final_scene_state в SceneStateManager.
     # Без этого все мутации ядра (время, traversals, эмоции) теряются в пути игрока.
     _scene_manager = getattr(game_loop, "scene_manager", None)
-    if _tick_result.final_scene_state is not None and _scene_manager:
+    if _tick_result is not None and _tick_result.final_scene_state is not None and _scene_manager:
         if _scene_manager._tick_campaign_id == campaign_id:
             _scene_manager.commit_tick_result(
                 campaign_id, _tick_result.final_scene_state

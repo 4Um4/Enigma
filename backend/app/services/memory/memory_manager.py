@@ -39,6 +39,9 @@ class MemoryManager:
 
     def __init__(self, layered_memory: LayeredMemory, data_dir: str = "data") -> None:
         self._layered = layered_memory
+        # V8-MEM-16 FIX: threading.RLock для защиты _identity_cache от race condition
+        import threading
+        self._identity_lock = threading.RLock()
         self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
         self._relationships = RelationshipStore(data_dir=data_dir)
         self._tick_counters: Dict[str, int] = {}
@@ -827,13 +830,15 @@ class MemoryManager:
         WRITE: только этот метод пишет в _identity_cache.
         """
         key = f"{campaign_id}:{npc_id}"
-        cache = self._identity_cache.setdefault(key, {})
-        for trait, delta in weights:
-            current = cache.get(trait, 0.0)
-            cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
-        
-        # V8-MEM-7 FIX: Персистируем обновлённый identity_cache
-        self._layered.store.save_state("identity_cache", self._identity_cache)
+        # V8-MEM-16 FIX: Обёрнут в RLock для безопасного read-modify-write
+        with self._identity_lock:
+            cache = self._identity_cache.setdefault(key, {})
+            for trait, delta in weights:
+                current = cache.get(trait, 0.0)
+                cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
+            
+            # V8-MEM-7 FIX: Персистируем обновлённый identity_cache
+            self._layered.store.save_state("identity_cache", self._identity_cache)
 
     def get_identity_traits(
         self,
