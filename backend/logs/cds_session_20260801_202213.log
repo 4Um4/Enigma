@@ -1,0 +1,147 @@
+2026-08-01 20:22:13,750 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260801_202213.log
+2026-08-01 20:22:13,750 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-01 20:22:13,750 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-01 20:22:13,786 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-08-01 20:22:13,795 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-01 20:22:13,820 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-01 20:22:13,834 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-08-01 20:22:13,834 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-08-01 20:22:13,836 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-08-01 20:22:13,838 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-08-01 20:22:13,841 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-08-01 20:22:22,041 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 503 Service Unavailable"
+2026-08-01 20:22:22,113 app.services.state.sqlite_persistence_adapter INFO: [SQLITE_PERSISTENCE] Campaign deleted: Open_road
+2026-08-01 20:22:22,113 app.services.game_loop INFO: [NEW_GAME] SQLite cleared for 'Open_road'
+2026-08-01 20:22:22,114 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_state.json
+2026-08-01 20:22:22,114 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_meta.json
+2026-08-01 20:22:22,124 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,129 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-01 20:22:22,130 app.services.scene_state_manager INFO: [SCENE] Editor JSON: 33 объектов, 7 NPC, spawn_node=entrance
+2026-08-01 20:22:22,132 app.services.scene_state_manager INFO: [SCENE] Инициализирована сцена 'tavern' (время: 12:00, объектов: 34, NPC: 7)
+2026-08-01 20:22:22,132 app.services.scene_state_manager INFO: [SCENE] Campaign 'Open_road' reinitialized from editor, location=tavern
+2026-08-01 20:22:22,144 app.services.game_loop INFO: [NEW_GAME] SQLite playthrough cleared for 'Open_road'
+2026-08-01 20:22:22,144 app.services.game_loop INFO: [NEW_GAME] SQLite memories cleared: 0 rows
+2026-08-01 20:22:22,154 app.services.game_loop INFO: [NEW_GAME] MVP controller initialized for 'Open_road'
+2026-08-01 20:22:22,154 app.services.game_loop INFO: [NEW_GAME] Campaign 'Open_road' fully reset. Removed: ['sqlite:scene+runtime', 'campaign_state.json', 'campaign_meta.json', 'sqlite:memories(0)']
+2026-08-01 20:22:22,177 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,178 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-01 20:22:22,179 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-08-01 20:22:22,179 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 25 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-01 20:22:22,179 app.services.spatial.graph_compiler ERROR: [MAP_TOPOLOGY_DEFECT] Edge tavern:entrance -> tavern:kitchen crosses wall. Removing edge. Blocker: WALL {'x1': 14.0, 'y1': 4.595, 'x2': 14.0, 'y2': 13.0}. Set ENIGMA_STRICT_MAP=1 to crash.
+2026-08-01 20:22:22,179 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:entrance -> tavern:kitchen is geometrically blocked! Edge removed from graph.
+2026-08-01 20:22:22,179 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-01 20:22:22,180 app.services.scene_state_manager WARNING: [S-03_OBSTACLE_RECOVERY] NPC 'guard_borko' застрял внутри препятствия 'obj_2'. Перемещён на безопасный узел 'tavern:corner_table'.
+2026-08-01 20:22:22,182 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,195 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,197 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,475 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,477 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,487 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,489 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,495 app.services.spatial.spatial_registry INFO: [SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=1785331073.6774676)
+2026-08-01 20:22:22,497 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,499 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:22,504 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=1
+2026-08-01 20:22:23,004 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=2
+2026-08-01 20:22:23,485 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=3
+2026-08-01 20:22:23,994 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=4
+2026-08-01 20:22:24,507 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=5
+2026-08-01 20:22:24,999 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=6
+2026-08-01 20:22:25,094 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-08-01 20:22:25,141 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-08-01 20:22:25,536 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=7
+2026-08-01 20:22:26,040 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=8
+2026-08-01 20:22:26,543 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=9
+2026-08-01 20:22:27,035 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=10
+2026-08-01 20:22:27,548 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=11
+2026-08-01 20:22:28,049 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=12
+2026-08-01 20:22:28,569 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=13
+2026-08-01 20:22:29,050 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=14
+2026-08-01 20:22:33,877 app.services.llm.provider_manager INFO: ModelPool[ROUTE] get_model_async('qwen_7b', agent='None')
+2026-08-01 20:22:33,878 app.services.llm.provider_manager INFO: ModelPool: Loaded 'qwen_7b' in 0ms
+2026-08-01 20:22:33,878 app.services.llm.provider_manager INFO: ModelPool[ROUTE] ✓ 'qwen_7b' (VRAM delta=+0MB)
+2026-08-01 20:22:33,882 app.services.simulation.world_state INFO: [WORLD_STATE] WorldState инициализирован
+2026-08-01 20:22:33,883 app.services.game_loop WARNING: [AVATAR] ошибка загрузки: 'CharacterSheet' object has no attribute 'effective_hp'
+2026-08-01 20:22:33,887 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-01 20:22:33,893 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-01 20:22:33,914 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-01 20:22:33,935 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-01 20:22:33,953 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-01 20:22:33,957 app.services.spatial.player_target_pipeline WARNING: [TARGET] Extracted: Купец Горан (merchant_goran)
+2026-08-01 20:22:33,957 app.services.spatial.player_target_pipeline WARNING: [SPATIAL_DATA] result=6/7, has_player=True, player_xy_valid=True, spatial_query=True, distances_sample=[('maid_lusya', 5.18), ('guard_borko', 3.57), ('blacksmith_orm', 2.57)]
+2026-08-01 20:22:33,976 app.services.game_loop.dm_phase WARNING: [EVENT_TYPE] Router classified as: player_interacts
+2026-08-01 20:22:33,976 app.services.scene.scene_event_layer WARNING: [SCENE_EVENTS] 1 events emitted: ['verbal']
+2026-08-01 20:22:33,976 app.services.scene.scene_event_layer WARNING: [SCENE_ACCUM] total=1 events in scene_state
+2026-08-01 20:22:33,977 app.services.game_loop WARNING: [DEBUG DM] is_valid=True, scene_context=SceneContext(location_id='tavern', nearby_npcs=[{'npc_id': 'maid_lusya', 'location_id': 'tavern', 'distance_to_player': 5.18, 'facing_towards_player': True}, {'npc_id': 'guard_borko', 'location_id': 'tavern', 'distance_to_player': 3.57, 'facing_towards_player': True}, {'npc_id': 'blacksmith_orm', 'location_id': 'tavern', 'distance_to_player': 2.57, 'facing_towards_player': True}, {'npc_id': 'tavern_keeper_tornin', 'location_id': 'tavern', 'distance_to_player': 6.93, 'facing_towards_player': True}, {'npc_id': 'thief_shadow', 'location_id': 'tavern', 'distance_to_player': 8.29, 'facing_towards_player': True}, {'npc_id': 'merchant_goran', 'location_id': 'tavern', 'distance_to_player': 0.44, 'facing_towards_player': True}], visible_objects={'obj_0': {'name': 'Барная стойка #1', 'type': 'bar', 'state': 'intact', 'position': {'x': 4.778010666666667, 'y': 3.8218479999999992}, 'size': {'w': 2.94, 'h': 0.89, 'd': 1.2}, 'interactable': True}, 'obj_2': {'name': 'Стол #3', 'type': 'table', 'state': 'intact', 'position': {'x': 12.025, 'y': 7.85}, 'size': {'w': 1.5, 'h': 1.5, 'd': 0.8}, 'interactable': True}, 'obj_5': {'name': 'Декорация №1', 'type': 'decoration', 'state': 'intact', 'position': {'x': 6.602141203703703, 'y': 12.597125771604938}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}, 'obj_6': {'name': 'Декорация №2', 'type': 'decoration', 'state': 'intact', 'position': {'x': 9.530478395061728, 'y': 12.657407407407408}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}, 'obj_7': {'name': 'Стол №3', 'type': 'table', 'state': 'intact', 'position': {'x': 5.325, 'y': 10.0}, 'size': {'w': 1.5, 'h': 0.9, 'd': 0.8}, 'interactable': True}}, environmental_modifiers={'light': 1.0, 'noise': 0.0, 'density': 0.0, 'danger': 0.0}, line_of_sight={'maid_lusya': True, 'guard_borko': True, 'blacksmith_orm': True, 'tavern_keeper_tornin': True, 'thief_shadow': True, 'merchant_goran': True}), error=None
+2026-08-01 20:22:36,018 app.services.game_loop WARNING: [PAYLOAD_INJECT] hub_event.payload={'semantic_action': 'UNCERTAIN'} id=2109189581520 event_type=player_interacts
+2026-08-01 20:22:36,019 app.services.game_loop.phase_1_input WARNING: [SEMANTIC_BRIDGE] Extracted: action=UNCERTAIN, target=None, id=
+2026-08-01 20:22:36,019 app.services.events.event_bus INFO: [EVENT_BUS] PLAYER_SPOKE от 'player' → 3 обработчиков, 0 результатов
+2026-08-01 20:22:36,019 app.services.game_loop.phase_1_input WARNING: [EVENT_BUS] Published: PLAYER_SPOKE, target=merchant_goran, action_type=player_interacts
+2026-08-01 20:22:36,036 app.services.npc.life_engine WARNING: [LIFE_ENGINE] get_npc_states: кэш пуст для 'Open_road'. Ни cache, ни SQLite, ни static config не содержат данных.
+2026-08-01 20:22:36,039 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-01 20:22:36,041 app.services.social.social_engine INFO: [SOCIAL] Loaded 24 edges (22 defined, 2 reverse defaults)
+2026-08-01 20:22:36,041 app.services.game_loop.service_factories INFO: [SOCIAL] Engine initialized (6 NPCs in graph)
+2026-08-01 20:22:36,063 app.services.game_loop.service_factories INFO: [ECO] Initialized 6 economic profiles for Open_road
+2026-08-01 20:22:36,064 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=15
+2026-08-01 20:22:36,064 app.services.game_loop ERROR: [GAME_LOOP] DM/NPC phase error: 'TickOrchestrator' object has no attribute 'scene_manager'
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1772, in _run_pipeline
+    _player_result = run_npc_orchestration(
+        self,
+    ...<7 lines>...
+        tick_orchestrator=self._tick_orch,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\npc_orchestration.py", line 200, in run_npc_orchestration
+    _loc_result = tick_orchestrator.execute(
+        campaign_id=campaign_id,
+    ...<8 lines>...
+        location_ids=_location_ids,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 405, in execute
+    _extra_scene = self.scene_manager.get_scene_state(campaign_id, _loc_id)
+                   ^^^^^^^^^^^^^^^^^^
+AttributeError: 'TickOrchestrator' object has no attribute 'scene_manager'. Did you mean: '_scene_manager'?
+2026-08-01 20:22:36,090 app.services.game_loop WARNING: [RULES] action_type=player_interacts → SANDBOX_MILD (synchronous reducer)
+2026-08-01 20:22:36,138 app.services.scene.r3_direct_builder WARNING: [R3_DIRECT] 0 decisions → DMFrame (focus=0, bg=0)
+2026-08-01 20:22:36,139 app.services.game_loop WARNING: [AVATAR] STATE APPLIED: pain=0.0 shock=0.00 money=48.0 hp=0.0
+2026-08-01 20:22:36,183 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_PRODUCE] npc_pos_count=7 all_npcs_raw_count=7
+2026-08-01 20:22:36,183 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_BM] npc=maid_lusya has_bs=True fatigue=0.0 stress=0.0 affect=0.0 pain=0.0 shock=0.0
+2026-08-01 20:22:36,183 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_TRACE_GEN] npc=maid_lusya rigid=0.00 instab=0.00 mpd=0.00
+2026-08-01 20:22:36,183 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_BM] npc=guard_borko has_bs=True fatigue=0.0 stress=0.0 affect=0.0 pain=0.0 shock=0.0
+2026-08-01 20:22:36,183 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_TRACE_GEN] npc=guard_borko rigid=0.00 instab=0.00 mpd=0.00
+2026-08-01 20:22:36,183 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_BM] npc=blacksmith_orm has_bs=True fatigue=0.0 stress=0.0 affect=0.0 pain=0.0 shock=0.0
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_TRACE_GEN] npc=blacksmith_orm rigid=0.00 instab=0.00 mpd=0.00
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_BM] npc=tavern_keeper_tornin has_bs=True fatigue=0.0 stress=0.0 affect=0.0 pain=0.0 shock=0.0
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_TRACE_GEN] npc=tavern_keeper_tornin rigid=0.00 instab=0.00 mpd=0.00
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_BM] npc=thief_shadow has_bs=True fatigue=0.0 stress=0.0 affect=0.0 pain=0.0 shock=0.0
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_TRACE_GEN] npc=thief_shadow rigid=0.00 instab=0.00 mpd=0.00
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_BM] npc=merchant_goran has_bs=True fatigue=0.0 stress=0.0 affect=0.0 pain=0.0 shock=0.0
+2026-08-01 20:22:36,184 app.services.perception.behavior_manifestation_service INFO: [ARCHAE_TRACE_GEN] npc=merchant_goran rigid=0.00 instab=0.00 mpd=0.00
+2026-08-01 20:22:36,184 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-08-01 20:22:36,289 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-01 20:22:36,309 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-01 20:22:36,313 root INFO: [R4A_WORKER] direct sync call, capability=Capability.NARRATIVE
+2026-08-01 20:22:36,313 root INFO: [R4A_POOL] active_model=qwen_7b
+2026-08-01 20:22:36,344 root INFO: [R4A_POOL] calling complete() on qwen_7b...
+2026-08-01 20:22:37,931 root INFO: [R4A_POOL] complete() returned 164 chars in 1619ms
+2026-08-01 20:22:37,931 root INFO: [R4A_WORKER] returned 164 chars
+2026-08-01 20:22:37,989 app.services.events.event_bus INFO: [EVENT_BUS] EventType.NPC_SPOKE от 'Купец Горан' → 4 обработчиков, 0 результатов
+2026-08-01 20:22:38,009 app.services.game_loop INFO: [RECOG_MEMORY] Dialogue trigger (Pre-Commit): NPC merchant_goran confidence=1.0
+2026-08-01 20:22:38,038 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=7 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=7.98736111111111 y=1.8263888888888888
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=11.0 y=10.0
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=10.5 y=4.0
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=4.5 y=2.5
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=2.6 y=10.0
+2026-08-01 20:22:38,038 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=10.1 y=6.1
+2026-08-01 20:22:43,838 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:43,840 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:43,858 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:43,859 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:43,862 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:43,863 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-01 20:22:43,864 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=16
+2026-08-01 20:22:44,374 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=17
+2026-08-01 20:22:44,875 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=18
+2026-08-01 20:22:45,391 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2109188514416 tick=19

@@ -48,7 +48,7 @@ class LocalTraversalPlanner:
         for wall in geometry.walls:
             dist_sq = segments_distance_sq(src, tgt, (wall.x1, wall.y1), (wall.x2, wall.y2))
             if math.sqrt(dist_sq) - body.radius < 0:
-                print(f"[CLEARANCE_FAIL] src={src} tgt={tgt} body_radius={body.radius} wall=({wall.x1},{wall.y1})-({wall.x2},{wall.y2}) dist={math.sqrt(dist_sq):.2f}")
+                logger.debug(f"[CLEARANCE_FAIL] src={src} tgt={tgt} body_radius={body.radius} wall=({wall.x1},{wall.y1})-({wall.x2},{wall.y2}) dist={math.sqrt(dist_sq):.2f}")
                 return TraversalPlan(possible=False, reason="WALL_CLEARANCE_BLOCKED")
 
         # 2. Сбор всех препятствий на пути

@@ -322,7 +322,11 @@ class SceneStateManager:
         """Загружает scene_state из persistence БЕЗ кэша.
         Используется внутри lock_for_tick() для первичной загрузки."""
         if self._persistence:
-            scene = self._persistence.load_scene(campaign_id)
+            # V8-SP-29 FIX: используем load_scene_at для правильной per-location загрузки
+            if location_id:
+                scene = self._persistence.load_scene_at(campaign_id, location_id)
+            else:
+                scene = self._persistence.load_scene(campaign_id)
             if scene:
                 try:
                     _recog = scene.get("player_recognition", {})
@@ -415,7 +419,11 @@ class SceneStateManager:
             return self._tick_scenes[location_id]
         # Устав 4.2.1: читаем из порта (SQLite) если доступен
         if self._persistence:
-            scene = self._persistence.load_scene(campaign_id)
+            # V8-SP-29 FIX: используем load_scene_at для правильной per-location загрузки
+            if location_id:
+                scene = self._persistence.load_scene_at(campaign_id, location_id)
+            else:
+                scene = self._persistence.load_scene(campaign_id)
             if scene:
                 try:
                     _recog = scene.get("player_recognition", {})

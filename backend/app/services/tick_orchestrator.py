@@ -142,7 +142,7 @@ class TickOrchestrator:
         self.crystallized_belief_store = CrystallizedBeliefStore(store=store)
         # ReputationEngine для reputation decay
         self._reputation_engine: Any = None
-        # DRF: Instance-level causal bus — переживает execute() / execute_player_finalize()
+        # DRF: Instance-level causal bus — переживает execute()
         self._drf_bus: DRFBus = DRFBus()
         # ADR-O-201 ФАЗА 1: Dual Rail Execution (Shadow Observer)
         self._event_compiler: EventCompiler = EventCompiler()
@@ -178,8 +178,7 @@ class TickOrchestrator:
             self._topology_provider.set_spatial_service(self._spatial_service)
             return self._spatial_service
 
-        # 1.5. Кэш текущего тика: tick_player_turn уже резолвил сервис,
-        # но execute_player_finalize создаёт новый _TickContext без npc_services (ADR-065).
+        # 1.5. Кэш текущего тика: execute() создаёт _TickContext с npc_services (ADR-065).
         # Переиспользуем уже установленный сервис вместо аварийной сборки.
         if self._spatial_service:
             return self._spatial_service
@@ -400,24 +399,63 @@ class TickOrchestrator:
 
         # Дополнение Б: Определяем список локаций для тика
         _all_scenes = {scene_state.get("location_id", "default"): scene_state}
-        if location_ids and active_location_id:
-            # В будущем здесь будет загрузка всех сцен через SceneStateManager
-            # Пока что передаем только текущую сцену, но регистрируем остальные локации
-            pass
+        if location_ids:
+            for _loc_id in location_ids:
+                if _loc_id not in _all_scenes:
+                    _extra_scene = self._scene_manager.get_scene_state(campaign_id, _loc_id)
+                    if _extra_scene:
+                        _all_scenes[_loc_id] = _extra_scene
 
-        # Обрабатываем только текущую сцену (совместимость с текущим GameLoop)
-        # В будущем здесь будет цикл по всем локациям
-        ctx = create_tick_context(
-            campaign_id=campaign_id,
-            scene_state=scene_state,
-            tick_number=tick_number,
-            interventions=interventions,
-            npc_services=npc_services,
-            drf_bus=self._drf_bus,
-            all_npcs_raw=all_npcs_raw,
-            shared_context=shared_context,
-            task_scheduler=task_scheduler,
-        )
+        _tick_results = []
+        _final_result = None
+        for _loc_id, _scene in _all_scenes.items():
+            _is_active = (_loc_id == active_location_id) if active_location_id else True
+            
+            ctx = create_tick_context(
+                campaign_id=campaign_id,
+                scene_state=_scene,
+                tick_number=tick_number,
+                interventions=interventions if _is_active else [],
+                npc_services=npc_services,
+                drf_bus=self._drf_bus,
+                all_npcs_raw=all_npcs_raw,
+                shared_context=shared_context,
+                task_scheduler=task_scheduler,
+            )
+            self._rebuild_cluster_occupancy(ctx)
+
+            _tick_fully = True
+
+            import time as _time
+            _start_time = _time.time()
+            
+            try:
+                self._run_core_phases(ctx, tick_fully=_tick_fully)
+            except Exception as e:
+                logger.error(
+                    f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} loc={_loc_id} error={e}"
+                )
+                logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id} (loc={_loc_id}): {e}", exc_info=True)
+                return TickResultDTO(status="error", error=str(e))
+            finally:
+                # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
+                self._get_event_bus().detach_cfrm_bridge()
+
+            _res = TickResultDTO(
+                status="success",
+                world_snapshot=ctx.world_snapshot,
+                npc_contexts=ctx.npc_contexts,
+                final_scene_state=ctx.scene_state,
+            )
+            _tick_results.append(_res)
+            if _is_active:
+                _final_result = _res
+
+        if _final_result is None and _tick_results:
+            _final_result = _tick_results[0]
+        if _final_result is None:
+            _final_result = TickResultDTO(status="error", error="No scenes ticked")
+        return _final_result
 
         # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
         self._rebuild_cluster_occupancy(ctx)

@@ -77,31 +77,58 @@ def main():
             if answer:
                 temp_dir = tempfile.gettempdir()
                 assets = release.get('assets', [])
-                setup_exe_url = None
-                bin_urls = []
-                for asset in assets:
-                    if asset['name'].endswith('.exe'):
-                        setup_exe_url = asset['browser_download_url']
-                    elif asset['name'].endswith('.bin'):
-                        bin_urls.append(asset['browser_download_url'])
                 
-                if setup_exe_url:
-                    setup_path = os.path.join(temp_dir, "bloodloom_setup_update.exe")
-                    if download_file(setup_exe_url, setup_path):
-                        all_downloaded = True
-                        for i, bin_url in enumerate(bin_urls, 1):
-                            bin_path = os.path.join(temp_dir, f"bloodloom_setup_update-{i}.bin")
+                # Проверяем, нужна ли модель
+                model_path = os.path.join(app_dir, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf")
+                need_models = not os.path.exists(model_path)
+                
+                main_setup_url = None
+                models_setup_url = None
+                models_bin_urls = []
+                
+                for asset in assets:
+                    if asset['name'] == 'Bloodloom_models_setup.exe':
+                        models_setup_url = asset['browser_download_url']
+                    elif asset['name'].startswith('Bloodloom_models_setup') and asset['name'].endswith('.bin'):
+                        models_bin_urls.append(asset['browser_download_url'])
+                    elif asset['name'].endswith('.exe') and not asset['name'].startswith('Bloodloom_models'):
+                        main_setup_url = asset['browser_download_url']
+                
+                # 1. Скачиваем основной патч (всегда)
+                if main_setup_url:
+                    main_path = os.path.join(temp_dir, "bloodloom_main_update.exe")
+                    if download_file(main_setup_url, main_path):
+                        try:
+                            subprocess.run([main_path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NOCANCEL", "/NORESTART"], check=True)
+                        except Exception:
+                            pass
+                
+                # 2. Скачиваем модели (только если их нет)
+                if need_models and models_setup_url:
+                    root = tk.Tk()
+                    root.withdraw()
+                    messagebox.showinfo("Bloodloom", "AI-модель не найдена. Начинается загрузка (около 5 ГБ). Это займет время.")
+                    root.destroy()
+                    
+                    models_path = os.path.join(temp_dir, "bloodloom_models_update.exe")
+                    if download_file(models_setup_url, models_path):
+                        all_models_downloaded = True
+                        for i, bin_url in enumerate(models_bin_urls, 1):
+                            bin_path = os.path.join(temp_dir, f"bloodloom_models_update-{i}.bin")
                             if not download_file(bin_url, bin_path):
-                                all_downloaded = False
+                                all_models_downloaded = False
                                 break
-                        if all_downloaded:
+                        
+                        if all_models_downloaded:
                             try:
-                                subprocess.run([setup_path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NOCANCEL", "/NORESTART"], check=True)
+                                subprocess.run([models_path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NOCANCEL", "/NORESTART"], check=True)
                             except Exception:
                                 pass
 
     # ЗАПУСК ИГРЫ
-    launcher_path = os.path.join(app_dir, "game_launcher.py")
+    launcher_path = os.path.join(app_dir, "game_launcher.pyc")
+    if not os.path.exists(launcher_path):
+        launcher_path = os.path.join(app_dir, "game_launcher.py") # Фоллбэк для разработки
     if os.path.exists(launcher_path):
         # Ищем портативный Python в _internal/python/ (согласно Дополнению А, п. А.2)
         portable_python = os.path.join(app_dir, "_internal", "python", "python.exe")

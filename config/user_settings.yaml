@@ -1,5 +1,6 @@
 ai_model:
   model: qwen_7b
+  path: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
 audio:
   volume: 80
 content:
@@ -14,11 +15,13 @@ content:
 controls:
   keybindings: {}
 graphics:
-  display_mode: windowed
+  display_mode: exclusive
   resolution:
-    height: 1050
-    width: 1680
+    height: 1440
+    width: 2560
 interface:
   language: ru
 performance:
+  context_size: 8192
+  temperature: 0.8
   workers: 2

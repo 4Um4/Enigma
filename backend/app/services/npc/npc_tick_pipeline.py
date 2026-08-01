@@ -500,17 +500,6 @@ class NpcTickPipeline:
             _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
             _idle_pressure_updates[_key] = _new_pressure
 
-            # V8-SOC-5 FIX: Накопление idle_pressure
-            _key = (state.campaign_id, npc_id)
-            _current_pressure = state.idle_pressure_map.get(_key, 0.0)
-            _intent_val = decision.intent.value if decision.intent else "none"
-            if decision.intent and _intent_val != "idle":
-                _pressure_delta = decision.score * IDLE_PRESSURE_ACCUM_RATE
-            else:
-                _pressure_delta = -_current_pressure * IDLE_PRESSURE_DECAY_RATE
-            _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
-            _idle_pressure_updates[_key] = _new_pressure
-
             _is_move_command = False
             if state.hub_event:
                 _payload = getattr(state.hub_event, "payload", {})
