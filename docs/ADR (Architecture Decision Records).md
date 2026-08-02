@@ -141,6 +141,11 @@ DM-агент — строгий локальный наблюдатель. Чи
 - Taboo: ❌ Чтение `stress_delta`, `real_state`, `recalled_facts` в DM-слое. ❌ Возврат `dm_frame` из ядра симуляции.
 - Files: agents/dm_agent.py, scene/r3_direct_builder.py, world_projection_buffer.py
 
+**L16.1: Three-Channel Presentation & Body Topology Law** (ADR-O-331, S147)
+`WorldSnapshotDTO` расширен независимыми каналами `VisualDTO` и `AudibleDTO`, рождёнными из `PerceivedSignals` в `PresentationAssembler`. Запрет `Visual First`: DTO не зависят друг от друга и от `NarrativeDTO`. Инвентарь игрока переведён со строковых списков на `BodyTopology` (D&D 5e Encumbrance + Bulk System). `scene_state["player_body_topology"]` — единственный SSOT.
+- Taboo: ❌ Чтение `player_inventory_snapshot` (legacy). ❌ Генерация `VisualDTO` на основе `NarrativeDTO`. ❌ Использование `Item` без учёта `weight` и `bulk`.
+- Files: domain/body.py, domain/presentation.py, services/body/body_topology_service.py, services/perception/presentation_assembler.py
+
 ---
 
 ## DOM-10: IDENTITY & ONTOLOGY
@@ -173,3 +178,22 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — динам�
 Двухслойная защита: IPT (до коммита) и InvariantHealthChecker (post-mortem). CDS — пассивный аудитор. Ошибки онтологии (`NaN`, `sum(drives)!=1.0`) убивают тик громко (`OntologyViolationError`). Линтер `ruff check .` обязателен.
 - Taboo: ❌ Перехват `SimulationIntegrityError` через `try/except`. ❌ Коммит с нарушением bounds. ❌ Использование `print()` в production (только `logger.debug`).
 - Files: backend/tests/IPT.py, diagnostics/invariant_health.py, ruff.toml
+
+## ADR-O-328: Dual Rail Boundary Consistency [ONTO]
+> **Статус:** ACTIVE
+> **Домен:** DOM-04 (Spatial & Locomotion), DOM-08 (Observability)
+> **Сессия:** S148
+
+**Контекст:** 
+При `cross_loc_materialize` возникал Causal Drift (Class D), так как `EquivalenceValidator` сравнивал мутированное состояние Legacy (где локация уже обновлена) со снимком Shadow (где локация старая). Это приводило к `True != False` и блокировало ФАЗУ 3.
+
+**Решение:**
+1. Вычисление `is_boundary` в `validation.py` основывается на `SceneChange.cause` (`"cross_loc_materialize" in cause`), а не на сравнении мутированного state с snapshot.
+2. `EventCompiler` гарантирует `is_boundary=True` для `cross_loc_materialize`.
+3. `MovementEngine` не создаёт `SceneChange` с `cross_loc_materialize` без `target_location_id`.
+4. `DriftLaboratory` внедряет *Ground Truth Validator* и *Valid Comparisons Tracking* для честной оценки готовности ФАЗЫ 3.
+
+**Taboo:**
+- ❌ Вычисление `legacy_is_boundary` на основе `scene_state["npc_positions"][npc_id]["location_id"]` (мутированное состояние).
+- ❌ Создание `SceneChange` с `cause="cross_loc_materialize"` без `target_location_id`.
+- ❌ Объявление ФАЗЫ 3 готовой при наличии крашнувшихся тиков или < 100k comparisons.

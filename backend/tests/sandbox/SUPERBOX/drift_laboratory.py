@@ -54,7 +54,7 @@ class DriftConfig:
     """Настройки drift-эксперимента."""
 
     campaign_id: str = "Open_road"
-    location_id: str = "tavern_silver_wolf"
+    location_id: str = "tavern"  # ADR-O-327: Реальная локация в кампании Open_road
 
     # Режимы
     mass_traversal_ticks: int = 200  # Уменьшено до 200 тиков для быстрого smoke-test (ADR-O-324)
@@ -90,6 +90,7 @@ class DriftSnapshot:
     drift_D: int = 0  # Causal
     drift_E: int = 0  # Ontological
     elapsed_seconds: float = 0.0
+    crashed_ticks: int = 0  # Тики, упавшие с исключением (накопительно)
 
 
 @dataclass
@@ -106,6 +107,11 @@ class DriftResult:
         return self.snapshots[-1].total_comparisons if self.snapshots else 0
 
     @property
+    def crashed_ticks(self) -> int:
+        """Общее количество крашнувшихся тиков за эксперимент."""
+        return self.snapshots[-1].crashed_ticks if self.snapshots else 0
+
+    @property
     def has_structural_drift(self) -> bool:
         """True если обнаружен Class C/D/E drift."""
         return any(s.drift_C > 0 or s.drift_D > 0 or s.drift_E > 0 for s in self.snapshots)
@@ -114,10 +120,13 @@ class DriftResult:
     def phase3_ready(self) -> bool:
         """True если можно переходить к ФАЗЕ 3 surgery.
 
-        S103: Порог 100k comparisons ОТМЕНЁН. При 317 comparisons
-        drift_B=134 (42.3%) доказал двойное создание traversal
-        без накопления статистики. C/D/E drift всё ещё блокирует.
+        ADR-O-201: Жесткие критерии — 100k comparisons, 0 C/D/E drift, 0 crashed ticks.
+        Любой краш тика делает статистику невалидной (незавершённый pipeline).
         """
+        if self.crashed_ticks > 0:
+            return False
+        if self.total_comparisons < 100_000:
+            return False
         return not self.has_structural_drift
 
 
@@ -370,7 +379,7 @@ class DriftLaboratory:
     # ─── Сбор статистики ─────────────────────────────────────────────
 
     def _collect_drift_snapshot(self, tick: int, start_time: float) -> DriftSnapshot:
-        """Читает _drift_stats из TickOrchestrator."""
+        """Читает _drift_stats из TickOrchestrator и добавляет crashed_ticks."""
         stats = self._orchestrator._drift_stats
         return DriftSnapshot(
             tick=tick,
@@ -381,7 +390,50 @@ class DriftLaboratory:
             drift_D=stats.get("drift_D", 0),
             drift_E=stats.get("drift_E", 0),
             elapsed_seconds=time.time() - start_time,
+            crashed_ticks=self._crashed_ticks,
         )
+
+    def _validate_ground_truth(self, tick: int) -> bool:
+        """Ground Truth Validator: независимая проверка целостности scene_state.
+
+        Проверяет базовые инварианты, не зависящие от согласия Legacy/Shadow:
+        - npc_positions существует
+        - каждый NPC имеет location_id
+        - каждый NPC имеет local_position с координатами
+        - координаты не (0.0, 0.0) если это невалидная позиция (SC-1)
+        """
+        if not self._scene_state:
+            self._scene_state = self._scene_manager.get_scene_state(
+                self.config.campaign_id, self.config.location_id
+            ) or {}
+            
+        npc_pos = self._scene_state.get("npc_positions", {})
+        if not npc_pos:
+            print(f"  [GROUND_TRUTH] tick={tick} FAIL: npc_positions is empty")
+            return False
+            
+        for npc_id, pos_data in npc_pos.items():
+            if not isinstance(pos_data, dict):
+                print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: pos_data is not dict")
+                return False
+                
+            loc = pos_data.get("location_id", pos_data.get("location", ""))
+            if not loc:
+                print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: missing location_id")
+                return False
+                
+            lp = pos_data.get("local_position")
+            if not isinstance(lp, dict) or "x" not in lp or "y" not in lp:
+                print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: invalid local_position")
+                return False
+                
+            # SC-1: local_position не может быть (0.0, 0.0), если это не валидная координата
+            # В тестовых картах (0.0, 0.0) обычно означает неинициализированную позицию
+            if lp.get("x", 1.0) == 0.0 and lp.get("y", 1.0) == 0.0:
+                print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: position is (0.0, 0.0) — SC-1 violation")
+                return False
+                
+        return True
 
     def _run_idle_ticks(self, count: int, result: DriftResult) -> None:
         """Запускает idle тики через реальный GameLoop.idle_tick().
@@ -395,6 +447,15 @@ class DriftLaboratory:
 
         for tick in range(1, count + 1):
             self._run_idle_tick_direct()
+            
+            # Актуализируем scene_state после тика
+            self._scene_state = self._scene_manager.get_scene_state(
+                self.config.campaign_id, self.config.location_id
+            ) or {}
+            
+            # Ground Truth Validator
+            if not self._validate_ground_truth(tick):
+                self._crashed_ticks += 1
 
             # Периодический срез
             if tick - last_snapshot >= self.config.snapshot_interval:
@@ -426,6 +487,7 @@ class DriftLaboratory:
         except Exception as e:
             # Логируем но не крашим — лаборатория должна работать дальше
             print(f"  [DRIFT_LAB] idle_tick error: {type(e).__name__}: {e}")
+            self._crashed_ticks += 1
 
     # ─── Режимы экспериментов ───────────────────────────────────────
 
@@ -436,6 +498,7 @@ class DriftLaboratory:
         Проверяет: topology, boundary, traversal drift.
         """
         print(f"\n--- MODE A: Mass Traversal ({self.config.mass_traversal_ticks} ticks) ---")
+        self._crashed_ticks = 0
         self._run_idle_ticks(self.config.mass_traversal_ticks, result)
 
     def _mode_save_load_storm(self, result: DriftResult) -> None:
@@ -459,6 +522,15 @@ class DriftLaboratory:
 
         for tick in range(1, self.config.save_load_storm_ticks + 1):
             self._run_idle_tick_direct()
+
+            # Актуализируем scene_state после тика
+            self._scene_state = self._scene_manager.get_scene_state(
+                self.config.campaign_id, self.config.location_id
+            ) or {}
+            
+            # Ground Truth Validator
+            if not self._validate_ground_truth(tick):
+                self._crashed_ticks += 1
 
             # Save/Load цикл — полный pipeline (scene_state + NPC dicts)
             if tick % self.config.save_load_interval == 0:
@@ -1294,12 +1366,14 @@ class DriftReporter:
 
         # Основные показатели
         print(f"\n  Всего сравнений (comparisons): {r.total_comparisons:,}")
+        print(f"  Крашенных тиков (crashed):     {r.crashed_ticks:,}")
         print("  Целевой порог ФАЗЫ 3:          100 000")
         print(f"  Порог пройден:                  {'ДА ✅' if r.total_comparisons >= 100_000 else 'НЕТ ❌'}")
 
         # Структурный drift
         has_structural = r.has_structural_drift
         print(f"\n  Структурный дрейф (C/D/E):      {'ОБНАРУЖЕН ⚠️' if has_structural else 'НЕТ ✅'}")
+        print(f"  Краши тиков:                   {'ЕСТЬ ⚠️' if r.crashed_ticks > 0 else 'НЕТ ✅'}")
         print(f"  Готовность к ФАЗЕ 3:            {'ДА ✅' if r.phase3_ready else 'НЕТ ❌'}")
 
         if not r.snapshots:

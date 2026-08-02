@@ -120,12 +120,20 @@ class WorldTokenBudget:
         if npc_list:
             result["npcs"] = npc_list
 
-        # 3. Инвентарь игрока
-        inventory = scene_state.get("player_inventory_snapshot", {})
-        if inventory and remaining > 50:
-            inv_tokens = _estimate_tokens(inventory)
+        # 3. Инвентарь игрока (ТЗ Presentation v2.0: BodyTopology)
+        topo_data = scene_state.get("player_body_topology")
+        if topo_data and remaining > 50:
+            from app.services.body.body_topology_service import BodyTopologyService
+            
+            topo = BodyTopologyService.deserialize(topo_data)
+            inv_dict = {}
+            for slot in topo.all_slots():
+                for item in topo.contents.get(slot.slot_id, ()):
+                    inv_dict[item.item_id] = inv_dict.get(item.item_id, 0) + 1
+                    
+            inv_tokens = _estimate_tokens(inv_dict)
             if inv_tokens <= remaining:
-                result["player_inventory"] = inventory
+                result["player_inventory"] = inv_dict
                 remaining -= inv_tokens
 
         # 4. Последние события (Устав §2.1: EventDTO → dict для context slice)

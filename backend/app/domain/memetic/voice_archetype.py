@@ -10,7 +10,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional
 
-import yaml
+# BUG-V68-003 FIX: Безопасный импорт yaml. Если пакет отсутствует, возвращаем пустой профиль.
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 logger = logging.getLogger(__name__)
 

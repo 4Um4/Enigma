@@ -499,6 +499,7 @@ class GameScreen:
         self.screen = screen
         self.show_obs_console = False  # Консоль наблюдений (клавиша Ё)
         self.show_journal = False  # ADR-JOURNAL: Журнал диалогов (клавиша J / О)
+        self.show_inventory = False  # P8: Панель инвентаря (клавиша I)
         # S128: Вкладки журнала (по спикерам)
         self._journal_active_tab = "all"  # ID активной вкладки ("all" или speaker_id)
         self._journal_tab_rects = []  # Хитбоксы вкладок для кликов мышью
@@ -723,6 +724,9 @@ class GameScreen:
                         self.show_journal = not self.show_journal
                         if not self.show_journal:
                             self._journal_active_tab = "all"  # Сброс вкладки при закрытии
+                    # P8: Переключение панели инвентаря (I / Русская Ш)
+                    elif not text_input.focused and event.key == pygame.K_i:
+                        self.show_inventory = not self.show_inventory
 
                     # S128: Обработка кликов по вкладкам журнала
                     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -1091,9 +1095,16 @@ class GameScreen:
                 # ADR-035: Извлечение феноменологической проекции аватара (Визуальное искажение)
                 if "avatar_state" in _ws:
                     scene_state["avatar_state"] = _ws["avatar_state"]
-                # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
+
                 if "player_perception" in _ws:
                     scene_state["player_perception"] = _ws["player_perception"]
+
+                if "player_body_topology" in _ws:
+                    scene_state["player_body_topology"] = _ws["player_body_topology"]
+                if "visual_dto" in _ws:
+                    scene_state["visual_dto"] = _ws["visual_dto"]
+                if "audible_dto" in _ws:
+                    scene_state["audible_dto"] = _ws["audible_dto"]
 
                 # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (idle_tick)
                 _recent_d = _ws.get("recent_dialogues", [])
@@ -1391,6 +1402,12 @@ class GameScreen:
                         # ADR-035: Обновление феноменологической проекции аватара при действии
                         if "avatar_state" in _action_ws:
                             scene_state["avatar_state"] = _action_ws["avatar_state"]
+                        if "player_body_topology" in _action_ws:
+                            scene_state["player_body_topology"] = _action_ws["player_body_topology"]
+                        if "visual_dto" in _action_ws:
+                            scene_state["visual_dto"] = _action_ws["visual_dto"]
+                        if "audible_dto" in _action_ws:
+                            scene_state["audible_dto"] = _action_ws["audible_dto"]
                         # ADR-019 FIX: Синхронизация tick для traversal интерполяции.
                         # Без этого _resolve_visual_xy всегда видит progress=0 → NPC стоят.
                         _ws_tick = _action_ws.get("tick")
@@ -1443,6 +1460,12 @@ class GameScreen:
                             scene_state["avatar_state"] = result.response[
                                 "avatar_state"
                             ]
+                        if "player_body_topology" in result.response:
+                            scene_state["player_body_topology"] = result.response["player_body_topology"]
+                        if "visual_dto" in result.response:
+                            scene_state["visual_dto"] = result.response["visual_dto"]
+                        if "audible_dto" in result.response:
+                            scene_state["audible_dto"] = result.response["audible_dto"]
                         # ADR-019 FIX: Синхронизация tick для traversal интерполяции (fallback)
                         _resp_tick = result.response.get("tick")
                         if _resp_tick is not None:
@@ -1637,6 +1660,14 @@ class GameScreen:
                             )
                         else:
                             self._resistance_visual_intensity = 0.0
+
+                    # ТЗ Presentation v2.0: Сохраняем новые DTO из ответа
+                    if hasattr(result.response, "player_body_topology") and result.response.player_body_topology:
+                        scene_state["player_body_topology"] = result.response.player_body_topology
+                    if hasattr(result.response, "visual_dto") and result.response.visual_dto:
+                        scene_state["visual_dto"] = result.response.visual_dto
+                    if hasattr(result.response, "audible_dto") and result.response.audible_dto:
+                        scene_state["audible_dto"] = result.response.audible_dto
 
                     # npc_reactions → речевые облачка над головой NPC (не в чат!)
                     for npc_r in result.response.npc_reactions or []:
@@ -2108,10 +2139,112 @@ class GameScreen:
                     _journal_surf, (self.screen.get_width() - _panel_width, 0)
                 )
 
+            # P8: Отрисовка панели инвентаря
+            if self.show_inventory and isinstance(scene_state, dict):
+                self._draw_inventory_panel(scene_state)
+
             pygame.display.flip()
             self.clock.tick(60)
 
     # ── UI методы ──────────────────────────────────────────────────────
+
+    def _draw_inventory_panel(self, scene_state: dict) -> None:
+        """Отрисовка панели инвентаря (BodyTopology). P8: Спринт инвентаря."""
+        _topo_dict = scene_state.get("player_body_topology")
+        if not _topo_dict:
+            return
+
+        _panel_width = self.screen.get_width() // 3
+        _inv_surf = pygame.Surface(
+            (_panel_width, self.screen.get_height()), pygame.SRCALPHA
+        )
+        _inv_surf.fill((20, 20, 30, 220))
+
+        _font_title = pygame.font.Font(None, 32)
+        _title_surf = _font_title.render("ИНВЕНТАРЬ", True, COLOR_JOURNAL_TITLE)
+        _inv_surf.blit(_title_surf, (15, 15))
+
+        _font_slot = pygame.font.Font(None, 26)
+        _font_item = pygame.font.Font(None, 22)
+        _font_stats = pygame.font.Font(None, 24)
+
+        _y_offset = 50
+
+        # Группировка слотов по типам для отображения
+        _slot_groups = [
+            ("Руки", _topo_dict.get("hands", {})),
+            ("Надето", _topo_dict.get("worn", {})),
+            ("Пояс", _topo_dict.get("belt", [])),
+            ("Карманы", _topo_dict.get("pockets", [])),
+            ("Рюкзак", _topo_dict.get("backpack", [])),
+            ("Скрытое", _topo_dict.get("hidden", [])),
+        ]
+
+        _contents = _topo_dict.get("contents", {})
+
+        for _group_name, _slots in _slot_groups:
+            if not _slots:
+                continue
+
+            _grp_surf = _font_slot.render(f"[{_group_name}]", True, COLOR_TEXT_OBS_TITLE)
+            _inv_surf.blit(_grp_surf, (15, _y_offset))
+            _y_offset += 28
+
+            # _slots может быть dict (hands/worn) или list (belt/pockets/etc)
+            _slot_list = list(_slots.values()) if isinstance(_slots, dict) else _slots
+
+            for _slot in _slot_list:
+                _slot_id = _slot.get("slot_id", "unknown")
+                _body_part = _slot.get("body_part", "")
+                _items = _contents.get(_slot_id, [])
+
+                _slot_label = f"  - {_body_part} ({_slot_id})"
+                _slot_surf = _font_item.render(_slot_label, True, COLOR_TEXT_MUTED)
+                _inv_surf.blit(_slot_surf, (20, _y_offset))
+                _y_offset += 22
+
+                if _items:
+                    for _item in _items:
+                        _item_name = _item.get("name", "Предмет")
+                        _weight = _item.get("weight", 0.0)
+                        _bulk = _item.get("bulk", 1)
+                        _item_text = f"    • {_item_name} (В:{_weight} кг, Г:{_bulk})"
+                        _item_surf = _font_item.render(_item_text, True, COLOR_TEXT_DEFAULT)
+                        _inv_surf.blit(_item_surf, (25, _y_offset))
+                        _y_offset += 20
+                
+                _y_offset += 5
+                if _y_offset > self.screen.get_height() - 100:
+                    break
+            
+            if _y_offset > self.screen.get_height() - 100:
+                break
+
+        # Статистика внизу панели
+        _y_stats = self.screen.get_height() - 80
+        _total_weight = sum(
+            i.get("weight", 0.0) 
+            for items in _contents.values() 
+            for i in items
+        )
+        _total_bulk = sum(
+            i.get("bulk", 1) 
+            for items in _contents.values() 
+            for i in items
+        )
+        _carry_cap = _topo_dict.get("strength_score", 10) * 15.0
+
+        _weight_color = COLOR_TEXT_DEFAULT
+        if _total_weight > _carry_cap:
+            _weight_color = COLOR_DEATH_TITLE  # Красный при перегрузе
+
+        _stats_w = _font_stats.render(f"Вес: {_total_weight:.1f} / {_carry_cap:.1f}", True, _weight_color)
+        _stats_b = _font_stats.render(f"Габаритность: {_total_bulk}", True, COLOR_TEXT_DEFAULT)
+        
+        _inv_surf.blit(_stats_w, (15, _y_stats))
+        _inv_surf.blit(_stats_b, (15, _y_stats + 25))
+
+        self.screen.blit(_inv_surf, (self.screen.get_width() - _panel_width, 0))
 
     def _draw_message_log(
         self,

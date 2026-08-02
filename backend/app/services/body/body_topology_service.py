@@ -179,3 +179,42 @@ class BodyTopologyService:
             return items[:visible_count]
             
         return items
+
+    @staticmethod
+    def serialize(topology: BodyTopology) -> dict:
+        """Сериализует BodyTopology в JSON-совместимый dict для scene_state."""
+        from dataclasses import asdict
+        return asdict(topology)
+
+    @staticmethod
+    def deserialize(data: dict) -> BodyTopology:
+        """Десериализует BodyTopology из dict."""
+        # Восстанавливаем Tuple из List (JSON не поддерживает tuple)
+        contents = {}
+        for slot_id, items_list in data.get("contents", {}).items():
+            contents[slot_id] = tuple(
+                Item(**item_data) if isinstance(item_data, dict) else item_data
+                for item_data in items_list
+            )
+            
+        topology = BodyTopology(
+            avatar_id=data.get("avatar_id", "player"),
+            strength_score=data.get("strength_score", 10),
+            contents=contents
+        )
+        
+        # Восстанавливаем слоты (они frozen dataclass)
+        for hand_id, hand_data in data.get("hands", {}).items():
+            topology.hands[hand_id] = BodySlot(**hand_data)
+        for belt_data in data.get("belt", []):
+            topology.belt.append(BodySlot(**belt_data))
+        for pocket_data in data.get("pockets", []):
+            topology.pockets.append(BodySlot(**pocket_data))
+        for backpack_data in data.get("backpack", []):
+            topology.backpack.append(BodySlot(**backpack_data))
+        for worn_id, worn_data in data.get("worn", {}).items():
+            topology.worn[worn_id] = BodySlot(**worn_data)
+        for hidden_data in data.get("hidden", []):
+            topology.hidden.append(BodySlot(**hidden_data))
+            
+        return topology

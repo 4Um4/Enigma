@@ -545,50 +545,8 @@ class NpcTickPipeline:
             _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "change_role"} # V8-SOC-8 FIX: убран "talk"
             # S-143 FIX: Sleep non-interruptible. Если NPC спит, блокируем реактивные движения.
             _current_routine = _npc_dict_for_write.get("routine", {})
-            if _intent_value in _MOVE_INTENTS and _current_routine.get("current") == "sleeping":
-                logger.info(f"[SLEEP_GUARD] npc={npc_id} routine=sleeping, blocking reactive movement={_intent_value}")
-                _intent_value = "idle"
-                import dataclasses
-                from app.models.npc_state import Intent
-                decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE))
-                _movement = _resolve_reactive_movement(
-                    npc_id=npc_id,
-                    intent=_intent_value,
-                    intent_target=decision.intent_target or "player",
-                    scene_state=dict(state.scene_state),
-                    location_id=state.scene_state.get("location_id", ""),
-                    spatial_service=state.spatial_service,
-                    spatial_query=state.spatial_query,
-                    drf_ctx=_npc_drf_ctx,
-                )
-                if not _movement:
-                    if state.spatial_service:
-                        try:
-                            _target_node = _resolve_proactive_target(
-                                intent_value=_intent_value,
-                                npc_id=npc_id,
-                                intent_target=decision.intent_target,
-                                scene_state=dict(state.scene_state),
-                                spatial_service=state.spatial_service,
-                                location_id=state.scene_state.get("location_id", ""),
-                            )
-                            logger.debug(f"[PROACTIVE_MOVE] npc={npc_id} intent={_intent_value} target_node={_target_node}")
-                            if _target_node:
-                                from app.domain.movement import MacroMovementGoal
-                                _movement = MacroMovementGoal(
-                                    actor_id=npc_id,
-                                    target_node_id=_target_node,
-                                    reason=f"proactive_{_intent_value}",
-                                    body_capabilities=state_l2.body_capabilities
-                                )
-                        except Exception as _e:
-                            logger.exception(f"[PROACTIVE_MOVE_ERROR] npc={npc_id} intent={_intent_value}: {_e}")
-                    else:
-                        logger.warning(f"[PROACTIVE_MOVE_SKIP] npc={npc_id} intent={_intent_value} reason=spatial_query is None")
-                if _movement:
-                    movement_intents.append(_movement)
-
-            elif _intent_value == "attack":
+            
+            if _intent_value == "attack":
                 from app.domain.communication import CommunicationIntent, ExposureLevel
 
                 _emotion_raw = getattr(state_l2, "emotion", "angry")
@@ -604,6 +562,53 @@ class NpcTickPipeline:
                     target_id=decision.intent_target or "player",
                 )
                 communication_intents.append(_attack_intent)
+            else:
+                # BUG-CORE-005 FIX: Добавлена else-ветвь для всех movement-capable intents (approach, flee, и т.д.).
+                # Ранее не-спящие NPC с intent=approach/flee/seek_ally просто дропали movement_intent.
+                if _intent_value in _MOVE_INTENTS and _current_routine.get("current") == "sleeping":
+                    logger.info(f"[SLEEP_GUARD] npc={npc_id} routine=sleeping, blocking reactive movement={_intent_value}")
+                    _intent_value = "idle"
+                    import dataclasses
+                    from app.models.npc_state import Intent
+                    decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE))
+
+                if _intent_value in _MOVE_INTENTS:
+                    _movement = _resolve_reactive_movement(
+                        npc_id=npc_id,
+                        intent=_intent_value,
+                        intent_target=decision.intent_target or "player",
+                        scene_state=dict(state.scene_state),
+                        location_id=state.scene_state.get("location_id", ""),
+                        spatial_service=state.spatial_service,
+                        spatial_query=state.spatial_query,
+                        drf_ctx=_npc_drf_ctx,
+                    )
+                    if not _movement:
+                        if state.spatial_service:
+                            try:
+                                _target_node = _resolve_proactive_target(
+                                    intent_value=_intent_value,
+                                    npc_id=npc_id,
+                                    intent_target=decision.intent_target,
+                                    scene_state=dict(state.scene_state),
+                                    spatial_service=state.spatial_service,
+                                    location_id=state.scene_state.get("location_id", ""),
+                                )
+                                logger.debug(f"[PROACTIVE_MOVE] npc={npc_id} intent={_intent_value} target_node={_target_node}")
+                                if _target_node:
+                                    from app.domain.movement import MacroMovementGoal
+                                    _movement = MacroMovementGoal(
+                                        actor_id=npc_id,
+                                        target_node_id=_target_node,
+                                        reason=f"proactive_{_intent_value}",
+                                        body_capabilities=state_l2.body_capabilities
+                                    )
+                            except Exception as _e:
+                                logger.exception(f"[PROACTIVE_MOVE_ERROR] npc={npc_id} intent={_intent_value}: {_e}")
+                        else:
+                            logger.warning(f"[PROACTIVE_MOVE_SKIP] npc={npc_id} intent={_intent_value} reason=spatial_query is None")
+                    if _movement:
+                        movement_intents.append(_movement)
 
             # TZ-10: Сборка npc_deltas без I/O. Применение будет в TickOrchestrator.
             if state.relationship_store:

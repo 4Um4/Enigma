@@ -49,7 +49,9 @@ def tick_world_proactive(
             if _p_l2.effective_hp <= 0:
                 continue
             _p_l0 = load_profile_from_legacy_json(_n)
-            _proactive_npc_data.append((_pid, _p_l2, _p_l0))
+            # BUG-CORE-009 FIX: Кладём сырой dict (_n) вместо NPCState (_p_l2),
+            # чтобы NeedEngine мог извлечь routine.current.
+            _proactive_npc_data.append((_pid, _n, _p_l0))
 
         if not _proactive_npc_data:
             return

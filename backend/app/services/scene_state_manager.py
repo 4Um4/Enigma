@@ -1014,7 +1014,7 @@ class SceneStateManager:
             "objects": objects,
             "npc_positions": npc_positions,
             "environment": environment,
-            "player_inventory_snapshot": {},
+            "player_body_topology": None,  # ТЗ Presentation v2.0: BodyTopology (сериализованный)
             "active_effects": [],
             # ── S.0: пространственный контекст игрока ────────────────────────
             # Обновляется каждый ход через update_player_target()
@@ -1276,20 +1276,26 @@ class SceneStateManager:
                 scene_state.setdefault("environment", {})[change.field] = change.value
 
             elif ct == ChangeType.INVENTORY:
-                inv = scene_state.setdefault("player_inventory_snapshot", {})
+                from app.services.body.body_topology_service import BodyTopologyService
+                from app.domain.body import Item
+                
+                topo_data = scene_state.get("player_body_topology")
+                if not topo_data:
+                    topo = BodyTopologyService.create_topology("player")
+                else:
+                    topo = BodyTopologyService.deserialize(topo_data)
+                    
                 if change.field == "add" and isinstance(change.value, dict):
-                    for item, qty in change.value.items():
-                        if item.startswith("_"):
+                    for item_id, slot_id in change.value.items():
+                        if item_id.startswith("_"):
                             continue
-                        inv[item] = inv.get(item, 0) + (
-                            qty if isinstance(qty, int) else 1
-                        )
+                        item = Item(item_id=item_id, name=item_id)
+                        BodyTopologyService.add_item(topo, slot_id, item)
                 elif change.field == "remove" and isinstance(change.value, dict):
-                    for item, qty in change.value.items():
-                        if item in inv:
-                            inv[item] = max(0, inv[item] - qty)
-                            if inv[item] == 0:
-                                del inv[item]
+                    for item_id, slot_id in change.value.items():
+                        BodyTopologyService.remove_item(topo, slot_id, item_id)
+                        
+                scene_state["player_body_topology"] = BodyTopologyService.serialize(topo)
 
             elif ct == ChangeType.EFFECT_ADD:
                 effects = scene_state.setdefault("active_effects", [])

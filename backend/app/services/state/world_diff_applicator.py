@@ -36,5 +36,9 @@ class WorldStateApplicator:
                 # Сбежавшие/пленённые NPC исчезают из новой кампании
                 del npc_cache[npc_id]
             elif fate in _DEAD_FATES:
-                # Мёртвые NPC остаются в кэше, но получают статус DEAD
-                npc_cache[npc_id]["life_status"] = "DEAD"
+                # BUG-FB-007 FIX: life_status пишется в body_state, а не в корень (ADR-127 Death Lock).
+                # Иначе мёртвые NPC оживают в новой кампании, так как tick_orchestrator читает body_state.
+                _bs = npc_cache[npc_id].setdefault("body_state", {})
+                _bs["life_status"] = "DEAD"
+                _bs["current_hp"] = 0
+                _bs["consciousness"] = 0.0

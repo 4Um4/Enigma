@@ -197,7 +197,11 @@ class TaskScheduler:
                         _candidates.append(nid)
 
                 if _candidates:
-                    _resolved_target = random.choice(_candidates)
+                    # BUG-CORE-011 FIX: Замена random.choice на KernelRNG (ADR-O-301).
+                    from app.services.npc.kernel_rng import KernelRNG
+                    _tick = scene_state.get("tick", 0)
+                    _rng = KernelRNG(tick=_tick, npc_id=task.owner_id, salt="task_target_resolve")
+                    _resolved_target = _rng.choice(_candidates)
 
                 task.payload = dc_replace(task.payload, target_id=_resolved_target)
                 logger.debug(

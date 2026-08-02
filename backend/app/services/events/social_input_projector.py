@@ -92,6 +92,10 @@ class SocialInputProjector:
                             scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},
                             spatial_query=_sq,
                         )
+                # BUG-V68-002 FIX: Восстановлен случайно удалённый цикл обработки слушателей.
+                for listener in _listeners:
+                    if listener != _src:
+                        deltas.append(self._mk_delta(listener, _INPUT_LISTEN))
 
             elif event.type == EventType.PLAYER_SPOKE:
                 _listeners = payload.get("listener_ids", [])

@@ -123,8 +123,8 @@ class ResolutionEngine:
     """
 
     def __init__(self, seed: Optional[int] = None) -> None:
-        # seed per-session — воспроизводимость при отладке
-        self._rng = random.Random(seed)
+        # BUG-CORE-012 FIX: Удалён random.Random. RNG создаётся per-call в resolve.
+        pass
 
     def resolve(
         self,
@@ -132,6 +132,7 @@ class ResolutionEngine:
         personality: NPCPersonality,
         expected_success: float,
         context_modifier: float = 0.0,
+        tick: int = 0,
     ) -> ResolutionOutcome:
         """
         Главный метод.
@@ -140,9 +141,13 @@ class ResolutionEngine:
         personality:      NPCPersonality (static)
         expected_success: из DecisionResult.expected_success
         context_modifier: подготовка игрока, окружение, скрытность (+/-)
+        tick:             текущий тик для детерминированного KernelRNG
         """
         # ── Бросок d20 ────────────────────────────────────────────────────────
-        raw_roll = self._rng.randint(1, D20_SIDES)
+        # BUG-CORE-012 FIX: Используем KernelRNG вместо random.Random (ADR-O-301).
+        from app.services.npc.kernel_rng import KernelRNG
+        _rng = KernelRNG(tick=tick, npc_id=state.npc_id, salt="resolution_engine")
+        raw_roll = _rng.randint(1, D20_SIDES)
         normalized = (raw_roll - 1) / (D20_SIDES - 1)  # → [0..1]
 
         # ── Bias — суммарное смещение от состояния системы ────────────────────

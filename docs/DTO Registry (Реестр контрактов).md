@@ -197,7 +197,7 @@
 **Поток:** Runtime Истина → Феноменологическая Проекция → Фронтенд.
 
 **Актуальные DTO:**
-- **`WorldSnapshotDTO`** (`domain/snapshot.py`): `npc_positions` (**Dict[str, NPCPositionDTO]**, ADR-TZ03-1 A2-FIX), `active_traversals`, `avatar_state`, `ambient_phenomenology`.
+- **`WorldSnapshotDTO`** (`domain/snapshot.py`): `npc_positions` (**Dict[str, NPCPositionDTO]**, ADR-TZ03-1 A2-FIX), `active_traversals`, `avatar_state`, `ambient_phenomenology`, `player_body_topology`, `visual_dto`, `audible_dto` (ТЗ Presentation v2.0, S147).
 - **`AvatarStateDTO`** (`domain/snapshot.py`): Непрерывные скаляры + **`life_status`** (ADR-137). Вычисляется через `AvatarPresentationAssembler`.
 - **`PlayerPerceptionDTO`** (`domain/snapshot.py`): `embodied_traces`, `peripheral_cues`, **`manifestations`** (ADR-O-147), `active_perceptions`, `avatar_desync`.
 - **`ManifestationDTO`** (`domain/snapshot.py`, ADR-O-147): Наблюдаемое физическое проявление NPC. Поля: `npc_id`, `tags` (List[str]). НЕ эмоция!
@@ -206,6 +206,12 @@
 - **`AvatarDesyncDTO`** (`domain/snapshot.py`): Метрика рассинхронизации восприятия аватара игрока и реальности. Часть `PlayerPerceptionDTO`.
 - **`ReconstructionEventDTO`** (`domain/snapshot.py`): Событие реконструкции памяти/восприятия для UI.
 - **`SceneEvent`** (`models/scene_event.py`): Событие изменения сцены (дверь открылась, предмет упал). Часть `WorldSnapshotDTO` для фронтенда.
+- **`BodyTopology`** (`domain/body.py`, S147): Физическая модель инвентаря (D&D 5e Encumbrance + Bulk). Содержит слоты (`hands`, `belt`, `pockets`, `backpack`, `worn`, `hidden`) и `contents` (Dict[slot_id, Tuple[Item, ...]]). Единственный SSOT инвентаря игрока (сериализуется в `scene_state["player_body_topology"]`).
+- **`Item`** (`domain/body.py`, S147): Физический предмет. Поля: `item_id`, `name`, `weight`, `bulk`, `value`, `item_type`, `properties`.
+- **`BodySlot`** (`domain/body.py`, S147): Физический узел на теле. Поля: `slot_id`, `slot_type`, `body_part`, `accessibility`, `visibility`, `capacity`, `max_bulk`, `is_locked`, `lock_difficulty`, `concealment`.
+- **`VisualDTO`** (`domain/presentation.py`, S147): Канал визуальной презентации. Содержит `Tuple[NPCVisualState, ...]`.
+- **`AudibleDTO`** (`domain/presentation.py`, S147): Канал аудио презентации. Содержит `Tuple[VoiceAudio, ...]` и `Tuple[BreathingAudio, ...]`.
+- **`NPCVisualState`** (`domain/presentation.py`, S147): Визуальное состояние NPC для рендера. Поля: `npc_id`, `display_name`, `name_certainty`, `pose_overlay`, `gaze_arrow`, `blur_intensity`.
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Контракт §4.3, §4.4):**
 - ❌ **Телепатия в UI (Rule 11):** Передача Игроку внутренних состояний NPC запрещена.

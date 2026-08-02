@@ -492,8 +492,10 @@ class TickOrchestrator:
                     _reg = SpatialRegistry.get_or_load(campaign_id)
                     if _reg:
                         _connected = [e.location_b for e in _reg.get_neighbors(active_location_id)]
-                except Exception:
-                    pass
+                except Exception as e:
+                    # BUG-V68-001 FIX: Заменён silent pass на логирование.
+                    # Если SpatialRegistry упадёт, LOD throttling не применится, но ошибка будет видна.
+                    logger.warning(f"[ADAPTIVE_LOADER] SpatialRegistry load failed: {e}")
                 _current_loc = _scene.get("location_id", "default")
                 _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
 

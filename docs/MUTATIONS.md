@@ -79,6 +79,16 @@
   IPT 6/6 passed.
   Files: backend/app/services/npc/life_engine.py; backend/app/services/spatial/movement_engine.py, graph_compiler.py, local_traversal_planner.py; backend/app/services/scene_state_manager.py; backend/app/services/game_loop_builder.py; frontend/map_editor/editor_core.py, campaigns/Open_road/locations/market_square.json, city_gate.json; backend/app/services/phases/input.py; backend/app/services/player_avatar_service.py; backend/app/services/tick_orchestrator.py; backend/app/services/npc/perception_filter.py; backend/app/services/will.py; backend/app/services/memory/memory_manager.py; backend/app/services/combat/combat_subscriber.py; backend/app/services/events/reaction_subscriber.py, social_subscriber.py, social_input_projector.py; backend/app/services/execution/dialogue_materializer.py; backend/app/services/events/npc_dialogue_subscriber.py; backend/app/services/game_loop/npc_orchestration.py  
 
+- 🟢 **S148** ТЗ Presentation v2.0 (Спринты P5, P7): Реализована физическая топология тела (BodyTopology) и трёхканальная презентация. Созданы доменные модели `Item`, `BodySlot`, `BodyTopology` (D&D 5e Encumbrance + Bulk System) и YAML-контракт `architecture/body_topology.yaml`. Внедрён `BodyTopologyService` с логикой добавления/удаления/осмотра и сериализацией. `WorldSnapshotDTO` расширен каналами `VisualDTO` и `AudibleDTO`. `PresentationAssembler` теперь собирает визуальные и аудио проявления NPC из `PerceivedSignals`. Обновлён контракт фронтенда (`game_screen.py`) для приёма новых DTO. `scene_state_manager` и `world_state` переведены на использование `player_body_topology`.
+  Files: architecture/body_topology.yaml, backend/app/domain/body.py, backend/app/domain/presentation.py, backend/app/services/body/body_topology_service.py, backend/app/services/scene_state_manager.py, backend/app/services/simulation/world_state.py, backend/app/services/perception/presentation_assembler.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/services/phases/integration.py, backend/app/services/game_loop/__init__.py, frontend/game_screen.py
+
+- 🟢 **S149** DRIFT LABORATORY V2 & CAUSAL DRIFT ELIMINATION: 
+  **Causal Drift (Class D):** Устранён рассинхрон `is_boundary` между Legacy и Shadow пайплайнами при `cross_loc_materialize`. В `validation.py` вычисление переведено на проверку `cause` из `ThickSceneChange`. В `movement_engine.py` добавлен guard от пустого `target_location_id`. 
+  **DriftLaboratory v2:** Внедрён *Valid Comparisons Tracking* (учёт `crashed_ticks`) и *Ground Truth Validator* (проверка `npc_positions` на пустоту и SC-1). Исправлена логика `phase3_ready` (жёсткие критерии: 100k comparisons, 0 C/D/E drift, 0 crashed ticks). Исправлен дефолтный `location_id` в `DriftConfig` (`tavern_silver_wolf` → `tavern`).
+  IPT 6/6 passed. DriftLaboratory: 0 D-drift, 0 crashed ticks.
+  Files: backend/app/services/phases/validation.py, backend/app/services/spatial/movement_engine.py, backend/tests/sandbox/SUPERBOX/drift_laboratory.py
+
+
 ---
 
 ## 2. ИЗВЛЕЧЕННЫЕ АРХИТЕКТУРНЫЕ ИСТИНЫ

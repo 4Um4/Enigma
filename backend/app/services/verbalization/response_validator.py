@@ -112,9 +112,8 @@ class ResponseValidator:
         )
 
     _CJK_PATTERN = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]")
+    # BUG-DLG-018 FIX: Убраны "игрок", "игроки". DM-агент легально использует их в нарративе.
     _FOURTH_WALL_WORDS = [
-        "игрок",
-        "игроки",
         "симуляция",
         "система",
         "механика",
@@ -149,8 +148,12 @@ class ResponseValidator:
             return False
 
         cyrillic_chars = sum(1 for c in text if "\u0400" <= c <= "\u04ff")
-        # Если кириллицы меньше 50% — текст не русский (отсеивает англ. мусор, пропуская термины)
-        if cyrillic_chars / alpha_total < 0.5:
+        ascii_chars = sum(1 for c in text if c.isascii() and c.isalpha())
+        
+        # BUG-FB-008 FIX: Ослаблена проверка. Текст считается не-русским ТОЛЬКО если:
+        # кириллицы меньше 30% И ASCII-букв больше 50%.
+        # Ранее порог был 50%, из-за чего одно английское слово могло забраковать текст.
+        if (cyrillic_chars / alpha_total < 0.3) and (ascii_chars / alpha_total > 0.5):
             return True
 
         return False
@@ -260,13 +263,23 @@ class ResponseValidator:
     def _fallback(self, reason: str) -> ValidationResult:
         """Возвращает fallback результат."""
         # Универсальный fallback — можно переопределить через наследование
-        fallback_text = self._get_fallback_text()
+        fallback_text = self._get_fallback_text(reason)
         return ValidationResult(
             text=fallback_text,
             is_fallback=True,
             violation=reason,
         )
 
-    def _get_fallback_text(self) -> str:
-        """Базовый fallback. Переопределяется в подклассах по intent."""
-        return "Ничего не произошло."
+    def _get_fallback_text(self, reason: str = "empty") -> str:
+        """BUG-FB-008 FIX: Дифференцированный fallback по классу нарушения.
+        Ранее всегда возвращал "Ничего не произошло." для 8 разных классов."""
+        _FALLBACK_MAP = {
+            "empty": "Тишина.",
+            "non_russian": "Ничего не произошло.",
+            "repeat": "Мир замирает в ожидании.",
+            "fourth_wall": "Ничего не произошло.",
+            "cannot_speak": "Ничего не произошло.",
+            "cannot_move": "Ничего не произошло.",
+            "unauthorized_movement_only": "Ничего не произошло.",
+        }
+        return _FALLBACK_MAP.get(reason, "Ничего не произошло.")

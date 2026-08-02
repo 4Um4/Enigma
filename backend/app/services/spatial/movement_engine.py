@@ -271,7 +271,9 @@ class MovementEngine:
                                     continue
 
                                 # Ищем целевой узел в новой локации (строгий контракт, без случайных fallback'ов)
-                                _target_node_id_short = intent.target_node_id.split(":")[-1]
+                                # BUG-SPATIAL-001 FIX: Используем оригинальный target (напр. guard_bed), а не переписанный boundary node.
+                                _original_target = getattr(intent, 'original_target_node_id', intent.target_node_id)
+                                _target_node_id_short = _original_target.split(":")[-1]
                                 target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(f"{target_loc}:{_target_node_id_short}")
 
                                 if not target_node_obj:
@@ -324,6 +326,10 @@ class MovementEngine:
                                 f"[CROSS_LOC_INTERCEPT] npc={intent.actor_id} target={target_loc} rerouted to boundary {boundary_node.node_id} in {current_loc}"
                             )
                             # Перенаправляем интент на boundary node текущей локации
+                            # BUG-SPATIAL-001 FIX: Сохраняем оригинальный target перед перезаписью.
+                            # Иначе materialize lookup не найдёт кровать в target loc.
+                            if not hasattr(intent, 'original_target_node_id'):
+                                intent.original_target_node_id = intent.target_node_id
                             intent.target_node_id = boundary_node.node_id.split(":")[-1]
                             intent.location_id = current_loc
                             target_loc = current_loc

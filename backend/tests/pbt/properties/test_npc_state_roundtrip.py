@@ -1,0 +1,35 @@
+# backend/tests/pbt/properties/test_npc_state_roundtrip.py
+"""
+Invariant 12.2 (WARA): write_to_legacy обязан записывать КАЖДОЕ поле,
+которое from_legacy читает.
+
+Запуск: cd backend; python -m pytest tests/pbt/properties/test_npc_state_roundtrip.py -v; cd ..
+"""
+from hypothesis import given, settings
+from tests.pbt.strategies import npc_legacy_strategy
+from app.models.npc_state import NPCState, NPCStateAdapter
+
+@given(npc_dict=npc_legacy_strategy)
+@settings(max_examples=200)
+def test_npc_state_roundtrip_preserves_critical_fields(npc_dict: dict):
+    """Тест: from_legacy -> write_to_legacy -> from_legacy не теряет данные."""
+    # 1. Создаём объект из сгенерированного dict
+    original_state = NPCStateAdapter.from_legacy(npc_dict)
+    
+    # 2. Сериализуем обратно в dict
+    written_dict = dict(npc_dict)  # Копируем, чтобы write_to_legacy мог мутировать
+    NPCState.write_to_legacy(original_state, written_dict)
+    
+    # 3. Снова создаём объект из записанного dict
+    final_state = NPCStateAdapter.from_legacy(written_dict)
+    
+    # 4. Проверяем, что критические поля не потерялись
+    assert original_state.npc_id == final_state.npc_id, f"npc_id changed! {original_state.npc_id} -> {final_state.npc_id}"
+    
+    # Проверяем body_state (ADR-HP-UNIFICATION) — хранится как dict
+    if original_state.body_state and final_state.body_state:
+        assert original_state.body_state.get("current_hp") == final_state.body_state.get("current_hp"), "current_hp lost in round-trip!"
+        
+    # Проверяем psyche
+    if original_state.psyche and final_state.psyche:
+        assert original_state.psyche.stress == final_state.psyche.stress, "stress lost in round-trip!"

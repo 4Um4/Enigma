@@ -27,3 +27,30 @@
 {"timestamp": "2026-08-02T01:20:31.384144", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
 {"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
 {"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2312, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-02T20:44:57.421484", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-02T20:44:57.422790", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "WARN", "agent": "dm_agent", "event": "cjk_retry_1", "original_preview": "Торнин Серебряная Луна прищуривается, склонив голову к一侧的阴影中，他似乎在思考什么。"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 3782, "status": "complete"}
+{"timestamp": "2026-08-02T20:45:29.966848", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-02T20:45:29.967376", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1806, "status": "complete"}
+{"timestamp": "2026-08-02T20:45:54.913993", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-02T20:45:54.914413", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1786, "status": "complete"}
+{"timestamp": "2026-08-02T20:46:10.135046", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-02T20:46:10.135536", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1671, "status": "complete"}
+{"timestamp": "2026-08-02T20:46:37.384876", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-02T20:46:37.385329", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1964, "status": "complete"}
+{"timestamp": "2026-08-02T20:46:52.604924", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-02T20:46:52.605338", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "WARN", "agent": "dm_agent", "event": "cjk_retry_1", "original_preview": "{\n\"dm_response\": \"Люся опускает глаза и стучит ногтем по деревянному столешнице, не отвечая сразу. В"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 7333, "status": "complete"}

@@ -373,8 +373,10 @@ class SpatialService:
             return None
 
         # Возвращаем ближайший навигационный узел к точке взаимодействия с объектом
-        zone = origin_zone or self._location_id
-        return self.get_nearest(zone, (best_obj["x"], best_obj["y"]))
+        # BUG-SPATIAL-015 FIX: Используем зону объекта (best_obj), а не origin_zone.
+        # Иначе объект в другой зоне (tent_1) приводит к возврату boundary node в origin_zone (tavern).
+        _obj_zone = best_obj.get("zone_id") or origin_zone or self._location_id
+        return self.get_nearest(_obj_zone, (best_obj["x"], best_obj["y"]))
 
     # ── Резолв целей ──────────────────────────────────────────────────
 

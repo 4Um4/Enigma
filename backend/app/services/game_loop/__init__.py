@@ -751,14 +751,15 @@ class GameLoop:
         try:
             from app.services.game_loop.scene_init import ensure_scene_initialized
 
-            ensure_scene_initialized(self, campaign_id)
+            _prepped_scene = ensure_scene_initialized(self, campaign_id)
+            _loc_id = _prepped_scene.get("location_id", "") if _prepped_scene else ""
 
-            _scene = self.scene_manager.lock_for_tick(campaign_id, "")
+            # BUG-FB-002 FIX: Блокируем конкретную локацию, а не пустую строку.
+            _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
             if _scene is None:
                 return {"status": "no_scene", "npc_positions": {}}
 
             _spatial_svc = None
-            _loc_id = _scene.get("location_id", "")
             if _loc_id:
                 from app.services.spatial.spatial_factory import SpatialFactory
 
@@ -811,6 +812,11 @@ class GameLoop:
                 recent_dialogues=_recent_d,
             )
 
+            # BUG-FB-002 FIX: Сохраняем мутированное состояние в persistence buffer,
+            # иначе изменения от TimeSkipExecutor будут потеряны при следующем idle_tick.
+            if result.final_state:
+                self.scene_manager.commit_tick_result(campaign_id, result.final_state)
+
             return {
                 "status": "ok",
                 "stop_reason": result.stop_reason,
@@ -819,6 +825,8 @@ class GameLoop:
                 "events": result.stops,
             }
         finally:
+            # BUG-FB-002 FIX: Снимаем блокировку scene_manager, иначе ядро зависнет навсегда.
+            self.scene_manager.unlock_tick(campaign_id)
             lock.release()
 
     # E.2: Публичные методы для инкапсуляции внутренних сервисов
@@ -1609,6 +1617,31 @@ class GameLoop:
             shared_context.player_state = {
                 _player_name: avatar_to_prompt(_avatar_state)
             }
+
+            # ТЗ Presentation v2.0: Инициализация BodyTopology игрока
+            from app.services.body.body_topology_service import BodyTopologyService
+            
+            _sheet_str = getattr(_match, "stats", {}) if _match else {}
+            _str_score = _sheet_str.get("STR", 10) if isinstance(_sheet_str, dict) else 10
+            
+            # Проверяем, есть ли уже сохранённая топология
+            _topo_data = self.scene_manager._persistence.load_scene(campaign_id)
+            if not _topo_data or not _topo_data.get("player_body_topology"):
+                _topo = BodyTopologyService.create_topology("player", strength_score=_str_score)
+                # Мигрируем старый инвентарь, если был
+                _old_inv = _topo_data.get("player_inventory_snapshot", {}) if _topo_data else {}
+                if _old_inv:
+                    _start_slot = _topo.hands.get("right_hand")
+                    if _start_slot:
+                        for item_id, qty in _old_inv.items():
+                            for _ in range(qty if isinstance(qty, int) else 1):
+                                from app.domain.body import Item
+                                BodyTopologyService.add_item(_topo, "backpack_main", Item(item_id=item_id, name=item_id))
+                # Сохраняем в scene_state через lock
+                _tmp_scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id if '_loc_id' in locals() else "")
+                if _tmp_scene:
+                    _tmp_scene["player_body_topology"] = BodyTopologyService.serialize(_topo)
+                    self.scene_manager.unlock_for_tick(campaign_id, commit=True)
         except Exception as _e:
             logger.warning(f"[AVATAR] ошибка загрузки: {_e}")
 

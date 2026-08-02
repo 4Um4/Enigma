@@ -29,27 +29,28 @@ class TestWorldContinuity:
         
         # Имитируем кэш NPC новой кампании
         npc_cache = {
-            "merchant_goran": {"life_status": "ALIVE"},
-            "maid_lusya": {"life_status": "ALIVE"}
+            "merchant_goran": {"body_state": {"life_status": "ALIVE"}},
+            "maid_lusya": {"body_state": {"life_status": "ALIVE"}}
         }
         
         applicator.apply(diff=mock_diff, npc_cache=npc_cache)
         
         # Проверяем, что NPC остались живы (diff проигнорирован)
-        assert npc_cache["merchant_goran"]["life_status"] == "ALIVE"
-        assert npc_cache["maid_lusya"]["life_status"] == "ALIVE"
+        assert npc_cache["merchant_goran"]["body_state"]["life_status"] == "ALIVE"
+        assert npc_cache["maid_lusya"]["body_state"]["life_status"] == "ALIVE"
 
     def test_continuous_mode_applies_fate(self, mock_diff: WorldStateDiff):
         """В CONTINUOUS режиме судьбы из diff должны примениться к NPC."""
         applicator = WorldStateApplicator(mode=WorldContinuityMode.CONTINUOUS)
         
         npc_cache = {
-            "merchant_goran": {"life_status": "ALIVE"},
-            "maid_lusya": {"life_status": "ALIVE"}
+            "merchant_goran": {"body_state": {"life_status": "ALIVE"}},
+            "maid_lusya": {"body_state": {"life_status": "ALIVE"}}
         }
         
         applicator.apply(diff=mock_diff, npc_cache=npc_cache)
         
         # Проверяем, что Горан мёртв, а Люся удалена/сбежала
-        assert npc_cache["merchant_goran"]["life_status"] == "DEAD"
+        # BUG-FB-007 FIX: life_status теперь пишется в body_state (ADR-127 Death Lock)
+        assert npc_cache["merchant_goran"]["body_state"]["life_status"] == "DEAD"
         assert "maid_lusya" not in npc_cache # Сбежавшие удаляются из кэша

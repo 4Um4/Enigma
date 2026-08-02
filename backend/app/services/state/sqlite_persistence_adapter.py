@@ -174,9 +174,19 @@ class SqlitePersistenceAdapter(PersistencePort):
         with self._lock:
             try:
                 conn = self._get_conn()
+                # BUG-FB-010 FIX: Удаляем все per-location rows (scene:{id}:{loc}, runtime:{id}:{loc})
                 conn.execute(
-                    "DELETE FROM state_kv WHERE key = ? OR key = ?",
-                    (f"scene:{campaign_id}", f"runtime:{campaign_id}"),
+                    "DELETE FROM state_kv WHERE key LIKE ?",
+                    (f"scene:{campaign_id}:%",),
+                )
+                conn.execute(
+                    "DELETE FROM state_kv WHERE key LIKE ?",
+                    (f"runtime:{campaign_id}:%",),
+                )
+                # И точечные ключи (без суффикса локации)
+                conn.execute(
+                    "DELETE FROM state_kv WHERE key IN (?, ?, ?)",
+                    (f"scene:{campaign_id}", f"runtime:{campaign_id}", f"events_tick:{campaign_id}"),
                 )
                 conn.commit()
                 logger.info(f"[SQLITE_PERSISTENCE] Campaign deleted: {campaign_id}")
@@ -249,13 +259,16 @@ class SqlitePersistenceAdapter(PersistencePort):
         with self._lock:
             conn = self._get_conn()
             try:
-                self._upsert(f"scene:{campaign_id}", scene_state)
+                # BUG-FB-011 FIX: atomic_commit должен писать с суффиксом локации,
+                # как это делает save_scene, иначе load_scene_at не найдёт данные.
+                _loc_id = scene_state.get("location_id", "default") if isinstance(scene_state, dict) else "default"
+                self._upsert(f"scene:{campaign_id}:{_loc_id}", scene_state)
                 if npc_states is not None:
                     self._upsert(f"runtime:{campaign_id}", npc_states)
                 if events is not None:
                     self._upsert(f"events_tick:{campaign_id}", events)
                 conn.commit()
-                logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit OK: {campaign_id}")
+                logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit OK: {campaign_id}:{_loc_id}")
                 return True
             except sqlite3.Error as e:
                 logger.error(
