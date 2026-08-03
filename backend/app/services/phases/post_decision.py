@@ -43,9 +43,22 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             # Если audience="all", передаём None, чтобы TaskScheduler выбрал цель через SpatialQueryService.
             _target_id = intent.audience if intent.audience != "all" else None
 
+            _svc = ctx.npc_services
+            _memory_mgr = _svc.memory_manager if _svc else getattr(orchestrator, "_memory_manager", None)
+            _intent_type = getattr(intent, "intent_type", "")
+            # ADR-O-342: Hard Contract (Принцип 2). Если нет STM (истории разговора),
+            # нельзя начинать содержательный диалог. Принудительно меняем на approach.
+            # Исключение: soliloquy (разговор с самим собой) — STM не нужен.
+            if _memory_mgr and _target_id and _target_id not in ("all", "soliloquy"):
+                _stm_check = _memory_mgr.get_stm_prompt_block_pair(
+                    ctx.campaign_id, intent.speaker, _target_id
+                )
+                if not _stm_check and _intent_type not in ("greeting", "approach"):
+                    logger.debug(f"[POST_DECISION] Intercept {intent.speaker} -> {_target_id}: No STM, changing intent '{_intent_type}' to 'approach'")
+                    _intent_type = "approach"
+
             # T-04: Формируем npc_npc_context (историю взаимодействий с целью)
             _history_text = ""
-            _svc = ctx.npc_services
             if _svc and _svc.memory_manager and _target_id and _target_id != "all":
                 try:
                     _cache = _svc.memory_manager.load_narrative_from_sqlite(
@@ -89,7 +102,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                             memory_manager=_svc.memory_manager,
                             profile_l0=_profile_l0,
                             state_for_llm=_state_l2,
-                            intent_value=intent.intent_type,
+                            intent_value=_intent_type,  # ADR-O-342: Используем перехваченный тип
                             intent_target=_target_id,
                             hub_event=_hub_event,
                             raw_input=_raw_input,
@@ -116,7 +129,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 topic=intent.topic,
                 target_id=_target_id,
                 exposure=intent.exposure_level,
-                intent_type=intent.intent_type,
+                intent_type=_intent_type,  # BUG-PERC-032 FIX: Используем перехваченный _intent_type (approach если нет STM)
                 emotional_state=intent.emotional_state,
                 npc_npc_context=_history_text,
                 thread_id=_thread_id,

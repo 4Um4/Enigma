@@ -166,8 +166,8 @@ def lint_file(filepath: Path, violations: list):
     violations.extend(visitor.violations)
 
 
-def main():
-    print("[LINT] Запуск проверки §15 (Wall-Clock Isolation)...")
+def run_lint() -> list:
+    """Возвращает список нарушений без sys.exit (для интеграции в IPT)."""
     violations = []
 
     for rel_path in SIMULATION_LAYER_FILES:
@@ -176,6 +176,12 @@ def main():
             print(f"[WARN] Файл не найден: {abs_path}")
             continue
         lint_file(abs_path, violations)
+
+    return violations
+
+def main():
+    print("[LINT] Запуск проверки §15 (Wall-Clock Isolation)...")
+    violations = run_lint()
 
     if violations:
         print("\n[FAIL] Обнаружены нарушения изоляции реального времени:")

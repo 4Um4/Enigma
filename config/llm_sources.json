@@ -1,0 +1,38 @@
+{
+  "qwen_7b": {
+    "display_name": "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M",
+    "url": "https://huggingface.co/huihui-ai/Qwen2.5-7B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf",
+    "target_path": "Models LLM\\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf",
+    "required": true
+  },
+  "gemma_12b": {
+    "display_name": "gemma-3-12b-it-q4_k_m",
+    "url": "https://huggingface.co/bartowski/gemma-3-12b-it-GGUF/resolve/main/gemma-3-12b-it-Q4_K_M.gguf",
+    "target_path": "Models LLM\\gemma-3-12b-it-q4_k_m.gguf",
+    "required": false
+  },
+  "gemma_4b": {
+    "display_name": "gemma-3-4b-it.Q5_K_M",
+    "url": "https://huggingface.co/bartowski/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q5_K_M.gguf",
+    "target_path": "Models LLM\\gemma-3-4b-it.Q5_K_M.gguf",
+    "required": false
+  },
+  "mistral_pygmalion": {
+    "display_name": "mistral-pygmalion-7b.Q5_K_M",
+    "url": "https://huggingface.co/PygmalionAI/mistral-7b-pygmalion-GGUF/resolve/main/mistral-pygmalion-7b.Q5_K_M.gguf",
+    "target_path": "Models LLM\\mistral-pygmalion-7b.Q5_K_M.gguf",
+    "required": false
+  },
+  "yandexgpt_8b": {
+    "display_name": "YandexGPT-5-Lite-8B-instruct-Q4_K_M",
+    "url": "https://huggingface.co/IlyaGusev/yandexgpt_5_lite_gguf/resolve/main/YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf",
+    "target_path": "Models LLM\\YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf",
+    "required": false
+  },
+  "huihui_qwen": {
+    "display_name": "Huihui-Qwen3.5-4B-abliterated.Q4_K_M",
+    "url": "https://huggingface.co/huihui-ai/Qwen2.5-3B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-3B-Instruct-abliterated-v2.Q4_K_M.gguf",
+    "target_path": "Models LLM\\Huihui-Qwen3.5-4B-abliterated.Q4_K_M.gguf",
+    "required": false
+  }
+}

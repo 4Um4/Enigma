@@ -5,7 +5,6 @@
  $RepoOwner = "4Um4"
  $RepoName = "Enigma"
  $SetupScriptPath = "enigma_setup.iss"
- $ModelsSetupScriptPath = "models_setup.iss"
  $VersionFile = "version.txt"
 
 Write-Host "🚀 Начинаем сборку и публикацию релиза Bloodloom..." -ForegroundColor Cyan
@@ -13,7 +12,7 @@ Write-Host "🚀 Начинаем сборку и публикацию рели�
 # 0. Очистка папки build (оставляем только установщик моделей)
 Write-Host "🧹 Очистка папки build..." -ForegroundColor Cyan
 if (Test-Path "build") {
-    Get-ChildItem -Path "build" -File | Where-Object { $_.Name -notlike "Bloodloom_models_setup*" } | Remove-Item -Force
+    Get-ChildItem -Path "build" -File | Remove-Item -Force
     Get-ChildItem -Path "build" -Directory | Remove-Item -Recurse -Force
 } else {
     New-Item -ItemType Directory -Path "build" | Out-Null
@@ -56,22 +55,15 @@ Remove-Item -Path "Bloodloom.spec" -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "Bloodloom_splash.spec" -Force -ErrorAction SilentlyContinue
 Write-Host "✅ Bloodloom.exe и Splash Screen собраны" -ForegroundColor Green
 
-# 2.5 Подготовка защищенной копии кода (Staging)
-Write-Host "🔒 Подготовка кода (копирование и компиляция в .pyc)..." -ForegroundColor Cyan
+# 2.5 Подготовка копии кода (Staging)
+Write-Host "📦 Подготовка кода (копирование исходников)..." -ForegroundColor Cyan
  $StagingDir = "build\staging"
 if (Test-Path $StagingDir) { Remove-Item -Recurse -Force $StagingDir }
 New-Item -ItemType Directory -Path $StagingDir | Out-Null
 
 robocopy . $StagingDir /E /XD .venv .git build logs reports __pycache__ /XF *.pyc *.log *.spec > $null
 
-Push-Location $StagingDir
-python -m compileall -b backend frontend
-if (Test-Path "game_launcher.py") { python -m compileall -b game_launcher.py }
-
-Get-ChildItem -Path "backend", "frontend" -Filter "*.py" -Recurse | Remove-Item -Force
-Remove-Item "game_launcher.py" -Force -ErrorAction SilentlyContinue
-Pop-Location
-Write-Host "✅ Код скомпилирован в .pyc во временной папке" -ForegroundColor Green
+Write-Host "✅ Исходный код скопирован во временную папку" -ForegroundColor Green
 
 # 3. Компиляция основного установщика
 Write-Host "🔨 Компиляция основного установочника..." -ForegroundColor Cyan
@@ -81,23 +73,8 @@ if (-not (Test-Path $ISCCPath)) { Write-Host "❌ Ошибка: Не найде�
 & $ISCCPath /DAppVersion=$NewVersion $SetupScriptPath /Qp
 if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка компиляции Inno Setup!" -ForegroundColor Red; exit }
 
-# 4. Сборка установщика моделей (если его нет)
- $modelsExePath = "build\Bloodloom_models_setup.exe"
-if (-not (Test-Path $modelsExePath)) {
-    if (Test-Path $ModelsSetupScriptPath) {
-        Write-Host "🔨 Сборка установщика AI-моделей (это займет время)..." -ForegroundColor Yellow
-        & $ISCCPath $ModelsSetupScriptPath /Qp
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "⚠️ Ошибка компиляции models_setup.iss (возможно, нехватка места). Пропускаем..." -ForegroundColor Yellow
-        }
-    } else {
-        Write-Host "⚠️ Файл models_setup.iss не найден. Пропускаем..." -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "✅ Установщик AI-моделей уже собран, пропускаем..." -ForegroundColor Green
-}
-
- $SetupFiles = Get-ChildItem -Path "build" -File | Where-Object { $_.Name -like "Bloodloom_setup_v*" -or $_.Name -like "Bloodloom_models_setup*" } | Select-Object -ExpandProperty FullName
+# 4. Установщик моделей больше не собираем (модели будут скачиваться по ссылкам из настроек игры)
+ $SetupFiles = Get-ChildItem -Path "build" -File | Where-Object { $_.Name -like "Bloodloom_setup_v*" } | Select-Object -ExpandProperty FullName
 if (-not $SetupFiles) { Write-Host "❌ Ошибка: Не найдены скомпилированные файлы в папке build!" -ForegroundColor Red; exit }
 Write-Host "✅ Установочники собраны: $($SetupFiles -join ', ')" -ForegroundColor Green
 

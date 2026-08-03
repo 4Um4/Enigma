@@ -146,6 +146,8 @@ class _TickContext:
     world_snapshot: Optional[Any] = None
     # TZ-08 v0.2: interventions replace dm_ctx. Kernel не знает "player".
     interventions: list = field(default_factory=list)
+    # BUG-CORE-003 FIX: Контекст игрока (HubEventContext) из GameLoop
+    hub_event: Any = None
     # Player turn: сервисы для legacy pipeline (передаёт npc_orchestration)
     npc_services: Optional[Any] = None
     # Player turn: результат legacy pipeline

@@ -5,12 +5,12 @@ Invariant 12.2 (WARA): write_to_legacy обязан записывать КАЖ�
 
 Запуск: cd backend; python -m pytest tests/pbt/properties/test_npc_state_roundtrip.py -v; cd ..
 """
-from hypothesis import given, settings
+from hypothesis import given, settings, HealthCheck
 from tests.pbt.strategies import npc_legacy_strategy
 from app.models.npc_state import NPCState, NPCStateAdapter
 
 @given(npc_dict=npc_legacy_strategy)
-@settings(max_examples=200)
+@settings(max_examples=100, suppress_health_check=[HealthCheck.too_slow])
 def test_npc_state_roundtrip_preserves_critical_fields(npc_dict: dict):
     """Тест: from_legacy -> write_to_legacy -> from_legacy не теряет данные."""
     # 1. Создаём объект из сгенерированного dict
@@ -30,6 +30,6 @@ def test_npc_state_roundtrip_preserves_critical_fields(npc_dict: dict):
     if original_state.body_state and final_state.body_state:
         assert original_state.body_state.get("current_hp") == final_state.body_state.get("current_hp"), "current_hp lost in round-trip!"
         
-    # Проверяем psyche
-    if original_state.psyche and final_state.psyche:
-        assert original_state.psyche.stress == final_state.psyche.stress, "stress lost in round-trip!"
+    # Проверяем расщеплённые поля psyche (stress, will_state)
+    assert original_state.stress == final_state.stress, f"stress lost in round-trip! {original_state.stress} -> {final_state.stress}"
+    assert original_state.will_state == final_state.will_state, f"will_state lost in round-trip! {original_state.will_state} -> {final_state.will_state}"

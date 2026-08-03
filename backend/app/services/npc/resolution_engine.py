@@ -20,7 +20,6 @@ ResolutionLayer — стохастическое разрешение намер
 """
 
 
-import random
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
 
@@ -123,7 +122,7 @@ class ResolutionEngine:
     """
 
     def __init__(self, seed: Optional[int] = None) -> None:
-        # BUG-CORE-012 FIX: Удалён random.Random. RNG создаётся per-call в resolve.
+        # BUG-CORE-012 FIX: Глобальный RNG удалён. KernelRNG создаётся per-call в resolve.
         pass
 
     def resolve(
@@ -144,7 +143,7 @@ class ResolutionEngine:
         tick:             текущий тик для детерминированного KernelRNG
         """
         # ── Бросок d20 ────────────────────────────────────────────────────────
-        # BUG-CORE-012 FIX: Используем KernelRNG вместо random.Random (ADR-O-301).
+        # BUG-CORE-012 FIX: Используем KernelRNG для детерминированности (ADR-O-301).
         from app.services.npc.kernel_rng import KernelRNG
         _rng = KernelRNG(tick=tick, npc_id=state.npc_id, salt="resolution_engine")
         raw_roll = _rng.randint(1, D20_SIDES)

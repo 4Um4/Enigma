@@ -260,6 +260,8 @@ def _determine_response_bias(
 
 # --- СЛОЙ 3: AFFECTIVE DECAY (PHASE 0.5) ---
 
+from dataclasses import replace
+
 
 def decay_affective_imprints(
     imprints: Tuple[AffectiveImprint, ...], delta_time: float, current_game_time: int

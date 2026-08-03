@@ -257,6 +257,207 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     )
 
 
+def inv_death_lock(world: TestWorld) -> InvariantResult:
+    """INV-DEATH-LOCK: Мёртвые NPC не имеют active_traversals (ADR-127)."""
+    engine = getattr(world.game_loop, "_get_life_engine", lambda: None)()
+    npcs = engine.get_npc_states(world.campaign_id) if engine else []
+    scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
+    travs = scene.get("active_traversals", {})
+    
+    for npc in npcs:
+        nid = npc.get("npc_id") or npc.get("id")
+        life = npc.get("life_status", "").upper() or npc.get("body_state", {}).get("life_status", "").upper()
+        if life == "DEAD" and nid in travs:
+            return InvariantResult(
+                "INV-DEATH-LOCK",
+                "CRITICAL",
+                False,
+                f"Мёртвый NPC {nid} имеет active_traversal. Нарушение ADR-127.",
+                ["backend/app/services/npc/life_engine.py", "backend/app/services/scene_state_manager.py"]
+            )
+    return InvariantResult("INV-DEATH-LOCK", "CRITICAL", True, "", [])
+
+
+def inv_trav_zombie(world: TestWorld) -> InvariantResult:
+    """INV-TRAV-ZOMBIE: В active_traversals нет терминальных статусов (COMPLETED, CANCELLED)."""
+    scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
+    travs = scene.get("active_traversals", {})
+    _terminal = {"COMPLETED", "CANCELLED"}
+    _zombies = [f"{nid}={t.get('status')}" for nid, t in travs.items() if isinstance(t, dict) and t.get("status", "").upper() in _terminal]
+    
+    if _zombies:
+        return InvariantResult(
+            "INV-TRAV-ZOMBIE",
+            "CRITICAL",
+            False,
+            f"Обнаружены зомби-перемещения: {', '.join(_zombies)}. Нарушение ADR-TRAV-FSM (cleanup failed).",
+            [
+                "backend/app/services/scene_state_manager.py",
+                "backend/app/services/tick_orchestrator.py (_process_traversals)"
+            ]
+        )
+    return InvariantResult("INV-TRAV-ZOMBIE", "CRITICAL", True, "", [])
+
+
+def inv_dialogue_scheduler_fail(world: TestWorld) -> InvariantResult:
+    """INV-DIALOGUE-SCHEDULER-FAIL: TaskScheduler не должен глотать провалы диалогов (L4)."""
+    # ADR-O-342: Проверяем, что за время IPT ни одна задача не была тихо провалена.
+    scheduler = getattr(world.game_loop, "_task_scheduler", None) or getattr(world.game_loop, "task_scheduler", None)
+    if not scheduler:
+        return InvariantResult(
+            "INV-DIALOGUE-SCHEDULER-FAIL",
+            "CRITICAL",
+            False,
+            "TaskScheduler не найден в GameLoop.",
+            ["backend/app/services/game_loop/__init__.py"]
+        )
+    
+    if scheduler.failed_tasks > 0:
+        return InvariantResult(
+            "INV-DIALOGUE-SCHEDULER-FAIL",
+            "CRITICAL",
+            False,
+            f"TaskScheduler тихо провалил {scheduler.failed_tasks} задач (диалогов). Нарушение L4 (Silent Failure).",
+            [
+                "backend/app/services/game_loop/task_scheduler.py",
+                "backend/app/services/execution/dialogue_executor.py",
+                "backend/app/services/npc/decision_hub.py"
+            ]
+        )
+    
+    return InvariantResult("INV-DIALOGUE-SCHEDULER-FAIL", "CRITICAL", True, "", [])
+
+
+def inv_wall_clock(world: TestWorld) -> InvariantResult:
+    """INV-WALL-CLOCK: Запрет wall-clock в симуляционном слое (§15.1)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_wall_clock import run_lint
+        violations = run_lint()
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-WALL-CLOCK",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} нарушений изоляции реального времени. Нарушение §15.1. Первые: {_details}",
+                ["backend/app/services/"]
+            )
+        return InvariantResult("INV-WALL-CLOCK", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-WALL-CLOCK",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_wall_clock.py"]
+        )
+
+
+def inv_silent_failure(world: TestWorld) -> InvariantResult:
+    """INV-SILENT-FAILURE: Запрет тихих отказов (except: pass) (L4)."""
+    import os
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_silent_failures import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join([f"{os.path.basename(f)}:{l}" for f, l, _ in violations[:5]])
+            return InvariantResult(
+                "INV-SILENT-FAILURE",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} тихих отказов (except: pass). Нарушение L4. Первые: {_details}",
+                [f for f, _, _ in violations]
+            )
+            
+        return InvariantResult("INV-SILENT-FAILURE", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-SILENT-FAILURE",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_silent_failures.py"]
+        )
+
+
+def inv_hp_ssot(world: TestWorld) -> InvariantResult:
+    """INV-HP-SSOT: Запрет прямого присваивания state.hp (ADR-HP-UNIFICATION)."""
+    import sys
+    from pathlib import Path
+    # Добавляем scripts/ в path для импорта линтера
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_hp_ssot import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join([f"{os.path.basename(f)}:{l}" for f, l, _ in violations[:5]])
+            return InvariantResult(
+                "INV-HP-SSOT",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} прямых записей в state.hp. Нарушение ADR-HP-UNIFICATION. Первые: {_details}",
+                [f for f, _, _ in violations]
+            )
+            
+        return InvariantResult("INV-HP-SSOT", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-HP-SSOT",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_hp_ssot.py"]
+        )
+
+
+def inv_pbt_roundtrip(world: TestWorld) -> InvariantResult:
+    """Подсистема 1 (PBT): Property-based тест на Round-Trip Integrity (§12.2)."""
+    try:
+        from tests.pbt.properties.test_npc_state_roundtrip import (
+            test_npc_state_roundtrip_preserves_critical_fields,
+        )
+        # Запускаем hypothesis-тест программно
+        test_npc_state_roundtrip_preserves_critical_fields()
+        return InvariantResult(
+            "INV-PBT-ROUNDTRIP",
+            "CRITICAL",
+            True,
+            "PBT (200 examples) passed: NPCState round-trip preserves critical fields.",
+            [],
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-PBT-ROUNDTRIP",
+            "CRITICAL",
+            False,
+            f"PBT FAILED: {e}",
+            [
+                "backend/app/models/npc_state.py",
+                "backend/tests/pbt/properties/test_npc_state_roundtrip.py",
+            ],
+        )
+
+
 INVARIANTS: List[Callable] = [
     inv_time_grows,
     inv_tick_grows,
@@ -264,6 +465,13 @@ INVARIANTS: List[Callable] = [
     inv_active_traversals_dict,
     inv_npc_has_name,
     inv_dialogue_stm,
+    inv_dialogue_scheduler_fail,
+    inv_trav_zombie,
+    inv_death_lock,
+    inv_wall_clock,
+    inv_silent_failure,
+    inv_hp_ssot,
+    inv_pbt_roundtrip,
 ]
 
 

@@ -88,6 +88,46 @@
   IPT 6/6 passed. DriftLaboratory: 0 D-drift, 0 crashed ticks.
   Files: backend/app/services/phases/validation.py, backend/app/services/spatial/movement_engine.py, backend/tests/sandbox/SUPERBOX/drift_laboratory.py
 
+- 🟢 **S149** INFRASTRUCTURE MVI: PBT + CAUSAL PROBES + DRIFT LAB V2 (Подсистемы 1, 3 + DriftLab):
+  **DriftLaboratory v2:** Внедрён *Valid Comparisons Tracking* (учёт `crashed_ticks`) и *Ground Truth Validator* (проверка `npc_positions` на пустоту и SC-1). Исправлена логика `phase3_ready` (жёсткие критерии: 100k comparisons, 0 C/D/E drift, 0 crashed ticks). Исправлен дефолтный `location_id` в `DriftConfig` (`tavern_silver_wolf` → `tavern`).
+  **Causal Drift (Class D) Elimination:** Устранён рассинхрон `is_boundary` между Legacy и Shadow пайплайнами при `cross_loc_materialize`. В `validation.py` вычисление переведено на проверку `cause` из `ThickSceneChange`. В `movement_engine.py` добавлен guard от пустого `target_location_id`.
+  **Подсистема 1 (PBT):** Внедрена библиотека `hypothesis`. Создан пакет `backend/tests/pbt/` со стратегиями генерации NPC. Реализован property-тест `test_npc_state_roundtrip` (Round-Trip Integrity, §12.2 WARA). PBT интегрирован в `IPT.py` как инвариант `INV-PBT-ROUNDTRIP` (Этап 1.5).
+  **Подсистема 3 (Causal Probes):** Внедрён `ProbeRunner` в `TickOrchestrator` (после Фазы 10). Реализована базовая проба `SpatialCoherenceProbe` (SC-1: координаты не 0.0, 0.0) для real-time мониторинга в production.
+  IPT: 7/7 passed. DriftLaboratory: 0 D-drift, 0 crashed ticks.
+  Files: backend/app/services/phases/validation.py, backend/app/services/spatial/movement_engine.py, backend/app/services/tick_orchestrator.py, backend/app/services/probes/*, backend/tests/sandbox/SUPERBOX/drift_laboratory.py, backend/tests/pbt/*, backend/tests/IPT.py
+
+- 🟢 **S150** DIALOGUE HARD CONTRACT ENFORCEMENT (L4 Silent Failure Elimination):
+  Внедрён инвариант `INV-DIALOGUE-SCHEDULER-FAIL` в `IPT.py`, детектирующий тихие провалы диалогов в `TaskScheduler`.
+  **Root Cause:** `DecisionHub` генерировал содержательные интенты (`offer_job`, `call_for_help`) для NPC без истории взаимодействий (STM). `DialogueExecutor` честно падал с `DialogueContractViolation`, но `TaskScheduler` глотал ошибку (L4 violation).
+  **Fix:** Внедрён перехват в `post_decision.py` (Фаза 6) и `task_scheduler.py`. Если NPC пытается начать содержательный диалог без STM, его интент принудительно понижается до `approach` (установление контакта).
+  IPT: 8/8 passed.
+  Files: backend/app/services/phases/post_decision.py, backend/app/services/game_loop/task_scheduler.py, backend/tests/IPT.py
+
+- 🟢 **S151** ZOMBIE TRAVERSAL DETECTOR (Подсистема 3 + IPT):
+  Внедрена проба `TraversalFSMProbe` в `TickOrchestrator` (real-time мониторинг терминальных статусов `COMPLETED`/`CANCELLED` в `active_traversals`).
+  Добавлен инвариант `INV-TRAV-ZOMBIE` в `IPT.py`.
+  Это гарантирует соблюдение ADR-TRAV-FSM: завершённые перемещения не могут "зависать" в `scene_state` и блокировать новые маршруты.
+  IPT: 9/9 passed.
+  Files: backend/app/services/probes/probes/traversal_fsm_probe.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py
+
+- 🟢 **S152** DEATH LOCK DETECTOR (Подсистема 3 + IPT):
+  Внедрена проба `DeathLockProbe` в `TickOrchestrator` (real-time мониторинг `active_traversals` для NPC с `life_status="DEAD"`).
+  Добавлен инвариант `INV-DEATH-LOCK` в `IPT.py`.
+  Это гарантирует соблюдение ADR-127: мёртвые NPC не могут двигаться или иметь зависшие перемещения.
+  IPT: 10/10 passed.
+  Files: backend/app/services/probes/probes/death_lock_probe.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py
+
+### 2. Обновление `docs/ADR (Architecture Decision Records).md` (ADR-O-327 и ADR-O-328)
+
+Добавь в `docs/ADR (Architecture Decision Records).md`:
+
+```markdown
+
+```
+
+Мы успешно внедрили основу MVI (Minimum Viable Infrastructure). Система стала защищена от багов сериализации (PBT), имеет честный мониторинг дрейфа (DriftLab v2) и ловит пространственные баги в реальном времени (Causal Probes). 
+
+Что будем делать дальше? Продолжим MVI (Replay System или ADR-Net) или вернёмся к разработке игровых механик?
 
 ---
 

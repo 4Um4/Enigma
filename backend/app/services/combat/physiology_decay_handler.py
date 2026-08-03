@@ -88,20 +88,15 @@ class PhysiologyDecayHandler:
             if npc.get("life_status", "ALIVE") == "DEAD":
                 continue
 
-            # ADR-100/124: Физиология хранится ТОЛЬКО внутри body_state.
-            _body = npc.get("body_state", {})
-            if not isinstance(_body, dict):
-                _body = {}
-
-            # Текущие значения из снапшота
-            current_pain = _body.get("pain", 0.0)
-            current_fatigue = _body.get("fatigue", 0.0)
-            current_blood_loss = _body.get("blood_loss", 0.0)
-            current_consciousness = _body.get("consciousness", 1.0)
-            current_shock = _body.get("shock_impulse", 0.0)
+            # BUG-PERC-032 FIX: В NPCStateSnapshot физиология лежит на верхнем уровне (top-level), а не в body_state dict.
+            current_pain = npc.get("pain", 0.0)
+            current_fatigue = npc.get("fatigue", 0.0)
+            current_blood_loss = npc.get("blood_loss", 0.0)
+            current_consciousness = npc.get("consciousness", 1.0)
+            current_shock = npc.get("shock_impulse", 0.0)
 
             # Диагностика: почему injuries теряются между тиками?
-            _inj = _body.get("injuries_by_zone", {})
+            _inj = npc.get("injuries_by_zone", {})
             if _inj:
                 logger.debug(
                     f"[DECAY_INJURY] npc={npc.get('npc_id', '?')} has_injuries=True zones={list(_inj.keys())} blood_loss={current_blood_loss:.3f}"

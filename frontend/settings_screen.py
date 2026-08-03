@@ -92,6 +92,9 @@ class SettingsScreen:
         # Настройки контента (заглушка, если не удалось получить)
         self.current_preset = getattr(settings.content_policy, "preset", "moderate")
         
+        # Статус LLM-моделей
+        self._llm_status = self._fetch_llm_status()
+        
         self.buttons = self._build_buttons()
 
     def _build_buttons(self):
@@ -99,11 +102,12 @@ class SettingsScreen:
         # Кнопки вкладок
         tab_w, tab_h = 200, 50
         gap = 20
-        start_x = (self.screen.get_width() - (tab_w * 2 + gap)) // 2
+        start_x = (self.screen.get_width() - (tab_w * 3 + gap * 2)) // 2
         start_y = 120
         
         buttons.append(_SettingsButton(start_x, start_y, tab_w, tab_h, "Графика", _MENU_COLORS["btn_primary"], _MENU_COLORS["btn_primary_hover"], lambda: self._switch_tab("graphics"), self._active_tab == "graphics"))
         buttons.append(_SettingsButton(start_x + tab_w + gap, start_y, tab_w, tab_h, "Контент", _MENU_COLORS["btn_primary"], _MENU_COLORS["btn_primary_hover"], lambda: self._switch_tab("content"), self._active_tab == "content"))
+        buttons.append(_SettingsButton(start_x + (tab_w + gap)*2, start_y, tab_w, tab_h, "LLM Модели", _MENU_COLORS["btn_primary"], _MENU_COLORS["btn_primary_hover"], lambda: self._switch_tab("llm"), self._active_tab == "llm"))
         
         btn_w, btn_h = 300, 50
         x = (self.screen.get_width() - btn_w) // 2
@@ -131,10 +135,72 @@ class SettingsScreen:
             buttons.append(_SettingsButton(x, start_y + 2*(btn_h + gap), btn_w, btn_h, "Взрослый (18+)", _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda: self._set_preset("explicit"), self.current_preset == "explicit", tooltip="Полный 18+ контент: мат, explicit-секс, детальная жестокость, табу-практики."))
             buttons.append(_SettingsButton(x, start_y + 3*(btn_h + gap), btn_w, btn_h, "Назад", _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], lambda: setattr(self, "_result", "back")))
 
+        elif self._active_tab == "llm":
+            status = self._llm_status
+            if not status:
+                buttons.append(_SettingsButton(x, start_y, btn_w, btn_h, "Сервер недоступен", _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], lambda: None, tooltip="Убедитесь, что бэкенд запущен."))
+            else:
+                for i, (key, info) in enumerate(status.items()):
+                    name = info.get("display_name", key)
+                    is_dl = info.get("is_downloaded", False)
+                    is_downloading = info.get("is_downloading", False)
+                    progress = info.get("progress", 0.0)
+                    
+                    if is_dl:
+                        color = _MENU_COLORS["accent_green"]
+                        color_hover = _MENU_COLORS["btn_primary_hover"]
+                        text = f"✅ {name}"
+                        tooltip = "Модель уже скачана"
+                        on_click = lambda: None
+                    elif is_downloading:
+                        color = _MENU_COLORS["btn_primary"]
+                        color_hover = _MENU_COLORS["btn_primary"]
+                        text = f"⏳ Скачивание... {progress}%"
+                        tooltip = "Идет загрузка. Пожалуйста, подождите."
+                        on_click = lambda: None
+                    else:
+                        color = _MENU_COLORS["btn_secondary"]
+                        color_hover = _MENU_COLORS["btn_secondary_hover"]
+                        text = f"⬇️ Скачать: {name}"
+                        tooltip = "Нажмите, чтобы начать скачивание в фоне"
+                        on_click = lambda k=key: self._download_llm(k)
+                        
+                    buttons.append(_SettingsButton(
+                        x, start_y + i*(btn_h+gap), btn_w, btn_h, text, color, color_hover, 
+                        on_click, 
+                        is_selected=is_dl,
+                        tooltip=tooltip
+                    ))
+            buttons.append(_SettingsButton(x, start_y + len(status)*(btn_h+gap) + gap, btn_w, btn_h, "Назад", _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], lambda: setattr(self, "_result", "back")))
+
         return buttons
 
     def _switch_tab(self, tab):
         self._active_tab = tab
+        if tab == "llm":
+            self._llm_status = self._fetch_llm_status()
+        self.buttons = self._build_buttons()
+
+    def _fetch_llm_status(self) -> dict:
+        """Получает статус LLM-моделей с бэкенда."""
+        import urllib.request
+        import json
+        try:
+            with urllib.request.urlopen("http://localhost:8000/api/llm/status", timeout=2) as r:
+                return json.loads(r.read())
+        except Exception:
+            return {}
+
+    def _download_llm(self, model_key: str):
+        """Отправляет запрос на скачивание модели в фоне."""
+        import urllib.request
+        try:
+            req = urllib.request.Request(f"http://localhost:8000/api/llm/download/{model_key}", method="POST")
+            urllib.request.urlopen(req, timeout=2)
+        except Exception as e:
+            print(f"Failed to start download: {e}")
+        # Обновляем статус после клика
+        self._llm_status = self._fetch_llm_status()
         self.buttons = self._build_buttons()
 
     def _cycle_resolution(self):
@@ -183,6 +249,12 @@ class SettingsScreen:
                         if btn.handle_event(event):
                             break
                             
+            # Поллинг статуса LLM каждые 2 секунды, если открыта вкладка
+            if self._active_tab == "llm" and pygame.time.get_ticks() - getattr(self, "_last_llm_fetch", 0) > 2000:
+                self._llm_status = self._fetch_llm_status()
+                self.buttons = self._build_buttons()
+                self._last_llm_fetch = pygame.time.get_ticks()
+
             self.screen.fill(_MENU_COLORS["bg_dark"])
             
             title_surf = self.font_title.render("Настройки", True, _MENU_COLORS["text"])

@@ -208,7 +208,11 @@ def run_npc_orchestration(
             shared_context=shared_context if _loc_id == _active_loc else None,
             active_location_id=_active_loc,
             location_ids=_location_ids,
+            hub_event=ctx.hub_event if _loc_id == _active_loc else None,  # BUG-CORE-003 FIX
         )
+        # BUG-FB-031 FIX: Сохраняем world_snapshot из ядра в shared_context, чтобы не пересобирать его с нуля в GameLoop
+        if hasattr(_loc_result, "world_snapshot") and _loc_result.world_snapshot is not None:
+            shared_context.world_snapshot = _loc_result.world_snapshot
         
         # Коммитим результат тика для каждой локации
         if _loc_result is not None and _loc_result.final_scene_state is not None and _scene_manager:

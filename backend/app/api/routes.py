@@ -40,7 +40,7 @@ from app.services.llm.router import get_router
 from app.services.player_session_service import player_session_service
 from app.services.readiness import ReadinessService
 from app.services.spatial.spatial_observatory_service import SpatialObservatoryService
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, Request, UploadFile
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +167,20 @@ async def restart_llm():
         return {"restarted": success, "url": settings.llama_cpp_server_url}
     except Exception as e:
         return {"restarted": False, "error": str(e)}
+
+# --- LLM Downloader API ---
+from app.services.llm.downloader import get_model_status, download_model
+
+@router.get("/api/llm/status")
+async def llm_status() -> dict:
+    """Возвращает статус скачивания LLM-моделей."""
+    return get_model_status()
+
+@router.post("/api/llm/download/{model_key}")
+async def llm_download(model_key: str, background_tasks: BackgroundTasks) -> dict:
+    """Запускает скачивание модели в фоне."""
+    background_tasks.add_task(download_model, model_key)
+    return {"status": "started", "model": model_key}
 
 
 @router.get("/system/requirements")

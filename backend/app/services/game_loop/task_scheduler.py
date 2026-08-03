@@ -37,6 +37,8 @@ class TaskScheduler:
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
         }
+        # ADR-O-342: Сохраняем для проверки STM при резолве цели
+        self._memory_manager = memory_manager
         # Блокер 5: Sims-слой для ambient-диалогов без LLM
         self._ambient_executor: NpcConversation = NpcConversation()
         self._materializers: Dict[str, Materializer] = {
@@ -49,6 +51,8 @@ class TaskScheduler:
         self._dialogue_ttl = 60.0  # 1 минута game_time
         # P1 FIX: Асинхронный пул для неблокирующего выполнения LLM
         self._executor_pool = ThreadPoolExecutor(max_workers=2)
+        # ADR-O-342: Счётчик тихих отказов (для Causal Probes / IPT)
+        self.failed_tasks = 0
         self._spatial_query_service = None
         from app.services.execution.dialogue_queue import DialogueQueue
         self._dialogue_queue = DialogueQueue()
@@ -169,7 +173,6 @@ class TaskScheduler:
 
             # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем ближнего NPC
             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
-                import random
                 from dataclasses import replace as dc_replace
 
                 _resolved_target = "soliloquy"
@@ -197,7 +200,7 @@ class TaskScheduler:
                         _candidates.append(nid)
 
                 if _candidates:
-                    # BUG-CORE-011 FIX: Замена random.choice на KernelRNG (ADR-O-301).
+                    # BUG-CORE-011 FIX: Используем KernelRNG вместо глобального random (ADR-O-301).
                     from app.services.npc.kernel_rng import KernelRNG
                     _tick = scene_state.get("tick", 0)
                     _rng = KernelRNG(tick=_tick, npc_id=task.owner_id, salt="task_target_resolve")
@@ -207,6 +210,15 @@ class TaskScheduler:
                 logger.debug(
                     f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}"
                 )
+
+                # ADR-O-342: Hard Contract. Если STM пуст для резолвнутой цели, меняем intent на approach
+                if self._memory_manager and task.payload.intent_type not in ("greeting", "approach"):
+                    _stm_check = self._memory_manager.get_stm_prompt_block_pair(
+                        campaign_id, task.owner_id, _resolved_target
+                    )
+                    if not _stm_check:
+                        logger.debug(f"[SCHEDULER] Intercept {task.owner_id} -> {_resolved_target}: No STM, changing intent '{task.payload.intent_type}' to 'approach'")
+                        task.payload = dc_replace(task.payload, intent_type="approach")
 
             artifacts = executor.execute(task)
 
@@ -251,6 +263,7 @@ class TaskScheduler:
                         f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
                     )
                     task.state = TaskState.FINISHED  # Пока без сложного ретрая
+                    self.failed_tasks += 1
 
     def _reconstruct_task(self, task_dict: dict) -> QueuedTask:
         """Собирает QueuedTask из словаря (после JSON сериализации)."""

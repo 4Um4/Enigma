@@ -91,6 +91,7 @@ class _PipelineState:
     start_ms: float = field(default_factory=lambda: time.time() * 1000)
     # Sprint P9: Факты, донесённые до игрока (для UI и DM)
     observed_facts: list = field(default_factory=list)
+    world_snapshot: Optional[Any] = None  # BUG-FB-031 FIX: Проброс WorldSnapshotDTO из ядра
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -1200,52 +1201,22 @@ class GameLoop:
         if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
             self.scene_manager.commit_tick_result(req.campaign_id, state.shared_context.scene_state)
 
-        # TASK 1: Force Merge — строим world_snapshot из актуального scene_state (ADR-0014)
+        # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
         _ws_dict = None
         _npc_pos_dict = None
-        # ADR-TZ09-2: Используем _tick_scenes (обновлённое ядром), а не устаревший shared_context.scene_state
-        _scene = None
-        if self.scene_manager and hasattr(self.scene_manager, "_tick_scenes"):
-            _loc = getattr(state.shared_context, "location_id", None)
-            if _loc and _loc in self.scene_manager._tick_scenes:
-                _scene = self.scene_manager._tick_scenes[_loc]
-            elif self.scene_manager._tick_scenes:
-                _scene = next(iter(self.scene_manager._tick_scenes.values()), None)
-        if _scene is None and hasattr(state, "shared_context") and state.shared_context:
-            _scene = state.shared_context.scene_state
-        if _scene:
+        if state.shared_context and state.shared_context.world_snapshot:
             from dataclasses import asdict
-
-            from app.services.integration.world_snapshot_builder import (
-                WorldSnapshotBuilder,
-            )
-
-            _builder = WorldSnapshotBuilder()
-            # ADR-092: Проброс perception из TickOrchestrator для action tick
-            _pp = (
-                getattr(state.shared_context, "player_perception", None)
-                if state.shared_context
-                else None
-            )
-            _anr = (
-                getattr(state.shared_context, "all_npcs_raw_snapshot", None)
-                if state.shared_context
-                else None
-            )
-            logger.debug(
-                f"[TRAV_CHECK_P2] before_snapshot: id(scene_state)={id(_scene)} active_traversals={list(_scene.get('active_traversals', {}).keys())}"
-            )
-            _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-            if _ws := _builder.build(
-                _scene,
-                tick=self.get_current_tick(req.campaign_id),
-                player_perception=_pp,
-                all_npcs_raw=_anr,
-                recent_dialogues=_recent_d,
-            ):
-                _ws_dict = asdict(_ws)
-                # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
-                _npc_pos_dict = _ws_dict.get("npc_positions")
+            _ws_dict = asdict(state.shared_context.world_snapshot)
+            _npc_pos_dict = _ws_dict.get("npc_positions", {})
+            # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
+            try:
+                _scene = state.shared_context.scene_state or {}
+                _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
+                logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+                _ws_dict["recent_dialogues"] = _recent_d
+            except Exception as e:
+                logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
+            _ws_dict["dialog_journal"] = self.avatar_service.get_journal(req.campaign_id)
 
         # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
         self.scene_manager.unlock_tick(req.campaign_id)

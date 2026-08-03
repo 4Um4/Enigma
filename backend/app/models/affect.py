@@ -11,7 +11,7 @@ TODO: Временный контракт для разработки и тес�
 """
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -70,13 +70,14 @@ class AffectivePressureDTO:
     sensory_overload: float = 0.0  # Сенсорная перегрузка (боль, шум)
 
 
+@dataclass
 class ResonanceProfile:
     """Результат сканирования аффективной памяти. Искажение интерпретации, а не бафф.
 
     Создаётся AffectResonanceScanner (Pure Function).
     """
 
-    triggered_imprints: tuple[str, ...]  # ID сработавших травм
+    triggered_imprints: tuple[str, ...] = field(default_factory=tuple)  # ID сработавших травм
 
     # Оси резонанса (как травма откликается текущему контексту)
     fear_resonance: float = 0.0

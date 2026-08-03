@@ -9,7 +9,7 @@ import logging
 import urllib.request
 from typing import Any, Dict, Optional
 
-from app.services.llm.llm_provider import LlmProvider
+from app.services.llm.provider import LlmProvider  # BUG-DLG-041 FIX: Исправлен импорт (llm_provider → provider)
 
 logger = logging.getLogger(__name__)
 

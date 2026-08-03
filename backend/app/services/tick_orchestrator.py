@@ -357,6 +357,7 @@ class TickOrchestrator:
         shared_context: Optional[
             Any
         ] = None,  # S116 FIX: Проброс shared_context для CombatSubscriber
+        hub_event: Optional[Any] = None,  # BUG-CORE-003 FIX: Проброс контекста игрока
         task_scheduler: Optional[Any] = None,  # S128 FIX: Проброс для Фазы 4
         active_location_id: Optional[str] = None, # Дополнение Б: локация игрока
         location_ids: Optional[List[str]] = None, # Дополнение Б: список всех локаций
@@ -421,6 +422,7 @@ class TickOrchestrator:
                 all_npcs_raw=all_npcs_raw,
                 shared_context=shared_context,
                 task_scheduler=task_scheduler,
+                hub_event=hub_event,  # BUG-CORE-003 FIX: Передача контекста в фабрику
             )
             self._rebuild_cluster_occupancy(ctx)
 
@@ -603,6 +605,22 @@ class TickOrchestrator:
         self._phase_9_integration(ctx) #14
         self._run_affective_pipeline(ctx) #15
         self._phase_10_persistence(ctx) #16
+
+        # Подсистема 3: Causal Probes (real-time invariant monitor)
+        from app.services.probes.probe_runner import ProbeRunner
+        from app.services.probes.probe_registry import ProbeContext
+        from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
+        from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+        from app.services.probes.probes.death_lock_probe import DeathLockProbe
+        
+        _probe_ctx = ProbeContext(
+            tick_id=ctx.tick_number,
+            game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
+            scene_state=ctx.scene_state,
+            all_npcs_raw=ctx.all_npcs_raw
+        )
+        _runner = ProbeRunner(probes=[SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe()])
+        _runner.run_all(_probe_ctx)
 
         # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)
         from app.domain.events import EventDTO

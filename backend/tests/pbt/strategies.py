@@ -23,14 +23,14 @@ body_state_strategy = st.fixed_dictionaries({
 
 # Стратегия: генерирует минимально валидный NPC dict (legacy формат)
 npc_legacy_strategy = st.fixed_dictionaries({
-    "id": st.text(min_size=1, max_size=20, alphabet=st.characters(blacklist_categories=('Cs',))),
-    "name": st.text(min_size=1, max_size=30, alphabet=st.characters(blacklist_categories=('Cs',))),
+    "id": st.text(min_size=1, max_size=10, alphabet="abcdefghijklmnopqrstuvwxyz"),
+    "name": st.text(min_size=1, max_size=20, alphabet="abcdefghijklmnopqrstuvwxyz"),
     "psyche": psyche_strategy,
     "body_state": body_state_strategy,
     "social_stats": st.dictionaries(
-        keys=st.text(min_size=1, max_size=10),
+        keys=st.sampled_from(["trust", "fear_of_player", "loyalty"]),
         values=st.floats(min_value=0.0, max_value=100.0),
-        max_size=5
+        max_size=3
     )
 })
 

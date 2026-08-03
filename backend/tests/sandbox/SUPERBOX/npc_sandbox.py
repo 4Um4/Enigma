@@ -1,7 +1,7 @@
 r"""
 backend/tests\sandbox\SUPERBOX/npc_sandbox.py
 Автономная симуляция NPC — N тиков без pygame/LLM.
-
+cd backend; python tests/sandbox/SUPERBOX/npc_sandbox.py; cd ..
 Запуск: cd backend ; python npc_sandbox.py           # 40 тиков (по умолчанию)
         cd backend ; python npc_sandbox.py full_test  # 1800 тиков
 
@@ -128,6 +128,35 @@ class NPCSandbox:
         # 3. Создаём экономические профили (пустые, если нет в runtime)
         eco_profiles = self._create_eco_profiles(npc_data)
 
+        # P8: Добавляем Игрока в экономический контур
+        from app.models.economy import EconomicProfile, Need, NeedType
+        player_ep = EconomicProfile(
+            npc_id="player",
+            gold=48.0,  # Стартовый капитал игрока (из body_state["money"])
+            goods={"food": 3.0},  # Стартовый запас еды
+            base_needs=[
+                Need(need_type=NeedType.FOOD, base_urgency=0.0, budget_share=0.3),
+                Need(need_type=NeedType.INCOME, base_urgency=0.3, budget_share=0.5),
+                Need(need_type=NeedType.SHELTER, base_urgency=0.1, budget_share=0.1),
+                Need(need_type=NeedType.SOCIAL, base_urgency=0.15, budget_share=0.1),
+            ],
+        )
+        eco_profiles["player"] = player_ep
+        print(f"[SANDBOX] Игрок добавлен в экономику: {player_ep.gold}G, food={player_ep.goods.get('food', 0.0)}")
+
+        # P8: Сценарий "Долг тавернщика" — тавернщик занял у купца на ремонт крыши
+        from app.models.economy import Obligation
+        _tavern_ep = eco_profiles.get("tavern_keeper_tornin")
+        if _tavern_ep:
+            _tavern_ep.obligations.append(Obligation(
+                obligation_type="debt",
+                amount=15.0,
+                due_in_ticks=48,  # 2 дня на возврат
+                penalty_per_tick=0.03,
+                creditor_id="merchant_goran"
+            ))
+            print(f"[SANDBOX] Тавернщик должен 15.0G купцу (срок: 48 тиков)")
+
         # 4. Инициализируем движки
         from app.services.economy.economic_modifier import EconomicModifier
         from app.services.economy.need_engine import NeedEngine
@@ -173,6 +202,22 @@ class NPCSandbox:
         # 5. Цикл тиков
         for tick in range(1, self.config.tick_count + 1):
             print(f"[SANDBOX] === TICK {tick} ===")
+            # P8: Тик потребностей игрока (растёт голод)
+            if "player" in eco_profiles:
+                p_ep = eco_profiles["player"]
+                need_engine.tick(p_ep)
+                
+                # Игрок автоматически ест, если голоден и есть еда
+                for need in p_ep.base_needs:
+                    if need.need_type == NeedType.FOOD and need.is_urgent:
+                        if p_ep.has_good("food", 1.0):
+                            p_ep.remove_good("food", 1.0)
+                            p_ep.satisfy_need(NeedType.FOOD)
+                            print(f"[PLAYER] Съедена еда (остаток: {p_ep.goods.get('food', 0.0):.1f})")
+
+            # P8: Тик обязательств (уменьшаем due_in_ticks для всех NPC)
+            for ep_tick in eco_profiles.values():
+                ep_tick.tick_obligations()
             # Обработка контрактных платежей (деньги двигаются)
             from app.models.economy import NeedType
             from app.services.events.event_types import EventType
@@ -255,6 +300,68 @@ class NPCSandbox:
                     intent_score = 0.0
                     new_state = state_l2
 
+                # P8: Экономические угрозы формируют PerceptualKernel ДО аффективного конвейера
+                if ep:
+                    food_need = next((n for n in ep.base_needs if n.need_type == NeedType.FOOD), None)
+                    if food_need and food_need.effective_urgency > 0.6:
+                        # Голод = телесный дистресс. Интегратор учтёт волю (willpower) личности.
+                        new_state.perceptual_kernel.somatic_urgency = max(
+                            new_state.perceptual_kernel.somatic_urgency,
+                            food_need.effective_urgency
+                        )
+                        # Смерть от голода только при максимуме и без еды
+                        if food_need.effective_urgency >= 0.95 and not ep.has_good("food", 1.0):
+                            new_state.hp = max(0, new_state.hp - 2)
+                            print(f"[STARVATION] {npc_id} голодает! HP -2 (осталось {new_state.hp})")
+                            if new_state.hp <= 0:
+                                print(f"[DEATH] {npc_id} умер от голода!")
+
+                    # Стресс от нищеты = потеря контроля (uncertainty)
+                    if new_state.stress > 30.0:
+                        _stress_norm = min(1.0, new_state.stress / 100.0)
+                        new_state.perceptual_kernel.uncertainty = max(
+                            new_state.perceptual_kernel.uncertainty, _stress_norm
+                        )
+
+                # === AFFECTIVE PIPELINE (Фаза 9.1) ===
+                # Вычисляем аффективное давление и фазовый переход эмоций
+                new_load = new_state.affective_load
+                try:
+                    from app.services.affective.affective_integrator import integrate_affective_pressure
+                    from app.services.affective.emotion_transition import resolve_emotion_transition
+                    from app.models.npc_state import _emotion_from_str
+
+                    _drives_raw = profile_l0.drives_base or {}
+                    _willpower_val = getattr(new_state, "willpower", 50) or 50
+                    
+                    psyche = {
+                        "fear": _drives_raw.get("fear", 0.25),
+                        "control": _drives_raw.get("control", 0.25),
+                        "significance": _drives_raw.get("significance", 0.25),
+                        "willpower": min(1.0, float(_willpower_val) / 100.0),
+                    }
+                    
+                    current_load = new_state.affective_load
+                    current_memory = new_state.affective_memory
+                    
+                    new_load, new_memory = integrate_affective_pressure(
+                        kernel=new_state.perceptual_kernel,
+                        psyche=psyche,
+                        current_load=current_load,
+                        current_memory=current_memory,
+                    )
+                    
+                    new_state.affective_load = new_load
+                    new_state.affective_memory = new_memory
+                    
+                    emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
+                    if emotion_payload:
+                        new_state.stress = min(100.0, new_state.stress + emotion_payload.stress_delta)
+                        if emotion_payload.emotion_tag:
+                            new_state.emotion = _emotion_from_str(emotion_payload.emotion_tag)
+                except Exception as e:
+                    print(f"[AFFECTIVE_ERROR] npc={npc_id} tick={tick} error={e}")
+
                 # === ЭКОНОМИЧЕСКИЙ И ПОТРЕБНОСТНЫЙ СТРЕСС ===
                 # Единая функция — используется и в game_loop
                 if ep:
@@ -278,6 +385,32 @@ class NPCSandbox:
                         if ep_satisfy:
                             ep_satisfy.satisfy_need(NeedType.SHELTER)
 
+                    # P8: Сценарий "Ночной вор"
+                    if npc_id == "thief_shadow" and not hasattr(self, "_thief_acted_tonight"):
+                        self._thief_acted_tonight = True
+                        # Ищем самую богатую жертву
+                        victim_id = max(
+                            (vid for vid in eco_profiles if vid != "thief_shadow" and vid != "player"),
+                            key=lambda vid: eco_profiles[vid].gold,
+                            default=None
+                        )
+                        if victim_id:
+                            victim_ep = eco_profiles[victim_id]
+                            # Вор крадёт 10% золота, но не больше 5G
+                            stolen = min(victim_ep.gold * 0.1, 5.0)
+                            if stolen > 0:
+                                victim_ep.spend(stolen)
+                                ep.receive(stolen)
+                                print(f"[NIGHT] Вор украл {stolen:.2f}G у {victim_id} (осталось {victim_ep.gold:.2f}G)")
+                                # Шанс быть пойманным (20%)
+                                if hash(str(tick) + npc_id) % 5 == 0:
+                                    new_state.stress = min(100.0, new_state.stress + 20.0)
+                                    print(f"[NIGHT] Вор пойман! Стресс +20")
+                
+                # Сброс флага вора в начале нового дня
+                if tick % self.config.actions_per_day == 1:
+                    self._thief_acted_tonight = False
+
                 # Сохраняем состояние для следующего тика
                 ctx["state"] = new_state
 
@@ -286,6 +419,16 @@ class NPCSandbox:
                     if not hasattr(self, "_trade_intents"):
                         self._trade_intents = {}
                     self._trade_intents[npc_id] = intent_score
+
+                # P8: Эмоции вычисляются личностью (resolve_emotion_transition), не хардкодом.
+                # Для отображения в таблице вычисляем эмоцию напрямую из new_load (результат интегратора).
+                _display_emotion = "нейтрально"
+                if new_load > 0.85:
+                    _display_emotion = "паника"
+                elif new_load > 0.6:
+                    _display_emotion = "страх"
+                elif new_load > 0.3:
+                    _display_emotion = "тревога"
 
                 # === СНЕПОК ===
                 if tick % self.config.snapshot_interval == 0:
@@ -305,7 +448,7 @@ class NPCSandbox:
                         identity_integrity=round(new_state.identity_integrity, 3),
                         intent=intent_str,
                         intent_score=round(intent_score, 3),
-                        emotion=str(new_state.emotion) if new_state.emotion else "none",
+                        emotion=_display_emotion,
                         gold=round(ep.gold, 2) if ep else 0.0,
                         delta_stress=round(new_state.stress - prev["stress"], 2),
                         delta_gold=round((ep.gold if ep else 0.0) - prev["gold"], 2),
@@ -315,6 +458,28 @@ class NPCSandbox:
                         eco_modifiers=eco_modifiers,
                     )
                     self.snapshots.append(snap)
+
+            # P8: Снимок состояния игрока
+            if tick % self.config.snapshot_interval == 0:
+                p_ep = eco_profiles.get("player")
+                if p_ep:
+                    p_max_urgency = max((n.effective_urgency for n in p_ep.base_needs), default=0.0)
+                    p_snap = TickSnapshot(
+                        tick=tick,
+                        npc_id="player",
+                        hp=100,
+                        max_hp=100,
+                        stress=0.0,
+                        resentment=0.0,
+                        identity_integrity=1.0,
+                        intent="survive",
+                        intent_score=0.0,
+                        emotion="спокоен",
+                        gold=round(p_ep.gold, 2),
+                        max_urgency=round(p_max_urgency, 2),
+                        active_drives=["hunger" if p_max_urgency > 0.6 else ""],
+                    )
+                    self.snapshots.append(p_snap)
 
             # === TRADE RESOLUTION ===
             trade_intents = getattr(self, "_trade_intents", {})
@@ -363,7 +528,7 @@ class NPCSandbox:
                 # Производство: один котёл похлёбки = 15-20 порций (историческая реальность)
                 # Тавернщик варит на всех присутствующих, не по порциям
                 PRODUCTION_RATES = {
-                    "tavern_keeper_tornin": {"food": 20, "ale": 10},  # котёл похлёбки + бочка эля
+                    "tavern_keeper_tornin": {"food": 30, "ale": 10},  # большой котёл похлёбки + бочка эля
                     "blacksmith_orm": {"tools": 1},  # кует инструменты
                     "merchant_goran": {},  # торговец не производит, перепродаёт
                 }
@@ -377,11 +542,33 @@ class NPCSandbox:
             # === DAILY CHECK: INCOME и SOCIAL (раз в 24 тика) ===
             is_day_end = tick % self.config.actions_per_day == 0
             if is_day_end:
+                # P8: Логирование баланса игрока и запасов тавернщика
+                _p_ep = eco_profiles.get("player")
+                _t_ep = eco_profiles.get("tavern_keeper_tornin")
+                if _p_ep and _t_ep:
+                    print(f"[DAY END] День {tick // 24}: Игрок(gold={_p_ep.gold:.2f}G, food={_p_ep.goods.get('food', 0.0):.1f}) | Тавернщик(food_stock={_t_ep.stock_for_sale.get('food', 0.0):.1f})")
+
                 DAILY_EXPENSES_MIN = 0.09  # минимум на еду (3 порции × 0.03G)
 
                 for npc_id, ep in eco_profiles.items():
                     if not ep:
                         continue
+
+                    # P8: Фактическое списание ежедневных расходов (аренда, сырье)
+                    daily_cost = sum(ep.expense_categories.values())
+                    if daily_cost > 0:
+                        if ep.can_afford(daily_cost):
+                            ep.spend(daily_cost)
+                            print(f"[EXPENSE] {npc_id} потратил {daily_cost:.2f}G (осталось {ep.gold:.2f}G)")
+                        else:
+                            # Банкротство — списываем всё что есть, добавляем стресс
+                            _spent = ep.gold
+                            ep.spend(_spent)
+                            print(f"[BANKRUPT] {npc_id} не может оплатить {daily_cost:.2f}G (заплатил {_spent:.2f}G) — СТРЕСС!")
+                            _ctx = npc_contexts.get(npc_id)
+                            if _ctx:
+                                _ctx["state"].stress = min(100.0, _ctx["state"].stress + 15.0)
+
                     psycho = getattr(ep, "_psycho", None)
 
                     # --- INCOME: runway × savings_tendency + flow × (1 - tendency) ---
@@ -683,16 +870,16 @@ class SandboxReporter:
             return
 
         print(
-            f"{'ТИК':>5} | {'NPC':<25} | {'СТРЕСС':>7} | {'НАМЕРЕНИЕ':<22} | {'ОЦЕНКА':>6} | {'ЗОЛОТО':>8} | {'ПОБУЖДЕНИЯ':<30}"
+            f"{'ТИК':>5} | {'NPC':<25} | {'СТРЕСС':>7} | {'ЭМОЦИЯ':<12} | {'НАМЕРЕНИЕ':<22} | {'ОЦЕНКА':>6} | {'ЗОЛОТО':>8} | {'ПОБУЖДЕНИЯ':<30}"
         )
-        print("-" * 120)
+        print("-" * 130)
 
         for tick in self.ticks:
             for npc_id in self.npc_ids:
                 snap = next((s for s in self.snaps if s.tick == tick and s.npc_id == npc_id), None)
                 if snap:
                     print(
-                        f"{tick:>5} | {npc_id:<25} | {snap.stress:>7.2f} | {self._fmt_intent(snap.intent):<22} | {snap.intent_score:>6.3f} | {snap.gold:>8.1f} | {self._fmt_drives(snap.active_drives):<30}"
+                        f"{tick:>5} | {npc_id:<25} | {snap.stress:>7.2f} | {snap.emotion:<12} | {self._fmt_intent(snap.intent):<22} | {snap.intent_score:>6.3f} | {snap.gold:>8.1f} | {self._fmt_drives(snap.active_drives):<30}"
                     )
             print()
 

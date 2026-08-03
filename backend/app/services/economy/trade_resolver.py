@@ -90,6 +90,11 @@ class TradeResolver:
 
             seller = profiles[seller_id]
 
+            # P8: Корректируем объём закупки, если у продавца меньше, чем нужно
+            available_stock = seller.stock_for_sale.get(needed_good, 0.0)
+            if available_stock < needed_amount:
+                needed_amount = max(1.0, available_stock)
+
             # Рассчитываем цену
             price = self._calculate_price(needed_good, needed_amount, seller)
 
@@ -143,6 +148,12 @@ class TradeResolver:
             if not seller_id:
                 continue
             seller = profiles[seller_id]
+            
+            # P8: Корректируем объём закупки, если у продавца меньше, чем нужно
+            available_stock = seller.stock_for_sale.get(needed_good, 0.0)
+            if available_stock < needed_amount:
+                needed_amount = max(1.0, available_stock)
+                
             price = self._calculate_price(needed_good, needed_amount, seller)
             if not profile.can_afford(price):
                 continue
@@ -186,6 +197,33 @@ class TradeResolver:
         # Покупаем до 3 единиц за раз (на день)
         current = profile.goods.get(good, 0.0)
         return min(3.0, max(1.0, 3.0 - current))
+
+    def _find_seller(
+        self,
+        profiles: Dict[str, EconomicProfile],
+        buyer_id: str,
+        good: str,
+        amount: float,
+    ) -> Optional[str]:
+        """Ищет продавца с нужным товаром."""
+        best_seller: Optional[str] = None
+        best_price = float("inf")
+
+        for npc_id, profile in profiles.items():
+            if npc_id == buyer_id:
+                continue
+            # Ищем только у тех, у кого есть товар НА ПРОДАЖУ
+            if not profile.has_stock(good, 1.0): # P8: Хоть 1 единица
+                continue
+
+            # Выбираем самого дешёвого
+            base_price = GOODS_PRICES.get(good, 0.1)
+            price = base_price * amount
+            if price < best_price:
+                best_price = price
+                best_seller = npc_id
+
+        return best_seller
 
     def _find_seller(
         self,
