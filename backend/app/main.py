@@ -394,8 +394,8 @@ async def lifespan(app: FastAPI):
                     if _llama_state["proc"] is not None:
                         try:
                             _llama_state["proc"].kill()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning(f"Failed to kill llama process: {e}")
                     app.state.startup_status["llm_server"] = "failed"
         else:
             app.state.startup_status["llm_server"] = "skipped"
@@ -450,8 +450,8 @@ async def lifespan(app: FastAPI):
     _bg_task.cancel()
     try:
         await _bg_task
-    except asyncio.CancelledError:
-        pass
+    except asyncio.CancelledError as e:
+        logger.debug(f"Background task cancelled: {e}")
 
     # Синхронизируем состояние с глобалами для atexit-хендлера
     _llama_server_proc = _llama_state["proc"]

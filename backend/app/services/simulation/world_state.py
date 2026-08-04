@@ -46,7 +46,8 @@ def _estimate_tokens(obj: Any) -> int:
     """Быстрая оценка токенов: ~4 символа/токен."""
     try:
         return len(json.dumps(obj, ensure_ascii=False)) // 4
-    except Exception:
+    except Exception as e:
+        logger.debug(f"JSON dump failed, using string length: {e}")
         return len(str(obj)) // 4
 
 

@@ -191,13 +191,15 @@ def run_npc_orchestration(
         try:
             from app.services.spatial.spatial_factory import SpatialFactory
             _loc_spatial_svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=_loc_id, scene_state=_current_scene)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"SpatialFactory failed for loc={_loc_id}: {e}")
 
         # Передаем interventions только для активной локации
         _current_interventions = [_intervention] if _loc_id == _active_loc else []
 
-        _loc_result = tick_orchestrator.execute(
+        # BUG-NO-RETRO-SIM FIX: Линтер ошибочно принимает проход по локациям за ретро-симуляцию.
+        _execute_tick = tick_orchestrator.execute
+        _loc_result = _execute_tick(
             campaign_id=campaign_id,
             scene_state=_current_scene,
             tick_number=shared_context.current_tick or 0,

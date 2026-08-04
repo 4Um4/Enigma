@@ -19,10 +19,14 @@ def _extract_xy(entry: Optional[Dict]) -> Optional[Tuple[float, float]]:
         x, y = pos.get("x"), pos.get("y")
         if x is None or y is None: return None
         try: return float(x), float(y)
-        except (TypeError, ValueError): return None
+        except (TypeError, ValueError) as e:
+            logger.debug(f"Coord parse error: {e}")
+            return None
     if isinstance(pos, (list, tuple)) and len(pos) == 2:
         try: return float(pos[0]), float(pos[1])
-        except (TypeError, ValueError): return None
+        except (TypeError, ValueError) as e:
+            logger.debug(f"Coord parse error: {e}")
+            return None
     return None
 
 class SpatialTargetResolver:
@@ -74,8 +78,8 @@ class SpatialTargetResolver:
                 # S143 FIX: Конвертируем строку в Enum, так как resolve_node ожидает NodeRole
                 role_enum = NodeRole(target_id)
                 node = self._spatial_service.resolve_node(role=role_enum, origin_zone=location_id)
-            except ValueError:
-                pass  # Строка не соответствует ни одной роли NodeRole
+            except ValueError as e:
+                logger.debug(f"NodeRole not found for target_id={target_id}: {e}")  # Строка не соответствует ни одной роли NodeRole
             
         if not node:
             return ResolvedSpatialTarget(

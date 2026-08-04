@@ -138,8 +138,8 @@ def extract_topic(
                 _topic = _DRIVE_TO_TOPIC.get(_dominant_drive)
                 if _topic:
                     return _topic
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Topic extraction failed: {e}")
 
         _life_project = _npc_dict.get("core_orientation", "")
         if _life_project:

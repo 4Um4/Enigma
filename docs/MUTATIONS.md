@@ -117,40 +117,29 @@
   IPT: 10/10 passed.
   Files: backend/app/services/probes/probes/death_lock_probe.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py
 
-### 2. Обновление `docs/ADR (Architecture Decision Records).md` (ADR-O-327 и ADR-O-328)
-
-Добавь в `docs/ADR (Architecture Decision Records).md`:
-
-```markdown
-
-```
-
-Мы успешно внедрили основу MVI (Minimum Viable Infrastructure). Система стала защищена от багов сериализации (PBT), имеет честный мониторинг дрейфа (DriftLab v2) и ловит пространственные баги в реальном времени (Causal Probes). 
-
-Что будем делать дальше? Продолжим MVI (Replay System или ADR-Net) или вернёмся к разработке игровых механик?
-
----
-
-## 2. ИЗВЛЕЧЕННЫЕ АРХИТЕКТУРНЫЕ ИСТИНЫ
-
-В ходе 142 сессий система эмпирически пришла к следующим непреложным фактам:
-
-1. **Истина = Snapshot + Chronicle** (State эфемерен и перезаписываем, Identity — append-only история).
-2. **Время и Физика — одно целое** (Независимых `resolve(entity, dt)` слоев не существует. Физика считается только внутри Causal Kernel).
-3. **Нет Event Sourcing для State** (Но есть для Identity. `delta_buffer.clear()` уничтожает дельты после применения).
-4. **Симптом не является причиной** (Фикс должен падать на ПЕРВЫЙ отказавший узел pipeline, а не латать UI).
-5. **Вакуум — это локальный разрыв** (Unknown ≠ Neutral(0.0). Отсутствие данных не конвертируется в глобальные аккумуляторы).
-
----
-
-## 3. КАК РАБОТАТЬ С ПРОЕКТОМ (Текущий режим)
-
-В проекте могут параллельно работать несколько LLM-ассистентов.
-- **ID Сессий:** Присваивается строго при завершении работы и записи в этот файл. Если последняя сессия `S142`, твоя будет `S143`.
-- **ID ADR:** Берётся как максимальный существующий числовой ID + 1. Перед созданием ADR обязательно читать индекс.
-- **Формат работы:** Строго пошаговый. Один шаг = одно изменение. Перед изменением кода обязательна археология (PowerShell / print-диагностика) для понимания ownership.
-- **Тестирование:** `python backend/tests/IPT.py` — до и после фикса. `DriftLaboratory` — для воспроизведения.
-
+- 🟢 **S154** THE GREAT WALL OF ENIGMA (Подсистема 3 + AST Linters):
+  Внедрена серия AST-линтеров и runtime-проб для защиты архитектурных законов (CAUSAL_CONTRACT v2.0). Все линтеры интегрированы в `IPT.py` и запускаются перед каждым фиксом.
+  **AST Linters:**
+  1. `INV-WALL-CLOCK` (§15): Запрет `time.time()` в симуляции.
+  2. `INV-KERNEL-RNG` (ADR-O-301): Запрет `random.*` в симуляции.
+  3. `INV-HP-SSOT` (ADR-HP-UNIFICATION): Запрет прямого присваивания `state.hp`.
+  4. `INV-SILENT-FAILURE` (L4): Запрет `except: pass` без логирования.
+  5. `INV-SPATIAL-SSOT` (L9): Запрет прямой сборки `SpatialService` вне фабрики.
+  6. `INV-FRONTEND-ISOLATION` (§1.1): Запрет импорта `backend.app` во фронтенд.
+  7. `INV-EPISTEMIC-BOUNDARY` (§17): Запрет чтения ментальных полей в DM/Verbalization.
+  8. `INV-DOMAIN-PURITY` (§1.2): Запрет импорта `services/models` в доменный слой.
+  9. `INV-POSITION-MUTATION` (§4.1): Запрет прямой мутации позиции вне `SceneStateManager`.
+  10. `INV-L1-APPEND-ONLY` (Rule 28): Запрет удаления событий из `L1Chronicle`.
+  11. `INV-NO-RETRO-SIM` (Rule 25): Запрет циклов с вызовами `tick()` (ретро-симуляция).
+  
+  **Runtime Probes (real-time):**
+  1. `SpatialCoherenceProbe` (SC-1): Проверка координат `(0.0, 0.0)`.
+  2. `TraversalFSMProbe`: Детектор зомби-перемещений (COMPLETED/CANCELLED).
+  3. `DeathLockProbe` (ADR-127): Мёртвые NPC не имеют `active_traversals`.
+  4. `L3EphemeralProbe` (L3-P1): L3-проекции не персистятся.
+  
+  IPT: 20/24 passed (4 CRITICAL debts exposed for other assistants to fix).
+  Files: scripts/lint_*.py, backend/app/services/probes/*, backend/tests/IPT.py
 
 
 

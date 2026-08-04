@@ -150,7 +150,8 @@ class Calendar:
             h = max(0, min(h, 23))
             m = max(0, min(m, 59))
             return h * SECONDS_PER_HOUR + m * 60
-        except (ValueError, IndexError, AttributeError):
+        except (ValueError, IndexError, AttributeError) as e:
+            logger.debug(f"Calendar parse error, returning default: {e}")
             return DEFAULT_START_SECOND_ABS
 
     @staticmethod

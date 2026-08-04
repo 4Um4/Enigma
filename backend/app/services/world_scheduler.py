@@ -25,7 +25,8 @@ class WorldScheduler:
             return None
         try:
             return datetime.fromisoformat(raw)
-        except ValueError:
+        except ValueError as e:
+            logger.debug(f"World scheduler datetime parse error: {e}")
             return None
 
     def maybe_tick(self, world_id: str, every_minutes: int) -> dict:

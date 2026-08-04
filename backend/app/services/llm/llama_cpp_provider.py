@@ -407,7 +407,8 @@ class LlamaCppProvider(StreamingLlmProvider):
                                         callback(token)
                                 if chunk.get("stop"):
                                     break
-                            except json.JSONDecodeError:
+                            except json.JSONDecodeError as e:
+                                logger.debug(f"JSONDecodeError in stream, skipping: {e}")
                                 continue
                 # Успешное завершение стрима
                 break
@@ -507,7 +508,8 @@ class LlamaCppProvider(StreamingLlmProvider):
                         token = chunk.get("content", "")
                         if token:
                             yield token
-                    except json.JSONDecodeError:
+                    except json.JSONDecodeError as e:
+                        logger.debug(f"JSONDecodeError in stream, skipping: {e}")
                         continue
 
         except urllib.error.URLError as e:

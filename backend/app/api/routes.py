@@ -166,6 +166,7 @@ async def restart_llm():
         success = _restart_llama_server()
         return {"restarted": success, "url": settings.llama_cpp_server_url}
     except Exception as e:
+        logger.error(f"Restart llama server failed: {e}")
         return {"restarted": False, "error": str(e)}
 
 # --- LLM Downloader API ---

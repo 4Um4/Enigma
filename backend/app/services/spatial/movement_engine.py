@@ -589,7 +589,8 @@ class MovementEngine:
         # 1. Получаем локальную геометрию. Если сервис не предоставляет геометрию — fallback на A*.
         try:
             geometry: LocalGeometry = svc.get_local_geometry(source_xy, perception_radius=_DEFAULT_PERCEPTION_RADIUS)
-        except (AttributeError, NotImplementedError):
+        except (AttributeError, NotImplementedError) as e:
+            logger.debug(f"Geometry not implemented, falling back to A*: {e}")
             return self._fallback_to_astar(svc, intent, current_pos, tick, source_xy, target_xy, target_node_obj)
 
         # S131 FIX (советник): allowed_modes зависит от body.can_jump

@@ -49,7 +49,8 @@ class L1Chronicle:
                         source_id TEXT NOT NULL,
                         effect_value REAL NOT NULL,
                         observation_weight REAL NOT NULL,
-                        event_type TEXT NOT NULL
+                        event_type TEXT NOT NULL,
+                        archived INTEGER DEFAULT 0
                     )
                 """)
                 self._store.execute("""
@@ -89,7 +90,7 @@ class L1Chronicle:
         if not _campaign_to_load:
             try:
                 _rows = self._store.query(
-                    "SELECT campaign_id FROM l1_chronicle_events "
+                    "SELECT campaign_id FROM l1_chronicle_events WHERE archived = 0 "
                     "GROUP BY campaign_id ORDER BY MAX(tick_id) DESC LIMIT 1"
                 )
                 if _rows:
@@ -99,8 +100,8 @@ class L1Chronicle:
                         f"(no explicit bind_campaign call)"
                     )
                     self._campaign_id = _campaign_to_load
-            except Exception:
-                pass  # SQLite может быть пустой — это норма для нового game_loop
+            except Exception as e:
+                logger.debug(f"SQLite load empty/failed: {e}")  # SQLite может быть пустой — это норма для нового game_loop
 
         if not _campaign_to_load:
             self._loaded = True
@@ -117,7 +118,8 @@ class L1Chronicle:
                     source_id TEXT NOT NULL,
                     effect_value REAL NOT NULL,
                     observation_weight REAL NOT NULL,
-                    event_type TEXT NOT NULL
+                    event_type TEXT NOT NULL,
+                    archived INTEGER DEFAULT 0
                 )
             """)
             self._store.execute("""
@@ -254,9 +256,9 @@ class L1Chronicle:
                 "WHERE campaign_id = ? AND tick_id < ?",
                 (self._campaign_id, _threshold),
             )
-            # 2. Удаление из активной таблицы
+            # BUG-PERC-013 FIX: Мягкая архивация вместо удаления (Rule 28: Append-only)
             self._store.execute(
-                "DELETE FROM l1_chronicle_events WHERE campaign_id = ? AND tick_id < ?",
+                "UPDATE l1_chronicle_events SET archived = 1 WHERE campaign_id = ? AND tick_id < ?",
                 (self._campaign_id, _threshold),
             )
             # 3. Очистка RAM кэша

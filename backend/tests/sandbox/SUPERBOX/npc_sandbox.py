@@ -725,6 +725,22 @@ class NPCSandbox:
 
             self._prev_states.clear()
 
+        # P8: Вывод кристаллизованных убеждений (L2.5) и сохранение в Markdown
+        if hasattr(self, 'npc_beliefs') and self.npc_beliefs:
+            print("\n=== УБЕЖДЕНИЯ NPC (L2.5) ===")
+            with open("sandbox_beliefs.md", "w", encoding="utf-8") as f:
+                f.write("# Убеждения NPC (L2.5)\n\n")
+                f.write("| NPC | Источник | Трейт | Вес |\n")
+                f.write("|-----|----------|-------|-----|\n")
+                for _nid, _beliefs in self.npc_beliefs.items():
+                    if _beliefs:
+                        for b in _beliefs:
+                            if b.weight > 0.01:
+                                _line = f"  {_nid} → {b.source_id}: {b.trait} (вес={b.weight:.2f})"
+                                print(_line)
+                                f.write(f"| {_nid} | {b.source_id} | {b.trait} | {b.weight:.2f} |\n")
+            print("\n[REPORTER] Убеждения сохранены: sandbox_beliefs.md")
+
         return self.snapshots
 
     def _load_npcs(self) -> list:
@@ -972,15 +988,6 @@ class SandboxReporter:
 
     def print_summary(self) -> None:
         """Итоговая таблица: кто выиграл/проиграл за всю симуляцию."""
-        # P8: Вывод кристаллизованных убеждений (L2.5)
-        if hasattr(self, 'npc_beliefs') and self.npc_beliefs:
-            print("\n=== УБЕЖДЕНИЯ NPC (L2.5) ===")
-            for _nid, _beliefs in self.npc_beliefs.items():
-                if _beliefs:
-                    for b in _beliefs:
-                        if b.weight > 0.01:
-                            print(f"  {_nid} → {b.source_id}: {b.trait} (вес={b.weight:.2f})")
-
         print("\n=== ИТОГИ СИМУЛЯЦИИ ===")
         print(
             f"{'NPC':<25} | {'Δ СТРЕСС':>9} | {'Δ ЗОЛОТО':>8} | {'Δ ОЗ':>6} | {'ИТОГ. СТРЕСС':>12} | {'ИТОГ. ЗОЛОТО':>11} | {'ИТОГ. ЦЕЛ.':>10} | {'ВЕРДИКТ':<15}"

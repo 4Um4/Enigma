@@ -233,8 +233,12 @@ class SpatialObservatoryService:
             x, y = pos.get("x"), pos.get("y")
             if x is None or y is None: return (0.0, 0.0)
             try: return float(x), float(y)
-            except (TypeError, ValueError): return (0.0, 0.0)
+            except (TypeError, ValueError) as e:
+                logger.debug(f"Coord parse error: {e}")
+                return (0.0, 0.0)
         if isinstance(pos, (list, tuple)) and len(pos) == 2:
             try: return float(pos[0]), float(pos[1])
-            except (TypeError, ValueError): return (0.0, 0.0)
+            except (TypeError, ValueError) as e:
+                logger.debug(f"Coord parse error: {e}")
+                return (0.0, 0.0)
         return (0.0, 0.0)

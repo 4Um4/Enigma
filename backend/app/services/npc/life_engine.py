@@ -138,7 +138,8 @@ def _time_to_minutes(time_str: str) -> int:
     try:
         h, m = map(int, time_str.strip().split(":"))
         return h * 60 + m
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError) as e:
+        logger.debug(f"Time parse error in _parse_time_to_minutes: {e}")
         return 0
 
 
@@ -155,7 +156,8 @@ def _in_time_range(time_range: str, current_minutes: int) -> bool:
         if start > end:
             return current_minutes >= start or current_minutes < end
         return start <= current_minutes < end
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError) as e:
+        logger.debug(f"Time range parse error: {e}")
         return False
 
 

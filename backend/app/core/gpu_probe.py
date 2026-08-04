@@ -22,7 +22,8 @@ def get_gpu_vram() -> Optional[int]:
         # Берем первую видеокарту
         vram_str = result.stdout.strip().split('\n')[0]
         return int(vram_str)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"GPU probe failed, returning None: {e}")
         return None
 
 def calculate_gpu_layers(vram_mb: Optional[int], model_size_mb: int = 5200, total_layers: int = 28) -> int:

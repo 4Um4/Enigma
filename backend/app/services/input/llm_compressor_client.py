@@ -69,7 +69,8 @@ class LlamaCppCompressorClient:
                     content = json_match.group(0)
 
                 return json.loads(content)
-        except (urllib.error.URLError, json.JSONDecodeError, KeyError, IndexError):
+        except (urllib.error.URLError, json.JSONDecodeError, KeyError, IndexError) as e:
+            logger.debug(f"LLM compressor request failed: {e}")
             return None
 
     def _build_prompts(self, raw_text: str, scene_context: Dict[str, Any]) -> tuple[str, str]:

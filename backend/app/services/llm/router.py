@@ -404,7 +404,8 @@ class ModelRouter:
         if isinstance(capability, str):
             try:
                 return Capability(capability)
-            except ValueError:
+            except ValueError as e:
+                logger.debug(f"Invalid Capability, returning GENERAL: {e}")
                 return Capability.GENERAL
         return capability
 
@@ -556,7 +557,8 @@ class ModelRouter:
         coro = self.request(capability, prompt, params, system_prompt)
         try:
             loop = asyncio.get_running_loop()
-        except RuntimeError:
+        except RuntimeError as e:
+            logger.debug(f"No running loop, starting new one: {e}")
             # Нет запущенного цикла — запускаем свой
             return asyncio.run(coro)
         else:

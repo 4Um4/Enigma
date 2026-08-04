@@ -428,6 +428,54 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_adr_net(world: TestWorld) -> InvariantResult:
+    """INV-ADR-NET: ADR-Net парсер успешно строит граф зависимостей (Подсистема 4)."""
+    import os
+    import sys
+    from pathlib import Path
+    _backend_dir = str(Path(__file__).resolve().parents[1])
+    if _backend_dir not in sys.path:
+        sys.path.insert(0, _backend_dir)
+        
+    try:
+        from app.services.adr_net.adr_parser import run_parser
+        _root_dir = str(Path(__file__).resolve().parents[2])
+        _audits_dir = os.path.join(_root_dir, "docs", "audits")
+        _master_idx = os.path.join(_root_dir, "docs", "ADR (Architecture Decision Records).md")
+        
+        graph = run_parser(audits_dir=_audits_dir, master_index=_master_idx)
+        
+        if len(graph) < 20:
+            return InvariantResult(
+                "INV-ADR-NET",
+                "CRITICAL",
+                False,
+                f"ADR-Net распарсил только {len(graph)} ADR. Ожидается > 20. Граф сломан.",
+                ["docs/ADR (Architecture Decision Records).md", "docs/audits/"]
+            )
+            
+        # Проверяем, что хотя бы 10% ADR имеют привязку к файлам (аудиты пишутся не для всех ADR)
+        _with_files = sum(1 for n in graph.values() if n.files)
+        if _with_files < len(graph) * 0.1:
+            return InvariantResult(
+                "INV-ADR-NET",
+                "CRITICAL",
+                False,
+                f"Только {_with_files}/{len(graph)} ADR имеют привязку к файлам. Граф неполный.",
+                ["docs/audits/"]
+            )
+            
+        return InvariantResult("INV-ADR-NET", "CRITICAL", True, f"ADR-Net: {len(graph)} nodes, {_with_files} with files.", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-ADR-NET",
+            "CRITICAL",
+            False,
+            f"Ошибка парсера ADR-Net: {e}",
+            ["backend/app/services/adr_net/adr_parser.py"]
+        )
+
+
 def inv_no_retro_sim(world: TestWorld) -> InvariantResult:
     """INV-NO-RETRO-SIM: Запрет циклов с вызовами tick/execute (Rule 25)."""
     import os
@@ -820,6 +868,7 @@ INVARIANTS: List[Callable] = [
     inv_dialogue_scheduler_fail,
     inv_trav_zombie,
     inv_death_lock,
+    inv_adr_net,
     inv_no_retro_sim,
     inv_l1_append_only,
     inv_l3_ephemeral,

@@ -1113,7 +1113,8 @@ class GameLoop:
                         "world_snapshot": state.shared_context.world_snapshot or {},
                         "will_conflict_data": None,
                     }
-            except ImportError:
+            except ImportError as e:
+                logger.warning(f"LLM ImportError: {e}")
                 return {
                     "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
                     "world_snapshot": state.shared_context.world_snapshot or {},

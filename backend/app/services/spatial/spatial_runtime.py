@@ -64,7 +64,8 @@ def _local(entity: Dict[str, Any]) -> tuple[float, float]:
     local = entity.get("local_position") or {}
     try:
         return float(local.get("x", 0.0)), float(local.get("y", 0.0))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as e:
+        logger.debug(f"Coord parse error: {e}")
         return 0.0, 0.0
 
 
@@ -449,5 +450,6 @@ def sound_bleeds_to_adjacent(
         templates = json.loads(templates_path.read_text(encoding="utf-8-sig"))
         connected = templates.get(location_id, {}).get("connected_locations", [])
         return list(connected)
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as e:
+        logger.debug(f"Location JSON decode error: {e}")
         return []

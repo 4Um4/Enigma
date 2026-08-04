@@ -960,7 +960,8 @@ def _emotion_from_str(tag_str: str) -> EmotionTag:
     canonical = _PIPELINE_TO_CANONICAL.get(tag_str, tag_str)
     try:
         return EmotionTag(canonical)
-    except ValueError:
+    except ValueError as e:
+        logger.debug(f"Invalid EmotionTag, returning NEUTRAL: {e}")
         return EmotionTag.NEUTRAL
 
 

@@ -2,6 +2,8 @@
 path: scripts/lint_silent_failures.py
 Назначение: AST-анализатор для запрета Silent Failures (L4: except: pass).
 Зависимости: ast, os
+
+Запуск: python -m scripts.lint_silent_failures
 """
 import ast
 import os

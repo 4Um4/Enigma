@@ -35,5 +35,6 @@ def action_to_intent(action_type: Optional[str]) -> Optional[str]:
         return None
     try:
         return _ACTION_TO_INTENT.get(ActionType(action_type.upper()))
-    except ValueError:
+    except ValueError as e:
+        logger.debug(f"ActionType not found, returning None: {e}")
         return None
