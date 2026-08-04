@@ -103,16 +103,16 @@ class ProjectionEngine:
         entry = pos.setdefault(thick.target, {})
 
         # 1. Каузальная позиция (semantic truth)
-        entry["position"] = thick.value
+        entry.update({"position": thick.value})
 
         # 2. Геометрическая позиция (Authoritative State)
         # Бэкенд мгновенно обновляет позицию на цель (target_xy).
         # Фронтенд сам отвечает за плавную интерполяцию (LERP) к этой точке.
         if thick.spatial and thick.spatial.target_xy:
-            entry["local_position"] = {
+            entry.update({"local_position": {
                 "x": thick.spatial.target_xy[0],
                 "y": thick.spatial.target_xy[1],
-            }
+            }})
 
         # 3. Boundary resolution (кросс-локационное перемещение)
         if thick.boundary and thick.boundary.is_boundary:
@@ -167,7 +167,7 @@ class ProjectionEngine:
         entry = pos.setdefault(thick.target, {})
 
         if isinstance(thick.value, dict):
-            entry["local_position"] = thick.value
+            entry.update({"local_position": thick.value})
         else:
             logger.warning(
                 f"[PROJECTION] local_position value is not dict: "

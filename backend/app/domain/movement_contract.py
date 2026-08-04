@@ -11,9 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Tuple
-
-from app.models.spatial_contracts import NodeRef
+from typing import Any, List, Optional, Tuple
+# BUG-DOMAIN-PURITY FIX (§1.2): Убираем импорт из models, используем Any для аннотации типа
 
 
 class PathStatus(Enum):
@@ -42,12 +41,12 @@ class MovementTrace:
     actor_id: str
     
     source_position: Optional[Tuple[float, float]] = None
-    source_node: Optional[NodeRef] = None
+    source_node: Optional[Any] = None
     
-    target_node: Optional[NodeRef] = None
+    target_node: Optional[Any] = None
     
     path_status: PathStatus = PathStatus.NO_PATH
-    path_nodes: List[NodeRef] = field(default_factory=list)
+    path_nodes: List[Any] = field(default_factory=list)
     
     traversal_created: bool = False
     failure: MovementFailure = MovementFailure.NONE

@@ -110,7 +110,7 @@ def run_npc_orchestration(
                 _p_node_id = getattr(_p_node_ref, "node_id", str(_p_node_ref))
                 if _p_node_id.startswith(f"{location}:"):
                     _p_node_id = _p_node_id.split(":")[-1]
-                _player_entry["position"] = _p_node_id
+                _player_entry.update({"position": _p_node_id})
 
     _spatial_query = SpatialQueryService(
         npc_positions=_scene_state.get("npc_positions", {}),

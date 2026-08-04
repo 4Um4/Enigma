@@ -1,2 +1,0 @@
-{"id": "f2ea73c9-1b91-4f0d-840e-9a12a0867cd8", "timestamp": "2026-04-18T14:51:58.900919+00:00", "type": "player_action", "actor": "Михаил", "content": "привет Торнин", "action_type": "player_interacts", "location": "Таверна Серебряный Волк", "importance": 0.3}
-{"id": "297c798a-208e-4222-9721-84401c4da038", "timestamp": "2026-04-18T14:51:58.945605+00:00", "world_id": "my_cam", "location": "Таверна Серебряный Волк", "last_actions": [{"player_name": "Михаил", "action": "привет Торнин", "dice_result": null}], "dice_input_required": true}

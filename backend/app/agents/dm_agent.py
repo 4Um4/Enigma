@@ -336,7 +336,8 @@ class DmAgent:
             for pname, pdata in context["player_state"].items():
                 if not pdata or not isinstance(pdata, dict):
                     continue
-                _stress_val = pdata.get("stress", 0)
+                # BUG-EPISTEMIC FIX (§17): Читаем affective_load (проекция), а не скрытый stress
+                _stress_val = pdata.get("affective_load", 0.0) * 100
                 if _stress_val > 1.0:
                     _stress_word = (
                         "в напряжении"

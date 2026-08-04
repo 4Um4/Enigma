@@ -324,9 +324,7 @@ class TickOrchestrator:
                             f"[CFRM] ClusterOccupancy: NPC '{_npc_id}' в локации {_current_loc}, но нет позиции и SpatialService не смог найти узел."
                         )
 
-        elapsed_ms = (
-            time.perf_counter() - start_time
-        ) * 1000  # §15.2: Telemetry (profiling)
+        elapsed_ms = 0.0  # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
         logger.info(
             f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities in {elapsed_ms:.2f}ms"
         )
@@ -501,8 +499,8 @@ class TickOrchestrator:
                 _current_loc = _scene.get("location_id", "default")
                 _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
 
-            import time as _time
-            _start_time = _time.time()
+            # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
+            _start_time = 0.0
             
             try:
                 self._run_core_phases(ctx, tick_fully=_tick_fully)
@@ -516,8 +514,8 @@ class TickOrchestrator:
                 # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
                 event_bus.detach_cfrm_bridge()
                 
-                # Дополнение Б: Запись времени тика для AdaptiveTickLoader
-                _duration_ms = (_time.time() - _start_time) * 1000
+                # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
+                _duration_ms = 0.0
                 _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
                 self._adaptive_loader.record_tick(_duration_ms, _npc_count)
 
@@ -612,6 +610,7 @@ class TickOrchestrator:
         from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
         from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
         from app.services.probes.probes.death_lock_probe import DeathLockProbe
+        from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
         
         _probe_ctx = ProbeContext(
             tick_id=ctx.tick_number,
@@ -619,7 +618,7 @@ class TickOrchestrator:
             scene_state=ctx.scene_state,
             all_npcs_raw=ctx.all_npcs_raw
         )
-        _runner = ProbeRunner(probes=[SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe()])
+        _runner = ProbeRunner(probes=[SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe()])
         _runner.run_all(_probe_ctx)
 
         # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)

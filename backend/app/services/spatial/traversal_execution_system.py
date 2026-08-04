@@ -78,11 +78,11 @@ class TraversalExecutionSystem:
             if elapsed_ticks >= duration_ticks:
                 # Маршрут завершён — Snap на финальную точку
                 target_xy = waypoints[-1]
-                npc_positions.setdefault(npc_id, {})["local_position"] = {
+                npc_positions.setdefault(npc_id, {}).update({"local_position": {
                     "x": target_xy[0],
                     "y": target_xy[1],
                     "z": 0.0,  # S132.1: Завершение прыжка — возврат на землю
-                }
+                }})
                 # BUG-SPATIAL-026 FIX: Используем transition_traversal() FSM вместо прямой мутации.
                 from app.domain.traversal_schema import transition_traversal
                 if not transition_traversal(trav, "COMPLETED"):
@@ -98,11 +98,11 @@ class TraversalExecutionSystem:
                     waypoints, progress, segment_modes, segment_arc_heights
                 )
                 if pos:
-                    npc_positions.setdefault(npc_id, {})["local_position"] = {
+                    npc_positions.setdefault(npc_id, {}).update({"local_position": {
                         "x": pos[0],
                         "y": pos[1],
                         "z": pos[2],  # S132.1: Z-координата для прыжков
-                    }
+                    }})
                     # Обновляем current_waypoint_idx для фронтенда
                     trav["current_waypoint_idx"] = seg_idx
 

@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, Optional
-
-if TYPE_CHECKING:
-    from app.models.npc_state import PerceptualKernel
+from typing import Any, Dict, Optional
+# BUG-DOMAIN-PURITY FIX (§1.2): Убираем импорт из models, используем Any для аннотации типа
 
 
 @dataclass(frozen=True)
@@ -28,7 +26,7 @@ class ActionSpaceCompression:
 
 @dataclass(frozen=True)
 class DecisionContext:
-    """Топология пространства решений, собранная из PerceptualKernel и AffectField."""
+    """Топология пространства решений, собранная из Any и AffectField."""
 
     deformation: UtilityFieldDeformation = field(
         default_factory=UtilityFieldDeformation
@@ -46,13 +44,13 @@ class DecisionContext:
     social_incoming: float = 0.0
 
     @classmethod
-    def from_kernel(cls, kernel: "PerceptualKernel") -> "DecisionContext":
+    def from_kernel(cls, kernel: "Any") -> "DecisionContext":
         """
         ADR-049: Замыкание контура Восприятие→Решение.
         Проецирует субъективное когнитивное состояние в топологию выбора.
         Использует getattr для безопасности типов (Domain не знает Models, Закон 1.2).
         """
-        # 1. Чтение сигналов из ядра (с fallback на базовый PerceptualKernel)
+        # 1. Чтение сигналов из ядра (с fallback на базовый Any)
         _threat = getattr(kernel, "threat_gradient", 0.0)
         _compliance = getattr(kernel, "compliance_bias", 0.0)
         _aggr_inhibition = getattr(kernel, "aggression_inhibition", 0.0)

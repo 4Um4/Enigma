@@ -157,6 +157,15 @@ class NPCSandbox:
             ))
             print(f"[SANDBOX] Тавернщик должен 15.0G купцу (срок: 48 тиков)")
 
+        # P8: L1/L2.5 Идентичность и Убеждения
+        from app.services.npc.l1_chronicle import L1Chronicle
+        from app.services.npc.pattern_detector import PatternDetector
+        from app.services.npc.belief_crystallization_engine import BeliefCrystallizationEngine
+        l1_chronicle = L1Chronicle(store=None)  # In-memory only
+        pattern_detector = PatternDetector(chronicle=l1_chronicle)
+        belief_engine = BeliefCrystallizationEngine()
+        npc_beliefs: Dict[str, List] = {nid: [] for nid in eco_profiles}  # CrystallizedBelief per NPC
+
         # 4. Инициализируем движки
         from app.services.economy.economic_modifier import EconomicModifier
         from app.services.economy.need_engine import NeedEngine
@@ -183,6 +192,9 @@ class NPCSandbox:
 
         # 4.5 Создаём начальные контракты (реальная экономика)
         self._setup_initial_contracts(eco_profiles, tx_engine)
+
+        # P8: L2.5 Хранилище убеждений
+        self.npc_beliefs: Dict[str, List] = {nid: [] for nid in eco_profiles}
 
         # 4.6 Предзагрузка state/profile — ONE TIME, не каждый тик
         # Без этого мутации (стресс, intent, черты) теряются между тиками
@@ -294,6 +306,30 @@ class NPCSandbox:
                         campaign_id="sandbox",
                         current_tick=tick,
                     )
+
+                    # P8: BreakProgressEngine — деформация идентичности от стресса
+                    from app.services.npc.break_progress_engine import BreakProgressEngine
+                    _willpower_val = getattr(new_state, "willpower", 50) or 50
+                    _break_deltas = BreakProgressEngine.calculate(
+                        state=new_state,
+                        willpower=float(_willpower_val),
+                        recent_failures=getattr(new_state, "recent_failures", 0),
+                        support_present=False,
+                        social_pressure=0.0,
+                    )
+                    new_state.identity_integrity = max(
+                        0.0, min(1.0, new_state.identity_integrity + _break_deltas.identity_integrity_delta)
+                    )
+                    new_state.pressure_resistance = max(
+                        0.0, min(2.0, new_state.pressure_resistance + _break_deltas.pressure_resistance_delta)
+                    )
+                    if _break_deltas.recent_failures_delta != 0:
+                        _rf = getattr(new_state, "recent_failures", 0) + _break_deltas.recent_failures_delta
+                        new_state.recent_failures = max(0, _rf)
+                    
+                    if _break_deltas.identity_integrity_delta < -0.01:
+                        print(f"[BREAK] {npc_id} integrity={new_state.identity_integrity:.3f} (Δ {_break_deltas.identity_integrity_delta:.4f})")
+
                 except Exception as e:
                     print(f"[SANDBOX_ERROR] npc={npc_id} tick={tick} error={e}")
                     intent_str = "ERROR"
@@ -322,6 +358,14 @@ class NPCSandbox:
                         new_state.perceptual_kernel.uncertainty = max(
                             new_state.perceptual_kernel.uncertainty, _stress_norm
                         )
+
+                # P8: Декей PerceptualKernel и affective_load (Фаза 0.5)
+                _pk = new_state.perceptual_kernel
+                _pk.threat_gradient = max(0.0, _pk.threat_gradient - 0.1)
+                _pk.uncertainty = max(0.0, _pk.uncertainty - 0.05)
+                _pk.anomaly_score = max(0.0, _pk.anomaly_score - 0.05)
+                _pk.somatic_urgency = max(0.0, _pk.somatic_urgency - 0.1)
+                new_state.affective_load = max(0.0, new_state.affective_load - 0.05)
 
                 # === AFFECTIVE PIPELINE (Фаза 9.1) ===
                 # Вычисляем аффективное давление и фазовый переход эмоций
@@ -402,6 +446,29 @@ class NPCSandbox:
                                 victim_ep.spend(stolen)
                                 ep.receive(stolen)
                                 print(f"[NIGHT] Вор украл {stolen:.2f}G у {victim_id} (осталось {victim_ep.gold:.2f}G)")
+                                
+                                # Жертва получает стресс и страх (увеличиваем threat_gradient)
+                                _victim_ctx = npc_contexts.get(victim_id)
+                                if _victim_ctx and _victim_ctx["state"]:
+                                    _victim_state = _victim_ctx["state"]
+                                    _victim_state.stress = min(100.0, _victim_state.stress + 10.0)
+                                    _victim_state.perceptual_kernel.threat_gradient = max(
+                                        _victim_state.perceptual_kernel.threat_gradient, 0.8
+                                    )
+                                    print(f"[NIGHT] {victim_id} обнаружил кражу! Стресс +10, угроза +0.8")
+
+                                    # P8: Запись события травмы в L1Chronicle
+                                    from app.domain.identity_events import TraitDriftEvent
+                                    _drift_event = TraitDriftEvent(
+                                        tick_id=tick,
+                                        target_id=victim_id,
+                                        source_id="thief_shadow",
+                                        effect_value=-1.0,  # Сильная травма (кража)
+                                        observation_weight=1.0,
+                                        event_type="robbery"
+                                    )
+                                    l1_chronicle.append(_drift_event)
+                                
                                 # Шанс быть пойманным (20%)
                                 if hash(str(tick) + npc_id) % 5 == 0:
                                     new_state.stress = min(100.0, new_state.stress + 20.0)
@@ -547,6 +614,26 @@ class NPCSandbox:
                 _t_ep = eco_profiles.get("tavern_keeper_tornin")
                 if _p_ep and _t_ep:
                     print(f"[DAY END] День {tick // 24}: Игрок(gold={_p_ep.gold:.2f}G, food={_p_ep.goods.get('food', 0.0):.1f}) | Тавернщик(food_stock={_t_ep.stock_for_sale.get('food', 0.0):.1f})")
+
+                # P8: L2.5 Кристаллизация убеждений (раз в день)
+                for _npc_id, _profile in eco_profiles.items():
+                    if _npc_id == "player":
+                        continue
+                    _evidence = pattern_detector.query_evidence(_npc_id)
+                    if _evidence:
+                        _npc_ctx = npc_contexts.get(_npc_id)
+                        _drives = _npc_ctx["profile"].drives_base if _npc_ctx else {}
+                        _existing = npc_beliefs.get(_npc_id, [])
+                        _new_beliefs = belief_engine.crystallize(
+                            evidence_list=_evidence,
+                            drives_base=_drives,
+                            existing_beliefs=_existing,
+                            current_tick=tick
+                        )
+                        self.npc_beliefs[_npc_id] = _new_beliefs
+                        for b in _new_beliefs:
+                            if b.source_id == "thief_shadow" and b.weight > 0.05:
+                                print(f"[BELIEF] {_npc_id} кристаллизовал страх к {b.source_id} (вес={b.weight:.2f})")
 
                 DAILY_EXPENSES_MIN = 0.09  # минимум на еду (3 порции × 0.03G)
 
@@ -885,11 +972,20 @@ class SandboxReporter:
 
     def print_summary(self) -> None:
         """Итоговая таблица: кто выиграл/проиграл за всю симуляцию."""
+        # P8: Вывод кристаллизованных убеждений (L2.5)
+        if hasattr(self, 'npc_beliefs') and self.npc_beliefs:
+            print("\n=== УБЕЖДЕНИЯ NPC (L2.5) ===")
+            for _nid, _beliefs in self.npc_beliefs.items():
+                if _beliefs:
+                    for b in _beliefs:
+                        if b.weight > 0.01:
+                            print(f"  {_nid} → {b.source_id}: {b.trait} (вес={b.weight:.2f})")
+
         print("\n=== ИТОГИ СИМУЛЯЦИИ ===")
         print(
-            f"{'NPC':<25} | {'Δ СТРЕСС':>9} | {'Δ ЗОЛОТО':>8} | {'Δ ОЗ':>6} | {'ИТОГ. СТРЕСС':>12} | {'ИТОГ. ЗОЛОТО':>11} | {'ВЕРДИКТ':<15}"
+            f"{'NPC':<25} | {'Δ СТРЕСС':>9} | {'Δ ЗОЛОТО':>8} | {'Δ ОЗ':>6} | {'ИТОГ. СТРЕСС':>12} | {'ИТОГ. ЗОЛОТО':>11} | {'ИТОГ. ЦЕЛ.':>10} | {'ВЕРДИКТ':<15}"
         )
-        print("-" * 105)
+        print("-" * 115)
 
         for npc_id in self.npc_ids:
             first = next((s for s in self.snaps if s.npc_id == npc_id and s.tick == 1), None)
@@ -916,7 +1012,7 @@ class SandboxReporter:
                 verdict = "Стабилен"
 
             print(
-                f"{npc_id:<25} | {delta_stress:>+9.2f} | {delta_gold:>+8.2f} | {delta_hp:>+6d} | {last.stress:>10.2f} | {last.gold:>9.1f} | {verdict:<15}"
+                f"{npc_id:<25} | {delta_stress:>+9.2f} | {delta_gold:>+8.2f} | {delta_hp:>+6d} | {last.stress:>10.2f} | {last.gold:>9.1f} | {last.identity_integrity:>10.3f} | {verdict:<15}"
             )
 
     def save_csv(self, path: str = "sandbox_results.csv") -> None:

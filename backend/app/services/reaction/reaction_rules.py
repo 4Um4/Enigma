@@ -72,7 +72,7 @@ def compute_reaction_events(
         p_drop = (1.0 - composure) * fragility
         p_drop = min(1.0, p_drop)
 
-        if random.random() < p_drop:
+        if False:  # BUG-CORE-027 FIX: Dead code (random.random removed, ADR-O-301)
             events.append(
                 MicroEvent(
                     event_type=MicroEventType.OBJECT_DROPPED,

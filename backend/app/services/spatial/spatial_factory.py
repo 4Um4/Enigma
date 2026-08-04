@@ -38,10 +38,20 @@ class SpatialFactory:
         campaign_id: str,
         location_id: str,
         scene_state: Dict[str, Any],
+        editor_data_override: Optional[Dict[str, Any]] = None,
     ) -> Optional[SpatialService]:
         """Build SpatialService for campaign/location. Single authority.
         Возвращает кэшированный инстанс, если fingerprint карты совпадает.
         """
+        # ADR-O-330: Если передан editor_data_override (Spatial Observatory), не используем кэш.
+        if editor_data_override is not None:
+            return SpatialService.build_for_location(
+                campaign_id=campaign_id,
+                location_id=location_id,
+                scene_state=scene_state,
+                editor_data_override=editor_data_override,
+            )
+
         _cache_key = (campaign_id, location_id)
         current_fp = SpatialFactory._get_map_fingerprint(campaign_id, location_id)
 

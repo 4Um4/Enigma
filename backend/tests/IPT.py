@@ -328,6 +328,358 @@ def inv_dialogue_scheduler_fail(world: TestWorld) -> InvariantResult:
     return InvariantResult("INV-DIALOGUE-SCHEDULER-FAIL", "CRITICAL", True, "", [])
 
 
+def inv_domain_purity(world: TestWorld) -> InvariantResult:
+    """INV-DOMAIN-PURITY: Запрет импорта services/models в доменный слой (§1.2)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_domain_purity import run_lint
+        violations = run_lint()
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-DOMAIN-PURITY",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} импортов верхних слоёв в domain. Нарушение §1.2. Первые: {_details}",
+                ["backend/app/domain/"]
+            )
+        return InvariantResult("INV-DOMAIN-PURITY", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-DOMAIN-PURITY",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_domain_purity.py"]
+        )
+
+
+def inv_llm_exile(world: TestWorld) -> InvariantResult:
+    """INV-LLM-EXILE: Запрет вызовов LLM в ядре симуляции (L7)."""
+    import os
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_llm_exile import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-LLM-EXILE",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} LLM-вызовов в ядре. Нарушение L7. Первые: {_details}",
+                ["backend/app/services/tick_orchestrator.py", "backend/app/services/npc/decision_hub.py"]
+            )
+        return InvariantResult("INV-LLM-EXILE", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-LLM-EXILE",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_llm_exile.py"]
+        )
+
+
+def inv_position_mutation(world: TestWorld) -> InvariantResult:
+    """INV-POSITION-MUTATION: Запрет прямой мутации позиции вне SceneStateManager (§4.1)."""
+    import os
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_position_mutation import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-POSITION-MUTATION",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} прямых мутаций позиции. Нарушение §4.1. Первые: {_details}",
+                ["backend/app/services/"]
+            )
+        return InvariantResult("INV-POSITION-MUTATION", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-POSITION-MUTATION",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_position_mutation.py"]
+        )
+
+
+def inv_no_retro_sim(world: TestWorld) -> InvariantResult:
+    """INV-NO-RETRO-SIM: Запрет циклов с вызовами tick/execute (Rule 25)."""
+    import os
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_retro_simulation import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-NO-RETRO-SIM",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} ретро-симуляций. Нарушение Rule 25. Первые: {_details}",
+                ["backend/app/services/"]
+            )
+        return InvariantResult("INV-NO-RETRO-SIM", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-NO-RETRO-SIM",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_retro_simulation.py"]
+        )
+
+
+def inv_l1_append_only(world: TestWorld) -> InvariantResult:
+    """INV-L1-APPEND-ONLY: Запрет удаления событий из L1Chronicle (Rule 28)."""
+    import os
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_l1_append_only import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-L1-APPEND-ONLY",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} попыток удаления из L1. Нарушение Rule 28. Первые: {_details}",
+                ["backend/app/services/npc/l1_chronicle.py", "backend/app/services/npc/identity/"]
+            )
+        return InvariantResult("INV-L1-APPEND-ONLY", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-L1-APPEND-ONLY",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_l1_append_only.py"]
+        )
+
+
+def inv_l3_ephemeral(world: TestWorld) -> InvariantResult:
+    """INV-L3-EPHEMERAL: EffectiveDrives не персистятся (L3-P1)."""
+    engine = getattr(world.game_loop, "_get_life_engine", lambda: None)()
+    npcs = engine.get_npc_states(world.campaign_id) if engine else []
+    scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
+    
+    _bad_keys = {"effective_drives", "l3_drives", "l3_projection"}
+    
+    # 1. Проверяем scene_state
+    for key in scene.keys():
+        if key.lower() in _bad_keys:
+            return InvariantResult(
+                "INV-L3-EPHEMERAL",
+                "CRITICAL",
+                False,
+                f"scene_state содержит персистентный L3 ключ: '{key}'. Нарушение L3-P1.",
+                ["backend/app/services/scene_state_manager.py", "backend/app/services/tick_orchestrator.py"]
+            )
+            
+    # 2. Проверяем npc_dicts
+    for npc in npcs:
+        for key in npc.keys():
+            if key.lower() in _bad_keys:
+                return InvariantResult(
+                    "INV-L3-EPHEMERAL",
+                    "CRITICAL",
+                    False,
+                    f"NPC '{npc.get('npc_id', '?')}' содержит персистентный L3 ключ: '{key}'. Нарушение L3-P1.",
+                    ["backend/app/models/npc_state.py", "backend/app/services/state_applicator.py"]
+                )
+                
+    return InvariantResult("INV-L3-EPHEMERAL", "CRITICAL", True, "", [])
+
+
+def inv_sc1_zero_position(world: TestWorld) -> InvariantResult:
+    """INV-SC-1: local_position не может быть (0.0, 0.0) (Spatial Coherence)."""
+    scene = world.game_loop.get_scene_state(world.campaign_id, "tavern") or {}
+    npc_pos = scene.get("npc_positions", {})
+    
+    for npc_id, pos_data in npc_pos.items():
+        if not isinstance(pos_data, dict):
+            continue
+        lp = pos_data.get("local_position")
+        if isinstance(lp, dict) and lp.get("x", 1.0) == 0.0 and lp.get("y", 1.0) == 0.0:
+            return InvariantResult(
+                "INV-SC-1",
+                "CRITICAL",
+                False,
+                f"NPC '{npc_id}' имеет local_position (0.0, 0.0). Нарушение SC-1.",
+                ["backend/app/services/scene_state_manager.py", "backend/app/services/spatial/movement_engine.py"]
+            )
+            
+    return InvariantResult("INV-SC-1", "CRITICAL", True, "", [])
+
+
+def inv_spatial_ssot(world: TestWorld) -> InvariantResult:
+    """INV-SPATIAL-SSOT: Запрет прямой сборки SpatialService вне фабрики (L9)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_spatial_ssot import run_lint
+        _backend_dir = str(Path(__file__).resolve().parents[1] / "app")
+        violations = run_lint(_backend_dir)
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-SPATIAL-SSOT",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} прямых сборок SpatialService. Нарушение L9. Первые: {_details}",
+                ["backend/app/services/"]
+            )
+        return InvariantResult("INV-SPATIAL-SSOT", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-SPATIAL-SSOT",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_spatial_ssot.py"]
+        )
+
+
+def inv_frontend_isolation(world: TestWorld) -> InvariantResult:
+    """INV-FRONTEND-ISOLATION: Запрет импорта backend.app во фронтенде (§1.1)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_frontend_isolation import run_lint
+        violations = run_lint()
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-FRONTEND-ISOLATION",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} прямых импортов backend во фронтенд. Нарушение §1.1. Первые: {_details}",
+                ["frontend/"]
+            )
+        return InvariantResult("INV-FRONTEND-ISOLATION", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-FRONTEND-ISOLATION",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_frontend_isolation.py"]
+        )
+
+
+def inv_epistemic_boundary(world: TestWorld) -> InvariantResult:
+    """INV-EPISTEMIC-BOUNDARY: Запрет чтения ментальных полей в DM/Verbalization (§17)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_epistemic_boundary import run_lint
+        violations = run_lint()
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-EPISTEMIC-BOUNDARY",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} нарушений Эпистемической Границы. Нарушение §17. Первые: {_details}",
+                ["backend/app/agents/dm_agent.py", "backend/app/services/verbalization/"]
+            )
+        return InvariantResult("INV-EPISTEMIC-BOUNDARY", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-EPISTEMIC-BOUNDARY",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_epistemic_boundary.py"]
+        )
+
+
+def inv_kernel_rng(world: TestWorld) -> InvariantResult:
+    """INV-KERNEL-RNG: Запрет random.* в симуляционном слое (ADR-O-301)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+        
+    try:
+        from lint_kernel_rng import run_lint
+        violations = run_lint()
+        
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-KERNEL-RNG",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} нарушений изоляции случайности. Нарушение ADR-O-301. Первые: {_details}",
+                ["backend/app/services/"]
+            )
+        return InvariantResult("INV-KERNEL-RNG", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-KERNEL-RNG",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_kernel_rng.py"]
+        )
+
+
 def inv_wall_clock(world: TestWorld) -> InvariantResult:
     """INV-WALL-CLOCK: Запрет wall-clock в симуляционном слое (§15.1)."""
     import sys
@@ -468,6 +820,17 @@ INVARIANTS: List[Callable] = [
     inv_dialogue_scheduler_fail,
     inv_trav_zombie,
     inv_death_lock,
+    inv_no_retro_sim,
+    inv_l1_append_only,
+    inv_l3_ephemeral,
+    inv_domain_purity,
+    inv_llm_exile,
+    inv_position_mutation,
+    inv_sc1_zero_position,
+    inv_spatial_ssot,
+    inv_frontend_isolation,
+    inv_epistemic_boundary,
+    inv_kernel_rng,
     inv_wall_clock,
     inv_silent_failure,
     inv_hp_ssot,

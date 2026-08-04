@@ -41,10 +41,11 @@ class SpatialObservatoryService:
         :param editor_data: Сырой JSON карты (nodes, walls, doors).
         :param agents_data: Словарь NPC позиций и их интентов {npc_id: {position, intent}}.
         """
-        # 1. Собираем эфемерный SpatialService из черновика карты
+        # 1. Собираем эфемерный SpatialService из черновика карты через SpatialFactory (L9 FIX)
         scene_state_stub = {"npc_positions": agents_data}
         try:
-            svc = SpatialService.build_for_location(
+            from app.services.spatial.spatial_factory import SpatialFactory
+            svc = SpatialFactory.build_for_campaign(
                 campaign_id=campaign_id,
                 location_id=location_id,
                 scene_state=scene_state_stub,

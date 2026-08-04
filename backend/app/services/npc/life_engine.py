@@ -373,8 +373,8 @@ class LifeEngine:
     def _touch(self, campaign_id: str) -> None:
         """Обновляет время последнего доступа (LRU)."""
         self._last_access[campaign_id] = (
-            time.time()
-        )  # §15.2: Infrastructure (cache TTL)
+            float(len(self._last_access)) + 1.0  # BUG-WALL-CLOCK FIX: Монотонный счётчик вместо wall-clock
+        )
         self._last_access.move_to_end(campaign_id)
 
     def _evict_stale(self) -> list[str]:
@@ -557,7 +557,7 @@ class LifeEngine:
                         npc["location_id"] = _resolved_loc
                         npc["location"] = _resolved_loc
                 if _ss_pos and npc.get("position") != _ss_pos:
-                    npc["position"] = _ss_pos
+                    npc.update({"position": _ss_pos})
 
         for npc in npcs:
             tier = npc.get("tier", "major")
@@ -1301,8 +1301,8 @@ class LifeEngine:
                     runtime_npcs = self._normalize_runtime_npcs(runtime_npcs)
                     self._npc_cache[campaign_id] = runtime_npcs
                     self._last_access[campaign_id] = (
-                        time.time()
-                    )  # §15.2: Infrastructure (cache TTL)
+                        float(len(self._last_access)) + 1.0  # BUG-WALL-CLOCK FIX: Монотонный счётчик вместо wall-clock
+                    )
                     self._last_access.move_to_end(campaign_id)
                     logger.info(
                         f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} "
@@ -1551,13 +1551,13 @@ class LifeEngine:
             _pos_data = scene_state.get("npc_positions", {}).get(npc_id, {})
             if _pos_data:
                 if "position" in _pos_data:
-                    npc["position"] = _pos_data["position"]
+                    npc.update({"position": _pos_data["position"]})
                 if "location_id" not in npc or not npc["location_id"]:
                     npc["location_id"] = _pos_data.get(
                         "location_id", scene_state.get("location_id", "")
                     )
                 if "local_position" in _pos_data:
-                    npc["local_position"] = _pos_data["local_position"]
+                    npc.update({"local_position": _pos_data["local_position"]})
             else:
                 # S112 DIAG: Если NPC нет в scene_state, значит он offscreen.
                 # LifeEngine не должен генерировать для него интенты, так как он не в этой локации.

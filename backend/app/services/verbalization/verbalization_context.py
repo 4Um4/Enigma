@@ -102,7 +102,8 @@ def generate_emotional_nuance(state: NPCState) -> str:
     Включает эмоцию, трейты и will_state — единая строка для LLM.
     """
     parts: list[str] = []
-    stress = state.stress
+    # BUG-EPISTEMIC FIX (§17): Читаем affective_load (проекция), а не скрытый stress
+    stress = getattr(state, "affective_load", 0.0) * 100
     traits = state.state_modifiers
 
     # ADR-O-205: Narrative Projection.

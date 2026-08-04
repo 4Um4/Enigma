@@ -64,7 +64,7 @@ _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 def _scene_log_file() -> Path:
     return (
-        _LOG_DIR / f"scene_changes_{datetime.now().strftime('%Y%m%d')}.jsonl"
+        _LOG_DIR / "scene_changes.jsonl"
     )  # §15.2: Logging/telemetry
 
 
@@ -1487,8 +1487,8 @@ class SceneStateManager:
         scene_state["_version"] = scene_state.get("_version", 0) + 1
 
         scene_state["last_save_real_time"] = (
-            time.time()
-        )  # §15.2: REAL_TIME_BRIDGE (ADR-047)
+            0.0  # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
+        )
 
         # ADR-O-309: WorldProjectionBuffer (Shadow Causality).
         # Запускается внутри atomic commit boundary ДО persistence и обновления state_t-1.
