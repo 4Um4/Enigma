@@ -428,6 +428,45 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_time_freezer(world: TestWorld) -> InvariantResult:
+    """INV-TIME-FREEZER: TimeFreezer подменяет wall-clock (Этап 2.4)."""
+    import sys
+    from pathlib import Path
+    _backend_dir = str(Path(__file__).resolve().parents[1])
+    if _backend_dir not in sys.path:
+        sys.path.insert(0, _backend_dir)
+        
+    try:
+        from app.services.replay.time_freezer import frozen_time
+        import time, datetime
+        
+        _game_time = 12345.6
+        
+        with frozen_time(_game_time):
+            _t = time.time()
+            _dt_obj = datetime.datetime.now()
+            # Вызываем .timestamp() с UTC tzinfo, чтобы избежать Windows mktime бага для дат < 1970
+            _dt = _dt_obj.replace(tzinfo=datetime.timezone.utc).timestamp()
+            
+        if abs(_t - _game_time) > 0.1 or abs(_dt - _game_time) > 0.1:
+            return InvariantResult("INV-TIME-FREEZER", "CRITICAL", False, "Wall-clock не подменён.", [])
+            
+        # Проверяем, что после выхода из контекста оригинальное время восстановлено
+        _real_time = time.time()
+        if abs(_real_time - _game_time) < 100:
+            return InvariantResult("INV-TIME-FREEZER", "CRITICAL", False, "Оригинальный time.time() не восстановлен.", [])
+            
+        return InvariantResult("INV-TIME-FREEZER", "CRITICAL", True, "TimeFreezer OK.", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-TIME-FREEZER",
+            "CRITICAL",
+            False,
+            f"Ошибка TimeFreezer: {e}",
+            ["backend/app/services/replay/time_freezer.py"]
+        )
+
+
 def inv_replay_store(world: TestWorld) -> InvariantResult:
     """INV-REPLAY-STORE: ReplayStore записывает и читает тики (Подсистема 2)."""
     import os
@@ -924,6 +963,7 @@ INVARIANTS: List[Callable] = [
     inv_dialogue_scheduler_fail,
     inv_trav_zombie,
     inv_death_lock,
+    inv_time_freezer,
     inv_replay_store,
     inv_adr_net,
     inv_no_retro_sim,

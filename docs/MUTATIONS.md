@@ -148,6 +148,12 @@
   IPT: 24/25 passed. 1 CRITICAL debt exposed (Frontend imports).
   Files: backend/app/services/adr_net/__init__.py, backend/app/services/adr_net/adr_parser.py, backend/tests/IPT.py
 
+- 🟢 **S156** REPLAY SYSTEM CORE (Подсистема 2, Этапы 2.1-2.2):
+  Создан `ReplayStore` (SQLite backend с WAL mode и zlib-сжатием) для записи каузального следа сессии (`tick_snapshots`, `interventions`, `llm_calls`, `causal_probes`).
+  Создан `ReplayRecorder`, подписанный на хуки в `TickOrchestrator` (после Фазы 0 и Фазы 9).
+  Внедрён инвариант `INV-REPLAY-STORE` (round-trip тест хранилища).
+  IPT: 26/26 passed.
+  Files: backend/app/services/replay/__init__.py, backend/app/services/replay/replay_store.py, backend/app/services/replay/replay_recorder.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py
 
 
 

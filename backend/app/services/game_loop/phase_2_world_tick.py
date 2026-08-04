@@ -73,7 +73,7 @@ def tick_world_proactive(
                 _tick_num = tick_orchestrator.get_current_tick(campaign_id)
                 _effective_drives_map, _, _ = (
                     tick_orchestrator._compute_effective_drives(
-                        tick_ctx.all_npcs_raw, _tick_num
+                        tick_ctx.all_npcs_raw, _tick_num, campaign_id
                     )
                 )
             except Exception as _ed_err:

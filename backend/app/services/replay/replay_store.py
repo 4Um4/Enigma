@@ -209,6 +209,23 @@ class ReplayStore:
         )
         self.conn.commit()
 
+    def get_llm_call(self, agent_name: str, prompt_hash: str) -> Optional[Dict[str, Any]]:
+        """Ищет закэшированный ответ LLM для воспроизведения (Этап 2.3)."""
+        try:
+            row = self.conn.execute(
+                "SELECT response_json, model_name FROM llm_calls WHERE agent_name = ? AND prompt_hash = ? ORDER BY call_id DESC LIMIT 1",
+                (agent_name, prompt_hash)
+            ).fetchone()
+            if row:
+                return {
+                    "response": self._from_json_bytes(row["response_json"]),
+                    "model_name": row["model_name"]
+                }
+            return None
+        except Exception as e:
+            logger.error(f"[REPLAY_STORE] Failed to get LLM call: {e}")
+            return None
+
     def close(self) -> None:
         """Закрывает соединение с БД."""
         if self.conn:

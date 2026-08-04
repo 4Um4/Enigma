@@ -99,6 +99,9 @@ class TaskScheduler:
         if not pending:
             return
 
+        # BUG-DLG-006 FIX: Используем game_time_seconds из scene_state вместо wall-clock.
+        _game_time = scene_state.get("game_time_seconds", 0.0)
+
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":
                 speaker_id = task_dict.get("owner_id", "")
@@ -120,6 +123,7 @@ class TaskScheduler:
                         "task_dict": task_dict,
                     },
                     priority=priority,
+                    game_time_seconds=_game_time,
                 )
 
         # BUG-CORE-010 / BUG-DLG-005 FIX: Диалоговые задачи перенесены в DialogueQueue.
@@ -129,18 +133,23 @@ class TaskScheduler:
             t for t in pending if t.get("kind") != "dialogue"
         ]
 
-        _eligible = self._dialogue_queue.dequeue_next()
-        if not _eligible:
-            return
+        # BUG-DLG-005 FIX: Обрабатываем несколько задач за тик, чтобы очередь не переполнялась
+        _max_tasks_per_tick = 5
+        _processed_count = 0
+        
+        while _processed_count < _max_tasks_per_tick:
+            _eligible = self._dialogue_queue.dequeue_next(game_time_seconds=_game_time)
+            if not _eligible:
+                break
 
-        task_dict = _eligible.payload.get("task_dict", {})
-
-        # N3 FIX: Извлекаем task_type из payload и передаём явно
-        _task_type = _eligible.payload.get("task_type", "canonical")
-        # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick
-        self._executor_pool.submit(
-            self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type
-        )
+            task_dict = _eligible.payload.get("task_dict", {})
+            # N3 FIX: Извлекаем task_type из payload и передаём явно
+            _task_type = _eligible.payload.get("task_type", "canonical")
+            # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick
+            self._executor_pool.submit(
+                self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type
+            )
+            _processed_count += 1
 
     def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical"):
         """Фоновая обработка задач LLM."""

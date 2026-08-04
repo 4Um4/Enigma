@@ -584,6 +584,13 @@ class TickOrchestrator:
         self._phase_0_simulation(ctx) #2
         self._phase_0_5_idle_services(ctx) #3
         
+        # Подсистема 2: Replay Recorder (Этап 2.2)
+        _recorder = getattr(self, "_replay_recorder", None)
+        if _recorder:
+            _recorder.record_tick_state(ctx.tick_number, ctx.scene_state.get("game_time_seconds", 0.0), ctx)
+            if ctx.interventions:
+                _recorder.record_interventions(ctx.tick_number, ctx.interventions)
+
         # Дополнение Б (п. Б.11): Adaptive Tick Loader
         # Если LOD активен и это дальняя локация — пропускаем тяжелые фазы (память, решения, движение)
         if not tick_fully:
@@ -602,6 +609,11 @@ class TickOrchestrator:
         self._phase_8_drain_secondary(ctx) #13
         self._phase_9_integration(ctx) #14
         self._run_affective_pipeline(ctx) #15
+        
+        # Подсистема 2: Запись WorldSnapshot после Фазы 9
+        if _recorder:
+            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None))
+            
         self._phase_10_persistence(ctx) #16
 
         # Подсистема 3: Causal Probes (real-time invariant monitor)

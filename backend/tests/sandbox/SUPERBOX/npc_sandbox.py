@@ -144,18 +144,31 @@ class NPCSandbox:
         eco_profiles["player"] = player_ep
         print(f"[SANDBOX] Игрок добавлен в экономику: {player_ep.gold}G, food={player_ep.goods.get('food', 0.0)}")
 
-        # P8: Сценарий "Долг тавернщика" — тавернщик занял у купца на ремонт крыши
+        # P8: Реальные долги по лору
         from app.models.economy import Obligation
+        # Торнин должен Гильдии Воров (Тень - сборщик)
         _tavern_ep = eco_profiles.get("tavern_keeper_tornin")
         if _tavern_ep:
             _tavern_ep.obligations.append(Obligation(
-                obligation_type="debt",
-                amount=15.0,
-                due_in_ticks=48,  # 2 дня на возврат
-                penalty_per_tick=0.03,
-                creditor_id="merchant_goran"
+                obligation_type="debt_to_guild",
+                amount=50.0,
+                due_in_ticks=72,  # 3 дня на возврат
+                penalty_per_tick=0.05,
+                creditor_id="thief_shadow"
             ))
-            print(f"[SANDBOX] Тавернщик должен 15.0G купцу (срок: 48 тиков)")
+            print(f"[SANDBOX] Лор: Торнин должен 50.0G Гильдии Воров (срок: 72 тика)")
+        
+        # Горан должен криминалам за провал поставки
+        _goran_ep = eco_profiles.get("merchant_goran")
+        if _goran_ep:
+            _goran_ep.obligations.append(Obligation(
+                obligation_type="debt_to_criminals",
+                amount=100.0,
+                due_in_ticks=48,  # 2 дня на возврат
+                penalty_per_tick=0.08,  # Криминалы давят сильнее
+                creditor_id="criminals"
+            ))
+            print(f"[SANDBOX] Лор: Горан должен 100.0G криминалам (срок: 48 тиков)")
 
         # P8: L1/L2.5 Идентичность и Убеждения
         from app.services.npc.l1_chronicle import L1Chronicle
@@ -429,54 +442,35 @@ class NPCSandbox:
                         if ep_satisfy:
                             ep_satisfy.satisfy_need(NeedType.SHELTER)
 
-                    # P8: Сценарий "Ночной вор"
-                    if npc_id == "thief_shadow" and not getattr(self, "_thief_acted_tonight", False):
-                        self._thief_acted_tonight = True
-                        # Ищем самую богатую жертву
-                        victim_id = max(
-                            (vid for vid in eco_profiles if vid != "thief_shadow" and vid != "player"),
-                            key=lambda vid: eco_profiles[vid].gold,
-                            default=None
-                        )
-                        if victim_id:
-                            victim_ep = eco_profiles[victim_id]
-                            # Вор крадёт 10% золота, но не больше 5G
-                            stolen = min(victim_ep.gold * 0.1, 5.0)
-                            if stolen > 0:
-                                victim_ep.spend(stolen)
-                                ep.receive(stolen)
-                                print(f"[NIGHT] Вор украл {stolen:.2f}G у {victim_id} (осталось {victim_ep.gold:.2f}G)")
-                                
-                                # Жертва получает стресс и страх (увеличиваем threat_gradient)
-                                _victim_ctx = npc_contexts.get(victim_id)
-                                if _victim_ctx and _victim_ctx["state"]:
-                                    _victim_state = _victim_ctx["state"]
-                                    _victim_state.stress = min(100.0, _victim_state.stress + 10.0)
-                                    _victim_state.perceptual_kernel.threat_gradient = max(
-                                        _victim_state.perceptual_kernel.threat_gradient, 0.8
-                                    )
-                                    print(f"[NIGHT] {victim_id} обнаружил кражу! Стресс +10, угроза +0.8")
+                    # P8: Лорные ночные взаимодействия (выполняются один раз за ночь через Торнина)
+                    if is_rest_tick and npc_id == "tavern_keeper_tornin":
+                        from app.domain.identity_events import TraitDriftEvent
+                        _goran_ep = eco_profiles.get("merchant_goran")
+                        _borko_ep = eco_profiles.get("guard_borko")
+                        _shadow_ep = eco_profiles.get("thief_shadow")
+                        
+                        # 1. Взятка: Горан -> Борко
+                        if _goran_ep and _borko_ep and _goran_ep.can_afford(5.0):
+                            _goran_ep.spend(5.0)
+                            _borko_ep.receive(5.0)
+                            print(f"[NIGHT] Взятка: Горан заплатил Борко 5.0G")
+                            self.l1_chronicle.append(TraitDriftEvent(
+                                tick_id=tick, target_id="guard_borko", source_id="merchant_goran",
+                                effect_value=1.0, event_type="bribe"
+                            ))
 
-                                    # P8: Запись события травмы в L1Chronicle
-                                    from app.domain.identity_events import TraitDriftEvent
-                                    _drift_event = TraitDriftEvent(
-                                        tick_id=tick,
-                                        target_id=victim_id,
-                                        source_id="thief_shadow",
-                                        effect_value=-1.0,  # Сильная травма (кража)
-                                        observation_weight=1.0,
-                                        event_type="robbery"
-                                    )
-                                    self.l1_chronicle.append(_drift_event)
-                                
-                                # Шанс быть пойманным (20%)
-                                if hash(str(tick) + npc_id) % 5 == 0:
-                                    new_state.stress = min(100.0, new_state.stress + 20.0)
-                                    print(f"[NIGHT] Вор пойман! Стресс +20")
-                
-                # Сброс флага вора в начале нового дня
-                if tick % self.config.actions_per_day == 1:
-                    self._thief_acted_tonight = False
+                        # 2. Шантаж: Тень -> Горан
+                        if _goran_ep and _shadow_ep and _goran_ep.can_afford(10.0):
+                            _goran_ep.spend(10.0)
+                            _shadow_ep.receive(10.0)
+                            print(f"[NIGHT] Шантаж: Горан заплатил Тени 10.0G")
+                            self.l1_chronicle.append(TraitDriftEvent(
+                                tick_id=tick, target_id="merchant_goran", source_id="thief_shadow",
+                                effect_value=-1.0, event_type="blackmail"
+                            ))
+                            _goran_ctx = npc_contexts.get("merchant_goran")
+                            if _goran_ctx and _goran_ctx["state"]:
+                                _goran_ctx["state"].stress = min(100.0, _goran_ctx["state"].stress + 5.0)
 
                 # Сохраняем состояние для следующего тика
                 ctx["state"] = new_state

@@ -125,8 +125,10 @@ class BreakProgressEngine:
             stage = "deformation"
             base_delta = BREAK_DELTA_DEFORMATION
 
-        # Минимальное давление — чтобы не было -0.0
-        pressure_factor = max(0.1, pressure / 100)
+        # P1 FIX: Давление должно значительно превысить порог восстановления, чтобы активно ломать личность.
+        # Фоновый стресс (голод/нищета) создаёт давление, но оно не должно испепелять идентичность за 3 дня.
+        _excess_pressure = max(0.0, pressure - BREAK_RECOVERY_PRESSURE_THRESHOLD)
+        pressure_factor = max(0.1, _excess_pressure / 100.0)
 
         # BUG 6 FIX: Восстановление identity_integrity.
         # Если давление спадает (ниже 10%), личность медленно восстанавливается к 1.0.
@@ -134,8 +136,9 @@ class BreakProgressEngine:
         if pressure < BREAK_RECOVERY_PRESSURE_THRESHOLD and integrity < BREAK_STAGE_RESISTANCE:
             integrity_delta = BREAK_RECOVERY_BASE_RATE * (1.0 - integrity)
         else:
-            # Давление усиливает разрушение (единая формула для всех стадий)
-            integrity_delta = base_delta * (1 + pressure_factor)
+            # P1 FIX: Асимптотический распад. Чем ниже integrity, тем медленнее она падает.
+            # Это предотвращает падение ровно в 0.000 и делает последние стадии слома более стойкими.
+            integrity_delta = base_delta * integrity * (1 + pressure_factor)
 
         # Anti-abuse: сопротивление растёт при спаме
         resistance_delta = BREAK_RESISTANCE_GAIN if pressure > BREAK_RESISTANCE_PRESSURE_THRESHOLD else BREAK_RESISTANCE_DECAY

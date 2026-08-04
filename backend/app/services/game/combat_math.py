@@ -299,45 +299,62 @@ def sort_initiative(combatants: List[Dict], rng: Optional[random.Random] = None)
 
 def apply_damage(target: Dict, damage: int) -> Dict:
     """Применяет урон. Возвращает изменения."""
-    before = target.get("hp", 0)
-    target["hp"] = max(0, before - damage)
-    if target["hp"] <= 0:
+    # BUG-PERC-005 FIX: Пишем HP в body_state["current_hp"] (SSOT, ADR-HP-UNIFICATION)
+    body = target.setdefault("body_state", {})
+    before = body.get("current_hp", target.get("hp", 0))  # Fallback на legacy hp для старых сейвов
+    body["current_hp"] = max(0, before - damage)
+    
+    if body["current_hp"] <= 0:
+        # ADR-123: life_status — единственный источник истины о смерти
+        body["life_status"] = "DEAD"
         target["status"] = (
             "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
         )
+        
     _log_event(
         "damage_applied",
         {
             "target": target.get("name", "?"),
             "damage": damage,
             "hp_before": before,
-            "hp_after": target["hp"],
+            "hp_after": body["current_hp"],
             "status": target.get("status", "alive"),
         },
     )
     return {
         "hp_before": before,
-        "hp_after": target["hp"],
+        "hp_after": body["current_hp"],
         "status": target.get("status", "alive"),
     }
 
 
 def apply_healing(target: Dict, amount: int) -> Dict:
-    max_hp = target.get("max_hp", target.get("hp", 0))
-    before = target.get("hp", 0)
-    target["hp"] = min(max_hp, before + amount)
-    if target["hp"] > 0:
+    # BUG-PERC-006 FIX: Запрет воскрешения мёртвых (DEAD → ALIVE запрещён, ADR-127)
+    body = target.setdefault("body_state", {})
+    if body.get("life_status") == "DEAD":
+        import logging
+        logging.getLogger(__name__).warning(
+            f"[COMBAT] apply_healing skipped for DEAD npc={target.get('id', target.get('name', '?'))}"
+        )
+        return {"hp_before": body.get("current_hp", 0), "hp_after": body.get("current_hp", 0)}
+        
+    max_hp = body.get("max_hp", target.get("max_hp", body.get("current_hp", 0)))
+    before = body.get("current_hp", target.get("hp", 0))
+    body["current_hp"] = min(max_hp, before + amount)
+    
+    if body["current_hp"] > 0:
         target["status"] = "alive"
+        
     _log_event(
         "healing_applied",
         {
             "target": target.get("name", "?"),
             "healed": amount,
             "hp_before": before,
-            "hp_after": target["hp"],
+            "hp_after": body["current_hp"],
         },
     )
-    return {"hp_before": before, "hp_after": target["hp"]}
+    return {"hp_before": before, "hp_after": body["current_hp"]}
 
 
 # ──────────────────────────────────────────────────────────────────────────────

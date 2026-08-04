@@ -158,7 +158,9 @@ class GameLoop:
         from app.core.config import BASE_DIR
         _canon_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
         if _canon_path.exists():
-            self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus())
+            # P2 FIX: Проброс RelationshipStore в MVP-контроллер для эмерджентной драмы.
+            _rel_store = memory_manager._relationships if memory_manager else None
+            self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus(), relationship_store=_rel_store)
         else:
             logger.error(
                 f"TruthState canon file not found at {_canon_path}. "

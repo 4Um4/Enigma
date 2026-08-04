@@ -288,6 +288,7 @@ def publish_classified_player_event(
         "saved_life": EventType.SAVED_LIFE,
         "move": EventType.PLAYER_MOVED,
         "stealth": EventType.PLAYER_MOVED,
+        "player_flees": EventType.PLAYER_MOVED,  # BUG-DLG-004 FIX: NPC реагируют на бегство игрока
     }
     _raw_type = shared_context.action_type or "dialogue"
 
@@ -345,6 +346,7 @@ def publish_classified_player_event(
             "THREATEN": "player_threatens",
             "STEAL": "player_steals",
             "MOVE": "move",
+            "FLEE": "player_flees",  # BUG-DLG-004 FIX: Маппинг FLEE для IntentCompressor
         }
         _ic_override = _IC_PRIORITY_MAP.get(_semantic_action)
         if _ic_override and _ic_override != _raw_type:

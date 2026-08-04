@@ -136,6 +136,7 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
     "npc": Capability.DIALOGUE,
     "rules": Capability.RULES_REASONING,
     "memory": Capability.MEMORY_SUMMARIZATION,
+    "dialogue_extractor": Capability.MEMORY_SUMMARIZATION, # BUG-DLG-011 FIX
     "general": Capability.GENERAL,
 }
 
@@ -518,6 +519,25 @@ class ModelRouter:
             Ответ от LLM
         """
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
+        
+        # Подсистема 2: LLM Cache для Replay (Этап 2.3)
+        import hashlib
+        from app.core.config import settings
+        _prompt_hash = hashlib.sha256(prompt.encode('utf-8')).hexdigest()
+        
+        if settings.replay_playback:
+            # Режим воспроизведения: читаем из кэша, не дёргаем LLM
+            from app.services.replay.replay_store import ReplayStore
+            _store = getattr(self, "_replay_store", None)
+            if _store:
+                _cached = _store.get_llm_call(agent_name, _prompt_hash)
+                if _cached and _cached.get("response"):
+                    logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
+                    return _cached["response"]
+                # Cache miss в playback mode — это критическая ошибка (нарушение детерминизма)
+                logger.error(f"[LLM_CACHE] MISS in playback mode! agent={agent_name} hash={_prompt_hash[:8]}")
+                # Возвращаем пустую строку, чтобы не крашить игру, но это нарушит replay
+                
         # Worker thread (to_thread): прямой синхронный вызов без semaphore
         # Semaphore привязан к main loop — в новом loop он мёртв
         if threading.current_thread() is not threading.main_thread():
@@ -554,7 +574,40 @@ class ModelRouter:
                 return ""
             finally:
                 self._request_in_progress = False
-        coro = self.request(capability, prompt, params, system_prompt)
+                
+        _result = ""
+        if settings.replay_playback:
+            # В режиме playback мы уже вернули ответ из кэша выше, если он был.
+            # Если мы здесь — cache miss, возвращаем пустую строку.
+            _result = ""
+        else:
+            coro = self.request(capability, prompt, params, system_prompt)
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError as e:
+                logger.debug(f"No running loop, starting new one: {e}")
+                _result = asyncio.run(coro)
+            else:
+                future = asyncio.run_coroutine_threadsafe(coro, loop)
+                _result = future.result(timeout=60)
+                
+        # Запись в кэш (если режим записи)
+        if settings.replay_record:
+            from app.services.replay.replay_store import ReplayStore
+            _store = getattr(self, "_replay_store", None)
+            if _store:
+                _tick_id = getattr(self, "_current_tick_id", 0)
+                _store.record_llm_call(
+                    session_id=getattr(self, "_current_session_id", "unknown"),
+                    tick_id=_tick_id,
+                    agent_name=agent_name,
+                    prompt=prompt,
+                    response=_result,
+                    model_name=self.get_model_for_agent(agent_name),
+                    latency_ms=0
+                )
+                
+        return _result
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError as e:

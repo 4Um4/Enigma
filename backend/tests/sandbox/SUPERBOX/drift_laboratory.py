@@ -177,8 +177,9 @@ class DriftLaboratory:
         self._original_saves_dir: Optional[str] = None
         self._original_data_dir: Optional[str] = None
 
-    def run(self, mode: str) -> DriftResult:
+    def run(self, mode: str, session_id: str = None) -> DriftResult:
         """Запускает эксперимент в заданном режиме."""
+        self._replay_session_id = session_id
         print(f"\n{'=' * 60}")
         print(f"DRIFT LABORATORY — Mode: {mode}")
         print(f"{'=' * 60}")
@@ -196,6 +197,7 @@ class DriftLaboratory:
                 "replay_determinism": self._mode_replay_determinism,
                 "projection_parity": self._mode_projection_parity,
                 "idle_simulation_stability": self._mode_idle_simulation_stability,
+                "replay_compare": self._mode_replay_compare,
             }
 
             runner = mode_map.get(mode)
@@ -204,7 +206,10 @@ class DriftLaboratory:
                 print(f"Доступные: {', '.join(mode_map.keys())}")
                 return result
 
-            runner(result)
+            if mode == "replay_compare":
+                runner(result, self._replay_session_id)
+            else:
+                runner(result)
 
         finally:
             self._teardown()
@@ -856,6 +861,47 @@ class DriftLaboratory:
             print(f"     Hash B: {hash_b}")
             print("     Hidden entropy source detected — investigation required")
             self._diagnose_mismatch(scene_a, npcs_a, scene_b, npcs_b)
+
+    # ─── Mode H: Replay Compare (A/B against recorded session) ───
+    def _mode_replay_compare(self, result: DriftResult, session_id: str) -> None:
+        """Mode H: Replay Compare
+
+        Сравнивает текущий код с записанной сессией.
+        Использует ReplayPlayer для воспроизведения тиков и поиска дрейфа.
+        """
+        from app.services.replay.replay_store import ReplayStore
+        from app.services.replay.replay_player import ReplayPlayer
+
+        print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
+
+        db_path = Path(f"backend/data/replay/{session_id}.db")
+        if not db_path.exists():
+            print(f"  [REPLAY] DB not found: {db_path}")
+            result.final_stats = {"replay_verdict": "ERROR", "error": "DB not found"}
+            return
+
+        store = ReplayStore(db_path)
+        player = ReplayPlayer(
+            store, 
+            self._game_loop, 
+            session_id, 
+            self.config.campaign_id, 
+            self.config.location_id
+        )
+
+        # Воспроизводим первые 100 тиков (или пока сессия не закончится)
+        report = player.play(start_tick=0, end_tick=100, max_drift=0)
+
+        result.final_stats = {
+            "replay_verdict": "MATCH" if report["status"] == "SUCCESS" else "MISMATCH",
+            "replay_ticks": report["replayed_ticks"],
+            "total_drifts": report["total_drifts"]
+        }
+
+        if report["status"] == "SUCCESS":
+            print(f"\n  ✅ REPLAY COMPARE: MATCH ({report['replayed_ticks']} ticks)")
+        else:
+            print(f"\n  🔴 REPLAY COMPARE: MISMATCH (drifts={report['total_drifts']})")
 
     # ─── Mode G: Projection Parity (CSSE Stage 2) ────────────────
 
@@ -1664,10 +1710,11 @@ _MODE_NAMES = {
     "long_horizon": "Длинный горизонт (D)",
     "replay_determinism": "Детерминизм воспроизведения (E)",
     "projection_parity": "Чёткость проекции (G)",
+    "replay_compare": "Сравнение записей (H)",
 }
 
 
-def main(mode: str = "long_horizon") -> None:
+def main(mode: str = "long_horizon", session_id: str = None) -> None:
     mode_name = _MODE_NAMES.get(mode, mode)
     print("\n🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA")
     print(f"   Режим: {mode_name}")
@@ -1676,7 +1723,7 @@ def main(mode: str = "long_horizon") -> None:
 
     config = DriftConfig()
     lab = DriftLaboratory(config)
-    result = lab.run(mode)
+    result = lab.run(mode, session_id=session_id)
 
     reporter = DriftReporter(result)
     reporter.print_summary()

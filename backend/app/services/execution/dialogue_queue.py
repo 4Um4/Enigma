@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import heapq
 import logging
-import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -46,15 +45,15 @@ class DialogueQueue:
     def __init__(self) -> None:
         self._heap: list[QueuedDialogue] = []
         self._minute_count: int = 0
-        self._minute_start: float = time.time()
-        self._recent_npc_speak: dict[str, float] = {}  # npc_id -> last_speak_timestamp
+        self._minute_start: float = 0.0  # симуляционное время (game_time_seconds)
+        self._recent_npc_speak: dict[str, float] = {}  # npc_id -> last_speak_game_time
 
-    def enqueue(self, task_type: str, payload: dict, priority: int) -> str:
+    def enqueue(self, task_type: str, payload: dict, priority: int, game_time_seconds: float) -> str:
         """Добавить задачу в очередь."""
         task_id = f"dlg-{uuid.uuid4().hex[:8]}"
         task = QueuedDialogue(
             priority=-priority,  # heapq = min-heap, инвертируем
-            enqueued_at=time.time(),
+            enqueued_at=game_time_seconds,
             task_type=task_type,
             payload=payload,
             task_id=task_id,
@@ -65,9 +64,9 @@ class DialogueQueue:
         )
         return task_id
 
-    def dequeue_next(self) -> Optional[QueuedDialogue]:
+    def dequeue_next(self, game_time_seconds: float) -> Optional[QueuedDialogue]:
         """Возвращает следующую задачу с учётом rate limit и cooldown NPC."""
-        now = time.time()
+        now = game_time_seconds
 
         # Сброс минутного счётчика
         if now - self._minute_start > 60.0:

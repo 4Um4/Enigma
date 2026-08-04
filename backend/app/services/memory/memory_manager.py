@@ -100,7 +100,9 @@ class MemoryManager:
 
     def clear_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> None:
         """Очищает STM при завершении диалога (NPC ушёл, смена сцены)."""
-        key = f"{campaign_id}:{npc_id}:{partner_id}"
+        # BUG-DLG-007 FIX: Используем симметричный сортированный ключ, как в get_dialogue_session.
+        pair_key = tuple(sorted((npc_id, partner_id)))
+        key = f"{campaign_id}:{pair_key[0]}:{pair_key[1]}"
         session = self._dialogue_sessions.get(key)
         if session is None:
             return
@@ -133,11 +135,11 @@ class MemoryManager:
             k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")
         ]
         for key in keys_to_remove:
-            # Извлекаем npc_id из ключа "campaign_id:npc_id"
+            # BUG-DLG-008 FIX: Извлекаем npc_a и npc_b из ключа "campaign_id:npc_a:npc_b"
             parts = key.split(":")
-            if len(parts) >= 2:
-                npc_id = parts[1]
-                self.clear_dialogue_session(campaign_id, npc_id)
+            if len(parts) >= 3:
+                _, npc_a, npc_b = parts[0], parts[1], parts[2]
+                self.clear_dialogue_session(campaign_id, npc_a, npc_b)
             else:
                 self._dialogue_sessions.pop(key, None)
 

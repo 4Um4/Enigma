@@ -230,10 +230,7 @@ class DmAgent:
         if _targeted_stm:
             builder.add_npc_stm(_targeted_stm)
 
-        # BUG-DL-11 FIX: L2 Memory block — долгая память о прошлых встречах
-        _l2_memory_block = (context or {}).get("npc_l2_memory_block", "")
-        if _l2_memory_block:
-            builder.add_npc_l2_memory(_l2_memory_block)
+        # BUG-DLG-010 FIX: L2 Memory block удалён из промпта (ADR L16: Epistemic Boundary).
 
         # V8-DLG-14 FIX: Hard Contract "нет STM → молчи" для DM-агента.
         # Если игрок обращается к NPC (есть target_id), но STM пуст — это greeting/approach (инициация игроком).
@@ -243,9 +240,10 @@ class DmAgent:
         _is_intro = _is_session_start
         # Если игрок сам обращается к NPC (target_id есть), пустое STM допустимо — это старт диалога.
         if not _has_target and not _has_stm and not _is_intro:
-            raise ValueError(
-                f"[DM_CONTRACT_VIOLATION] NPC has no target and STM is empty. "
-                "NPC cannot reply without short-term memory context."
+            # BUG-DLG-002 FIX: Не крашим pipeline, если резолвер цели упал. Продолжаем с generic narrative.
+            logger.warning(
+                f"[DM_CONTRACT_WARN] NPC has no target and STM is empty. "
+                "Proceeding with generic narrative."
             )
 
         # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты)

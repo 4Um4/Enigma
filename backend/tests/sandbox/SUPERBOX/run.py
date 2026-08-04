@@ -43,7 +43,8 @@ def main() -> None:
     elif tool == "drift":
         from tests.sandbox.SUPERBOX.drift_laboratory import main as drift_main
 
-        drift_main(mode)
+        session_id = args[2] if len(args) > 2 else None
+        drift_main(mode, session_id=session_id)
 
     elif tool == "behavior":
         from tests.sandbox.SUPERBOX.behavior_laboratory import run_trait_economy_probe

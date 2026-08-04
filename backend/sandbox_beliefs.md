@@ -4,7 +4,7 @@
 
 | NPC | Событий в L1 |
 |-----|--------------|
-| guard_borko | 0 |
+| guard_borko | 7 |
 | merchant_goran | 7 |
 | maid_lusya | 0 |
 | blacksmith_orm | 0 |
@@ -16,4 +16,5 @@
 
 | NPC | Источник | Трейт | Вес |
 |-----|----------|-------|-----|
+| guard_borko | merchant_goran | trust | 0.28 |
 | merchant_goran | thief_shadow | fear | 0.10 |

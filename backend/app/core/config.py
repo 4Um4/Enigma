@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     min_ram_gb: int = 12
     enforce_system_requirements: bool = False
     orchestrator_workers: int = 2
+    
+    # Подсистема 2: Replay System
+    replay_mode: str = "off"  # "off", "passive", "active"
+    replay_playback: bool = False  # True для чтения из кэша
+    replay_record: bool = False  # True для записи в кэшdialogue_update_extractor
 
     llama_cpp_server_executable: str = str(
         BASE_DIR / "Models LLM" / "llama" / "llama-server.exe"

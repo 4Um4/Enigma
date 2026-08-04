@@ -365,11 +365,12 @@ BREAK_STAGE_DEFORMATION: Final[float] = 0.2
 # ═══════════════════════════════════════════════════════════════════════
 
 # Базовые дельты стадий (инвариант поведения)
-BREAK_DELTA_RESISTANCE: Final[float] = -0.01
-BREAK_DELTA_CRACKS: Final[float] = -0.03
-BREAK_DELTA_RATIONALIZATION: Final[float] = -0.02
-BREAK_DELTA_ADAPTATION: Final[float] = -0.05
-BREAK_DELTA_DEFORMATION: Final[float] = -0.1
+# P1 FIX: Снижение базовых дельт в 5 раз. Личность не должна ломаться от фонового стресса за 3 дня.
+BREAK_DELTA_RESISTANCE: Final[float] = -0.002
+BREAK_DELTA_CRACKS: Final[float] = -0.005
+BREAK_DELTA_RATIONALIZATION: Final[float] = -0.008
+BREAK_DELTA_ADAPTATION: Final[float] = -0.015
+BREAK_DELTA_DEFORMATION: Final[float] = -0.03
 
 # Пороги и модификаторы давления
 BREAK_SUPPORT_PRESSURE_REDUCTION: Final[float] = 20.0  # поддержка снижает давление

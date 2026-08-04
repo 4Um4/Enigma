@@ -37,12 +37,13 @@ class DialogueUpdateExtractor:
         
         try:
             prompt = self._build_extraction_prompt(stm_before, new_turn, partner)
+            from app.services.llm.provider import GenerationParams
             response = self._router.request_for_agent(
                 agent_name="dialogue_extractor",
                 prompt=prompt,
-                params={"max_tokens": 200, "temperature": 0.1, "response_format": {"type": "json_object"}}
+                params=GenerationParams(max_tokens=200, temperature=0.1, response_format={"type": "json_object"})
             )
-            data = json.loads(response.text)
+            data = json.loads(response)
             return self._parse_update(data)
         except Exception as e:
             logger.warning(f"Dialogue update extraction failed: {e}")

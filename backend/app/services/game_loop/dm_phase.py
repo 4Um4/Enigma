@@ -62,24 +62,9 @@ def run_dm_phase(
             except Exception:
                 shared_context.npc_stm_block_targeted = ""
 
-            # BUG-DL-11 FIX: Извлекаем L2 Memory (narrative_cache) для DM LLM
-            try:
-                _target_npc_dict = next((n for n in game_loop._load_npcs() if n.get("npc_id") == _target.target_id or n.get("id") == _target.target_id), None)
-                if _target_npc_dict:
-                    from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
-                    _target_npc_state = load_l2_state_from_runtime_dict(_target_npc_dict)
-                    _recall_results = game_loop.memory_manager.recall(
-                        narrative_cache=_target_npc_state.narrative_cache,
-                        trigger_tags=("dialogue",),
-                        target_npc_id="player",
-                        limit=3,
-                    )
-                    if _recall_results:
-                        _memory_lines = [f"- {m.summary}" for m in _recall_results if m.summary]
-                        if _memory_lines:
-                            shared_context.npc_l2_memory_block = "\n".join(_memory_lines)
-            except Exception:
-                shared_context.npc_l2_memory_block = ""
+            # BUG-DLG-010 FIX: ADR L16 Epistemic Boundary — DM-агент НЕ читает L2 narrative_cache.
+            # Континуитет должен проявляться через NPC-речь (в STM), а не через прямой доступ DM к скрытой памяти.
+            shared_context.npc_l2_memory_block = ""
 
         # ФАЗА 3.1: Spatial Events — детекция переходов расстояний
         try:

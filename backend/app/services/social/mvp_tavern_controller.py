@@ -30,9 +30,11 @@ from app.services.state.world_diff_builder import WorldDiffBuilder
 class MvpTavernController:
     """Фасад, объединяющий все системы миниигры для GameLoop."""
     
-    def __init__(self, canon_path: Path, event_bus: Optional[Any] = None) -> None:
+    def __init__(self, canon_path: Path, event_bus: Optional[Any] = None, relationship_store: Optional[Any] = None) -> None:
         self._canon_path = canon_path
         self._event_bus = event_bus
+        self._relationship_store = relationship_store
+        self._campaign_id: Optional[str] = None
         
         # Инициализация базовых трекеров
         self.truth_state: Optional[TruthState] = None
@@ -90,6 +92,7 @@ class MvpTavernController:
 
     def init_campaign(self, campaign_id: str) -> None:
         """Загрузка канона и сброс состояния для новой кампании."""
+        self._campaign_id = campaign_id
         # Загружаем каноническую истину
         self.truth_state = TruthStateLoader.load(self._canon_path)
         TruthStateLoader.validate(self.truth_state)
@@ -97,6 +100,9 @@ class MvpTavernController:
         # M-02/M-12 FIX: Инжектируем загруженный truth_state в action_compiler
         self.action_compiler._truth = self.truth_state
         self.confession_parser._truth = self.truth_state # V8-MVP-12 FIX
+        # P2 FIX: Инжектируем RelationshipStore и campaign_id в ActionCompiler
+        self.action_compiler._relationship_store = self._relationship_store
+        self.action_compiler._campaign_id = self._campaign_id
         
         # V8-MVP-18 TODO: Дилеммы должны загружаться из отдельного канона (dilemmas.json)
         # или расширения TruthState, когда они будут добавлены в JSON.
