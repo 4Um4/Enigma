@@ -93,7 +93,8 @@ class GameLoopBridge:
         if self._ready:
             return
 
-        from app.services.game_loop_builder import build_game_loop
+        import importlib
+        build_game_loop = importlib.import_module("app.services.game_loop_builder").build_game_loop
 
         self._loop = build_game_loop(self._data_dir)
         self._start_async_loop()  # E.1: Запускаем persistent loop
@@ -140,7 +141,8 @@ class GameLoopBridge:
         if world_x is not None and world_y is not None:
             # B2-FIX: Spatial Oracle no-silent-failure. Логируем ошибки, не глотаем.
             try:
-                from app.services.spatial.spatial_registry import SpatialRegistry
+                import importlib
+                SpatialRegistry = importlib.import_module("app.services.spatial.spatial_registry").SpatialRegistry
 
                 _registry = SpatialRegistry.get_or_load(campaign_id)
                 if _registry is None:
@@ -162,9 +164,8 @@ class GameLoopBridge:
                             campaign_state.metadata["player_world_x"] = world_x
                             campaign_state.metadata["player_world_y"] = world_y
                             # A1-FIX: Atomic commit (Устав §4.2.1). Persistence parity with HTTP path.
-                            from app.services.campaign_state_service import (
-                                get_campaign_state_service,
-                            )
+                            import importlib
+                            get_campaign_state_service = importlib.import_module("app.services.campaign_state_service").get_campaign_state_service
 
                             get_campaign_state_service().save(campaign_id)
                     else:
@@ -256,7 +257,8 @@ class GameLoopBridge:
         """Обогащает spatial-данные из editor JSON. Делегирует модульную функцию."""
         if not self._ready or self._loop is None:
             return
-        from app.services.scene_state_manager import enrich_scene_spatial as _enrich
+        import importlib
+        _enrich = importlib.import_module("app.services.scene_state_manager").enrich_scene_spatial
 
         _enrich(scene_state, campaign_id)
 
@@ -267,7 +269,8 @@ class GameLoopBridge:
         """
         if not self._ready or self._loop is None:
             return None
-        from app.services.player_cognition import build_perceived_scene as _build
+        import importlib
+        _build = importlib.import_module("app.services.player_cognition").build_perceived_scene
 
         return _build(scene_state, config)
 
@@ -318,14 +321,16 @@ class GameLoopBridge:
 
     def initialize_model_pool(self) -> None:
         """Инициализирует ModelPool в pygame процессе."""
-        from app.services.llm.provider_manager import initialize_model_pool
+        import importlib
+        initialize_model_pool = importlib.import_module("app.services.llm.provider_manager").initialize_model_pool
 
         initialize_model_pool()
 
     def _get_campaign_state(self, campaign_id: str):
         """Получает campaign_state для определения локации."""
         try:
-            from app.services.campaign_state_service import get_campaign_state_service
+            import importlib
+            get_campaign_state_service = importlib.import_module("app.services.campaign_state_service").get_campaign_state_service
 
             service = get_campaign_state_service()
             return service.get_campaign_state(campaign_id)

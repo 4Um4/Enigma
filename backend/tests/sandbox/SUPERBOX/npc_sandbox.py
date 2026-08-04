@@ -48,7 +48,7 @@ class SandboxConfig:
 
     campaign_id: str = "Open_road"
     location: str = "tavern_silver_wolf"
-    tick_count: int = 168  # 1 неделя (24 часа × 7 дней)
+    tick_count: int = 8760  # 1 год (24 часа × 365 дней)
     snapshot_interval: int = 24  # слепок каждый "день"
     actions_per_day: int = 24  # 1 тик = 1 час
 
@@ -161,8 +161,8 @@ class NPCSandbox:
         from app.services.npc.l1_chronicle import L1Chronicle
         from app.services.npc.pattern_detector import PatternDetector
         from app.services.npc.belief_crystallization_engine import BeliefCrystallizationEngine
-        l1_chronicle = L1Chronicle(store=None)  # In-memory only
-        pattern_detector = PatternDetector(chronicle=l1_chronicle)
+        self.l1_chronicle = L1Chronicle(store=None)  # In-memory only
+        self.pattern_detector = PatternDetector(chronicle=self.l1_chronicle)
         belief_engine = BeliefCrystallizationEngine()
         npc_beliefs: Dict[str, List] = {nid: [] for nid in eco_profiles}  # CrystallizedBelief per NPC
 
@@ -430,7 +430,7 @@ class NPCSandbox:
                             ep_satisfy.satisfy_need(NeedType.SHELTER)
 
                     # P8: Сценарий "Ночной вор"
-                    if npc_id == "thief_shadow" and not hasattr(self, "_thief_acted_tonight"):
+                    if npc_id == "thief_shadow" and not getattr(self, "_thief_acted_tonight", False):
                         self._thief_acted_tonight = True
                         # Ищем самую богатую жертву
                         victim_id = max(
@@ -467,7 +467,7 @@ class NPCSandbox:
                                         observation_weight=1.0,
                                         event_type="robbery"
                                     )
-                                    l1_chronicle.append(_drift_event)
+                                    self.l1_chronicle.append(_drift_event)
                                 
                                 # Шанс быть пойманным (20%)
                                 if hash(str(tick) + npc_id) % 5 == 0:
@@ -619,7 +619,7 @@ class NPCSandbox:
                 for _npc_id, _profile in eco_profiles.items():
                     if _npc_id == "player":
                         continue
-                    _evidence = pattern_detector.query_evidence(_npc_id)
+                    _evidence = self.pattern_detector.query_evidence(_npc_id)
                     if _evidence:
                         _npc_ctx = npc_contexts.get(_npc_id)
                         _drives = _npc_ctx["profile"].drives_base if _npc_ctx else {}
@@ -724,22 +724,6 @@ class NPCSandbox:
                     )
 
             self._prev_states.clear()
-
-        # P8: Вывод кристаллизованных убеждений (L2.5) и сохранение в Markdown
-        if hasattr(self, 'npc_beliefs') and self.npc_beliefs:
-            print("\n=== УБЕЖДЕНИЯ NPC (L2.5) ===")
-            with open("sandbox_beliefs.md", "w", encoding="utf-8") as f:
-                f.write("# Убеждения NPC (L2.5)\n\n")
-                f.write("| NPC | Источник | Трейт | Вес |\n")
-                f.write("|-----|----------|-------|-----|\n")
-                for _nid, _beliefs in self.npc_beliefs.items():
-                    if _beliefs:
-                        for b in _beliefs:
-                            if b.weight > 0.01:
-                                _line = f"  {_nid} → {b.source_id}: {b.trait} (вес={b.weight:.2f})"
-                                print(_line)
-                                f.write(f"| {_nid} | {b.source_id} | {b.trait} | {b.weight:.2f} |\n")
-            print("\n[REPORTER] Убеждения сохранены: sandbox_beliefs.md")
 
         return self.snapshots
 
@@ -1154,6 +1138,34 @@ def main() -> None:
         reporter.print_summary()
         reporter.save_csv()
         reporter.plot_charts()
+
+        # P8: Отчёт по убеждениям (L2.5) и хронике (L1)
+        if hasattr(sandbox, 'npc_beliefs') and sandbox.npc_beliefs:
+            print("\n[REPORTER] Формирование отчёта убеждений...")
+            with open("sandbox_beliefs.md", "w", encoding="utf-8") as f:
+                f.write("# Убеждения NPC (L2.5) и Хроника (L1)\n\n")
+                
+                # L1: Статистика по хронике
+                f.write("## Накопленные события (L1 Chronicle)\n\n")
+                f.write("| NPC | Событий в L1 |\n")
+                f.write("|-----|--------------|\n")
+                if hasattr(sandbox, 'l1_chronicle'):
+                    for _nid in sandbox.npc_beliefs.keys():
+                        _events = sandbox.l1_chronicle.query_raw(_nid)
+                        f.write(f"| {_nid} | {len(_events)} |\n")
+                
+                # L2.5: Кристаллизованные убеждения
+                f.write("\n## Кристаллизованные убеждения (L2.5)\n\n")
+                f.write("| NPC | Источник | Трейт | Вес |\n")
+                f.write("|-----|----------|-------|-----|\n")
+                for _nid, _beliefs in sandbox.npc_beliefs.items():
+                    if _beliefs:
+                        for b in _beliefs:
+                            if b.weight > 0.01:
+                                f.write(f"| {_nid} | {b.source_id} | {b.trait} | {b.weight:.2f} |\n")
+            print("[REPORTER] Убеждения сохранены: sandbox_beliefs.md")
+        else:
+            print("[REPORTER] Нет данных по убеждениям для сохранения.")
 
 
 if __name__ == "__main__":

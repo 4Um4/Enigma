@@ -86,7 +86,8 @@ class SpatialCompilationOrchestrator:
             backend_path = project_root / "backend"
             if str(backend_path) not in sys.path:
                 sys.path.insert(0, str(backend_path))
-            from app.services.spatial.spatial_registry import SpatialRegistry
+            import importlib
+            SpatialRegistry = importlib.import_module("app.services.spatial.spatial_registry").SpatialRegistry
         except ImportError:
             # Fallback — minimal frontend-only registry
             SpatialRegistry = _MinimalFrontendRegistry

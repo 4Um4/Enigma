@@ -141,7 +141,12 @@
   IPT: 20/24 passed (4 CRITICAL debts exposed for other assistants to fix).
   Files: scripts/lint_*.py, backend/app/services/probes/*, backend/tests/IPT.py
 
-
+- 🟢 **S155** ADR-NET PARSER (Подсистема 4, Этап 4.1):
+  Создан парсер `backend/app/services/adr_net/adr_parser.py`, извлекающий ADR-узлы (ID, тип, законы, файлы) из `docs/ADR (Architecture Decision Records).md` (Master Index) и `docs/audits/` (Impact Audits).
+  Внедрена нормализация ID (ADR-148, ADR-O-327, ADR-TZ08-1) для устранения дубликатов.
+  Парсер интегрирован в `IPT.py` как инвариант `INV-ADR-NET` (граф должен содержать >20 узлов, >10% с файлами).
+  IPT: 24/25 passed. 1 CRITICAL debt exposed (Frontend imports).
+  Files: backend/app/services/adr_net/__init__.py, backend/app/services/adr_net/adr_parser.py, backend/tests/IPT.py
 
 
 

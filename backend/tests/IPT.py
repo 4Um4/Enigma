@@ -428,6 +428,62 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_replay_store(world: TestWorld) -> InvariantResult:
+    """INV-REPLAY-STORE: ReplayStore записывает и читает тики (Подсистема 2)."""
+    import os
+    import tempfile
+    import sys
+    from pathlib import Path
+    _backend_dir = str(Path(__file__).resolve().parents[1])
+    if _backend_dir not in sys.path:
+        sys.path.insert(0, _backend_dir)
+        
+    try:
+        from app.services.replay.replay_store import ReplayStore
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, "test_replay.db")
+            store = ReplayStore(db_path)
+            
+            session_id = store.start_session("test_campaign", "test_hash")
+            if not session_id:
+                return InvariantResult("INV-REPLAY-STORE", "CRITICAL", False, "start_session вернул пустой ID", [])
+                
+            store.record_tick(
+                session_id=session_id,
+                tick_id=1,
+                game_time_seconds=60.0,
+                tick_state={"tick": 1, "npcs": [{"id": "test"}]},
+                tick_mutation={"decisions": []},
+                world_snapshot={"tick": 1, "snapshot": "test"}
+            )
+            store.record_intervention(session_id, 1, "player", {"text": "test"})
+            store.record_causal_probe(session_id, 1, "INV-TEST", "PASS", {"msg": "ok"})
+            store.close()
+            
+            # Проверяем чтение
+            store2 = ReplayStore(db_path)
+            row = store2.conn.execute("SELECT * FROM tick_snapshots WHERE tick_id = 1").fetchone()
+            if not row:
+                return InvariantResult("INV-REPLAY-STORE", "CRITICAL", False, "Тик не записан в БД", [])
+                
+            state = store2._from_json_bytes(row["tick_state_json"])
+            if state.get("tick") != 1:
+                return InvariantResult("INV-REPLAY-STORE", "CRITICAL", False, "TickState не десериализован", [])
+                
+            store2.close()
+            
+        return InvariantResult("INV-REPLAY-STORE", "CRITICAL", True, "ReplayStore round-trip OK.", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-REPLAY-STORE",
+            "CRITICAL",
+            False,
+            f"Ошибка ReplayStore: {e}",
+            ["backend/app/services/replay/replay_store.py"]
+        )
+
+
 def inv_adr_net(world: TestWorld) -> InvariantResult:
     """INV-ADR-NET: ADR-Net парсер успешно строит граф зависимостей (Подсистема 4)."""
     import os
@@ -868,6 +924,7 @@ INVARIANTS: List[Callable] = [
     inv_dialogue_scheduler_fail,
     inv_trav_zombie,
     inv_death_lock,
+    inv_replay_store,
     inv_adr_net,
     inv_no_retro_sim,
     inv_l1_append_only,

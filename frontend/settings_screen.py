@@ -17,8 +17,9 @@ import yaml
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
-from app.core.config import settings
-from app.core.content_policy import save_content_policy
+import importlib
+settings = importlib.import_module("app.core.config").settings
+save_content_policy = importlib.import_module("app.core.content_policy").save_content_policy
 from display_manager import load_display_settings, save_display_settings, get_available_resolutions, create_window
 
 # === Минимальная цветовая схема (как в game_menu.py) ===

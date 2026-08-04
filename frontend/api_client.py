@@ -514,7 +514,8 @@ class DirectGameGateway:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
             from game_loop_bridge import get_game_loop_bridge
-            from app.models.world_continuity import WorldContinuityMode
+            import importlib
+            WorldContinuityMode = importlib.import_module("app.models.world_continuity").WorldContinuityMode
 
             _bridge = get_game_loop_bridge()
             mode = WorldContinuityMode(continuity_mode)
@@ -567,7 +568,8 @@ class DirectGameGateway:
     def set_continuity_mode(self, mode: str) -> dict:
         if not self._bridge.ready or not self._bridge._loop:
             return {"error": "Bridge not ready"}
-        from app.models.world_continuity import WorldContinuityMode
+        import importlib
+        WorldContinuityMode = importlib.import_module("app.models.world_continuity").WorldContinuityMode
         if mode not in [WorldContinuityMode.ISOLATED.value, WorldContinuityMode.CONTINUOUS.value]:
             return {"error": f"Invalid mode: {mode}"}
         self._bridge._loop._continuity_mode = WorldContinuityMode(mode)

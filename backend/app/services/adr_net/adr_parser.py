@@ -89,8 +89,9 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
         
     current_domain = ""
     current_law = ""
+    current_files = []
     
-    for line in lines:
+    for i, line in enumerate(lines):
         if line.startswith("## DOM-"):
             current_domain = line.replace("##", "").strip().split(":")[0]
         elif line.startswith("**L"):
@@ -100,6 +101,15 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                 current_law = law_match.group(1)
                 law_title = law_match.group(2)
                 adr_ids_raw = law_match.group(3).split(",")
+                
+                # Ищем Files в следующей строке (обычно это - Files: ...)
+                current_files = []
+                if i + 3 < len(lines) and "Files:" in lines[i+3]:
+                    files_match = _FILES_REGEX.search(lines[i+3])
+                    if files_match:
+                        raw_files = files_match.group(1).strip().rstrip(".")
+                        current_files = [f.strip().strip("`").strip() for f in raw_files.split(",")]
+                        current_files = [f for f in current_files if f]
                 
                 for adr_id_raw in adr_ids_raw:
                     adr_id_raw = adr_id_raw.strip()
@@ -112,7 +122,8 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                         adr_type="LAW",
                         title=law_title,
                         domain=current_domain,
-                        laws=[current_law]
+                        laws=[current_law],
+                        files=current_files
                     )
                     nodes.append(node)
                     
