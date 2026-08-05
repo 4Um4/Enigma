@@ -9,7 +9,10 @@ TODO: В будущем может потребоваться расширить
 """
 
 import json
+import logging
 from typing import Any, Dict, Optional, Protocol
+
+logger = logging.getLogger(__name__)
 
 
 class LLMCompressorClient(Protocol):

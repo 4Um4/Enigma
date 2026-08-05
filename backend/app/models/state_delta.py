@@ -17,6 +17,7 @@ from enum import Enum
 from typing import Dict, Optional, Union
 
 from app.models.delta_payloads import (
+    EconomicPayload,
     EmotionPayload,
     IdentityPayload,
     PhysiologyPayload,
@@ -36,6 +37,7 @@ class DeltaDomain(Enum):
     PERCEPTION = "perception"  # ADR-040: Обновление субъективной модели восприятия (PerceptualKernel)
     WILL = "WILL"  # Каузальный след конфликта воли (ADR-039)
     DOPAMINE = "dopamine"  # S-93: Reward Prediction Error (FEP). Эфемерный сигнал ошибки предсказания.
+    ECONOMY = "economy"  # S150: Экономика (деньги, товары)
 
 
 class ReductionPolicy(Enum):
@@ -63,6 +65,7 @@ DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
     DeltaDomain.IDENTITY: ReductionPolicy.OVERWRITE,
     DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
     DeltaDomain.SPATIAL: ReductionPolicy.OVERWRITE,  # Позиция = факт
+    DeltaDomain.ECONOMY: ReductionPolicy.ADDITIVE,  # Деньги и товары накапливаются
     # DEBT-DET-03: Явная политика для ранее неявных доменов
     DeltaDomain.PERCEPTION: ReductionPolicy.ADDITIVE,  # Угрозы/аномалии накапливаются
     DeltaDomain.WILL: ReductionPolicy.OVERWRITE,  # Конфликт воли = факт текущего тика
@@ -72,7 +75,7 @@ DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
 
 # Union тип — IDE знает все варианты, autocomplete работает
 DeltaPayload = Union[
-    SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload, PhysiologyPayload
+    SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload, PhysiologyPayload, EconomicPayload
 ]
 
 
@@ -134,6 +137,7 @@ class StateDeltas:
             DeltaDomain.REPUTATION: ReputationPayload,
             DeltaDomain.IDENTITY: IdentityPayload,
             DeltaDomain.PHYSIOLOGY: PhysiologyPayload,
+            DeltaDomain.ECONOMY: EconomicPayload,
         }
 
         # v2 валидация: если указан domain, payload должен соответствовать

@@ -5,7 +5,34 @@ path: /project/backend/app/domain/presentation.py
 Основные сущности: NPCVisualState, VisualDTO, AudibleDTO
 """
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Dict, List, Optional, Tuple
+
+
+class NeedSeverity(Enum):
+    """Уровень критичности потребности для UI (без локализации)."""
+    MINOR = "minor"
+    MODERATE = "moderate"
+    MAJOR = "major"
+    CRITICAL = "critical"
+    EXTREME = "extreme"
+
+
+@dataclass(frozen=True)
+class NeedStatusDTO:
+    """S151: DTO состояния потребности (только данные, без текста и цвета)."""
+    id: str
+    severity: NeedSeverity
+
+
+@dataclass(frozen=True)
+class EmbodiedStatusDTO:
+    """S151: Воплощённое состояние аватара для UI."""
+    gold: float
+    food_count: float
+    current_weight: float
+    max_weight: float
+    active_needs: List[NeedStatusDTO]
 
 @dataclass(frozen=True)
 class PoseOverlay:

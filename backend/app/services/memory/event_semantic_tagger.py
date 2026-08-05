@@ -80,7 +80,8 @@ class EventSemanticTagger:
         result: list[str] = []
 
         # 1. Семантика события
-        semantic = _EVENT_SEMANTIC_MAP.get(event_type)
+        # NEW-MEM-001 FIX: Нормализуем регистр, т.к. EventType может быть в UPPER_CASE.
+        semantic = _EVENT_SEMANTIC_MAP.get(event_type.lower())
         if semantic:
             result.extend(semantic)
         # Неизвестный тип → не добавляем ничего (не блокируем систему)

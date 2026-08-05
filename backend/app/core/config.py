@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     orchestrator_workers: int = 2
     
     # Подсистема 2: Replay System
-    replay_mode: str = "off"  # "off", "passive", "active"
+    replay_mode: str = "passive"  # "off", "passive", "active"
     replay_playback: bool = False  # True для чтения из кэша
     replay_record: bool = False  # True для записи в кэшdialogue_update_extractor
 

@@ -808,6 +808,10 @@ class MovementEngine:
         )
         _trace.traversal_created = True
         logger.info(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=VALID_PATH path_len={len(path_nodes)} traversal=CREATED")
+        
+        # NEW-ORIENT-001 FIX: Вычисляем угол поворота тела к цели и добавляем SceneChange.
+        _heading = math.atan2(target_xy[1] - source_xy[1], target_xy[0] - source_xy[0])
+        
         return [
             SceneChange(
                 type=ChangeType.NPC_POSITION,
@@ -819,6 +823,15 @@ class MovementEngine:
                 target_location_id=location_id,
                 target_local_xy=target_xy,  # ADR-065: Точные координаты цели
                 traversal_proposal=plan_result.proposal,  # ADR-O-323: Авторизованный паспорт
+            ),
+            SceneChange(
+                type=ChangeType.NPC_POSITION,
+                target=intent.actor_id,
+                field="body_heading",
+                value=_heading,
+                cause="semantic_relocation_heading",
+                tick=tick,
+                target_location_id=location_id,
             )
         ]
 

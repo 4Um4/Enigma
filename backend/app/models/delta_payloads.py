@@ -130,6 +130,13 @@ class PhysiologyPayload:
 
 
 @dataclass(frozen=True)
+class EconomicPayload:
+    """Дельты экономического состояния (деньги и товары)."""
+    money_delta: float = 0.0
+    goods_delta: Optional[Dict[str, float]] = None
+
+
+@dataclass(frozen=True)
 class WillConflictPayload:
     """ADR-031/039: Результат столкновения намерения Игрока с идентичностью Аватара.
     Передается через DeltaBuffer (DeltaDomain.WILL), а не через shared_context."""

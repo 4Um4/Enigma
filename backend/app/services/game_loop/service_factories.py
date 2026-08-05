@@ -129,6 +129,12 @@ class ServiceFactory:
                 goods=_goods,
             )
 
+        # P3 FIX: Добавляем профиль игрока, чтобы он участвовал в экономике (голод, нужда)
+        _profiles["player"] = create_profile_from_npc(
+            npc_data={"id": "player", "status_profile": {"wealth": 20}},
+            goods={"food": 2},
+        )
+
         self._economic_profiles[campaign_id] = _profiles
         logger.info(
             f"[ECO] Initialized {len(_profiles)} economic profiles for {campaign_id}"

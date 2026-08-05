@@ -41,10 +41,12 @@ class ReplayPlayer:
         replayed_ticks = 0
 
         try:
-            tick_id = start_tick
+            tick_id = start_tick if start_tick > 0 else 1
             while end_tick is None or tick_id <= end_tick:
                 recorded_tick = self._load_tick(tick_id)
                 if not recorded_tick:
+                    if tick_id == 1:
+                        raise ReplayDriftError("База данных пуста или не содержит записанных тиков.")
                     break # Сессия закончена
 
                 game_time = recorded_tick["game_time_seconds"]

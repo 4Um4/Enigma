@@ -322,6 +322,7 @@ def create_tick_context(
     shared_context: Any = None,
     task_scheduler: Any = None,
     hub_event: Any = None,
+    eco_profile: Any = None,  # S151: Профиль игрока для EmbodiedStatusDTO
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
 
@@ -369,7 +370,7 @@ def create_tick_context(
         tick_number=tick_number,
         interventions=interventions,
         npc_services=npc_services,
-        drf_bus=drf_bus,
+        drf_bus=drf_bus,    
         rng_factory=_rng_factory,
         task_scheduler=task_scheduler,
         player_intent=_player_intent,
@@ -379,6 +380,7 @@ def create_tick_context(
         else types.SimpleNamespace(),  # S116 FIX: Проброс shared_context из game_loop
         is_player_turn=_is_player,  # S116 FIX: Передаём флаг в контекст
         spatial_query=_spatial_query,
+        eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
         hub_event=hub_event,  # BUG-CORE-003 FIX: Проброс контекста игрока в ядро
     )
     return ctx

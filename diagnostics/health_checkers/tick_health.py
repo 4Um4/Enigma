@@ -22,6 +22,7 @@ class TickHealthReport:
     llm_responses: int = 0
     llm_nothing_count: int = 0  # "Ничего не произошло." — LLM молчит
     llm_cjk_lines: int = 0  # строки с китайскими галлюцинациями
+    llm_pool_fail_count: int = 0  # "Все модели пула недоступны" — LLM мёртв
     startup_ok: bool = True  # uvicorn в subprocess — не перехватывается, считаем True если игра запустилась
     llm_server_ok: bool = False
     player_campaign: str = ""
@@ -96,6 +97,10 @@ class TickHealthChecker:
 
     def on_llm_nothing(self) -> None:
         self._report.llm_nothing_count += 1
+
+    def on_llm_pool_fail(self) -> None:
+        """Вызывается при ошибке 'Все модели пула недоступны'."""
+        self._report.llm_pool_fail_count += 1
 
     def on_llm_cjk(self) -> None:
         self._report.llm_cjk_lines += 1

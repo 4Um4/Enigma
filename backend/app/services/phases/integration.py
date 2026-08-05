@@ -379,47 +379,51 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
     # L1.5 / L2.5: Pattern Detection & Belief Crystallization (ADR-O-305)
     # Запускается ПОСЛЕ аффективного цикла, до сборки снапшота.
-    _npc_truth_source = (
-        ctx.interpretation_snapshot
-        if ctx.interpretation_snapshot is not None
-        else ctx.all_npcs_raw
-    )
-    for npc_dict in _npc_truth_source:
-        _npc_id = npc_dict.get("npc_id")
-        if not _npc_id:
-            continue
-
-        # L1: Чтение сырой хроники
-        _l1_events = deps.l1_chronicle.query_raw(_npc_id)
-        if not _l1_events:
-            continue
-
-        # L1.5: Детектирование паттернов (чистая статистика)
-        _evidence_list = deps.pattern_detector.detect(_l1_events)
-        if not _evidence_list:
-            continue
-
-        # L0: Извлечение базовых драйвов для модуляции
-        _drives_base = npc_dict.get(
-            "drives", npc_dict.get("psyche", {}).get("drives_base", {})
+    # BUG-PERC-014 FIX: L14 — Память не генерирует идентичность без каузального входа.
+    if not ctx.phase_2_events:
+        logger.debug("[L2.5] Skipping crystallization — no phase_2_events this tick")
+    else:
+        _npc_truth_source = (
+            ctx.interpretation_snapshot
+            if ctx.interpretation_snapshot is not None
+            else ctx.all_npcs_raw
         )
-        if not _drives_base:
-            _drives_base = {
-                "control": 0.25,
-                "significance": 0.25,
-                "fear": 0.25,
-                "desire": 0.25,
-            }
+        for npc_dict in _npc_truth_source:
+            _npc_id = npc_dict.get("npc_id")
+            if not _npc_id:
+                continue
 
-        # L2.5: Кристаллизация убеждений (проекция через личность)
-        _existing_beliefs = deps.crystallized_belief_store.get_beliefs(_npc_id)
-        _updated_beliefs = deps.belief_engine.crystallize(
-            evidence_list=_evidence_list,
-            drives_base=_drives_base,
-            existing_beliefs=_existing_beliefs,
-            current_tick=ctx.tick_number,
-        )
-        deps.crystallized_belief_store.update_beliefs(_npc_id, _updated_beliefs)
+            # L1: Чтение сырой хроники
+            _l1_events = deps.l1_chronicle.query_raw(_npc_id)
+            if not _l1_events:
+                continue
+
+            # L1.5: Детектирование паттернов (чистая статистика)
+            _evidence_list = deps.pattern_detector.detect(_l1_events)
+            if not _evidence_list:
+                continue
+
+            # L0: Извлечение базовых драйвов для модуляции
+            _drives_base = npc_dict.get(
+                "drives", npc_dict.get("psyche", {}).get("drives_base", {})
+            )
+            if not _drives_base:
+                _drives_base = {
+                    "control": 0.25,
+                    "significance": 0.25,
+                    "fear": 0.25,
+                    "desire": 0.25,
+                }
+
+            # L2.5: Кристаллизация убеждений (проекция через личность)
+            _existing_beliefs = deps.crystallized_belief_store.get_beliefs(_npc_id)
+            _updated_beliefs = deps.belief_engine.crystallize(
+                evidence_list=_evidence_list,
+                drives_base=_drives_base,
+                existing_beliefs=_existing_beliefs,
+                current_tick=ctx.tick_number,
+            )
+            deps.crystallized_belief_store.update_beliefs(_npc_id, _updated_beliefs)
 
     # WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state
     # ADR-035: Трансляция стейта аватара в феноменологическую проекцию
@@ -590,4 +594,5 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         player_body_topology=ctx.scene_state.get("player_body_topology"),
         visual_dto=asdict(_visual_dto),
         audible_dto=asdict(_audible_dto),
+        eco_profile=ctx.eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
     )

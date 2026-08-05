@@ -685,7 +685,10 @@ class SceneStateManager:
                 return self._templates_cache
             except (json.JSONDecodeError, OSError) as e:
                 raise RuntimeError(f"[SCENE] Ошибка чтения шаблонов: {e}")
-        raise RuntimeError(f"[SCENE] location_templates.json не найден по пути {path}. _builtin_templates удалён (ADR-O-326).")
+        # FIX: Если шаблонов нет — возвращаем пустой словарь. Крашим только при ошибке чтения.
+        logger.warning(f"[SCENE] location_templates.json не найден по пути {path}. Возвращаю пустой словарь.")
+        self._templates_cache = {}
+        return self._templates_cache
 
     def _find_editor_location(self, campaign_id: str, location_id: str) -> dict | None:
         """Ищет editor JSON с совпадающим location_id.

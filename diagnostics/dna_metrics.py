@@ -55,6 +55,7 @@ class DNASnapshot:
     todo_count: int
     adr_count: int
     llm_calls: int
+    llm_pool_fails: int = 0  # Провалы пула моделей
     # Инвариант 3: пред-шинные отказы
     prebus_failures: int = (
         0  # pipeline_critical + causality_crash + phase8_crash + tick_orch_error
@@ -62,6 +63,8 @@ class DNASnapshot:
     affect_decay_fails: int = 0  # affect_decay_fail count
     invariant_violations: int = 0  # Количество CRITICAL нарушений инвариантов
     invariant_warning_count: int = 0  # Количество WARNING нарушений инвариантов
+    llm_pool_fails: int = 0  # Провалы пула моделей LLM
+    DRI: float = 100.0  # Direct Response Integrity (100% - fail_rate)
 
 
 @dataclass
@@ -74,6 +77,7 @@ class DNADelta:
     SCF: Optional[float] = None
     ADR: Optional[float] = None
     CVS: Optional[float] = None
+    DRI: Optional[float] = None  # Direct Response Integrity
     PFI: Optional[float] = None  # Инвариант 3: Pre-Bus Failure Index
     INV_V: Optional[int] = None  # Invariant Violations (CRITICAL)
     INV_W: Optional[int] = None  # Invariant Warnings
@@ -192,6 +196,8 @@ class DNAComputer:
             # INV-DEF: Invariant Defense System метрики
             invariant_violations=_inv_violations,
             invariant_warning_count=_inv_warnings,
+            llm_pool_fails=self._tick.llm_pool_fail_count,
+            DRI=self._compute_dri(),
         )
 
     def _compute_shi(self) -> float:
@@ -260,6 +266,15 @@ class DNAComputer:
     def _compute_cvs(self, session_minutes: float) -> float:
         """CVS = llm_calls / session_minutes."""
         return round(self._tick.llm_calls / session_minutes, 2)
+
+    def _compute_dri(self) -> float:
+        """DRI = 100 - (llm_pool_fails / llm_calls * 100).
+        Если вызовов не было — 100% (проблем нет).
+        """
+        if self._tick.llm_calls == 0:
+            return 100.0
+        fail_rate = (self._tick.llm_pool_fail_count / self._tick.llm_calls) * 100
+        return round(max(0.0, 100.0 - fail_rate), 1)
 
     # ------------------------------------------------------------------
     # Вспомогательные счётчики файловой системы
@@ -344,6 +359,9 @@ class DNAComputer:
         # Инвариант 3: PFI delta
         _pfi_curr = current.prebus_failures / max(current.total_ticks, 1) * 100
         _pfi_prev = previous.prebus_failures / max(previous.total_ticks, 1) * 100
+        
+        _dri_curr = getattr(current, "DRI", 100.0) or 100.0
+        _dri_prev = getattr(previous, "DRI", 100.0) or 100.0
 
         return DNADelta(
             SHI=round(current.SHI - previous.SHI, 1),
@@ -353,6 +371,7 @@ class DNAComputer:
             ADR=round(current.ADR - previous.ADR, 2),
             CVS=round(current.CVS - previous.CVS, 2),
             PFI=round(_pfi_curr - _pfi_prev, 1),
+            DRI=round(_dri_curr - _dri_prev, 1),
         )
 
     # ------------------------------------------------------------------
@@ -438,6 +457,14 @@ class DNAComputer:
             f"{pfi_icon} {delta.format_field('PFI')}% | {pfi_interpret} |"
         )
 
+        # DRI: Direct Response Integrity
+        dri_icon = delta.trend_icon("DRI", higher_is_better=True)
+        dri_interpret = self._interpret_dri(snapshot.DRI, snapshot.llm_pool_fails)
+        lines.append(
+            f"| **DRI** (Response Integrity) | {snapshot.DRI:.0f}% | "
+            f"{dri_icon} {delta.format_field('DRI')}% | {dri_interpret} |"
+        )
+
         # Системные предупреждения для LLM
         warnings = self._generate_warnings(snapshot, delta)
         if warnings:
@@ -517,6 +544,13 @@ class DNAComputer:
         if v > 2.0:
             return f"⚠️ {todo} TODO / {adr} ADR = умеренный архитектурный долг"
         return f"✅ {todo} TODO / {adr} ADR = долг под контролем"
+
+    def _interpret_dri(self, v: float, fails: int) -> str:
+        if v < 50:
+            return f"🔴 КРИТИЧНО: LLM не отвечает на {100-v:.0f}% запросов ({fails} провалов)"
+        if v < 90:
+            return f"⚠️ Деградация: {fails} провалов LLM. Ответы нестабильны"
+        return "✅ LLM отвечает на все запросы"
 
     def _interpret_cvs(self, v: float) -> str:
         if v == 0:

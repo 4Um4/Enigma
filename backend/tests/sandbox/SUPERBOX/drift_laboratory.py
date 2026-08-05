@@ -3,7 +3,7 @@ ENIGMA Drift Laboratory — Каузальная стресс-машина (ADR-
 
 Запуск:
   cd backend
-  python -m tests.sandbox.SUPERBOX.run drift mass_traversal; cd ..
+cd backend; python -m tests.sandbox.SUPERBOX.run drift mass_traversal; cd ..
   python -m tests.sandbox.SUPERBOX.run drift save_load_storm
   python -m tests.sandbox.SUPERBOX.run drift chunk_migration
   python -m tests.sandbox.SUPERBOX.run drift long_horizon
@@ -176,6 +176,7 @@ class DriftLaboratory:
         self._active_override: bool = False
         self._original_saves_dir: Optional[str] = None
         self._original_data_dir: Optional[str] = None
+        self._crashed_ticks: int = 0  # Счётчик крашнувшихся тиков
 
     def run(self, mode: str, session_id: str = None) -> DriftResult:
         """Запускает эксперимент в заданном режиме."""
@@ -312,6 +313,14 @@ class DriftLaboratory:
 
         # 2. Закрываем SQLite соединения (иначе Windows не удалит файл)
         self._close_sqlite_connections()
+        
+        # Подсистема 2: Закрываем ReplayStore, если он был активирован
+        if hasattr(self._orchestrator, "_replay_recorder") and self._orchestrator._replay_recorder:
+            self._replay_session_id = self._orchestrator._replay_recorder.session_id
+            try:
+                self._orchestrator._replay_recorder.store.close()
+            except Exception:
+                pass
 
         # 3. Удаляем временную директорию
         if hasattr(self, "_temp_dir") and os.path.exists(self._temp_dir):
@@ -874,7 +883,8 @@ class DriftLaboratory:
 
         print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
 
-        db_path = Path(f"backend/data/replay/{session_id}.db")
+        from app.core.config import settings
+        db_path = Path(settings.data_dir) / "replay.db"
         if not db_path.exists():
             print(f"  [REPLAY] DB not found: {db_path}")
             result.final_stats = {"replay_verdict": "ERROR", "error": "DB not found"}
@@ -889,8 +899,13 @@ class DriftLaboratory:
             self.config.location_id
         )
 
-        # Воспроизводим первые 100 тиков (или пока сессия не закончится)
-        report = player.play(start_tick=0, end_tick=100, max_drift=0)
+        # Воспроизводим первые 100 тиков. max_drift=1000, чтобы не падать при первом расхождении.
+        try:
+            report = player.play(start_tick=0, end_tick=100, max_drift=1000)
+        except Exception as e:
+            print(f"\n  🔴 REPLAY COMPARE: Fatal error during replay: {e}")
+            result.final_stats = {"replay_verdict": "ERROR", "error": str(e)}
+            return
 
         result.final_stats = {
             "replay_verdict": "MATCH" if report["status"] == "SUCCESS" else "MISMATCH",
@@ -901,7 +916,7 @@ class DriftLaboratory:
         if report["status"] == "SUCCESS":
             print(f"\n  ✅ REPLAY COMPARE: MATCH ({report['replayed_ticks']} ticks)")
         else:
-            print(f"\n  🔴 REPLAY COMPARE: MISMATCH (drifts={report['total_drifts']})")
+            print(f"\n  🔴 REPLAY COMPARE: MISMATCH (drifts={report['total_drifts']} out of {report['replayed_ticks']} ticks)")
 
     # ─── Mode G: Projection Parity (CSSE Stage 2) ────────────────
 
@@ -1756,6 +1771,14 @@ def main(mode: str = "long_horizon", session_id: str = None) -> None:
         print(f"     Отчёт: {output_dir / f'дрейф_{mode}.md'}")
         sys.exit(0)
     else:
+        # Если был записан Replay Session, выводим ID в конце лога
+        if hasattr(lab, "_replay_session_id"):
+            print("\n" + "=" * 60)
+            print("📁 REPLAY SESSION RECORDED")
+            print(f"   Session ID: {lab._replay_session_id}")
+            print(f"   Команда для сравнения:")
+            print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
+            print("=" * 60 + "\n")
         needed = 100_000 - result.total_comparisons
         print(f"\n  ⏳ Недостаточно данных — нужно ещё ~{needed:,} сравнений")
         print(f"     Текущий прогресс: {result.total_comparisons:,} / 100 000")

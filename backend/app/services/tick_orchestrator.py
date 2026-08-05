@@ -80,6 +80,7 @@ class TickOrchestrator:
         # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
         # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
         self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
+        self._replay_recorder: Optional[Any] = None  # Подсистема 2: Replay Recorder
 
         # DEBT-310.1: Hold & Release Gate storage. Хранит отложенные CommunicationIntent.
         # Ключ: intent_id. Значение: CommunicationIntent.
@@ -359,6 +360,7 @@ class TickOrchestrator:
         task_scheduler: Optional[Any] = None,  # S128 FIX: Проброс для Фазы 4
         active_location_id: Optional[str] = None, # Дополнение Б: локация игрока
         location_ids: Optional[List[str]] = None, # Дополнение Б: список всех локаций
+        eco_profile: Optional[Any] = None, # S151: Профиль игрока для EmbodiedStatusDTO
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
         """Единая точка входа для тика мира (TZ-08 v0.2 + Дополнение Б).
 
@@ -421,6 +423,7 @@ class TickOrchestrator:
                 shared_context=shared_context,
                 task_scheduler=task_scheduler,
                 hub_event=hub_event,  # BUG-CORE-003 FIX: Передача контекста в фабрику
+                eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
             )
             self._rebuild_cluster_occupancy(ctx)
 
@@ -604,6 +607,11 @@ class TickOrchestrator:
         self._phase_3_memory(ctx) #8
         self._phase_4_pre_decision(ctx) #9
         self._phase_5_decision(ctx) #10
+        
+        # Подсистема 2: Запись TickMutation после Фазы 5
+        if _recorder:
+            _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))
+            
         self._phase_6_post_decision(ctx) #11
         self._phase_7_windup_resolution(ctx)  #12 ADR-O-310: Execution Gate
         self._phase_8_drain_secondary(ctx) #13
@@ -640,7 +648,13 @@ class TickOrchestrator:
             source="tick_orchestrator",
             payload={
                 "tick_number": ctx.tick_number,
-                "snapshot": ctx,
+                # REGRESSION-CORE-002 FIX: Передаём только serializable поля, не весь ctx.
+                "snapshot": {
+                    "tick": ctx.tick_number,
+                    "campaign_id": ctx.campaign_id,
+                    "active_location": getattr(ctx, "active_location_id", None) or getattr(ctx, "active_location", None),
+                    "npc_count": len(ctx.all_npcs_raw) if getattr(ctx, "all_npcs_raw", None) else 0,
+                },
             }
         )
         self._get_event_bus().publish(_tick_completed_event)

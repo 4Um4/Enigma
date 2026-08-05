@@ -185,22 +185,39 @@ def build_spatial_data_for_dm(
                     ) ** 0.5
 
     _npcs_for_builder = []
+    _player_lp = _npc_positions.get("player", {}).get("local_position", {})
+    import math
     for _nid in _npc_ids:
         if _nid == "player":
             continue  # Игрок не должен быть в nearby_npcs
         _dist = _player_distances.get(_nid)
         if _dist is None:
             continue  # Нет дистанции — не включаем (bug_risk: 999.0 ломает фильтр видимости)
+
+        # NEW-ORIENT-004 FIX: Вычисляем facing_towards_player из body_heading, а не хардкодим True.
+        _npc_data = _npc_positions.get(_nid, {})
+        _npc_lp = _npc_data.get("local_position", {})
+        _npc_heading = _npc_data.get("body_heading", 1.5708)
+        _facing = True
+        if isinstance(_npc_lp, dict) and isinstance(_player_lp, dict):
+            _dx = _player_lp.get("x", 0.0) - _npc_lp.get("x", 0.0)
+            _dy = _player_lp.get("y", 0.0) - _npc_lp.get("y", 0.0)
+            if _dx != 0 or _dy != 0:
+                _angle_to_player = math.atan2(_dy, _dx)
+                _diff = abs(_angle_to_player - _npc_heading)
+                if _diff > math.pi:
+                    _diff = 2 * math.pi - _diff
+                _facing = _diff < (math.pi / 2)  # 90 градусов FOV
+
         _npcs_for_builder.append(
             {
                 "npc_id": _nid,
                 "location_id": location,
                 "distance_to_player": _dist,
-                "facing_towards_player": True,
+                "facing_towards_player": _facing,
             }
         )
     # Диагностика: почему nearby_npcs может быть пустым?
-    _player_lp = _npc_positions.get("player", {}).get("local_position", {})
     _has_player = "player" in _npc_positions
     _player_xy_valid = isinstance(_player_lp.get("x"), (int, float)) and isinstance(
         _player_lp.get("y"), (int, float)

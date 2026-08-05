@@ -45,12 +45,14 @@ class ReplayRecorder:
     def record_world_snapshot(self, tick_id: int, snapshot: Any) -> None:
         """Вызывается после Фазы 9 (Integration)."""
         try:
+            from dataclasses import asdict, is_dataclass
+            _snapshot_dict = asdict(snapshot) if is_dataclass(snapshot) else snapshot
             self.store.record_tick(
                 session_id=self.session_id,
                 tick_id=tick_id,
                 game_time_seconds=0.0,
                 tick_state=None,
-                world_snapshot=snapshot
+                world_snapshot=_snapshot_dict
             )
         except Exception as e:
             logger.error(f"[REPLAY_RECORDER] Failed to record world_snapshot: {e}")

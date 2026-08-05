@@ -78,6 +78,7 @@ PATTERNS: Dict[str, str] = {
     "tick_complete": r"\[TICK_ORCH\] tick=(\d+) game_time=([\d.]+) decisions=(\d+) verbal=(\d+) moved=(\d+)",
     "scene_events_verbal": r"\[SCENE_EVENTS\] (\d+) events emitted.*'verbal'",
     "llm_nothing": r"dm_resp='Ничего не произошло\.'",
+    "llm_pool_fail": r"\[R4A_WORKER\] exception: Все модели пула недоступны для capability=\w+",
     # 3+ подряд идущих CJK-символа = галлюцинация на китайском
     "llm_cjk": r"[\u4e00-\u9fff]{3,}",
     # --- EventBus / Scene events ---
