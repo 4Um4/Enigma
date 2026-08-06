@@ -47,7 +47,12 @@ def tick_world_proactive(
             if _n.get("tier", "minor") != "major":
                 continue
             _p_l2 = load_l2_state_from_runtime_dict(_n)
-            if _p_l2.effective_hp <= 0:
+            # FIX: Безопасная проверка HP для dict и NPCState.
+            if isinstance(_p_l2, dict):
+                _hp = _p_l2.get("body_state", {}).get("current_hp", _p_l2.get("hp", 100))
+            else:
+                _hp = getattr(_p_l2, "effective_hp", 100)
+            if _hp <= 0:
                 continue
             _p_l0 = load_profile_from_legacy_json(_n)
             # BUG-CORE-009 FIX: Кладём сырой dict (_n) вместо NPCState (_p_l2),

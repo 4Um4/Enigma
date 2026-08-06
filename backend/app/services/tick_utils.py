@@ -364,6 +364,8 @@ def create_tick_context(
 
     _is_player = any(getattr(i, "source", "") == "player" for i in interventions)
     _spatial_query = getattr(shared_context, "spatial_query", None) if shared_context else None
+    if _spatial_query is None:
+        logger.debug("SpatialQueryService missing in shared_context (tick_utils). Falling back or IPT/DriftLab.")
     ctx = _TickContext(
         campaign_id=campaign_id,
         scene_state=input_snapshot,

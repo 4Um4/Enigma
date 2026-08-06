@@ -4,7 +4,7 @@ from __future__ import annotations
 # Назначение: Единый язык событий. Все события в системе — экземпляры EventDTO.
 # Зависимости: uuid.UUID, dataclasses, typing, time
 # Основные сущности: EventDTO, MemoryPayload, PlayerActionPayload
-import time
+import hashlib
 from dataclasses import dataclass
 from typing import Any, Dict, Literal, Optional, TypedDict
 from uuid import UUID, uuid4
@@ -73,11 +73,17 @@ class EventDTO:
         event_id: UUID | None = None,
     ) -> "EventDTO":
         """Фабричный метод — не нужно вручную передавать UUID и timestamp."""
+        # BUG-FB-037 FIX: Детерминированный event_id и timestamp (убираем wall-clock).
+        _final_ts = timestamp if timestamp != 0.0 else 0.0
+        if event_id is None:
+            _seed_str = f"{event_type}:{source}:{_final_ts}".encode("utf-8")
+            event_id = UUID(hex=hashlib.md5(_seed_str).hexdigest())
+        
         return cls(
-            id=event_id or uuid4(),
+            id=event_id,
             type=event_type,
             source=source,
-            timestamp=timestamp or time.time(),
+            timestamp=_final_ts,
             payload=payload,
             visibility=visibility,
             radius=radius,

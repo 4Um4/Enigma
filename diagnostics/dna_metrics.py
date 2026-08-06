@@ -60,11 +60,26 @@ class DNASnapshot:
     prebus_failures: int = (
         0  # pipeline_critical + causality_crash + phase8_crash + tick_orch_error
     )
+    # --- New DNA Metrics (Tracebacks, Beliefs, Breaks, Needs) ---
+    total_tracebacks: int = 0
+    attribute_errors: int = 0
+    type_errors: int = 0
+    finalize_errors: int = 0
+    beliefs_crystallized: int = 0
+    BCI: float = 0.0  # Belief Crystallization Index = beliefs / total_ticks
+    break_progress_events: int = 0
+    will_broken_transitions: int = 0
+    BPI: float = 0.0  # Break Progress Index = events / total_npc_ticks
+    need_urgent_events: int = 0
+    need_critical_events: int = 0
+    NEI: float = 0.0  # Need Urgency Index
     affect_decay_fails: int = 0  # affect_decay_fail count
     invariant_violations: int = 0  # Количество CRITICAL нарушений инвариантов
     invariant_warning_count: int = 0  # Количество WARNING нарушений инвариантов
     llm_pool_fails: int = 0  # Провалы пула моделей LLM
     DRI: float = 100.0  # Direct Response Integrity (100% - fail_rate)
+    failed_dialogues: int = 0  # Провалы исполнения диалогов
+    DPI: float = 100.0  # Dialogue Pipeline Integrity (100% - fail_rate)
 
 
 @dataclass
@@ -78,6 +93,7 @@ class DNADelta:
     ADR: Optional[float] = None
     CVS: Optional[float] = None
     DRI: Optional[float] = None  # Direct Response Integrity
+    DPI: Optional[float] = None  # Dialogue Pipeline Integrity
     PFI: Optional[float] = None  # Инвариант 3: Pre-Bus Failure Index
     INV_V: Optional[int] = None  # Invariant Violations (CRITICAL)
     INV_W: Optional[int] = None  # Invariant Warnings
@@ -172,6 +188,17 @@ class DNAComputer:
             1 for v in self._invariant_violations if v.severity == "WARNING"
         )
 
+        # NEW DNA Metrics calculation
+        _ticks = self._tick.total_ticks
+        if _ticks > 0:
+            _bci = round(self._tick.beliefs_crystallized / _ticks, 2)
+            _bpi = round(self._tick.break_progress_events / _ticks, 2)
+            _nei = round(self._tick.need_urgent_events / _ticks, 2)
+        else:
+            _bci = 0.0
+            _bpi = 0.0
+            _nei = 0.0
+
         return DNASnapshot(
             timestamp=datetime.now().isoformat(timespec="seconds"),
             session_minutes=round(session_minutes, 1),
@@ -183,6 +210,18 @@ class DNAComputer:
             CVS=cvs,
             total_ticks=self._tick.total_ticks,
             decisions_nonzero=self._tick.decisions_nonzero_ticks,
+            total_tracebacks=self._tick.total_tracebacks,
+            attribute_errors=self._tick.attribute_errors,
+            type_errors=self._tick.type_errors,
+            finalize_errors=self._tick.finalize_errors,
+            beliefs_crystallized=self._tick.beliefs_crystallized,
+            BCI=_bci,
+            break_progress_events=self._tick.break_progress_events,
+            will_broken_transitions=self._tick.will_broken_transitions,
+            BPI=_bpi,
+            need_urgent_events=self._tick.need_urgent_events,
+            need_critical_events=self._tick.need_critical_events,
+            NEI=_nei,
             npc_total=npc_total,
             npc_with_real_coords=npc_real,
             directive_events=self._directive_events,
@@ -198,6 +237,8 @@ class DNAComputer:
             invariant_warning_count=_inv_warnings,
             llm_pool_fails=self._tick.llm_pool_fail_count,
             DRI=self._compute_dri(),
+            failed_dialogues=self._tick.failed_dialogues,
+            DPI=self._compute_dpi(),
         )
 
     def _compute_shi(self) -> float:
@@ -276,32 +317,57 @@ class DNAComputer:
         fail_rate = (self._tick.llm_pool_fail_count / self._tick.llm_calls) * 100
         return round(max(0.0, 100.0 - fail_rate), 1)
 
+    def _compute_dpi(self) -> float:
+        """DPI = 100 - (failed_dialogues / total_decisions * 100).
+        Если решений не было — 100%.
+        """
+        total_decisions = self._tick.total_decisions
+        if total_decisions == 0:
+            return 100.0
+        fail_rate = (self._tick.failed_dialogues / total_decisions) * 100
+        return round(max(0.0, 100.0 - fail_rate), 1)
+
     # ------------------------------------------------------------------
     # Вспомогательные счётчики файловой системы
     # ------------------------------------------------------------------
 
     def _count_todos(self) -> int:
-        """Считает TODO/FIXME/HACK через PowerShell."""
+        """Считает TODO/FIXME/HACK. PowerShell на Windows, grep на Linux/macOS."""
+        import sys
+        # Попытка 1: PowerShell (Windows)
+        if sys.platform == "win32":
+            try:
+                result = subprocess.run(
+                    [
+                        "powershell",
+                        "-Command",
+                        "Get-ChildItem -Path 'backend/app/','frontend/' -Filter '*.py' -Recurse "
+                        "| Select-String -Pattern 'TODO|FIXME|HACK' "
+                        "| Measure-Object | Select-Object -ExpandProperty Count",
+                    ],
+                    cwd=str(self._root),
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+                if result.returncode == 0:
+                    return int(result.stdout.strip())
+            except Exception:
+                pass
+
+        # Попытка 2: grep (Linux/macOS)
         try:
             result = subprocess.run(
-                [
-                    "powershell",
-                    "-Command",
-                    "Get-ChildItem -Path 'backend/app/','frontend/' -Filter '*.py' -Recurse "
-                    "| Select-String -Pattern 'TODO|FIXME|HACK' "
-                    "| Measure-Object | Select-Object -ExpandProperty Count",
-                ],
-                cwd=str(self._root),
-                capture_output=True,
-                text=True,
-                timeout=15,
-                encoding="utf-8",
-                errors="replace",
+                ["grep", "-rE", "TODO|FIXME|HACK", "backend/app/", "frontend/", "--include=*.py"],
+                cwd=str(self._root), capture_output=True, text=True, timeout=15,
             )
             if result.returncode == 0:
-                return int(result.stdout.strip())
+                return len(result.stdout.splitlines())
         except Exception:
             pass
+
         return -1  # -1 означает "не удалось посчитать"
 
     def _count_adrs(self) -> int:
@@ -362,6 +428,9 @@ class DNAComputer:
         
         _dri_curr = getattr(current, "DRI", 100.0) or 100.0
         _dri_prev = getattr(previous, "DRI", 100.0) or 100.0
+        
+        _dpi_curr = getattr(current, "DPI", 100.0) or 100.0
+        _dpi_prev = getattr(previous, "DPI", 100.0) or 100.0
 
         return DNADelta(
             SHI=round(current.SHI - previous.SHI, 1),
@@ -372,6 +441,7 @@ class DNAComputer:
             CVS=round(current.CVS - previous.CVS, 2),
             PFI=round(_pfi_curr - _pfi_prev, 1),
             DRI=round(_dri_curr - _dri_prev, 1),
+            DPI=round(_dpi_curr - _dpi_prev, 1),
         )
 
     # ------------------------------------------------------------------
@@ -457,12 +527,41 @@ class DNAComputer:
             f"{pfi_icon} {delta.format_field('PFI')}% | {pfi_interpret} |"
         )
 
+        # --- New DNA Metrics: Tracebacks, Beliefs, Breaks, Needs ---
+        _tb_interpret = "✅ норма" if snapshot.total_tracebacks == 0 else "⚠️ КРИТИЧНО: невидимые регрессии (Tracebacks)"
+        lines.append(
+            f"| **Tracebacks** | {snapshot.total_tracebacks} (AttrErr={snapshot.attribute_errors}, TypeErr={snapshot.type_errors}) | → | {_tb_interpret} |"
+        )
+        
+        _bci_interpret = "✅ Убеждения формируются" if snapshot.BCI > 0 else "⚠️ Память не кристаллизуется (BCI=0)"
+        lines.append(
+            f"| **BCI** (Belief Crystallization) | {snapshot.beliefs_crystallized} (idx={snapshot.BCI:.2f}) | → | {_bci_interpret} |"
+        )
+        
+        _bpi_interpret = "✅ Давление доходит" if snapshot.BPI > 0 else "⚠️ NPC не ломаются (BPI=0)"
+        lines.append(
+            f"| **BPI** (Break Progress) | {snapshot.break_progress_events} (broken={snapshot.will_broken_transitions}) | → | {_bpi_interpret} |"
+        )
+        
+        _nei_interpret = "✅ NPC нуждаются" if snapshot.NEI > 0 else "⚠️ NPC слишком комфортны (NEI=0)"
+        lines.append(
+            f"| **NEI** (Need Urgency) | {snapshot.need_urgent_events} (critical={snapshot.need_critical_events}) | → | {_nei_interpret} |"
+        )
+
         # DRI: Direct Response Integrity
         dri_icon = delta.trend_icon("DRI", higher_is_better=True)
         dri_interpret = self._interpret_dri(snapshot.DRI, snapshot.llm_pool_fails)
         lines.append(
             f"| **DRI** (Response Integrity) | {snapshot.DRI:.0f}% | "
             f"{dri_icon} {delta.format_field('DRI')}% | {dri_interpret} |"
+        )
+
+        # DPI: Dialogue Pipeline Integrity
+        dpi_icon = delta.trend_icon("DPI", higher_is_better=True)
+        dpi_interpret = self._interpret_dpi(snapshot.DPI, snapshot.failed_dialogues)
+        lines.append(
+            f"| **DPI** (Dialogue Pipeline) | {snapshot.DPI:.0f}% | "
+            f"{dpi_icon} {delta.format_field('DPI')}% | {dpi_interpret} |"
         )
 
         # Системные предупреждения для LLM
@@ -551,6 +650,13 @@ class DNAComputer:
         if v < 90:
             return f"⚠️ Деградация: {fails} провалов LLM. Ответы нестабильны"
         return "✅ LLM отвечает на все запросы"
+
+    def _interpret_dpi(self, v: float, fails: int) -> str:
+        if v < 50:
+            return f"🔴 КРИТИЧНО: {fails} диалогов упали в TaskScheduler"
+        if v < 90:
+            return f"⚠️ Деградация: {fails} диалогов не исполнены"
+        return "✅ Конвейер диалогов стабилен"
 
     def _interpret_cvs(self, v: float) -> str:
         if v == 0:

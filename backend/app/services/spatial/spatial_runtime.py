@@ -24,10 +24,13 @@ TODO: расширение формул — например, добавлени
 """
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any, Dict, Iterable, Optional
 
 from app.core.constants import PERCEPTION_FALLBACK_DISTANCE
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_scene_state(scene_state) -> Dict[str, Any]:
@@ -59,14 +62,20 @@ def _node(entity: Dict[str, Any]) -> str:
     return str(entity.get("position") or entity.get("node_id") or "")
 
 
-def _local(entity: Dict[str, Any]) -> tuple[float, float]:
-    """Извлекает local_position (x, y) из словаря сущности."""
+def _local(entity: Dict[str, Any]) -> Optional[tuple[float, float]]:
+    """Извлекает local_position (x, y) из словаря сущности. Возвращает None, если координат нет."""
     local = entity.get("local_position") or {}
+    _x_raw = local.get("x")
+    _y_raw = local.get("y")
+    if _x_raw is None or _y_raw is None:
+        return None
     try:
-        return float(local.get("x", 0.0)), float(local.get("y", 0.0))
+        x = float(_x_raw)
+        y = float(_y_raw)
+        return x, y
     except (TypeError, ValueError) as e:
-        logger.debug(f"Coord parse error: {e}")
-        return 0.0, 0.0
+        logger.error(f"[SPATIAL_RUNTIME] CRITICAL: Coord parse error for entity {entity.get('npc_id', 'unknown')}: {e}")
+        return None
 
 
 def euclidean_distance(
@@ -74,8 +83,8 @@ def euclidean_distance(
     b: Dict[str, Any],
 ) -> float:
     """Евклидово расстояние между сущностями по local_position.
-    Для восприятия и таргетинга — кто рядом физически, а не по графу пути.
-    Возвращает 999.0 если local_position отсутствует у одной из сущностей."""
+    Возвращает 999.0 если позиция (0,0). Выбрасывает ValueError при отсутствии координат.
+    """
     ax, ay = _local(a)
     bx, by = _local(b)
     # BUG-SPATIAL-007 FIX: если ХОТЯ БЫ ОДНА позиция (0,0) — данных нет.

@@ -264,6 +264,8 @@ class WorldSnapshotDTO:
     embodied_status: Optional[EmbodiedStatusDTO] = (
         None  # S151: Текстовый статус аватара (золото, еда, вес, потребности)
     )
+    # Sprint UI-EPISTEMIC-01A: Транспортный мост для атомов восприятия
+    perceived_narratives: List[Any] = field(default_factory=list)
 
 
 # A2-FIX: snapshot_npc_positions_to_dict УДАЛЕН.

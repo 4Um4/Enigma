@@ -23,6 +23,7 @@ class TickHealthReport:
     llm_nothing_count: int = 0  # "Ничего не произошло." — LLM молчит
     llm_cjk_lines: int = 0  # строки с китайскими галлюцинациями
     llm_pool_fail_count: int = 0  # "Все модели пула недоступны" — LLM мёртв
+    failed_dialogues: int = 0  # Провалы исполнения диалогов в TaskScheduler
     startup_ok: bool = True  # uvicorn в subprocess — не перехватывается, считаем True если игра запустилась
     llm_server_ok: bool = False
     player_campaign: str = ""
@@ -33,18 +34,39 @@ class TickHealthReport:
     phase8_crash_count: int = 0  # [PHASE8_CRASH] — краш обработчика Phase 8
     tick_orch_error_count: int = 0  # [TICK_ORCH] — фатальный краш тика
     affect_decay_fail_count: int = 0  # [AFFECT_DECAY] — потеря аффективных следов
+    
+    # Fix 1.5: Tracebacks
+    total_tracebacks: int = 0
+    attribute_errors: int = 0
+    type_errors: int = 0
+    finalize_errors: int = 0
+    
+    # Fix 1.7: Beliefs
+    beliefs_crystallized: int = 0
+    
+    # Fix 1.8: Break Progress
+    break_progress_events: int = 0
+    will_broken_transitions: int = 0
+    
+    # Fix 1.9: Needs
+    need_urgent_events: int = 0
+    need_critical_events: int = 0
+    
     warnings: List[str] = field(default_factory=list)
 
     def is_simulation_dead(self) -> bool:
         """
-        Симуляция мертва только если:
+        Симуляция мертва если:
         - были тики с действием игрока (llm_calls > 0) И все decisions = 0.
-        - Idle-тики с 0 decisions — норма (нет игрока рядом).
+        - ИЛИ было много Tracebacks (>=5) — невидимые регрессии
         """
         if self.total_ticks == 0:
             return False  # сессия слишком короткая для вывода
         if self.llm_calls == 0:
             return False  # игрок ничего не делал — idle норма
+        # Fix 1.15: Traceback-индикатор
+        if self.total_tracebacks >= 5:
+            return True
         # ВАЖНО: Проверяем total_decisions, так как [R3_DIRECT] 0 может затереть
         # decisions_nonzero_ticks, хотя [DECISION_HUB] фиксирует решения NPC.
         return self.decisions_nonzero_ticks == 0 and self.total_decisions == 0
@@ -80,8 +102,7 @@ class TickHealthChecker:
             self._report.decisions_nonzero_ticks = 1
 
     def on_decisions_count(self, count: int) -> None:
-        """Сработал [R3_DIRECT] с N decisions."""
-        self._report.total_ticks += 1
+        """Сработал [R3_DIRECT] с N decisions (legacy)."""
         self._current_tick_decisions = count
         self._report.total_decisions += count
         if count == 0:
@@ -95,12 +116,76 @@ class TickHealthChecker:
     def on_llm_response(self, chars: int) -> None:
         self._report.llm_responses += 1
 
+    # --- Fix 1.5: Tracebacks ---
+    def on_python_traceback(self) -> None:
+        self._report.total_tracebacks += 1
+
+    def on_attribute_error(self) -> None:
+        self._report.attribute_errors += 1
+
+    def on_type_error(self) -> None:
+        self._report.type_errors += 1
+
+    def on_finalize_error(self) -> None:
+        self._report.finalize_errors += 1
+
+    # --- Fix 1.7: Beliefs ---
+    def on_belief_crystallized(self) -> None:
+        self._report.beliefs_crystallized += 1
+
+    # --- Fix 1.8: Break Progress ---
+    def on_break_progress(self) -> None:
+        self._report.break_progress_events += 1
+
+    def on_will_broken(self) -> None:
+        self._report.will_broken_transitions += 1
+
+    # --- Fix 1.9: Needs ---
+    def on_need_urgent(self, critical: bool) -> None:
+        self._report.need_urgent_events += 1
+        if critical:
+            self._report.need_critical_events += 1
+
     def on_llm_nothing(self) -> None:
         self._report.llm_nothing_count += 1
 
     def on_llm_pool_fail(self) -> None:
         """Вызывается при ошибке 'Все модели пула недоступны'."""
         self._report.llm_pool_fail_count += 1
+
+    def on_task_fail(self) -> None:
+        """Вызывается при падении задачи в TaskScheduler."""
+        self._report.failed_dialogues += 1
+
+    # --- Fix 1.5: Tracebacks ---
+    def on_python_traceback(self) -> None:
+        self._report.total_tracebacks += 1
+
+    def on_attribute_error(self) -> None:
+        self._report.attribute_errors += 1
+
+    def on_type_error(self) -> None:
+        self._report.type_errors += 1
+
+    def on_finalize_error(self) -> None:
+        self._report.finalize_errors += 1
+
+    # --- Fix 1.7: Beliefs ---
+    def on_belief_crystallized(self) -> None:
+        self._report.beliefs_crystallized += 1
+
+    # --- Fix 1.8: Break Progress ---
+    def on_break_progress(self) -> None:
+        self._report.break_progress_events += 1
+
+    def on_will_broken(self) -> None:
+        self._report.will_broken_transitions += 1
+
+    # --- Fix 1.9: Needs ---
+    def on_need_urgent(self, critical: bool) -> None:
+        self._report.need_urgent_events += 1
+        if critical:
+            self._report.need_critical_events += 1
 
     def on_llm_cjk(self) -> None:
         self._report.llm_cjk_lines += 1
@@ -127,6 +212,10 @@ class TickHealthChecker:
 
     def on_tick_orch_error(self) -> None:
         self._report.tick_orch_error_count += 1
+
+    def on_tick_completed(self) -> None:
+        """Вызывается при парсинге TICK_COMPLETED event для инкремента total_ticks."""
+        self._report.total_ticks += 1
 
     def on_affect_decay_fail(self) -> None:
         self._report.affect_decay_fail_count += 1

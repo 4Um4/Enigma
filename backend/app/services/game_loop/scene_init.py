@@ -71,9 +71,13 @@ def _update_player_position(
     scene_state: dict, player_position: tuple[float, float] | None
 ) -> None:
     """ADR-048 Phase 3: Позиция игрока пишется ТОЛЬКО в npc_positions.player."""
-    if player_position is None:
-        return
     node = scene_state.setdefault("npc_positions", {}).setdefault("player", {})
+    if player_position is None:
+        # ENIGMA SELF-HEALING (Level 0): Тихий return приводит к coords=None (SC-1 Violation).
+        if not node.get("local_position"):
+            logger.error("[SCENE_INIT] CRITICAL: player_position is None and no existing local_position found.")
+            raise ValueError("INV-PLAYER-POSITION: Player coordinates are missing during scene init.")
+        return
     node["local_position"] = {"x": player_position[0], "y": player_position[1]}
     # ADR-048: Player как полноправный агент npc_positions. _resolve_reactive_movement ищет position.
     if not node.get("position"):

@@ -17,6 +17,7 @@ ADR-TIFL-003: Двигатель Кристаллизации Идентично
 неявного полиморфизма и гарантии Replay Determinism.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -45,6 +46,8 @@ from app.models.npc_state import NPCState, WillState
 
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
 # не на конкретном событии. Вызов возможен в любой момент тика.
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -162,6 +165,15 @@ class BreakProgressEngine:
         elif stage == "resistance" and state.will_state == WillState.BROKEN:
             # V8-PSY-3 FIX: Recovery path from BROKEN to FREE
             will_override = WillState.FREE
+
+        logger.info(
+            f"[BREAK] npc={state.npc_id} stage={stage} "
+            f"integrity={state.identity_integrity:.3f} "
+            f"integrity_delta={round(integrity_delta, 4):+.4f} "
+            f"pressure={pressure:.1f}"
+        )
+        if will_override == WillState.BROKEN:
+            logger.info(f"[BREAK] npc={state.npc_id} stage=deformation will_override=BROKEN")
 
         return BreakDeltas(
             identity_integrity_delta=round(integrity_delta, 4),

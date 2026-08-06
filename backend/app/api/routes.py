@@ -117,14 +117,43 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
         mvp_health["faction_alignments_count"] = len(mvp.faction_tracker.get_all())
         mvp_health["social_fabric_deltas_count"] = len(mvp.social_fabric.get_all_deltas())
 
+    # ENIGMA SELF-HEALING (Level 7): Queue Health Monitoring
+    queue_health = {
+        "pending_tasks": 0,
+        "dialogue_queue_size": 0,
+        "active_traversals": 0,
+    }
+    if active_campaigns:
+        _camp_id = active_campaigns[0]
+        _loc_id = game_loop.scene_manager.find_starting_location(_camp_id)
+        _scene_state = game_loop.scene_manager.get_scene_state(_camp_id, _loc_id)
+        if _scene_state:
+            queue_health["pending_tasks"] = len(_scene_state.get("pending_tasks", []))
+            queue_health["active_traversals"] = len(_scene_state.get("active_traversals", {}))
+            queue_health["dialogue_queue_size"] = len(_scene_state.get("dialogue_queue", []))
+
+    # ENIGMA SELF-HEALING (Level 7): Active Warnings
+    warnings = []
+    if not mvp_health["mvp_controller_loaded"]:
+        warnings.append("🔴 MVP pipeline DISABLED — N1 (canon path)")
+    if mvp and mvp_health["fate_states_count"] == 0:
+        warnings.append("🔴 FateTracker empty — M-03/N2 (TICK_COMPLETED not firing?)")
+    if queue_health["pending_tasks"] > 100:
+        warnings.append(f"🟡 pending_tasks={queue_health['pending_tasks']} — R-01 risk (queue flooding)")
+    if not warnings:
+        warnings.append("✅ All systems nominal")
+
     return {
-        "status": "ok",
+        "status": "DEGRADED" if warnings and "🔴" in warnings[0] else "ok",
         "service": "local-ai-dm",
         "llm": _llm_overall,
         "llm_model": llm_status.get("model", None),
         "pool": pool_status,
         "players": total_players,
         "sessions": len(active_campaigns),
+        "mvp_health": mvp_health,
+        "queue_health": queue_health,
+        "warnings": warnings,
         "startup": startup_status,
         "mvp_health": mvp_health,
     }
@@ -494,11 +523,12 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         )
 
         # Позиция игрока от фронтенда — пробрасывается через DTO, сохраняется атомарно в commit_tick
-        player_x = request.get("player_x", 0.0)
-        player_y = request.get("player_y", 0.0)
+        # NEW-CORE-001 FIX: Проверяем is not None, т.к. (0,0) — валидная стартовая позиция.
+        player_x = request.get("player_x")
+        player_y = request.get("player_y")
         _player_pos: tuple[float, float] | None = None
-        if player_x != 0.0 or player_y != 0.0:
-            _player_pos = (player_x, player_y)
+        if player_x is not None and player_y is not None:
+            _player_pos = (float(player_x), float(player_y))
 
         # S82: Backend = deterministic spatial oracle.
         # Вычисляет actual_chunk из world_position НЕЗАВИСИМО от frontend prediction.
@@ -659,8 +689,11 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             _error_log_dir = os.path.join(os.path.dirname(settings.data_dir), "logs")
             os.makedirs(_error_log_dir, exist_ok=True)
             _error_path = os.path.join(_error_log_dir, "error.log")
-            with open(_error_path, "w", encoding="utf-8") as f:
+            import time as _time
+            with open(_error_path, "a", encoding="utf-8") as f:
+                f.write(f"\n=== {_time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
                 f.write(traceback.format_exc())
+                f.write("\n")
             logger.error(f"[GAME_ACTION] error.log written to {_error_path}")
         except Exception as log_err:
             logger.error(f"[GAME_ACTION] failed to write error.log: {log_err}")

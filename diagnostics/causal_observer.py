@@ -134,8 +134,13 @@ class CausalObserver:
 
             m = COMPILED["tick_decisions_end"].search(line)
             if m:
-                # Не вызываем on_decisions_count() — [R3_DIRECT] уже учитывает тик.
-                # [TICK_DECISIONS] end дублирует подсчёт, завышая total_ticks и занижая SHI.
+                # FIX: [R3_DIRECT] больше не генерируется, используем TICK_DECISIONS end для подсчёта тиков.
+                self._tick_checker.on_decisions_count(int(m.group(1)))
+                return
+
+            # FIX: Инкремент total_ticks по событию TICK_COMPLETED из EventBus.
+            if COMPILED["tick_completed"].search(line):
+                self._tick_checker.on_tick_completed()
                 return
 
             m = COMPILED["decision_hub"].search(line)
@@ -219,6 +224,39 @@ class CausalObserver:
             
             if COMPILED["llm_pool_fail"].search(line):
                 self._tick_checker.on_llm_pool_fail()
+                return
+                
+            if COMPILED["task_sched_fail"].search(line):
+                self._tick_checker.on_task_fail()
+                
+            # --- Fix 1.5: Tracebacks ---
+            if COMPILED["finalize_error"].search(line):
+                self._tick_checker.on_finalize_error()
+            
+            if COMPILED["python_traceback"].search(line):
+                self._tick_checker.on_python_traceback()
+            
+            if COMPILED["python_attribute_error"].search(line):
+                self._tick_checker.on_attribute_error()
+                
+            if COMPILED["python_type_error"].search(line):
+                self._tick_checker.on_type_error()
+                
+            # --- Fix 1.7: Beliefs ---
+            if COMPILED["belief_crystallized"].search(line):
+                self._tick_checker.on_belief_crystallized()
+                
+            # --- Fix 1.8: Break Progress ---
+            if COMPILED["break_progress"].search(line):
+                self._tick_checker.on_break_progress()
+            if COMPILED["will_broken"].search(line):
+                self._tick_checker.on_will_broken()
+                
+            # --- Fix 1.9: Needs ---
+            m_need = COMPILED["need_urgent"].search(line)
+            if m_need:
+                is_critical = m_need.group(4) == "True"
+                self._tick_checker.on_need_urgent(is_critical)
                 return
 
             if COMPILED["llm_cjk"].search(line):

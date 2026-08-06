@@ -95,7 +95,10 @@ class MvpTavernController:
         self._campaign_id = campaign_id
         # Загружаем каноническую истину
         self.truth_state = TruthStateLoader.load(self._canon_path)
+        if self.truth_state is None:
+            raise RuntimeError(f"TruthState failed to load from {self._canon_path}. MVP pipeline is disabled.")
         TruthStateLoader.validate(self.truth_state)
+        assert len(self.truth_state.secrets) > 0, "TruthState loaded with 0 secrets"
         
         # M-02/M-12 FIX: Инжектируем загруженный truth_state в action_compiler
         self.action_compiler._truth = self.truth_state
@@ -122,12 +125,13 @@ class MvpTavernController:
 
     def on_tick_completed(self, event: Any) -> None:
         """M-03 FIX: Обновление трекеров по событию TICK_COMPLETED."""
-        ctx = event.payload.get("snapshot")
+        ctx = event.payload.get("snapshot", {})
         if not ctx:
-            logger.warning("[MVP_TICK_SUBSCRIBER] TICK_COMPLETED event missing 'snapshot' in payload.")
-            return
+            logger.error("[MVP_TICK_SUBSCRIBER] TICK_COMPLETED event missing 'snapshot' in payload. Trackers will NOT update (M-03 regression).")
+            raise RuntimeError("INV-TICK-COMPLETED: Missing snapshot in payload")
         # FateTracker: обновляем стабильность и угрозу
-        for npc in ctx.all_npcs_raw:
+        # NEW-DEGRADATION-1 FIX: ctx теперь dict, читаем all_npcs_raw из него.
+        for npc in ctx.get("all_npcs_raw", []):
             npc_id = npc.get("id", npc.get("npc_id"))
             if not npc_id: continue
             # V8-MVP-6 FIX: Clamping значений в [0.0, 1.0], чтобы избежать ValueError
@@ -142,9 +146,8 @@ class MvpTavernController:
                 self.fate_tracker.trigger_fate(
                     npc_id=npc_id,
                     outcome=FateOutcome.BROKEN,
-                    tick=getattr(ctx, 'tick', 0),
+                    tick=ctx.get("tick", 0),
                     cause="critical_stability",
-                    description="NPC сломался под давлением критической угрозы и нестабильности."
                 )
             
         # DilemmaEngine: проверяем триггеры
@@ -153,8 +156,8 @@ class MvpTavernController:
             self.dilemma_engine.check_triggers(discovered)
             
         # SocialFabric: устанавливаем baseline на первом тике
-        if ctx.tick_number == 1:
-            self._set_social_fabric_baseline(ctx.all_npcs_raw)
+        if ctx.get("tick", 0) == 1:
+            self._set_social_fabric_baseline(ctx.get("all_npcs_raw", []))
 
     def _set_social_fabric_baseline(self, all_npcs_raw: List[Dict[str, Any]]) -> None:
         """Инициализация базовых отношений для SocialFabricTracker."""

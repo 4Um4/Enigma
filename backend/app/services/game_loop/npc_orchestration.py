@@ -255,6 +255,9 @@ def run_npc_orchestration(
     _tick = shared_context.current_tick or 0
 
     if _target_id and _sem_action:
+        # NEW-DEGRADATION-5 ACKNOWLEDGED: Это fast-path для player-driven L1 events.
+        # BUG-CORE-013 (l1_drift_events в mutation) всё ещё мёртв для player actions.
+        # TODO: унифицировать через state_applicator.apply_player_action().
         from app.domain.identity_events import TraitDriftEvent
 
         _l1_events = []

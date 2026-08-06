@@ -263,6 +263,14 @@ async def lifespan(app: FastAPI):
     try:
         app.state.game_loop = build_game_loop(DATA_DIR)
         print("✓ GameLoop initialized (app.state)")
+        
+        # ENIGMA SELF-HEALING (Level 5): Startup Schema Validation (Passive Audit)
+        from app.core.schema_validator import validate_all_schemas
+        try:
+            validate_all_schemas(app.state.game_loop)
+            print("✓ Schema validation passed (NPCs, TruthState, EventBus)")
+        except Exception as e:
+            print(f"⚠️ Schema validation warning: {e}")
     except Exception as e:
         logger.error(f"[STARTUP] GameLoop failed: {e}")
         print(f"✗ GameLoop error: {e}")

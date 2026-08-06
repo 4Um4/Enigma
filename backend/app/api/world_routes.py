@@ -57,4 +57,12 @@ def get_world_state(
         raise HTTPException(status_code=304, detail="Not modified")
 
     builder = WorldSnapshotBuilder()
-    return builder.build(scene_state=scene_state, tick=current_tick)
+    _eco_profile = None
+    if _game_loop:
+        _eco_profile = _game_loop._svc.get_or_create_economic_profiles(campaign_id).get("player")
+    return builder.build(
+        scene_state=scene_state,
+        tick=current_tick,
+        player_body_topology=scene_state.get("player_body_topology"),
+        eco_profile=_eco_profile,
+    )

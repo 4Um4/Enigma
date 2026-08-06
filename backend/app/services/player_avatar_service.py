@@ -294,7 +294,7 @@ class PlayerAvatarService:
             # сбрасывается в NEUTRAL при каждой загрузке.
             "affective_load": state.affective_load,
             # V8-WL-9 FIX: Персистируем FSM state (break-progress + drives)
-            "recent_failures": list(state.recent_failures),
+            "recent_failures": int(state.recent_failures),
             "life_project": state.life_project,
             "life_project_state": state.life_project_state,
             "social_input_ema": dict(state.social_input_ema),

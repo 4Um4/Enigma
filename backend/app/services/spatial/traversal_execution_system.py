@@ -106,11 +106,13 @@ class TraversalExecutionSystem:
                     # Обновляем current_waypoint_idx для фронтенда
                     trav["current_waypoint_idx"] = seg_idx
 
-        # Очистка завершённых маршрутов (SSM владеет lifecycle, но мы помогаем избежать зомби)
+        # Очистка завершённых маршрутов из active_traversals (FIX NEW-SPATIAL-001)
+        # Удаляем зомби-записи, чтобы NPC могли начать новый маршрут.
+        _active_traversals = scene_state.get("active_traversals", {})
         for npc_id in completed_npcs:
-            # SSM FSM должен обработать COMPLETED -> cleanup.
-            # Пока просто логируем, чтобы SSM мог убрать запись, если он запущен.
-            pass
+            if npc_id in _active_traversals:
+                del _active_traversals[npc_id]
+                logger.debug(f"[TRAV_EXEC] Cleaned up zombie traversal for npc={npc_id}")
 
     @staticmethod
     def resolve(

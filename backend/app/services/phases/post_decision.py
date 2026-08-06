@@ -45,6 +45,8 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
 
             _svc = ctx.npc_services
             _memory_mgr = _svc.memory_manager if _svc else getattr(orchestrator, "_memory_manager", None)
+            if _memory_mgr is None:
+                logger.error("MemoryManager missing in both NpcServices and Orchestrator. Check wiring.")
             _intent_type = getattr(intent, "intent_type", "")
             # ADR-O-342: Hard Contract (Принцип 2). Если нет STM (истории разговора),
             # нельзя начинать содержательный диалог. Принудительно меняем на approach.

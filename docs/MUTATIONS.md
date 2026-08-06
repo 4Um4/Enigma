@@ -170,3 +170,35 @@
   Files: backend/app/services/game_loop/__init__.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/services/player_cognition/action_consequence_compiler.py, backend/app/services/game_loop/service_factories.py, backend/app/services/npc/break_progress_engine.py, backend/app/core/constants.py
 
 
+- 🟢 **S158** UI-EPISTEMIC-01A (Transport Only): Восстановлен потерянный канал данных между Presentation Layer и Frontend. Созданы доменные DTO PerceivedNarrativeDTO и PerceivedManifestationDTO (с разделением perception_certainty и uditory_clarity, без INTERNAL в delivery_type). WorldSnapshotDTO расширен полем perceived_narratives. WorldSnapshotBuilder **транспортирует** PerceivedNarrativeDTO в WorldSnapshotDTO, сохраняя обратную совместимость через LegacyDialogueAdapter. Реализован Telepathy Test, проверяющий эпистемический барьер. PerceptionProjector вынесен в следующий спринт. IPT 30/30 passed.
+  Files: backend/app/domain/presentation.py, backend/app/domain/snapshot.py, backend/app/services/integration/legacy_dialogue_adapter.py, backend/app/services/integration/world_snapshot_builder.py, backend/tests/micro/test_telepathy_epistemic_barrier.py
+- 🟢 **S159** UI-EPISTEMIC-01B (PerceptionProjector): Реализован честный фильтр восприятия реплик. Создан NarrativeProjector, принимающий изолированный PerceptionContext (игрок, спикеры, профиль аватара) вместо scene_state. Логика искажения текста вынесена в AuditoryDistortionPolicy. Радиусы восприятия вынесены в конфигурационные константы. event_id более не генерируется внутри проектора. NarrativeProjector инжектируется в GameLoop через DI. Создан AvatarPerceptionProfile для изоляции психики. IPT 30/30 passed, Telepathy Test passed.
+  Files: backend/app/domain/presentation.py, backend/app/services/perception/auditory_distortion_policy.py, backend/app/services/perception/narrative_projector.py, backend/app/services/game_loop/__init__.py, backend/tests/micro/test_telepathy_epistemic_barrier.py
+- 🟢 **S160** UI BIBLE v1.0 (Architecture Document): Сформулирована визуальная доктрина и UX-контракт. Определена композиция экрана (3 слоя: Мир, Фокус, Прикладной UI), иерархия внимания, визуальный язык (палитра, типографика) и тайминги. Введён концепт "Action Markers" для визуализации действий NPC без текста. Спланирован план миграции фронтенда (S161-S165).
+  Files: docs/UI_BIBLE_v1.0.md
+- 🟢 **S160 (Update)** UI BIBLE v1.0 (Доктрина Внимания): Документ переписан с учётом UX-философии. Введён принцип "Линзы Восприятия" и симметрия эпистемического барьера для аватара (состояния влияют на искажение UI, а не на числа). Задана "Драматургия Внимания" (95% времени в центре сцены, правило 2 секунд). Журнал переосмыслен как инструмент расследования (Наблюдения -> Гипотезы). Введён собственный язык пиктограмм вместо эмодзи.
+  Files: docs/UI_BIBLE_v1.0.md
+- 🟢 **S160 (Final)** UI DOCTRINE v1.0 (Философия Когнитивного Опыта): Документ переработан и переименован. Введены 3 фундаментальных закона (Мир важнее интерфейса, Никаких абстрактных параметров, Интерфейс никогда не врёт). Добавлены 4 ключевых раздела: Ритм Интерфейса (Tick-Based Choreography), Закон Ненавязчивости, Мультимодальность (без дублирования смыслов) и Стоимость Внимания. Журнал переосмыслен как инструмент расследования ("Что видел -> Что думаю -> Что оказалось правдой"). UI провозглашён полноправным участником симуляции (UI как Актёр).
+  Files: docs/UI_DOCTRINE_v1.0.md
+
+- 🟢 **S161** SELF-HEALING SYSTEM IMPLEMENTATION (Levels 0, 1, 5, 7, 10):
+  Внедрена многоуровневая система защиты от тихих отказов и архитектурных багов согласно ТЗ ENIGMA_SELF_HEALING_SYSTEM.md.
+  
+  **Уровень 0 (Silent Failure Eradication):**
+  - `scene_init.py`: Тихий `return` при `player_position is None` заменён на `ValueError` (INV-PLAYER-POSITION), если координаты отсутствуют и не могут быть восстановлены. Устранён Silent Failure, приводивший к `coords=None` у игрока (SC-1 Violation).
+  - `spatial_runtime.py`: Тихий возврат `(0.0, 0.0)` при ошибке парсинга `local_position` заменён на `ValueError` (INV-SC-1), предотвращая скрытый пространственный дрейф.
+  - `game_loop/__init__.py`: `getattr(..., None)` для `spatial_query` (eavesdrop) и `memory_manager._layered` заменены на `RuntimeError`/`TypeError` (Fail Loud).
+  - `mvp_tavern_controller.py`: Загрузка `TruthState` защищена `assert` (Fail Loud при None или 0 secrets). Тихий `logger.warning` при пустом `TICK_COMPLETED` payload заменён на `RuntimeError`.
+  - `tick_orchestrator.py`, `pipeline_runner.py`, `tick_utils.py`, `phases/decision.py`, `phases/post_decision.py`: `getattr(ctx.shared_context, "spatial_query", None)` и `_memory_mgr` дополнены `logger.debug`/`logger.error` для легальных fallback'ов и обнаружения missing wiring.
+  
+  **Уровень 5 (Startup Schema Validation):**
+  - Создан `backend/app/core/schema_validator.py` — пассивная валидация NPC configs (schedule × activity_map consistency, N9), TruthState и EventBus подписок при старте сервера. Ошибки логируются, но не блокируют запуск (на этапе внедрения).
+  
+  **Уровень 7 (Telemetry Dashboard):**
+  - `routes.py`: `/health` endpoint расширен мониторингом очередей (`pending_tasks`, `active_traversals`) и активными предупреждениями (`warnings`). Статус `DEGRADED` при 🔴 критических проблемах.
+  
+  **Уровень 10 (Pre-flight Checklist):**
+  - Создан `backend/scripts/preflight.py` — 8-этапная проверка перед плейтестом (MVP Controller, TruthState, NPC configs, Spatial registry, Faction IDs, EventBus subscriptions, 5-tick canary). Ловит N1, N2, N8, N9, N12, M-03, R-01 за 5 секунд.
+  
+  IPT: 30/30 passed. Preflight: 8/8 passed.
+  Files: backend/app/services/game_loop/scene_init.py, backend/app/services/spatial/spatial_runtime.py, backend/app/services/game_loop/__init__.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/services/tick_orchestrator.py, backend/app/services/pipeline_runner.py, backend/app/services/tick_utils.py, backend/app/services/phases/decision.py, backend/app/services/phases/post_decision.py, backend/app/core/schema_validator.py, backend/app/main.py, backend/app/api/routes.py, backend/scripts/preflight.py

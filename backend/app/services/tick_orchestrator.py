@@ -638,7 +638,15 @@ class TickOrchestrator:
             scene_state=ctx.scene_state,
             all_npcs_raw=ctx.all_npcs_raw
         )
-        _runner = ProbeRunner(probes=[SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe()])
+        from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
+        from app.services.probes.probes.historical_constraint_probe import HistoricalConstraintProbe
+        from app.services.probes.probes.temporal_isolation_probe import TemporalIsolationProbe
+        from app.services.probes.probes.somatic_gate_probe import SomaticGateProbe
+        
+        _runner = ProbeRunner(probes=[
+            SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe(),
+            CausalProvenanceProbe(), HistoricalConstraintProbe(), TemporalIsolationProbe(), SomaticGateProbe()
+        ])
         _runner.run_all(_probe_ctx)
 
         # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)
@@ -654,6 +662,7 @@ class TickOrchestrator:
                     "campaign_id": ctx.campaign_id,
                     "active_location": getattr(ctx, "active_location_id", None) or getattr(ctx, "active_location", None),
                     "npc_count": len(ctx.all_npcs_raw) if getattr(ctx, "all_npcs_raw", None) else 0,
+                    "all_npcs_raw": getattr(ctx, "all_npcs_raw", []) or [],
                 },
             }
         )
@@ -1383,6 +1392,8 @@ class TickOrchestrator:
         # P5 FIX: Передаём разрешённый spatial_service напрямую, чтобы избежать потери в npc_services
         _spatial_svc_for_pipeline = self._resolve_spatial_service(ctx)
         _spatial_query_for_pipeline = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+        if _spatial_query_for_pipeline is None:
+            logger.debug("SpatialQueryService missing in shared_context. Falling back to scene_state reader (IPT/DriftLab).")
         # P5 FIX: Fallback для IPT/DriftLab, где shared_context может быть пустым. SpatialQueryService — чистый ридер scene_state.
         if not _spatial_query_for_pipeline and ctx.scene_state:
             from app.services.spatial.spatial_query_service import SpatialQueryService

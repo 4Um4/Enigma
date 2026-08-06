@@ -253,6 +253,8 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
 
     # Вычисляем player_distances один раз для всех NPC (SpatialQueryService - pure reader)
     _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+    if _spatial_query is None:
+        logger.debug("SpatialQueryService missing in shared_context (decision.py). Falling back to scene_state reader.")
     if not _spatial_query and ctx.scene_state:
         from app.services.spatial.spatial_query_service import SpatialQueryService
         _spatial_query = SpatialQueryService(

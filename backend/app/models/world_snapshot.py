@@ -19,6 +19,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict
 from uuid import UUID, uuid4
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +85,13 @@ def build_snapshot(
     _npc_pos = copy.deepcopy(scene_state.get("npc_positions", {}))
     _active_travs = copy.deepcopy(scene_state.get("active_traversals", {}))
 
+    # BUG-FB-029 FIX: Детерминированный snapshot_id и created_at (вместо wall-clock и uuid4).
+    _seed_str = f"{tick}:{campaign_id}:{location_id}".encode("utf-8")
+    _det_uuid = UUID(hex=hashlib.md5(_seed_str).hexdigest())
+
     snapshot = WorldSnapshot(
-        snapshot_id=uuid4(),
-        created_at=time.time(),
+        snapshot_id=_det_uuid,
+        created_at=float(tick),  # simulation time, not wall-clock
         tick=tick,
         campaign_id=campaign_id,
         location_id=location_id,

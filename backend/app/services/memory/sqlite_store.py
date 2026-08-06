@@ -320,9 +320,13 @@ class SqliteMemoryStore:
         и коммитит. Возвращает lastrowid или количество затронутых строк.
         Используется сервисами, владеющими своей схемой (например, L1Chronicle).
         """
+        # FIX: Явный commit только если транзакция действительно активна.
+        if self._conn is None:
+            raise RuntimeError("SQLite connection is not initialized.")
         cur = self._conn.cursor()
         cur.execute(sql, params)
-        self._conn.commit()
+        if self._conn.in_transaction:
+            self._conn.commit()
         return cur.lastrowid or cur.rowcount
 
     def query(self, sql: str, params: Tuple[Any, ...] = ()) -> List[Dict[str, Any]]:

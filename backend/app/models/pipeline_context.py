@@ -43,6 +43,7 @@ class PipelineContext:
     all_npcs_raw_snapshot: Any = (
         None  # Фаза 9: полный снимок NPC state (description, title)
     )
+    world_snapshot: Any = None  # NEW-DEGRADATION-3 FIX: Сохраняем world_snapshot из ядра
     npc_contexts: List[Any] = field(default_factory=list)
     recent_session: List[Any] = field(default_factory=list)
     recent_memory: List[Any] = field(default_factory=list)

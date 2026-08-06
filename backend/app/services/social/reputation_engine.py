@@ -171,7 +171,7 @@ class ReputationEngine:
         actor_faction = self.get_npc_faction(actor_npc_id) if actor_npc_id else None
         actor_nature = actor_faction.nature if actor_faction else "neutral"
 
-        impact_rules = EVENT_REPUTATION_IMPACT.get(event_type, {})
+        impact_rules = EVENT_REPUTATION_IMPACT.get(event_type.upper(), {})
         if not impact_rules:
             return []
 

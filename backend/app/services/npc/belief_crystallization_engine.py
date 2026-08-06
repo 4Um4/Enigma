@@ -5,10 +5,13 @@ path: backend/app/services/npc/belief_crystallization_engine.py
 Основные сущности: BeliefCrystallizationEngine, CrystallizedBelief
 """
 
+import logging
 import math
 from typing import Dict, List
 
 from app.domain.identity_events import CrystallizedBelief, EvidenceOfPersistence
+
+logger = logging.getLogger(__name__)
 
 # ADR-O-307: Множитель асимметричной травмы. Опровержение в 6 раз сильнее подтверждения.
 TRAUMA_MULTIPLIER: float = 6.0
@@ -120,6 +123,7 @@ class BeliefCrystallizationEngine:
                     weight=new_weight,
                     last_updated_tick=current_tick,
                 )
+                logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
             else:
                 # Формирование нового убеждения
                 if base_weight > 0.05:  # Порог кристаллизации
@@ -129,5 +133,6 @@ class BeliefCrystallizationEngine:
                         weight=base_weight,
                         last_updated_tick=current_tick,
                     )
+                    logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={base_weight:.2f}")
 
         return list(updated_beliefs.values())

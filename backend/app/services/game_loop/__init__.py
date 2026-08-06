@@ -150,6 +150,9 @@ class GameLoop:
         self.data_dir = data_dir
         self._saves_dir = Path(saves_dir) if saves_dir else data_dir / "campaigns"
         self.memory_manager = memory_manager
+        # S159: Инъекция NarrativeProjector для фильтрации реплик
+        from app.services.perception.narrative_projector import NarrativeProjector
+        self._narrative_projector = NarrativeProjector()
         
         # P7-MVP: Инициализация эпистемического фасада
         from pathlib import Path as PathLib
@@ -284,8 +287,11 @@ class GameLoop:
 
     def _get_spatial_query_for_subscriber(self):
         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop)."""
-        # Возвращает текущий spatial_query из TickContext или None
-        return getattr(self, "_current_spatial_query", None)
+        _sq = getattr(self, "_current_spatial_query", None)
+        if _sq is None:
+            logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
+            raise RuntimeError("INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling.")
+        return _sq
 
     def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
         """S150 FIX: Регистрирует диалоги для EconomyTracker (потребность SOCIAL)."""
@@ -844,12 +850,28 @@ class GameLoop:
             _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
             logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
             _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
+            
+            # S159: Фильтрация реплик через NarrativeProjector
+            from app.domain.presentation import PerceptionContext, AvatarPerceptionProfile
+            _npc_pos = result.final_state.get("npc_positions", {})
+            _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+            _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+            _p_stability = 1.0
+            if result.world_snapshot and result.world_snapshot.avatar_state:
+                _p_stability = result.world_snapshot.avatar_state.perceptual_stability
+            _ctx = PerceptionContext(
+                player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
+                speaker_positions=_sp_positions,
+                avatar_profile=AvatarPerceptionProfile(perceptual_stability=_p_stability)
+            )
+            _narratives = self._narrative_projector.project(_recent_d, _ctx)
+            
             _ws = _builder.build(
                 result.final_state,
                 result.final_state.get("tick", 0),
                 None,
                 _all_npcs,
-                recent_dialogues=_recent_d,
+                perceived_narratives=_narratives,
                 player_body_topology=result.final_state.get("player_body_topology"),
                 eco_profile=_player_eco_profile,
             )
@@ -978,6 +1000,7 @@ class GameLoop:
                     logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
                     self._current_spatial_query = None
 
+            _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
             _tick_result = self._tick_orch.execute(
                 campaign_id=campaign_id,
                 scene_state=_scene,
@@ -986,6 +1009,7 @@ class GameLoop:
                 shared_context=getattr(self, "_idle_shared_context", None),
                 active_location_id=_active_loc,
                 location_ids=_location_ids,
+                eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
             )
             
             # Коммитим результат тика для каждой локации
@@ -1043,7 +1067,18 @@ class GameLoop:
             try:
                 _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
                 logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                _ws["recent_dialogues"] = _recent_d
+                from app.domain.presentation import PerceptionContext, AvatarPerceptionProfile
+                from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
+                _npc_pos = _scene.get("npc_positions", {})
+                _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+                _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+                _ctx = PerceptionContext(
+                    player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
+                    speaker_positions=_sp_positions
+                )
+                _narratives = self._narrative_projector.project(_recent_d, _ctx)
+                _ws["perceived_narratives"] = [asdict(n) for n in _narratives]
+                _ws["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
             except Exception as e:
                 logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
 
@@ -1255,7 +1290,18 @@ class GameLoop:
                 _scene = state.shared_context.scene_state or {}
                 _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
                 logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                _ws_dict["recent_dialogues"] = _recent_d
+                from app.domain.presentation import PerceptionContext, AvatarPerceptionProfile
+                from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
+                _npc_pos = _scene.get("npc_positions", {})
+                _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
+                _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
+                _ctx = PerceptionContext(
+                    player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
+                    speaker_positions=_sp_positions
+                )
+                _narratives = self._narrative_projector.project(_recent_d, _ctx)
+                _ws_dict["perceived_narratives"] = [asdict(n) for n in _narratives]
+                _ws_dict["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
             except Exception as e:
                 logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
             _ws_dict["dialog_journal"] = self.avatar_service.get_journal(req.campaign_id)
@@ -2039,7 +2085,11 @@ class GameLoop:
             _ctx = self._get_life_engine().get_npc_observed_state
             _et = self._svc.economy_tracker
             _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)
+            if _cbs is None:
+                logger.error("TickOrchestrator missing crystallized_belief_store. Check wiring.")
             _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None
+            if _cp is None and self.mvp_controller is not None:
+                logger.error("MvpTavernController missing confession_parser. Check wiring.")
             _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp)
             self._task_scheduler = _scheduler
         return self._task_scheduler
@@ -2167,11 +2217,14 @@ class GameLoop:
 
         # 2. Memory store (enigma_memory.db) — через memory_manager → layered → store
         if hasattr(self, "memory_manager") and self.memory_manager is not None:
-            _layered = getattr(self.memory_manager, "_layered", None)
-            if _layered is not None:
-                _store = getattr(_layered, "store", None)
-                if _store is not None and hasattr(_store, "close"):
-                    _store.close()
+            if not hasattr(self.memory_manager, "_layered"):
+                raise TypeError("MemoryManager missing _layered attribute. Check wiring.")
+            _layered = self.memory_manager._layered
+            if not hasattr(_layered, "store"):
+                raise TypeError("LayeredMemory missing store attribute. Check wiring.")
+            _store = _layered.store
+            if hasattr(_store, "close"):
+                _store.close()
 
         # 3. Освобождаем cached spatial service
         if hasattr(self, "_tick_orch") and self._tick_orch is not None:

@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.domain.presentation import EmbodiedStatusDTO
+from app.domain.presentation import EmbodiedStatusDTO, PerceivedNarrativeDTO
+from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
 from app.domain.snapshot import (
     ActivePerception,
     AvatarStateDTO,
@@ -38,7 +39,7 @@ class WorldSnapshotBuilder:
         self,
         scene_state: Dict,
         tick: int,
-        last_event_id: Optional[str] = None,
+        last_event_id: Optional[Any] = None,
         avatar_state: Optional["AvatarStateDTO"] = None,  # ADR-035
         all_npcs_raw: Optional[List[Dict]] = None,  # ADR-037: Для вычисления среды
         player_perception: Optional[
@@ -90,6 +91,20 @@ class WorldSnapshotBuilder:
         # ADR-037: Вычисление средового давления на основе психики NPC в сцене
         ambient_phenomenology = self._compute_ambient_phenomenology(all_npcs_raw)
 
+        # Sprint UI-EPISTEMIC-01A: Транспорт реплик через PerceivedNarrativeDTO
+        _perceived_narratives: List[PerceivedNarrativeDTO] = []
+        for d in recent_dialogues or []:
+            _perceived_narratives.append(
+                PerceivedNarrativeDTO(
+                    event_id=f"{d.get('speaker_id', 'unk')}_{d.get('game_time', 0.0)}",
+                    speaker_id=d.get("speaker_id"),
+                    visible_text=d.get("text", ""),
+                )
+            )
+
+        # ADR-O-313: recent_dialogues генерируется из новых DTO для обратной совместимости
+        _legacy_dialogues = LegacyDialogueAdapter.to_legacy_dto(_perceived_narratives)
+
         result = WorldSnapshotDTO(
             tick=tick,
             version=version,
@@ -98,7 +113,8 @@ class WorldSnapshotBuilder:
             npc_positions=npc_positions,
             avatar_state=self.avatar_state,  # ADR-035: Внедрение феноменологической проекции
             ambient_phenomenology=ambient_phenomenology,  # ADR-037: Средовое давление
-            recent_dialogues=recent_dialogues or [],  # ADR-O-313: Проброс кэша реплик
+            recent_dialogues=_legacy_dialogues,  # ADR-O-313: Проброс кэша реплик (через адаптер)
+            perceived_narratives=_perceived_narratives,  # Sprint UI-EPISTEMIC-01A: Новый транспортный мост
             player_perception=self._convert_perception(
                 player_perception, tick=tick
             ),  # ТЗ EMBODIED UI: domain → API DTO конвертация

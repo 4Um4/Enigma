@@ -87,3 +87,44 @@ class AudibleDTO:
     """Канал аудио презентации."""
     voices: Tuple[VoiceAudio, ...] = ()
     breathing_sounds: Tuple[BreathingAudio, ...] = ()
+
+
+@dataclass(frozen=True)
+class PerceivedManifestationDTO:
+    """Наблюдаемое проявление NPC (без эмоций)."""
+    channel: str          # "voice", "body", "gaze"
+    description: str      # "голос дрожит", "избегает взгляда"
+    intensity: float      # 0.0 - 1.0 (сила проявления)
+    confidence: float     # 0.0 - 1.0 (уверенность игрока в том, что он это увидел)
+
+
+@dataclass(frozen=True)
+class PerceivedNarrativeDTO:
+    """Атом восприятия. Событие, прошедшее через фильтр игрока."""
+    event_id: str         # UUID для связи с блокнотом/гипотезами
+    speaker_id: Optional[str] = None
+    visible_text: str = ""     # Текст, который игрок реально услышал
+    perception_source: str = "PLAYER_HEARD" # PLAYER_HEARD, PLAYER_SAW, NPC_REPORT, INTERNAL_ACCESS, INFERRED
+    perception_certainty: float = 1.0  # 0.0 - 1.0 (уверенность в факте события)
+    auditory_clarity: float = 1.0      # 0.0 - 1.0 (насколько чётко услышан текст)
+    recognition: str = "KNOWN_NAME"    # KNOWN_NAME, STRANGE_FACE, UNKNOWN_MALE
+    delivery_type: str = "NORMAL"      # NORMAL, WHISPER, SHOUT
+    manifestations: Tuple[PerceivedManifestationDTO, ...] = ()
+    attention_weight: float = 0.5      # Насколько это должно всплыть в UI (хлебные крошки)
+    lifetime: str = "TRANSIENT"        # TRANSIENT, PINNED, SLAM
+
+
+@dataclass(frozen=True)
+class AvatarPerceptionProfile:
+    """S159: Профиль восприятия аватара. Изолирует Projector от всей психики."""
+    perceptual_stability: float = 1.0  # 0.0-1.0
+
+
+@dataclass(frozen=True)
+class PerceptionContext:
+    """S159: Изолированный контекст восприятия. Projector не читает scene_state напрямую."""
+    player_position: Tuple[float, float]
+    speaker_positions: Dict[str, Tuple[float, float]]
+    avatar_profile: AvatarPerceptionProfile = field(default_factory=AvatarPerceptionProfile)
+    lighting: float = 1.0  # Заглушка для будущего (0.0 - темнота, 1.0 - день)
+    occlusion: float = 0.0 # Заглушка для будущего (0.0 - нет стен, 1.0 - глухая стена)
