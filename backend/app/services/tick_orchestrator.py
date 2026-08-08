@@ -360,6 +360,7 @@ class TickOrchestrator:
         task_scheduler: Optional[Any] = None,  # S128 FIX: Проброс для Фазы 4
         active_location_id: Optional[str] = None, # Дополнение Б: локация игрока
         location_ids: Optional[List[str]] = None, # Дополнение Б: список всех локаций
+        mvp_controller: Optional[Any] = None, # ENIGMA SELF-HEALING: For MvpPipelineProbe
         eco_profile: Optional[Any] = None, # S151: Профиль игрока для EmbodiedStatusDTO
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
         """Единая точка входа для тика мира (TZ-08 v0.2 + Дополнение Б).
@@ -394,6 +395,8 @@ class TickOrchestrator:
         # DRF: Сброс шины на начало тика (один bus на весь lifecycle: execute + finalize)
         self._drf_bus.stream.clear()
         logger.info(f"[DRF_BUS_RESET] bus_id={id(self._drf_bus)} tick={tick_number}")
+        # ENIGMA SELF-HEALING: Store mvp_controller for ProbeRunner (Level 1)
+        self._mvp_controller = mvp_controller
 
         # [S98] Сборка контекста вынесена в tick_utils.create_tick_context
         from app.services.tick_utils import create_tick_context
@@ -424,6 +427,7 @@ class TickOrchestrator:
                 task_scheduler=task_scheduler,
                 hub_event=hub_event,  # BUG-CORE-003 FIX: Передача контекста в фабрику
                 eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
+                mvp_controller=getattr(self, "_mvp_controller", None),  # ENIGMA SELF-HEALING: For probes
             )
             self._rebuild_cluster_occupancy(ctx)
 
@@ -636,18 +640,29 @@ class TickOrchestrator:
             tick_id=ctx.tick_number,
             game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
             scene_state=ctx.scene_state,
-            all_npcs_raw=ctx.all_npcs_raw
+            all_npcs_raw=ctx.all_npcs_raw,
+            mvp_controller=ctx.mvp_controller,  # ENIGMA SELF-HEALING: Pass to probes
+            tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I
+            tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III
+            tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III
+            effective_drives_map=getattr(ctx, "effective_drives_map", {})         # Инвариант II
         )
         from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
         from app.services.probes.probes.historical_constraint_probe import HistoricalConstraintProbe
         from app.services.probes.probes.temporal_isolation_probe import TemporalIsolationProbe
         from app.services.probes.probes.somatic_gate_probe import SomaticGateProbe
         
+        from app.services.probes.probes.mvp_pipeline_probe import MvpPipelineProbe
         _runner = ProbeRunner(probes=[
             SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe(),
-            CausalProvenanceProbe(), HistoricalConstraintProbe(), TemporalIsolationProbe(), SomaticGateProbe()
+            CausalProvenanceProbe(), HistoricalConstraintProbe(), TemporalIsolationProbe(), SomaticGateProbe(),
+            MvpPipelineProbe()  # ENIGMA SELF-HEALING (Level 1)
         ])
-        _runner.run_all(_probe_ctx)
+        _probe_results = _runner.run_all(_probe_ctx)
+        
+        # Подсистема 3: Запись результатов в ProbeAlertManager (Этап 3.6)
+        from app.services.probes.probe_alerts import probe_alerts
+        probe_alerts.record_results(ctx.tick_number, _probe_results)
 
         # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)
         from app.domain.events import EventDTO
@@ -1423,7 +1438,28 @@ class TickOrchestrator:
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
+        
+        # Подсистема 3: Хеширование TickState до pipeline для Инварианта III (Temporal Isolation)
+        import json
+        _json_before = json.dumps(_tick_state, default=str, sort_keys=True, indent=2)
+        _ts_hash_before = hash(_json_before)
+        
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+        ctx.tick_mutation = _mutation  # Сохраняем мутацию для ReplayRecorder и ProbeRunner
+        
+        # Подсистема 3: Хеширование TickState после pipeline
+        _json_after = json.dumps(_tick_state, default=str, sort_keys=True, indent=2)
+        _ts_hash_after = hash(_json_after)
+        ctx.tick_state_hash_before = _ts_hash_before
+        ctx.tick_state_hash_after = _ts_hash_after
+
+        # ВРЕМЕННАЯ ДИАГНОСТИКА: Вывод diff при мутации TickState
+        if _ts_hash_before != _ts_hash_after:
+            import difflib
+            diff = difflib.unified_diff(_json_before.splitlines(), _json_after.splitlines(), lineterm='', n=1)
+            print("\n[ARCHAE_MUTATION] TickState mutated during pipeline! Diff:")
+            for line in list(diff)[:50]:
+                print(line)
 
         # V8-SOC-5 FIX: Обновляем idle_pressure в LifeEngine
         if _life_engine and _mutation.idle_pressure_updates:
@@ -1513,6 +1549,9 @@ class TickOrchestrator:
             and ctx.shared_context.game_time_seconds
         ):
             current_seconds = ctx.shared_context.game_time_seconds
+
+        # ADR-O-344: Оркестратор — единственный владелец инкремента тика.
+        ctx.scene_state["tick"] = ctx.tick_number
 
         new_seconds = Calendar.advance(current_seconds, GAME_TICK_INTERVAL_SECONDS)
 
@@ -1645,9 +1684,14 @@ class TickOrchestrator:
             return
 
         for _intent in intents:
-            if not hasattr(_intent, "npc_id"):
+            # BUG-CORE-015 FIX: DRF overlay должен применяться только к CommunicationIntent.
+            # У MovementIntent нет поля speaker, а actor_id хранится в npc_id.
+            if hasattr(_intent, "speaker"):
+                _npc_id = _intent.speaker
+            elif hasattr(_intent, "npc_id"):
+                _npc_id = _intent.npc_id
+            else:
                 continue
-            _npc_id = _intent.actor_id
             _npc_claims = [
                 c
                 for c in _claims
@@ -1673,6 +1717,9 @@ class TickOrchestrator:
                 _alignment_mult = _DRF_ALIGNED if _aligned else _DRF_MISALIGNED
                 _drf_bonus += _energy * _weight * _alignment_mult
 
+            # BUG-CORE-015 FIX: CommunicationIntent не имеет поля priority, DRF overlay применяется только к интентам с этим полем.
+            if not hasattr(_intent, "priority"):
+                continue
             _old_priority = _intent.priority
             _intent.priority = min(1.0, _intent.priority + _drf_bonus)
             if _drf_bonus > 0.01:

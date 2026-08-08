@@ -144,6 +144,8 @@ class Calendar:
         Парсит строку 'HH:MM' в секунды от начала дня (0–86399).
         При ошибке возвращает дефолт (07:00 = 25200).
         """
+        import logging
+        logger = logging.getLogger(__name__)
         try:
             parts = time_str.strip().split(":")
             h, m = int(parts[0]), int(parts[1])

@@ -34,6 +34,7 @@ class TaskScheduler:
 
     def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None, memory_manager=None, confession_parser=None):
         from app.services.execution.npc_conversation import NpcConversation
+        from app.services.game_loop.speech_scheduler import SpeechScheduler
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
         }
@@ -46,13 +47,21 @@ class TaskScheduler:
         }
         # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
         self._economy_tracker = economy_tracker
-        # BUG-DL-12: Кэш последних реплик для Speech Bubbles (TTL 60 сек игрового времени)
+        # BUG-DL-12: Кэш последних реплик для Speech Bubbles (TTL 180 сек игрового времени)
         self._recent_dialogues: list = []
-        self._dialogue_ttl = 60.0  # 1 минута game_time
-        # P1 FIX: Асинхронный пул для неблокирующего выполнения LLM
-        self._executor_pool = ThreadPoolExecutor(max_workers=2)
+        self._dialogue_ttl = 180.0  # 3 минуты game_time (чтобы пережить несколько тиков)
+        # ADR-O-343 FIX: Блокировка для защиты _recent_dialogues от гонки с ThreadPoolExecutor
+        import threading
+        self._dialogue_lock = threading.Lock()
+        # P1 FIX: Асинхронный пул для неблокирающего выполнения LLM
+        # ADR-O-343 FIX: Сериализация LLM-вызовов (max_workers=1).
+        # router.py не поддерживает concurrency > 1 (aborting stuck request bug).
+        # SpeechScheduler гарантирует отсутствие спама, поэтому 1 поток безопасен и стабилен.
+        self._executor_pool = ThreadPoolExecutor(max_workers=1)
         # ADR-O-342: Счётчик тихих отказов (для Causal Probes / IPT)
         self.failed_tasks = 0
+        # ADR-O-343: Счётчик всех задач, попавших в обработку (для IPT INV-DIALOGUE-INIT)
+        self.total_processed_tasks = 0
         self._spatial_query_service = None
         from app.services.execution.dialogue_queue import DialogueQueue
         self._dialogue_queue = DialogueQueue()
@@ -64,13 +73,18 @@ class TaskScheduler:
 
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO."""
-        # BUG-DL-12: Используем game_time_seconds (current_time) для TTL, не wall-clock.
-        self._recent_dialogues = [
-            d
-            for d in self._recent_dialogues
-            if current_time - d.get("game_time", 0.0) < self._dialogue_ttl
-        ]
-        return self._recent_dialogues
+        # ADR-O-343: UI-кэш реплик живёт по wall-clock (infrastructure layer),
+        # так как game_time растёт слишком быстро (60+ сек/тик) и реплики исчезают мгновенно.
+        import time
+        _now = time.time()
+        _ui_ttl_sec = 7.0  # 7 секунд реального времени для отображения облачка
+        with self._dialogue_lock:
+            self._recent_dialogues = [
+                d
+                for d in self._recent_dialogues
+                if _now - d.get("timestamp", 0.0) < _ui_ttl_sec
+            ]
+            return list(self._recent_dialogues)
 
     def process_tasks(self, scene_state: dict, max_tasks_per_tick: int = 2) -> bool:
         pending = scene_state.get("pending_tasks", [])
@@ -101,6 +115,11 @@ class TaskScheduler:
 
         # BUG-DLG-006 FIX: Используем game_time_seconds из scene_state вместо wall-clock.
         _game_time = scene_state.get("game_time_seconds", 0.0)
+
+        # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
+        if not hasattr(self, '_speech_scheduler'):
+            from app.services.game_loop.speech_scheduler import SpeechScheduler
+            self._speech_scheduler = SpeechScheduler(self._memory_manager)
 
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":
@@ -133,8 +152,9 @@ class TaskScheduler:
             t for t in pending if t.get("kind") != "dialogue"
         ]
 
-        # BUG-DLG-005 FIX: Обрабатываем несколько задач за тик, чтобы очередь не переполнялась
-        _max_tasks_per_tick = 5
+        # ADR-O-343: Жёсткий лимит 1 задача на тик для размеренного пейсинга (Human Pacing).
+        # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
+        _max_tasks_per_tick = 1
         _processed_count = 0
         
         while _processed_count < _max_tasks_per_tick:
@@ -145,13 +165,32 @@ class TaskScheduler:
             task_dict = _eligible.payload.get("task_dict", {})
             # N3 FIX: Извлекаем task_type из payload и передаём явно
             _task_type = _eligible.payload.get("task_type", "canonical")
-            # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick
+            
+            # ADR-O-343: Narrative Arbitration после извлечения из очереди
+            _admitted, _reason = self._speech_scheduler.admit(task_dict, campaign_id)
+            
+            if not _admitted:
+                if _reason == "PACING":
+                    # Возвращаем в очередь для следующего тика и прерываем цикл (ждём wall-clock)
+                    self._dialogue_queue.enqueue(
+                        task_type=_task_type,
+                        payload=_eligible.payload,
+                        priority=-_eligible.priority, # heapq инвертирует обратно
+                        game_time_seconds=_game_time
+                    )
+                    break
+                elif _reason == "DEDUP":
+                    # Уничтожаем спам-дубликат
+                    continue
+
+            # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
+            # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
             self._executor_pool.submit(
-                self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type
+                self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type, _game_time
             )
             _processed_count += 1
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical"):
+    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0):
         """Фоновая обработка задач LLM."""
         import time
         bus = get_event_bus()
@@ -159,6 +198,7 @@ class TaskScheduler:
             campaign_id = scene_state.get("campaign_id", "")
 
         for task_dict in tasks:
+            self.total_processed_tasks += 1
             try:
                 task = self._reconstruct_task(task_dict)
             except Exception as e:
@@ -231,48 +271,60 @@ class TaskScheduler:
 
             artifacts = executor.execute(task)
 
-            for artifact in artifacts:
-                if artifact.success:
-                    task.state = TaskState.FINISHED
-                    logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
+            try:
+                for artifact in artifacts:
+                    if artifact.success:
+                        task.state = TaskState.FINISHED
+                        logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
 
-                    materializer = self._materializers.get(artifact.result_type)
-                    if materializer:
-                        try:
-                            events = materializer.materialize(artifact)
-                            for ev in events:
-                                bus.publish(ev)
-                        except Exception as mat_exc:
-                            logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
+                        materializer = self._materializers.get(artifact.result_type)
+                        if materializer:
+                            try:
+                                events = materializer.materialize(artifact)
+                                for ev in events:
+                                    bus.publish(ev)
+                            except Exception as mat_exc:
+                                logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
+                                events = []
+                        else:
+                            logger.warning(f"[SCHEDULER] No materializer for result_type={artifact.result_type}")
                             events = []
-                    else:
-                        logger.warning(f"[SCHEDULER] No materializer for result_type={artifact.result_type}")
-                        events = []
 
-                    # ADR-O-313: Кэшируем реплику для Speech Bubbles
-                    if artifact.result_type == "dialogue_line" and events:
-                        # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
-                        if self._economy_tracker:
-                            self._economy_tracker.record_talk(ev.source, scene_state.get("tick", 0))
-                        import time
-                        _dlg_entry = {
-                            "speaker_id": ev.source,
-                            "target_id": ev.payload.get("target_id", ""),
-                            "text": ev.payload.get("text", ""),
-                            "timestamp": time.time(),  # для UI staleness
-                            "game_time": scene_state.get("game_time_seconds", 0.0),  # BUG-DL-12: для response_targets TTL
-                        }
-                        self._recent_dialogues.append(_dlg_entry)
-                        # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
-                        scene_state.setdefault("recent_dialogues", []).append(
-                            _dlg_entry
+                        # ADR-O-313: Кэшируем реплику для Speech Bubbles
+                        if artifact.result_type == "dialogue_line" and events:
+                            # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
+                            if self._economy_tracker:
+                                self._economy_tracker.record_talk(ev.source, scene_state.get("tick", 0))
+                            import time
+                            _dlg_entry = {
+                                "speaker_id": ev.source,
+                                "target_id": ev.payload.get("target_id", ""),
+                                "text": ev.payload.get("text", ""),
+                                "timestamp": time.time(),  # для UI staleness
+                                # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
+                                "game_time": _game_time,
+                            }
+                            with self._dialogue_lock:
+                                self._recent_dialogues.append(_dlg_entry)
+                            # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
+                            scene_state.setdefault("recent_dialogues", []).append(
+                                _dlg_entry
+                            )
+                    else:
+                        logger.error(
+                            f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
                         )
-                else:
-                    logger.error(
-                        f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
-                    )
-                    task.state = TaskState.FINISHED  # Пока без сложного ретрая
-                    self.failed_tasks += 1
+                        task.state = TaskState.FINISHED  # Пока без сложного ретрая
+                        self.failed_tasks += 1
+                        # ADR-O-343: Сбрасываем DEDUP в SpeechScheduler, чтобы NPC мог повторить попытку
+                        if hasattr(self, '_speech_scheduler'):
+                            self._speech_scheduler.reset_context(task_dict)
+            except Exception as task_exc:
+                logger.error(f"[SCHEDULER] Crashed during task execution {task.task_id}: {task_exc}", exc_info=True)
+                self.failed_tasks += 1
+                if hasattr(self, '_speech_scheduler'):
+                    self._speech_scheduler.reset_context(task_dict)
+                break
 
     def _reconstruct_task(self, task_dict: dict) -> QueuedTask:
         """Собирает QueuedTask из словаря (после JSON сериализации)."""

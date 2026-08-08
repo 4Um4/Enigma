@@ -110,6 +110,13 @@ class _TickContext:
     
     # S151: Экономический профиль игрока для сборки EmbodiedStatusDTO в Фазе 9
     eco_profile: Optional[Any] = None
+    # ENIGMA SELF-HEALING (Level 1): For MvpPipelineProbe (N1, M-03)
+    mvp_controller: Optional[Any] = None
+    # Подсистема 2/3: Сохранение TickMutation для ReplayRecorder и ProbeRunner
+    tick_mutation: Optional[Any] = None
+    # Подсистема 3: Хеши TickState для Инварианта III (Temporal Isolation)
+    tick_state_hash_before: Optional[int] = None
+    tick_state_hash_after: Optional[int] = None
 
     # KERNEL-ISOLATION: per-tick RNG factory.
     # Создаёт KernelRNG для каждого NPC по запросу (lazy).

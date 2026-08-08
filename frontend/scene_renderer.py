@@ -39,7 +39,12 @@ from game_types import (  # noqa: E402
     PerceivedEntity,
     PerceivedScene,
 )
-from map_editor.sprite_registry import get_entity_sprite  # noqa: E402
+import json
+from pathlib import Path
+from map_editor.sprite_registry import get_entity_sprite, sprite_registry  # noqa: E402
+
+# S176: Путь к файлам кампаний для загрузки кастомных спрайтов
+_CAMPAIGN_DIR = Path(__file__).parent / "map_editor" / "campaigns"
 from perceptual_momentum import ManifestationProfile, PerceptualMomentum  # noqa: E402
 from presentation_firewall import sanitize_perceptual_input  # noqa: E402
 
@@ -53,6 +58,25 @@ class SceneRenderer:
             str, Tuple[float, float, float]
         ] = {}  # ADR-037: Для Temporal Assembly Delay (x, y, z)
         self._hover_npc_id: Optional[str] = None  # The Fool v2: Для тултипов наблюдений
+        
+        # S176: Кэш кастомных спрайтов из JSON карт (id -> [sheet, x, y, w, h])
+        self._custom_sprites = {}
+        if _CAMPAIGN_DIR.exists():
+            for camp_dir in _CAMPAIGN_DIR.iterdir():
+                loc_dir = camp_dir / "locations"
+                if loc_dir.exists():
+                    for json_file in loc_dir.glob("*.json"):
+                        try:
+                            with open(json_file, "r", encoding="utf-8-sig") as f:
+                                data = json.load(f)
+                            for npc in data.get("npcs", []):
+                                if npc.get("sprite"):
+                                    self._custom_sprites[npc["ref_id"]] = npc["sprite"]
+                            for obj in data.get("objects", []):
+                                if obj.get("sprite"):
+                                    self._custom_sprites[obj["id"]] = obj["sprite"]
+                        except Exception:
+                            continue
         self.font_small = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_SMALL)
         self.font_audio = pygame.font.SysFont(
             FONT_NAME_MAIN, FONT_SIZE_AUDIO, italic=True
@@ -61,6 +85,8 @@ class SceneRenderer:
         self.font_tooltip = pygame.font.SysFont(FONT_NAME_UI, FONT_SIZE_TOOLTIP)
         # Lerp для угла поворота (Приоритет 0)
         self._visual_facing_angle = -1.5708  # -pi/2 (смотрит вверх)
+        # NEW-SPATIAL-003 FIX: Кэш для LERP сглаживания body_heading NPC
+        self._prev_npc_headings: Dict[str, float] = {}
         # Темпоральная инерция восприятия (S-curve, гистерезис, стохастика)
         self.momentum = PerceptualMomentum()
 
@@ -129,7 +155,7 @@ class SceneRenderer:
         self._draw_obstacles(obstacles, cam_x, cam_y)
 
         # 4. NPC — только воспринимаемые (с Temporal Delay)
-        self._draw_npcs(
+        _npc_coords = self._draw_npcs(
             scene.entities,
             cam_x,
             cam_y,
@@ -137,8 +163,6 @@ class SceneRenderer:
             player_xy,
             profile,
             dt=dt,
-            speech_bubbles=speech_bubbles or {},
-            manifest_indicators=mood_indicators or {},
         )
 
         # 5. Игрок — всегда виден
@@ -146,17 +170,14 @@ class SceneRenderer:
         import math  # noqa: E402
 
         diff = player_facing - self._visual_facing_angle
-        # Кратчайший путь: нормализация разницы углов в диапазон [-pi, pi]
         diff = (diff + math.pi) % (2 * math.pi) - math.pi
-        # Экспоненциальное сглаживание (~10 рад/сек)
         self._visual_facing_angle += diff * min(1.0, 10.0 * dt)
 
-        self._draw_player(
+        _player_coords = self._draw_player(
             player_xy,
             cam_x,
             cam_y,
             self._visual_facing_angle,
-            player_speech=player_speech,
         )
 
         # 6. HUD поверх карты — audio events, body state, environment
@@ -164,8 +185,9 @@ class SceneRenderer:
 
         # 7. Embodied Perception Interface — искажение рендера от состояния аватара и среды (ADR-035, ADR-037)
         if avatar_state:
-            # Профиль уже вычислен в начале рендера, применяем оверлеи
             self._apply_avatar_perception_overlay(profile)
+
+        return {"npcs": _npc_coords, "player": _player_coords}
 
     def _apply_avatar_perception_overlay(self, profile: "ManifestationProfile") -> None:
         """Накладывает визуальные искажения на основе Темпоральной Феноменологии.
@@ -317,7 +339,22 @@ class SceneRenderer:
                 or obj_type in self._PASSABLE_TYPES
             )
 
-            sprite = get_entity_sprite(obj_type)
+            # S176 FIX: Приоритет кастомного спрайта из кэша (id объекта)
+            sprite_info = self._custom_sprites.get(obj.get("id"))
+            sprite = None
+            if sprite_info:
+                if len(sprite_info) >= 5:
+                    _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
+                    _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
+                    sprite = sprite_registry.get_rect(
+                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
+                        int(sprite_info[3]), int(sprite_info[4]), _t, _o
+                    )
+                elif len(sprite_info) >= 3:
+                    sprite = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
+            
+            if not sprite:
+                sprite = get_entity_sprite(obj_type)
 
             if sprite and sw > 0 and sh > 0:
                 scaled = pygame.transform.scale(sprite, (sw, sh))
@@ -348,13 +385,9 @@ class SceneRenderer:
         focus_id: Optional[str],
         player_xy: Tuple[float, float],
         profile: ManifestationProfile = ManifestationProfile(),  # ADR-037
-        dt: float = 0.016,  # Спринт 30: дельта времени для непрерывной кинематики
-        speech_bubbles: dict = None,  # ADR-SPEECH
-        manifest_indicators: dict = None,  # ADR-MANIFEST
-    ) -> None:
-        # ADR-037: Temporal Assembly Delay — инерция сборки реальности
-        _delay_factor = profile.temporal_assembly_delay
-        _pending_bubbles = []  # Сбор облачков для отталкивания
+        dt: float = 0.016,
+    ) -> dict:
+        _npc_coords = {}
 
         for entity in entities:
             if entity.entity_type != "npc":
@@ -437,26 +470,66 @@ class SceneRenderer:
 
             is_focused = entity.entity_id == focus_id
 
-            # Резолв спрайта: приоритет по entity_id, fallback на тип "person" для всех NPC
-            sprite = get_entity_sprite(entity.entity_id) or get_entity_sprite("person")
-            radius = 10 if is_focused else 7
-            npc_size = radius * 2
+            # S176 FIX: Приоритет кастомного спрайта из кэша
+            sprite_info = self._custom_sprites.get(entity.entity_id)
+            sprite = None
+            if sprite_info:
+                if len(sprite_info) >= 5:
+                    _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
+                    _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
+                    sprite = sprite_registry.get_rect(
+                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
+                        int(sprite_info[3]), int(sprite_info[4]), _t, _o
+                    )
+                elif len(sprite_info) >= 3:
+                    sprite = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
+            
+            if not sprite:
+                sprite = get_entity_sprite(entity.entity_id) or get_entity_sprite("person")
+            
+            # S176 FIX: Базовый размер NPC уменьшен на 20% для баланса
+            npc_size = 90 if is_focused else 76
+            radius = npc_size // 2
 
+            # NEW-SPATIAL-003 FIX: LERP сглаживание для body_heading (убирает дёрганье спрайтов)
+            _target_heading = getattr(entity, "body_heading", 1.5708)
+            _prev_heading = self._prev_npc_headings.get(entity.entity_id, _target_heading)
+            _diff = (_target_heading - _prev_heading + math.pi) % (2 * math.pi) - math.pi
+            _heading = _prev_heading + _diff * 0.15
+            self._prev_npc_headings[entity.entity_id] = _heading
+
+            # S168: Pose Tense - визуализация напряжения тела
+            _pose_tense = getattr(entity, "pose_tense", 0.0)
+            
             if sprite:
-                scaled = pygame.transform.scale(sprite, (npc_size, npc_size))
+                # S176 FIX: Сохраняем пропорции NPC
+                sw, sh = sprite.get_size()
+                ratio = min(npc_size / sw, npc_size / sh)
+                nw, nh = int(sw * ratio), int(sh * ratio)
+                scaled = pygame.transform.smoothscale(sprite, (nw, nh))
                 # NEW-ORIENT-002 FIX: Вращаем спрайт по body_heading (Y инвертирован в pygame)
-                _angle_deg = -math.degrees(getattr(entity, "body_heading", 1.5708))
+                _angle_deg = -math.degrees(_heading)
                 rotated = pygame.transform.rotate(scaled, _angle_deg)
                 _rect = rotated.get_rect(center=(sx, sy))
                 self.screen.blit(rotated, _rect)
+                
                 if is_focused:
                     pygame.draw.circle(
                         self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2
                     )  # Белый контур фокуса
+                elif _pose_tense > 0.5:
+                    # Красный жёсткий контур при напряжении
+                    pygame.draw.circle(
+                        self.screen, (200, 50, 50), (sx, sy), npc_size // 2 + 2, 2
+                    )
             else:
-                color = _COLORS["npc_focused"] if is_focused else _COLORS["npc_body"]
+                # S168: Цвет треугольника меняется на красный при напряжении
+                if _pose_tense > 0.5:
+                    color = (200, 50, 50)
+                else:
+                    color = _COLORS["npc_focused"] if is_focused else _COLORS["npc_body"]
                 # NEW-ORIENT-002 FIX: Рисуем треугольник вместо круга, чтобы была видна ориентация
-                _heading = getattr(entity, "body_heading", 1.5708)
+                # _heading уже вычислен и сглажен выше (NEW-SPATIAL-003 FIX)
                 _tip = (sx + 12 * math.cos(_heading), sy + 12 * math.sin(_heading))
                 _left = (sx + 8 * math.cos(_heading + 2.5), sy + 8 * math.sin(_heading + 2.5))
                 _right = (sx + 8 * math.cos(_heading - 2.5), sy + 8 * math.sin(_heading - 2.5))
@@ -468,91 +541,19 @@ class SceneRenderer:
 
             # Имя по confidence
             if entity.display_name:
-                name_color = (255, 255, 255) if is_focused else COLOR_TEXT_DIM
-                label = self.font_small.render(entity.display_name, True, name_color)
+                _blur = getattr(entity, "blur_intensity", 0.0)
+                # S169: Эффект "незнакомца" - серое полупрозрачное имя
+                if _blur > 0.4:
+                    name_color = (150, 150, 150)
+                    label = self.font_small.render(entity.display_name, True, name_color)
+                    label.set_alpha(150)
+                else:
+                    name_color = (255, 255, 255) if is_focused else COLOR_TEXT_DIM
+                    label = self.font_small.render(entity.display_name, True, name_color)
+                    
                 self.screen.blit(label, (sx - label.get_width() // 2, sy - radius - 16))
 
-            # ADR-MANIFEST: Наблюдаемые физические проявления (цветной текст под именем)
-            _manifests = manifest_indicators or {}
-            _manif = _manifests.get(entity.entity_id)
-            if _manif and _manif.get("text"):
-                _manif_text = _manif.get("text", "")
-                _manif_color = _manif.get("color", COLOR_MANIFEST_DEFAULT)
-                _manif_surf = self.font_small.render(_manif_text, True, _manif_color)
-                self.screen.blit(
-                    _manif_surf, (sx - _manif_surf.get_width() // 2, sy + radius + 14)
-                )
-
-            # ADR-SPEECH: Речевое облачко над головой NPC (перенос по словам, обрезка по предложению)
-            _bubbles = speech_bubbles or {}
-            _bubble_data = _bubbles.get(entity.entity_id) if entity.entity_id else None
-            if _bubble_data:
-                _age = pygame.time.get_ticks() - _bubble_data["tick"]
-                if _age < 6000:
-                    _alpha = (
-                        255
-                        if _age < 4500
-                        else int(255 * (1.0 - (_age - 4500) / 1500.0))
-                    )
-                    _btxt = _bubble_data["text"]
-                    _max_w = 180  # максимальная ширина облачка в пикселях
-                    _max_lines = 10
-                    _line_h = self.font_small.get_height() + 2
-                    # Перенос по словам
-                    _words = _btxt.split(" ")
-                    _lines = []
-                    _cur = ""
-                    for _w in _words:
-                        _test = (_cur + " " + _w).strip()
-                        if self.font_small.size(_test)[0] <= _max_w:
-                            _cur = _test
-                        else:
-                            if _cur:
-                                _lines.append(_cur)
-                            _cur = _w
-                    if _cur:
-                        _lines.append(_cur)
-                    # Обрезка по предложению если >3 строк
-                    if len(_lines) > _max_lines:
-                        _combined = " ".join(_lines[:_max_lines])
-                        _last_sent = max(
-                            _combined.rfind("."),
-                            _combined.rfind("!"),
-                            _combined.rfind("?"),
-                            _combined.rfind("—"),
-                        )
-                        if _last_sent > len(_combined) // 2:
-                            _lines = _combined[: _last_sent + 1].split("\n")
-                            # Пересобираем с переносом
-                            _words2 = _combined[: _last_sent + 1].split(" ")
-                            _lines = []
-                            _cur2 = ""
-                            for _w2 in _words2:
-                                _test2 = (_cur2 + " " + _w2).strip()
-                                if self.font_small.size(_test2)[0] <= _max_w:
-                                    _cur2 = _test2
-                                else:
-                                    if _cur2:
-                                        _lines.append(_cur2)
-                                    _cur2 = _w2
-                            if _cur2:
-                                _lines.append(_cur2)
-                        else:
-                            _lines = _lines[:_max_lines]
-                            _lines[-1] = _lines[-1].rstrip(" ,—") + "…"
-                    _bub_h = len(_lines) * _line_h + 10
-                    # Находим самую широкую строку для ширины облачка
-                    _bub_w = (
-                        max(self.font_small.size(line)[0] for line in _lines) + 14
-                        if _lines
-                        else 40
-                    )
-                    _bub_x = sx - _bub_w // 2
-                    _bub_y = sy - radius - 22 - _bub_h
-                    _pending_bubbles.append({
-                        "x": _bub_x, "y": _bub_y, "w": _bub_w, "h": _bub_h,
-                        "lines": _lines, "alpha": _alpha
-                    })
+            _npc_coords[entity.entity_id] = {"sx": sx, "sy": sy, "radius": radius}
 
             # Inference badges — маленькие индикаторы
             self._draw_inference_badges(entity, sx, sy + radius + 4)
@@ -560,8 +561,17 @@ class SceneRenderer:
             # BUG-S120.3: Текст проявлений рисуется выше (ADR-MANIFEST), квадраты убраны
             # BUG-P1-01: Рисуем конус взгляда (сектор) по body_heading
             if hasattr(entity, "body_heading"):
-                _heading = entity.body_heading
-                gaze_color = (255, 255, 80, 60)  # Полупрозрачный жёлтый
+                _gaze_avoidance = getattr(entity, "gaze_avoidance", 0.0)
+                
+                # S168: Gaze Avoidance - конус взгляда отворачивается от игрока
+                if _gaze_avoidance > 0.5:
+                    _angle_to_player = math.atan2(player_xy[1] - entity.y, player_xy[0] - entity.x)
+                    _heading = _angle_to_player + math.pi  # Смотрим строго в противоположную сторону
+                    gaze_color = (150, 150, 150, 60)  # Серый отворот
+                else:
+                    _heading = entity.body_heading
+                    gaze_color = (255, 255, 80, 60)  # Полупрозрачный жёлтый
+
                 gaze_surface = pygame.Surface((100, 100), pygame.SRCALPHA)
                 _cone_radius = 40
                 _cone_width = math.pi / 4  # 45 градусов
@@ -601,65 +611,7 @@ class SceneRenderer:
                     self.screen.blit(_surf, (sx - _surf.get_width() // 2, sy - 30))
                     break  # Показываем только первый (самый важный) cue
 
-        # ADR-SPEECH: Разрешение коллизий и отрисовка облачков после цикла
-        self._resolve_and_draw_bubbles(_pending_bubbles)
-
-    def _resolve_and_draw_bubbles(self, bubbles: list) -> None:
-        """Алгоритм Relaxation для расталкивания речевых облачков (AABB collision)."""
-        if not bubbles:
-            return
-
-        # 5 итераций расталкивания
-        for _ in range(5):
-            for i in range(len(bubbles)):
-                for j in range(i + 1, len(bubbles)):
-                    b1 = bubbles[i]
-                    b2 = bubbles[j]
-                    # Проверка пересечения по осям X и Y
-                    overlap_x = min(b1["x"] + b1["w"], b2["x"] + b2["w"]) - max(b1["x"], b2["x"])
-                    overlap_y = min(b1["y"] + b1["h"], b2["y"] + b2["h"]) - max(b1["y"], b2["y"])
-
-                    if overlap_x > 0 and overlap_y > 0:
-                        # Растолкнуть по оси наименьшего пересечения
-                        if overlap_x < overlap_y:
-                            push = overlap_x / 2 + 1
-                            if b1["x"] < b2["x"]:
-                                b1["x"] -= push
-                                b2["x"] += push
-                            else:
-                                b1["x"] += push
-                                b2["x"] -= push
-                        else:
-                            push = overlap_y / 2 + 1
-                            if b1["y"] < b2["y"]:
-                                b1["y"] -= push
-                                b2["y"] += push
-                            else:
-                                b1["y"] += push
-                                b2["y"] -= push
-
-        # Отрисовка после разрешения коллизий
-        _line_h = self.font_small.get_height() + 2
-        for bub in bubbles:
-            _bub_x = int(bub["x"])
-            _bub_y = int(bub["y"])
-            _bub_w = int(bub["w"])
-            _bub_h = int(bub["h"])
-            _alpha = int(bub["alpha"])
-            
-            _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
-            _bg.fill((25, 25, 45, min(_alpha, 210)))
-            pygame.draw.rect(
-                _bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4
-            )
-            self.screen.blit(_bg, (_bub_x, _bub_y))
-            for _li, _ll in enumerate(bub["lines"]):
-                _ls = self.font_small.render(
-                    _ll, True, (255, 255, 255)
-                )
-                _la = _ls.copy()
-                _la.set_alpha(_alpha)
-                self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
+        return _npc_coords
 
     def _draw_mood_icons(self, tags: list, sx: int, sy: int) -> None:
         """Рисует иконки наблюдаемых физических проявлений (ADR-MANIFEST).
@@ -741,8 +693,7 @@ class SceneRenderer:
         cam_x: float,
         cam_y: float,
         facing: float,
-        player_speech: Optional[dict] = None,
-    ) -> None:
+    ) -> dict:
         import math  # noqa: E402
 
         sx, sy = self._w2s(xy[0], xy[1], cam_x, cam_y)
@@ -765,78 +716,7 @@ class SceneRenderer:
             self.screen, (200, 230, 255), points, 3
         )  # Светло-голубой контур зоны
 
-        # ADR-SPEECH: Речевое облачко над головой игрока (перенос по словам, обрезка по предложению)
-        if player_speech:
-            _age = pygame.time.get_ticks() - player_speech["tick"]
-            if _age < 4000:
-                _alpha = (
-                    255 if _age < 2500 else int(255 * (1.0 - (_age - 2500) / 1500.0))
-                )
-                _btxt = player_speech["text"]
-                _max_w = 180
-                _max_lines = 2  # игрок обычно говорит короче
-                _line_h = self.font_small.get_height() + 2
-                # Перенос по словам
-                _words = _btxt.split(" ")
-                _lines = []
-                _cur = ""
-                for _w in _words:
-                    _test = (_cur + " " + _w).strip()
-                    if self.font_small.size(_test)[0] <= _max_w:
-                        _cur = _test
-                    else:
-                        if _cur:
-                            _lines.append(_cur)
-                        _cur = _w
-                if _cur:
-                    _lines.append(_cur)
-                # Обрезка по предложению если >2 строк
-                if len(_lines) > _max_lines:
-                    _combined = " ".join(_lines[:_max_lines])
-                    _last_sent = max(
-                        _combined.rfind("."),
-                        _combined.rfind("!"),
-                        _combined.rfind("?"),
-                        _combined.rfind("—"),
-                    )
-                    if _last_sent > len(_combined) // 2:
-                        _words2 = _combined[: _last_sent + 1].split(" ")
-                        _lines = []
-                        _cur2 = ""
-                        for _w2 in _words2:
-                            _test2 = (_cur2 + " " + _w2).strip()
-                            if self.font_small.size(_test2)[0] <= _max_w:
-                                _cur2 = _test2
-                            else:
-                                if _cur2:
-                                    _lines.append(_cur2)
-                                _cur2 = _w2
-                        if _cur2:
-                            _lines.append(_cur2)
-                    else:
-                        _lines = _lines[:_max_lines]
-                        _lines[-1] = _lines[-1].rstrip(" ,—") + "…"
-                _bub_h = len(_lines) * _line_h + 10
-                _bub_w = (
-                    max(self.font_small.size(line)[0] for line in _lines) + 14
-                    if _lines
-                    else 40
-                )
-                _bub_x = sx - _bub_w // 2
-                _bub_y = sy - 28 - _bub_h
-                _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
-                _bg.fill((15, 30, 50, min(_alpha, 210)))
-                pygame.draw.rect(
-                    _bg, (80, 160, 240, _alpha), _bg.get_rect(), 1, border_radius=4
-                )
-                self.screen.blit(_bg, (_bub_x, _bub_y))
-                for _li, _ll in enumerate(_lines):
-                    _ls = self.font_small.render(
-                        _ll, True, (200, 230, 255)
-                    )  # Светло-голубой текст
-                    _la = _ls.copy()
-                    _la.set_alpha(_alpha)
-                    self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
+        return {"sx": sx, "sy": sy, "radius": 16}
 
     def _draw_hud(self, scene: PerceivedScene) -> None:
         """Отрисовывает текстовый HUD поверх карты"""

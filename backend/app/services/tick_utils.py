@@ -323,6 +323,7 @@ def create_tick_context(
     task_scheduler: Any = None,
     hub_event: Any = None,
     eco_profile: Any = None,  # S151: Профиль игрока для EmbodiedStatusDTO
+    mvp_controller: Any = None,  # ENIGMA SELF-HEALING: For MvpPipelineProbe (N1, M-03)
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
 
@@ -384,5 +385,6 @@ def create_tick_context(
         spatial_query=_spatial_query,
         eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
         hub_event=hub_event,  # BUG-CORE-003 FIX: Проброс контекста игрока в ядро
+        mvp_controller=mvp_controller,  # ENIGMA SELF-HEALING: For probes
     )
     return ctx

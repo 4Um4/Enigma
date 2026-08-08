@@ -39,6 +39,7 @@ Thumbs.db
 # Large log files (>100MB)
 backend/logs/cds_backend.log
 backend/logs/cds_session_20260724_235539.log
+backend/drift_log.txt
 
 # Build artifacts
 build/

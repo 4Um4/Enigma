@@ -1352,6 +1352,9 @@ class EditorCore:
                 elif self.dialog and getattr(self.dialog, "active", False):
                     if self.dialog.handle_event(event):
                         continue
+                elif hasattr(self, "vc_editor") and self.vc_editor and getattr(self.vc_editor, "active", False):
+                    if self.vc_editor.handle_event(event):
+                        continue
                 else:
                     self._handle_event(event)
 
@@ -2703,6 +2706,63 @@ class EditorCore:
                 obj["show_name"] = not obj.get("show_name", False)
             return
 
+        if action == "edit_portraits" and obj_type == "npc":
+            from data_manager import load_npc_visual_casting, save_npc_visual_casting
+            from visual_casting_editor import VisualCastingEditor
+            npc = next((n for n in loc.get("npcs", []) if n["ref_id"] == obj_key), None)
+            if not npc:
+                return
+            
+            current_casting = load_npc_visual_casting(npc["ref_id"])
+            if not current_casting:
+                current_casting = {"fallback": {"expression_id": "neutral", "asset": ["", 0, 0]}, "rules": []}
+                
+            def on_save_casting(new_casting):
+                save_npc_visual_casting(npc["ref_id"], new_casting)
+                self._show_toast(f"Visual Casting сохранён для {npc['ref_id']}")
+                self.vc_editor = None
+
+            self.vc_editor = VisualCastingEditor(self.screen, npc["ref_id"], current_casting)
+            self.vc_editor.on_save = on_save_casting
+            return
+
+        if action == "pick_sprite":
+            from visual_casting_editor import VisualCastingEditor
+            
+            if obj_type == "object":
+                obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
+                if obj:
+                    current_sprite = obj.get("sprite", [])
+                    dummy_casting = {"fallback": {"expression_id": "neutral", "asset": current_sprite}, "rules": []}
+                    
+                    def on_save_obj_sprite(new_casting):
+                        fb = new_casting.get("fallback", {}).get("asset")
+                        if fb and len(fb) >= 5:
+                            obj["sprite"] = fb
+                            self._show_toast("Спрайт объекта обновлён")
+                        self.vc_editor = None
+                        
+                    self.vc_editor = VisualCastingEditor(self.screen, obj["id"], dummy_casting, simple_mode=True)
+                    self.vc_editor.on_save = on_save_obj_sprite
+                    return
+
+            elif obj_type == "npc":
+                npc = next((n for n in loc.get("npcs", []) if n["ref_id"] == obj_key), None)
+                if npc:
+                    current_sprite = npc.get("sprite", [])
+                    dummy_casting = {"fallback": {"expression_id": "neutral", "asset": current_sprite}, "rules": []}
+                    
+                    def on_save_npc_sprite(new_casting):
+                        fb = new_casting.get("fallback", {}).get("asset")
+                        if fb and len(fb) >= 5:
+                            npc["sprite"] = fb
+                            self._show_toast("Спрайт NPC обновлён")
+                        self.vc_editor = None
+                        
+                    self.vc_editor = VisualCastingEditor(self.screen, npc["ref_id"], dummy_casting, simple_mode=True)
+                    self.vc_editor.on_save = on_save_npc_sprite
+                    return
+
         if action == "rename_label":
             lbl = next((l for l in loc["labels"] if l["id"] == obj_key), None)  # noqa: E741
             if lbl:
@@ -2835,6 +2895,7 @@ class EditorCore:
                     "value": obj.get("show_name", False),
                     "action": "toggle_show_name",
                 },
+                {"type": "toggle", "label": "🖼️ Выбрать спрайт", "action": "pick_sprite"},
                 {"type": "value", "label": "X", "value": f"{obj['position']['x']:.1f}"},
                 {"type": "value", "label": "Y", "value": f"{obj['position']['y']:.1f}"},
                 {"type": "section", "text": "Проходимость:"},
@@ -2999,7 +3060,23 @@ class EditorCore:
                         "label": "Комната",
                         "value": npc.get("room_id", "—"),
                     },
+                    {"type": "toggle", "label": "🖼️ Выбрать спрайт", "action": "pick_sprite"},
+                    {"type": "toggle", "label": "🎭 Редактировать портреты", "action": "edit_portraits"},
                 ]
+
+                # S176: Превью портрета Neutral (из visual_casting)
+                from data_manager import load_npc_visual_casting
+                v_casting = load_npc_visual_casting(npc["ref_id"])
+                fb_asset = v_casting.get("fallback", {}).get("asset", [])
+                if isinstance(fb_asset, list) and len(fb_asset) == 3 and fb_asset[0]:
+                    try:
+                        _surf = sprite_registry.get(fb_asset[0], fb_asset[1], fb_asset[2])
+                        if _surf:
+                            items.append({"type": "image", "surface": _surf, "w": 128, "h": 128})
+                    except Exception:
+                        pass
+
+                items.append({"type": "button", "label": "Редактировать портреты", "action": "edit_portraits"})
 
         elif obj_type == "spawn":
             spawn = loc.get("player_spawn")
@@ -3036,6 +3113,8 @@ class EditorCore:
                 self.dialog.draw(self.screen, self.font)
             else:
                 self.dialog.draw(self.font, self.font_small)
+        elif hasattr(self, "vc_editor") and self.vc_editor and getattr(self.vc_editor, "active", False):
+            self.vc_editor.draw(self.font, self.font_small)
 
     def _draw_world(self):
         """Отрисовывает карту мира"""
@@ -3494,18 +3573,29 @@ class EditorCore:
                 rotation = 0.0
             color = OBJECT_COLORS.get(obj["type"], OBJECT_COLORS["decoration"])
 
-            # Попытка получить спрайт из пресета
+            # Попытка получить спрайт из объекта или из пресета
             preset = OBJECT_PRESETS.get(obj["type"], {})
-            sprite_info = preset.get("sprite")
+            sprite_info = obj.get("sprite") or preset.get("sprite")
             sprite_surf = None
             if sprite_info:
-                sprite_surf = sprite_registry.get(
-                    sprite_info[0], sprite_info[1], sprite_info[2]
-                )
+                if len(sprite_info) >= 5:
+                    _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
+                    _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
+                    sprite_surf = sprite_registry.get_rect(
+                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
+                        int(sprite_info[3]), int(sprite_info[4]), _t, _o
+                    )
+                else:
+                    sprite_surf = sprite_registry.get(
+                        sprite_info[0], sprite_info[1], sprite_info[2]
+                    )
 
             if sprite_surf:
-                # Отрисовка спрайта с масштабированием без рамки
-                scaled = pygame.transform.scale(sprite_surf, (int(w), int(h)))
+                # S176 FIX: Сохраняем пропорции объекта, чтобы не сплющивать текстуру
+                sw, sh = sprite_surf.get_size()
+                ratio = min(w / sw, h / sh)
+                nw, nh = int(sw * ratio), int(sh * ratio)
+                scaled = pygame.transform.scale(sprite_surf, (nw, nh))
                 if rotation % 360 != 0:
                     scaled = pygame.transform.rotate(scaled, -rotation)
                 scaled_rect = scaled.get_rect(center=(int(sx), int(sy)))
@@ -3546,19 +3636,34 @@ class EditorCore:
                 npc["ref_id"],
             )
 
-            # Спрайт из маппинга или дефолтный
-            sprite_info = NPC_SPRITE_MAP.get(
+            # Спрайт из объекта или маппинга
+            sprite_info = npc.get("sprite") or NPC_SPRITE_MAP.get(
                 npc["ref_id"], ("Deadbeat/deadbeat_b", 23, 21)
             )
-            size = int(SCALE * self.zoom * 0.8)
-            sprite_surf = sprite_registry.get(
-                sprite_info[0], sprite_info[1], sprite_info[2]
-            )
+            # S176 FIX: Увеличиваем базовый размер NPC в редакторе карт
+            size = int(SCALE * self.zoom * 1.5)
+            sprite_surf = None
+            if sprite_info:
+                if len(sprite_info) >= 5:
+                    _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
+                    _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
+                    sprite_surf = sprite_registry.get_rect(
+                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
+                        int(sprite_info[3]), int(sprite_info[4]), _t, _o
+                    )
+                else:
+                    sprite_surf = sprite_registry.get(
+                        sprite_info[0], sprite_info[1], sprite_info[2]
+                    )
 
             is_selected = self.selected_object == ("npc", npc["ref_id"])
 
             if sprite_surf:
-                scaled = pygame.transform.scale(sprite_surf, (size, size))
+                # S176 FIX: Сохраняем пропорции NPC, чтобы не сплющивать текстуру
+                sw, sh = sprite_surf.get_size()
+                ratio = min(size / sw, size / sh)
+                nw, nh = int(sw * ratio), int(sh * ratio)
+                scaled = pygame.transform.scale(sprite_surf, (nw, nh))
                 rect = scaled.get_rect(center=(int(sx), int(sy)))
                 self.screen.blit(scaled, rect)
                 if is_selected:

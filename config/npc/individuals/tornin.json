@@ -1,4 +1,4 @@
-﻿{
+{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "tavern_keeper",
@@ -162,5 +162,121 @@
       "decay_rate": 0.002
     }
   ],
-  "core_orientation": "ruler"
+  "core_orientation": "ruler",
+  "visual_casting": {
+    "fallback": {
+      "expression_id": "neutral",
+      "asset": [
+        "Pers/traktir/Трактирщик",
+        853,
+        17,
+        379,
+        464,
+        220,
+        3
+      ]
+    },
+    "rules": [
+      {
+        "expression_id": "shouting",
+        "priority": 100,
+        "asset": [
+          "Pers/traktir/Трактирщик",
+          273,
+          484,
+          235,
+          287,
+          220,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "SHOUT"
+          }
+        ]
+      },
+      {
+        "expression_id": "whispering",
+        "priority": 90,
+        "asset": [
+          "Pers/traktir/Трактирщик",
+          1249,
+          17,
+          283,
+          454,
+          220,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "WHISPER"
+          }
+        ]
+      },
+      {
+        "expression_id": "tense",
+        "priority": 50,
+        "asset": [
+          "Pers/traktir/Трактирщик",
+          1245,
+          484,
+          284,
+          314,
+          220,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "pose_tense",
+            "op": ">",
+            "value": 0.5
+          }
+        ]
+      },
+      {
+        "expression_id": "avoiding_gaze",
+        "priority": 40,
+        "asset": [
+          "Pers/traktir/Трактирщик",
+          1228,
+          13,
+          301,
+          437,
+          220,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "gaze_avoidance",
+            "op": ">",
+            "value": 0.7
+          }
+        ]
+      },
+      {
+        "expression_id": "surprised",
+        "priority": 80,
+        "asset": [
+          "Pers/traktir/Трактирщик",
+          1000,
+          488,
+          256,
+          286,
+          220,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "pose_tremor",
+            "op": ">",
+            "value": 0.6
+          }
+        ]
+      }
+    ]
+  }
 }

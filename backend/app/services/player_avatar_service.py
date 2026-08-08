@@ -297,7 +297,7 @@ class PlayerAvatarService:
             "recent_failures": int(state.recent_failures),
             "life_project": state.life_project,
             "life_project_state": state.life_project_state,
-            "social_input_ema": dict(state.social_input_ema),
+            "social_input_ema": state.social_input_ema,
             "temporary_drives": dict(state.temporary_drives),
             "drives_runtime": dict(state.drives_runtime),
             "strain_memory": dict(state.strain_memory),

@@ -444,23 +444,17 @@ def _validate_navigation_geometry(
                 # Стена уже разрезана дверями (wall_id) на этапе _build_spatial_data.
                 # Если ребро пересекает оставшийся сегмент — это архитектурная ошибка карты.
                 if _is_wall_block:
-                    import os
-                    logger.error(
-                        f"[MAP_TOPOLOGY_DEFECT] Edge {from_id} -> {to_id} crosses wall. "
-                        f"Removing edge. Blocker: {_blocker}. Set ENIGMA_STRICT_MAP=1 to crash."
+                    # BUG-TOPO-001 FIX: Временно логируем и удаляем ребро, не роняя SpatialService.
+                    logger.warning(
+                        f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+                        f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph."
                     )
-                    if os.environ.get("ENIGMA_STRICT_MAP") == "1":
-                        raise SimulationIntegrityError(
-                            invariant_id="INV-TOPOLOGY-WALL-CROSS",
-                            message=f"Edge {from_id} -> {to_id} crosses solid wall. Missing door wall_id? Blocker: {_blocker}",
-                            suspect_files=[__file__],
-                            file=__file__, line=385,
-                        )
-                print(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
-                logger.warning(
-                    f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
-                    f"is geometrically blocked! Edge removed from graph."
-                )
+                else:
+                    print(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+                    logger.warning(
+                        f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+                        f"is geometrically blocked! Edge removed from graph."
+                    )
                 _blocked_edges.add((from_id, to_id))
                 _blocked_edges.add((to_id, from_id))
 
@@ -594,18 +588,20 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         if obj.get("type") not in ("door", "door_transition"):
             continue
             
-        # S143: Ищем ВСЕ стены, на которых лежит дверь
-        walls_for_door = _find_walls_for_door(editor_data, obj)
-        
-        # Fallback: если явный wall_id указан, добавляем его, если не нашли по координатам
+        # S143 FIX §1: Дверь разрезает стену, только если она архитектурно привязана к ней (wall_id).
+        # Если привязка есть — ищем ВСЕ стены на координате двери, чтобы разрезать дубликаты.
+        # Если привязки нет — стена не разрезается, что приведет к INV-TOPOLOGY-WALL-CROSS.
         explicit_wall_id = obj.get("wall_id") or obj.get("properties", {}).get("wall_id")
         if not explicit_wall_id:
             rot = obj.get("rotation")
             if isinstance(rot, str) and rot.startswith("wall_"):
                 explicit_wall_id = rot
-                
-        if explicit_wall_id and explicit_wall_id not in walls_for_door:
-            walls_for_door.append(explicit_wall_id)
+
+        walls_for_door: List[str] = []
+        if explicit_wall_id:
+            walls_for_door = _find_walls_for_door(editor_data, obj)
+            if explicit_wall_id not in walls_for_door:
+                walls_for_door.append(explicit_wall_id)
             
         for wid in walls_for_door:
             wall_openings.setdefault(wid, []).append(obj)

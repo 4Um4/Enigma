@@ -1,4 +1,4 @@
-﻿{
+{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "maid",
@@ -210,5 +210,121 @@
       "decay_rate": 0.003
     }
   ],
-  "core_orientation": "family_builder"
+  "core_orientation": "family_builder",
+  "visual_casting": {
+    "fallback": {
+      "expression_id": "neutral",
+      "asset": [
+        "Pers/Люся",
+        890,
+        13,
+        338,
+        440,
+        203,
+        3
+      ]
+    },
+    "rules": [
+      {
+        "expression_id": "shouting",
+        "priority": 100,
+        "asset": [
+          "Pers/Люся",
+          897,
+          460,
+          198,
+          308,
+          203,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "SHOUT"
+          }
+        ]
+      },
+      {
+        "expression_id": "whispering",
+        "priority": 90,
+        "asset": [
+          "Pers/Люся",
+          1245,
+          23,
+          280,
+          424,
+          203,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "WHISPER"
+          }
+        ]
+      },
+      {
+        "expression_id": "tense",
+        "priority": 50,
+        "asset": [
+          "Pers/Люся",
+          675,
+          440,
+          232,
+          331,
+          203,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "pose_tense",
+            "op": ">",
+            "value": 0.5
+          }
+        ]
+      },
+      {
+        "expression_id": "avoiding_gaze",
+        "priority": 40,
+        "asset": [
+          "Pers/Люся",
+          1290,
+          450,
+          218,
+          321,
+          203,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "gaze_avoidance",
+            "op": ">",
+            "value": 0.7
+          }
+        ]
+      },
+      {
+        "expression_id": "surprised",
+        "priority": 80,
+        "asset": [
+          "Pers/Люся",
+          259,
+          447,
+          222,
+          331,
+          203,
+          3
+        ],
+        "evidence": [
+          {
+            "field": "pose_tremor",
+            "op": ">",
+            "value": 0.6
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -215,6 +215,14 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — динам�
 - ❌ Вычисление `legacy_is_boundary` на основе мутированного `location_id`.
 - ❌ Объявление ФАЗЫ 3 готовой при наличии крашнувшихся тиков или < 100k comparisons.
 
+## ADR-O-344: WorldTick Temporal Ownership & Execution Cardinality [ONTO]
+**Статус:** Принято
+**Домен:** L2 (Runtime Purity), Время, Исполнение
+**Табу:** 
+- `GameLoop` не имеет права изменять `game_time_seconds` или `tick`.
+- `TickOrchestrator.execute` не имеет права вызывать фазы (кроме симуляции конкретной сцены) или продвигать время внутри цикла по сценам.
+- Запрет на множественные коммиты в рамках одного `execute()`.
+
 ## ADR-O-342: Real-Time Causal Probes & PBT [ONTO]
 > **Статус:** ACTIVE
 > **Домен:** DOM-01 (Foundation), DOM-08 (Observability)

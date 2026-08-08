@@ -1,0 +1,245 @@
+2026-08-08 22:54:16,210 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260808_225416.log
+2026-08-08 22:54:16,210 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-08 22:54:16,210 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-08 22:54:16,523 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-08-08 22:54:16,547 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-08 22:54:16,565 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-08 22:54:16,748 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-08-08 22:54:16,777 app.services.llm.router INFO: [LLM_CACHE] Replay context bound. Session: bae63381-d26b-489d-9785-d82363b3ec43
+2026-08-08 22:54:16,790 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-08-08 22:54:16,790 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-08-08 22:54:16,808 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-08-08 22:54:16,862 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-08-08 22:54:16,909 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-08-08 22:54:16,978 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-08 22:54:16,978 app.core.schema_validator WARNING: [SCHEMA] TruthState failed to load (is None) — MVP features disabled.
+2026-08-08 22:54:16,978 app.core.schema_validator ERROR: [SCHEMA] EventBus validation failed: 'EventBus' object has no attribute '_subscribers'
+2026-08-08 22:54:16,978 app.core.schema_validator WARNING: [SCHEMA] Validation finished with 1 errors (non-blocking).
+2026-08-08 22:54:26,311 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-08-08 22:54:26,342 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-08-08 22:54:57,036 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:54:57,036 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:54:57,036 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 34 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:54:57,036 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:06,358 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:06,358 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:06,358 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 34 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:06,359 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:10,439 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:10,439 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:10,440 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 34 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:10,440 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:14,744 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:14,744 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:14,744 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:14,744 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:18,435 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:18,435 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:18,435 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:18,435 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:21,852 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:21,852 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:21,852 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:21,852 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:25,229 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:25,230 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:25,230 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:25,230 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:26,551 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:26,551 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:26,551 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:26,553 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:29,897 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:29,897 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:29,897 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:29,897 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-08 22:55:41,583 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:41,583 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:41,583 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:41,584 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-08 22:55:44,141 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:44,141 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:44,142 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:44,142 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:44,142 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:44,142 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:50,186 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:50,186 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:50,186 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:50,187 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:50,187 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:50,187 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:52,677 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:52,677 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:52,677 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:52,677 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:52,677 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:52,678 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:52,973 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:52,973 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:52,973 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:52,973 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:52,973 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:52,973 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:54,473 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:54,473 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:54,473 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:54,473 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:54,473 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:54,473 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:55,240 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:55,240 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:55,240 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:55,240 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:55,240 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:55,241 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:56,321 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:56,321 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:56,321 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:56,321 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:56,321 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:56,321 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:57,947 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:57,947 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:57,947 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:57,947 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:57,947 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:57,947 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:55:58,795 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:55:58,795 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:55:58,795 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:55:58,795 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:55:58,795 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:55:58,795 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:00,308 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:00,308 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:00,308 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:00,308 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:00,308 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:00,308 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:02,551 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:02,552 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:02,552 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:02,552 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:02,552 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:02,552 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:03,836 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:03,836 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:03,836 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:03,836 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:03,837 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:03,837 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:05,104 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:05,104 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:05,104 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:05,105 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:05,105 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:05,105 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:06,085 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:06,085 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:06,085 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:06,085 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:06,085 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:06,085 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:06,136 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:06,136 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:06,136 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:06,136 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:06,136 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:06,136 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:08,431 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:08,431 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:08,431 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:08,431 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:08,431 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:08,431 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:13,091 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:13,091 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:13,091 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:13,091 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:13,091 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:13,091 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:15,660 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:15,660 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:15,660 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:15,660 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:15,660 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:15,660 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:15,715 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:15,715 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:15,715 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:15,715 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:15,715 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:15,715 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:18,013 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:18,014 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:18,014 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:18,014 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:18,014 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:18,014 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:19,599 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:19,600 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:19,600 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:19,600 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:19,600 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:19,600 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:21,605 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:21,605 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:21,605 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:21,605 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:21,605 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:21,606 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-08 22:56:26,762 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:26,762 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:26,762 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:26,762 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:26,762 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:26,763 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-08 22:56:28,541 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:28,541 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:28,541 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:28,541 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:28,541 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:28,542 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-08 22:56:34,497 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:34,498 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:34,498 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:34,498 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:34,498 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:34,498 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-08-08 22:56:36,270 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:36,270 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:36,270 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:36,270 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:36,270 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:36,270 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:42,747 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:42,747 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:42,747 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:42,747 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:42,747 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:42,748 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:44,613 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:44,613 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:44,613 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:44,613 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:44,613 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:44,613 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:45,084 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:45,084 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:45,084 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:45,085 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:45,085 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:45,085 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:47,120 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:47,120 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:47,120 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:47,120 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:47,120 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:47,120 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-08-08 22:56:47,729 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_0'. Это внешняя граница — исключена.
+2026-08-08 22:56:47,729 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Комната 'room_2' содержит 'room_1'. Это внешняя граница — исключена.
+2026-08-08 22:56:47,729 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-08-08 22:56:47,729 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-08 22:56:47,729 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 31 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-08 22:56:47,729 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS

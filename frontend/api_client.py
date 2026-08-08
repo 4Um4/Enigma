@@ -418,7 +418,7 @@ class HttpGameGateway:
         Не продвигает симуляцию (не выполняет tick).
         """
         return get_world_state(
-            campaign_id, after_tick, base_url=self._contract._base_url
+            campaign_id, after_tick, base_url=self._contract._t.base_url
         )
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:

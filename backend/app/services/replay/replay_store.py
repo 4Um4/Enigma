@@ -169,8 +169,8 @@ class ReplayStore:
         latency_ms: int
     ) -> None:
         """Записывает вызов LLM для кэширования при replay."""
-        import hashlib
-        prompt_hash = hashlib.sha256(prompt.encode('utf-8')).hexdigest()
+        from app.services.replay.llm_cache import compute_prompt_hash
+        prompt_hash = compute_prompt_hash(prompt)
         self.conn.execute(
             """INSERT INTO llm_calls (session_id, tick_id, agent_name, prompt_hash, prompt_json, response_json, model_name, latency_ms)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",

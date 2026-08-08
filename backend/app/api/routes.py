@@ -979,3 +979,10 @@ async def spatial_observatory_inspect(payload: dict = Body(...)):
         traceback.print_exc() # Выводим полный traceback в консоль
         logger.error(f"[OBSERVATORY_API] Error during inspection: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+# ── Подсистема 3: Causal Probes Dashboard ───────────────────────────
+@router.get("/probes/dashboard")
+async def probes_dashboard() -> dict:
+    """Возвращает историю результатов runtime-проб за последние 100 тиков."""
+    from app.services.probes.probe_alerts import probe_alerts
+    return probe_alerts.get_dashboard()

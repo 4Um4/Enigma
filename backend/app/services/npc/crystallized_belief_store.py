@@ -77,6 +77,13 @@ class CrystallizedBeliefStore:
         finally:
             self._loaded = True
 
+    def bind_campaign(self, campaign_id: str) -> None:
+        """Привязка к кампании с полным сбросом кэша (NEW-MEM-004)."""
+        if self._campaign_id != campaign_id:
+            self._campaign_id = campaign_id
+            self._beliefs.clear()
+            self._loaded = False
+
     def get_beliefs(self, npc_id: str) -> List[CrystallizedBelief]:
         """Чтение убеждений NPC для передачи в резолвер."""
         self._ensure_loaded()

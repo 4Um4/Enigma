@@ -63,6 +63,9 @@ class TickBuffer:
     # ── Социальные дельты (накапливаются в SocialPropagation) ──
     social_results: list = field(default_factory=list)
 
+    # ── ENIGMA SELF-HEALING: For probes (Level 1) ──
+    mvp_controller: Any = None
+
 
 @dataclass(frozen=True)
 class TickOutput:

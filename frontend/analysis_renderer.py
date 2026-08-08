@@ -48,68 +48,72 @@ class AnalysisRenderer:
         _tab_x = 15
         _new_rects = []
 
-        # Уникальные спикеры для вкладок
-        _speakers = list(dict.fromkeys([e.get("speaker", "???") for e in journal_data]))
-        if "all" not in _speakers:
-            _speakers.insert(0, "all")
+        # S166: Вкладки инструмента расследования (Закон XII)
+        _tabs = [
+            ("observations", "Наблюдения"),
+            ("hypotheses", "Гипотезы"),
+            ("facts", "Факты")
+        ]
 
-        for _spk in _speakers:
-            _tab_name = "Все" if _spk == "all" else _spk
-            _color = COLOR_TEXT_DEFAULT if _spk == active_tab else COLOR_TEXT_MUTED
+        for _tab_id, _tab_name in _tabs:
+            _color = COLOR_TEXT_DEFAULT if _tab_id == active_tab else COLOR_TEXT_MUTED
             _tab_surf = _font_tab.render(_tab_name, True, _color)
             _journal_surf.blit(_tab_surf, (_tab_x, _tab_y))
             
             _abs_x = self.screen.get_width() - _panel_width + _tab_x
-            _new_rects.append((_spk, pygame.Rect(_abs_x, _tab_y, _tab_surf.get_width(), _tab_surf.get_height())))
+            _new_rects.append((_tab_id, pygame.Rect(_abs_x, _tab_y, _tab_surf.get_width(), _tab_surf.get_height())))
             _tab_x += _tab_surf.get_width() + 15
 
         _y_offset = 75
+        _font_text = pygame.font.Font(None, 22)
+        _font_name = pygame.font.Font(None, 26)
 
-        if not journal_data:
-            _font_text = pygame.font.Font(None, 22)
-            _empty_surf = _font_text.render(t("ui:journal_empty"), True, COLOR_TEXT_MUTED)
-            _journal_surf.blit(_empty_surf, (15, _y_offset))
-        else:
-            _font_name = pygame.font.Font(None, 26)
-            _font_text = pygame.font.Font(None, 22)
+        if active_tab == "observations":
+            if not journal_data:
+                _empty_surf = _font_text.render("Вы ничего не заметили.", True, COLOR_TEXT_MUTED)
+                _journal_surf.blit(_empty_surf, (15, _y_offset))
+            else:
+                for _entry in reversed(journal_data):
+                    _speaker = _entry.get("speaker", "???")
+                    _text = _entry.get("text", "")
 
-            _filtered_data = journal_data if active_tab == "all" else [e for e in journal_data if e.get("speaker") == active_tab]
-
-            for _entry in reversed(_filtered_data):
-                _speaker = _entry.get("speaker", "???")
-                _text = _entry.get("text", "")
-
-                if _speaker == t("ui:narrator"):
-                    _color = COLOR_NARRATOR
-                elif _speaker == t("ui:npc_label"):
-                    _color = COLOR_NPC_NAME
-                else:
-                    _color = COLOR_TEXT_DEFAULT
-
-                _name_surf = _font_name.render(f"{_speaker}:", True, _color)
-                _journal_surf.blit(_name_surf, (15, _y_offset))
-                _y_offset += 24
-
-                _words = _text.split(" ")
-                _lines = []
-                _current_line = ""
-                for _word in _words:
-                    _test_line = _current_line + _word + " "
-                    if _font_text.size(_test_line)[0] < _panel_width - 30:
-                        _current_line = _test_line
+                    if _speaker == t("ui:narrator"):
+                        _color = COLOR_NARRATOR
+                    elif _speaker == t("ui:npc_label"):
+                        _color = COLOR_NPC_NAME
                     else:
-                        _lines.append(_current_line)
-                        _current_line = _word + " "
-                _lines.append(_current_line)
+                        _color = COLOR_TEXT_DEFAULT
 
-                for _line in _lines:
-                    _text_surf = _font_text.render(_line, True, COLOR_TEXT_DEFAULT)
-                    _journal_surf.blit(_text_surf, (15, _y_offset))
-                    _y_offset += 20
+                    _name_surf = _font_name.render(f"{_speaker}:", True, _color)
+                    _journal_surf.blit(_name_surf, (15, _y_offset))
+                    _y_offset += 24
 
-                _y_offset += 10
-                if _y_offset > self.screen.get_height() - 40:
-                    break
+                    _words = _text.split(" ")
+                    _lines = []
+                    _current_line = ""
+                    for _word in _words:
+                        _test_line = _current_line + _word + " "
+                        if _font_text.size(_test_line)[0] < _panel_width - 30:
+                            _current_line = _test_line
+                        else:
+                            _lines.append(_current_line)
+                            _current_line = _word + " "
+                    _lines.append(_current_line)
+
+                    for _line in _lines:
+                        _text_surf = _font_text.render(_line, True, COLOR_TEXT_DEFAULT)
+                        _journal_surf.blit(_text_surf, (15, _y_offset))
+                        _y_offset += 20
+
+                    _y_offset += 10
+                    if _y_offset > self.screen.get_height() - 40:
+                        break
+        elif active_tab == "hypotheses":
+            _empty_surf = _font_text.render("У вас пока нет гипотез.", True, COLOR_TEXT_MUTED)
+            _journal_surf.blit(_empty_surf, (15, _y_offset))
+        elif active_tab == "facts":
+            _empty_surf = _font_text.render("Установленных фактов нет.", True, COLOR_TEXT_MUTED)
+            _journal_surf.blit(_empty_surf, (15, _y_offset))
 
         self.screen.blit(_journal_surf, (self.screen.get_width() - _panel_width, 0))
         return _new_rects
@@ -197,79 +201,64 @@ class AnalysisRenderer:
         self.screen.blit(_inv_surf, (self.screen.get_width() - _panel_width, 0))
 
     def draw_embodied_status(self, status_data: dict) -> None:
-        """S151: Отрисовка текстовой панели статуса аватара (Embodied Status)."""
+        """S164: Minimalist HUD (Закон Минимального Вмешательства). 
+        Рисует только критичные потребности в виде мини-иконок в углу."""
         if not status_data:
             return
 
-        _panel_w, _panel_h = 260, 180
-        _surf = pygame.Surface((_panel_w, _panel_h), pygame.SRCALPHA)
-        _surf.fill((15, 15, 20, 200)) # Полупрозрачный фон
-
-        _font_title = pygame.font.Font(None, 28)
-        _font_text = pygame.font.Font(None, 24)
-
-        _y = 10
-        
-        # Заголовок
-        _title = _font_title.render("СОСТОЯНИЕ", True, (200, 200, 200))
-        _surf.blit(_title, (10, _y))
-        _y += 35
-
-        # Золото, еда и вес
-        _gold = status_data.get("gold", 0.0)
-        _food = status_data.get("food_count", 0.0)
+        _needs = status_data.get("active_needs", [])
         _weight = status_data.get("current_weight", 0.0)
         _max_weight = status_data.get("max_weight", 0.0)
 
-        _gold_txt = _font_text.render(f"Золото:      {_gold:.1f} G", True, (255, 215, 0))
-        _surf.blit(_gold_txt, (10, _y)); _y += 25
+        _icon_size = 12
+        _spacing = 6
+        _start_x = 15
+        _start_y = self.screen.get_height() - _icon_size - 15
 
-        _food_txt = _font_text.render(f"Провизия:    {_food:.0f} порц.", True, (200, 200, 200))
-        _surf.blit(_food_txt, (10, _y)); _y += 25
+        # 1. Иконка перегруза (вес)
+        if _max_weight > 0 and _weight > _max_weight * 0.8:
+            _color = (255, 50, 50) if _weight > _max_weight else (255, 165, 0)
+            pygame.draw.rect(self.screen, _color, (_start_x, _start_y, _icon_size, _icon_size))
+            _start_x += _icon_size + _spacing
 
-        if _max_weight > 0:
-            _weight_txt = _font_text.render(f"Вес:         {_weight:.1f}/{_max_weight:.0f}", True, (200, 200, 200))
-            _surf.blit(_weight_txt, (10, _y)); _y += 25
-
-        # Разделитель
-        pygame.draw.line(_surf, (100, 100, 100), (10, _y), (_panel_w - 10, _y))
-        _y += 10
-
-        # Активные потребности
-        _needs = status_data.get("active_needs", [])
-        
+        # 2. Иконки потребностей (только moderate и выше)
         _color_map = {
-            "minor": (200, 200, 200),
             "moderate": (255, 255, 0),
             "major": (255, 165, 0),
             "critical": (255, 50, 50),
             "extreme": (180, 0, 0)
         }
-        _label_map = {
-            "food": "Голод",
-            "income": "Финансы",
-            "shelter": "Усталость",
-            "social": "Одиночество"
-        }
-        _state_map = {
-            "food":      {"minor": "Лёгкий", "moderate": "Заметный", "major": "Сильный", "critical": "Критический", "extreme": "Мучительный"},
-            "income":    {"minor": "Стабильны", "moderate": "Напряжённы", "major": "Скудны", "critical": "Критичны", "extreme": "Нищета"},
-            "shelter":   {"minor": "Лёгкая", "moderate": "Заметная", "major": "Сильная", "critical": "Критическая", "extreme": "Изнеможение"},
-            "social":    {"minor": "Лёгкое", "moderate": "Заметное", "major": "Сильное", "critical": "Критическое", "extreme": "Тотальное"}
+        _shape_map = {
+            "food": "circle",      # Голод
+            "income": "diamond",   # Финансы
+            "shelter": "square",   # Усталость
+            "social": "triangle"   # Одиночество
         }
 
         for need in _needs:
             _nid = need.get("id", "")
             _sev = need.get("severity", "minor")
-            _label = _label_map.get(_nid, _nid)
-            _need_states = _state_map.get(_nid, {})
-            _state_txt = _need_states.get(_sev, _sev.capitalize())
-            _color = _color_map.get(_sev, (200, 200, 200))
-            _txt = f"{_label:<12} {_state_txt}"
-            _need_surf = _font_text.render(_txt, True, _color)
-            _surf.blit(_need_surf, (10, _y))
-            _y += 25
-
-        _x = 15
-        _y_pos = self.screen.get_height() - _panel_h - 15
-        self.screen.blit(_surf, (_x, _y_pos))
+            
+            if _sev in _color_map:
+                _color = _color_map[_sev]
+                _shape = _shape_map.get(_nid, "square")
+                
+                if _shape == "circle":
+                    pygame.draw.circle(self.screen, _color, (_start_x + _icon_size//2, _start_y + _icon_size//2), _icon_size//2)
+                elif _shape == "diamond":
+                    pygame.draw.polygon(self.screen, _color, [
+                        (_start_x + _icon_size//2, _start_y),
+                        (_start_x + _icon_size, _start_y + _icon_size//2),
+                        (_start_x + _icon_size//2, _start_y + _icon_size),
+                        (_start_x, _start_y + _icon_size//2)
+                    ])
+                elif _shape == "triangle":
+                    pygame.draw.polygon(self.screen, _color, [
+                        (_start_x + _icon_size//2, _start_y),
+                        (_start_x + _icon_size, _start_y + _icon_size),
+                        (_start_x, _start_y + _icon_size)
+                    ])
+                else: # square
+                    pygame.draw.rect(self.screen, _color, (_start_x, _start_y, _icon_size, _icon_size))
+                
+                _start_x += _icon_size + _spacing

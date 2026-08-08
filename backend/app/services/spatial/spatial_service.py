@@ -19,7 +19,10 @@ import heapq
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.domain.traversal import LocalGeometry
 
 from app.models.cfrm import ClusterDef, ClusterGraph
 from app.models.spatial_contracts import (

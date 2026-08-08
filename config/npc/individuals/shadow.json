@@ -1,4 +1,4 @@
-﻿{
+{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "thief",
@@ -146,5 +146,121 @@
       "decay_rate": 0.001
     }
   ],
-  "core_orientation": "warrior"
+  "core_orientation": "warrior",
+  "visual_casting": {
+    "fallback": {
+      "expression_id": "neutral",
+      "asset": [
+        "Pers/Тень",
+        802,
+        3,
+        382,
+        365,
+        220,
+        1
+      ]
+    },
+    "rules": [
+      {
+        "expression_id": "shouting",
+        "priority": 100,
+        "asset": [
+          "Pers/Тень",
+          935,
+          385,
+          300,
+          314,
+          220,
+          1
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "SHOUT"
+          }
+        ]
+      },
+      {
+        "expression_id": "whispering",
+        "priority": 90,
+        "asset": [
+          "Pers/Тень",
+          621,
+          392,
+          304,
+          304,
+          220,
+          1
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "WHISPER"
+          }
+        ]
+      },
+      {
+        "expression_id": "tense",
+        "priority": 50,
+        "asset": [
+          "Pers/Тень",
+          17,
+          395,
+          279,
+          308,
+          220,
+          1
+        ],
+        "evidence": [
+          {
+            "field": "pose_tense",
+            "op": ">",
+            "value": 0.5
+          }
+        ]
+      },
+      {
+        "expression_id": "avoiding_gaze",
+        "priority": 40,
+        "asset": [
+          "Pers/Тень",
+          1191,
+          10,
+          338,
+          365,
+          220,
+          1
+        ],
+        "evidence": [
+          {
+            "field": "gaze_avoidance",
+            "op": ">",
+            "value": 0.7
+          }
+        ]
+      },
+      {
+        "expression_id": "surprised",
+        "priority": 80,
+        "asset": [
+          "Pers/Тень",
+          935,
+          385,
+          307,
+          307,
+          220,
+          1
+        ],
+        "evidence": [
+          {
+            "field": "pose_tremor",
+            "op": ">",
+            "value": 0.6
+          }
+        ]
+      }
+    ]
+  }
 }

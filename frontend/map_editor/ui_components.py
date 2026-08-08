@@ -690,7 +690,7 @@ class PropertyPanel:
         # Создаём кнопки для действий
         y = self.rect.y + 60
         for item in items:
-            if item.get("type") == "toggle":
+            if item.get("type") in ("toggle", "button"):
                 btn = Button(
                     self.rect.x + 15,
                     y,
@@ -700,7 +700,10 @@ class PropertyPanel:
                     color_key="btn_success" if item.get("value") else "btn_danger",
                 )
                 self.buttons.append((btn, item))
-            y += 32
+            if item.get("type") == "image":
+                y += item.get("h", 64) + 10
+            else:
+                y += 32
 
     def draw(
         self,
@@ -748,6 +751,19 @@ class PropertyPanel:
                 screen.blit(value_surf, (self.rect.x + 100, y))
                 y += 24
 
+            elif item.get("type") == "image":
+                # S171: Превью портрета (Спрайтшит)
+                surf = item.get("surface")
+                w = item.get("w", 64)
+                h = item.get("h", 64)
+                if surf:
+                    try:
+                        scaled = pygame.transform.scale(surf, (w, h))
+                        screen.blit(scaled, (self.rect.x + 15, y))
+                    except Exception:
+                        pass
+                y += h + 10
+
             elif item.get("type") == "section":
                 # Раздел
                 y += 5
@@ -764,13 +780,16 @@ class PropertyPanel:
                 screen.blit(sect_surf, (self.rect.x + 15, y))
                 y += 26
 
-            elif item.get("type") == "toggle":
-                # Переключатель
+            elif item.get("type") in ("toggle", "button"):
+                # Переключатель или Кнопка
                 y += 5
-                color = (
-                    COLORS["btn_success"] if item.get("value") else COLORS["btn_danger"]
-                )
-                btn_rect = pygame.Rect(self.rect.x + 15, y, 110, 28)
+                if item.get("type") == "button":
+                    color = COLORS.get("btn_primary", (50, 90, 130))
+                else:
+                    color = (
+                        COLORS["btn_success"] if item.get("value") else COLORS["btn_danger"]
+                    )
+                btn_rect = pygame.Rect(self.rect.x + 15, y, 180, 28)
                 pygame.draw.rect(screen, color, btn_rect, border_radius=4)
                 text_surf = font.render(item["label"], True, COLORS["text_highlight"])
                 screen.blit(text_surf, (btn_rect.x + 10, btn_rect.y + 6))
@@ -785,7 +804,7 @@ class PropertyPanel:
 
         y = self.rect.y + 50
         for item in self.content:
-            if item.get("type") == "toggle":
+            if item.get("type") in ("toggle", "button"):
                 y += 5  # отступ перед toggle — как в draw
                 btn_rect = pygame.Rect(self.rect.x + 15, y, 110, 28)
                 if btn_rect.collidepoint(event.pos):
@@ -795,6 +814,8 @@ class PropertyPanel:
                 y += 22
             elif item.get("type") == "value":
                 y += 24
+            elif item.get("type") == "image":
+                y += item.get("h", 64) + 10
             elif item.get("type") == "section":
                 y += 5 + 8 + 26  # разделитель + линия + текст — как в draw
             y += 5  # общий отступ после каждого элемента — как в draw

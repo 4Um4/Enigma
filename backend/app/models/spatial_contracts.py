@@ -95,6 +95,7 @@ class SpatialOverlay:
     risk_zones: Dict[str, float] = field(default_factory=dict)  # node_id → 0.0–1.0
     light_levels: Dict[str, float] = field(default_factory=dict)  # node_id → 0.0–1.0
     reserved_nodes: Dict[str, str] = field(default_factory=dict)  # node_id → npc_id
+    _global_light: float = 0.5  # Глобальный уровень освещённости (0.0–1.0)
 
     def compute_hash(self) -> str:
         """Детерминированный хэш для инвалидации кэша путей."""

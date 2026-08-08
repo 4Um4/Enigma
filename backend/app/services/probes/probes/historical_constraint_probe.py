@@ -1,24 +1,33 @@
 # backend/app/services/probes/probes/historical_constraint_probe.py
 """
 Invariant II: Historical Constraint. Будущее вычисляется из истории.
-Проверяем, что scene_state содержит историю (tick > 0, game_time > 0).
+Проверяем, что каждый NPC, принявший решение (в mutation), имел вычисленную проекцию L3 (effective_drives).
+L3 вычисляется из L0 + L2.5 (истории), а не из L0 напрямую.
 """
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 class HistoricalConstraintProbe(Probe):
     name = "INV-HISTORICAL-CONSTRAINT"
-    severity = "WARN"
+    severity = "ERROR"
 
     def check(self, ctx: ProbeContext) -> ProbeResult:
-        tick = ctx.scene_state.get("tick", 0)
-        game_time = ctx.scene_state.get("game_time_seconds", 0.0)
+        mutation = ctx.tick_mutation
+        drives_map = ctx.effective_drives_map
         
-        if tick == 0 or game_time == 0.0:
-            return ProbeResult(
-                name=self.name,
-                severity=self.severity,
-                passed=False,
-                details=f"Tick {ctx.tick_id}: scene_state has no history (tick={tick}, game_time={game_time})"
-            )
-            
+        if not mutation or not drives_map:
+            return ProbeResult(name=self.name, severity=self.severity, passed=True, details="No mutation or drives_map in context.")
+
+        # Проверяем все интенты (решения NPC)
+        for intent in getattr(mutation, "communication_intents", []) + getattr(mutation, "movement_intents", []):
+            npc_id = getattr(intent, "speaker", None) or getattr(intent, "actor_id", None)
+            if npc_id:
+                # Если NPC принял решение, у него должен быть L3 (effective_drives)
+                if npc_id not in drives_map:
+                    return ProbeResult(
+                        name=self.name,
+                        severity=self.severity,
+                        passed=False,
+                        details=f"Tick {ctx.tick_id}: NPC {npc_id} made decision without L3 effective_drives (Historical Constraint violation)"
+                    )
+                    
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

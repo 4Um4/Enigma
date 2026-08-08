@@ -39,12 +39,12 @@ class SpriteRegistry:
         if sheet_key in self._sheets:
             return self._sheets[sheet_key]
 
-        parts = sheet_key.replace("\\", "/").split("/")
-        if len(parts) != 2:
+        # S176 FIX: Поддержка произвольной вложенности папок (Pers/traktir/Трактирщик)
+        parts = sheet_key.replace("\\", "/").strip("/").split("/")
+        if not parts:
             return None
 
-        palette_dir, file_name = parts
-        path = os.path.join(self.base_dir, palette_dir, file_name)
+        path = os.path.join(self.base_dir, *parts)
 
         if not os.path.exists(path):
             path_png = path + ".png"
@@ -59,17 +59,19 @@ class SpriteRegistry:
         except pygame.error:
             return None
 
-    def get(self, sheet_key: str, col: int, row: int) -> Optional[pygame.Surface]:
-        """Возвращает тайл из спрайтшита.
+    def get(self, sheet_key: str, col: int, row: int, tile_w: int = 16, tile_h: int = 16) -> Optional[pygame.Surface]:
+        """Возвращает тайл из спрайтшита по сетке.
 
         Args:
             sheet_key: Путь относительно папки pixels, например "Deadbeat/deadbeat_b.png"
             col: Столбец тайла (начиная с 0)
             row: Ряд тайла (начиная с 0)
+            tile_w: Ширина тайла (по умолчанию 16)
+            tile_h: Высота тайла (по умолчанию 16)
         """
         # Нормализуем ключ (убираем .png если передали)
         clean_key = sheet_key if not sheet_key.endswith(".png") else sheet_key[:-4]
-        tile_key = f"{clean_key}:{col}:{row}"
+        tile_key = f"{clean_key}:{col}:{row}:{tile_w}:{tile_h}"
 
         if tile_key in self._tiles:
             return self._tiles[tile_key]
@@ -78,16 +80,69 @@ class SpriteRegistry:
         if not sheet:
             return None
 
-        ts = self.tile_size
-        x, y = col * ts, row * ts
+        x, y = col * tile_w, row * tile_h
 
         # Защита от выхода за границы листа
-        if x + ts > sheet.get_width() or y + ts > sheet.get_height():
+        if x + tile_w > sheet.get_width() or y + tile_h > sheet.get_height():
             return None
 
-        tile = sheet.subsurface(pygame.Rect(x, y, ts, ts)).copy()
+        tile = sheet.subsurface(pygame.Rect(x, y, tile_w, tile_h)).copy()
         self._tiles[tile_key] = tile
         return tile
+
+    def get_rect(self, sheet_key: str, x: int, y: int, w: int, h: int, threshold: int = 220, outline: int = 1) -> Optional[pygame.Surface]:
+        """S176: Возвращает тайл по точным пиксельным координатам с настройкой фона и обводки."""
+        clean_key = sheet_key if not sheet_key.endswith(".png") else sheet_key[:-4]
+        tile_key = f"{clean_key}:R:{x}:{y}:{w}:{h}:{threshold}:{outline}"
+
+        if tile_key in self._tiles:
+            return self._tiles[tile_key]
+
+        sheet = self._load_sheet(clean_key)
+        if not sheet:
+            return None
+
+        rect = pygame.Rect(x, y, w, h)
+        if rect.right > sheet.get_width() or rect.bottom > sheet.get_height():
+            return None
+
+        tile = sheet.subsurface(rect).copy()
+        # S176 FIX: Тотальное удаление белого гало через NumPy
+        result = tile.convert_alpha()
+        
+        try:
+            import numpy as np
+            arr = pygame.surfarray.pixels3d(result)
+            alpha = pygame.surfarray.pixels_alpha(result)
+            
+            # Удаление фона по порогу
+            mask = (arr[:,:,0] > threshold) & (arr[:,:,1] > threshold) & (arr[:,:,2] > threshold)
+            alpha[mask] = 0
+            
+            # Прозрачным пикселям задаем чёрный цвет (убирает гало при масштабировании)
+            alpha_mask = alpha == 0
+            arr[alpha_mask] = [0, 0, 0]
+            
+            # S176 FIX: Внутренняя обводка (эрозия альфа-канала)
+            if outline > 0:
+                eroded = alpha.copy()
+                for _ in range(outline):
+                    temp_eroded = eroded.copy()
+                    for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+                        shifted = np.roll(eroded, (dx, dy), axis=(0,1))
+                        temp_eroded = np.minimum(temp_eroded, shifted)
+                    eroded = temp_eroded
+                
+                # Маска края: внутри спрайта, но эродирована
+                edge_mask = (alpha > 0) & (eroded == 0)
+                arr[edge_mask] = [0, 0, 0]
+                
+            del arr, alpha
+        except Exception:
+            result.set_colorkey((255, 255, 255), pygame.RLEACCEL)
+            
+        self._tiles[tile_key] = result
+        return result
 
     def get_sheet_info(self, sheet_key: str) -> Optional[Dict[str, int]]:
         """Возвращает информацию о листе: размер, количество столбцов и строк."""
@@ -155,6 +210,13 @@ ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = {
     "thief": ("Deadbeat/deadbeat_b", 25, 22),
     "cow": ("Deadbeat/deadbeat_b", 25, 28),
     "knight": ("Deadbeat/deadbeat_b", 26, 21),
+    # NEW-MVP-008 FIX: Персональные спрайты NPC (используем доступные тайлы до добавления уникальных .png)
+    "tavern_keeper_tornin": ("Deadbeat/deadbeat_b", 23, 21),
+    "maid_lusya": ("Deadbeat/deadbeat_b", 23, 22),
+    "merchant_goran": ("Deadbeat/deadbeat_b", 25, 21),
+    "thief_shadow": ("Deadbeat/deadbeat_b", 25, 22),
+    "blacksmith_orm": ("Deadbeat/deadbeat_b", 26, 21),
+    "guard_borko": ("Deadbeat/deadbeat_b", 23, 21),
 }
 
 

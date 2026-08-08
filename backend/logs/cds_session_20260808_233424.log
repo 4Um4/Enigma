@@ -1,0 +1,19 @@
+2026-08-08 23:34:24,619 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260808_233424.log
+2026-08-08 23:34:24,619 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-08 23:34:24,619 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-08 23:34:24,676 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-08-08 23:34:24,684 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-08 23:34:24,701 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-08 23:34:24,730 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-08-08 23:34:24,748 app.services.llm.router INFO: [LLM_CACHE] Replay context bound. Session: 114719e8-b0fb-4157-b082-9f249252a5f2
+2026-08-08 23:34:24,750 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-08-08 23:34:24,750 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-08-08 23:34:24,753 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-08-08 23:34:24,756 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-08-08 23:34:24,760 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-08-08 23:34:24,765 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-08 23:34:24,765 app.core.schema_validator WARNING: [SCHEMA] TruthState failed to load (is None) — MVP features disabled.
+2026-08-08 23:34:24,765 app.core.schema_validator ERROR: [SCHEMA] EventBus validation failed: 'EventBus' object has no attribute '_subscribers'
+2026-08-08 23:34:24,765 app.core.schema_validator WARNING: [SCHEMA] Validation finished with 1 errors (non-blocking).
+2026-08-08 23:34:31,883 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-08-08 23:34:31,917 app.main INFO: [STARTUP] LLM (сервер): доступен

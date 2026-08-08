@@ -17,6 +17,9 @@ def main():
     impact_parser.add_argument("--file", required=True, help="Путь к файлу (например, backend/app/services/tick_orchestrator.py)")
 
     conflicts_parser = subparsers.add_parser("conflicts", help="Проверить граф на конфликты")
+    
+    visualize_parser = subparsers.add_parser("visualize", help="Сгенерировать Mermaid-граф")
+    visualize_parser.add_argument("--output", default="docs/_adr_graph.md", help="Путь к выходному файлу")
 
     args = parser.parse_args()
 
@@ -25,9 +28,16 @@ def main():
 
     from app.services.adr_net.adr_graph import ADRGraphBuilder
     from app.services.adr_net.adr_conflict_detector import ADRConflictDetector
+    from app.services.adr_net.adr_visualizer import ADRVisualizer
 
     builder = ADRGraphBuilder()
     graph = builder.build()
+
+    if args.command == "visualize":
+        visualizer = ADRVisualizer(graph)
+        visualizer.save_mermaid(args.output)
+        print(f"✅ Mermaid-граф сохранён в {args.output}")
+        return
 
     if args.command == "impact":
         impacted = builder.get_impact(args.file)

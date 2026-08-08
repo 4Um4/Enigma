@@ -234,6 +234,16 @@ class ModelRouter:
         """Включить/выключить ленивую загрузку."""
         self._use_lazy_loading = enabled
 
+    def set_replay_context(self, store: Any, session_id: str) -> None:
+        """
+        Подсистема 2: Инъекция ReplayStore для кэширования LLM-вызовов (Этап 2.3).
+        Вызывается из GameLoop при старте сессии, если replay_mode != "off".
+        """
+        self._replay_store = store
+        self._current_session_id = session_id
+        self._current_tick_id = getattr(self, "_current_tick_id", 0)
+        logger.info(f"[LLM_CACHE] Replay context bound. Session: {session_id}")
+
     # === Main Request Methods ===
 
     async def request(
@@ -521,9 +531,9 @@ class ModelRouter:
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
         
         # Подсистема 2: LLM Cache для Replay (Этап 2.3)
-        import hashlib
+        from app.services.replay.llm_cache import compute_prompt_hash
         from app.core.config import settings
-        _prompt_hash = hashlib.sha256(prompt.encode('utf-8')).hexdigest()
+        _prompt_hash = compute_prompt_hash(prompt)
         
         if settings.replay_playback:
             # Режим воспроизведения: читаем из кэша, не дёргаем LLM

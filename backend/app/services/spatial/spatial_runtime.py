@@ -26,7 +26,10 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_service import SpatialService
 
 from app.core.constants import PERCEPTION_FALLBACK_DISTANCE
 
@@ -62,20 +65,21 @@ def _node(entity: Dict[str, Any]) -> str:
     return str(entity.get("position") or entity.get("node_id") or "")
 
 
-def _local(entity: Dict[str, Any]) -> Optional[tuple[float, float]]:
-    """Извлекает local_position (x, y) из словаря сущности. Возвращает None, если координат нет."""
+def _local(entity: Dict[str, Any]) -> tuple[float, float]:
+    """Извлекает local_position (x, y) из словаря сущности.
+    Возвращает (0.0, 0.0) при ошибке (вызывающий код обрабатывает это как 999.0), но логирует ошибку.
+    """
     local = entity.get("local_position") or {}
     _x_raw = local.get("x")
     _y_raw = local.get("y")
     if _x_raw is None or _y_raw is None:
-        return None
+        # Возврат None ломает распаковку (ax, ay = _local(a)). Возвращаем (0.0, 0.0).
+        return 0.0, 0.0
     try:
-        x = float(_x_raw)
-        y = float(_y_raw)
-        return x, y
+        return float(_x_raw), float(_y_raw)
     except (TypeError, ValueError) as e:
         logger.error(f"[SPATIAL_RUNTIME] CRITICAL: Coord parse error for entity {entity.get('npc_id', 'unknown')}: {e}")
-        return None
+        return 0.0, 0.0
 
 
 def euclidean_distance(

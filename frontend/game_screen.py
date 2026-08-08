@@ -138,6 +138,28 @@ def _build_perceived_scene(
 
         _lp_z = float(npc_data.get("local_position", {}).get("z", 0.0))
 
+        # S168: Проброс VisualDTO (поза, взгляд, размытие)
+        _visual_dto = scene_state.get("visual_dto") or {}
+        _npc_visuals = _visual_dto.get("npcs", [])
+        _current_visual = next((v for v in _npc_visuals if v.get("npc_id") == npc_id), {})
+        _pose = _current_visual.get("pose_overlay", {}) or {}
+        _gaze = _current_visual.get("gaze_arrow", {}) or {}
+
+        # S172: Expression Projector (Visual Casting System)
+        _perceived_narratives = scene_state.get("perceived_narratives") or []
+        _narr = next((n for n in _perceived_narratives if n.get("speaker_id") == npc_id), None)
+        _delivery = _narr.get("delivery_type", "NORMAL") if _narr else "NORMAL"
+
+        _expression = "neutral"
+        if _delivery == "SHOUT":
+            _expression = "shouting"
+        elif _delivery == "WHISPER":
+            _expression = "whispering"
+        elif _pose.get("tense_contour", 0.0) > 0.5:
+            _expression = "tense"
+        elif _gaze.get("avoidance", 0.0) > 0.7:
+            _expression = "avoiding_gaze"
+
         entities.append(
             PerceivedEntity(
                 entity_id=npc_id,
@@ -147,10 +169,12 @@ def _build_perceived_scene(
                 z=_lp_z,
                 visible=True,
                 los=True,
+                current_expression=_expression,
                 # ADR-O-319: Имя берётся строго из RecognitionMemory (display_name).
                 # Хардкод npc_id убит (телепатия).
                 display_name=npc_data.get("display_name", "Незнакомец"),
                 body_heading=_body_heading,
+                activity=npc_data.get("activity", "idle"),
                 in_attention=(config.player_focus.focus_entity_id == npc_id),
                 inferences=_inferences,
                 # Спринт 30: Каузальная презентация. Передаем кинематику в рендерер для непрерывного lerp
@@ -160,12 +184,19 @@ def _build_perceived_scene(
                 traversal_progress=float(trav.get("progress", 0.0)) if trav else 0.0,
                 traversal_speed=float(trav.get("speed", 1.5)) if trav else 1.5,
                 # S90.4: ETKE-IK VelocityRenderer fields
-                velocity=_vel,
+                velocity=tuple(_vel),
                 exertion_level=_exertion,
                 # Спринт 30: Модель C — когнитивный паралич рвет моторику
                 initiative_suppression=float(
                     npc_data.get("initiative_suppression", 0.0)
                 ),
+                # S168: Поля позы и взгляда
+                pose_tense=_pose.get("tense_contour", 0.0),
+                pose_tremor=_pose.get("tremor_animation", 0.0),
+                gaze_avoidance=_gaze.get("avoidance", 0.0),
+                blur_intensity=_current_visual.get("blur_intensity", 0.0),
+                delivery_type=_delivery,
+
                 # The Fool v2: Инъекция моторных следов и наблюдений
                 is_frozen=next(
                     (
@@ -501,7 +532,7 @@ class GameScreen:
         self.show_journal = False  # ADR-JOURNAL: Журнал диалогов (клавиша J / О)
         self.show_inventory = False  # P8: Панель инвентаря (клавиша I)
         # S128: Вкладки журнала (по спикерам)
-        self._journal_active_tab = "all"  # ID активной вкладки ("all" или speaker_id)
+        self._journal_active_tab = "observations"  # S166: ID активной вкладки расследования
         self._journal_tab_rects = []  # Хитбоксы вкладок для кликов мышью
         # B1.3-FIX: dialog_journal — из backend world_snapshot, не локальный.
         # Раньше: self.dialog_journal = [] → двойное хранение, рассинхрон на Continue.
@@ -574,6 +605,7 @@ class GameScreen:
             from spatial_compilation_gateway import SpatialCompilationGateway
             from world_context import ContextResolver, SpatialDataLoader
 
+            _resolver = None
             _registry = SpatialCompilationGateway.get_registry(campaign_folder)
             if _registry is not None:
                 _loader = SpatialDataLoader()
@@ -726,7 +758,7 @@ class GameScreen:
                     elif not text_input.focused and event.key == pygame.K_j:
                         self.show_journal = not self.show_journal
                         if not self.show_journal:
-                            self._journal_active_tab = "all"  # Сброс вкладки при закрытии
+                            self._journal_active_tab = "observations"  # Сброс вкладки при закрытии
                     # P8: Переключение панели инвентаря (I / Русская Ш)
                     elif not text_input.focused and event.key == pygame.K_i:
                         self.show_inventory = not self.show_inventory
@@ -1035,22 +1067,23 @@ class GameScreen:
 
                 # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (idle_tick)
                 if _ws and isinstance(_ws, dict):
-                    _recent_d = _ws.get("recent_dialogues", [])
-                    logger.debug(f"[TRACE][IDLE_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0} ws_keys={list(_ws.keys())[:5]}")
-                    if _recent_d:
-                        for _dlg in _recent_d:
-                            _spk_id = _dlg.get("speaker_id", "")
-                            _dlg_text = _dlg.get("text", "")
+                    _narratives = _ws.get("perceived_narratives", [])
+                    logger.debug(f"[TRACE][IDLE_WS] perceived_narratives_count={len(_narratives) if _narratives else 0}")
+                    if _narratives:
+                        for _narr in _narratives:
+                            _spk_id = _narr.get("speaker_id", "")
+                            _dlg_text = _narr.get("visible_text", "")
                             if _spk_id and _dlg_text:
-                                # ADR-SPEECH FIX: Обновляем облачко только если текст изменился.
-                                # Иначе кэш бэкенда (10 сек) будет держать облачко вечно.
                                 _existing = self.npc_speech_bubbles.get(_spk_id)
                                 if not _existing or _existing.get("text") != _dlg_text:
                                     self.npc_speech_bubbles[_spk_id] = {
                                         "text": _dlg_text,
                                         "tick": pygame.time.get_ticks(),
+                                        "auditory_clarity": _narr.get("auditory_clarity", 1.0),
+                                        "delivery_type": _narr.get("delivery_type", "NORMAL"),
+                                        "attention_weight": _narr.get("attention_weight", 0.0),
                                     }
-                                    logger.info(f"[BUBBLE_INJECT] speaker={_spk_id} text={_dlg_text[:30]}...")
+                                    logger.info(f"[BUBBLE_INJECT] speaker={_spk_id} clarity={_narr.get('auditory_clarity', 1.0):.1f} text={_dlg_text[:30]}...")
             if _new_positions:
                 import copy
 
@@ -1115,17 +1148,20 @@ class GameScreen:
                     scene_state["audible_dto"] = _ws["audible_dto"]
 
                 # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (idle_tick)
-                _recent_d = _ws.get("recent_dialogues", [])
-                if _recent_d:
-                    _npc_pos_map = scene_state.get("npc_positions", {})
-                    for _dlg in _recent_d:
-                        _spk_id = _dlg.get("speaker_id", "")
-                        _dlg_text = _dlg.get("text", "")
+                _narratives = _ws.get("perceived_narratives", [])
+                if _narratives:
+                    for _narr in _narratives:
+                        _spk_id = _narr.get("speaker_id", "")
+                        _dlg_text = _narr.get("visible_text", "")
                         if _spk_id and _dlg_text:
-                            self.npc_speech_bubbles[_spk_id] = {
-                                "text": _dlg_text,
-                                "tick": pygame.time.get_ticks(),
-                            }
+                            _existing = self.npc_speech_bubbles.get(_spk_id)
+                            if not _existing or _existing.get("text") != _dlg_text:
+                                self.npc_speech_bubbles[_spk_id] = {
+                                    "text": _dlg_text,
+                                    "tick": pygame.time.get_ticks(),
+                                    "auditory_clarity": _narr.get("auditory_clarity", 1.0),
+                                    "delivery_type": _narr.get("delivery_type", "NORMAL"),
+                                }
                 # B1.3-FIX: синхронизируем journal из backend (строгая обработка, без спама логов)
                 if "dialog_journal" in _ws:
                     self._dialog_journal_backend = _ws["dialog_journal"]
@@ -1315,17 +1351,21 @@ class GameScreen:
                         import copy
 
                         # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (action_tick)
-                        _recent_d = _action_ws.get("recent_dialogues", [])
-                        if _recent_d:
-                            _npc_pos_map = _action_ws.get("npc_positions", {})
-                            for _dlg in _recent_d:
-                                _spk_id = _dlg.get("speaker_id", "")
-                                _dlg_text = _dlg.get("text", "")
+                        _narratives = _action_ws.get("perceived_narratives", [])
+                        if _narratives:
+                            for _narr in _narratives:
+                                _spk_id = _narr.get("speaker_id", "")
+                                _dlg_text = _narr.get("visible_text", "")
                                 if _spk_id and _dlg_text:
-                                    self.npc_speech_bubbles[_spk_id] = {
-                                        "text": _dlg_text,
-                                        "tick": pygame.time.get_ticks(),
-                                    }
+                                    _existing = self.npc_speech_bubbles.get(_spk_id)
+                                    if not _existing or _existing.get("text") != _dlg_text:
+                                        self.npc_speech_bubbles[_spk_id] = {
+                                            "text": _dlg_text,
+                                            "tick": pygame.time.get_ticks(),
+                                            "auditory_clarity": _narr.get("auditory_clarity", 1.0),
+                                            "delivery_type": _narr.get("delivery_type", "NORMAL"),
+                                            "attention_weight": _narr.get("attention_weight", 0.0),
+                                        }
 
                         _lusya_data = _action_ws["npc_positions"].get("maid_lusya", {})
                         logger.debug(
@@ -1738,21 +1778,21 @@ class GameScreen:
             px, py = _player_xy(scene_state)
             # ADR-SPEECH: Истечение речевых облачек
             _now_sp = pygame.time.get_ticks()
-            # Оставляем только 2 самых свежих облачка, чтобы они вытесняли друг друга
+            # Сортируем для отрисовки, но не отсекаем (чтобы избежать мигания при >2 активных репликах)
             _sorted_bubbles = sorted(
                 self.npc_speech_bubbles.items(),
                 key=lambda item: item[1]["tick"],
                 reverse=True
-            )[:2]  # Топ-2 последних
+            )
             
             self.npc_speech_bubbles = {
                 k: v
                 for k, v in _sorted_bubbles
-                if _now_sp - v["tick"] < 4000  # Время жизни 4 секунды
+                if _now_sp - v["tick"] < 8000  # Время жизни 8 сек (строго > 6 сек бэкенда, чтобы избежать мигания)
             }
             if (
                 self.player_speech_bubble
-                and _now_sp - self.player_speech_bubble["tick"] > 4000
+                and _now_sp - self.player_speech_bubble["tick"] > 8000
             ):
                 self.player_speech_bubble = None
 
@@ -1819,7 +1859,22 @@ class GameScreen:
             if _world_ctx is not None:
                 _render_px, _render_py = _resolver.local_to_world(px, py, location_id)
 
-            self.renderer.render(
+            # S170: Attention System - сдвиг камеры к SLAM-событию
+            _attention_target_id = None
+            for _spk_id, _bub in self.npc_speech_bubbles.items():
+                if _bub.get("attention_weight", 0.0) >= 1.0:
+                    _attention_target_id = _spk_id
+                    break
+            
+            if _attention_target_id:
+                _npc_data = scene_state.get("npc_positions", {}).get(_attention_target_id, {})
+                _lp = _npc_data.get("local_position", {})
+                if _lp:
+                    # Сдвигаем камеру на 30% в сторону NPC на основе разницы локальных координат
+                    _render_px += (_lp.get("x", 0.0) - px) * 0.3
+                    _render_py += (_lp.get("y", 0.0) - py) * 0.3
+
+            _render_coords = self.renderer.render(
                 scene=perceived,
                 scene_w=scene_w,
                 scene_h=scene_h,
@@ -1830,10 +1885,45 @@ class GameScreen:
                 dt=dt,
                 avatar_state=avatar_state,
                 ambient_state=scene_state.get("ambient_phenomenology"),
-                speech_bubbles=self.npc_speech_bubbles,
-                player_speech=self.player_speech_bubble,
-                mood_indicators=self.npc_manifest_indicators,
                 floor_rects=_floor_rects,
+            )
+            
+            # S161: Focus Layer (Слой 1) - рисуем поверх мира
+            from focus_renderer import FocusRenderer
+            from portrait_renderer import PortraitRenderer
+            from visual_casting_repository import VisualCastingRepository
+            self._focus_renderer = getattr(self, "_focus_renderer", FocusRenderer(self.renderer.font_small))
+            self._portrait_renderer = getattr(self, "_portrait_renderer", PortraitRenderer())
+            self._casting_repo = getattr(self, "_casting_repo", VisualCastingRepository())
+            
+            self._focus_renderer.draw_manifestations(
+                self.screen,
+                _render_coords.get("npcs", {}),
+                self.npc_manifest_indicators
+            )
+            
+            # S163: Action Markers (Слой 1) - пиктограммы над NPC
+            self._focus_renderer.draw_action_markers(
+                self.screen,
+                _render_coords.get("npcs", {}),
+                perceived.entities
+            )
+            
+            self._focus_renderer.draw_bubbles(
+                self.screen,
+                _render_coords.get("npcs", {}),
+                self.npc_speech_bubbles,
+                _render_coords.get("player", {}),
+                self.player_speech_bubble
+            )
+
+            # S174: Portrait Renderer (Слой 1) - изолирован от файловой системы
+            self._portrait_renderer.draw(
+                self.screen,
+                perceived.entities,
+                self.npc_speech_bubbles,
+                self.player_speech_bubble,
+                self._casting_repo
             )
 
             # HUD

@@ -217,7 +217,7 @@ class SceneStateManager:
         self._tick_locked: bool = False
         self._tick_campaign_id: str | None = None
         # Дополнение Б (п. Б.6.1): Словарь сцен вместо одиночного слота
-        self._tick_scenes: Dict[str, dict] = {}
+        self._tick_scenes: dict[str, dict] = {}
 
     # ── Tick-Scoped Identity API (ADR-SCENE-LOCK) ──────────────────────
 
@@ -435,7 +435,8 @@ class SceneStateManager:
             if scene:
                 import inspect
 
-                _caller = inspect.currentframe().f_back
+                _frame = inspect.currentframe()
+                _caller = _frame.f_back if _frame else None
                 _caller_info = (
                     f"{_caller.f_code.co_filename}:{_caller.f_lineno}"
                     if _caller
@@ -1176,9 +1177,9 @@ class SceneStateManager:
                                 location_id=target_loc,
                                 scene_state=scene_state,
                             )
-                            if node := svc.get_node(change.value) or svc.get_node(
+                            if svc and (node := svc.get_node(change.value) or svc.get_node(
                                 f"{target_loc}:{change.value}"
-                            ):
+                            )):
                                 # P2: Сохраняем старую позицию ДО перезаписи
                                 from_xy = entry.get(
                                     "local_position", {"x": 0.0, "y": 0.0}
@@ -1856,7 +1857,12 @@ class SceneStateManager:
         # Легаси load_graph() (Double Truth) удалён — он не знал про центроиды и ADR-091.
         if location_id := scene_state.get("location_id", ""):
             try:
-                svc = self._ensure_spatial_service(location_id, scene_state)
+                from app.services.spatial.spatial_factory import SpatialFactory
+                svc = SpatialFactory.build_for_campaign(
+                    campaign_id=campaign_id,
+                    location_id=location_id,
+                    scene_state=scene_state,
+                )
                 if svc:
                     node = svc.get_node(position) or svc.get_node(
                         f"{location_id}:{position}"

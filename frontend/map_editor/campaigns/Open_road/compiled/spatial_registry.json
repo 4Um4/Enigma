@@ -1,29 +1,29 @@
 {
   "version": 1,
   "campaign_id": "Open_road",
-  "compiled_at": "2026-07-29T20:17:53.677234",
+  "compiled_at": "2026-08-08T19:55:37.127638",
   "chunks": [
     {
       "location_id": "city_gate",
       "filename": "city_gate.json",
-      "origin_x": 19.91666666666666,
-      "origin_y": 0.041666666666666664,
+      "origin_x": 20.0,
+      "origin_y": 0.0,
       "width": 30.0,
       "height": 20.0,
       "is_outdoor": true,
       "label": "Городские ворота",
-      "content_hash": "8e8c0d10999d0cb20e62f8f76bd3168c"
+      "content_hash": "d1d623a0772a60336308059e58fc2571"
     },
     {
       "location_id": "market_square",
       "filename": "market_square.json",
-      "origin_x": -5.0,
-      "origin_y": 14.875,
+      "origin_x": 20.0,
+      "origin_y": 15.0,
       "width": 25.0,
       "height": 25.0,
       "is_outdoor": true,
       "label": "Торговая площадь",
-      "content_hash": "9d70b4a0eeb794a1edd2ff46bf0759e7"
+      "content_hash": "741260d5b1e5a5be02ca5c265789af73"
     },
     {
       "location_id": "tavern",
@@ -34,42 +34,24 @@
       "height": 15.0,
       "is_outdoor": false,
       "label": "Таверна Серебряного Волка",
-      "content_hash": "ffa4d0c8067add21a5f1890554e3759c"
+      "content_hash": "c32d903420b403734bf7d06afc84e10a"
     }
   ],
   "adjacency": [
     {
       "location_a": "city_gate",
-      "location_b": "market_square",
-      "contact_axis": "x",
-      "contact_coord": 19.96,
-      "overlap_start": 14.88,
-      "overlap_end": 20.04,
-      "connection_type": "contiguous"
-    },
-    {
-      "location_a": "city_gate",
       "location_b": "tavern",
       "contact_axis": "x",
-      "contact_coord": 19.96,
-      "overlap_start": 0.04,
-      "overlap_end": 15.0,
-      "connection_type": "contiguous"
-    },
-    {
-      "location_a": "market_square",
-      "location_b": "tavern",
-      "contact_axis": "y",
-      "contact_coord": 14.94,
+      "contact_coord": 20.0,
       "overlap_start": 0.0,
-      "overlap_end": 20.0,
+      "overlap_end": 15.0,
       "connection_type": "contiguous"
     }
   ],
   "world_bounds": {
-    "min_x": -5.0,
+    "min_x": 0.0,
     "min_y": 0.0,
-    "max_x": 49.92,
-    "max_y": 39.88
+    "max_x": 50.0,
+    "max_y": 40.0
   }
 }

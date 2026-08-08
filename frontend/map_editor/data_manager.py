@@ -597,10 +597,12 @@ def load_npc_individuals() -> List[Dict[str, str]]:
     Возвращает список словарей с ключами: id, name, filename."""
     result: List[Dict[str, str]] = []
     if not _NPC_INDIVIDUALS_DIR.exists():
+        print(f"[NPC_LOAD] Dir not found: {_NPC_INDIVIDUALS_DIR}")
         return result
     for json_file in sorted(_NPC_INDIVIDUALS_DIR.glob("*.json")):
         try:
-            with open(json_file, "r", encoding="utf-8") as f:
+            # Используем utf-8-sig для безопасного чтения BOM
+            with open(json_file, "r", encoding="utf-8-sig") as f:
                 data = json.load(f)
             npc_id = data.get("id", json_file.stem)
             npc_name = data.get("name", npc_id)
@@ -611,9 +613,73 @@ def load_npc_individuals() -> List[Dict[str, str]]:
                     "filename": json_file.name,
                 }
             )
-        except (json.JSONDecodeError, OSError):
+        except Exception as e:
+            print(f"[NPC_LOAD] Error loading {json_file.name}: {e}")
             continue
     return result
+
+
+def load_npc_visual_casting(npc_id: str) -> Dict:
+    """S176: Загружает visual_casting конфиг для конкретного NPC. Поддерживает чтение UTF-8 BOM."""
+    if not _NPC_INDIVIDUALS_DIR.exists():
+        return {}
+    for json_file in _NPC_INDIVIDUALS_DIR.glob("*.json"):
+        try:
+            with open(json_file, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+            if data.get("id") == npc_id:
+                return data.get("visual_casting", {})
+        except (json.JSONDecodeError, OSError):
+            continue
+    return {}
+
+
+def save_npc_visual_casting(npc_id: str, casting: Dict) -> bool:
+    """S176: Сохраняет visual_casting конфиг в JSON индивида. Поддерживает чтение UTF-8 BOM."""
+    if not _NPC_INDIVIDUALS_DIR.exists():
+        return False
+    for json_file in _NPC_INDIVIDUALS_DIR.glob("*.json"):
+        try:
+            # Читаем с utf-8-sig, чтобы корректно обработать файлы с BOM
+            with open(json_file, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+            if data.get("id") == npc_id:
+                data["visual_casting"] = casting
+                # Записываем как обычный utf-8 (без BOM)
+                with open(json_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                return True
+        except (json.JSONDecodeError, OSError):
+            continue
+    return False
+
+# S175: Доступные наблюдаемые поля для Evidence (PerceivedEntity)
+VISUAL_EVIDENCE_FIELDS = [
+    "delivery_type",
+    "pose_tense",
+    "pose_tremor",
+    "gaze_avoidance",
+    "blur_intensity",
+    "attention_score"
+]
+
+# S175: Доступные операторы для Evidence
+VISUAL_EVIDENCE_OPS = ["==", "!=", ">", "<", ">=", "<="]
+
+# S176: Доступные значения для полей-перечислений. Если поля нет здесь — это float.
+VISUAL_EVIDENCE_VALUES = {
+    "delivery_type": ["NORMAL", "SHOUT", "WHISPER"]
+}
+
+# S176: Базовые визуальные состояния. Движок сам знает их логику.
+STANDARD_EXPRESSIONS = [
+    {"id": "neutral", "label": "1. Спокойствие", "priority": 0, "evidence": []},
+    {"id": "shouting", "label": "2. Крик", "priority": 100, "evidence": [{"field": "delivery_type", "op": "==", "value": "SHOUT"}]},
+    {"id": "whispering", "label": "3. Шёпот", "priority": 90, "evidence": [{"field": "delivery_type", "op": "==", "value": "WHISPER"}]},
+    {"id": "tense", "label": "4. Напряжение", "priority": 50, "evidence": [{"field": "pose_tense", "op": ">", "value": 0.5}]},
+    {"id": "avoiding_gaze", "label": "5. Отведение взгляда", "priority": 40, "evidence": [{"field": "gaze_avoidance", "op": ">", "value": 0.7}]},
+    {"id": "surprised", "label": "6. Удивление", "priority": 80, "evidence": [{"field": "pose_tremor", "op": ">", "value": 0.6}]}
+]
 
 
 # Пресеты NPC для размещения на карте через редактор (оставлены как фоллбэк)
@@ -1080,7 +1146,7 @@ class DataManager:
         thickness: float = 0.2,
     ) -> str:
         """Добавляет стену (отрезок)"""
-        wall_id = f"wall_{len(self.locations[filename]['walls'])}"
+        wall_id = self._next_id(self.locations[filename]["walls"], "wall_")
         wall = {
             "id": wall_id,
             "type": wall_type,
@@ -1232,6 +1298,7 @@ class DataManager:
         }
         # Привязка к стене (для дверей, окон, проломов)
         if wall_id:
+            obj["wall_id"] = wall_id  # S143 FIX: Честный wall_id в корне объекта для editor_core
             obj["properties"]["wall_id"] = wall_id
 
         loc["objects"].append(obj)

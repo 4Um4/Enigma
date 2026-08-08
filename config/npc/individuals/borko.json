@@ -1,4 +1,4 @@
-﻿{
+{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "guard",
@@ -160,5 +160,61 @@
       "decay_rate": 0.003
     }
   ],
-  "core_orientation": "wealth_creator"
+  "core_orientation": "wealth_creator",
+  "visual_casting": {
+    "fallback": {
+      "expression_id": "neutral",
+      "asset": [
+        "Pers/Борко",
+        887,
+        10,
+        324,
+        413,
+        212,
+        5
+      ]
+    },
+    "rules": [
+      {
+        "expression_id": "tense",
+        "priority": 50,
+        "asset": [
+          "Pers/Борко",
+          593,
+          443,
+          273,
+          273,
+          212,
+          5
+        ],
+        "evidence": [
+          {
+            "field": "pose_tense",
+            "op": ">",
+            "value": 0.5
+          }
+        ]
+      },
+      {
+        "expression_id": "avoiding_gaze",
+        "priority": 40,
+        "asset": [
+          "Pers/Борко",
+          6,
+          423,
+          273,
+          290,
+          212,
+          5
+        ],
+        "evidence": [
+          {
+            "field": "gaze_avoidance",
+            "op": ">",
+            "value": 0.7
+          }
+        ]
+      }
+    ]
+  }
 }

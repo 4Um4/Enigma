@@ -256,11 +256,8 @@ class L1Chronicle:
                 "WHERE campaign_id = ? AND tick_id < ?",
                 (self._campaign_id, _threshold),
             )
-            # BUG-PERC-013 FIX: Мягкая архивация вместо удаления (Rule 28: Append-only)
-            self._store.execute(
-                "UPDATE l1_chronicle_events SET archived = 1 WHERE campaign_id = ? AND tick_id < ?",
-                (self._campaign_id, _threshold),
-            )
+            # ADR-O-208 / Rule 28: L1Chronicle — строго append-only. Удаление запрещено.
+            # RAM-кэш (self._events) выступает буфером, SQLite-таблица растёт бесконечно.
             # 3. Очистка RAM кэша
             for npc_id in list(self._events.keys()):
                 self._events[npc_id] = [

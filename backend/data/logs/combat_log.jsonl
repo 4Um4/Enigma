@@ -4,3 +4,13 @@
 {"ts": "2026-08-01T10:41:41", "event": "roll", "desc": "attack d20", "rolls": [14], "total": 14}
 {"ts": "2026-08-01T10:41:41", "event": "roll", "desc": "1d6", "rolls": [1], "total": 1}
 {"ts": "2026-08-01T10:41:41", "event": "attack", "d20": 14, "attack_total": 16, "hit": true, "critical": false, "fumble": false, "damage": 1, "breakdown": "d20=14 + strength(+0) + prof(+2) + env(+0) = 16 vs AC11.0 → попадание | урон: 1d6=[1] + mod(+0) + bonus(+0) = 1", "target_ac": 11.0}
+{"ts": "2026-08-08T22:11:24", "event": "roll", "desc": "attack d20", "rolls": [14], "total": 14}
+{"ts": "2026-08-08T22:11:24", "event": "roll", "desc": "1d6", "rolls": [1], "total": 1}
+{"ts": "2026-08-08T22:11:24", "event": "attack", "d20": 14, "attack_total": 16, "hit": true, "critical": false, "fumble": false, "damage": 1, "breakdown": "d20=14 + strength(+0) + prof(+2) + env(+0) = 16 vs AC10.0 → попадание | урон: 1d6=[1] + mod(+0) + bonus(+0) = 1", "target_ac": 10.0}
+{"ts": "2026-08-08T22:11:24", "event": "roll", "desc": "attack d20", "rolls": [6], "total": 6}
+{"ts": "2026-08-08T22:11:24", "event": "attack", "d20": 6, "attack_total": 8, "hit": false, "critical": false, "fumble": false, "damage": 0, "breakdown": "d20=6 + strength(+0) + prof(+2) + env(+0) = 8 vs AC10.0 → промах | урон: промах", "target_ac": 10.0}
+{"ts": "2026-08-08T22:23:33", "event": "roll", "desc": "attack d20", "rolls": [8], "total": 8}
+{"ts": "2026-08-08T22:23:33", "event": "roll", "desc": "1d6", "rolls": [5], "total": 5}
+{"ts": "2026-08-08T22:23:33", "event": "attack", "d20": 8, "attack_total": 10, "hit": true, "critical": false, "fumble": false, "damage": 5, "breakdown": "d20=8 + strength(+0) + prof(+2) + env(+0) = 10 vs AC10.0 → попадание | урон: 1d6=[5] + mod(+0) + bonus(+0) = 5", "target_ac": 10.0}
+{"ts": "2026-08-08T22:23:33", "event": "roll", "desc": "attack d20", "rolls": [1], "total": 1}
+{"ts": "2026-08-08T22:23:33", "event": "attack", "d20": 1, "attack_total": 3, "hit": false, "critical": false, "fumble": true, "damage": 0, "breakdown": "d20=1 + strength(+0) + prof(+2) + env(+0) = 3 vs AC10.0 → ПРОВАЛ! | урон: промах", "target_ac": 10.0}

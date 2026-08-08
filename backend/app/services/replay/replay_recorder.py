@@ -19,6 +19,10 @@ class ReplayRecorder:
     def record_tick_state(self, tick_id: int, game_time: float, tick_state: Any) -> None:
         """Вызывается после Фазы 0 (сборка контекста)."""
         try:
+            # Синхронизируем текущий tick_id в ModelRouter для привязки LLM-кэша к тику
+            from app.services.llm import ModelRouter
+            ModelRouter()._current_tick_id = tick_id
+
             # tick_state может быть сложным объектом, сериализуем через default=str
             self.store.record_tick(
                 session_id=self.session_id,

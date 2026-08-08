@@ -67,6 +67,16 @@ class PerceivedEntity:
     # --- Recognition Layer ---
     display_name: str = ""
     recognition_confidence: float = 0.0
+    activity: str = "idle"  # S163: Для отрисовки Action Markers
+
+    # --- Manifestation Layer (S168: VisualDTO) ---
+    pose_tense: float = 0.0
+    pose_tremor: float = 0.0
+    gaze_avoidance: float = 0.0
+    blur_intensity: float = 0.0
+    # S176: Тип доставки реплики (NORMAL, SHOUT, WHISPER) для Visual Casting
+    delivery_type: str = "NORMAL"
+    current_expression: str = "neutral"  # S172: Visual Casting System (tense, shouting, etc.)
 
     # --- Traversal Layer (Спринт 30: Dual-Time Ontology) ---
     # Бэкенд компрессирует время, фронтенд разархивирует его непрерывным движением

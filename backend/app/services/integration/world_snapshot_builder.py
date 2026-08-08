@@ -332,9 +332,11 @@ class WorldSnapshotBuilder:
         SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция.
         Возвращает Dict[npc_id, traversal_data] — синхронно с scene_state форматом.
         CEI-2 FIX: сохраняет ПОЛНЫЙ path_waypoints (без 2-point collapse)."""
-        traversals = scene_state.get("active_traversals", {})
+        traversals = scene_state.get("active_traversals") if scene_state else None
+        if not isinstance(traversals, dict):
+            return {}
         result = {}
-
+  
         for npc_id, trav in traversals.items():
             if (
                 trav.get("status") == "MOVING"
@@ -427,4 +429,5 @@ class WorldSnapshotBuilder:
             time_of_day="day",
             game_time_seconds=0,
             recent_dialogues=recent_dialogues or [],  # ADR-O-313: Проброс кэша реплик
+            active_traversals={},  # FIX: Гарантируем dict, иначе DTO возвращает None и ломает фронтенд
         )

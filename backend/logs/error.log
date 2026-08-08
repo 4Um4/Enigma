@@ -6,3 +6,67 @@ Traceback (most recent call last):
     if state.shared_context and state.shared_context.world_snapshot:
                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'PipelineContext' object has no attribute 'world_snapshot'
+
+=== 2026-08-07 20:00:34 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 601, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1115, in run_turn
+    state = await self._run_pipeline(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1551, in _run_pipeline
+    _ctx = _TickContext(mvp_controller=self.mvp_controller)  # ENIGMA SELF-HEALING: For probes
+TypeError: TickBuffer.__init__() got an unexpected keyword argument 'mvp_controller'
+
+
+=== 2026-08-08 09:11:54 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 601, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1115, in run_turn
+    state = await self._run_pipeline(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1551, in _run_pipeline
+    _ctx = _TickContext(mvp_controller=self.mvp_controller)  # ENIGMA SELF-HEALING: For probes
+TypeError: TickBuffer.__init__() got an unexpected keyword argument 'mvp_controller'
+
+
+=== 2026-08-08 09:14:56 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 601, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1115, in run_turn
+    state = await self._run_pipeline(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1551, in _run_pipeline
+    _ctx = _TickContext(mvp_controller=self.mvp_controller)  # ENIGMA SELF-HEALING: For probes
+TypeError: TickBuffer.__init__() got an unexpected keyword argument 'mvp_controller'
+
+
+=== 2026-08-08 09:15:57 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 601, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1115, in run_turn
+    state = await self._run_pipeline(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1551, in _run_pipeline
+    _ctx = _TickContext(mvp_controller=self.mvp_controller)  # ENIGMA SELF-HEALING: For probes
+TypeError: TickBuffer.__init__() got an unexpected keyword argument 'mvp_controller'
+

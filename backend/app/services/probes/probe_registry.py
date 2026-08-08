@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any, List, Protocol, runtime_checkable
+from typing import Any, List, Protocol, runtime_checkable, Optional
 
 @dataclass(frozen=True)
 class ProbeContext:
@@ -13,6 +13,11 @@ class ProbeContext:
     game_time_seconds: float
     scene_state: dict
     all_npcs_raw: List[dict]
+    mvp_controller: Any = None  # ENIGMA SELF-HEALING (Level 1)
+    tick_mutation: Any = None   # Подсистема 3: Инвариант I (Causal Provenance)
+    tick_state_hash_before: Optional[int] = None  # Подсистема 3: Инвариант III
+    tick_state_hash_after: Optional[int] = None   # Подсистема 3: Инвариант III
+    effective_drives_map: Any = None              # Подсистема 3: Инвариант II (Historical Constraint)
 
 @dataclass
 class ProbeResult:

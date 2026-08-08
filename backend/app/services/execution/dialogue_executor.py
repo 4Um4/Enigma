@@ -101,7 +101,14 @@ class DialogueExecutor:
                 return
 
         if not text:
-            text = f"[Заглушка] {task.owner_id} молчит."
+            yield Artifact(
+                task_id=task.task_id,
+                success=False,
+                result_type="error",
+                data={},
+                error_message="LLM failed or returned empty text (stub avoided)."
+            )
+            return
 
         # V8-MVP-12 FIX: Парсим ответ NPC на предмет признаний
         if self._confession_parser:

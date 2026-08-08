@@ -1,4 +1,4 @@
-﻿{
+{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "blacksmith",
@@ -150,5 +150,121 @@
       "decay_rate": 0.002
     }
   ],
-  "core_orientation": "knowledge_seeker"
+  "core_orientation": "knowledge_seeker",
+  "visual_casting": {
+    "fallback": {
+      "expression_id": "neutral",
+      "asset": [
+        "Pers/Кузнец Орм",
+        911,
+        10,
+        324,
+        372,
+        235,
+        6
+      ]
+    },
+    "rules": [
+      {
+        "expression_id": "shouting",
+        "priority": 100,
+        "asset": [
+          "Pers/Кузнец Орм",
+          778,
+          389,
+          246,
+          276,
+          235,
+          6
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "SHOUT"
+          }
+        ]
+      },
+      {
+        "expression_id": "whispering",
+        "priority": 90,
+        "asset": [
+          "Pers/Кузнец Орм",
+          1232,
+          6,
+          293,
+          372,
+          235,
+          6
+        ],
+        "evidence": [
+          {
+            "field": "delivery_type",
+            "op": "==",
+            "value": "WHISPER"
+          }
+        ]
+      },
+      {
+        "expression_id": "tense",
+        "priority": 50,
+        "asset": [
+          "Pers/Кузнец Орм",
+          1266,
+          382,
+          263,
+          283,
+          235,
+          6
+        ],
+        "evidence": [
+          {
+            "field": "pose_tense",
+            "op": ">",
+            "value": 0.5
+          }
+        ]
+      },
+      {
+        "expression_id": "avoiding_gaze",
+        "priority": 40,
+        "asset": [
+          "Pers/Кузнец Орм",
+          1034,
+          385,
+          218,
+          270,
+          235,
+          6
+        ],
+        "evidence": [
+          {
+            "field": "gaze_avoidance",
+            "op": ">",
+            "value": 0.7
+          }
+        ]
+      },
+      {
+        "expression_id": "surprised",
+        "priority": 80,
+        "asset": [
+          "Pers/Кузнец Орм",
+          276,
+          372,
+          256,
+          297,
+          235,
+          6
+        ],
+        "evidence": [
+          {
+            "field": "pose_tremor",
+            "op": ">",
+            "value": 0.6
+          }
+        ]
+      }
+    ]
+  }
 }
