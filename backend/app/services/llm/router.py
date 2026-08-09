@@ -34,29 +34,7 @@ _root_logger = logging.getLogger()
 
 from app.core.config import settings
 from app.services.llm.provider import GenerationParams, LlmProvider, ProviderType
-
-
-class Capability(str, Enum):
-    """Возможности/задачи для LLM моделей."""
-
-    # Narration & Story
-    NARRATIVE = "narrative"  # DM storytelling
-    DIALOGUE = "dialogue"  # NPC conversations
-    DIALOGUE_GENERATION = "dialogue_generation"
-
-    # Reasoning
-    RULES_REASONING = "rules_reasoning"  # D&D rules
-    WORLD_SIMULATION = "world_simulation"  # World events
-    STRATEGY = "strategy"  # Combat tactics
-
-    # Memory & Processing
-    MEMORY_SUMMARIZATION = "memory_summarization"
-    FACT_EXTRACTION = "fact_extraction"
-    RAG_RETRIEVAL = "rag_retrieval"
-
-    # General
-    GENERAL = "general"  # Default/general purpose
-    FAST = "fast"  # Quick responses
+from app.services.llm.provider import Capability, CAPABILITY_MODEL_PREFERENCES
 
 
 @dataclass
@@ -138,21 +116,6 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
     "memory": Capability.MEMORY_SUMMARIZATION,
     "dialogue_extractor": Capability.MEMORY_SUMMARIZATION, # BUG-DLG-011 FIX
     "general": Capability.GENERAL,
-}
-
-
-# Mapping: capability → model key (единственная модель)
-CAPABILITY_MODEL_PREFERENCES: dict[Capability, list[str]] = {
-    Capability.NARRATIVE: ["qwen_7b"],
-    Capability.DIALOGUE: ["qwen_7b"],
-    Capability.DIALOGUE_GENERATION: ["qwen_7b"],
-    Capability.WORLD_SIMULATION: ["qwen_7b"],
-    Capability.RULES_REASONING: ["qwen_7b"],
-    Capability.MEMORY_SUMMARIZATION: ["qwen_7b"],
-    Capability.FACT_EXTRACTION: ["qwen_7b"],
-    Capability.STRATEGY: ["qwen_7b"],
-    Capability.FAST: ["qwen_7b"],
-    Capability.GENERAL: ["qwen_7b"],
 }
 
 
@@ -619,16 +582,7 @@ class ModelRouter:
                 )
                 
         return _result
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError as e:
-            logger.debug(f"No running loop, starting new one: {e}")
-            # Нет запущенного цикла — запускаем свой
-            return asyncio.run(coro)
-        else:
-            # Есть запущенный цикл — thread-safe запуск
-            future = asyncio.run_coroutine_threadsafe(coro, loop)
-            return future.result(timeout=60)
+        # BUGFIX-ROUTER-DEADCODE-001: Удалён мёртвый код (try/except get_running_loop + asyncio.run после return)
 
     # --- Streaming Observability (ADR-147) ---
     # Router — единственный владелец observability LLM-вызовов.

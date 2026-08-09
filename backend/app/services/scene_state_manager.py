@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
@@ -30,6 +30,7 @@ SceneState хранится в:
 """
 
 
+import hashlib
 import json
 import logging
 import math
@@ -729,7 +730,8 @@ class SceneStateManager:
                             f"[SCENE] Fallback на первый файл с rooms: {json_file}"
                         )
                         return data
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.debug(f"[SCENE] Пропуск невалидного editor JSON {json_file}: {e}")
                     continue
         return None
 
@@ -753,7 +755,8 @@ class SceneStateManager:
                     if data.get("rooms") or data.get("walls"):
                         logger.info(f"[SCENE] Fallback: первая локация из {json_file}")
                         return data
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.debug(f"[SCENE] Пропуск невалидного location JSON {json_file}: {e}")
                     continue
         return None
 
@@ -778,7 +781,8 @@ class SceneStateManager:
                     data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("player_spawn") and data.get("npcs"):
                         return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.debug(f"[SCENE] Пропуск невалидного JSON (NPC+spawn) {json_file}: {e}")
                     continue
         # Приоритет 2: локация с player_spawn (без NPC)
         for loc_dir in search_dirs:
@@ -789,7 +793,8 @@ class SceneStateManager:
                     data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("player_spawn"):
                         return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.debug(f"[SCENE] Пропуск невалидного JSON (spawn only) {json_file}: {e}")
                     continue
         # Приоритет 3: первая локация с rooms/walls/nodes
         for loc_dir in search_dirs:
@@ -800,7 +805,8 @@ class SceneStateManager:
                     data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                     if data.get("rooms") or data.get("walls") or data.get("nodes"):
                         return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.debug(f"[SCENE] Пропуск невалидного JSON (rooms/walls/nodes) {json_file}: {e}")
                     continue
         return "tavern"
 
@@ -960,7 +966,10 @@ class SceneStateManager:
                 if "count" in obj and obj.get("interactable", False):
                     base = obj["count"]
                     delta = max(1, int(base * 0.2))
-                    count = base + random.randint(-delta, delta)
+                    # BUG-RNG-001 FIX: Детерминированный сид от location+obj для ADR-O-301.
+                    _seed_str = f"{location_id}:{obj_id}"
+                    _seed = int(hashlib.md5(_seed_str.encode("utf-8")).hexdigest(), 16)
+                    count = base + random.Random(_seed).randint(-delta, delta)
                     for i in range(1, count + 1):
                         instance = {k: v for k, v in obj.items() if k != "count"}
                         instance["instance_of"] = obj_id
@@ -997,10 +1006,13 @@ class SceneStateManager:
             base_count = candle_data.get("count", 0)
             if base_count > 0:
                 delta = max(1, int(base_count * 0.2))
+                # BUG-RNG-001 FIX: Детерминированный сид от location+candles для ADR-O-301.
+                _seed_str = f"{location_id}:candles_main"
+                _seed = int(hashlib.md5(_seed_str.encode("utf-8")).hexdigest(), 16)
                 objects["candles_main"] = {
                     "name": "свечи",
                     "state": candle_data.get("state", "unlit"),
-                    "count": base_count + random.randint(-delta, delta),
+                    "count": base_count + random.Random(_seed).randint(-delta, delta),
                     "interactable": True,
                     "owner": None,
                 }
@@ -1073,7 +1085,8 @@ class SceneStateManager:
                 else:
                     if start_min <= minutes < end_min:
                         return variant
-            except (ValueError, AttributeError):
+            except (ValueError, AttributeError) as e:
+                logger.debug(f"[SCENE] Пропуск time_variant {variant}: {e}")
                 continue
 
         variants = list(template.get("time_variants", {}).values())

@@ -1162,7 +1162,7 @@ class GameLoop:
             logger.error(f"[DM_RESULT] LLM FAILED: {_err_msg}")
             # Recovery: пробуем перезапустить llama-server и повторить запрос
             try:
-                from app.main import _restart_llama_server
+                from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
 
                 if _restart_llama_server():
                     logger.info("[DM_RESULT] LLM рестартнул — повторяем запрос")
@@ -1790,6 +1790,12 @@ class GameLoop:
 
             # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
             shared_context.intent_resolution = _resolution
+
+            # TODO (Фаза 1 / Эпоха 6): Интеграция PhysicsValidator.
+            # Здесь должен вызываться PhysicsValidator().validate(_raw_action, char_state, game_state)
+            # для мгновенной (<1мс) проверки физической возможности действия игрока.
+            # Невозможные действия (полёт, телепортация) должны отклоняться до LLM
+            # и возвращать реалистичную альтернативу для DM-нарратива.
 
             # P7-14 MVP: Каузальный мост действий игрока
             # V8-MVP-7 FIX: Убран gate по player_target_id. DIALOGUE без target должен обрабатываться.

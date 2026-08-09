@@ -23,6 +23,7 @@ class MockProbeContext:
     world_snapshot: Any = None
     interventions: list = None
     l1_events: list = None
+    spatial_service: Any = None  # BUG-SPATIAL-036 FIX: Добавлено для совместимости с ProbeContext
 
 # --- Стратегии генерации ---
 

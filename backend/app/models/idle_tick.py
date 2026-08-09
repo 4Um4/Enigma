@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 path: backend/app/models/idle_tick.py
 Назначение: Контракты для time-driven idle-обработчиков (Фаза 0.5).

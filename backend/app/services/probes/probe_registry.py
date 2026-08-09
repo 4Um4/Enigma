@@ -18,6 +18,7 @@ class ProbeContext:
     tick_state_hash_before: Optional[int] = None  # Подсистема 3: Инвариант III
     tick_state_hash_after: Optional[int] = None   # Подсистема 3: Инвариант III
     effective_drives_map: Any = None              # Подсистема 3: Инвариант II (Historical Constraint)
+    spatial_service: Any = None                   # BUG-SPATIAL-036: Для проверки SC-3..SC-8+
 
 @dataclass
 class ProbeResult:

@@ -1,4 +1,4 @@
-﻿# Единый источник истины для базовой интенсивности действий
+# Единый источник истины для базовой интенсивности действий
 # TODO v2: context-aware intensity = f(event_type, context, npc_state, personality)
 """
 path: backend/app/domain/constants.py

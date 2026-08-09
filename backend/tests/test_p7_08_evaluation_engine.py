@@ -43,7 +43,7 @@ class TestP708EvaluationEngine:
         """Игрок ничего не нашел."""
         result = engine.evaluate(truth_state, model, log)
         assert result.secrets_identified == 0
-        assert result.secrets_missed == 16
+        assert result.secrets_missed == 17
         assert result.score == 0
 
     def test_secret_identified_correctly(self, truth_state, model, log, engine):
@@ -54,7 +54,7 @@ class TestP708EvaluationEngine:
         
         result = engine.evaluate(truth_state, model, log)
         assert result.secrets_identified == 1
-        assert result.secrets_missed == 15
+        assert result.secrets_missed == 16
         assert result.secrets_misidentified == 0
         
         # Проверяем методы (все использованные)
@@ -68,7 +68,7 @@ class TestP708EvaluationEngine:
         result = engine.evaluate(truth_state, model, log)
         assert result.secrets_identified == 0
         assert result.secrets_misidentified == 1
-        assert result.secrets_missed == 15
+        assert result.secrets_missed == 16
         assert result.score == 0 # Штраф за ошибку
 
     def test_causal_links_not_evaluated_yet(self, truth_state, model, log, engine):

@@ -13,17 +13,17 @@ def test_extract_distances_from_spatial_context() -> None:
             "player": {
                 "location_id": "tavern_silver_wolf",
                 "position": "main_hall",
-                "local_position": {"x": 0.0, "y": 0.0},
+                "local_position": {"x": 10.0, "y": 10.0},
             },
             "tavern_keeper_tornin": {
                 "location_id": "tavern_silver_wolf",
                 "position": "behind_bar",
-                "local_position": {"x": 0.0, "y": 0.0},
+                "local_position": {"x": 15.0, "y": 15.0},
             },
             "maid_lusya": {
                 "location_id": "tavern_silver_wolf",
                 "position": "main_hall",
-                "local_position": {"x": 0.3, "y": 0.0},
+                "local_position": {"x": 10.5, "y": 10.0},
             },
         },
     }

@@ -66,7 +66,7 @@
 16. **Belief Merger** (нет ТЗ; разрешение конфликтов writer'ов в BeliefState)
 17. `docs/Почти Актуальные TZ/VZ/TZ_§19_Predictive_Perception_Dynamics.md` — Prophecy math
 18. **Prophecy System** (в ADR-O-330, не отдельным ТЗ) — player asserts future → L2.5 crystallizes
-19. **Vertical Slice «Люся и 3 парня»** (нет ТЗ; демо-кампания для проверки Эпохи 7)
+19. **Vertical Slice «Секреты Люси - секреты таверны»** (нет ТЗ; демо-кампания для проверки Эпохи 7)
 20. `docs/Почти Актуальные TZ/VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0` — WorldChronicle, 3 уровня времени
 21. `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_01_Domain_Spec.md` — Memetic Domain онтология
 22. `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_02_Content_Policy_Integration.md`
@@ -213,7 +213,7 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
                             ↓
                     Belief Merger
                             ↓
-        ┌──────── Фаза 2: Эпоха 7 — Prophecy (§19) + Vertical Slice «Люся и 3 парня» ────────┐
+        ┌──────── Фаза 2: Эпоха 7 — Prophecy (§19) + Vertical Slice «Секреты Люси - секреты таверны» ────────┐
         ↓                                                                                   ↓
         WorldChronicle (TZ-02) ──── 3 уровня времени ──── Memetic Domain (TZ_MEMETIC_01-03)
                             ↓
@@ -256,6 +256,14 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
 - [ ] **0.13** `NEW-ORIENT-004`, `BUG-FB-029` — §3.4 / §3.3.
 - [ ] **0.14** Прогнать `backend/tests/canary/test_full_playthrough.py` — должен быть green.
 - [ ] **0.15** Проверить DNA-метрики: SHI=100%, NPI=100%, SCF=1.0, PFI=0%, ADR ≤ порог.
+- [ ] **0.16** Подготовка контрактов для стохастики (ResolutionEngine). Добавить поле `expected_success: float = 0.0` в `DecisionResult` (`backend/app/services/npc/decision_hub.py`) и параметр `resolution_outcome: Optional[ResolutionOutcome] = None` в `StateApplicator.apply()` (`backend/app/services/npc/state_applicator.py`). **Почему сейчас:** прокладываем рельсы без включения кубика, чтобы не переписывать DTO-контракты в Фазе 2.
+- [ ] **0.17** Подготовка контрактов для Active Inference (ExpectationStore). Проверить наличие `ExpectationStore` и `PEModifierResolver` в `backend/app/services/npc/`. Убедиться, что БД `memory.db` создаётся. Оставить TODO-маркер в `npc_tick_pipeline.py` (точка сборки `_drive_modifiers_for_hub`) для будущего вызова `PEModifierResolver().resolve(expectation)`. **Почему сейчас:** Active Inference (S-93) требует EMA-ожиданий, которые должны накапливаться с Фазы 0, чтобы в Эпоху 7 (Prophecy) у NPC уже была база ожиданий.
+- [ ] **0.18** Подготовка контрактов для масок персонажа (FrontEngine). Проверить наличие полей `front_description`, `world_pressure`, `front_type` в `pipeline_context.py` (уже есть). Оставить TODO-маркер в `tick_orchestrator.py` (между Фазой 8 и Фазой 9) для будущего вызова `apply_front_engine()`. **Почему сейчас:** механика масок (Humble/Tough/Guarded) требует расчёта давления от фракций (Эпоха 9), но сам движок и интеграция в `shared_context` должны быть готовы.
+- [ ] **0.19** Подготовка контрактов для порядка реакций (ReactionPriority). Оставить TODO-маркер в `reaction_subscriber.py` (перед циклом по `perceiving_ids`) для будущей сортировки наблюдателей по роли/расстоянию/психике. **Почему сейчас:** детерминированный порядок реакций (стражник → трактирщик) необходим для предсказуемости LLM-нарратива, но требует тонкой настройки таблицы обязанностей (`_DUTY_TABLE`) под MVP-кампанию.
+- [ ] **0.20** Подготовка контрактов для социального статуса (PerceptionEngine). Оставить TODO-маркер в `npc_tick_pipeline.py` (точка сборки модификаторов) для будущего вызова `assess_status(player_markers)` и `get_social_permissions()`. **Почему сейчас:** данные о маркерах игрока (`player_markers`) уже передаются в `shared_context`, но не конвертируются в модификаторы для `DecisionHub` (NPC не видят разницы между нищим и королём).
+- [ ] **0.21** Подготовка контрактов для смены профессии (RoleTransition). Оставить TODO-маркер в `tick_orchestrator.py` (после Фазы 8) для будущего вызова `RoleTransition.execute_transition()`. **Почему сейчас:** механика смены профессии требует экономической базы (стоимость 20 золотых) и глубокой социальной симуляции, но контракт (`NPCState`, `RoleChangeEntry`) уже существует.
+- [ ] **0.22** Подготовка контрактов для экономики локаций (MarketState/Traveller). Оставить TODO-маркер в `tick_orchestrator.py` (после Фазы 8) для будущего вызова `MarketState.tick()` и `Traveller.generate_visits()`. **Почему сейчас:** экономика требует интеграции с `EconomicProfile` NPC и `SpatialService` (спавн странников), что относится к Эпохе 9, но логика бимодального рынка (quiet/active) уже готова.
+- [ ] **0.23** Подготовка контрактов для валидации физики (PhysicsValidator). Оставить TODO-маркер в `game_loop/__init__.py` (после `resolve_player_intent`) для будущего вызова `PhysicsValidator().validate()`. **Почему сейчас:** валидация физической возможности действий игрока (полёт, телепортация) должна происходить мгновенно (<1мс) до LLM, чтобы экономить токены и обеспечивать реализм мира. Сам валидатор и правила (`VIOLATION_RULES`) уже готовы.
 
 ### Гейты для перехода к Фазе 1
 
@@ -282,6 +290,8 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
 - [ ] **1.6** LLM Pipeline v1: semantic cache на BGE-small-ru + FAISS, grammar-constrained JSON через `pydantic`/`jsonschema`. Цель: P50<2.5s, cache hit ≥35%.
 - [ ] **1.7** DRI-метрика (см. §2.5) — новый модуль в `diagnostics/`.
 - [ ] **1.8** Audit Log LLM-вызовов (см. §2.6) — `backend/app/llm/audit_log.py`.
+- [ ] **1.9** Replay System совместимость с `ResolutionEngine`. Убедиться, что `KernelRNG(tick, npc_id, salt="resolution_engine")` корректно снапшотится и восстанавливается в Replay System, не ломая детерминизм переигровки. **Файлы:** `backend/app/replay/`.
+- [ ] **1.10** Интеграция `PhysicsValidator` (Валидация физики). Включить вызов `PhysicsValidator().validate()` в `game_loop/__init__.py` после `resolve_player_intent`. Невозможные действия (полёт без заклинания, телепортация) должны отклоняться мгновенно (<1мс) до LLM, возвращая реалистичную альтернативу для DM-нарратива. **Файлы:** `backend/app/services/game/physics_validator.py`, `game_loop/__init__.py`.
 
 ### Гейты для перехода к Фазе 2
 
@@ -295,7 +305,7 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
 
 ## 6. ФАЗА 2 — Эпоха 7: Vertical Slice + Prophecy
 
-**Цель:** Vertical slice демо «Люся и 3 парня» играбельно; Prophecy Causality Law (ADR-O-330) green; §19 PerceptualKernel внедрён.
+**Цель:** Vertical slice демо «Секреты Люси - секреты таверны» играбельно; Prophecy Causality Law (ADR-O-330) green; §19 PerceptualKernel внедрён.
 **Источник ТЗ:** `TZ_§19_Predictive_Perception_Dynamics.md`, ADR-O-330 (Prophecy).
 **Параллельность:** 2.1+2.2 (Belief Layer) → 2.3 (§19) → 2.4 (Prophecy) → 2.5 (Vertical Slice).
 
@@ -305,7 +315,12 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
 - [ ] **2.2** Belief Merger — см. §2.2. **Файлы:** новый `backend/app/cognition/belief_merger.py`.
 - [ ] **2.3** §19 Predictive Perception — `PerceptualKernel` с `z_t = F(z_{t-1}, x_t)` и `surprise = −log P(x_t|z_{t-1})`. Surprise становится каузальным входом. **Файлы:** `backend/app/perception/perceptual_kernel.py` (новый).
 - [ ] **2.4** Prophecy System (ADR-O-330): player *asserts* future → belief crystallizes в L2.5 → confirmation bias → self-fulfilling. **Файлы:** `backend/app/cognition/prophecy_engine.py` (новый).
-- [ ] **2.5** Vertical Slice «Люся и 3 парня» — кампания-демо, проверяющая всю связку: Belief + Merger + §19 + Prophecy.
+- [ ] **2.5** Vertical Slice «Секреты Люси - секреты таверны» — кампания-демо, проверяющая всю связку: Belief + Merger + §19 + Prophecy.
+- [ ] **2.6** Интеграция `ResolutionEngine` — стохастическое разрешение действий NPC (кубик d20). Замкнуть цепочку: `DecisionHub.compute() → ResolutionEngine.resolve() → StateApplicator.apply()`. Внедрить вычисление `expected_success` (нормализация score) и `gap` learning (обучение на разнице ожидание/реальность). **Синергия с Belief Layer:** `gap` и `surprise` от ResolutionEngine становятся прямыми входами для `BeliefCrystallizationEngine` (формирование trait_suspicious/overconfident) и `Prophecy` (математика surprise). Реализовать `Viability Veto` (отмена CommunicationIntent/Task при `critical_failure`). **Файлы:** `backend/app/services/npc/resolution_engine.py`, `decision_hub.py`, `state_applicator.py`, `npc_tick_pipeline.py`.
+- [ ] **2.7** Интеграция `ExpectationStore` (Active Inference). Включить вызов `PEModifierResolver().resolve(expectation)` в `npc_tick_pipeline.py` для формирования `drive_modifiers` на основе EMA-ожиданий NPC. Настроить обновление EMA в `StateApplicator` (Reward Prediction Error). **Синергия с Prophecy:** Ожидания NPC (expected_reward/threat) становятся основой для `surprise = -log P(x_t|z_{t-1})` в §19. **Файлы:** `backend/app/services/npc/expectation_store.py`, `pe_modifier_resolver.py`, `npc_tick_pipeline.py`, `state_applicator.py`.
+- [ ] **2.8** Интеграция `FrontEngine` (Маски персонажа). Включить вызов `apply_front_engine()` в `tick_orchestrator.py` (после Фазы 8). Настроить расчёт `WorldPressure` из `ReputationEngine` и `SocialEngine`. Маски (`Humble`, `Tough`, `Deceptive`) и срывы (`Break`) должны влиять на DM-нарратив и эрозию `self_integrity`. **Файлы:** `backend/app/services/character/front_engine.py`, `front_applicator.py`, `tick_orchestrator.py`.
+- [ ] **2.9** Интеграция `ReactionPriority` (Порядок реакций). Включить вызов `ReactionPriority` в `reaction_subscriber.py` для сортировки `perceiving_ids`. Это обеспечит детерминированный порядок реакций NPC на события (стражник реагирует первым, служанка — последней). **Синергия с LLM:** предсказуемый порядок реакций улучшит связность DM-нарратива. **Файлы:** `backend/app/services/npc/reaction_priority.py`, `backend/app/services/events/reaction_subscriber.py`.
+- [ ] **2.10** Интеграция `PerceptionEngine` (Социальный статус). Включить вызов `assess_status()` и `get_social_permissions()` в `npc_tick_pipeline.py`. Статус игрока (нищий/благородный/правитель) должен генерировать `drive_modifiers` для `DecisionHub` (например, буст `OBEY` при высоком статусе, `ATTACK` при низком). **Синергия с Factions:** статус будет учитывать фракционную принадлежность (Эпоха 9). **Файлы:** `backend/app/services/npc/perception_engine.py`, `npc_tick_pipeline.py`.
 
 ### Гейты для перехода к Фазе 3
 
@@ -330,6 +345,7 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
 - [ ] **3.4** Content Policy Integration — per-NPC `ContentProfile` из adopted expressions, `SpeakerVocabulary` в `DMContractBuilder`. Источник: `TZ_MEMETIC_02`.
 - [ ] **3.5** TZ_MEMETIC_03 Patch List — 12 точек правки + 8 новых файлов. Пройти по списку.
 - [ ] **3.6** Наследуемые убеждения — убеждения родителей кристаллизуются в потомках через Memetic Domain.
+- [ ] **3.7** Интеграция `LinguisticIntegrityCalculator` (Целостность речи). Включить вызов `LinguisticIntegrityCalculator().compute()` в `phases/integration.py` (точка кристаллизации убеждений). Целостность речи (willpower * class * age * attachment) должна модулировать скорость кристаллизации: NPC с высокой целостностью сопротивляются меметическому дрейфу и сохраняют свой архетип речи. **Синергия с Memetic Domain:** linguistic_integrity определяет, насколько NPC подвержен заимствованию чужих речевых паттернов. **Файлы:** `backend/app/services/memetic/linguistic_integrity_calculator.py`, `phases/integration.py`.
 
 ### Гейты для перехода к Фазе 4
 
@@ -351,6 +367,8 @@ Dialogue Openers ───── DRI-метрика ── Audit Log
 - [ ] **4.1** Factions system — группировки, репутация, конфликты.
 - [ ] **4.2** Economy layer — `architecture/economy.yaml` → реализация. Торговля, цены, дефицит.
 - [ ] **4.3** Politics — властные структуры, решения, влияющие на общество.
+- [ ] **4.4** Интеграция `RoleTransition` (Смена профессии). Включить вызов `RoleTransition` в `tick_orchestrator.py`. NPC смогут менять профессию (трактирщик → стражник) при наличии оснований, низком стрессе и достаточной целостности, уплачивая стоимость. **Синергия с Economy:** потребует расходов из `EconomicProfile` NPC. **Файлы:** `backend/app/services/npc/role_transition.py`, `tick_orchestrator.py`.
+- [ ] **4.5** Интеграция `MarketState` / `Traveller` (Экономические шоки). Включить вызов `MarketState.tick()` и `Traveller.generate_visits()` в `tick_orchestrator.py` или `LifeEngine`. Локация начнёт получать внешние шоки (волны спроса, визиты торговцев), что обеспечит динамику цен и социальное напряжение. **Синергия с Economy layer:** спрос странников должен влиять на цены и `EconomicProfile` NPC. **Файлы:** `backend/app/services/economy/market_state.py`, `traveller.py`, `tick_orchestrator.py`.
 
 ### Гейты для перехода к Фазе 5
 

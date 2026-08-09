@@ -25,7 +25,7 @@ class TestMvpTavernIntegration:
     def test_controller_initializes_all_systems(self, controller: MvpTavernController):
         """Все 14 систем инициализированы и готовы."""
         assert controller.truth_state is not None
-        assert len(controller.truth_state.secrets) == 16
+        assert len(controller.truth_state.secrets) == 17
         assert controller.observation_log is not None
         assert controller.belief_model is not None
         assert controller.social_fabric is not None
@@ -88,8 +88,8 @@ class TestMvpTavernIntegration:
         scene_inside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 5.0}}}}
         assert not controller.check_exit(scene_inside)
         
-        # 3. Игрок выходит из таверны
-        scene_outside = {"npc_positions": {"player": {"local_position": {"x": 19.0, "y": 5.0}}}}
+        # 3. Игрок выходит из таверны (через южную дверь, y >= 12.5)
+        scene_outside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 15.0}}}}
         assert controller.check_exit(scene_outside)
         
         # 4. Строим финальный экран

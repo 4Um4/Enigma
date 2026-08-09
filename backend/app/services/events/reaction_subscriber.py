@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/services/events/reaction_subscriber.py
 """
@@ -59,6 +59,9 @@ _REACTION_EVENT_TYPES: list[EventType] = [
     EventType.INTIMIDATION,
     EventType.HELP,
     EventType.OBJECT_DESTROYED,
+    EventType.COMBAT,
+    EventType.BETRAYAL,
+    EventType.SAVED_LIFE,
 ]
 
 # ── Правила реакций: event_type.lower() → (stress_base, fear_base, trust_actor_base) ──
@@ -254,6 +257,11 @@ class ReactionSubscriber:
             source_is_npc = _is_npc_source(source, ctx.all_npcs_raw)
             trust_target_key = "social_target" if source_is_npc else "intent_target"
             trust_target_val = source if source_is_npc else "player"
+
+            # TODO (Фаза 2 / Эпоха 7): Интеграция ReactionPriority (Phase S.4.2).
+            # Здесь должна вызываться сортировка perceiving_ids через ReactionPriority.
+            # Это обеспечит детерминированный порядок реакций (стражник → трактирщик → служанка)
+            # на основе роли, расстояния и психики NPC, вместо случайного порядка итерации.
 
             for npc_id in perceiving_ids:
                 # Источник события не реагирует на собственное действие

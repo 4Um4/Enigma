@@ -577,14 +577,19 @@ class TickOrchestrator:
         """A2-FIX v0.2: Immutable core pipeline. NO mode, NO player branching."""
         # BUG-CORE-014 FIX: CAUSAL_CONTRACT §4.6.45 — исключаем мёртвых NPC ДО любых фаз.
         # Ранее фильтр был только в _phase_5_decision, что позволяло мёртвым мутировать state в Фазах 0-4.
+        # S2 FIX (Entity Cardinality): Фильтруем NPC по текущей локации.
+        # Это гарантирует, что NPC из tavern не будут обработаны повторно при тике city_gate.
+        _current_loc = ctx.scene_state.get("location_id", "")
         ctx.all_npcs_raw = [
             n for n in (ctx.all_npcs_raw or [])
             if n.get("body_state", {}).get("life_status") != "DEAD"
+            and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
         ]
         if hasattr(ctx, "npc_states") and ctx.npc_states:
             ctx.npc_states = [
                 n for n in ctx.npc_states
                 if n.get("body_state", {}).get("life_status") != "DEAD"
+                and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
             ]
 
         self._snapshot_positions_before(ctx) #1
@@ -619,6 +624,22 @@ class TickOrchestrator:
         self._phase_6_post_decision(ctx) #11
         self._phase_7_windup_resolution(ctx)  #12 ADR-O-310: Execution Gate
         self._phase_8_drain_secondary(ctx) #13
+
+        # TODO (Фаза 2 / Эпоха 7): Интеграция FrontEngine.
+        # Здесь, после обработки событий (Фаза 8) и до интеграции (Фаза 9),
+        # должен вызываться apply_front_engine() из character/front_applicator.py.
+        # Он вычислит давление мира (WorldPressure) и обновит маску персонажа (Front).
+        # Поля для shared_context (front_description, world_pressure) уже готовы.
+
+        # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
+        # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
+        # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
+
+        # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
+        # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
+        # и Traveller.generate_visits() для спавна странников (торговцев, путников).
+        # Это обеспечит внешние экономические шоки для локации.
+
         self._phase_9_integration(ctx) #14
         self._run_affective_pipeline(ctx) #15
         
@@ -636,6 +657,7 @@ class TickOrchestrator:
         from app.services.probes.probes.death_lock_probe import DeathLockProbe
         from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
         
+        _spatial_svc = self._resolve_spatial_service(ctx)
         _probe_ctx = ProbeContext(
             tick_id=ctx.tick_number,
             game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
@@ -645,7 +667,8 @@ class TickOrchestrator:
             tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I
             tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III
             tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III
-            effective_drives_map=getattr(ctx, "effective_drives_map", {})         # Инвариант II
+            effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II
+            spatial_service=_spatial_svc  # BUG-SPATIAL-036: Передаём сервис для SC-2..SC-8
         )
         from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
         from app.services.probes.probes.historical_constraint_probe import HistoricalConstraintProbe
@@ -1441,25 +1464,33 @@ class TickOrchestrator:
         
         # Подсистема 3: Хеширование TickState до pipeline для Инварианта III (Temporal Isolation)
         import json
-        _json_before = json.dumps(_tick_state, default=str, sort_keys=True, indent=2)
+        # S1 FIX: Хэшируем только данные, исключая сервисные объекты (spatial_service, etc.)
+        # Сервисы могут иметь side-effects (кэш) при чтении, что ложно вызывает INV-TEMPORAL-ISOLATION.
+        _data_fields = {
+            "scene_state": _tick_state.scene_state,
+            "all_npcs_raw": _tick_state.all_npcs_raw,
+            "effective_drives_map": _tick_state.effective_drives_map,
+            "pe_modifiers_map": _tick_state.pe_modifiers_map,
+            "memory_weights_map": _tick_state.memory_weights_map,
+            "narrative_cache_map": _tick_state.narrative_cache_map,
+            "social_modifiers_map": _tick_state.social_modifiers_map,
+            "reputation_modifiers_map": _tick_state.reputation_modifiers_map,
+            "economic_profiles_map": _tick_state.economic_profiles_map,
+            "crystallized_beliefs_map": _tick_state.crystallized_beliefs_map,
+            "identity_traits_map": _tick_state.identity_traits_map,
+            "nearby_npcs": _tick_state.nearby_npcs,
+            "line_of_sight": _tick_state.line_of_sight,
+        }
+        _json_before = json.dumps(_data_fields, default=str, sort_keys=True)
         _ts_hash_before = hash(_json_before)
         
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
         ctx.tick_mutation = _mutation  # Сохраняем мутацию для ReplayRecorder и ProbeRunner
-        
         # Подсистема 3: Хеширование TickState после pipeline
-        _json_after = json.dumps(_tick_state, default=str, sort_keys=True, indent=2)
+        _json_after = json.dumps(_data_fields, default=str, sort_keys=True)
         _ts_hash_after = hash(_json_after)
         ctx.tick_state_hash_before = _ts_hash_before
         ctx.tick_state_hash_after = _ts_hash_after
-
-        # ВРЕМЕННАЯ ДИАГНОСТИКА: Вывод diff при мутации TickState
-        if _ts_hash_before != _ts_hash_after:
-            import difflib
-            diff = difflib.unified_diff(_json_before.splitlines(), _json_after.splitlines(), lineterm='', n=1)
-            print("\n[ARCHAE_MUTATION] TickState mutated during pipeline! Diff:")
-            for line in list(diff)[:50]:
-                print(line)
 
         # V8-SOC-5 FIX: Обновляем idle_pressure в LifeEngine
         if _life_engine and _mutation.idle_pressure_updates:

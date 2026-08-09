@@ -353,9 +353,6 @@ class SceneRenderer:
                 elif len(sprite_info) >= 3:
                     sprite = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
             
-            if not sprite:
-                sprite = get_entity_sprite(obj_type)
-
             if sprite and sw > 0 and sh > 0:
                 scaled = pygame.transform.scale(sprite, (sw, sh))
                 if is_passable:
@@ -363,6 +360,7 @@ class SceneRenderer:
                     scaled.set_alpha(160)
                 self.screen.blit(scaled, (sx, sy))
             else:
+                # BUG-S81: Препятствия рисуются как прямоугольники (fallback-логика).
                 if is_passable:
                     # Проходимые объекты — пунктирная рамка
                     color = AGGRESSION_COLORS["peaceful_interaction"]
@@ -473,7 +471,54 @@ class SceneRenderer:
             # S176 FIX: Приоритет кастомного спрайта из кэша
             sprite_info = self._custom_sprites.get(entity.entity_id)
             sprite = None
-            if sprite_info:
+            _need_flip = False
+            
+            # S177: Поддержка 8-направлений для NPC (dict)
+            if isinstance(sprite_info, dict):
+                # LERP сглаживание heading
+                _target_heading = getattr(entity, "body_heading", 1.5708)
+                _prev_heading = self._prev_npc_headings.get(entity.entity_id, _target_heading)
+                _diff = (_target_heading - _prev_heading + math.pi) % (2 * math.pi) - math.pi
+                _heading = _prev_heading + _diff * 0.15
+                self._prev_npc_headings[entity.entity_id] = _heading
+                
+                # Перевод радиан в 8 направлений (0: E, 1: SE, 2: S, 3: SW, 4: W, 5: NW, 6: N, 7: NE)
+                # Pygame Y инвертирован, поэтому -math.degrees
+                _deg = math.degrees(_heading) % 360
+                _dir_idx = int((_deg + 22.5) // 45) % 8
+                _dir_map = ["E", "SE", "S", "SW", "W", "NW", "N", "NE"]
+                _target_dir = _dir_map[_dir_idx]
+                
+                # Фоллбэк: если нет диагоналей, ищем ортогональные
+                _dir_keys = [_target_dir]
+                if _target_dir in ("SE", "NE"): _dir_keys.append("E")
+                elif _target_dir in ("SW", "NW"): _dir_keys.append("W")
+                elif _target_dir == "E": _dir_keys.extend(["SE", "NE"])
+                elif _target_dir == "W": _dir_keys.extend(["SW", "NW"])
+                elif _target_dir == "N": _dir_keys.append("NE") # Заглушка
+                elif _target_dir == "S": _dir_keys.append("SE") # Заглушка
+                
+                _chosen_asset = None
+                for _dk in _dir_keys:
+                    if _dk in sprite_info:
+                        _chosen_asset = sprite_info[_dk]
+                        break
+                if _chosen_asset is None:
+                    _chosen_asset = next(iter(sprite_info.values()), None)
+                
+                # S177: Авто-зеркалирование E <-> W. Если левый спрайт совпадает с правым — флипаем
+                if _target_dir in ("W", "SW", "NW"):
+                    _e_asset = sprite_info.get("E") or sprite_info.get("SE") or sprite_info.get("NE")
+                    if _chosen_asset == _e_asset:
+                        _need_flip = True
+                elif _target_dir in ("E", "SE", "NE"):
+                    _w_asset = sprite_info.get("W") or sprite_info.get("SW") or sprite_info.get("NW")
+                    if _chosen_asset == _w_asset:
+                        _need_flip = True
+                        
+                sprite_info = _chosen_asset
+            
+            if sprite_info and isinstance(sprite_info, list):
                 if len(sprite_info) >= 5:
                     _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
                     _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
@@ -507,11 +552,11 @@ class SceneRenderer:
                 ratio = min(npc_size / sw, npc_size / sh)
                 nw, nh = int(sw * ratio), int(sh * ratio)
                 scaled = pygame.transform.smoothscale(sprite, (nw, nh))
-                # NEW-ORIENT-002 FIX: Вращаем спрайт по body_heading (Y инвертирован в pygame)
-                _angle_deg = -math.degrees(_heading)
-                rotated = pygame.transform.rotate(scaled, _angle_deg)
-                _rect = rotated.get_rect(center=(sx, sy))
-                self.screen.blit(rotated, _rect)
+                # S177: Если нужно зеркало (E<->W), применяем flip
+                if _need_flip:
+                    scaled = pygame.transform.flip(scaled, True, False)
+                _rect = scaled.get_rect(center=(sx, sy))
+                self.screen.blit(scaled, _rect)
                 
                 if is_focused:
                     pygame.draw.circle(
@@ -569,7 +614,8 @@ class SceneRenderer:
                     _heading = _angle_to_player + math.pi  # Смотрим строго в противоположную сторону
                     gaze_color = (150, 150, 150, 60)  # Серый отворот
                 else:
-                    _heading = entity.body_heading
+                    # NEW-SPATIAL-003 FIX: Используем LERP-сглаженный _heading вместо сырого entity.body_heading
+                    _heading = _heading
                     gaze_color = (255, 255, 80, 60)  # Полупрозрачный жёлтый
 
                 gaze_surface = pygame.Surface((100, 100), pygame.SRCALPHA)

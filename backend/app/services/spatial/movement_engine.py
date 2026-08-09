@@ -215,7 +215,9 @@ class MovementEngine:
                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
                 _npc_pos_data = npc_positions.get(intent.actor_id, {}) if scene_state else {}
                 _pos_str = _npc_pos_data.get("position", "")
-                current_loc = _npc_pos_data.get("location_id", scene_state.get("location_id", ""))
+                current_loc = _npc_pos_data.get("location_id")
+                if current_loc is None:
+                    current_loc = scene_state.get("location_id", "") if scene_state else ""
                 # S-145 FIX: Если position содержит префикс локации (напр. "city_gate:entrance"),
                 # а location_id устарел (DOUBLE TRUTH), доверяем position.
                 if ":" in _pos_str:

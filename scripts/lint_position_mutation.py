@@ -16,6 +16,7 @@ WHITELIST_FILES = {
     os.path.normpath("backend/app/services/spatial/movement_engine.py"), # Создаёт SceneChange
     os.path.normpath("backend/app/services/spatial/traversal_execution_system.py"),
     os.path.normpath("backend/app/models/npc_state.py"), # write_to_legacy
+    os.path.normpath("backend/app/services/game_loop/scene_init.py"), # Легальная инициализация позиции игрока (Phase 0)
 }
 
 FORBIDDEN_KEYS = {"position", "local_position"}
@@ -24,8 +25,14 @@ def find_violations(filepath: str) -> list:
     violations = []
     rel_path = os.path.normpath(filepath)
     
+    # BUG-LINT-PATH: IPT передаёт абсолютные пути, а WHITELIST содержит относительные.
+    # Пробуем оба варианта сравнения.
     if rel_path in WHITELIST_FILES:
         return violations
+    if os.path.isabs(filepath):
+        for wf in WHITELIST_FILES:
+            if rel_path.endswith(wf):
+                return violations
         
     try:
         with open(filepath, "r", encoding="utf-8") as f:

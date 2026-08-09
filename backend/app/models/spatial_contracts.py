@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/models/spatial_contracts.py
 # Назначение: Контракты SpatialService v1.2 — типы, Enum, dataclass

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Назначение: DTO для передачи данных о моторных и физических паттернах NPC, а также их восприятии Игроком.
 Зависимости: dataclasses, typing
 
@@ -54,3 +54,9 @@ class PlayerPerceptionDTO:
         default_factory=dict
     )  # {npc_id: [manifest_key, ...]} — наблюдаемые проявления
     observed_facts: list[str] = field(default_factory=list)  # ADR-O-318: Список фактов для DM
+    
+    # Cognitive Distortion (перенесено из player_cognition)
+    # Влияние состояния игрока (стресс, HP) на восприятие.
+    threat_bias: float = 0.0  # 0.0 .. +1.0 (усиление воспринимаемой угрозы)
+    trust_bias: float = 0.0   # -1.0 .. 0.0 (снижение доверия)
+    salience_bias: float = 0.0  # 0.0 .. +1.0 (фиксация на угрозах)

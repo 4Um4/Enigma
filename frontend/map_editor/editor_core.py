@@ -2754,7 +2754,7 @@ class EditorCore:
                     
                     def on_save_npc_sprite(new_casting):
                         fb = new_casting.get("fallback", {}).get("asset")
-                        if fb and len(fb) >= 5:
+                        if fb and (isinstance(fb, dict) or len(fb) >= 5):
                             npc["sprite"] = fb
                             self._show_toast("Спрайт NPC обновлён")
                         self.vc_editor = None
@@ -3640,6 +3640,9 @@ class EditorCore:
             sprite_info = npc.get("sprite") or NPC_SPRITE_MAP.get(
                 npc["ref_id"], ("Deadbeat/deadbeat_b", 23, 21)
             )
+            # S177: Поддержка словаря направлений в редакторе
+            if isinstance(sprite_info, dict):
+                sprite_info = sprite_info.get("S") or next(iter(sprite_info.values()), None)
             # S176 FIX: Увеличиваем базовый размер NPC в редакторе карт
             size = int(SCALE * self.zoom * 1.5)
             sprite_surf = None

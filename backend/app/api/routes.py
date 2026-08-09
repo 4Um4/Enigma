@@ -190,7 +190,7 @@ def system_status(game_loop=Depends(get_game_loop)) -> dict:
 async def restart_llm():
     """Перезапуск llama-server при падении. Используется лаунчером и recovery-механизмом."""
     try:
-        from app.main import _restart_llama_server
+        from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
 
         success = _restart_llama_server()
         return {"restarted": success, "url": settings.llama_cpp_server_url}

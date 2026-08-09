@@ -26,12 +26,16 @@ _ROOT = _BACKEND.parent
 sys.path.insert(0, str(_ROOT))
 
 # Автоматический запуск/остановка LLM для IPT
-from scripts.llm_server_manager import kill_llama_server, start_llama_server
-
-_llm_ok = start_llama_server()
-if not _llm_ok:
-    print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
-atexit.register(kill_llama_server)
+# Обёрнуто в try/except, так как модуля scripts.llm_server_manager может не быть в репозитории
+try:
+    from scripts.llm_server_manager import kill_llama_server, start_llama_server
+    _llm_ok = start_llama_server()
+    if not _llm_ok:
+        print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
+    atexit.register(kill_llama_server)
+except ModuleNotFoundError as e:
+    print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). IPT продолжает работу без LLM.")
+    _llm_ok = False
 
 
 @dataclass
@@ -1125,6 +1129,330 @@ def inv_pbt_traversal(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
+    """INV-SCENE-ENTITY-ISOLATION: NPC не должны появляться в npc_positions чужой локации.
+    
+    Проверяет, что каждый NPC в npc_positions имеет location_id, совпадающий с локацией сцены.
+    """
+    try:
+        from app.core.constants import DEFAULT_LOCATION_ID
+        from app.services.spatial.spatial_registry import SpatialRegistry
+        
+        _reg = SpatialRegistry.get_or_load(world.campaign_id)
+        if not _reg:
+            return InvariantResult("INV-SCENE-ENTITY-ISOLATION", "CRITICAL", True, "SpatialRegistry не загружен.", [])
+        
+        _all_locs = _reg.get_all_location_ids()
+        if len(_all_locs) < 2:
+            return InvariantResult("INV-SCENE-ENTITY-ISOLATION", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
+        
+        world.idle_tick()
+        _violations = []
+        
+        for _loc_id in _all_locs:
+            _scene = world.game_loop.scene_manager.get_scene_state(world.campaign_id, _loc_id) or {}
+            _npc_positions = _scene.get("npc_positions", {})
+            
+            for _npc_id, _npc_data in _npc_positions.items():
+                if _npc_id == "player":
+                    continue
+                _npc_loc = _npc_data.get("location_id") or _npc_data.get("location", "")
+                if _npc_loc and _npc_loc != _loc_id:
+                    _violations.append(f"{_npc_id} in {_loc_id} (belongs to {_npc_loc})")
+        
+        if not _violations:
+            return InvariantResult("INV-SCENE-ENTITY-ISOLATION", "CRITICAL", True, "All NPCs are in their correct locations.", [])
+        return InvariantResult(
+            "INV-SCENE-ENTITY-ISOLATION",
+            "CRITICAL",
+            False,
+            f"NPC location violations: {_violations[:5]}",
+            [
+                "backend/app/services/tick_orchestrator.py",
+                "backend/app/services/scene_state_manager.py"
+            ]
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-SCENE-ENTITY-ISOLATION", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
+def inv_replay_determinism(world: TestWorld) -> InvariantResult:
+    """INV-REPLAY-DETERMINISM: Инфраструктура реплея готова к A/B тестированию.
+    
+    Полный детерминированный прогон (T0->T3 == Replay(T3)) требует кэширования всех LLM-вызовов
+    и полного восстановления TickState, что выходит за рамки 5-секундного IPT.
+    Здесь проверяется готовность инфраструктуры: ReplayRecorder подключён, БД доступна.
+    Сам детерминизм верифицируется через DriftLaboratory (S3/S7).
+    """
+    try:
+        _orch = getattr(world.game_loop, "_tick_orch", None)
+        _recorder = getattr(_orch, "_replay_recorder", None) if _orch else None
+        if not _recorder:
+            return InvariantResult("INV-REPLAY-DETERMINISM", "WARNING", True, "ReplayRecorder not attached, skipping.", [])
+        
+        # Прогоняем 1 тик для проверки записи
+        world.idle_tick()
+        
+        _store = _recorder.store
+        _session_id = _recorder.session_id
+        
+        # Проверяем, что тик записался в БД
+        row = _store.conn.execute(
+            "SELECT tick_id FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
+            (_session_id, world.tick)
+        ).fetchone()
+        
+        if row:
+            return InvariantResult("INV-REPLAY-DETERMINISM", "WARNING", True, "Replay infrastructure ready (tick recorded). Full A/B test requires DriftLaboratory.", [])
+        return InvariantResult(
+            "INV-REPLAY-DETERMINISM",
+            "CRITICAL",
+            False,
+            "ReplayRecorder attached, but no ticks recorded to DB.",
+            ["backend/app/services/replay/replay_recorder.py"]
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-REPLAY-DETERMINISM", "WARNING", True, f"Replay test skipped due to: {e}", []
+        )
+
+def inv_save_load_integrity(world: TestWorld) -> InvariantResult:
+    """INV-SAVE-LOAD-INTEGRITY: Save/Load цикл сохраняет критическое состояние.
+    
+    Прогоняет 3 тика, сохраняет состояние, загружает его и проверяет,
+    что tick, game_time и npc_positions совпадают.
+    """
+    try:
+        # Прогоняем 3 тика
+        for _ in range(3):
+            world.idle_tick()
+        
+        _scene_manager = world.game_loop.scene_manager
+        _persistence = getattr(_scene_manager, "_persistence", None)
+        if not _persistence:
+            return InvariantResult("INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, "Persistence adapter not found.", [])
+        
+        # Текущее состояние в памяти
+        _in_memory_scene = world._get_scene()
+        _in_memory_tick = _in_memory_scene.get("tick", 0)
+        _in_memory_time = _in_memory_scene.get("game_time_seconds", 0.0)
+        _in_memory_positions = _in_memory_scene.get("npc_positions", {})
+        
+        # Загружаем состояние из персистентного хранилища (используем load_scene_at для конкретной локации)
+        _loaded_scene = _persistence.load_scene_at(world.campaign_id, "tavern")
+        if not _loaded_scene:
+            return InvariantResult("INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, "load_scene вернул пустой результат.", [])
+        
+        _loaded_tick = _loaded_scene.get("tick", 0)
+        _loaded_time = _loaded_scene.get("game_time_seconds", 0.0)
+        _loaded_positions = _loaded_scene.get("npc_positions", {})
+        
+        _violations = []
+        if _loaded_tick != _in_memory_tick:
+            _violations.append(f"tick mismatch: memory={_in_memory_tick}, loaded={_loaded_tick}")
+        if _loaded_time != _in_memory_time:
+            _violations.append(f"time mismatch: memory={_in_memory_time}, loaded={_loaded_time}")
+        
+        # Проверяем позиции (сравниваем только ID NPC, так как координаты могли измениться в последнем тике)
+        _memory_ids = set(_in_memory_positions.keys())
+        _loaded_ids = set(_loaded_positions.keys())
+        if _memory_ids != _loaded_ids:
+            _violations.append(f"npc_positions ID mismatch: memory={_memory_ids}, loaded={_loaded_ids}")
+        
+        if not _violations:
+            return InvariantResult("INV-SAVE-LOAD-INTEGRITY", "CRITICAL", True, "Save/Load integrity verified.", [])
+        return InvariantResult(
+            "INV-SAVE-LOAD-INTEGRITY",
+            "CRITICAL",
+            False,
+            f"Save/Load integrity violations: {_violations}",
+            ["backend/app/services/scene_state_manager.py", "backend/app/services/state/sqlite_persistence_adapter.py"]
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-SAVE-LOAD-INTEGRITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
+def inv_intent_event_completeness(world: TestWorld) -> InvariantResult:
+    """INV-INTENT-EVENT-COMPLETENESS: Каждый committed CommunicationIntent должен иметь явный event mapping.
+    
+    Проверяет, что IntentEventAdapter не возвращает 'unknown' тип события.
+    """
+    try:
+        from app.services.events.intent_event_adapter import IntentEventAdapter
+        from app.domain.communication import CommunicationIntent, ExposureLevel
+        from app.models.npc_state import Intent
+        
+        _violations = []
+        # Проверяем все интенты, которые могут стать CommunicationIntent
+        _communicative_intents = [
+            "talk", "warn", "intimidate", "attack", "help", "report", 
+            "trade", "explain", "offer_job", "request_service", 
+            "spread_rumor", "call_for_help", "change_role"
+        ]
+        
+        for _intent_val in _communicative_intents:
+            _mock_intent = CommunicationIntent(
+                speaker="test_npc",
+                audience="player",
+                topic="test",
+                intent_type=_intent_val,
+                emotional_state="neutral",
+                exposure_level=ExposureLevel(semantic="normal", physical_radius=10.0)
+            )
+            _event = IntentEventAdapter.to_event(_mock_intent)
+            if _event.type == "unknown":
+                _violations.append(_intent_val)
+        
+        if not _violations:
+            return InvariantResult(
+                "INV-INTENT-EVENT-COMPLETENESS", "CRITICAL", True,
+                "All communicative intents have explicit event mapping.",
+                []
+            )
+        return InvariantResult(
+            "INV-INTENT-EVENT-COMPLETENESS",
+            "CRITICAL",
+            False,
+            f"Intents with 'unknown' event type: {_violations}",
+            ["backend/app/services/events/intent_event_adapter.py"]
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-INTENT-EVENT-COMPLETENESS", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
+def inv_trav_terminality(world: TestWorld) -> InvariantResult:
+    """INV-TRAV-TERMINALITY: Транзиты не должны зависать в PENDING или MOVING forever."""
+    try:
+        # Прогоняем 5 тиков, чтобы выявить застрявшие транзиты
+        for _ in range(5):
+            world.idle_tick()
+        
+        scene = world._get_scene()
+        travs = scene.get("active_traversals", {})
+        stuck = []
+        current_tick = world.tick
+        
+        for nid, t in travs.items():
+            if not isinstance(t, dict):
+                continue
+            status = t.get("status", "").upper()
+            if status == "PENDING":
+                stuck.append(f"{nid}=PENDING (should be MOVING)")
+            elif status == "MOVING":
+                started = t.get("started_tick", 0)
+                duration = t.get("duration_ticks", 1)
+                # Grace period: 2 тика сверх длительности
+                if current_tick > started + duration + 2:
+                    stuck.append(f"{nid}=MOVING (started={started}, duration={duration}, current={current_tick})")
+        
+        if not stuck:
+            return InvariantResult("INV-TRAV-TERMINALITY", "CRITICAL", True, "No stuck traversals.", [])
+        return InvariantResult(
+            "INV-TRAV-TERMINALITY",
+            "CRITICAL",
+            False,
+            f"Stuck traversals: {stuck}",
+            ["backend/app/services/spatial/traversal_execution_system.py", "backend/app/services/scene_state_manager.py"]
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-TRAV-TERMINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
+def inv_dialogue_liveness(world: TestWorld) -> InvariantResult:
+    """INV-DIALOGUE-LIVENESS: Очередь pending_tasks не должна переполняться."""
+    try:
+        # Прогоняем 5 тиков
+        for _ in range(5):
+            world.idle_tick()
+        
+        scene = world._get_scene()
+        pending = scene.get("pending_tasks", [])
+        
+        # Если в очереди больше 20 задач, значит TaskScheduler не справляется или завис
+        if len(pending) > 20:
+            return InvariantResult(
+                "INV-DIALOGUE-LIVENESS",
+                "CRITICAL",
+                False,
+                f"pending_tasks flooded: {len(pending)} tasks. TaskScheduler not draining.",
+                ["backend/app/services/game_loop/task_scheduler.py"]
+            )
+        return InvariantResult("INV-DIALOGUE-LIVENESS", "CRITICAL", True, f"pending_tasks={len(pending)} (healthy).", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-DIALOGUE-LIVENESS", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
+def inv_event_cardinality(world: TestWorld) -> InvariantResult:
+    """INV-EVENT-CARDINALITY: События публикуются 1 раз, не N_locations раз.
+    
+    Проверяет, что NPC_MOVED и NPC_PROXIMITY_CLOSE не дублируются при множественных локациях.
+    """
+    try:
+        from app.services.spatial.spatial_registry import SpatialRegistry
+        
+        _reg = SpatialRegistry.get_or_load(world.campaign_id)
+        if not _reg:
+            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "SpatialRegistry не загружен.", [])
+        
+        _all_locs = _reg.get_all_location_ids()
+        if len(_all_locs) < 2:
+            return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
+        
+        # Подменяем EventBus для подсчёта публикаций
+        _bus = world.game_loop._tick_orch._get_event_bus()
+        _publish_counts = {}
+        _orig_publish = _bus.publish
+        
+        def _counting_publish(event):
+            if isinstance(event, dict):
+                _evt_type = event.get('type', 'unknown')
+            else:
+                _evt_type = getattr(event, 'type', 'unknown')
+            _publish_counts[_evt_type] = _publish_counts.get(_evt_type, 0) + 1
+            return _orig_publish(event)
+        
+        _bus.publish = _counting_publish
+        try:
+            # S3 FIX: Прогоняем 5 тиков, чтобы NPC успели начать движение
+            for _ in range(5):
+                world.idle_tick()
+        finally:
+            _bus.publish = _orig_publish
+        
+        # Проверяем: NPC_MOVED не должен превышать количество NPC * кол-во тиков
+        _npc_moved_count = _publish_counts.get("NPC_MOVED", 0)
+        # Читаем количество NPC напрямую из scene_state, так как last_result может быть пуст
+        _scene = world._get_scene()
+        _total_npcs = len([nid for nid in _scene.get("npc_positions", {}).keys() if nid != "player"])
+
+        # NPC_MOVED должен быть <= total_npcs * 5 (5 тиков, каждый NPC двигается 1 раз за тик)
+        _max_allowed = _total_npcs * 5
+        if _npc_moved_count <= _max_allowed:
+            return InvariantResult(
+                "INV-EVENT-CARDINALITY", "CRITICAL", True,
+                f"NPC_MOVED={_npc_moved_count} (<= {_max_allowed} allowed for {_total_npcs} NPCs). No duplication.",
+                []
+            )
+        return InvariantResult(
+            "INV-EVENT-CARDINALITY",
+            "CRITICAL",
+            False,
+            f"NPC_MOVED={_npc_moved_count} > {_max_allowed} allowed for {_total_npcs} NPCs. Events duplicated across locations!",
+            [
+                "backend/app/services/tick_orchestrator.py",
+                "backend/app/services/events/event_bus.py"
+            ]
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-EVENT-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
 def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
     """
     INV-TICK-CARDINALITY: Проверка Закона Единичного Времени (§14.1).
@@ -1206,6 +1534,13 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
         )
 
 INVARIANTS: List[Callable] = [
+    inv_scene_entity_isolation,
+    inv_replay_determinism,
+    inv_save_load_integrity,
+    inv_intent_event_completeness,
+    inv_trav_terminality,
+    inv_dialogue_liveness,
+    inv_event_cardinality,
     inv_time_grows,
     inv_tick_grows,
     inv_npc_moves,

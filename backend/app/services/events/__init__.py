@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 # Устав §5.1: EventBus + подписчики — единая точка входа событий.
 from app.services.events.event_bus import EventBus, get_event_bus, reset_event_bus
 from app.services.events.event_types import EventType
-from app.services.events.perception_subscriber import PerceptionSubscriber
+# P0 Audit Fix: PerceptionSubscriber удалён. Восприятие перенесено в LocalCausalSolver (Фаза 9).
 from app.services.events.social_subscriber import SocialSubscriber
 
 __all__ = [
@@ -13,6 +13,5 @@ __all__ = [
     "EventType",
     "get_event_bus",
     "reset_event_bus",
-    "PerceptionSubscriber",
     "SocialSubscriber",
 ]

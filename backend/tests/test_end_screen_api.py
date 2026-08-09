@@ -36,7 +36,7 @@ class TestEndScreenApiContract:
         controller.action_compiler.process_action(action)
         
         # Выходим из таверны
-        scene_outside = {"npc_positions": {"player": {"local_position": {"x": 19.0, "y": 5.0}}}}
+        scene_outside = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 15.0}}}}
         assert controller.check_exit(scene_outside)
         
         # Вызываем метод, который отдаёт routes.py
@@ -46,9 +46,9 @@ class TestEndScreenApiContract:
         # Проверяем поля, которые routes.py сереализует в JSON для фронтенда
         assert isinstance(ev.score, int)
         assert 0 <= ev.score <= 100
-        assert ev.secrets_total == 16
+        assert ev.secrets_total == 17
         assert ev.secrets_identified == 1
         assert ev.secrets_misidentified == 0
-        assert ev.secrets_missed == 15
+        assert ev.secrets_missed == 16
         assert "blackmail" in ev.methods_used
         assert ev.methods_used["blackmail"] == 1

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/services/spatial/graph_compiler.py
 # Назначение: Компилирует editor JSON → runtime graph + alias_map

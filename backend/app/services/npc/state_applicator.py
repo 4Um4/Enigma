@@ -23,7 +23,10 @@ NOTE: psyche_engine — DEPRECATED (мёртвый код). ProactiveDecision.de
 import copy
 import logging
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.npc.resolution_engine import ResolutionOutcome
 
 from app.core.constants import TRAIT_DECAY_RATE
 from app.domain.vital_state import LifeStatus, evaluate_vital_state
@@ -93,11 +96,15 @@ class StateApplicator:
         result: DecisionResult,
         campaign_id: str,
         current_tick: int = 0,
+        resolution_outcome: Optional["ResolutionOutcome"] = None,
     ) -> NPCState:
         """
         Применяет DecisionResult атомарно.
         Параметр personality УДАЛЁН — он уже использован в DecisionHub.
         Возвращает новый NPCState — оригинал не мутируется.
+        
+        resolution_outcome: Спящее поле для ResolutionEngine (Фаза 2). 
+        None = детерминированный путь (Фаза 0/1).
         """
         # Глубокая копия — атомарность через замену целиком
         new_state = copy.deepcopy(state)

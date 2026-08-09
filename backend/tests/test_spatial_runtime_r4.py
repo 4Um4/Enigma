@@ -90,11 +90,11 @@ def test_derive_environment_modifiers_dungeon() -> None:
 
 def _scene() -> dict:
     return {
-        "location_id": "tavern_silver_wolf",
+        "location_id": "tavern",
         "npc_positions": {
             # ADR-048: Игрок внедрен как npc_id="player" в npc_positions
             "player": {
-                "location_id": "tavern_silver_wolf",
+                "location_id": "tavern",
                 "position": "main_hall",
                 "local_position": {"x": 0.0, "y": 0.0},
                 "activity": "idle",

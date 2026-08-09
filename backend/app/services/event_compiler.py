@@ -328,6 +328,23 @@ class EventCompiler:
             )
             # ADR-O-326: cross_loc_materialize по определению означает пересечение границы.
             # is_boundary всегда True, чтобы совпадать с legacy_is_boundary.
+            
+            # Резолвим честный entry_node через SpatialService текущей локации.
+            # change.value может быть граничным узлом текущей локации (напр. tavern:exit_east),
+            # но entry_node должен указывать на узел входа в новой локации (напр. city_gate:entry_west).
+            _resolved_entry_node = change.value
+            _b_info = svc.get_boundary_info(change.value) if hasattr(svc, "get_boundary_info") else None
+            if _b_info:
+                _entry_hint = _b_info.get("entry_node_hint", "")
+                if _entry_hint:
+                    _resolved_entry_node = _entry_hint
+                else:
+                    _entry_dir = _b_info.get("entry_direction", "")
+                    if _entry_dir and _target_loc:
+                        _resolved_entry_node = f"{_target_loc}:entry_{_entry_dir}"
+                    elif _target_loc:
+                        _resolved_entry_node = f"{_target_loc}:entrance"
+
             return ThickSceneChange(
                 change_type=change.type.value,
                 target=change.target,
@@ -350,7 +367,7 @@ class EventCompiler:
                 boundary=BoundaryResolution(
                     is_boundary=True,
                     neighbor_chunk=_target_loc,
-                    entry_node=change.value,
+                    entry_node=_resolved_entry_node,
                 ),
             )
 

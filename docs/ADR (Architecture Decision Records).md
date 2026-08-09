@@ -238,3 +238,138 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — динам�
 **Taboo:**
 - ❌ Запуск `IPT.py` без прохождения `INV-PBT-ROUNDTRIP`.
 - ❌ Игнорирование `[PROBE_FAIL]` в production логах.
+## ADR-O-345: TickState Mutation Debt (Pure Reducer Violation) [ONTO]
+**Статус:** ACCEPTED (DEBT)
+**Домен:** L2 (Runtime Purity)
+**Сессия:** S178
+
+**Контекст:** INV-TEMPORAL-ISOLATION падает в IPT. Археология показала, что NpcTickPipeline.run() нарушает ADR-TZ09-1 (Pure Reducer), вызывая StateApplicator и MemoryManager, которые мутируют переданный им TickState (в частности, scene_state и ll_npcs_raw).
+
+**Решение:**
+1. Долг задокументирован. Симптом (PROBE_FAIL в логах) не крашит симуляцию, но инвариант остаётся красным.
+2. Устранение планируется в Sprint S1 (Snapshot / Mutation): полное удаление StateApplicator и MemoryManager из NpcTickPipeline.run(). Все мутации должны возвращаться через TickMutation.
+
+**Taboo:**
+- ❌ Добавление новых вызовов StateApplicator или MemoryManager внутри NpcTickPipeline.run().
+- ❌ Маскировка PROBE_FAIL через 	ry/except.
+
+## ADR-O-346: Pure Reducer Enforcement & Hash Isolation [ONTO]
+**Статус:** ACTIVE
+**Домен:** L2 (Runtime Purity), DOM-08 (Observability)
+**Сессия:** S179
+
+**Контекст:** INV-TEMPORAL-ISOLATION падал в IPT. Археология выявила две причины:
+1. NpcTickPipeline.run() нарушал ADR-TZ09-1, вызывая StateApplicator, который мутировал elationship_store и l1_chronicle. Также мутация происходила при load_l2_state_from_runtime_dict(npc) для проверки слуха.
+2. TemporalIsolationProbe хэшировал весь TickState, включая сервисные объекты. Их внутренние кэши (LRU) обновлялись при чтении, что ложно меняло хэш.
+
+**Решение:**
+1. StateApplicator полностью удалён из NpcTickPipeline.run(). Дельты собираются напрямую из DecisionResult. Все данные для create_memory_event берутся из pre-decision state.
+2. Проверка слуха использует copy.deepcopy(dict(npc)) для предотвращения мутации оригинала.
+3. Расчёт хэша в 	ick_orchestrator.py теперь применяется только к data-полям (scene_state, ll_npcs_raw, etc.), исключая сервисы.
+
+**Taboo:**
+- ❌ Возврат StateApplicator или MemoryManager внутрь NpcTickPipeline.run().
+- ❌ Использование оригинальных словарей из state.all_npcs_raw без deepcopy для любых операций, способных мутировать состояние.
+- ❌ Хэширование сервисных объектов внутри TickState для инвариантов изоляции.
+
+## ADR-O-347: Entity Cardinality & Scene Isolation [ONTO]
+**Статус:** ACTIVE
+**Домен:** L2 (Runtime Purity), DOM-04 (Spatial & Locomotion)
+**Сессия:** S180
+
+**Контекст:** TickOrchestrator.execute() перебирал все локации, но передавал один и тот же all_npcs_raw (всех NPC) в TickState для каждой локации. NpcTickPipeline.run() обрабатывал их повторно, что нарушало Entity Cardinality и приводило к O(N²) дрейфу.
+
+**Решение:**
+1. all_npcs_raw и npc_states фильтруются по location_id ДО сборки TickState. NPC из других локаций полностью исключаются из reasoning pipeline.
+2. Внедрён инвариант INV-SCENE-ENTITY-ISOLATION, проверяющий, что npc_positions локации не содержит NPC с чужим location_id.
+
+**Taboo:**
+- ❌ Передача полного all_npcs_raw (всех NPC кампании) в TickState без фильтрации по текущей локации.
+- ❌ Обработка NPC в NpcTickPipeline.run(), если их location_id не совпадает с scene_state["location_id"].
+
+## ADR-O-348: Causal Ordering & Event Cardinality [ONTO]
+**Статус:** ACTIVE
+**Домен:** L2 (Runtime Purity), DOM-08 (Observability)
+**Сессия:** S181
+
+**Контекст:**
+Требовалось гарантировать, что события не дублируются при множественных локациях (Event Cardinality), и что порядок обработки независимых субъектов не влияет на финальное состояние (Causal Order Independence).
+
+**Решение:**
+1. Внедрён инвариант `INV-EVENT-CARDINALITY`, проверяющий отсутствие дублирования событий `NPC_MOVED` при тике нескольких локаций.
+2. `NpcTickPipeline.run()` является Pure Reducer (ADR-O-346): все данные читаются из иммутабельного `TickState`, результаты собираются в локальные списки. Это структурно гарантирует `INV-CAUSAL-ORDER-INDEPENDENCE`.
+3. Порядок применения мутаций детерминирован в Фазе 8 (Combat → Reaction → Social), что исключает влияние порядка NPC на финальный стейт.
+
+**Taboo:**
+- ❌ Мутация общего состояния (например, `relationship_store` или `scene_state`) напрямую внутри цикла обработки NPC в `NpcTickPipeline.run()`.
+- ❌ Зависимость логики Фазы 8 от порядка элементов в `npc_deltas`.
+
+## ADR-O-349: Semantic Pipeline & Intent-Event Mapping [ONTO]
+**Статус:** ACTIVE
+**Домен:** DOM-02 (Will, Pressure & Decision), DOM-06 (Social, Memory & Affective)
+**Сессия:** S182
+
+**Контекст:**
+`IntentEventAdapter` маппил только 4 интента (attack, help, theft, intimidate), остальные падали в дефолтный `npc_spoke`. Это означало потерю семантики для `offer_job`, `request_service` и других действий при публикации в `EventBus`. Также использовались сырые строки вместо `EventType` enum, что приводило к дублированию определений.
+
+**Решение:**
+1. `EventType` расширен недостающими социальными и экономическими событиями.
+2. В `IntentEventAdapter` внедрён `_INTENT_EVENT_MAP` — словарь, обеспечивающий детерминированный мост между `intent_type` и `EventType`.
+3. Внедрён инвариант `INV-INTENT-EVENT-COMPLETENESS`, проверяющий, что каждый коммуникативный интент имеет явный маппинг.
+
+**Taboo:**
+- ❌ Использование сырых строк для event_type вместо `EventType` enum.
+- ❌ Добавление новых `CommunicationIntent` типов без регистрации в `IntentEventAdapter._INTENT_EVENT_MAP`.
+- ❌ Возврат `unknown` или неявного `npc_spoke` для известных коммуникативных интентов.
+
+## ADR-O-350: Dialogue & Travel FSM Terminality [ONTO]
+**Статус:** ACTIVE
+**Домен:** DOM-04 (Spatial & Locomotion), DOM-09 (Social, Memory & Affective)
+**Сессия:** S183
+
+**Контекст:**
+Требовалось гарантировать, что перемещения завершаются за конечное число тиков (INV-TRAV-TERMINALITY), и что очередь диалогов не переполняется (INV-DIALOGUE-LIVENESS). Существующие инварианты INV-TRAV-ZOMBIE и INV-DEATH-LOCK покрывали только терминальные статусы и смерть, но не зависание в активных состояниях.
+
+**Решение:**
+1. Внедрён инвариант `INV-TRAV-TERMINALITY`, проверяющий, что транзиты не зависают в `PENDING` или `MOVING` дольше `duration_ticks + 2` (grace period).
+2. Внедрён инвариант `INV-DIALOGUE-LIVENESS`, проверяющий, что `pending_tasks` не превышает 20 задач (TaskScheduler успевает обрабатывать очередь).
+
+**Taboo:**
+- ❌ Создание `TraversalState` с `duration_ticks=0` или без `started_tick`.
+- ❌ Блокировка `TaskScheduler` без rate limit, приводящая к переполнению `pending_tasks`.
+- ❌ Изменение статуса транзита в обход `transition_traversal()` FSM.
+
+## ADR-O-351: Replay Determinism Infrastructure [ONTO]
+**Статус:** ACTIVE
+**Домен:** DOM-08 (Observability), DOM-10 (Identity & Ontology)
+**Сессия:** S184
+
+**Контекст:**
+Требовалось гарантировать, что повторный прогон из записанного состояния даёт тот же результат (INV-REPLAY-DETERMINISM). Полный A/B тест (T0→T3 == Replay(T3)) требует кэширования всех LLM-вызовов и полного восстановления TickState, что выходит за рамки 5-секундного IPT.
+
+**Решение:**
+1. Внедрён инвариант `INV-REPLAY-DETERMINISM` (WARNING уровень), проверяющий готовность инфраструктуры: ReplayRecorder подключён, БД доступна, тики записываются.
+2. Полный детерминизм верифицируется через `DriftLaboratory` (Спринты S3/S7), который имеет доступ к LLM-кэшу и полному восстановлению состояния.
+3. Детерминизм RNG уже гарантирован `INV-KERNEL-RNG` (ADR-O-301).
+
+**Taboo:**
+- ❌ Запуск реплея без активации LLM-кэша (`settings.replay_playback = True`).
+- ❌ Использование wall-clock времени в симуляции при реплее (нарушает §15).
+- ❌ Изменение порядка событий или мутаций между записью и воспроизведением.
+
+## ADR-O-352: Save/Load Integrity [ONTO]
+**Статус:** ACTIVE
+**Домен:** DOM-01 (Foundation), DOM-08 (Observability)
+**Сессия:** S185
+
+**Контекст:**
+Требовалось гарантировать, что система может пережить множество тиков, save, load, и продолжить симуляцию без потери данных или рассинхронизации. Цикл Save/Load является критическим для долговременной устойчивости мира.
+
+**Решение:**
+1. Внедрён инвариант `INV-SAVE-LOAD-INTEGRITY`, проверяющий, что после нескольких тиков состояние, сохранённое в SQLite (`SqlitePersistenceAdapter.load_scene_at`), совпадает с состоянием в памяти по ключевым полям: `tick`, `game_time_seconds`, `npc_positions` (ID NPC).
+2. Тест использует `load_scene_at(campaign_id, location_id)` для корректной загрузки конкретной локации, в отличие от legacy-метода `load_scene()`, который возвращает default-сцену.
+
+**Taboo:**
+- ❌ Использование `load_scene()` для загрузки конкретной локации (он возвращает только default).
+- ❏ Отсутствие проверки `tick` и `game_time_seconds` после цикла Save/Load.
+- ❏ Запись состояния в обход `SceneStateManager.commit()` или `unlock_tick()`.

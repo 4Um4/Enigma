@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/app/domain/movement.py
 Назначение: Intent перемещения NPC. Пересекает границу Decision → Execution.
 Зависимости: dataclasses

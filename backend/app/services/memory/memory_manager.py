@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend\app\services\memory\memory_manager.py
 """

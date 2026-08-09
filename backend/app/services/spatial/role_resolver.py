@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/services/spatial/role_resolver.py
 # Назначение: Семантический маппинг — выводит NodeRole из label/type/manifest

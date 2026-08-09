@@ -53,6 +53,12 @@ class VisualCastingEditor:
         
         # Локальный кэш назначенных ассетов: {expr_id: [sheet, x, y, w, h]}
         self._assigned: Dict[str, List[Any]] = {}
+        
+        # S177: Локальный кэш направлений для simple_mode
+        self._directions: Dict[str, List[Any]] = {}
+        self._selected_direction: Optional[str] = None
+        self._parse_directions()
+        
         self._parse_casting()
         
         # Для выделения мышью (экранные координаты)
@@ -69,6 +75,13 @@ class VisualCastingEditor:
     def _parse_casting(self):
         """Извлекает уже назначенные ассеты из конфига для превью."""
         self._assigned.clear()
+        
+        # S177: Сначала загружаем направления, если они есть
+        if self._directions:
+            for dir_key, asset in self._directions.items():
+                if isinstance(asset, list) and len(asset) >= 3 and asset[0]:
+                    self._assigned[dir_key] = asset
+                    
         for expr in STANDARD_EXPRESSIONS:
             asset = None
             if expr["id"] == "neutral":
@@ -78,15 +91,45 @@ class VisualCastingEditor:
                 rule = next((r for r in self.casting.get("rules", []) if r.get("expression_id") == expr["id"]), None)
                 if rule:
                     asset = rule.get("asset")
-            # Игнорируем пустые дефолты ["", 0, 0]
+            # Игнорируем пустые дефолты ["", 0, 0] и словари (уже обработаны выше)
             if asset and isinstance(asset, list) and len(asset) >= 3 and asset[0]:
                 self._assigned[expr["id"]] = asset
+
+    def _parse_directions(self):
+        """S177: Извлекает уже назначенные направления из конфига."""
+        self._directions.clear()
+        # Если casting.asset уже словарь направлений (новый формат)
+        if isinstance(self.casting.get("fallback", {}).get("asset"), dict):
+            self._directions = self.casting["fallback"]["asset"].copy()
+            
+    def _assign_picked_direction(self):
+        """S177: Назначает выделенную область на активное направление."""
+        if self.current_rect and self.sheet_name and self._selected_direction:
+            r = self.current_rect
+            asset = [
+                self.sheet_name, r.x, r.y, r.w, r.h, 
+                self.threshold, self.outline
+            ]
+            self._directions[self._selected_direction] = asset
+            self._assigned[self._selected_direction] = asset
+            
+            # S177: Авто-зеркалирование E <-> W
+            _mirrors = {"E": "W", "W": "E", "SE": "SW", "SW": "SE", "NE": "NW", "NW": "NE"}
+            _mirror_dir = _mirrors.get(self._selected_direction)
+            if _mirror_dir:
+                self._directions[_mirror_dir] = asset
+                self._assigned[_mirror_dir] = asset
+                self._show_message(f"Применено к: {self._selected_direction} (и {_mirror_dir} авто-зеркало)!")
+            else:
+                self._show_message(f"Применено к: {self._selected_direction}!")
+        else:
+            self._show_message("Ошибка: Сначала выделите область на листе!")
 
     def _auto_load_sheet(self):
         """S176: Автозагрузка спрайтшита, если он уже назначен в конфиге."""
         if not self._assigned:
             return
-        # Ищем первый валидный sheet_name
+        # S177: Ищем первый валидный sheet_name среди всех назначений
         for asset in self._assigned.values():
             if asset and isinstance(asset, list) and len(asset) >= 5 and asset[0]:
                 sheet_name = asset[0]
@@ -118,8 +161,27 @@ class VisualCastingEditor:
         self._buttons.append(btn_save)
         
         if self.simple_mode:
+            # S177: 8-Directional Sprite Picker. Кнопки направлений работают как эмоции.
+            _dir_keys = [
+                ("NW", "СЗ"), ("N", "С"), ("NE", "СВ"), ("E", "В"),
+                ("SE", "ЮВ"), ("S", "Ю"), ("SW", "ЮЗ"), ("W", "З")
+            ]
+            _btn_w = 50
+            _btn_h = 30
+            _start_x = self.rect.x + 160
+            _start_y = self.rect.bottom - 75
+            for i, (key, label) in enumerate(_dir_keys):
+                row = i // 4
+                col = i % 4
+                bx = _start_x + col * (_btn_w + 5)
+                by = _start_y + row * (_btn_h + 5)
+                btn = Button(bx, by, _btn_w, _btn_h, label, color_key="btn_secondary")
+                btn.action = f"dir:{key}"
+                self._buttons.append(btn)
+                
+            # Кнопка Применить для направлений
             btn_apply = Button(self.rect.right - 130, self.rect.bottom - 50, 120, 35, "Применить", color_key="btn_primary")
-            btn_apply.action = "apply_simple"
+            btn_apply.action = "apply_simple_dir"
             self._buttons.append(btn_apply)
         else:
             btn_apply = Button(self.rect.right - 130, self.rect.bottom - 50, 120, 35, "Применить", color_key="btn_primary")
@@ -191,6 +253,11 @@ class VisualCastingEditor:
                         self._choose_file()
                     elif btn.action == "save":
                         self._save()
+                    elif btn.action.startswith("dir:"):
+                        self._selected_direction = btn.action.split(":")[1]
+                        self._show_message(f"Выбрано направление: {self._selected_direction}")
+                    elif btn.action == "apply_simple_dir":
+                        self._assign_picked_direction()
                     elif btn.action == "apply_simple" or btn.action == "apply_portrait":
                         if self.current_rect and self.sheet_name:
                             r = self.current_rect
@@ -204,6 +271,7 @@ class VisualCastingEditor:
                         self._selected_emotion = btn.action.split(":")[1]
                         self._assign_picked()
                     return True
+
                     
             # Обработка ползунков
             if self._handle_sliders(event):
@@ -359,6 +427,9 @@ class VisualCastingEditor:
                     })
         self.casting = new_casting
         if self.on_save:
+            if self.simple_mode and self._directions:
+                # S177: Передаем словарь направлений напрямую
+                self.casting = {"fallback": {"expression_id": "neutral", "asset": self._directions}, "rules": []}
             self.on_save(self.casting)
         self.active = False
 
@@ -409,26 +480,38 @@ class VisualCastingEditor:
             hint = small_font.render("Нажмите 'Выбрать лист' для загрузки изображения", True, COLORS["text_dim"])
             self.screen.blit(hint, (self.rect.x + 500, self.rect.y + 200))
             
-        # Отрисовка эмоций
-        for btn in self._emotion_buttons:
-            is_selected = btn.action == f"expr:{self._selected_emotion}"
-            btn.color_key = "btn_primary" if is_selected else "btn_secondary"
-            btn.draw(self.screen, font)
-            
-            expr_id = btn.action.split(":")[1]
-            asset = self._assigned.get(expr_id)
-            
-            # Зеленая рамка, если эмоция уже назначена
-            if asset and isinstance(asset, list) and len(asset) >= 5:
-                pygame.draw.rect(self.screen, (0, 255, 0), btn.rect, 3, border_radius=4)
-                # Превью тайла на кнопке
-                try:
-                    surf = sprite_registry.get_rect(asset[0], int(asset[1]), int(asset[2]), int(asset[3]), int(asset[4]))
-                    if surf:
-                        scaled = pygame.transform.scale(surf, (40, 40))
-                        self.screen.blit(scaled, (btn.rect.right - 50, btn.rect.y + 5))
-                except Exception:
-                    pass
+        # Отрисовка эмоций и направлений (S177)
+        for btn in self._emotion_buttons + self._buttons:
+            if btn.action.startswith("expr:"):
+                is_selected = btn.action == f"expr:{self._selected_emotion}"
+                btn.color_key = "btn_primary" if is_selected else "btn_secondary"
+                btn.draw(self.screen, font)
+                
+                expr_id = btn.action.split(":")[1]
+                asset = self._assigned.get(expr_id)
+                
+                # Зеленая рамка, если эмоция уже назначена
+                if asset and isinstance(asset, list) and len(asset) >= 5:
+                    pygame.draw.rect(self.screen, (0, 255, 0), btn.rect, 3, border_radius=4)
+                    # Превью тайла на кнопке
+                    try:
+                        surf = sprite_registry.get_rect(asset[0], int(asset[1]), int(asset[2]), int(asset[3]), int(asset[4]))
+                        if surf:
+                            scaled = pygame.transform.scale(surf, (40, 40))
+                            self.screen.blit(scaled, (btn.rect.right - 50, btn.rect.y + 5))
+                    except Exception:
+                        pass
+            elif btn.action.startswith("dir:"):
+                is_selected = btn.action == f"dir:{self._selected_direction}"
+                btn.color_key = "btn_primary" if is_selected else "btn_secondary"
+                btn.draw(self.screen, font)
+                
+                dir_id = btn.action.split(":")[1]
+                asset = self._assigned.get(dir_id)
+                
+                # Зеленая рамка, если направление уже назначено
+                if asset and isinstance(asset, list) and len(asset) >= 5:
+                    pygame.draw.rect(self.screen, (0, 255, 0), btn.rect, 3, border_radius=4)
 
         # Отрисовка ползунков
         self._draw_sliders(small_font)
@@ -440,11 +523,14 @@ class VisualCastingEditor:
         pygame.draw.rect(self.screen, COLORS["border"], (prev_x, prev_y, prev_w, prev_h), 2, border_radius=4)
         
         expr_id = self._selected_emotion
-        label = next((e["label"] for e in STANDARD_EXPRESSIONS if e["id"] == expr_id), "Нет")
+        if self.simple_mode:
+            label = f"Направление: {self._selected_direction or '...'}"
+            asset = self._assigned.get(self._selected_direction)
+        else:
+            label = next((e["label"] for e in STANDARD_EXPRESSIONS if e["id"] == expr_id), "Нет")
+            asset = self._assigned.get(expr_id)
         txt_title = small_font.render(f"Превью: {label} (Zoom: {self.preview_zoom:.1f}x)", True, COLORS["text"])
         self.screen.blit(txt_title, (prev_x + 10, prev_y + 10))
-        
-        asset = self._assigned.get(expr_id)
         if asset and isinstance(asset, list) and len(asset) >= 5:
             try:
                 # Для превью всегда используем текущие значения ползунков, чтобы видеть изменения в реальном времени

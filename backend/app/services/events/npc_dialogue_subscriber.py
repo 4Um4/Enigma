@@ -140,41 +140,29 @@ class NpcDialogueSubscriber:
                 tick=tick,
                 partner_id=speaker,  # BUG-DL-05: Per-pair session
             )
-            # Speaker's own session (NEW — чтобы NPC помнил, что сам сказал)
-            self.memory.add_dialogue_turn(
-                campaign_id=_campaign_id,
-                npc_id=speaker,
-                speaker=speaker,
-                text=text,
-                target_id=listener,
-                intent=_update.last_speaker_intent if _update else "dialogue",
-                tick=tick,
-                partner_id=listener,  # BUG-DL-05: Per-pair session
-            )
-
-            # BUG-DL-09: Применяем обновления темы, claims и open_questions к сессиям слушателя и спикера
+            # BUG-DL-09: Применяем обновления темы, claims и open_questions к per-pair сессии
+            # (BUG-DLG-007 FIX: симметричный ключ означает, что listener и speaker делят одну сессию)
             if _update:
-                for _sess_owner, _partner in [(listener, speaker), (speaker, listener)]:
-                    _session = self.memory.get_dialogue_session(_campaign_id, _sess_owner, partner_id=_partner)
-                    if _update.topic:
-                        _session.topic = _update.topic
-                        _session.topic_confidence = _update.topic_confidence
-                    for claim in _update.new_claims or []:
-                        _session.add_claim(
-                            text=claim.get("text", ""),
-                            speaker=speaker,
-                            confidence=claim.get("confidence", 0.5),
-                            tick=tick,
-                        )
-                    for q in _update.raised_questions or []:
-                        _session.add_open_question(
-                            text=q.get("text", ""),
-                            asked_by=speaker,
-                            addressed_to=q.get("addressed_to", listener),
-                            tick=tick,
-                        )
-                    for q_idx in _update.answered_questions or []:
-                        _session.answer_question(q_idx, text, speaker, tick)
+                _session = self.memory.get_dialogue_session(_campaign_id, listener, partner_id=speaker)
+                if _update.topic:
+                    _session.topic = _update.topic
+                    _session.topic_confidence = _update.topic_confidence
+                for claim in _update.new_claims or []:
+                    _session.add_claim(
+                        text=claim.get("text", ""),
+                        speaker=speaker,
+                        confidence=claim.get("confidence", 0.5),
+                        tick=tick,
+                    )
+                for q in _update.raised_questions or []:
+                    _session.add_open_question(
+                        text=q.get("text", ""),
+                        asked_by=speaker,
+                        addressed_to=q.get("addressed_to", listener),
+                        tick=tick,
+                    )
+                for q_idx in _update.answered_questions or []:
+                    _session.answer_question(q_idx, text, speaker, tick)
         except Exception as mem_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}/{speaker}: {mem_err}")
             

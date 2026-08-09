@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 path: backend/app/services/combat/combat_subscriber.py
 Назначение: Phase8Handler — мост между боевыми событиями (EventDTO) и
@@ -36,6 +36,7 @@ _COMBAT_EVENT_TYPES: list[EventType] = [
     EventType.PLAYER_ATTACKS,
     EventType.PLAYER_ATTACKED,
     EventType.ACTOR_ATTACKS,  # ADR-O-112: Труба NPC агрессии
+    EventType.COMBAT,  # FIX: Добавлена подписка на общий боевой ивент
 ]
 
 # Дефолтные параметры воздействия (если payload неполный)

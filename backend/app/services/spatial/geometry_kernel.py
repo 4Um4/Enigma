@@ -117,3 +117,60 @@ def point_in_expanded_rect(
         and
         exp_y <= p[1] <= exp_y + exp_h
     )
+
+
+def _segments_intersect(
+    ax: float,
+    ay: float,
+    bx: float,
+    by: float,
+    cx: float,
+    cy: float,
+    dx: float,
+    dy: float,
+) -> bool:
+    """Перенесено из spatial_runtime.py. Пересечение двух отрезков AB и CD."""
+    def cross(
+        ox: float, oy: float, px: float, py: float, qx: float, qy: float
+    ) -> float:
+        return (px - ox) * (qy - oy) - (py - oy) * (qx - ox)
+
+    d1 = cross(cx, cy, dx, dy, ax, ay)
+    d2 = cross(cx, cy, dx, dy, bx, by)
+    d3 = cross(ax, ay, bx, by, cx, cy)
+    d4 = cross(ax, ay, bx, by, dx, dy)
+
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and (
+        (d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)
+    ):
+        return True
+    return False
+
+
+def _line_rect_intersect(
+    ax: float,
+    ay: float,
+    bx: float,
+    by: float,
+    rx: float,
+    ry: float,
+    rw: float,
+    rh: float,
+) -> bool:
+    """Перенесено из spatial_runtime.py. Пересечение линии AB с прямоугольником."""
+    if _segments_intersect(ax, ay, bx, by, rx, ry, rx + rw, ry):
+        return True
+    if _segments_intersect(ax, ay, bx, by, rx + rw, ry, rx + rw, ry + rh):
+        return True
+    if _segments_intersect(ax, ay, bx, by, rx + rw, ry + rh, rx, ry + rh):
+        return True
+    if _segments_intersect(ax, ay, bx, by, rx, ry + rh, rx, ry):
+        return True
+    if (
+        rx <= ax <= rx + rw
+        and ry <= ay <= ry + rh
+        and rx <= bx <= rx + rw
+        and ry <= by <= ry + rh
+    ):
+        return True
+    return False

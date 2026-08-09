@@ -31,11 +31,12 @@ class TestP704SocialFabric:
             RelationshipSnapshot("A", "A", trust=0.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0)
 
     def test_baseline_is_immutable(self, tracker: SocialFabricTracker):
-        """Инвариант: Baseline нельзя перезаписать."""
-        with pytest.raises(ValueError, match="already exists"):
-            tracker.set_baseline("maid_lusya", "player", RelationshipSnapshot(
-                source_id="maid_lusya", target_id="player", trust=50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
-            ))
+        """V8-MVP-9 FIX: Baseline идемпотентен (перезапись тихо игнорируется)."""
+        tracker.set_baseline("maid_lusya", "player", RelationshipSnapshot(
+            source_id="maid_lusya", target_id="player", trust=50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+        ))
+        # Проверяем, что оригинальный baseline не перезаписан
+        assert tracker.get_current("maid_lusya", "player").trust == 20.0
 
     def test_directional_independence(self, tracker: SocialFabricTracker):
         """Инвариант: A->B != B->A."""

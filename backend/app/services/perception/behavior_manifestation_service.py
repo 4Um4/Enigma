@@ -1,4 +1,4 @@
-﻿from typing import Any, Dict
+from typing import Any, Dict
 
 """
 Назначение: Сервис для трансформации латентных ограничений NPC в наблюдаемые моторные паттерны, которые могут быть восприняты Игроком. (Переводит казуальные ограничения в физические следы. Не читает эмоции. Только тело.)
@@ -28,7 +28,8 @@ def _safe_get(d, *keys, default=0.0):
             return default
     try:
         return float(current)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as e:
+        logger.debug(f"[MANIFEST] Не удалось конвертировать значение '{current}' в float: {e}")
         return default
 
 

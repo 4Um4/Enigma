@@ -64,23 +64,28 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                     if _neighbor:
                         _is_boundary = True
                         _target_location_id = _neighbor
-                        # V8-SP-15 FIX: Надёжный резолв entry_node через graph topology.
-                        # Запрашиваем у SpatialService новой локации boundary node, ведущий обратно.
-                        _current_loc = target_node.split(":")[0] if ":" in target_node else ""
-                        try:
-                            from app.services.spatial.spatial_factory import SpatialFactory
-                            _target_svc = SpatialFactory.build_for_campaign(
-                                ctx.campaign_id, _neighbor, ctx.scene_state
-                            )
-                            if _target_svc and _current_loc:
-                                _entry_node_obj = _target_svc.get_boundary_to_neighbor(_current_loc)
-                                if _entry_node_obj:
-                                    _entry_node = _entry_node_obj.node_id
-                                    # Убираем префикс локации, если он есть (SSM ожидает чистый ID)
-                                    if ":" in _entry_node:
-                                        _entry_node = _entry_node.split(":")[-1]
-                        except Exception as e:
-                            logger.error(f"[TRAVERSAL_BOUNDARY] Failed to resolve entry_node for {_neighbor}: {e}")
+                        
+                        # Приоритет 1: Используем entry_node_hint из boundary_info (SSOT от GraphCompiler).
+                        # Это исключает дорогие и ломающиеся запросы к SpatialFactory в рантайме.
+                        if _entry_hint:
+                            _entry_node = _entry_hint
+                        else:
+                            # Приоритет 2: Резолв через graph topology новой локации.
+                            _current_loc = target_node.split(":")[0] if ":" in target_node else ""
+                            try:
+                                from app.services.spatial.spatial_factory import SpatialFactory
+                                _target_svc = SpatialFactory.build_for_campaign(
+                                    ctx.campaign_id, _neighbor, ctx.scene_state
+                                )
+                                if _target_svc and _current_loc:
+                                    _entry_node_obj = _target_svc.get_boundary_to_neighbor(_current_loc)
+                                    if _entry_node_obj:
+                                        _entry_node = _entry_node_obj.node_id
+                                        # Убираем префикс локации, если он есть (SSM ожидает чистый ID)
+                                        if ":" in _entry_node:
+                                            _entry_node = _entry_node.split(":")[-1]
+                            except Exception as e:
+                                logger.error(f"[TRAVERSAL_BOUNDARY] Failed to resolve entry_node for {_neighbor}: {e}")
 
                         logger.info(
                             f"[BOUNDARY_TRANSITION] npc={npc_id} "

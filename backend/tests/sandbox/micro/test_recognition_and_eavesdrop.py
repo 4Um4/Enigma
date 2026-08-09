@@ -11,6 +11,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.models.pipeline_context import PipelineContext
+
 
 def test_eavesdrop_into_journal():
     """Тест: Если игрок в радиусе 8м, реплика NPC-NPC попадает в журнал аватара."""
@@ -103,8 +105,12 @@ def test_player_recognition_persists_in_run_turn():
     import time
     from unittest.mock import AsyncMock
     loop._run_pipeline = AsyncMock(return_value=SimpleNamespace(
-        shared_context=SimpleNamespace(
+        shared_context=PipelineContext(
+            campaign_id="test_camp",
+            world_id="w1",
+            location="tavern",
             scene_state=_fresh_scene,
+            player_state={},
             player_target_id="maid_lusya",
             will_conflict_data=None
         ),

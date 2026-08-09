@@ -123,6 +123,12 @@ class TestCausalChains:
             source="npc_a",
             payload={"tone": "ANGRY", "text": "Ты грязный вор!", "target_id": "npc_b"}
         )
+        # FIX: Инициализируем mock spatial_query, так как подписчик вызывается до idle_tick
+        from types import SimpleNamespace
+        loop._current_spatial_query = SimpleNamespace(
+            player_distances=lambda ids: {id: 999.0 for id in ids}
+        )
+        
         # Вызываем подписчика напрямую, чтобы изолировать проблему с шиной
         if hasattr(loop, "_npc_dialogue_subscriber") and loop._npc_dialogue_subscriber:
             loop._npc_dialogue_subscriber.on_npc_spoke(event)

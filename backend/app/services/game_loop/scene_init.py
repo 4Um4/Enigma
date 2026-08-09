@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/app/services/game_loop/scene_init.py
 Назначение: Инициализация состояния сцены на старте тика.
 Зависимости: SceneManager, LifeEngine, EconomyTracker, Calendar

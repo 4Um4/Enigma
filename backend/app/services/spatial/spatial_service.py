@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/services/spatial/spatial_service.py
 # Назначение: Единый API SpatialService v1.2 — ядро
@@ -31,7 +31,7 @@ from app.models.spatial_contracts import (
     SpatialOverlay,
     Urgency,
 )
-from app.services.spatial.spatial_runtime import _line_rect_intersect, _segments_intersect
+from app.services.spatial.geometry_kernel import _line_rect_intersect, _segments_intersect
 
 logger = logging.getLogger(__name__)
 

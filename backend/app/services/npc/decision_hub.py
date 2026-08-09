@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/services/npc/decision_hub.py
 """
@@ -129,6 +129,7 @@ class DecisionResult:
     deltas: List[StateDeltas]  # ADR-013: Каноничный v2 (Domain-Tagged Payloads)
     narrative_fact: Optional[str] = None  # текстовое описание для scene_outcome_builder
     explanation_mode: bool = False  # True если intent=EXPLAIN
+    expected_success: float = 0.0  # Резолвер: ожидаемый шанс успеха (нормализованный score). 0.0 = не вычислялся.
 
 
 @dataclass

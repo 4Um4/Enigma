@@ -45,6 +45,8 @@ class PerceptualAttentionService:
         events: List[PerceptionEvent],
         avatar_state: AvatarStateDTO,
         current_tick: int,
+        # TODO (Фаза 2 / Эпоха 7): Добавить параметр player_l1_chronicle: Optional[L1Chronicle] = None
+        # для вычисления memory tags (new/known/forgotten) на основе истории встреч игрока с NPC.
     ) -> PlayerPerceptionDTO:
         budget = 1.0
         active_perceptions = []

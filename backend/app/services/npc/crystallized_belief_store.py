@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/app/services/npc/crystallized_belief_store.py
 Назначение: Хранилище кристаллизованных убеждений NPC (L2.5) с SQLite-персистентностью.
 Зависимости: backend/app/domain/identity_events.py, app.services.memory.sqlite_store

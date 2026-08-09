@@ -58,15 +58,25 @@ class EventType(str, Enum):
     COMBAT = "combat"
     HELP = "help"
     IDLE = "idle"
-    DIALOGUE = "dialogue"
+    ACTOR_ATTACKS = "actor_attacks"  # ADR-O-112: Универсальная атака (NPC→Player, NPC→NPC)
     INTIMIDATION = "intimidation"
+    DIALOGUE = "dialogue"
     BETRAYAL = "betrayal"
     SAVED_LIFE = "saved_life"
     MOVEMENT = "movement"
     PLAYER_ASKS_WHY = "player_asks_why"
     PLAYER_INTERACTS = "player_interacts"
     PLAYER_ATTACKS = "player_attacks"
-    ACTOR_ATTACKS = "actor_attacks"  # ADR-O-112: Универсальная атака (NPC→Player, NPC→NPC)
+    
+    # ── S4: Semantic Pipeline — социальные/экономические интенты ──────────
+    OFFER_JOB = "offer_job"
+    REQUEST_SERVICE = "request_service"
+    SPREAD_RUMOR = "spread_rumor"
+    CALL_FOR_HELP = "call_for_help"
+    CHANGE_ROLE = "change_role"
+    WARN = "warn"
+    TRADE = "trade"
+    REPORT = "report"
     # ── Траектория (Внешний анализ для DM/Мира) ─────────────────────────
     FATE_EVENT = "fate_event"  # Классификация жизненного пути NPC (Rising/Stable/Declining/Collapsed)
     WILL_CONFLICT = "will_conflict"

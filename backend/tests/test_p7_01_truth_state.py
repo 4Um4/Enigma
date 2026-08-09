@@ -27,7 +27,7 @@ class TestP701TruthState:
 
     def test_secrets_count(self, truth_state: TruthState):
         """Инвариант: Ровно 16 секретов."""
-        assert len(truth_state.secrets) == 16, f"Ожидалось 16 секретов, получено {len(truth_state.secrets)}"
+        assert len(truth_state.secrets) == 17, f"Ожидалось 17 секретов, получено {len(truth_state.secrets)}"
 
     def test_relations_count(self, truth_state: TruthState):
         """Инвариант: Ровно 20 связей."""

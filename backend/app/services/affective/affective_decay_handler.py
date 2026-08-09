@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/app/services/affective/affective_decay_handler.py
 Назначение: S74 — Непрерывное затухание аффективного интеграла (affective_load) и коллапс эмоции в idle-тиках.
 Зависимости: app.models.state_delta, app.models.delta_payloads, app.services.affective.emotion_transition

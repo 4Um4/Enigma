@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/app/services/events/social_subscriber.py
 Назначение: Phase8Handler — социальная пропагация (Устав §5.1 + §3 Фаза 8)
 Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus

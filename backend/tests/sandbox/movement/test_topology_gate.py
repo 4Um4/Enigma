@@ -41,15 +41,22 @@ def _make_synthetic_map(wall_id_on_door: bool = False) -> dict:
 
 
 def test_topology_gate_blocks_uncut_wall():
-    """S-143: Если ребро пересекает неразрезанную стену, компиляция падает."""
+    """S-143: Если ребро пересекает неразрезанную стену, ребро удаляется из графа (BUG-TOPO-001 FIX)."""
     # Карта без wall_id на двери (стена не разрезана)
     bad_map = _make_synthetic_map(wall_id_on_door=False)
     
-    with pytest.raises(SimulationIntegrityError) as exc_info:
-        compile_graph(bad_map, "test_location")
+    # BUG-TOPO-001 FIX: Компилятор логирует и удаляет ребро, не роняя SpatialService.
+    graph, connections, _alias, _boundary, _rooms, _walls, _obstacles, _afford = compile_graph(bad_map, "test_location")
     
-    assert exc_info.value.invariant_id == "INV-TOPOLOGY-WALL-CROSS"
-    assert "crosses solid wall" in str(exc_info.value)
+    # Проверяем, что ребро A-B отсутствует в графе
+    _node_a = "test_location:A"
+    _node_b = "test_location:B"
+    assert _node_a in graph
+    assert _node_b in graph
+    # Проверяем, что нет связи A-B в connections (ключ "test_location:A" -> "test_location:B")
+    # Формат connections: Dict[str, List[str]]
+    assert _node_b not in connections.get(_node_a, [])
+    assert _node_a not in connections.get(_node_b, [])
 
 
 def test_topology_gate_allows_cut_wall():

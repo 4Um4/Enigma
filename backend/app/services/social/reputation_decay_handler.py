@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 path: backend/app/services/social/reputation_decay_handler.py
 Назначение: Time-driven дрейф репутации фракций → base_reputation.

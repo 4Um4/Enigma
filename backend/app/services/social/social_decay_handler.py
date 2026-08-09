@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 path: backend/app/services/social/social_decay_handler.py
 Назначение: Time-driven дрейф trust/affection → base значения.

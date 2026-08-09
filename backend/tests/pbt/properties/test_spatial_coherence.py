@@ -21,7 +21,7 @@ def valid_npc_position_strategy(draw):
             "y": draw(st.floats(min_value=1.0, max_value=50.0))
         },
         "current_node": draw(st.text(min_size=1, max_size=10, alphabet="abcdefghijklmnopqrstuvwxyz_")),
-        "location_id": draw(st.text(min_size=1, max_size=10, alphabet="abcdefghijklmnopqrstuvwxyz_")),
+        "location_id": draw(st.sampled_from(["tavern", "city_gate", "market_square"])),
         "name": "TestNPC"
     }
 

@@ -338,6 +338,10 @@ TEXT_INPUT_MAX_HISTORY: int = 100
 # ═══════════════════════════════════════════════════════════════════════
 MSG_MAX_REPLIES: int = 3
 MSG_NOTHING_HAPPENED: str = "Ничего не произошло."
+MSG_LLM_UNAVAILABLE: str = (
+    "Мир замер в тишине — narration engine недоступен.\n"
+    "Проверь, что llama-server запущен и отвечает на /health."
+)
 MSG_INVALID_RESPONSE: str = "..."
 
 # S135: Social Trust Thresholds (Шкала RelationshipStore: -100..100, где 0.0 = neutral)

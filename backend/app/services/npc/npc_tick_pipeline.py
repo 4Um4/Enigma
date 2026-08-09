@@ -157,8 +157,8 @@ class NpcTickPipeline:
             )
             _is_attack_target = npc_id == _attack_target
 
-            # V8-TICK-4 FIX: Инициализируем state_l2 до проверки слуха, чтобы избежать UnboundLocalError
-            state_l2 = load_l2_state_from_runtime_dict(npc) if npc_id else None
+            # S1 FIX: Используем deepcopy для проверки слуха, чтобы избежать мутации оригинального npc
+            state_l2 = load_l2_state_from_runtime_dict(copy.deepcopy(dict(npc))) if npc_id else None
 
             if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
                 # P1-02: NPC не видит, но может слышать.
@@ -223,7 +223,7 @@ class NpcTickPipeline:
                 target_id=state.player_target_id or "player",
                 current_tick=state.tick_id,
                 scene_continuity=state.scene_continuity,
-                scene_state=dict(state.scene_state),
+                scene_state=copy.deepcopy(state.scene_state),
                 relationship_store=state.relationship_store,
             )
 
@@ -359,6 +359,16 @@ class NpcTickPipeline:
             # TZ-10: Чтение preloaded reputation modifier из TickState
             _rep_modifiers_for_hub = state.reputation_modifiers_map.get(npc_id)
 
+            # TODO (Фаза 2 / Эпоха 7): Интеграция ExpectationStore (Active Inference).
+            # Здесь должен вызываться PEModifierResolver().resolve(expectation)
+            # для добавления drive_modifiers на основе ожиданий NPC (награда/угроза).
+            # Ожидания (EMA) хранятся в ExpectationStore (SQLite, Single Writer).
+
+            # TODO (Фаза 2 / Эпоха 7): Интеграция PerceptionEngine (Социальный статус).
+            # Здесь должен вызываться assess_status(state.player_markers) и
+            # get_social_permissions() для формирования модификаторов для DecisionHub.
+            # Например: низкий статус игрока → буст ATTACK/IGNORE, высокий → буст OBEY/TRADE.
+
             _drive_modifiers_for_hub = None
             _drives = getattr(state_l2, "temporary_drives", [])
             if _drives:
@@ -368,15 +378,16 @@ class NpcTickPipeline:
 
             from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
 
+            # Сбор belief-модификаторов в изолированный слой (R7 + R8).
+            # R7 (событийный) и R8 (кристаллизованный) описывают частично одно и то же
+            # явление (страх/угроза от источника). Простое сложение даёт нелинейное
+            # усиление — доминирующий сигнал должен поглощать слабый, а не удваивать его.
+            _belief_layer_mods: Dict[str, float] = {}
+
             _belief_mods = BeliefModifierResolver().resolve(state_l2.beliefs)
             if _belief_mods:
-                if _drive_modifiers_for_hub:
-                    for _bk, _bv in _belief_mods.items():
-                        _drive_modifiers_for_hub[_bk] = round(
-                            _drive_modifiers_for_hub.get(_bk, 0.0) + _bv, 4
-                        )
-                else:
-                    _drive_modifiers_for_hub = _belief_mods
+                for _bk, _bv in _belief_mods.items():
+                    _belief_layer_mods[_bk] = _bv
 
             # TZ-10: Чтение preloaded crystallized beliefs из TickState
             _crystallized_beliefs = state.crystallized_beliefs_map.get(npc_id, [])
@@ -389,13 +400,23 @@ class NpcTickPipeline:
                     _crystallized_beliefs
                 )
                 if _crystallized_mods:
-                    if _drive_modifiers_for_hub:
-                        for _ck, _cv in _crystallized_mods.items():
-                            _drive_modifiers_for_hub[_ck] = round(
-                                _drive_modifiers_for_hub.get(_ck, 0.0) + _cv, 4
-                            )
-                    else:
-                        _drive_modifiers_for_hub = _crystallized_mods
+                    for _ck, _cv in _crystallized_mods.items():
+                        _existing = _belief_layer_mods.get(_ck, 0.0)
+                        # Dominant-take-all: берём значение с большей абсолютной величиной.
+                        # Это предотвращает двойной подсчёт страха/угрозы от одного источника,
+                        # когда R7 (событийный DANGER) и R8 (кристаллизованный fear) активны одновременно.
+                        if abs(_cv) > abs(_existing):
+                            _belief_layer_mods[_ck] = _cv
+
+            # Применяем объединённые belief-модификаторы к base drives (если есть).
+            if _belief_layer_mods:
+                if _drive_modifiers_for_hub:
+                    for _bk, _bv in _belief_layer_mods.items():
+                        _drive_modifiers_for_hub[_bk] = round(
+                            _drive_modifiers_for_hub.get(_bk, 0.0) + _bv, 4
+                        )
+                else:
+                    _drive_modifiers_for_hub = _belief_layer_mods
 
             from app.services.npc.topic_extractor import extract_topic
 
@@ -447,6 +468,7 @@ class NpcTickPipeline:
             )
 
             _effective_drives = state.effective_drives_map.get(npc_id)
+            print(f"[DIAG_NPC] npc_id={npc_id} | effective_drives={_effective_drives} | map_keys={list(state.effective_drives_map.keys())[:5]}")
             if _effective_drives is None:
                 continue
 
@@ -577,7 +599,7 @@ class NpcTickPipeline:
                         npc_id=npc_id,
                         intent=_intent_value,
                         intent_target=decision.intent_target or "player",
-                        scene_state=dict(state.scene_state),
+                        scene_state=copy.deepcopy(state.scene_state),
                         location_id=state.scene_state.get("location_id", ""),
                         spatial_service=state.spatial_service,
                         spatial_query=state.spatial_query,
@@ -590,7 +612,7 @@ class NpcTickPipeline:
                                     intent_value=_intent_value,
                                     npc_id=npc_id,
                                     intent_target=decision.intent_target,
-                                    scene_state=dict(state.scene_state),
+                                    scene_state=copy.deepcopy(state.scene_state),
                                     spatial_service=state.spatial_service,
                                     location_id=state.scene_state.get("location_id", ""),
                                 )
@@ -610,35 +632,33 @@ class NpcTickPipeline:
                     if _movement:
                         movement_intents.append(_movement)
 
-            # TZ-10: Сборка npc_deltas без I/O. Применение будет в TickOrchestrator.
-            if state.relationship_store:
-                try:
-                    applicator = StateApplicator(
-                        relationship_store=state.relationship_store,
-                        l1_chronicle=state.l1_chronicle # V8-PSY-1 FIX
-                    )
-                    _new_state = applicator.apply(
-                        state=state_l2, result=decision, campaign_id=state.campaign_id
-                    )
-                    if hasattr(_new_state, "deltas") and _new_state.deltas:
-                        npc_deltas.extend(_new_state.deltas)
+            # S1 FIX (Pure Reducer): Сборка npc_deltas напрямую из DecisionResult.
+            # StateApplicator удалён из ядра. Мутация relationship_store и l1_chronicle
+            # будет выполнена TickOrchestrator'ом при применении TickMutation.
+            
+            # TODO (Фаза 2 / Эпоха 7): Интеграция ResolutionEngine.
+            # Здесь будет вызов ResolutionEngine().resolve(state, profile, expected_success)
+            # и передача ResolutionOutcome в формирование TickMutation (вместо applicator.apply).
+            if decision.deltas:
+                npc_deltas.extend(decision.deltas)
 
-                    # Сборка memory_events для отложенного применения
-                    _mem_evt = create_memory_event(
-                        None,
-                        state_l2=_new_state,
-                        decision=decision,
-                        npc_id=npc_id,
-                        hub_event=_event_for_interp,
-                        player_target_id=state.player_target_id or "player",
-                        player_text=state.raw_input,
-                        scene_state=dict(state.scene_state),
-                        campaign_id=state.campaign_id,
-                    )
-                    if _mem_evt:
-                        memory_events.append(_mem_evt)
-                except Exception as e:
-                    logger.warning(f"[STATE_APPLICATOR] failed for {npc_id}: {e}")
+            # Сборка memory_events для отложенного применения
+            try:
+                _mem_evt = create_memory_event(
+                    None,
+                    state_l2=state_l2, # Используем pre-decision state
+                    decision=decision,
+                    npc_id=npc_id,
+                    hub_event=_event_for_interp,
+                    player_target_id=state.player_target_id or "player",
+                    player_text=state.raw_input,
+                    scene_state=copy.deepcopy(state.scene_state),
+                    campaign_id=state.campaign_id,
+                )
+                if _mem_evt:
+                    memory_events.append(_mem_evt)
+            except Exception as e:
+                logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
 
         return TickMutation(
             npc_deltas=npc_deltas,

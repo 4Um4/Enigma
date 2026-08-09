@@ -99,19 +99,31 @@ def test_per_pair_session_isolation():
 
 
 def test_hard_contract_no_stm_no_speak():
-    """T4: Если STM пуст и intent != greeting, DialogueExecutor должен падать."""
+    """T4: Если STM пуст и intent != greeting, DialogueExecutor понижает intent до approach (auto-recover)."""
     mock_mm = MagicMock()
     mock_mm.get_stm_prompt_block_pair.return_value = "" # Симулируем пустой STM
-    executor = DialogueExecutor(router=MagicMock(), memory_manager=mock_mm)
+    mock_router = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = "Привет!"
+    mock_response.is_fallback = False
+    mock_router.request_for_agent.return_value = mock_response
+    executor = DialogueExecutor(router=mock_router, memory_manager=mock_mm)
+    
+    # Мокируем результат валидации
+    mock_validation = MagicMock()
+    mock_validation.is_fallback = False
+    mock_validation.text = "Привет!"
+    executor._validator = MagicMock()
+    executor._validator.validate.return_value = mock_validation
     
     from app.domain.communication import DialogueRequest, ExposureLevel
     from app.domain.execution import QueuedTask
     req = DialogueRequest(topic="trade", target_id="npc_B", exposure=ExposureLevel.from_semantic("normal"), intent_type="talk")
     task = QueuedTask(task_id="t1", tick=1, counter=1, kind="dialogue", priority=1, state="pending", creator_system="test", owner_id="npc_A", target_ids=["npc_B"], payload=req, created_tick=1)
     
-    # Проверяем, что генерация вызывает исключение
-    with pytest.raises(DialogueContractViolation):
-        executor._generate_with_router(task, req)
+    # Проверяем, что генерация НЕ падает, а понижает intent (auto-recover)
+    result = executor._generate_with_router(task, req)
+    assert result is not None
 
 
 def test_hard_contract_greeting_allowed():
@@ -143,14 +155,17 @@ def test_hard_contract_greeting_allowed():
 
 
 def test_ttl_game_time_expiry():
-    """T6: TaskScheduler TTL очищает реплики старше 60 game_time_seconds."""
+    """T6: TaskScheduler TTL очищает реплики старше 7 секунд wall-clock (ADR-O-343)."""
+    import time
     scheduler = TaskScheduler()
-    # Реплика 100 секунд назад (game_time)
-    scheduler._recent_dialogues.append({"speaker_id": "A", "text": "Старая реплика", "timestamp": 0, "game_time": 100.0})
-    # Реплика 10 секунд назад (game_time)
-    scheduler._recent_dialogues.append({"speaker_id": "B", "text": "Новая реплика", "timestamp": 0, "game_time": 150.0})
+    _now = time.time()
     
-    # Текущее game_time = 160.0. TTL = 60.0. Должна остаться только вторая.
+    # Реплика 100 секунд назад (wall-clock)
+    scheduler._recent_dialogues.append({"speaker_id": "A", "text": "Старая реплика", "timestamp": _now - 100.0, "game_time": 100.0})
+    # Реплика 2 секунды назад (wall-clock)
+    scheduler._recent_dialogues.append({"speaker_id": "B", "text": "Новая реплика", "timestamp": _now - 2.0, "game_time": 150.0})
+    
+    # TTL = 7.0 сек wall-clock. Должна остаться только вторая.
     active = scheduler.get_recent_dialogues(160.0)
     assert len(active) == 1
     assert active[0]["speaker_id"] == "B"

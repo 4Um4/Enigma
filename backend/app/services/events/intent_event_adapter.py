@@ -5,6 +5,7 @@
 
 from app.domain.communication import CommunicationIntent
 from app.domain.events import EventDTO
+from app.services.events.event_types import EventType
 
 
 class IntentEventAdapter:
@@ -13,6 +14,25 @@ class IntentEventAdapter:
     Единственная легальная точка такого преобразования.
     Нарушение: создание EventDTO из CommunicationIntent в другом месте = баг (Устав §3.3).
     """
+
+    # S4 FIX: Детерминированный мост Intent → EventType.
+    # Non-event интенты (IDLE, OBSERVE, FLEE, APPROACH, BLOCK_PATH, AMBUSH, SEEK_ALLY)
+    # не должны попадать в IntentEventAdapter, так как они обрабатываются как MovementIntent.
+    _INTENT_EVENT_MAP = {
+        "talk": EventType.NPC_SPOKE,
+        "warn": EventType.WARN,
+        "intimidate": EventType.INTIMIDATION,
+        "attack": EventType.ACTOR_ATTACKS,
+        "help": EventType.HELP,
+        "report": EventType.REPORT,
+        "trade": EventType.TRADE,
+        "explain": EventType.NPC_SPOKE,
+        "offer_job": EventType.OFFER_JOB,
+        "request_service": EventType.REQUEST_SERVICE,
+        "spread_rumor": EventType.SPREAD_RUMOR,
+        "call_for_help": EventType.CALL_FOR_HELP,
+        "change_role": EventType.CHANGE_ROLE,
+    }
 
     @staticmethod
     def to_event(intent: CommunicationIntent) -> EventDTO:
@@ -32,17 +52,15 @@ class IntentEventAdapter:
             "shout": "public",
         }
 
-        # V8-SOC-2 FIX: Маппим интенты в каноничные EventType, чтобы социальная пропагация работала
         _intent_val = getattr(intent, "intent_type", "")
-        _event_type = "npc_spoke"
-        if _intent_val == "attack":
-            _event_type = "actor_attacks"
-        elif _intent_val == "help":
-            _event_type = "help"
-        elif _intent_val in ("theft", "steal", "rob"):
-            _event_type = "theft"
-        elif _intent_val == "intimidate":
-            _event_type = "intimidation"
+        # S4 FIX: Явный маппинг. Если интент неизвестен, падаем в npc_spoke,
+        # но логируем warning для последующего аудита.
+        _event_type = IntentEventAdapter._INTENT_EVENT_MAP.get(_intent_val, EventType.NPC_SPOKE).value
+        if _intent_val and _intent_val not in IntentEventAdapter._INTENT_EVENT_MAP:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"[INTENT_EVENT_ADAPTER] Unmapped intent_type '{_intent_val}' defaulted to npc_spoke."
+            )
 
         return EventDTO.create(
             event_type=_event_type,

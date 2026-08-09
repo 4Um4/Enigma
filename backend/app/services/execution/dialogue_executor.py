@@ -185,10 +185,10 @@ class DialogueExecutor:
         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
         if not _stm_text and req.intent_type not in ("greeting", "approach"):
-            raise DialogueContractViolation(
-                f"NPC {task.owner_id} cannot speak to {req.target_id} without STM block. "
-                "Emit approach/greeting intent first."
-            )
+            logger.warning(f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
+                           f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
+            from dataclasses import replace as _dc_replace
+            req = _dc_replace(req, intent_type="approach")
         
         if _stm_text:
             _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"

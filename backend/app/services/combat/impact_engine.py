@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Impact Propagation Engine (Мастер Тай: Violence Simulation).
 

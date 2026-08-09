@@ -180,12 +180,13 @@ def test_runtime_applies_boundary_snap():
     }
 
     # SceneChange от boundary transition
+    # Контракт: phases/traversal.py эмитит cause="cross_loc_materialize:traversal_complete" при смене локации
     boundary_change = SceneChange(
         type=ChangeType.NPC_POSITION,
         target="npc_lusya",
         field="position",
         value="city_gate:entry_west",
-        cause="traversal_complete",
+        cause="cross_loc_materialize:traversal_complete",
         tick=10,
         target_location_id="city_gate",
     )

@@ -44,7 +44,7 @@ _STOP_TOKENS = [
 ]
 
 # C3-FIX: MSG_ константы вынесены в app.core.constants
-from app.core.constants import MSG_MAX_REPLIES, MSG_NOTHING_HAPPENED
+from app.core.constants import MSG_MAX_REPLIES, MSG_NOTHING_HAPPENED, MSG_LLM_UNAVAILABLE
 
 MSG_ALREADY_SAID = "УЖЕ БЫЛО СКАЗАНО"
 MSG_REACTION_RULE = "ПРАВИЛО РЕАКЦИЙ"
@@ -105,7 +105,7 @@ class DmAgent:
             logger.error(f"[DM_AGENT_CRASH] {type(e).__name__}: {e}")
             traceback.print_exc()
             jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": str(e)})
-            return self._fallback_narrate()
+            return self._fallback_narrate(e)
 
     @staticmethod
     def _has_real_check_flag(rules_result: Dict) -> bool:
@@ -1060,9 +1060,14 @@ class DmAgent:
 
         return None
 
-    def _fallback_narrate(self) -> Dict:
+    def _fallback_narrate(self, error: Optional[Exception] = None) -> Dict:
+        _msg = MSG_NOTHING_HAPPENED
+        if error is not None:
+            _err_text = str(error).lower()
+            if "llama" in _err_text or "недоступн" in _err_text or "pool" in _err_text or "timeout" in _err_text:
+                _msg = MSG_LLM_UNAVAILABLE
         return {
-            "dm_response": MSG_NOTHING_HAPPENED,
+            "dm_response": _msg,
             "npc_reactions": [],
             "world_changes": [],
         }

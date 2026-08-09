@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from app.services.spatial.spatial_service import SpatialService
 
 from app.core.constants import PERCEPTION_FALLBACK_DISTANCE
+from app.services.spatial.geometry_kernel import _line_rect_intersect, _segments_intersect
 
 logger = logging.getLogger(__name__)
 
@@ -87,14 +88,15 @@ def euclidean_distance(
     b: Dict[str, Any],
 ) -> float:
     """Евклидово расстояние между сущностями по local_position.
-    Возвращает 999.0 если позиция (0,0). Выбрасывает ValueError при отсутствии координат.
+    Возвращает 999.0 если local_position отсутствует. Выбрасывает ValueError при отсутствии координат.
     """
+    # BUG-SPATIAL-007 FIX: Проверяем отсутствие local_position, а не равенство (0,0).
+    # (0.0, 0.0) — это валидная координата (угол карты), её нельзя считать "нет данных".
+    if not a.get("local_position") or not b.get("local_position"):
+        return 999.0
+
     ax, ay = _local(a)
     bx, by = _local(b)
-    # BUG-SPATIAL-007 FIX: если ХОТЯ БЫ ОДНА позиция (0,0) — данных нет.
-    # Ранее проверка была через 'and', что возвращало реальное расстояние при одном (0,0).
-    if (ax == 0.0 and ay == 0.0) or (bx == 0.0 and by == 0.0):
-        return 999.0
     return round(math.hypot(ax - bx, ay - by), 2)
 
 
@@ -220,66 +222,6 @@ def is_movement_blocked(
                 ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]
             ):
                 return True
-    return False
-
-
-def _segments_intersect(
-    ax: float,
-    ay: float,
-    bx: float,
-    by: float,
-    cx: float,
-    cy: float,
-    dx: float,
-    dy: float,
-) -> bool:
-    """Пересечение двух отрезков AB и CD."""
-
-    def cross(
-        ox: float, oy: float, px: float, py: float, qx: float, qy: float
-    ) -> float:
-        return (px - ox) * (qy - oy) - (py - oy) * (qx - ox)
-
-    d1 = cross(cx, cy, dx, dy, ax, ay)
-    d2 = cross(cx, cy, dx, dy, bx, by)
-    d3 = cross(ax, ay, bx, by, cx, cy)
-    d4 = cross(ax, ay, bx, by, dx, dy)
-
-    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and (
-        (d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)
-    ):
-        return True
-    return False
-
-
-def _line_rect_intersect(
-    ax: float,
-    ay: float,
-    bx: float,
-    by: float,
-    rx: float,
-    ry: float,
-    rw: float,
-    rh: float,
-) -> bool:
-    """Пересечение линии AB с прямоугольником (rx, ry, rw, rh)."""
-    # Проверяем 4 стороны прямоугольника
-    if _segments_intersect(ax, ay, bx, by, rx, ry, rx + rw, ry):
-        return True
-    if _segments_intersect(ax, ay, bx, by, rx + rw, ry, rx + rw, ry + rh):
-        return True
-    if _segments_intersect(ax, ay, bx, by, rx + rw, ry + rh, rx, ry + rh):
-        return True
-    if _segments_intersect(ax, ay, bx, by, rx, ry + rh, rx, ry):
-        return True
-    # Линия полностью внутри прямоугольника
-    if (
-        rx <= ax <= rx + rw
-        and ry <= ay <= ry + rh
-        and rx <= bx <= rx + rw
-        and ry <= by <= ry + rh
-    ):
-        return True
     return False
 
 

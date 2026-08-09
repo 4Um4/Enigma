@@ -29,7 +29,8 @@ def test_pacing_and_deduplication():
                 "kind": "dialogue",
                 "payload": {"target_id": "all", "intent_type": "greeting", "topic": "наблюдение"}
             }
-            if scheduler.admit(task_dict):
+            admitted, _ = scheduler.admit(task_dict)
+            if admitted:
                 admitted_count += 1
         time.sleep(0.01) # Эмулируем минимальную задержку тика
         
@@ -47,13 +48,16 @@ def test_dialogue_cadence():
     task_b = {"owner_id": "B", "kind": "dialogue", "payload": {"target_id": "A", "intent_type": "talk", "topic": "долг"}}
     
     # Тик 1: A говорит
-    assert scheduler.admit(task_a) == True, "A should speak"
+    admitted, _ = scheduler.admit(task_a)
+    assert admitted == True, "A should speak"
     
     # Тик 2 (сразу после): B пытается ответить. Должен быть допущен, т.к. его pacing не нарушен.
-    assert scheduler.admit(task_b) == True, "B should respond"
+    admitted, _ = scheduler.admit(task_b)
+    assert admitted == True, "B should respond"
     
     # Тик 3 (сразу после): A пытается ответить. Должен быть подавлен (pacing 2 сек).
-    assert scheduler.admit(task_a) == False, "A should be denied (pacing)"
+    admitted, _ = scheduler.admit(task_a)
+    assert admitted == False, "A should be denied (pacing)"
     
     print("✅ PASS: Dialogue Cadence A->B allowed, A->A denied.")
 
@@ -63,13 +67,16 @@ def test_duplicate_suppression():
     
     task = {"owner_id": "Orm", "kind": "dialogue", "payload": {"target_id": "Goran", "intent_type": "request_service", "topic": "молот"}}
     
-    assert scheduler.admit(task) == True, "First request should be admitted"
-    assert scheduler.admit(task) == False, "Exact duplicate should be denied"
+    admitted, _ = scheduler.admit(task)
+    assert admitted == True, "First request should be admitted"
+    admitted, _ = scheduler.admit(task)
+    assert admitted == False, "Exact duplicate should be denied"
     
     # Изменился контекст (например, topic сменился на "оплата")
     task_new_context = {"owner_id": "Orm", "kind": "dialogue", "payload": {"target_id": "Goran", "intent_type": "request_service", "topic": "оплата"}}
     # pacing всё ещё не прошел (2 сек), поэтому всё равно отказ
-    assert scheduler.admit(task_new_context) == False, "Should be denied due to pacing, even if context changed"
+    admitted, _ = scheduler.admit(task_new_context)
+    assert admitted == False, "Should be denied due to pacing, even if context changed"
     
     print("✅ PASS: Duplicate suppression and context change.")
 

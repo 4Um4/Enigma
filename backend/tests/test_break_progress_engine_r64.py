@@ -75,7 +75,7 @@ def test_stages_by_integrity(npc_state, integrity, expected_stage):
 
 
 def test_stage_monotonicity(npc_state):
-    """Чем ниже integrity — тем сильнее или равно падение."""
+    """P1 FIX: Асимптотический распад. Чем ниже integrity, тем медленнее она падает."""
     npc_state.fear = 0.6
     npc_state.stress = 40.0
 
@@ -88,8 +88,10 @@ def test_stage_monotonicity(npc_state):
     npc_state.identity_integrity = 0.1
     d3 = BreakProgressEngine.calculate(npc_state)
 
-    assert d2.identity_integrity_delta <= d1.identity_integrity_delta
-    assert d3.identity_integrity_delta <= d2.identity_integrity_delta
+    # d2 падает быстрее d1 (base_delta больше, integrity ещё высок)
+    assert d2.identity_integrity_delta < d1.identity_integrity_delta
+    # d3 падает медленнее d2 (асимптотический распад на низком integrity)
+    assert d3.identity_integrity_delta > d2.identity_integrity_delta
 
 
 # ====================== Pressure effects ======================
@@ -140,7 +142,9 @@ def test_high_pressure_can_break(npc_state):
     deltas = BreakProgressEngine.calculate(npc_state, recent_failures=5)
 
     assert deltas.stage == "deformation"
-    assert deltas.identity_integrity_delta < -0.05
+    # P1 FIX: Асимптотический распад. base_delta=-0.03 * integrity(0.1) = -0.003.
+    # Дельта не может быть меньше -0.05 при текущей формуле.
+    assert deltas.identity_integrity_delta < -0.001
     assert deltas.will_state_override in (None, WillState.BROKEN)
 
 

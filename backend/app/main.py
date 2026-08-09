@@ -20,121 +20,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-# Глобальная ссылка на процесс llama-server — для atexit
-_llama_server_proc = None
-_llama_started_by_us = False
-
 import atexit
 import subprocess
 import time
 
+from app.services.llm.server_lifecycle import _llama_state, kill_llama_server, restart_llama_server as _restart_llama_server
 
-def _kill_llama_server() -> None:
-    """Гарантированное убийство llama-server при любом выходе — только если МЫ его запустили."""
-    global _llama_server_proc, _llama_started_by_us
-    if _llama_server_proc is not None and _llama_started_by_us:
-        try:
-            _llama_server_proc.terminate()
-            _llama_server_proc.wait(timeout=3)
-        except Exception:
-            try:
-                _llama_server_proc.kill()
-            except Exception as e:
-                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-        _llama_server_proc = None
-
-
-def _restart_llama_server() -> bool:
-    """Restart llama-server если он упал во время игры. Возвращает True если сервер жив."""
-    global _llama_server_proc, _llama_started_by_us
-    import urllib.request
-
-    # Шаг 1: проверяем — может сервер уже жив (внешний или предыдущий инстанс)
-    try:
-        urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
-        return True  # Уже работает
-    except Exception as e:
-        logger.error(f"[LLM_RESTART] Health check failed: {e}", exc_info=True)
-    # Шаг 2: убиваем старый процесс если он мёртв (poll != None) или завис
-    if _llama_server_proc is not None:
-        if _llama_server_proc.poll() is not None:
-            # Процесс мёртв — можно перезапускать
-            try:
-                _llama_server_proc.kill()
-            except Exception as e:
-                logger.error(f"[LLM_RESTART] Failed to kill dead process: {e}", exc_info=True)
-            _llama_server_proc = None
-        else:
-            # Процесс жив но не отвечает — убиваем
-            logger.warning("[LLM_RESTART] Процесс жив но /health не отвечает — убиваем")
-            try:
-                _llama_server_proc.terminate()
-                _llama_server_proc.wait(timeout=5)
-            except Exception:
-                try:
-                    _llama_server_proc.kill()
-                except Exception as e:
-                    logger.error(f"[LLM_RESTART] Failed to kill unresponsive process: {e}", exc_info=True)
-            _llama_server_proc = None
-    # Шаг 3: запускаем новый
-    logger.info("[LLM_RESTART] Перезапуск llama-server...")
-    try:
-        server_cmd = [
-            settings.llama_cpp_server_executable,
-            "-m",
-            settings.llama_cpp_model_path,
-            "--port",
-            str(settings.llama_cpp_port),
-            "--host",
-            "localhost",
-            "-ngl",
-            str(settings.effective_gpu_layers),
-            "-c",
-            str(settings.ctx_size),
-            "-t",
-            str(settings.threads),
-        ]
-        _llama_stderr_path = str(
-            BASE_DIR / "backend" / "logs" / "llama_server_stderr.log"
-        )
-        _llama_stderr_file = open(_llama_stderr_path, "a", encoding="utf-8")
-        try:
-            _llama_server_proc = subprocess.Popen(
-                server_cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=_llama_stderr_file,
-                creationflags=subprocess.CREATE_NO_WINDOW
-                if hasattr(subprocess, "CREATE_NO_WINDOW")
-                else 0,
-            )
-        finally:
-            _llama_stderr_file.close()
-        _llama_started_by_us = True
-        # Ждём HTTP readiness
-        for _attempt in range(int(settings.model_load_timeout_sec / 2)):
-            try:
-                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-                _opener.open(
-                    f"{settings.llama_cpp_server_url}/health", timeout=2
-                )
-                logger.info("[LLM_RESTART] llama-server перезапущен успешно")
-                print("✓ llama-server перезапущен")
-                return True
-            except Exception:
-                time.sleep(2)
-        logger.error(
-            f"[LLM_RESTART] Перезапуск не удался за {settings.model_load_timeout_sec}с"
-        )
-        print("⚠️ Перезапуск llama-server не удался")
-        return False
-    except Exception as e:
-        logger.error(f"[LLM_RESTART] Exception: {e}")
-        print(f"⚠️ Перезапуск llama-server failed: {e}")
-        _llama_server_proc = None
-        return False
-
-
-atexit.register(_kill_llama_server)
 import asyncio
 import logging
 from datetime import datetime
@@ -280,12 +171,10 @@ async def lifespan(app: FastAPI):
     # Медленные операции (llama-server, health check) запускаются в фоне.
     # Фронтенд может подключаться немедленно и опрашивать /health для статуса.
     app.state.startup_status = {"llm_server": "pending", "llm_health": "pending"}
-    _llama_state = {"proc": None, "started_by_us": False}
 
     async def _background_llm_startup() -> None:
         """Неблокирующий старт llama-server + LLM health check.
         Обновляет app.state.startup_status для /health endpoint."""
-        global _llama_server_proc, _llama_started_by_us
 
         # 5.5 Авто-старт llama-server (если URL настроен)
         if settings.llama_cpp_server_url:
@@ -462,15 +351,13 @@ async def lifespan(app: FastAPI):
         logger.debug(f"Background task cancelled: {e}")
 
     # Синхронизируем состояние с глобалами для atexit-хендлера
-    _llama_server_proc = _llama_state["proc"]
-    _llama_started_by_us = _llama_state["started_by_us"]
-    if _llama_server_proc is not None and _llama_started_by_us:
+    if _llama_state["proc"] is not None and _llama_state["started_by_us"]:
         try:
-            _llama_server_proc.terminate()
-            _llama_server_proc.wait(timeout=5)
+            _llama_state["proc"].terminate()
+            _llama_state["proc"].wait(timeout=5)
             print("✓ llama-server stopped")
         except Exception:
-            _llama_server_proc.kill()
+            _llama_state["proc"].kill()
             print("✓ llama-server killed")
 
     # Завершение сессии VRAM мониторинга

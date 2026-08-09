@@ -22,13 +22,13 @@ class TestP712ExitTrigger:
         assert not trigger.check_exit(scene)
 
     def test_exit_boundary_exact_threshold(self, trigger):
-        """Граничное условие: x = 18.0 (>= threshold) даёт True."""
-        scene = {"npc_positions": {"player": {"local_position": {"x": 18.0, "y": 5.0}}}}
+        """Граничное условие: y = 12.5 (>= threshold) даёт True."""
+        scene = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 12.5}}}}
         assert trigger.check_exit(scene)
 
     def test_exit_triggered_outside(self, trigger):
         """Игрок снаружи — триггер срабатывает."""
-        scene = {"npc_positions": {"player": {"local_position": {"x": 19.0, "y": 5.0}}}}
+        scene = {"npc_positions": {"player": {"local_position": {"x": 5.0, "y": 15.0}}}}
         assert trigger.check_exit(scene)
 
     def test_no_exit_missing_player(self, trigger):

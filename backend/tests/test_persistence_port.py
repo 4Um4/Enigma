@@ -59,7 +59,7 @@ class TestJsonPersistenceAdapter:
 
         with open(result_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        assert data["scene_state"]["location_id"] == "tavern"
+        assert data["scenes"]["tavern"]["location_id"] == "tavern"
 
 
 class TestSceneStateManagerCommit:

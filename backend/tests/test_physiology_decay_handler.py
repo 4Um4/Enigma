@@ -71,6 +71,7 @@ def _make_snapshot(
             "consciousness": consciousness,
             "shock_impulse": 0.0,
             "injuries_by_zone": {},
+            "statuses": statuses or [],  # FIX: _get_statuses читает из body_state
         },
         perceptual_kernel={},
     )

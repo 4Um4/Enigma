@@ -417,6 +417,11 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
             # L2.5: Кристаллизация убеждений (проекция через личность)
             _existing_beliefs = deps.crystallized_belief_store.get_beliefs(_npc_id)
+            # TODO (Фаза 3 / Эпоха 8): Интеграция LinguisticIntegrityCalculator.
+            # Здесь должен вызываться LinguisticIntegrityCalculator().compute()
+            # для расчёта целостности речи NPC (willpower * class * age * attachment).
+            # Результат должен модулировать скорость кристаллизации убеждений
+            # (NPC с высокой целостностью речи сопротивляется меметическому дрейфу).
             _updated_beliefs = deps.belief_engine.crystallize(
                 evidence_list=_evidence_list,
                 drives_base=_drives_base,

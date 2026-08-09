@@ -32,10 +32,8 @@ def test_archive_old_events_does_not_crash(memory_store):
     # Ранее здесь падало: tuple index out of range
     chronicle.archive_old_events(current_tick=10, max_ticks_in_memory=5)
     
-    # Проверяем, что в активной таблице остались только события >= 5
-    rows = memory_store.query(
-        "SELECT tick_id FROM l1_chronicle_events WHERE target_id = ?",
-        ("npc_1",)
-    )
-    assert len(rows) == 5
-    assert all(r["tick_id"] >= 5 for r in rows)
+    # Проверяем, что в RAM-кэше остались только события >= 5
+    # Rule 28: L1Chronicle строго append-only, SQL-таблица не очищается, query_raw возвращает RAM+SQL.
+    active_events = chronicle._events.get("npc_1", [])
+    assert len(active_events) == 5
+    assert all(e.tick_id >= 5 for e in active_events)

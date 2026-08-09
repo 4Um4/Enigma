@@ -304,9 +304,9 @@ def test_tick_decisions_returns_movement_intents():
     """tick_decisions возвращает 3-й элемент: movement_intents."""
     engine = LifeEngine()
     # Пустой кэш → должен вернуть ([], [], [])
-    result = engine.tick_decisions("nonexistent_campaign", {})
-    assert len(result) == 3, f"tick_decisions должен возвращать 3 значения, вернул {len(result)}"
-    decisions, comms, movements = result
-    assert isinstance(decisions, list)
-    assert isinstance(comms, list)
-    assert isinstance(movements, list)
+    # BUG-CORE-016/017 FIX: tick_decisions удалён. Используем tick().
+    result = engine.tick("nonexistent_campaign", {})
+    assert len(result) == 2, f"tick() должен возвращать 2 значения (changes, intents), вернул {len(result)}"
+    changes, intents = result
+    assert isinstance(changes, list)
+    assert isinstance(intents, list)

@@ -7,9 +7,10 @@
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from app.domain.embodied_trace import EmbodiedTraceDTO, PlayerPerceptionDTO
+from app.domain.snapshot import AvatarStateDTO
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ class PhenomenologyProjectionService:
     """
 
     def project(
-        self, traces: list[EmbodiedTraceDTO], scene_state: dict, tick: int, observed_facts: list[str] = None
+        self, traces: list[EmbodiedTraceDTO], scene_state: dict, tick: int, observed_facts: list[str] = None,
+        avatar_state: Optional[AvatarStateDTO] = None
     ) -> PlayerPerceptionDTO:
         cues = []
 
@@ -115,6 +117,21 @@ class PhenomenologyProjectionService:
 
         logger.info(f"[PERCEPTION_PROJECTOR] Traces={len(traces)} Cues={len(cues)}")
 
+        # Cognitive Distortion: влияние состояния аватара на восприятие
+        _threat_bias = 0.0
+        _trust_bias = 0.0
+        _salience_bias = 0.0
+        if avatar_state:
+            # Высокий сенсорный шум (стресс/боль) -> угроза кажется сильнее
+            if avatar_state.sensory_noise > 0.4:
+                _threat_bias = min(1.0, avatar_state.sensory_noise)
+            # Низкая когнитивная связность -> паранойя (снижение доверия)
+            if avatar_state.cognitive_coherence < 0.6:
+                _trust_bias = max(-1.0, avatar_state.cognitive_coherence - 1.0)
+            # Низкая стабильность восприятия -> туннельное зрение
+            if avatar_state.perceptual_stability < 0.5:
+                _salience_bias = min(1.0, 1.0 - avatar_state.perceptual_stability)
+
         return PlayerPerceptionDTO(
             active_perceptions=cues,
             atmosphere_key=atm_key,
@@ -124,4 +141,7 @@ class PhenomenologyProjectionService:
             ],
             manifestations=manifestations,
             observed_facts=observed_facts or [],
+            threat_bias=_threat_bias,
+            trust_bias=_trust_bias,
+            salience_bias=_salience_bias,
         )
