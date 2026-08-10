@@ -37,8 +37,8 @@ PATTERNS: Dict[str, str] = {
     "graph_fallback": r"\[LocationGraph\] fallback-граф для '(\w+)'",
     # [MOVEMENT_ENGINE] Узел 'bed' не найден для thief_shadow в inn_rooms
     "node_not_found": r"\[MOVEMENT_ENGINE\] Узел '(\w+)' не найден для (\w+) в (\w+)",
-    # [TRAVERSAL] Start: npc=thief_shadow to_node=bed  (если появится в новых логах)
-    "traversal_start": r"\[TRAVERSAL\] Start: npc=(\w+) to_node=(\w+)",
+    # [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern:right_table reason=offer_job exact_xy=(10.5, 4.0) dist=2.2 ticks=1
+    "traversal_start": r"\[PIPELINE\]\[MOVEMENT\]\[RELOCATE\] npc=(\w+) → zone=(\S+)",
     # [TRAVERSAL] Complete: npc=thief_shadow at_node=bed
     "traversal_complete": r"\[TRAVERSAL\] Complete: npc=(\w+) at_node=(\w+)",
     # --- Spatial / Snapshot ---

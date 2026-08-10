@@ -66,6 +66,20 @@ class PersistencePort(ABC):
         ...
 
     @abstractmethod
+    def atomic_commit_all(
+        self,
+        campaign_id: str,
+        all_scenes: Dict[str, Dict[str, Any]],
+        npc_states: Optional[List[Dict[str, Any]]] = None,
+        events: Optional[List[Dict[str, Any]]] = None,
+    ) -> bool:
+        """Атомарный коммит ВСЕХ локаций за 1 транзакцию (Устав 4.2.1).
+        
+        Защита от INV-COMMIT-CARDINALITY: 1 тик = 1 commit в БД.
+        """
+        ...
+
+    @abstractmethod
     def delete_campaign(self, campaign_id: str) -> None:
         """Удаляет все данные кампании (scene + runtime) из persistence.
         Используется при New Game для полной очистки всех слоёв."""

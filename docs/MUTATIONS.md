@@ -290,7 +290,8 @@ ecent_dialogues в game_screen.py заменены на чтение perceived_n
   **NpcTickPipeline.run:** Удалён вызов StateApplicator. 
 pc_deltas собираются напрямую из DecisionResult. create_memory_event использует pre-decision state_l2. Исправлена мутация оригинального 
 pc dict при проверке слуха (copy.deepcopy).
-  **TickOrchestrator:** Расчёт хэша TickState изолирован от сервисных объектов (spatial_service, elationship_store, l1_chronicle), которые имеют side-effects (кэш) при чтении. Хэшируются только data-поля.
+  **TickOrchestrator:** Расчёт хэша TickState изолирован от сервисных объектов (spatial_service, 
+elationship_store, l1_chronicle), которые имеют side-effects (кэш) при чтении. Хэшируются только data-поля.
   IPT: 31/31 passed. INV-TEMPORAL-ISOLATION (RED→GREEN).
   Files: backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/tick_orchestrator.py
 
@@ -339,3 +340,14 @@ pc_spoke для известных интентов.
 pc_positions.
   IPT: 38/38 passed. INV-SAVE-LOAD-INTEGRITY (NEW GREEN).
   Files: backend/tests/IPT.py
+Последняя сессия в логе — **S185**. Значит, наша будет **S186**.
+
+- 🟢 **S186** FOUNDATION FORTIFICATION: LOCATION LOOP & CARDINALITY LAWS:
+  Устранены критические архитектурные разрывы, вызванные циклом по локациям в `TickOrchestrator.execute`. Добавлены строгие инварианты в `IPT.py` для защиты от регрессий (P0-1, P0-2, P1-5, P1-6, P1-7).
+  **P0-1 (Tick Cardinality):** Вынесен вызов `_advance_idle_time` из цикла по локациям в начало `execute()`. Время теперь продвигается ровно 1 раз за тик, синхронизируясь во все локации. Устранено нарушение `LAW OF SINGULAR TIME`. Инвариант `INV-TICK-CARDINALITY` подтверждает: 1 тик = 1 шаг времени.
+  **P0-2 (NPC Cardinality):** Инвариант `INV-SCENE-ENTITY-ISOLATION` переименован в `INV-NPC-CARDINALITY` и переписан. Строго проверяет, что NPC из `tavern` не присутствуют в `npc_positions` локации `city_gate`.
+  **P1-5 (Commit Cardinality):** Добавлен метод `atomic_commit_all` в `PersistencePort` и адаптеры. `SceneStateManager.commit()` теперь только обновляет RAM-кэш, не делая коммит в БД. `unlock_tick()` вызывает `atomic_commit_all` ровно 1 раз для всех локаций. Устранено нарушение Устава 4.2.1. Добавлен инвариант `INV-COMMIT-CARDINALITY`.
+  **P1-6 (EventBus Cardinality):** Инвариант `INV-EVENT-CARDINALITY` переписан. Строго проверяет, что за 1 тик количество событий `NPC_MOVED` не превышает количество NPC, а `PROXIMITY` — квадрат количества NPC.
+  **P1-7 (Dialogue Causal Loop):** Инвариант `INV-DIALOGUE-STM` переписан. Публикует настоящее событие `NPC_SPOKE` в `EventBus` и проверяет, что `NpcDialogueSubscriber` действительно записывает реплику в STM.
+  IPT: 39/39 passed.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/state/persistence_port.py, backend/app/services/state/sqlite_persistence_adapter.py, backend/app/services/state/json_persistence_adapter.py, backend/app/services/scene_state_manager.py, backend/tests/IPT.py

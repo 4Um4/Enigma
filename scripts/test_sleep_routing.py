@@ -55,14 +55,22 @@ def run_sleep_test():
         logger.error("❌ SceneState не загружен после reinit_campaign.")
         return False
 
-    logger.info("Устанавливаю время 02:00 (ночь)...")
+    logger.info("Устанавливаю время 02:00 (ночь) и обнуляю стресс/угрозы...")
     env = scene_state.setdefault("environment", {})
     env["time_of_day"] = "02:00"
     scene_state["game_time_seconds"] = 2 * 3600
+    
+    # S-01 FIX: Принудительно обнуляем стресс и угрозы для чистоты теста сна.
+    for npc in scene_state.get("npcs", []):
+        npc.setdefault("psyche", {})["stress"] = 0.0
+        _pk = npc.setdefault("perceptual_kernel", {})
+        if isinstance(_pk, dict):
+            _pk["threat_gradient"] = 0.0
+            
     scene_manager.save_scene_state(campaign_id, scene_state)
 
-    logger.info("Прогон 40 тиков симуляции (Tavern + City Gate)...")
-    for i in range(40):
+    logger.info("Прогон 120 тиков симуляции (Tavern + City Gate)...")
+    for i in range(120):
         # S-146 FIX: Тикаем обе локации, чтобы NPC могли дойти до кроватей в city_gate
         loop.idle_tick(campaign_id, location_id="tavern")
         loop.idle_tick(campaign_id, location_id="city_gate")

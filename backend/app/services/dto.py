@@ -78,11 +78,12 @@ class TickPlayerResultDTO:
 class _TickContext:
     """Внутренний контекст тика — живёт только внутри execute()."""
 
-    campaign_id: str
-    scene_state: dict
-    tick_number: int
-    # ADR-134: Instance-level bus — обязательно передаётся без дефолта (выше полей с default_factory)
-    drf_bus: DRFBus
+    campaign_id: str = ""
+    scene_state: dict = field(default_factory=dict)
+    tick_number: int = 0
+    # ADR-134: Instance-level bus
+    # P0-1/P0-2 FIX: Добавлен дефолт для предотвращения краша при partial init в game_loop
+    drf_bus: Optional[DRFBus] = None
     # Слой 4: позиции NPC ДО тика (для детекции переходов)
     old_npc_positions: dict = field(default_factory=dict)
     # Фаза 0: изменения от LifeEngine

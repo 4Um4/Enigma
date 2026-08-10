@@ -412,6 +412,35 @@ class TickOrchestrator:
 
         _tick_results = []
         _final_result = None
+        
+        # S1-FIX (INV-TICK-CARDINALITY): Продвигаем время ровно 1 раз за тик.
+        # Создаём временный контекст для продвижения времени, используя активную локацию (или первую из списка).
+        _time_scene = _all_scenes.get(active_location_id) or next(iter(_all_scenes.values()))
+        _time_ctx = create_tick_context(
+            campaign_id=campaign_id,
+            scene_state=_time_scene,
+            tick_number=tick_number,
+            interventions=[],  # S1-FIX: Must be list, not None, to avoid TypeError in create_tick_context
+            npc_services=npc_services,
+            drf_bus=self._drf_bus,
+            all_npcs_raw=all_npcs_raw,
+            shared_context=shared_context,
+            task_scheduler=task_scheduler,
+            hub_event=hub_event,
+            eco_profile=eco_profile,
+            mvp_controller=getattr(self, "_mvp_controller", None),
+        )
+        self._advance_idle_time(_time_ctx)
+        
+        # Синхронизируем обновлённое время во все сцены локаций
+        _new_game_time = _time_ctx.scene_state.get("game_time_seconds", 0.0)
+        _new_tick = _time_ctx.scene_state.get("tick", tick_number)
+        for _loc_id, _scene in _all_scenes.items():
+            _scene["game_time_seconds"] = _new_game_time
+            _scene["tick"] = _new_tick
+            if shared_context is not None:
+                shared_context.game_time_seconds = _new_game_time
+
         for _loc_id, _scene in _all_scenes.items():
             _is_active = (_loc_id == active_location_id) if active_location_id else True
             
@@ -667,6 +696,7 @@ class TickOrchestrator:
             tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I
             tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III
             tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III
+            tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX
             effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II
             spatial_service=_spatial_svc  # BUG-SPATIAL-036: Передаём сервис для SC-2..SC-8
         )
@@ -1466,31 +1496,33 @@ class TickOrchestrator:
         import json
         # S1 FIX: Хэшируем только данные, исключая сервисные объекты (spatial_service, etc.)
         # Сервисы могут иметь side-effects (кэш) при чтении, что ложно вызывает INV-TEMPORAL-ISOLATION.
+        
         _data_fields = {
             "scene_state": _tick_state.scene_state,
             "all_npcs_raw": _tick_state.all_npcs_raw,
             "effective_drives_map": _tick_state.effective_drives_map,
             "pe_modifiers_map": _tick_state.pe_modifiers_map,
-            "memory_weights_map": _tick_state.memory_weights_map,
-            "narrative_cache_map": _tick_state.narrative_cache_map,
-            "social_modifiers_map": _tick_state.social_modifiers_map,
-            "reputation_modifiers_map": _tick_state.reputation_modifiers_map,
-            "economic_profiles_map": _tick_state.economic_profiles_map,
-            "crystallized_beliefs_map": _tick_state.crystallized_beliefs_map,
-            "identity_traits_map": _tick_state.identity_traits_map,
             "nearby_npcs": _tick_state.nearby_npcs,
             "line_of_sight": _tick_state.line_of_sight,
         }
-        _json_before = json.dumps(_data_fields, default=str, sort_keys=True)
-        _ts_hash_before = hash(_json_before)
+        # S179 FIX: Хэш по каждому полю отдельно, чтобы точно определить источник мутации
+        _hashes_before = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()}
+        _ts_hash_before = hash(tuple(sorted(_hashes_before.items())))
         
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
-        ctx.tick_mutation = _mutation  # Сохраняем мутацию для ReplayRecorder и ProbeRunner
-        # Подсистема 3: Хеширование TickState после pipeline
-        _json_after = json.dumps(_data_fields, default=str, sort_keys=True)
-        _ts_hash_after = hash(_json_after)
+        ctx.tick_mutation = _mutation
+        
+        _hashes_after = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()}
+        _ts_hash_after = hash(tuple(sorted(_hashes_after.items())))
         ctx.tick_state_hash_before = _ts_hash_before
         ctx.tick_state_hash_after = _ts_hash_after
+
+        if _ts_hash_before != _ts_hash_after:
+            _mutated_fields = [k for k in _hashes_before if _hashes_before[k] != _hashes_after.get(k)]
+            logger.error(f"[PROBE_FAIL_PRE] INV-TEMPORAL-ISOLATION: Mutated fields: {_mutated_fields}")
+            ctx.tick_state_mutated_fields = _mutated_fields
+        else:
+            ctx.tick_state_mutated_fields = None
 
         # V8-SOC-5 FIX: Обновляем idle_pressure в LifeEngine
         if _life_engine and _mutation.idle_pressure_updates:
@@ -1541,8 +1573,9 @@ class TickOrchestrator:
         """
         from app.services.phases.idle_services import Phase0_5Deps, run_phase_0_5
 
-        # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
-        self._advance_idle_time(ctx)
+        # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS.
+        # S1-FIX (INV-TICK-CARDINALITY): Время продвигается один раз в execute(), до цикла по локациям.
+        # Ранее вызов находился здесь, внутри цикла, что приводило к умножению времени на N локаций.
 
         # ADR-O-315: TraversalExecutionSystem проецирует TraversalState в local_position.
         from app.services.spatial.traversal_execution_system import (
@@ -1715,12 +1748,11 @@ class TickOrchestrator:
             return
 
         for _intent in intents:
-            # BUG-CORE-015 FIX: DRF overlay должен применяться только к CommunicationIntent.
-            # У MovementIntent нет поля speaker, а actor_id хранится в npc_id.
+            # BUG-CORE-015 FIX: DRF overlay применяется к CommunicationIntent (speaker) и MovementIntent (actor_id).
             if hasattr(_intent, "speaker"):
                 _npc_id = _intent.speaker
-            elif hasattr(_intent, "npc_id"):
-                _npc_id = _intent.npc_id
+            elif hasattr(_intent, "actor_id"):
+                _npc_id = _intent.actor_id
             else:
                 continue
             _npc_claims = [

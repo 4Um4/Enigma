@@ -277,6 +277,31 @@ class SqlitePersistenceAdapter(PersistencePort):
                 conn.rollback()
                 return False
 
+    def atomic_commit_all(
+        self,
+        campaign_id: str,
+        all_scenes: Dict[str, Dict[str, Any]],
+        npc_states: Optional[List[Dict[str, Any]]] = None,
+        events: Optional[List[Dict[str, Any]]] = None,
+    ) -> bool:
+        """Атомарный коммит всех локаций в одной транзакции (Устав 4.2.1)."""
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                for _loc_id, scene_state in all_scenes.items():
+                    self._upsert(f"scene:{campaign_id}:{_loc_id}", scene_state)
+                if npc_states is not None:
+                    self._upsert(f"runtime:{campaign_id}", npc_states)
+                if events is not None:
+                    self._upsert(f"events_tick:{campaign_id}", events)
+                conn.commit()
+                logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit ALL OK: {campaign_id} ({len(all_scenes)} scenes)")
+                return True
+            except sqlite3.Error as e:
+                logger.error(f"[SQLITE_PERSISTENCE] Atomic commit ALL FAILED ({campaign_id}): {e} — откат")
+                conn.rollback()
+                return False
+
     def close(self) -> None:
         """Закрывает соединение. Вызывать при shutdown."""
         if self._conn is not None:

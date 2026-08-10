@@ -260,10 +260,13 @@ class SceneStateManager:
         if self._tick_locked and self._tick_campaign_id == campaign_id:
             # СНИМАЕМ LOCK ДО save — иначе guard в save_scene_state() сделает return!
             self._tick_locked = False
-            # Дополнение Б: Финальный персист всех кэшированных сцен
-            for _loc_id, _scene in self._tick_scenes.items():
-                if _scene is not None:
-                    self.save_scene_state(campaign_id, _scene)
+            # S1-FIX (INV-COMMIT-CARDINALITY): 1 атомарный коммит для всех локаций.
+            _valid_scenes = {k: v for k, v in self._tick_scenes.items() if v is not None}
+            if self._persistence and _valid_scenes:
+                self._persistence.atomic_commit_all(
+                    campaign_id=campaign_id,
+                    all_scenes=_valid_scenes,
+                )
             # Диагностика: round-trip проверка — пережил ли traversal save→load?
             if self._persistence and self._tick_scenes:
                 # Проверяем первую попавшуюся сцену из кэша
@@ -1536,19 +1539,15 @@ class SceneStateManager:
                 f"[WORLD_PROJ] Сгенерировано вторичных эффектов: {len(_projections)}"
             )
 
-        ok = self._persistence.atomic_commit(
-            campaign_id=campaign_id,
-            scene_state=scene_state,
-            npc_states=npc_dicts,
-            events=events,
-        )
-        if ok:
+        # S1-FIX (INV-COMMIT-CARDINALITY): Фаза 10 не пишет в БД напрямую.
+        # Она только обновляет кэш в RAM. Запись на диск происходит 1 раз в unlock_tick().
+        import copy
+        if self._tick_campaign_id == campaign_id:
+            _loc_id = scene_state.get("location_id", "default")
+            self._tick_scenes[_loc_id] = copy.deepcopy(scene_state)
             # ADR-O-309: SceneStateManager — единственный источник state_t-1.
-            # Deep immutable snapshot: защищает от мутаций живых объектов мира в Фазе 10.
-            import copy
-
             self._last_committed_npcs = copy.deepcopy(npc_dicts or [])
-        return 2 if ok else 0
+        return 2
 
     def get_last_committed_npcs(self) -> list[dict]:
         """Возвращает state_t-1 (committed snapshot) для WorldProjectionBuffer."""

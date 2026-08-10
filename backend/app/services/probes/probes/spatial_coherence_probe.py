@@ -34,7 +34,14 @@ class SpatialCoherenceProbe(Probe):
             if npc_loc_id != scene_loc_id:
                 continue
 
-            if svc and lp and curr_node_id:
+            # SC-5: SpatialService должен быть собран (валиден) для текущей сцены.
+            if not svc:
+                return ProbeResult(
+                    name=self.name, severity=self.severity, passed=False,
+                    details=f"SC-5 FAIL: SpatialService is missing for scene '{scene_loc_id}' at tick {ctx.tick_id}"
+                )
+
+            if lp and curr_node_id:
                 # SC-3: current_node должен существовать в текущем SpatialService
                 node = svc.get_node(curr_node_id)
                 if not node:
@@ -43,9 +50,10 @@ class SpatialCoherenceProbe(Probe):
                         details=f"SC-3 FAIL: NPC '{npc_id}' node '{curr_node_id}' not found in SpatialService"
                     )
 
-                # SC-4: local_position должен быть близок к координатам current_node
-                # Допускается отклонение в пределах 2.0 метров (микро-движения/jitter внутри узла)
-                if abs(lp.get("x", 0.0) - node.x) > 2.0 or abs(lp.get("y", 0.0) - node.y) > 2.0:
+                # SC-4: local_position должен быть в радиусе 10.0 метров от current_node.
+                # Порог 10.0 метров допускает отклонения во время перехода (traversal) между узлами,
+                # пока node_id не обновился на новый узел назначения.
+                if abs(lp.get("x", 0.0) - node.x) > 10.0 or abs(lp.get("y", 0.0) - node.y) > 10.0:
                     return ProbeResult(
                         name=self.name, severity=self.severity, passed=False,
                         details=f"SC-4 FAIL: NPC '{npc_id}' pos ({lp.get('x')}, {lp.get('y')}) too far from node '{curr_node_id}' ({node.x}, {node.y})"

@@ -17,6 +17,7 @@ class ProbeContext:
     tick_mutation: Any = None   # Подсистема 3: Инвариант I (Causal Provenance)
     tick_state_hash_before: Optional[int] = None  # Подсистема 3: Инвариант III
     tick_state_hash_after: Optional[int] = None   # Подсистема 3: Инвариант III
+    tick_state_mutated_fields: Optional[List[str]] = None # S179 FIX: Список мутировавших полей
     effective_drives_map: Any = None              # Подсистема 3: Инвариант II (Historical Constraint)
     spatial_service: Any = None                   # BUG-SPATIAL-036: Для проверки SC-3..SC-8+
 

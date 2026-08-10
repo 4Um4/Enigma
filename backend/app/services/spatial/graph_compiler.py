@@ -101,6 +101,15 @@ def compile_graph(
             ny = node_data.get("y", 0.0)
             node_label = node_data.get("label", node_data.get("name", node_id))
 
+            # ADR-O-326: JSON role is absolute truth (SSOT). No guessing if role is explicit.
+            _json_role = node_data.get("role")
+            _manifest = None
+            if _json_role:
+                try:
+                    _manifest = NodeRole(_json_role)
+                except ValueError:
+                    _manifest = None
+
             node_ref = NodeRef(
                 node_id=canonical_id,
                 x=nx,
@@ -110,6 +119,7 @@ def compile_graph(
                     editor_type=node_data.get("type"),
                     editor_tags=node_data.get("tags", []),
                     node_id=node_id,
+                    manifest_override=_manifest
                 ),
                 tags=node_data.get("tags", []),
                 zone_id=location_id,
@@ -597,11 +607,26 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
             if isinstance(rot, str) and rot.startswith("wall_"):
                 explicit_wall_id = rot
 
-        walls_for_door: List[str] = []
-        if explicit_wall_id:
-            walls_for_door = _find_walls_for_door(editor_data, obj)
-            if explicit_wall_id not in walls_for_door:
-                walls_for_door.append(explicit_wall_id)
+        # S-01 FIX: Ищем стены по координатам ВСЕГДА, даже если wall_id не указан явно.
+        # Это чинит баг, когда дверь без wall_id не разрезала стену, вызывая "crosses solid wall".
+        # BUG-SPATIAL-042 FIX: Дверь всегда разрезает стены по координатам, даже без wall_id.
+        _door_pos = obj.get("position", {})
+        _door_size = obj.get("size", {})
+        _dx = _door_pos.get("x", 0)
+        _dy = _door_pos.get("y", 0)
+        _dw = _door_size.get("w", 1)
+        _dh = _door_size.get("h", 1)
+        
+        walls_for_door: List[str] = _find_walls_for_door(editor_data, obj)
+        if explicit_wall_id and explicit_wall_id not in walls_for_door:
+            walls_for_door.append(explicit_wall_id)
+            
+        # Принудительно добавляем стены, пересекающие полигон двери
+        for _wall in editor_data.get("walls", []):
+            _wid = _wall.get("id")
+            if _wid and _wid not in walls_for_door:
+                if _line_rect_intersect(_wall["x1"], _wall["y1"], _wall["x2"], _wall["y2"], _dx - _dw/2, _dy - _dh/2, _dw, _dh):
+                    walls_for_door.append(_wid)
             
         for wid in walls_for_door:
             wall_openings.setdefault(wid, []).append(obj)
@@ -703,7 +728,8 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
         w = size.get("w", 0)
         h = size.get("h", 0)
         # Проекция размера объекта на стену
-        half_len = (abs(w * ux) + abs(h * uy)) / 2
+        # BUG-SPATIAL-043 FIX: Расширяем проём на 0.5м с каждой стороны, чтобы A* не цеплял угол стены.
+        half_len = (abs(w * ux) + abs(h * uy)) / 2 + 0.5
         gap_start = max(0, dist_along - half_len)
         gap_end = min(wall_len, dist_along + half_len)
         if gap_end > gap_start:

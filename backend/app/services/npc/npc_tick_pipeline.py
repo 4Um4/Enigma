@@ -468,7 +468,6 @@ class NpcTickPipeline:
             )
 
             _effective_drives = state.effective_drives_map.get(npc_id)
-            print(f"[DIAG_NPC] npc_id={npc_id} | effective_drives={_effective_drives} | map_keys={list(state.effective_drives_map.keys())[:5]}")
             if _effective_drives is None:
                 continue
 
@@ -479,6 +478,7 @@ class NpcTickPipeline:
                 for _p_intent in PROACTIVE_INTENTS:
                     _all_modifiers[_p_intent] = _all_modifiers.get(_p_intent, 0.0) - 10.0
                 _all_modifiers["flee"] = _all_modifiers.get("flee", 0.0) - 10.0
+
 
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id)

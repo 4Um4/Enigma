@@ -94,6 +94,24 @@ class JsonPersistenceAdapter(PersistencePort):
             logger.error(f"[PERSISTENCE] Error loading all scenes: {e}")
             return {}
 
+    def atomic_commit_all(
+        self,
+        campaign_id: str,
+        all_scenes: Dict[str, Dict[str, Any]],
+        npc_states: Optional[List[Dict[str, Any]]] = None,
+        events: Optional[List[Dict[str, Any]]] = None,
+    ) -> bool:
+        """Фоллбэк: раздельные JSON-записи (нет транзакции на уровне файлов)."""
+        try:
+            for _loc_id, scene_state in all_scenes.items():
+                self.save_scene_at(campaign_id, _loc_id, scene_state)
+            if npc_states is not None:
+                self.save_npc_runtime(campaign_id, npc_states)
+            return True
+        except OSError as e:
+            logger.error(f"[PERSISTENCE] Atomic commit ALL FAILED ({campaign_id}): {e}")
+            return False
+
     def save_npcs(self, npc_dicts: List[Dict[str, Any]]) -> None:
         """Сохраняет NPC в major_npcs.json."""
         try:

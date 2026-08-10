@@ -88,8 +88,12 @@ class TraversalExecutionSystem:
                 if not transition_traversal(trav, "COMPLETED"):
                     logger.error(f"[TRAV_EXEC_FSM] Failed to transition to COMPLETED for npc={npc_id}")
                 completed_npcs.append(npc_id)
-                logger.debug(
-                    f"[TRAV_EXEC] COMPLETED: npc={npc_id} snapped to {target_xy}"
+                # BUG-SPATIAL-031 FIX: Обновляем position (node_id) при завершении транзита
+                target_node_id = trav.get("target_node")
+                if target_node_id:
+                    npc_positions[npc_id]["position"] = target_node_id
+                logger.info(
+                    f"[TRAV_EXEC] COMPLETED: npc={npc_id} snapped to {target_xy} node={target_node_id}"
                 )
             else:
                 # Маршрут активен — интерполяция по пути

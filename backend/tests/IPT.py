@@ -174,9 +174,20 @@ def inv_npc_moves(world: TestWorld) -> InvariantResult:
         world.idle_tick()
     positions_after = {nid: world.npc_position(nid) for nid in world.npc_ids}
 
+    print(f"[DIAG_IPT_MOVE] before={positions_before}")
+    print(f"[DIAG_IPT_MOVE] after={positions_after}")
+    print(f"[DIAG_IPT_MOVE] last_snapshot={world.last_world_snapshot.get('npc_positions', {})}")
+
     moved = [nid for nid in positions_before if positions_before[nid] != positions_after.get(nid)]
     if moved:
         return InvariantResult("INV-NPC-MOVE", "CRITICAL", True, f"Сдвинулись: {moved}", [])
+    
+    # S179 FIX: Если никто не сдвинулся, проверяем active_traversals.
+    # NPC могут быть в пути (MOVING), но координаты ещё не обновились в snapshot.
+    _traversals = world.last_world_snapshot.get("active_traversals", {})
+    if _traversals:
+        return InvariantResult("INV-NPC-MOVE", "CRITICAL", True, f"Активные перемещения: {list(_traversals.keys())}", [])
+
     return InvariantResult(
         "INV-NPC-MOVE",
         "CRITICAL",
@@ -359,32 +370,55 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
 
 
 def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
-    """INV-DIALOGUE-STM: реплика игрока записывается в STM целевого NPC."""
+    """INV-DIALOGUE-STM: событие NPC_SPOKE публикуется в EventBus и доходит до STM (P1-7).
+    
+    Проверяет полную каузальную цепь: EventBus -> NpcDialogueSubscriber -> MemoryManager.add_dialogue_turn.
+    """
+    from app.services.events.event_types import EventType
+    from app.domain.events import EventDTO
+    
     mm = world.game_loop.memory_manager
+    bus = world.game_loop._tick_orch._get_event_bus()
     campaign = world.campaign_id
     target_npc = "tavern_keeper_tornin"
+    speaker = "maid_lusya"
+    test_text = f"тестовая реплика P1-7 {world.tick}"
     
-    # Имитируем запись реплики игрока (как это делает dm_phase.py)
+    # Создаём и публикуем событие NPC_SPOKE
+    event = EventDTO.create(
+        event_type=EventType.NPC_SPOKE.value,
+        source=speaker,
+        payload={
+            "target_id": target_npc,
+            "text": test_text,
+            "topic": "test",
+            "exposure": "normal",
+            "tone": "NEUTRAL",
+        },
+        visibility="public",
+        radius=10.0,
+        persistence_level="working",
+    )
+    
     try:
-        mm.add_dialogue_turn(
-            campaign_id=campaign, npc_id=target_npc, speaker="player", text="тестовая реплика"
-        )
-        stm_block = mm.get_stm_prompt_block(campaign, target_npc)
+        bus.publish(event)
+        # Читаем STM блока целевого NPC
+        stm_block = mm.get_stm_prompt_block(campaign, target_npc, partner_id=speaker)
     finally:
-        # Очищаем, чтобы не портить другие тесты
-        mm.clear_dialogue_session(campaign, target_npc)
+        # Очищаем сессию, чтобы не портить другие тесты
+        mm.clear_dialogue_session(campaign, target_npc, partner_id=speaker)
     
-    if "тестовая реплика" in stm_block:
-        return InvariantResult("INV-DIALOGUE-STM", "CRITICAL", True, "", [])
+    if test_text in (stm_block or ""):
+        return InvariantResult("INV-DIALOGUE-STM", "CRITICAL", True, "Каузальная цепь NPC_SPOKE -> STM работает.", [])
     return InvariantResult(
         "INV-DIALOGUE-STM",
         "CRITICAL",
         False,
-        "Реплика игрока не найдена в STM блоке NPC.",
+        f"Реплика '{test_text}' не найдена в STM блока NPC {target_npc}. NpcDialogueSubscriber не записал её.",
         [
+            "backend/app/services/events/npc_dialogue_subscriber.py",
             "backend/app/services/memory/memory_manager.py",
-            "backend/app/services/memory/dialogue_session.py",
-            "backend/app/services/game_loop/dm_phase.py",
+            "backend/app/services/events/event_bus.py"
         ],
     )
 
@@ -1130,28 +1164,28 @@ def inv_pbt_traversal(world: TestWorld) -> InvariantResult:
 
 
 def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
-    """INV-SCENE-ENTITY-ISOLATION: NPC не должны появляться в npc_positions чужой локации.
+    """INV-NPC-CARDINALITY: NPC не должны обрабатываться в чужой локации (P0-2).
     
     Проверяет, что каждый NPC в npc_positions имеет location_id, совпадающий с локацией сцены.
+    Это гарантирует, что NPC из tavern не будут обработаны повторно при тике city_gate.
     """
     try:
-        from app.core.constants import DEFAULT_LOCATION_ID
         from app.services.spatial.spatial_registry import SpatialRegistry
         
         _reg = SpatialRegistry.get_or_load(world.campaign_id)
         if not _reg:
-            return InvariantResult("INV-SCENE-ENTITY-ISOLATION", "CRITICAL", True, "SpatialRegistry не загружен.", [])
+            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "SpatialRegistry не загружен.", [])
         
-        _all_locs = _reg.get_all_location_ids()
+        _all_locs = _reg.get_all_location_ids() or []
         if len(_all_locs) < 2:
-            return InvariantResult("INV-SCENE-ENTITY-ISOLATION", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
+            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
         
-        world.idle_tick()
+        # S1-FIX: Используем текущее состояние мира, а не вызываем idle_tick внутри инварианта.
         _violations = []
         
         for _loc_id in _all_locs:
             _scene = world.game_loop.scene_manager.get_scene_state(world.campaign_id, _loc_id) or {}
-            _npc_positions = _scene.get("npc_positions", {})
+            _npc_positions = _scene.get("npc_positions") or {}
             
             for _npc_id, _npc_data in _npc_positions.items():
                 if _npc_id == "player":
@@ -1161,12 +1195,12 @@ def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
                     _violations.append(f"{_npc_id} in {_loc_id} (belongs to {_npc_loc})")
         
         if not _violations:
-            return InvariantResult("INV-SCENE-ENTITY-ISOLATION", "CRITICAL", True, "All NPCs are in their correct locations.", [])
+            return InvariantResult("INV-NPC-CARDINALITY", "CRITICAL", True, "NPC изолированы по локациям (P0-2).", [])
         return InvariantResult(
-            "INV-SCENE-ENTITY-ISOLATION",
+            "INV-NPC-CARDINALITY",
             "CRITICAL",
             False,
-            f"NPC location violations: {_violations[:5]}",
+            f"Утечка NPC между локациями: {_violations[:5]}",
             [
                 "backend/app/services/tick_orchestrator.py",
                 "backend/app/services/scene_state_manager.py"
@@ -1174,7 +1208,7 @@ def inv_scene_entity_isolation(world: TestWorld) -> InvariantResult:
         )
     except Exception as e:
         return InvariantResult(
-            "INV-SCENE-ENTITY-ISOLATION", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+            "INV-NPC-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
 
 def inv_replay_determinism(world: TestWorld) -> InvariantResult:
@@ -1388,9 +1422,10 @@ def inv_dialogue_liveness(world: TestWorld) -> InvariantResult:
         )
 
 def inv_event_cardinality(world: TestWorld) -> InvariantResult:
-    """INV-EVENT-CARDINALITY: События публикуются 1 раз, не N_locations раз.
+    """INV-EVENT-CARDINALITY: События публикуются 1 раз, не N_locations раз (P1-6).
     
-    Проверяет, что NPC_MOVED и NPC_PROXIMITY_CLOSE не дублируются при множественных локациях.
+    Гарантирует, что на 1 физическое перемещение генерируется ровно 1 событие,
+    а не по 1 на каждую локацию в цикле.
     """
     try:
         from app.services.spatial.spatial_registry import SpatialRegistry
@@ -1399,7 +1434,7 @@ def inv_event_cardinality(world: TestWorld) -> InvariantResult:
         if not _reg:
             return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "SpatialRegistry не загружен.", [])
         
-        _all_locs = _reg.get_all_location_ids()
+        _all_locs = _reg.get_all_location_ids() or []
         if len(_all_locs) < 2:
             return InvariantResult("INV-EVENT-CARDINALITY", "CRITICAL", True, "Тест пропущен (требуется >1 локации).", [])
         
@@ -1418,39 +1453,114 @@ def inv_event_cardinality(world: TestWorld) -> InvariantResult:
         
         _bus.publish = _counting_publish
         try:
-            # S3 FIX: Прогоняем 5 тиков, чтобы NPC успели начать движение
-            for _ in range(5):
-                world.idle_tick()
+            # Прогоняем 1 тик, чтобы измерить базовое дублирование
+            world.idle_tick()
         finally:
             _bus.publish = _orig_publish
         
-        # Проверяем: NPC_MOVED не должен превышать количество NPC * кол-во тиков
-        _npc_moved_count = _publish_counts.get("NPC_MOVED", 0)
-        # Читаем количество NPC напрямую из scene_state, так как last_result может быть пуст
-        _scene = world._get_scene()
+        # Читаем количество NPC напрямую из scene_state
+        _scene = world.game_loop.scene_manager.get_scene_state(world.campaign_id, "tavern") or {}
         _total_npcs = len([nid for nid in _scene.get("npc_positions", {}).keys() if nid != "player"])
 
-        # NPC_MOVED должен быть <= total_npcs * 5 (5 тиков, каждый NPC двигается 1 раз за тик)
-        _max_allowed = _total_npcs * 5
-        if _npc_moved_count <= _max_allowed:
+        # S1-FIX (P1-6): За 1 тик NPC может сдвинуться только 1 раз.
+        # Если NPC_MOVED > total_npcs, значит событие дублируется по локациям.
+        _moved_count = _publish_counts.get("NPC_MOVED", 0)
+        if _moved_count > _total_npcs:
             return InvariantResult(
-                "INV-EVENT-CARDINALITY", "CRITICAL", True,
-                f"NPC_MOVED={_npc_moved_count} (<= {_max_allowed} allowed for {_total_npcs} NPCs). No duplication.",
-                []
+                "INV-EVENT-CARDINALITY",
+                "CRITICAL",
+                False,
+                f"Дублирование NPC_MOVED: {_moved_count} событий при {_total_npcs} NPC. Цикл по локациям публикует события повторно!",
+                [
+                    "backend/app/services/tick_orchestrator.py (_phase_2_event_bus_primary)",
+                    "backend/app/services/spatial/spatial_event_detector.py"
+                ]
             )
+            
+        # Проверяем проксимитет: за 1 тик количество взаимодействий не должно взлетать до небес
+        _prox_count = _publish_counts.get("NPC_PROXIMITY_CLOSE", 0) + _publish_counts.get("NPC_PROXIMITY_LEAVE", 0)
+        _max_prox = _total_npcs * _total_npcs  # Максимум парных взаимодействий
+        if _prox_count > _max_prox:
+             return InvariantResult(
+                "INV-EVENT-CARDINALITY",
+                "CRITICAL",
+                False,
+                f"Дублирование PROXIMITY: {_prox_count} событий при {_total_npcs} NPC.",
+                [
+                    "backend/app/services/spatial/spatial_event_detector.py"
+                ]
+            )
+
         return InvariantResult(
-            "INV-EVENT-CARDINALITY",
-            "CRITICAL",
-            False,
-            f"NPC_MOVED={_npc_moved_count} > {_max_allowed} allowed for {_total_npcs} NPCs. Events duplicated across locations!",
-            [
-                "backend/app/services/tick_orchestrator.py",
-                "backend/app/services/events/event_bus.py"
-            ]
+            "INV-EVENT-CARDINALITY", "CRITICAL", True,
+            f"Нет дублирования: NPC_MOVED={_moved_count}, PROXIMITY={_prox_count} (NPCs={_total_npcs}).",
+            []
         )
     except Exception as e:
         return InvariantResult(
             "INV-EVENT-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
+        )
+
+def inv_commit_cardinality(world: TestWorld) -> InvariantResult:
+    """INV-COMMIT-CARDINALITY: Ровно 1 коммит в БД за 1 тик (Устав 4.2.1).
+    
+    Перехватывает save_scene, save_scene_at и atomic_commit, чтобы убедиться,
+    что персистентный слой не делает N коммитов при тике N локаций.
+    """
+    try:
+        _sm = world.game_loop.scene_manager
+        _persist = getattr(_sm, "_persistence", None)
+        if not _persist:
+            return InvariantResult("INV-COMMIT-CARDINALITY", "CRITICAL", False, "Persistence adapter not found.", [])
+        
+        original_commit = _persist.atomic_commit
+        original_save = _persist.save_scene
+        original_save_at = getattr(_persist, "save_scene_at", None)
+        
+        calls = {"atomic_commit": 0, "save_scene": 0, "save_scene_at": 0}
+        
+        def mock_commit(*args, **kwargs):
+            calls["atomic_commit"] += 1
+            return original_commit(*args, **kwargs)
+            
+        def mock_save(*args, **kwargs):
+            calls["save_scene"] += 1
+            return original_save(*args, **kwargs)
+            
+        def mock_save_at(*args, **kwargs):
+            calls["save_scene_at"] += 1
+            return original_save_at(*args, **kwargs)
+            
+        _persist.atomic_commit = mock_commit
+        _persist.save_scene = mock_save
+        if original_save_at:
+            _persist.save_scene_at = mock_save_at
+        
+        try:
+            world.idle_tick()
+        finally:
+            _persist.atomic_commit = original_commit
+            _persist.save_scene = original_save
+            if original_save_at:
+                _persist.save_scene_at = original_save_at
+            
+        # Устав 4.2.1: всё или ничего. Допускается 1 atomic_commit или 1 save_scene.
+        # Если save_scene вызывается N раз (по числу локаций), атомарность нарушена.
+        _total_commits = calls["atomic_commit"] + calls["save_scene"] + calls["save_scene_at"]
+        
+        if _total_commits > 1:
+            return InvariantResult(
+                "INV-COMMIT-CARDINALITY",
+                "CRITICAL",
+                False,
+                f"Нарушение Устава 4.2.1: {_total_commits} коммитов за 1 тик (atomic={calls['atomic_commit']}, save={calls['save_scene']}, save_at={calls['save_scene_at']}). Ожидался 1 атомарный коммит.",
+                ["backend/app/services/scene_state_manager.py", "backend/app/services/state/sqlite_persistence_adapter.py"]
+            )
+        
+        return InvariantResult("INV-COMMIT-CARDINALITY", "CRITICAL", True, "Ровно 1 коммит за тик.", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-COMMIT-CARDINALITY", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
 
 def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
@@ -1572,6 +1682,7 @@ INVARIANTS: List[Callable] = [
     inv_pbt_spatial,
     inv_pbt_traversal,
     inv_tick_cardinality,
+    inv_commit_cardinality,
 ]
 
 

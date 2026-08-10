@@ -1337,8 +1337,10 @@ class LifeEngine:
                     )
                     # S-146 FIX: Фоллбэк на роль BED, если в карте нет affordance_objects
                     if not _ref:
+                        # BUG-SPATIAL-033 FIX: Не ограничиваем поиск кровати текущей зоной NPC.
+                        # NPC может спать в любой зоне локации (например, kitchen_bed в зоне kitchen).
                         _ref = self._spatial_service.resolve_node(
-                            role=NodeRole.BED, origin_zone=npc.get("location_id")
+                            role=NodeRole.BED, origin_xy=(npc.get("local_position", {}).get("x"), npc.get("local_position", {}).get("y"))
                         )
                 else:
                     _ref = self._spatial_service.resolve_node(
@@ -1715,6 +1717,9 @@ class LifeEngine:
                     )
                     return [], None
                 # Social traversals (approach, seek_ally) are interruptible by schedule.
+                # BUG-SPATIAL-037 FIX: Транзиты расписания не должны прерывать сами себя!
+                if "schedule:" in _trav_reason:
+                    return [], None
 
         new_activity = self._get_current_activity(schedule, current_time)
         if not new_activity:
@@ -1740,7 +1745,7 @@ class LifeEngine:
 
         # S89: Диагностика Schedule Freeze — отслеживание переходов активности
         if new_activity != prev_activity:
-            logger.debug(
+            logger.info(
                 f"[SCHED_TRACE] npc={npc_id} prev={prev_activity!r} new={new_activity!r} CHANGE"
             )
 

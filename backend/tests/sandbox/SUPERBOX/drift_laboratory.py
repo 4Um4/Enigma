@@ -7,6 +7,7 @@ cd backend; python -m tests.sandbox.SUPERBOX.run drift mass_traversal; cd ..
   python -m tests.sandbox.SUPERBOX.run drift save_load_storm
   python -m tests.sandbox.SUPERBOX.run drift chunk_migration
   python -m tests.sandbox.SUPERBOX.run drift long_horizon
+cd backend; python -m tests.sandbox.SUPERBOX.run drift quick_debug ; cd ..
 
 Принцип: Тот же код, что и production runtime. Не копия.
 Использует реальный TickOrchestrator с реальными сервисами.
@@ -191,6 +192,7 @@ class DriftLaboratory:
             self._setup()
 
             mode_map = {
+                "quick_debug": self._mode_quick_debug,
                 "mass_traversal": self._mode_mass_traversal,
                 "save_load_storm": self._mode_save_load_storm,
                 "chunk_migration": self._mode_chunk_migration,
@@ -504,6 +506,16 @@ class DriftLaboratory:
             self._crashed_ticks += 1
 
     # ─── Режимы экспериментов ───────────────────────────────────────
+
+    def _mode_quick_debug(self, result: DriftResult) -> None:
+        """
+        Mode 0: Quick Debug
+        3 тика. Выводит детальную информацию о GATE-зондах.
+        Назначение: быстрая проверка базового flow без массового прогона.
+        """
+        print("\n--- MODE 0: Quick Debug (3 ticks) ---")
+        self._crashed_ticks = 0
+        self._run_idle_ticks(3, result)
 
     def _mode_mass_traversal(self, result: DriftResult) -> None:
         """
@@ -1729,6 +1741,19 @@ _MODE_NAMES = {
 }
 
 
+class _Tee:
+    """Перенаправляет вывод в консоль и в файл одновременно."""
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
+
 def main(mode: str = "long_horizon", session_id: str = None) -> None:
     mode_name = _MODE_NAMES.get(mode, mode)
     print("\n🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA")
@@ -1738,20 +1763,36 @@ def main(mode: str = "long_horizon", session_id: str = None) -> None:
 
     config = DriftConfig()
     lab = DriftLaboratory(config)
+
+    # Директория для отчётов
+    output_dir = Path(__file__).parent / "reports"
+    output_dir.mkdir(exist_ok=True)
+
+    # Настройка логирования в файл с датой
+    timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+    log_path = output_dir / f"дрейф_{mode}_{timestamp}.log"
+    log_file = open(log_path, "w", encoding="utf-8")
+    
+    # Перенаправляем вывод
+    original_stdout = sys.stdout
+    sys.stdout = _Tee(original_stdout, log_file)
+    
     result = lab.run(mode, session_id=session_id)
 
     reporter = DriftReporter(result)
     reporter.print_summary()
 
-    # Директория для отчётов
-    output_dir = Path(__file__).parent / "reports"
-    output_dir.mkdir(exist_ok=True)
+    # Возвращаем стандартный вывод
+    sys.stdout = original_stdout
+    log_file.close()
 
     # Сохраняем все форматы отчётов
     print(f"\n  Сохранение отчётов в: {output_dir}")
     reporter.save_csv(str(output_dir / f"дрейф_{mode}.csv"))
     reporter.save_markdown(str(output_dir / f"дрейф_{mode}.md"))
     reporter.plot_charts(str(output_dir / f"дрейф_{mode}"))
+    
+    print(f"  📄 Лог работы сохранён: {log_path}")
 
     # Вердикт
     _verd = (

@@ -61,13 +61,12 @@ class MovementHealthReport:
     total_node_not_found: int = 0
 
     def get_broken_npcs(self) -> List[str]:
-        """NPC у которых есть intent но нет traversal и нет координат."""
+        """NPC у которых есть intent но нет traversal."""
         broken = []
         for npc_id, s in self.npcs.items():
             if (
                 s.last_intent not in ("IDLE", "?")
                 and not s.has_traversal
-                and s.coord_x is None
             ):
                 broken.append(npc_id)
         return broken
@@ -84,7 +83,7 @@ class MovementHealthReport:
             traversal = (
                 "✅"
                 if s.has_traversal
-                else ("❌ узел не найден" if s.node_not_found else "❌")
+                else ("❌ узел не найден" if s.node_not_found else "⏸")
             )
             visible = "✅" if s.perception_visible else "❌"
             rows.append(

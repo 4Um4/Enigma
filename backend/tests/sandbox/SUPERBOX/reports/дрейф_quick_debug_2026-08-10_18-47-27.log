@@ -1,0 +1,113 @@
+
+============================================================
+DRIFT LABORATORY — Mode: quick_debug
+============================================================
+[GAME_LOOP] Replay Recorder started. Session ID: 62b1e458-8cb8-4dab-83c6-2b07e3458ff1
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mf590wfp
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mf590wfp\saves
+
+--- MODE 0: Quick Debug (3 ticks) ---
+[DEBUG_GEO_BLOCK] tavern:bar_area (4.5,6.5) -> tavern:behind_bar (4.0,3.0) blocked by OBSTACLE obj_0
+[DEBUG_GEO_BLOCK] tavern:bar_west (5.5,4.5) -> tavern:fireplace (10.5,3.0) blocked by OBSTACLE obj_0
+[DEBUG_GEO_BLOCK] tavern:bar_side (2.2,3.5) -> tavern:behind_bar (4.0,3.0) blocked by OBSTACLE obj_0
+[FIND_PATH_DIAG] start_xy=(16.700000000000003, 3.7750000000000004) target=tavern:exit_east start_node=tavern:kitchen zone=tavern
+[DEBUG_GEO_BLOCK] city_gate:gate_courtyard (44.725,10.19) -> city_gate:tent_4 (33.113261111111115,11.355594444444444) blocked by OBSTACLE obj_60
+[DEBUG_GEO_BLOCK] city_gate:tent_4 (33.113261111111115,11.355594444444444) -> city_gate:tent_5 (36.48539722222222,10.372338888888889) blocked by OBSTACLE obj_60
+[DEBUG_GEO_BLOCK] city_gate:tent_4 (33.113261111111115,11.355594444444444) -> city_gate:tent_7 (31.12979074074074,14.357938888888889) blocked by OBSTACLE obj_59
+[DEBUG_GEO_BLOCK] city_gate:tent_6 (41.19313888888889,10.72571574074074) -> city_gate:tent_8 (36.0144,14.329206481481481) blocked by OBSTACLE obj_61
+[DEBUG_GEO_BLOCK] city_gate:tent_6 (41.19313888888889,10.72571574074074) -> city_gate:tent_9 (41.2218712962963,14.386738888888889) blocked by OBSTACLE obj_61
+[FIND_PATH_DIAG] start_xy=(10.1, 6.1) target=tavern:main_hall start_node=tavern:right_table zone=tavern
+[FIND_PATH_DIAG] start_xy=(7.98736111111111, 1.8263888888888888) target=tavern:kitchen start_node=tavern:node_17 zone=tavern
+[FIND_PATH_DIAG] start_xy=(10.5, 4.0) target=tavern:main_hall start_node=tavern:fireplace zone=tavern
+[FIND_PATH_DIAG] start_xy=(11.5, 11.0) target=tavern:exit_east start_node=tavern:corner_table zone=tavern
+[FIND_PATH_DIAG] start_xy=(4.5, 2.5) target=tavern:right_table start_node=tavern:behind_bar zone=tavern
+[DIAG_NPC] npc_id=guard_borko | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.4, 'significance': 0.3, 'fear': 0.2, 'desire': 0.1})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=merchant_goran | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.2, 'significance': 0.25, 'fear': 0.15, 'desire': 0.4})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=maid_lusya | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.15, 'significance': 0.2, 'fear': 0.45, 'desire': 0.2})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=blacksmith_orm | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.35, 'significance': 0.15, 'fear': 0.05, 'desire': 0.45})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=thief_shadow | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.3, 'significance': 0.2, 'fear': 0.1, 'desire': 0.4})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=tavern_keeper_tornin | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.5, 'significance': 0.25, 'fear': 0.15, 'desire': 0.1})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[FIND_PATH_DIAG] start_xy=(10.1, 6.1) target=tavern:fireplace start_node=tavern:right_table zone=tavern
+[FIND_PATH_DIAG] SUCCESS: start_node is target. node=tavern:node_17
+[FIND_PATH_DIAG] start_xy=(10.5, 4.0) target=tavern:right_table start_node=tavern:fireplace zone=tavern
+[FIND_PATH_DIAG] start_xy=(4.5, 2.5) target=tavern:node_17 start_node=tavern:behind_bar zone=tavern
+[SNAPSHOT_RECOG] npc=maid_lusya confidence=0.03 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=blacksmith_orm confidence=0.08 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=tavern_keeper_tornin confidence=0.03 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=merchant_goran confidence=0.03 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=guard_borko confidence=0.03 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DIAG_NPC] npc_id=guard_borko | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.4, 'significance': 0.3, 'fear': 0.2, 'desire': 0.1})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=merchant_goran | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.2, 'significance': 0.25, 'fear': 0.15, 'desire': 0.4})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=maid_lusya | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.15, 'significance': 0.2, 'fear': 0.45, 'desire': 0.2})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=blacksmith_orm | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.35, 'significance': 0.15, 'fear': 0.05, 'desire': 0.45})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=thief_shadow | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.3, 'significance': 0.2, 'fear': 0.1, 'desire': 0.4})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=tavern_keeper_tornin | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.5, 'significance': 0.25, 'fear': 0.15, 'desire': 0.1})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[FIND_PATH_DIAG] start_xy=(35.0, 7.0) target=city_gate:exit_west start_node=city_gate:guard_post zone=city_gate
+[FIND_PATH_DIAG] start_xy=(10.3, 4.55) target=tavern:right_table start_node=tavern:fireplace zone=tavern
+[FIND_PATH_DIAG] SUCCESS: start_node is target. node=tavern:fireplace
+[FIND_PATH_DIAG] start_xy=(10.5, 5.25) target=tavern:fireplace start_node=tavern:right_table zone=tavern
+[FIND_PATH_DIAG] SUCCESS: start_node is target. node=tavern:corner_table
+[FIND_PATH_DIAG] start_xy=(6.333333333333333, 2.0) target=tavern:fireplace start_node=tavern:behind_bar zone=tavern
+[SNAPSHOT_RECOG] npc=maid_lusya confidence=0.06 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=blacksmith_orm confidence=0.11 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=tavern_keeper_tornin confidence=0.06 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=merchant_goran confidence=0.11 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DIAG_NPC] npc_id=guard_borko | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.4, 'significance': 0.3, 'fear': 0.2, 'desire': 0.1})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=merchant_goran | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.2, 'significance': 0.25, 'fear': 0.15, 'desire': 0.4})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=maid_lusya | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.15, 'significance': 0.2, 'fear': 0.45, 'desire': 0.2})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=blacksmith_orm | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.35, 'significance': 0.15, 'fear': 0.05, 'desire': 0.45})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=thief_shadow | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.3, 'significance': 0.2, 'fear': 0.1, 'desire': 0.4})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[DIAG_NPC] npc_id=tavern_keeper_tornin | effective_drives=EffectiveDrives(values=mappingproxy({'control': 0.5, 'significance': 0.25, 'fear': 0.15, 'desire': 0.1})) | map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow']
+[FIND_PATH_DIAG] start_xy=(35.0, 7.0) target=city_gate:exit_west start_node=city_gate:guard_post zone=city_gate
+[FIND_PATH_DIAG] SUCCESS: start_node is target. node=tavern:fireplace
+[SNAPSHOT_RECOG] npc=maid_lusya confidence=0.09 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=blacksmith_orm confidence=0.14 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=tavern_keeper_tornin confidence=0.09 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SNAPSHOT_RECOG] npc=merchant_goran confidence=0.19 recog_map_keys=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_mf590wfp
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: quick_debug
+======================================================================
+
+  Всего сравнений (comparisons): 14
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 0.3 сек
+  Скорость: 41 сравнений/сек, 8.7 тиков/сек

@@ -256,7 +256,7 @@ class MovementEngine:
                             _cur_y = _lp.get("y", 0.0) if isinstance(_lp, dict) else 0.0
 
                             _dist_to_boundary = math.hypot(boundary_node.x - _cur_x, boundary_node.y - _cur_y)
-                            if getattr(intent, "actor_id", "") == "guard_borko":
+                            if True:
                                 # P7-MVP FIX: Защита от MagicMock в тестах
                                 if hasattr(boundary_node, "x") and isinstance(boundary_node.x, (int, float)):
                                     logger.debug(f"[BORKO_DIST] tick={tick} cur_xy=({_cur_x:.1f}, {_cur_y:.1f}) boundary_xy=({boundary_node.x:.1f}, {boundary_node.y:.1f}) dist={_dist_to_boundary:.2f}")
@@ -693,7 +693,26 @@ class MovementEngine:
         # S140: Route-Aware Traversal Planning.
         # Сначала строим маршрут через граф (A*), затем берём первый шаг (waypoint)
         # и проверяем его физическую проходимость через LocalTraversalPlanner.
-        target_node_obj = svc.get_node(intent.target_node_id) or svc.get_node(f"{intent.location_id}:{intent.target_node_id}")
+        # BUG-SPATIAL-032 FIX: Нормализуем target_node_id, отрезая префикс локации, чтобы избежать двойного префикса.
+        _target_node_id_short = intent.target_node_id.split(":")[-1]
+        target_node_obj = svc.get_node(_target_node_id_short) or svc.get_node(intent.target_node_id) or svc.get_node(f"{intent.location_id}:{_target_node_id_short}")
+        
+        # BUG-SPATIAL-035 FIX: Если узел не найден в текущей локации, ищем в смежных (adjacency).
+        # Это позволяет NPC ходить спать/работать в соседние чанки (напр. guard_borko -> city_gate).
+        if not target_node_obj and scene_state:
+            _adjacency = scene_state.get("adjacency", {})
+            for direction, neighbor_loc in _adjacency.items():
+                if not neighbor_loc or neighbor_loc == location_id:
+                    continue
+                _neighbor_svc = self._resolve_spatial_service(neighbor_loc, campaign_id, scene_state)
+                if _neighbor_svc:
+                    _neighbor_node = _neighbor_svc.get_node(_target_node_id_short) or _neighbor_svc.get_node(f"{neighbor_loc}:{_target_node_id_short}")
+                    if _neighbor_node:
+                        target_node_obj = _neighbor_node
+                        intent.location_id = neighbor_loc # Обновляем локацию интента, чтобы CROSS_LOC_INTERCEPT сработал корректно
+                        logger.info(f"[CROSS_LOC_LOOKUP] npc={intent.actor_id} target={_target_node_id_short} found in adjacent loc={neighbor_loc}")
+                        break
+
         source_node_obj = svc.get_node(current_pos)
         if not target_node_obj:
              return []

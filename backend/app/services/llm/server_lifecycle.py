@@ -14,7 +14,7 @@ from app.core.config import settings, BASE_DIR
 logger = logging.getLogger(__name__)
 
 # Глобальное состояние процесса (dict для передачи по ссылке)
-_llama_state = {"proc": None, "started_by_us": False}
+_llama_state = {"proc": None, "started_by_us": False, "restart_count": 0, "last_restart_time": 0.0}
 
 
 def kill_llama_server() -> None:
@@ -62,6 +62,26 @@ def restart_llama_server() -> bool:
 
     # Шаг 3: запускаем новый
     logger.info("[LLM_RESTART] Перезапуск llama-server...")
+
+    # P0-12 FIX: Exponential backoff для предотвращения crash-restart churn (553 рестарта за сессию).
+    # Если сервер падает мгновенно, мы не должны молотить его запросами на запуск.
+    _now = time.monotonic()
+    _time_since_last = _now - _llama_state.get("last_restart_time", 0.0)
+    if _time_since_last < 30.0:
+        _llama_state["restart_count"] = _llama_state.get("restart_count", 0) + 1
+    else:
+        _llama_state["restart_count"] = 0
+
+    _backoff = min(30, 2 ** _llama_state["restart_count"])
+    if _backoff > 0:
+        logger.warning(
+            f"[LLM_RESTART] Crash-restart churn detected. "
+            f"Waiting {_backoff}s before restart (attempt {_llama_state['restart_count']})"
+        )
+        time.sleep(_backoff)
+
+    _llama_state["last_restart_time"] = time.monotonic()
+
     try:
         server_cmd = [
             settings.llama_cpp_server_executable,
@@ -90,6 +110,7 @@ def restart_llama_server() -> bool:
                 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
                 _opener.open(f"{settings.llama_cpp_server_url}/health", timeout=2)
                 logger.info("[LLM_RESTART] llama-server перезапущен успешно")
+                _llama_state["restart_count"] = 0  # Сброс backoff-счётчика при успехе
                 return True
             except Exception:
                 time.sleep(2)

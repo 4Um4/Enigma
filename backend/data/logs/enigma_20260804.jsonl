@@ -1,5 +1,0 @@
-{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
-{"timestamp": "2026-08-04T22:03:40.895404", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
-{"timestamp": "2026-08-04T22:03:40.895849", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
-{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
-{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 8731, "status": "complete"}

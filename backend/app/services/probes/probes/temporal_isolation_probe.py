@@ -15,10 +15,11 @@ class TemporalIsolationProbe(Probe):
         
         if hash_before is not None and hash_after is not None:
             if hash_before != hash_after:
+                _mutated = getattr(ctx, "tick_state_mutated_fields", None) or []
                 return ProbeResult(
                     name=self.name,
                     severity=self.severity,
                     passed=False,
-                    details=f"Tick {ctx.tick_id}: TickState mutated during pipeline execution (hash mismatch)"
+                    details=f"Tick {ctx.tick_id}: TickState mutated during pipeline execution (hash mismatch). Mutated fields: {_mutated}"
                 )
         return ProbeResult(name=self.name, severity=self.severity, passed=True)
