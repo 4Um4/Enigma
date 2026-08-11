@@ -46,6 +46,11 @@ def tick_world_proactive(
                 continue
             if _n.get("tier", "minor") != "major":
                 continue
+            # SLEEP_FIX #4a: спящие/resting NPC не участвуют в проактивных решениях
+            # WorldTickEngine. Это симметрично с SLEEP_GUARD реактивного пути.
+            _cur_activity = _n.get("routine", {}).get("current", "") if isinstance(_n, dict) else ""
+            if "sleeping" in _cur_activity or "resting" in _cur_activity:
+                continue
             _p_l2 = load_l2_state_from_runtime_dict(_n)
             # FIX: Безопасная проверка HP для dict и NPCState.
             if isinstance(_p_l2, dict):
@@ -122,7 +127,14 @@ def tick_world_proactive(
             if not _wt_npc_raw:
                 continue
             _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
-            _wt_state = _wt_applicator.apply_tick_recovery(_wt_state, is_sleeping=False)
+            # SLEEP_FIX #4b: передаём корректный is_sleeping флаг.
+            # Раньше был хардкод False, из-за чего спящие NPC не получали x3
+            # восстановление стресса (15.0/тик вместо 5.0/тик).
+            _wt_cur_activity = ""
+            if isinstance(_wt_npc_raw, dict):
+                _wt_cur_activity = _wt_npc_raw.get("routine", {}).get("current", "")
+            _is_sleeping = "sleeping" in _wt_cur_activity or "resting" in _wt_cur_activity
+            _wt_state = _wt_applicator.apply_tick_recovery(_wt_state, is_sleeping=_is_sleeping)
             NPCState.write_to_legacy(_wt_state, _wt_npc_raw)
             tick_ctx.wt_dirty = True
 

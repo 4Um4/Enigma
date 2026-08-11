@@ -1496,8 +1496,12 @@ class LifeEngine:
         )
 
         # ── Sleep resistance ───────────────────────────────────────────
-        # TODO: depth — требует записи _sleep_start_tick в update_routine
-        _depth = 0.0
+        # SLEEP_FIX #6b: depth вычисляется из _sleep_start_tick, который
+        # теперь записывается в update_routine (см. SLEEP_FIX #6a).
+        # 20 тиков до полного depth (1.0). До этого NPC спит «поверхностно»
+        # и легко пробуждается.
+        _sleep_start = _routine.get("_sleep_start_tick", tick)
+        _depth = min(1.0, max(0.0, (tick - _sleep_start) / 20.0))
         sleep_resistance = _fatigue * 0.4 + 0.05 + _depth * 0.1
 
         if wake_pressure > sleep_resistance:
@@ -1789,6 +1793,9 @@ class LifeEngine:
                     f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}"
                 )
                 # V8-PSY-FIX: Обновляем рутину на sleeping, чтобы DecisionHub подавил социализацию.
+                # Это позволяет apply_tick_recovery (Phase 2) давать x3 восстановление стресса,
+                # пока NPC не может дойти до кровати из-за высокого стресса. Когда стресс
+                # упадёт ниже 50, GAP9 пропустит сон и NPC дойдёт до кровати.
                 npc["routine"]["current"] = "sleeping"
                 return [], None
 
@@ -1876,6 +1883,12 @@ class LifeEngine:
         routine["mood"] = self._mood_for_activity(new_activity)
         if "interrupted" not in routine:
             routine["interrupted"] = False
+        # SLEEP_FIX #6a: записываем _sleep_start_tick для расчёта depth сна
+        # в _arousal_gate. Без этого depth всегда 0.0 (TODO автора кода).
+        if new_activity == "sleeping":
+            routine["_sleep_start_tick"] = tick
+        else:
+            routine.pop("_sleep_start_tick", None)
         # ADR-049: Запрещена прямая мутация пространства из расписания.
         # NPC принял решение сменить активность (когнитивный слой),
         # но физическое перемещение к новой локации — задача MovementEngine.

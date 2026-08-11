@@ -26,6 +26,8 @@ class AuditoryDistortionPolicy:
         keep_ratio = max(0.1, clarity)
         num_to_keep = max(1, int(len(words) * keep_ratio))
         
-        # Выбираем случайные слова (эмулируя обрывки)
-        kept_words = random.sample(words, num_to_keep)
+        # Фикс L2: Детерминированный выбор слов через KernelRNG (salt от контента)
+        from app.services.npc.kernel_rng import KernelRNG
+        _rng = KernelRNG(tick=0, npc_id="auditory_distortion", salt=str(words))
+        kept_words = _rng.sample(words, num_to_keep)
         return " ".join(kept_words) + "..."

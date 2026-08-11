@@ -6,8 +6,11 @@ path: /project/backend/app/services/adr_net/adr_cli.py
 Основные сущности: CLI entry point
 """
 import argparse
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="ENIGMA ADR-Net CLI")
@@ -36,18 +39,18 @@ def main():
     if args.command == "visualize":
         visualizer = ADRVisualizer(graph)
         visualizer.save_mermaid(args.output)
-        print(f"✅ Mermaid-граф сохранён в {args.output}")
+        logger.info(f"✅ Mermaid-граф сохранён в {args.output}")
         return
 
     if args.command == "impact":
         impacted = builder.get_impact(args.file)
         if impacted:
-            print(f"\n📄 Файл '{args.file}' затрагивает следующие ADR:")
+            logger.info(f"\n📄 Файл '{args.file}' затрагивает следующие ADR:")
             for adr_id in impacted:
                 node_data = graph.nodes[adr_id]
-                print(f"  - {adr_id} [{node_data.get('adr_type', 'STD')}]: {node_data.get('title', '')}")
+                logger.info(f"  - {adr_id} [{node_data.get('adr_type', 'STD')}]: {node_data.get('title', '')}")
         else:
-            print(f"\n✅ Файл '{args.file}' не привязан ни к одному ADR (или ADR не найдены).")
+            logger.info(f"\n✅ Файл '{args.file}' не привязан ни к одному ADR (или ADR не найдены).")
 
     elif args.command == "conflicts":
         detector = ADRConflictDetector(graph)
@@ -55,11 +58,11 @@ def main():
         
         cycles = results.get("cycles", [])
         if cycles:
-            print("\n🔴 ОБНАРУЖЕНЫ ЦИКЛИЧЕСКИЕ ЗАВИСИМОСТИ:")
+            logger.warning("\n🔴 ОБНАРУЖЕНЫ ЦИКЛИЧЕСКИЕ ЗАВИСИМОСТИ:")
             for cycle in cycles:
-                print(f"  - {' -> '.join(cycle)}")
+                logger.warning(f"  - {' -> '.join(cycle)}")
         else:
-            print("\n✅ Циклических зависимостей не обнаружено.")
+            logger.info("\n✅ Циклических зависимостей не обнаружено.")
 
 if __name__ == "__main__":
     main()

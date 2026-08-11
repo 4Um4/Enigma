@@ -4,10 +4,13 @@
 # Автор: Grok — по требованию этапа построения
 
 import json
+import logging
 import os
 import traceback
 from datetime import datetime
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 # ====================== НАСТРОЙКИ ======================
 LOG_DIR = "data/logs"
@@ -47,11 +50,11 @@ def log_error(
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
         # Дублируем в консоль (для быстрой отладки во время разработки)
-        print(f"[ERROR] {module}.{function} → {type(error).__name__}: {error}")
+        logger.error(f"[ERROR] {module}.{function} → {type(error).__name__}: {error}")
 
     except Exception as logger_error:
         # Защита от краша самого логгера (крайне редкий случай)
-        print(f"[CRITICAL] Error logger itself failed: {logger_error}")
+        logger.critical(f"[CRITICAL] Error logger itself failed: {logger_error}")
 
 
 # ====================== УДОБНЫЕ ОБЁРТКИ ======================
@@ -70,9 +73,9 @@ def log_warning(
                 "context": context or {},
             }
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        print(f"[WARNING] {module}.{function} → {message}")
+        logger.warning(f"[WARNING] {module}.{function} → {message}")
     except Exception:
-        print(f"[CRITICAL] Логгер упал при записи: {message}")
+        logger.critical(f"[CRITICAL] Логгер упал при записи: {message}")
 
 
 # ====================== ПРИМЕР ИСПОЛЬЗОВАНИЯ ======================

@@ -50,7 +50,8 @@ class L1Chronicle:
                         effect_value REAL NOT NULL,
                         observation_weight REAL NOT NULL,
                         event_type TEXT NOT NULL,
-                        archived INTEGER DEFAULT 0
+                        archived INTEGER DEFAULT 0,
+                        UNIQUE(campaign_id, target_id, tick_id, source_id, event_type)
                     )
                 """)
                 self._store.execute("""
@@ -101,7 +102,7 @@ class L1Chronicle:
                     )
                     self._campaign_id = _campaign_to_load
             except Exception as e:
-                logger.debug(f"SQLite load empty/failed: {e}")  # SQLite может быть пустой — это норма для нового game_loop
+                _logger.debug(f"SQLite load empty/failed: {e}")  # SQLite может быть пустой — это норма для нового game_loop
 
         if not _campaign_to_load:
             self._loaded = True
@@ -119,7 +120,8 @@ class L1Chronicle:
                     effect_value REAL NOT NULL,
                     observation_weight REAL NOT NULL,
                     event_type TEXT NOT NULL,
-                    archived INTEGER DEFAULT 0
+                    archived INTEGER DEFAULT 0,
+                    UNIQUE(campaign_id, target_id, tick_id, source_id, event_type)
                 )
             """)
             self._store.execute("""

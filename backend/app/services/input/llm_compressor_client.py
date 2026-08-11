@@ -26,8 +26,10 @@ class LLMCompressorClient(Protocol):
 class LlamaCppCompressorClient:
     """Реализация для локального llama.cpp сервера. Использует OpenAI-совместимый API."""
 
-    def __init__(self, base_url: str = "http://127.0.0.1:8181"):
-        self.base_url = base_url
+    def __init__(self, base_url: Optional[str] = None):
+        # NEW-DLG-002 FIX: Использование settings.llama_cpp_server_url вместо хардкода.
+        from app.core.config import settings
+        self.base_url = base_url or settings.llama_cpp_server_url
 
     async def compress_intent(
         self, raw_text: str, scene_context: Dict[str, Any]

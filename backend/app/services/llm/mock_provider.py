@@ -120,10 +120,10 @@ class MockProvider(StreamingLlmProvider):
         (т.к. 'Mock' — английское слово). Если валидатор пропускает —
         MockProvider утекает в продакшен, что НЕДОПУСТИМО.
         """
-        # Защита от утекания в продакшен: проверяем environment
-        import os
+        # BUG-DLG-CAUSAL-4.7.48 FIX: Использование settings.environment вместо os.getenv.
+        from app.core.config import settings
 
-        _env = os.getenv("ENIGMA_ENV", "production").lower()
+        _env = settings.environment.lower()
         if _env == "production":
             # В продакшене MockProvider не должен отдавать ответы.
             # Возвращаем пустую строку → ResponseValidator._fallback("empty")

@@ -92,7 +92,7 @@ class SqlitePersistenceAdapter(PersistencePort):
                         ensure_ascii=False,
                         default=lambda o: list(o) if isinstance(o, set) else str(o),
                     ),
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(timezone.utc).isoformat(),  # §15.2: Persistence metadata (updated_at)
                 ),
             )
 

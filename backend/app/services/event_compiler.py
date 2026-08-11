@@ -662,6 +662,10 @@ class EventCompiler:
         )
 
         # Формируем traversal_fields для ThickSceneChange на основе proposal
+        # SLEEP_FIX #2: parity with build_traversal_dict — добавляем segment_modes
+        # и segment_arc_heights, иначе shadow-path пишет "обрезанный" dict, а
+        # legacy-SSM пропускает создание правильного dict'а (gate видит, что
+        # запись уже есть). Нарушение ADR-O-201 (Causal Single Source Enforcement).
         traversal_fields = {
             "npc_id": proposal.npc_id,
             "from_node": proposal.source_node,
@@ -673,6 +677,8 @@ class EventCompiler:
             "locomotion": "WALK",
             "status": "MOVING",
             "current_waypoint_idx": 0,
+            "segment_modes": list(getattr(proposal, "segment_modes", ("WALK",))),
+            "segment_arc_heights": list(getattr(proposal, "segment_arc_heights", (0.0,))),
         }
 
         traversal = TraversalContract(

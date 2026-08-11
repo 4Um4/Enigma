@@ -244,7 +244,7 @@ def skip_time(
     except Exception as e:
         import traceback
 
-        print(f"[SKIP_TIME_BE] ERROR: {e}\n{traceback.format_exc()}")
+        logger.error(f"[SKIP_TIME_BE] ERROR: {e}\n{traceback.format_exc()}")
         return {"status": "error", "error": str(e), "npc_positions": {}}
 
 
@@ -297,7 +297,7 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     except Exception as e:
         import traceback
 
-        print(f"[IDLE_TICK_BE] ERROR: {e}\n{traceback.format_exc()}")
+        logger.error(f"[IDLE_TICK_BE] ERROR: {e}\n{traceback.format_exc()}")
         return {"status": "error", "error": str(e), "npc_positions": {}}
 
 
@@ -736,7 +736,7 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
                     "location_id"
                 ) or cs.get("metadata", {}).get("current_location")
         except Exception as e:
-            print(f"[ROUTES] Ошибка чтения current_location: {e}")
+            logger.warning(f"[ROUTES] Ошибка чтения current_location: {e}")
 
         # Фильтруем по локации если она известна
         if current_location:

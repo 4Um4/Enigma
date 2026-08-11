@@ -243,11 +243,11 @@ class RulesAgent:
                 advantage=adv,
                 disadvantage=dis,
                 result=self.resolve(
-                    random.randint(2, 20)
+                    self.rng.randint(2, 20)
                     if not adv and not dis
-                    else max(random.randint(2, 20), random.randint(2, 20))
+                    else max(self.rng.randint(2, 20), self.rng.randint(2, 20))
                     if adv
-                    else min(random.randint(2, 20), random.randint(2, 20)),
+                    else min(self.rng.randint(2, 20), self.rng.randint(2, 20)),
                     dc,
                 )
                 if roll_needed

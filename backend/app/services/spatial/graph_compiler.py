@@ -151,7 +151,7 @@ def compile_graph(
         if isinstance(rooms_raw, list):
             for item in rooms_raw:
                 if isinstance(item, dict):
-                    rid = item.get("id", item.get("room_id", f"room_{len(rooms)}"))
+                    rid: str = str(item.get("id", item.get("room_id", f"room_{len(rooms)}")))
                     rooms[rid] = item
         elif isinstance(rooms_raw, dict):
             rooms = dict(rooms_raw)
@@ -460,7 +460,7 @@ def _validate_navigation_geometry(
                         f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph."
                     )
                 else:
-                    print(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+                    logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
                     logger.warning(
                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
                         f"is geometrically blocked! Edge removed from graph."
@@ -473,9 +473,9 @@ def _validate_navigation_geometry(
             if _src in connections and _tgt in connections[_src]:
                 connections[_src].remove(_tgt)
 
-def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4, eps=1e-6) -> bool:
+def _segments_intersect(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float, eps: float=1e-6) -> bool:
     """Определение пересечения отрезков с ε-толерантностью (V8-SP-2 FIX)."""
-    def _cross(ox, oy, ax, ay, bx, by):
+    def _cross(ox: float, oy: float, ax: float, ay: float, bx: float, by: float) -> float:
         return (ax - ox) * (by - oy) - (ay - oy) * (bx - ox)
     d1 = _cross(x3, y3, x4, y4, x1, y1)
     d2 = _cross(x3, y3, x4, y4, x2, y2)
@@ -486,7 +486,7 @@ def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4, eps=1e-6) -> bool:
         return True
     return False
 
-def _line_rect_intersect(x1, y1, x2, y2, rx, ry, rw, rh) -> bool:
+def _line_rect_intersect(x1: float, y1: float, x2: float, y2: float, rx: float, ry: float, rw: float, rh: float) -> bool:
     """Проверка пересечения отрезка с прямоугольником (AABB)."""
     # Если одна из точек внутри — уже пересечение
     if (rx <= x1 <= rx + rw and ry <= y1 <= ry + rh) or (rx <= x2 <= rx + rw and ry <= y2 <= ry + rh):
@@ -802,7 +802,8 @@ def load_editor_json(
         if loc_file.exists():
             try:
                 with open(loc_file, "r", encoding="utf-8-sig") as f:
-                    return json.load(f)
+                    _data = json.load(f)
+                    return _data if isinstance(_data, dict) else None
             except Exception as e:
                 logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {loc_file}: {e}")
 
@@ -812,7 +813,10 @@ def load_editor_json(
                 continue
             try:
                 with open(json_file, "r", encoding="utf-8-sig") as f:
-                    data = json.load(f)
+                    _data = json.load(f)
+                    if not isinstance(_data, dict):
+                        continue
+                    data = _data
                     file_loc_id = data.get("location_id", data.get("id", ""))
                     if file_loc_id == location_id:
                         return data
@@ -827,13 +831,16 @@ def load_editor_json(
     if campaign_file.exists():
         try:
             with open(campaign_file, "r", encoding="utf-8-sig") as f:
-                data = json.load(f)
-                if "locations" in data:
-                    for loc in data["locations"]:
-                        if loc.get("id") == location_id or loc.get("location_id") == location_id:
+                    _data = json.load(f)
+            if not isinstance(_data, dict):
+                pass
+            else:
+                if "locations" in _data:
+                    for loc in _data["locations"]:
+                        if isinstance(loc, dict) and (loc.get("id") == location_id or loc.get("location_id") == location_id):
                             return loc
-                if data.get("id") == location_id or data.get("location_id") == location_id:
-                    return data
+                if _data.get("id") == location_id or _data.get("location_id") == location_id:
+                    return _data
         except Exception as e:
             logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {campaign_file}: {e}")
 

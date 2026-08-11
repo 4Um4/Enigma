@@ -128,6 +128,20 @@ class WorldTickEngine:
                 continue
             if state_l2.will_state == WillState.BROKEN:
                 continue
+            # SLEEP_FIX #3: спящих/resting NPC не генерируют проактивные интенты.
+            # Симметрично с SLEEP_GUARD в npc_tick_pipeline.py:474-480 (который
+            # работает только для реактивного пути). Без этого guard_borko, у которого
+            # schedule=sleeping, может получить proactive_spread_rumor и вернуться
+            # в tavern из city_gate:guard_bed.
+            _npc_dict = getattr(state_l2, "_legacy_dict", None) or {}
+            _cur_activity = ""
+            if isinstance(_npc_dict, dict):
+                _cur_activity = _npc_dict.get("routine", {}).get("current", "")
+            if "sleeping" in _cur_activity or "resting" in _cur_activity:
+                logger.debug(
+                    f"[WORLD_TICK] {npc_id}: skipping proactive (routine={_cur_activity!r})"
+                )
+                continue
 
             # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
             _effective_drives = (effective_drives_map or {}).get(npc_id)

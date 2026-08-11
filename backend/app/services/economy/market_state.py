@@ -95,7 +95,10 @@ class RandomMarketState(MarketState):
     MAX_VISITS_PER_WAVE: int = 4
 
     def __init__(self, rng: Optional[random.Random] = None) -> None:
-        self._rng = rng or random.Random()
+        # BUG-CORE-023 FIX: Детерминированный KernelRNG для воспроизводимости экономики.
+        # tick=0 используется как базовый seed, так как MarketState — долгоживущий объект.
+        from app.services.npc.kernel_rng import KernelRNG
+        self._rng = rng or KernelRNG(tick=0, npc_id="market_state")
         self._phase: MarketPhase = MarketPhase.QUIET
         self._visits_this_wave: int = 0
         self._max_visits_this_wave: int = self._rng.randint(
@@ -104,14 +107,12 @@ class RandomMarketState(MarketState):
 
     def tick(self) -> None:
         """Обновить состояние (вызывать каждый тик)."""
-        if self._phase == MarketPhase.QUIET:
-            # Шанс перехода к активной фазе (слух пришёл)
-            if self._rng.random() < self.QUIET_TO_ACTIVE_CHANCE:
-                self._phase = MarketPhase.ACTIVE
-                self._visits_this_wave = 0
-                self._max_visits_this_wave = self._rng.randint(
-                    self.MIN_VISITS_PER_WAVE, self.MAX_VISITS_PER_WAVE
-                )
+        if self._phase == MarketPhase.QUIET and self._rng.random() < self.QUIET_TO_ACTIVE_CHANCE:
+            self._phase = MarketPhase.ACTIVE
+            self._visits_this_wave = 0
+            self._max_visits_this_wave = self._rng.randint(
+                self.MIN_VISITS_PER_WAVE, self.MAX_VISITS_PER_WAVE
+            )
 
     def record_visit(self) -> None:
         """Зарегистрировать состоявшийся визит (вызывать после торговли)."""

@@ -65,7 +65,7 @@ class SpatialService:
         if editor_data_override is not None:
             editor_data = editor_data_override
         else:
-            editor_data = load_editor_json(campaign_id, location_id)
+            editor_data: Optional[Dict[str, Any]] = load_editor_json(campaign_id, location_id)
             if not editor_data:
                 logger.warning(
                     f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}"
@@ -76,13 +76,14 @@ class SpatialService:
         # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
         # ETKE-IK v1: compile_graph возвращает 5 элементов (добавлен rooms_geometry)
         # ADR-O-324: compile_graph возвращает 7 элементов (добавлены spatial_walls, spatial_obstacles)
-        if len(result) == 8:
-            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = result
-        elif len(result) == 7:
-            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = result
+        _result_list = list(result)
+        if len(_result_list) == 8:
+            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = _result_list
+        elif len(_result_list) == 7:
+            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = _result_list
             affordance_objects = []
-        elif len(result) == 5:
-            graph, connections, alias_map, boundary_map, rooms_geometry = result
+        elif len(_result_list) == 5:
+            graph, connections, alias_map, boundary_map, rooms_geometry = _result_list
             spatial_walls, spatial_obstacles, affordance_objects = [], [], []
         elif len(result) == 4:
             graph, connections, alias_map, boundary_map = result
@@ -147,10 +148,10 @@ class SpatialService:
         cx, cy = center_xy
         r_sq = perception_radius ** 2
 
-        def _seg_in_range(x1, y1, x2, y2) -> bool:
+        def _seg_in_range(x1: float, y1: float, x2: float, y2: float) -> bool:
             return point_to_segment_dist_sq((cx, cy), (x1, y1), (x2, y2)) <= r_sq
 
-        def _rect_in_range(rx, ry, rw, rh) -> bool:
+        def _rect_in_range(rx: float, ry: float, rw: float, rh: float) -> bool:
             return point_to_rect_min_dist_sq((cx, cy), rx, ry, rw, rh) <= r_sq
 
         walls = tuple(
@@ -523,9 +524,9 @@ class SpatialService:
         Возвращает список NodeRef от ближайшего к start_xy узла до target_node.
         Пустой список если путь не найден.
         """
-        if target_node is None:
+        target_id = target_node.node_id if target_node else ""
+        if not target_id:
             return []
-        target_id = target_node.node_id
 
         # Находим стартовый узел (ближайший к start_xy в той же зоне)
         start_node = self.get_nearest(target_node.zone_id, start_xy, urgency)
@@ -557,6 +558,9 @@ class SpatialService:
 
         came_from: Dict[str, str] = {}
         g_score: Dict[str, float] = {start_node.node_id: 0.0}
+        
+        # SLEEP_FIX: Отладка A*
+        print(f"[FIND_PATH_ASTAR] start={start_node.node_id} target={target_id} start_connections={self._connections.get(start_node.node_id, set())}")
 
         while open_set:
             _, _, current_id = heapq.heappop(open_set)
@@ -638,7 +642,7 @@ class SpatialService:
 
     # ── Утилиты ───────────────────────────────────────────────────────
 
-    def get_central_node(self):
+    def get_central_node(self) -> Optional["NodeRef"]:
         """Возвращает центральную ноду графа (ближайшую к среднему арифметическому координат)."""
         # N5 FIX: _graph — это Dict[str, NodeRef], у него нет атрибута .nodes
         if not self._graph:

@@ -236,7 +236,7 @@ class GameLoop:
                 store=_replay_store, 
                 session_id=_session_id
             )
-            print(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
+            logger.info(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
             
             # Инъекция контекста в ModelRouter для LLM Cache (Этап 2.3)
             _router = self.dm_agent.router
@@ -1094,7 +1094,7 @@ class GameLoop:
         }
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
-        print(f"[ARCHAE_PLAYER_ENTRY] req={req}")
+        logger.debug(f"[ARCHAE_PLAYER_ENTRY] req={req}")
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""
         self.assert_requirements()
         _is_session_start_rest = req.campaign_id not in self._session_started_campaigns
@@ -1487,6 +1487,8 @@ class GameLoop:
             "will_conflict_data": state.shared_context.will_conflict_data
             if state.shared_context
             else None,
+            # BUG-FB-001 FIX: Проброс world_snapshot в финальном done-событии (как в ветке смерти)
+            "world_snapshot": state.world_snapshot,
         }
 
         # R2.1: NarrativeExtractor R2.2.8
@@ -1521,57 +1523,313 @@ class GameLoop:
         except Exception as e:
             logger.warning(f"[R2.1] NarrativeExtractor error: {e}")
 
-    async def _run_pipeline(
+    def _sync_shared_context_with_scene(
+        self, scene_state: dict, shared_context: Any
+    ) -> None:
+        """Синхронизирует shared_context с заблокированным scene_state."""
+        shared_context.scene_state = scene_state
+
+        from app.services.spatial.spatial_query_service import SpatialQueryService
+
+        shared_context.spatial_query = SpatialQueryService(
+            npc_positions=scene_state.get("npc_positions", {}),
+            scene_state=scene_state,
+        )
+
+        if hasattr(shared_context, "current_tick"):
+            shared_context.current_tick = scene_state.get("tick", 0) + 1
+        self._current_tick = scene_state.get("tick", 0) + 1
+
+    async def _finalize_pipeline_and_build_dm_frame(
+        self,
+        shared_context: Any,
+        _ctx: Any,
+        campaign_id: str,
+        actions: list,
+        _player_result: TickPlayerResultDTO,
+    ) -> tuple[dict, dict]:
+        """ФАЗА 7 (Rules) + ФАЗЫ 8-10 (R3 Frame) + Avatar Sync."""
+        _state_observed_facts = getattr(_player_result, "observed_facts", [])
+        logger.debug(
+            f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}"
+        )
+
+        from app.services.events.event_types import EventType
+        from app.services.events.rules_subscriber import RulesSubscriber
+
+        _action_type = shared_context.action_type or "player_interacts"
+        _rules_action_type = self.dm_orchestrator._router.get_rules_action_type(
+            _action_type
+        )
+
+        _rules_event = type(
+            "Event",
+            (),
+            {
+                "type": "player_attacks"
+                if "attack" in _rules_action_type.lower()
+                else "player_interacts",
+                "payload": {"target_id": shared_context.player_target_id},
+                "source": actions[0].player_name if actions else "player",
+                "id": f"rules_{shared_context.current_tick}",
+            },
+        )()
+
+        _rules_snapshot = {
+            "all_npcs_raw": _ctx.all_npcs_raw or [],
+            "tick_number": shared_context.current_tick or 0,
+            "campaign_id": campaign_id,
+            "relationship_store": self.memory_manager._relationships
+            if self.memory_manager
+            else None,
+            "raw_input": actions[0].action if actions else "",
+        }
+
+        _rules_sub = RulesSubscriber()
+        _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
+
+        rules_result = {"checks": _rules_delta.checks} if _rules_delta else {}
+        logger.warning(
+            f"[RULES] action_type={_action_type} → {_rules_action_type} (synchronous reducer)"
+        )
+
+        _player_name = actions[0].player_name if actions else ""
+        _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+
+        import copy
+
+        _avatar_state_before = copy.deepcopy(_avatar_state) if _avatar_state else None
+
+        if _rules_delta and _rules_delta.money_delta != 0.0 and _avatar_state:
+            if not _avatar_state.body_state:
+                _avatar_state.body_state = {}
+            _current_money = float(_avatar_state.body_state.get("money", 0.0))
+            _avatar_state.body_state["money"] = max(
+                0.0, _current_money + _rules_delta.money_delta
+            )
+            logger.info(
+                f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar. New total: {_avatar_state.body_state['money']}"
+            )
+
+        from dataclasses import asdict, is_dataclass
+
+        if is_dataclass(_avatar_state):
+            _avatar_dict = asdict(_avatar_state)
+            _avatar_dict["npc_id"] = "player"
+            _avatar_dict["id"] = "player"
+            if hasattr(_ctx, "all_npcs_raw") and _ctx.all_npcs_raw is not None:
+                _ctx.all_npcs_raw = [
+                    n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"
+                ]
+                _ctx.all_npcs_raw.append(_avatar_dict)
+
+        shared_context.npc_contexts = getattr(_player_result, "npc_contexts", []) or []
+        try:
+            from app.services.scene.r3_direct_builder import build_r3_dm_frame
+
+            npc_result = (
+                build_r3_dm_frame(shared_context, actions, rules_result)
+                if R3_DIRECT_MODE
+                else {}
+            )
+
+            logger.debug(
+                f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}"
+            )
+
+            _updated_avatar_dict = next(
+                (
+                    n
+                    for n in getattr(_ctx, "all_npcs_raw", [])
+                    if n.get("npc_id") == "player"
+                ),
+                None,
+            )
+            if _updated_avatar_dict and _avatar_state:
+                if "body_state" in _updated_avatar_dict:
+                    _avatar_state.body_state = _updated_avatar_dict["body_state"]
+                if "hp" in _updated_avatar_dict:
+                    if _avatar_state.body_state:
+                        _avatar_state.body_state["current_hp"] = (
+                            _updated_avatar_dict.get(
+                                "hp", _updated_avatar_dict.get("current_hp", 0)
+                            )
+                        )
+                    else:
+                        from app.models.npc_state import BODY_STATE_DISABLED_DATA
+                        _avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
+                        _avatar_state.body_state["current_hp"] = _updated_avatar_dict["hp"]
+
+            if (
+                _avatar_state
+                and _avatar_state_before
+                and _avatar_state != _avatar_state_before
+            ):
+                self.avatar_service.save_state(campaign_id, _avatar_state)
+                _avatar_hp = getattr(_avatar_state, "effective_hp", getattr(_avatar_state, "hp", 0))
+                logger.warning(
+                    f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_hp}"
+                )
+
+            _engine = self._get_life_engine()
+            if (
+                _engine
+                and hasattr(_ctx, "all_npcs_raw")
+                and _ctx.all_npcs_raw is not None
+            ):
+                _engine.update_cache(campaign_id, _ctx.all_npcs_raw)
+
+        except Exception as _fin_err:
+            logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)
+            npc_result = {}
+            shared_context.npc_contexts = (
+                getattr(_player_result, "npc_contexts", []) or []
+            )
+
+        try:
+            from app.models.npc_state import EmotionTag
+            from app.services.game_loop.phase_6_avatar import (
+                update_avatar_from_npc_intents,
+            )
+
+            update_avatar_from_npc_intents(
+                self.avatar_service,
+                campaign_id,
+                _player_name,
+                shared_context.npc_contexts or [],
+                EmotionTag,
+            )
+        except Exception as _av_err:
+            logger.warning(f"[AVATAR] update error: {_av_err}")
+
+        return rules_result, npc_result
+
+    async def _execute_dm_and_intent_resolution(
         self,
         actions: list,
+        shared_context: Any,
+        scene_state: dict,
+        _ctx: Any,
         campaign_id: str,
-        world_id: str,
         location: str,
-        campaign_state=None,
-        is_session_start: bool = False,
-        player_position: tuple[float, float] | None = None,
-    ) -> _PipelineState:
-        """Фазовый пайплайн: DM → NPC → Perception → Social → Rules → Finalize → Commit.
-
-        Каждый блок — отдельный модуль в game_loop/. Подробнее: dm_phase, npc_orchestration.
-        """
-        start_ms = time.time() * 1000
-        _ctx = _TickContext(mvp_controller=self.mvp_controller)  # ENIGMA SELF-HEALING: For probes
-
-        # 0. World tick — асинхронный фон, не блокирует ответ игроку
-        world_tick_meta = {"triggered": False, "events": []}
-        asyncio.create_task(
-            asyncio.to_thread(
-                self.world_scheduler.maybe_tick,
-                world_id,
-                settings.world_tick_minutes,
+    ) -> tuple[Any, Any]:
+        """ФАЗА 1-3: Запуск DM-фазы и резолв интента игрока."""
+        _match = None
+        try:
+            dm_result = run_dm_phase(
+                self, actions, shared_context, scene_state, _ctx, campaign_id, location
             )
-        )
-
-        # 1. Базовый shared_context
-        _raw_mem = self.memory_manager.read_campaign_history(campaign_id, limit=3)
-        if _raw_mem:
             logger.warning(
-                f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}"
+                f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}"
             )
-        shared_context = build_context(
-            campaign_id=campaign_id,
-            world_id=world_id,
-            location=location,
-            player=actions[0].player_name if actions else "",
-            scene_state={},
-            python_engines={},
-            recent_memory=[e["dm"] for e in _raw_mem if e.get("dm")],
-            reaction_order=[],
-        )
 
-        # 2. Загрузка аватара игрока
+            _player_data_dict = _match.dict() if _match else None
+            _raw_action = actions[0].action if actions else ""
+            _semantic_field = await self._intent_compressor.compress(
+                raw_text=_raw_action, scene_context=scene_state
+            )
+
+            _resolution = resolve_player_intent(
+                raw_action=_raw_action,
+                action_type=shared_context.action_type or "player_interacts",
+                target=shared_context.player_target_id or "",
+                player_dict=_player_data_dict,
+                scene_context=scene_state,
+                semantic_field=_semantic_field,
+            )
+            shared_context.intent_resolution = _resolution
+
+            if self.mvp_controller:
+                from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
+                _resolver = ActionSemanticResolver(self.mvp_controller.truth_state)
+                _action = _resolver.resolve(
+                    raw_text=_raw_action,
+                    tick=shared_context.current_tick,
+                    target_id=shared_context.player_target_id,
+                )
+                self.mvp_controller.action_compiler.process_action(_action)
+
+            if _ctx.hub_event and _resolution and _resolution.original_intent:
+                _params = _resolution.original_intent.parameters
+                logger.debug(
+                    f"[ARCHAE-PAYLOAD] params={_params} sa={getattr(_params, 'semantic_action', 'NO_SA') if _params else 'NO_PARAMS'}"
+                )
+                if _params:
+                    _sa = getattr(_params, "semantic_action", None)
+                    _tid = getattr(_params, "target_id", None)
+                    _tref = getattr(_params, "target_reference", None)
+                    _sem_payload = {}
+                    if _sa:
+                        _sem_payload["semantic_action"] = _sa
+                    if _tid:
+                        _sem_payload["target_id"] = _tid
+                    if _tref:
+                        _sem_payload["target_reference"] = _tref.lower()
+                    if _sem_payload:
+                        import dataclasses
+
+                        _ctx.hub_event = dataclasses.replace(
+                            _ctx.hub_event, payload=_sem_payload
+                        )
+                        logger.warning(
+                            f"[PAYLOAD_INJECT] hub_event.payload={_sem_payload} id={id(_ctx.hub_event)} event_type={_ctx.hub_event.event_type}"
+                        )
+        except Exception as e:
+            logger.error(f"[DM_INTENT_PHASE] Error: {e}", exc_info=True)
+            raise
+
+        return dm_result, _resolution
+
+    def _prepare_and_lock_scene(
+        self,
+        campaign_id: str,
+        location: str,
+        shared_context: Any,
+        campaign_state: Any,
+        player_position: tuple[float, float] | None,
+    ) -> dict:
+        """Блокирует scene_state на время тика, гарантируя единственный объект."""
+        from app.services.game_loop.scene_init import ensure_scene_initialized
+
+        _prepped_scene = ensure_scene_initialized(self, campaign_id)
+        _loc_id = _prepped_scene.get("location_id", "") if _prepped_scene else location
+        if not _loc_id:
+            _loc_id = location
+
+        scene_state = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
+        if scene_state is None:
+            scene_state = init_scene_state(
+                self,
+                campaign_id,
+                _loc_id,
+                shared_context,
+                campaign_state,
+                player_position=player_position,
+            )
+            # BUG-CORE-008 FIX: ADR-SCENE-LOCK — _tick_scenes это Dict[str, dict].
+            self.scene_manager._tick_scenes[_loc_id] = scene_state
+            self.scene_manager._tick_locked = True
+            self.scene_manager._tick_campaign_id = campaign_id
+        else:
+            from app.services.game_loop.scene_init import (
+                _sync_game_time,
+                _update_player_position,
+            )
+
+            _update_player_position(scene_state, player_position)
+            _sync_game_time(scene_state, shared_context)
+
+        return scene_state
+
+    async def _load_player_avatar(
+        self, actions: list, campaign_id: str, location: str, shared_context: Any
+    ) -> Optional[ChatTurnResponse]:
+        """Загружает аватар игрока. Если игрок мёртв, возвращает ответ смерти."""
         _player_name = actions[0].player_name if actions else ""
         try:
             _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
 
             # P0: ACTION ELIGIBILITY GATE — мёртвый игрок не может действовать (ADR-127, Rule 59)
-            # Проверка ДО lock_for_tick, чтобы не загрязнять scene_state пост-смертной активностью
             _player_life = (
                 _avatar_state.body_state.get("life_status", "ALIVE")
                 if _avatar_state and _avatar_state.body_state
@@ -1581,13 +1839,11 @@ class GameLoop:
                 logger.warning(
                     f"[DEATH_GATE] Player '{_player_name}' is DEAD. DM narrates death."
                 )
-                # P3: Проброс death state в DM-контракт (DM читает life_status, не вычисляет)
                 from app.services.game_loop.phase_6_avatar import avatar_to_prompt
 
                 shared_context.player_state = {
                     _player_name: avatar_to_prompt(_avatar_state)
                 }
-                # S75: Проброс death feedback — мир продолжает жить, игрок теряет агентность
                 _bs = (
                     _avatar_state.body_state
                     if _avatar_state and _avatar_state.body_state
@@ -1611,8 +1867,6 @@ class GameLoop:
                     "embodied_vector": None,
                     "life_status": "DEAD",
                 }
-                # Мир продолжает жить: пробрасываем текущие NPC позиции из кэша
-                # idle_tick обновит их дальше, но этот snapshot не даёт миру «замёрзнуть»
                 _death_ws = {"avatar_state": _death_avatar_dict}
                 try:
                     _cached = self.life_engine.get_npc_states(campaign_id)
@@ -1623,10 +1877,7 @@ class GameLoop:
                             if isinstance(n, dict)
                         }
                 except Exception as e:
-                    logger.warning(
-                        f"[B5-FIX] silent failure suppressed: {e}"
-                    )  # Мир без позиций лучше, чем краш Death Guard
-                # P3: DM narrates смерть (LLM-интерпретация замороженной реальности, не хардкод)
+                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 _death_dm_response = "Тьма поглощает тебя. Твоё тело безжизненно, а сознание растворяется в абсолютной тишине."
                 try:
                     _death_result = await run_agent_safe(
@@ -1676,11 +1927,9 @@ class GameLoop:
             _sheet_str = getattr(_match, "stats", {}) if _match else {}
             _str_score = _sheet_str.get("STR", 10) if isinstance(_sheet_str, dict) else 10
             
-            # Проверяем, есть ли уже сохранённая топология
             _topo_data = self.scene_manager._persistence.load_scene(campaign_id)
             if not _topo_data or not _topo_data.get("player_body_topology"):
                 _topo = BodyTopologyService.create_topology("player", strength_score=_str_score)
-                # Мигрируем старый инвентарь, если был
                 _old_inv = _topo_data.get("player_inventory_snapshot", {}) if _topo_data else {}
                 if _old_inv:
                     _start_slot = _topo.hands.get("right_hand")
@@ -1689,157 +1938,87 @@ class GameLoop:
                             for _ in range(qty if isinstance(qty, int) else 1):
                                 from app.domain.body import Item
                                 BodyTopologyService.add_item(_topo, "backpack_main", Item(item_id=item_id, name=item_id))
-                # Сохраняем в scene_state через lock
-                _tmp_scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id if '_loc_id' in locals() else "")
+                _tmp_scene = self.scene_manager.lock_for_tick(campaign_id, location)
                 if _tmp_scene:
                     _tmp_scene["player_body_topology"] = BodyTopologyService.serialize(_topo)
                     self.scene_manager.unlock_for_tick(campaign_id, commit=True)
         except Exception as _e:
             logger.warning(f"[AVATAR] ошибка загрузки: {_e}")
 
-        # ADR-SCENE-LOCK: Блокируем scene_state на время тика.
-        # Все get_scene_state() внутри тика вернут ТОТ ЖЕ объект.
-        # Без этого каждый вызов создаёт новый dict из persistence → traversals теряются.
-        # FIX: Используем актуальный location_id из подготовленной сцены, а не из req,
-        # чтобы избежать рассинхрона с idle_tick и создания новой сцены с дефолтным временем.
-        from app.services.game_loop.scene_init import ensure_scene_initialized
+        return None
 
-        _prepped_scene = ensure_scene_initialized(self, campaign_id)
-        _loc_id = _prepped_scene.get("location_id", "") if _prepped_scene else location
-        if not _loc_id:
-            _loc_id = location
-
-        scene_state = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
-        if scene_state is None:
-            scene_state = init_scene_state(
-                self,
-                campaign_id,
-                _loc_id,
-                shared_context,
-                campaign_state,
-                player_position=player_position,
+    def _init_pipeline_context(
+        self, actions: list, campaign_id: str, world_id: str, location: str
+    ) -> tuple[Any, dict]:
+        """Инициализирует shared_context и запускает фоновый world tick."""
+        # 0. World tick — асинхронный фон, не блокирует ответ игроку
+        world_tick_meta = {"triggered": False, "events": []}
+        asyncio.create_task(
+            asyncio.to_thread(
+                self.world_scheduler.maybe_tick,
+                world_id,
+                settings.world_tick_minutes,
             )
-            # BUG-CORE-008 FIX: ADR-SCENE-LOCK — _tick_scenes это Dict[str, dict].
-            # Инжект в несуществующий _tick_scene (singular) создавал изолированный атрибут.
-            self.scene_manager._tick_scenes[_loc_id] = scene_state
-            self.scene_manager._tick_locked = True
-            self.scene_manager._tick_campaign_id = campaign_id
-        else:
-            # Обновляем player position + sync time на закэшированном объекте
-            from app.services.game_loop.scene_init import (
-                _sync_game_time,
-                _update_player_position,
-            )
-
-            _update_player_position(scene_state, player_position)
-            _sync_game_time(scene_state, shared_context)
-
-        # КРИТИЧЕСКИ: shared_context должен ссылаться на реальный scene_state, а не на пустой {}
-        shared_context.scene_state = scene_state
-
-        # ADR-121: Spatial perception spine — SpatialQueryService в shared_context
-        # Без этого perception_filter получает spatial_query=None → все NPC слепы → fallback ALL
-        # → ReactionSubscriber получает ALL NPC → эмоциональный каскад
-        from app.services.spatial.spatial_query_service import SpatialQueryService
-
-        shared_context.spatial_query = SpatialQueryService(
-            npc_positions=scene_state.get("npc_positions", {}),
-            scene_state=scene_state,
         )
 
-        # ADR-O-344: Temporal Ownership передан TickOrchestrator. GameLoop не меняет время.
-        if hasattr(shared_context, "current_tick"):
-            shared_context.current_tick = scene_state.get("tick", 0) + 1
-        # H-01 FIX: Сохраняем симуляционный тик для NpcDialogueSubscriber (L1Chronicle contract)
-        self._current_tick = scene_state.get("tick", 0) + 1
-
-        # ФАЗА 1-3: DM классификация + EventBus + STM + время
-        _match = None  # Инициализация во избежание UnboundLocalError
-        try:
-            dm_result = run_dm_phase(
-                self,
-                actions,
-                shared_context,
-                scene_state,
-                _ctx,
-                campaign_id,
-                location,
-            )
+        # 1. Базовый shared_context
+        _raw_mem = self.memory_manager.read_campaign_history(campaign_id, limit=3)
+        if _raw_mem:
             logger.warning(
-                f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}"
+                f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}"
             )
+        shared_context = build_context(
+            campaign_id=campaign_id,
+            world_id=world_id,
+            location=location,
+            player=actions[0].player_name if actions else "",
+            scene_state={},
+            python_engines={},
+            recent_memory=[e["dm"] for e in _raw_mem if e.get("dm")],
+            reaction_order=[],
+        )
+        return shared_context, world_tick_meta
 
-            # ФАЗА 1: Semantic Translation (ADR-031 Fix).
-            # game_loop не вычисляет волю и не публикует события. Только Intent → Pressure.
-            _player_data_dict = _match.dict() if _match else None
+    async def _run_pipeline(
+        self,
+        actions: list,
+        campaign_id: str,
+        world_id: str,
+        location: str,
+        campaign_state=None,
+        is_session_start: bool = False,
+        player_position: tuple[float, float] | None = None,
+    ) -> _PipelineState:
+        """Фазовый пайплайн: DM → NPC → Perception → Social → Rules → Finalize → Commit.
 
-            # S118 FIX: LLM Slow-Path вызывается ЗДЕСЬ (в оркестраторе), а не в ядре (§7.20, ADR-O-313)
-            _raw_action = actions[0].action if actions else ""
-            _semantic_field = await self._intent_compressor.compress(
-                raw_text=_raw_action, scene_context=scene_state
-            )
+        Каждый блок — отдельный модуль в game_loop/. Подробнее: dm_phase, npc_orchestration.
+        """
+        start_ms = time.time() * 1000
+        _ctx = _TickContext(mvp_controller=self.mvp_controller)
 
-            _resolution = resolve_player_intent(
-                raw_action=_raw_action,
-                action_type=shared_context.action_type or "player_interacts",
-                target=shared_context.player_target_id or "",
-                player_dict=_player_data_dict,
-                scene_context=scene_state,  # Слой 2 ищет имена в scene_state["npc_positions"]
-                semantic_field=_semantic_field,  # Передача готового поля из оркестратора
-            )
+        shared_context, world_tick_meta = self._init_pipeline_context(
+            actions, campaign_id, world_id, location
+        )
 
-            # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
-            shared_context.intent_resolution = _resolution
+        # 2. Загрузка аватара игрока
+        _death_response = await self._load_player_avatar(
+            actions, campaign_id, location, shared_context
+        )
+        if _death_response is not None:
+            return _death_response
 
-            # TODO (Фаза 1 / Эпоха 6): Интеграция PhysicsValidator.
-            # Здесь должен вызываться PhysicsValidator().validate(_raw_action, char_state, game_state)
-            # для мгновенной (<1мс) проверки физической возможности действия игрока.
-            # Невозможные действия (полёт, телепортация) должны отклоняться до LLM
-            # и возвращать реалистичную альтернативу для DM-нарратива.
+        scene_state = self._prepare_and_lock_scene(
+            campaign_id, location, shared_context, campaign_state, player_position
+        )
 
-            # P7-14 MVP: Каузальный мост действий игрока
-            # V8-MVP-7 FIX: Убран gate по player_target_id. DIALOGUE без target должен обрабатываться.
-            if self.mvp_controller:
-                from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
-                _resolver = ActionSemanticResolver(self.mvp_controller.truth_state)
-                _action = _resolver.resolve(
-                    raw_text=_raw_action,
-                    tick=shared_context.current_tick,
-                    target_id=shared_context.player_target_id
-                )
-                self.mvp_controller.action_compiler.process_action(_action)
+        self._sync_shared_context_with_scene(scene_state, shared_context)
 
-            # FIX: Проброс semantic_action в hub_event.payload ПОСЛЕ intent_resolution,
-            # но ДО run_npc_orchestration (где DecisionHub читает hub_event).
-            # Без этого DecisionHub не видит MOVE и obedience boost не работает.
-            if _ctx.hub_event and _resolution and _resolution.original_intent:
-                _params = _resolution.original_intent.parameters
-                logger.debug(
-                    f"[ARCHAE-PAYLOAD] params={_params} sa={getattr(_params, 'semantic_action', 'NO_SA') if _params else 'NO_PARAMS'}"
-                )
-                if _params:
-                    _sa = getattr(_params, "semantic_action", None)
-                    _tid = getattr(_params, "target_id", None)
-                    _tref = getattr(_params, "target_reference", None)
-                    _sem_payload = {}
-                    if _sa:
-                        _sem_payload["semantic_action"] = _sa
-                    if _tid:
-                        _sem_payload["target_id"] = _tid
-                    if _tref:
-                        _sem_payload["target_reference"] = _tref.lower()
-                    if _sem_payload:
-                        import dataclasses
+        dm_result, _resolution = await self._execute_dm_and_intent_resolution(
+            actions, shared_context, scene_state, _ctx, campaign_id, location
+        )
 
-                        _ctx.hub_event = dataclasses.replace(
-                            _ctx.hub_event, payload=_sem_payload
-                        )
-                        logger.warning(
-                            f"[PAYLOAD_INJECT] hub_event.payload={_sem_payload} id={id(_ctx.hub_event)} event_type={_ctx.hub_event.event_type}"
-                        )
-
+        try:
             # ADR-091 FIX: Публикация ПОСЛЕ intent_resolution (иначе _semantic_action=None)
-            # Раньше вызывался в run_dm_phase ДО resolve_player_intent → override не работал
             if dm_result.is_valid:
                 publish_classified_player_event(
                     shared_context,
@@ -1876,187 +2055,11 @@ class GameLoop:
             python_engines_result = {"dm_result": None, "npc_contexts": []}
             _player_result = TickPlayerResultDTO()
 
-        shared_context.python_engines = python_engines_result
-        # Sprint P9: Проброс observed_facts из тика в state
+        rules_result, npc_result = await self._finalize_pipeline_and_build_dm_frame(
+            shared_context, _ctx, campaign_id, actions, _player_result
+        )
+
         _state_observed_facts = getattr(_player_result, "observed_facts", [])
-        logger.debug(
-            f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}"
-        )
-
-        # ФАЗА 7: RulesSubscriber (pure reducer) — вычисляет D&D механику (TZ-08 v0.2)
-        from app.services.events.event_types import EventType
-        from app.services.events.rules_subscriber import RulesSubscriber
-
-        _action_type = shared_context.action_type or "player_interacts"
-        _rules_action_type = self.dm_orchestrator._router.get_rules_action_type(
-            _action_type
-        )
-
-        # Формируем event для подписчика
-        _rules_event = type(
-            "Event",
-            (),
-            {
-                "type": "player_attacks"
-                if "attack" in _rules_action_type.lower()
-                else "player_interacts",
-                "payload": {"target_id": shared_context.player_target_id},
-                "source": actions[0].player_name if actions else "player",
-                "id": f"rules_{shared_context.current_tick}",
-            },
-        )()
-
-        # Формируем snapshot для подписчика
-        _rules_snapshot = {
-            "all_npcs_raw": _ctx.all_npcs_raw or [],
-            "tick_number": shared_context.current_tick or 0,
-            "campaign_id": campaign_id,
-            "relationship_store": self.memory_manager._relationships
-            if self.memory_manager
-            else None,
-            "raw_input": actions[0].action if actions else "",
-        }
-
-        _rules_sub = RulesSubscriber()
-        _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
-
-        # Преобразуем RulesDelta в формат, ожидаемый DM-агентом
-        rules_result = {"checks": _rules_delta.checks} if _rules_delta else {}
-        logger.warning(
-            f"[RULES] action_type={_action_type} → {_rules_action_type} (synchronous reducer)"
-        )
-
-        # ADR-O-112: Actor-Agnostic Physiology. Инжектируем Аватар в all_npcs_raw для трубы урона.
-        _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
-
-        # S115 FIX: Сохраняем копию состояния ДО мутаций, чтобы корректно сравнить в конце.
-        import copy
-
-        _avatar_state_before = copy.deepcopy(_avatar_state) if _avatar_state else None
-
-        # БАГ 5 FIX: Применяем money_delta от RulesSubscriber к аватару.
-        # Раньше RulesSubscriber мутировал временный снапшот, который перезатирался load_state.
-        if _rules_delta and _rules_delta.money_delta != 0.0 and _avatar_state:
-            if not _avatar_state.body_state:
-                _avatar_state.body_state = {}
-            _current_money = float(_avatar_state.body_state.get("money", 0.0))
-            _avatar_state.body_state["money"] = max(
-                0.0, _current_money + _rules_delta.money_delta
-            )
-            logger.info(
-                f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar. New total: {_avatar_state.body_state['money']}"
-            )
-
-        from dataclasses import asdict, is_dataclass
-
-        if is_dataclass(_avatar_state):
-            _avatar_dict = asdict(_avatar_state)
-            _avatar_dict["npc_id"] = "player"
-            _avatar_dict["id"] = (
-                "player"  # ADR-O-112: load_profile_from_legacy_json требует "id"
-            )
-            if hasattr(_ctx, "all_npcs_raw") and _ctx.all_npcs_raw is not None:
-                _ctx.all_npcs_raw = [
-                    n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"
-                ]
-                _ctx.all_npcs_raw.append(_avatar_dict)
-
-        # ФАЗЫ 8-10: Ядро (execute) уже выполнило все фазы симуляции и сформировало perception_snapshot.
-        # Здесь game_loop только строит нарративную проекцию (dm_frame) для DM-агента.
-        # SHI-FIX: shared_context.npc_contexts должен быть заполнен ДО build_r3_dm_frame,
-        # иначе R3_DIRECT видит 0 decisions (старый/пустой список).
-        shared_context.npc_contexts = getattr(_player_result, "npc_contexts", []) or []
-        try:
-            from app.services.scene.r3_direct_builder import build_r3_dm_frame
-
-            npc_result = (
-                build_r3_dm_frame(shared_context, actions, rules_result)
-                if R3_DIRECT_MODE
-                else {}
-            )
-
-            # SCENE_IDENTITY: проверяем, что scene_state не потерял traversals после finalize
-            logger.debug(
-                f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}"
-            )
-
-            # S115 FIX: Синхронизация мутаций из ядра обратно в _avatar_state.
-            # Ядро работает со словарем в _ctx.all_npcs_raw, нам нужно перенести изменения в объект.
-            _updated_avatar_dict = next(
-                (
-                    n
-                    for n in getattr(_ctx, "all_npcs_raw", [])
-                    if n.get("npc_id") == "player"
-                ),
-                None,
-            )
-            if _updated_avatar_dict and _avatar_state:
-                if "body_state" in _updated_avatar_dict:
-                    _avatar_state.body_state = _updated_avatar_dict["body_state"]
-                if "hp" in _updated_avatar_dict:
-                    # ADR-HP-UNIFICATION: Пишем напрямую в body_state (SSOT)
-                    if _avatar_state.body_state:
-                        _avatar_state.body_state["current_hp"] = (
-                            _updated_avatar_dict.get(
-                                "hp", _updated_avatar_dict.get("current_hp", 0)
-                            )
-                        )
-                    else:
-                        # BUG-AUDIT-01 (HP Double Truth): Инициализируем BODY_STATE_DISABLED_DATA
-                        # при пустом body_state, чтобы не потерять pain/shock/fatigue.
-                        from app.models.npc_state import BODY_STATE_DISABLED_DATA
-                        _avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
-                        _avatar_state.body_state["current_hp"] = _updated_avatar_dict["hp"]
-
-            # S115 FIX: Сравниваем полное состояние до и после. Если есть разница — сохраняем.
-            if (
-                _avatar_state
-                and _avatar_state_before
-                and _avatar_state != _avatar_state_before
-            ):
-                self.avatar_service.save_state(campaign_id, _avatar_state)
-                # H-02 FIX: CharacterSheet имеет hp, а NPCState имеет effective_hp (ADR-HP-UNIFICATION).
-                # Безопасное чтение для логирования, чтобы избежать AttributeError на CharacterSheet.
-                _avatar_hp = getattr(_avatar_state, "effective_hp", getattr(_avatar_state, "hp", 0))
-                logger.warning(
-                    f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_hp}"
-                )
-
-            # S115 FIX: Обновляем кэш LifeEngine с мутированным all_npcs_raw.
-            # Без этого _resolve_npcs_snapshot возвращает старые данные (без денег/урона).
-            _engine = self._get_life_engine()
-            if (
-                _engine
-                and hasattr(_ctx, "all_npcs_raw")
-                and _ctx.all_npcs_raw is not None
-            ):
-                _engine.update_cache(campaign_id, _ctx.all_npcs_raw)
-
-        except Exception as _fin_err:
-            logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)
-            npc_result = {}
-            # Защита: _player_result может быть None
-            shared_context.npc_contexts = (
-                getattr(_player_result, "npc_contexts", []) or []
-            )
-
-        # Avatar update — после perception (shared_context.npc_contexts отфильтрован)
-        try:
-            from app.models.npc_state import EmotionTag
-            from app.services.game_loop.phase_6_avatar import (
-                update_avatar_from_npc_intents,
-            )
-
-            update_avatar_from_npc_intents(
-                self.avatar_service,
-                campaign_id,
-                _player_name,
-                shared_context.npc_contexts or [],
-                EmotionTag,
-            )
-        except Exception as _av_err:
-            logger.warning(f"[AVATAR] update error: {_av_err}")
-
         return _PipelineState(
             shared_context=shared_context,
             classification_results=[],

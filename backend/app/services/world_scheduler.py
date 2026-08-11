@@ -30,7 +30,7 @@ class WorldScheduler:
             return None
 
     def maybe_tick(self, world_id: str, every_minutes: int) -> dict:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)  # §15.2: Infrastructure scheduler interval check
         last_tick = self._last_tick_at(world_id)
         if last_tick and (now - last_tick) < timedelta(minutes=every_minutes):
             return {"triggered": False, "reason": "interval_not_elapsed", "events": []}

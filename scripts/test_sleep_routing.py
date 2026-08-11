@@ -55,30 +55,37 @@ def run_sleep_test():
         logger.error("❌ SceneState не загружен после reinit_campaign.")
         return False
 
-    logger.info("Устанавливаю время 02:00 (ночь) и обнуляю стресс/угрозы...")
-    env = scene_state.setdefault("environment", {})
-    env["time_of_day"] = "02:00"
-    scene_state["game_time_seconds"] = 2 * 3600
-    
-    # S-01 FIX: Принудительно обнуляем стресс и угрозы для чистоты теста сна.
-    for npc in scene_state.get("npcs", []):
-        npc.setdefault("psyche", {})["stress"] = 0.0
-        _pk = npc.setdefault("perceptual_kernel", {})
-        if isinstance(_pk, dict):
-            _pk["threat_gradient"] = 0.0
-            
-    scene_manager.save_scene_state(campaign_id, scene_state)
+    logger.info("Устанавливаю время 02:00 (ночь) и обнуляю стресс/угрозы для всех локаций...")
+    for loc_id in ["tavern", "city_gate"]:
+        _loc_state = scene_manager.get_scene_state(campaign_id, loc_id)
+        if not _loc_state:
+            continue
+        _env = _loc_state.setdefault("environment", {})
+        _env["time_of_day"] = "02:00"
+        _loc_state["game_time_seconds"] = 2 * 3600
+        
+        # S-01 FIX: Принудительно обнуляем стресс и угрозы для чистоты теста сна.
+        for _npc in _loc_state.get("npcs", []):
+            _npc.setdefault("psyche", {})["stress"] = 0.0
+            _pk = _npc.setdefault("perceptual_kernel", {})
+            if isinstance(_pk, dict):
+                _pk["threat_gradient"] = 0.0
+                
+        scene_manager.save_scene_state(campaign_id, _loc_state)
 
     logger.info("Прогон 120 тиков симуляции (Tavern + City Gate)...")
     for i in range(120):
         # S-146 FIX: Тикаем обе локации, чтобы NPC могли дойти до кроватей в city_gate
         loop.idle_tick(campaign_id, location_id="tavern")
         loop.idle_tick(campaign_id, location_id="city_gate")
-        # Сохраняем время 02:00, чтобы они точно уснули
-        scene_state = scene_manager.get_scene_state(campaign_id, "tavern")
-        env = scene_state.setdefault("environment", {})
-        env["time_of_day"] = "02:00"
-        scene_manager.save_scene_state(campaign_id, scene_state)
+        # Принудительно сохраняем время 02:00 во всех локациях, чтобы они точно уснули
+        for loc_id in ["tavern", "city_gate"]:
+            _loc_state = scene_manager.get_scene_state(campaign_id, loc_id)
+            if not _loc_state:
+                continue
+            _env = _loc_state.setdefault("environment", {})
+            _env["time_of_day"] = "02:00"
+            scene_manager.save_scene_state(campaign_id, _loc_state)
         
         scene_state_gate = scene_manager.get_scene_state(campaign_id, "city_gate")
         if scene_state_gate:

@@ -77,11 +77,16 @@ def run_npc_orchestration(
     from app.services.spatial.spatial_factory import SpatialFactory
     from app.services.spatial.spatial_query_service import SpatialQueryService
 
-    _spatial_svc = SpatialFactory.build_for_campaign(
-        campaign_id=campaign_id,
-        location_id=location,
-        scene_state=shared_context.scene_state or {},
-    )
+    # BUG-CORE-020 FIX: Защита внешнего вызова SpatialFactory try/except (как во внутреннем цикле)
+    _spatial_svc = None
+    try:
+        _spatial_svc = SpatialFactory.build_for_campaign(
+            campaign_id=campaign_id,
+            location_id=location,
+            scene_state=shared_context.scene_state or {},
+        )
+    except Exception as e:
+        logger.warning(f"SpatialFactory failed for active loc={location}: {e}")
     # ADR-048: Authoritative Spatial Spine
     _scene_state = shared_context.scene_state
     if _scene_state is None:

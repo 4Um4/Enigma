@@ -79,10 +79,9 @@ def _update_player_position(
         return
     node["local_position"] = {"x": player_position[0], "y": player_position[1]}
     # ADR-048: Player как полноправный агент npc_positions. _resolve_reactive_movement ищет position.
+    # BUG-SPATIAL-033 FIX: Удалён legacy фоллбэк player_spatial. Чтение позиции только из npc_positions[player].
     if not node.get("position"):
-        _ps = scene_state.get("player_spatial", {})
-        if _ps and _ps.get("position"):
-            node["position"] = _ps["position"]
+        node["position"] = ""
 
 
 def _sync_game_time(scene_state: dict, shared_context: Any) -> None:
@@ -129,7 +128,7 @@ def _reconcile_elapsed_time(
 ) -> None:
     """ADR-047: Аналитический декэй вместо TICK_CATCHUP (если >60с реального времени)."""
     last_save_ts = scene_state.get("last_save_real_time", 0)
-    elapsed_real = _time.time() - last_save_ts if last_save_ts else 0
+    elapsed_real = _time.time() - last_save_ts if last_save_ts else 0  # §15.2: REAL_TIME_BRIDGE (ADR-047)
     if elapsed_real > 60:
         life_engine.reconcile_state(campaign_id, elapsed_real)
         logger.info(f"[SCENE_INIT] Reconciled state for {elapsed_real:.0f}s elapsed")

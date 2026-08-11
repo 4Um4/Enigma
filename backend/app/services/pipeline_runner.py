@@ -99,7 +99,36 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     Без этого R3_DIRECT получает 0 decisions → DM видит пустой мир → "Ничего не произошло".
     """
     ctx.communication_intents = mutation.communication_intents or []
-    ctx.movement_intents = mutation.movement_intents or []
+    # SLEEP_FIX: Объединяем интенты от Фазы 0 (LifeEngine) и Фазы 5 (DecisionHub),
+    # чтобы запланированное движение к кровати не отменялось, если DecisionHub вернул IDLE.
+    _phase_5_intents = mutation.movement_intents or []
+    _phase_0_intents = getattr(ctx, 'movement_intents', []) or []
+    _merged_intents = list(_phase_0_intents)
+    for _intent in _phase_5_intents:
+        if _intent not in _merged_intents:
+            _merged_intents.append(_intent)
+            
+    # SLEEP_FIX: Если NPC спит, блокируем все движения, кроме schedule.
+    # Это предотвращает перехват сна проактивными интентами от WorldTickEngine.
+    _sleeping_npcs = set()
+    for _n in (ctx.all_npcs_raw or []):
+        if _n.get("routine", {}).get("current") in ("sleeping", "resting"):
+            _sleeping_npcs.add(_n.get("npc_id") or _n.get("id"))
+            
+    if _sleeping_npcs:
+        _filtered_intents = []
+        for _intent in _merged_intents:
+            _actor_id = getattr(_intent, "actor_id", None)
+            if _actor_id in _sleeping_npcs:
+                _reason = getattr(_intent, "reason", "")
+                if "schedule" not in _reason:
+                    logger.info(f"[SLEEP_GUARD] npc={_actor_id} is sleeping, dropping non-schedule movement intent: {_reason}")
+                    continue
+            _filtered_intents.append(_intent)
+        ctx.movement_intents = _filtered_intents
+    else:
+        ctx.movement_intents = _merged_intents
+        
     ctx.significant_events = mutation.npc_deltas or []
 
     # Применение L1 Drift Events (Append-only Chronicle)

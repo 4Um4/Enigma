@@ -23,6 +23,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator
+from app.services.npc.kernel_rng import KernelRNG
 
 from app.core.config import settings
 from app.services.llm.provider import (
@@ -160,7 +161,9 @@ class LlamaCppProvider(StreamingLlmProvider):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        _seed = random.randint(0, 2**31 - 1)
+        # BUG-DLG-044 FIX: Детерминированный seed для LLM через KernelRNG (salt=prompt).
+        _rng = KernelRNG(tick=0, npc_id="llama_cpp", salt=prompt)
+        _seed = _rng.randint(0, 2**31 - 1)
         payload = {
             "messages": messages,
             "max_tokens": params.max_tokens,

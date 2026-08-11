@@ -131,12 +131,29 @@ class ProjectionEngine:
                 import copy
 
                 _fields = copy.deepcopy(thick.traversal.fields)
-                scene_state.setdefault("active_traversals", {})[thick.target] = _fields
-                logger.debug(
-                    f"[PROJECTION] Traversal NEW: npc={thick.target} "
-                    f"target={thick.value} "
-                    f"duration={_fields.get('duration_ticks', '?')}"
-                )
+                _active_traversals = scene_state.setdefault("active_traversals", {})
+                _existing = _active_traversals.get(thick.target)
+                # SLEEP_FIX #1: НЕ перезаписывать in-flight транзит.
+                # Если NPC уже в MOVING-транзите с той же целью — сохраняем оригинальный
+                # started_tick, иначе транзит никогда не завершится (expected_arrival_tick
+                # всегда будет current_tick + duration_ticks).
+                if (
+                    _existing
+                    and _existing.get("status") == "MOVING"
+                    and _existing.get("target_node") == _fields.get("target_node")
+                ):
+                    logger.debug(
+                        f"[PROJECTION] Traversal NEW suppressed (in-flight): "
+                        f"npc={thick.target} target={thick.value} "
+                        f"(preserving started_tick={_existing.get('started_tick')})"
+                    )
+                else:
+                    _active_traversals[thick.target] = _fields
+                    logger.debug(
+                        f"[PROJECTION] Traversal NEW: npc={thick.target} "
+                        f"target={thick.value} "
+                        f"duration={_fields.get('duration_ticks', '?')}"
+                    )
             elif thick.traversal.status == "COMPLETED":
                 # ADR-XXX: ProjectionEngine = READ-ONLY observer.
                 # Transition MOVING→COMPLETED выполняется ТОЛЬКО через SSM FSM.

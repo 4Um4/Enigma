@@ -2,11 +2,14 @@
 Назначение: будет вычислять доступную видеопамять (VRAM) через nvidia-smi и динамически рассчитывать количество слоев -ngl. Бэкенд будет читать этот профиль при запуске.
 """
 
+import logging
 import subprocess
 import json
 import os
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 def get_gpu_vram() -> Optional[int]:
     """Запрашивает объем VRAM через nvidia-smi. Возвращает МБ или None."""
@@ -69,5 +72,5 @@ if __name__ == "__main__":
     # Для ручного теста
     _config_dir = Path(__file__).resolve().parents[3] / "config"
     _ngl = run_probe(_config_dir)
-    print(f"Calculated ngl: {_ngl}")
-    print(f"Profile saved to: {_config_dir / 'gpu_profile.json'}")
+    logger.info(f"Calculated ngl: {_ngl}")
+    logger.info(f"Profile saved to: {_config_dir / 'gpu_profile.json'}")

@@ -168,6 +168,6 @@ def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (A
 
 if __name__ == "__main__":
     graph = run_parser()
-    print(f"Распознано ADR: {len(graph)}")
+    logger.info(f"Распознано ADR: {len(graph)}")
     for aid, node in list(graph.items())[:5]:
-        print(f"  {aid} [{node.adr_type}] {node.title} (Laws: {node.laws}, Files: {len(node.files)})")
+        logger.info(f"  {aid} [{node.adr_type}] {node.title} (Laws: {node.laws}, Files: {len(node.files)})")

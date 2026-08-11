@@ -147,7 +147,8 @@ class NpcTickPipeline:
         communication_intents: List[Any] = []
         movement_intents: List[Any] = []
         npc_deltas: List[Any] = []
-        l1_drift_events: List[Any] = []
+        # BUG-CORE-013 FIX: l1_drift_events удалён как мёртвый код (нет .append).
+        # TickMutation имеет default_factory=list.
         memory_events: List[Any] = []
 
         for npc in _npcs_to_process:
@@ -473,10 +474,33 @@ class NpcTickPipeline:
 
             # V8-PSY-FIX: Если NPC должен спать, подавляем проактивные интенты и FLEE,
             # чтобы он не повышал стресс и мог уснуть (GAP9 контракт).
-            if _current_activity in ("sleeping", "resting", "спит"):
+            # SLEEP_FIX_V3 #1: Проверяем _scheduled_activity (из schedule + game_time),
+            # а не routine["current"]. LifeEngine делает early return при active
+            # traversal, и routine["current"] не обновляется — но NPC всё равно
+            # ДОЛЖЕН спать по расписанию. Используем тот же алгоритм, что и
+            # LifeEngine (хелперы _parse_game_time, _time_to_minutes, _in_time_range).
+            from app.services.npc.life_engine import (
+                _parse_game_time,
+                _time_to_minutes,
+                _in_time_range,
+            )
+            _game_time_str = _parse_game_time(state.scene_state)
+            _game_minutes = _time_to_minutes(_game_time_str)
+            _schedule = _npc_dict_for_write.get("routine", {}).get("schedule", {})
+            _scheduled_activity = next(
+                (act for _range, act in _schedule.items()
+                 if _in_time_range(_range, _game_minutes)),
+                "",
+            )
+            _should_sleep = (
+                _scheduled_activity in ("sleeping", "resting", "спит")
+                or _current_activity in ("sleeping", "resting", "спит")
+            )
+            if _should_sleep:
                 from app.services.npc.decision_hub import PROACTIVE_INTENTS
                 for _p_intent in PROACTIVE_INTENTS:
-                    _all_modifiers[_p_intent] = _all_modifiers.get(_p_intent, 0.0) - 10.0
+                    _p_key = getattr(_p_intent, "value", _p_intent)
+                    _all_modifiers[_p_key] = _all_modifiers.get(_p_key, 0.0) - 10.0
                 _all_modifiers["flee"] = _all_modifiers.get("flee", 0.0) - 10.0
 
 
@@ -587,8 +611,11 @@ class NpcTickPipeline:
             else:
                 # BUG-CORE-005 FIX: Добавлена else-ветвь для всех movement-capable intents (approach, flee, и т.д.).
                 # Ранее не-спящие NPC с intent=approach/flee/seek_ally просто дропали movement_intent.
-                if _intent_value in _MOVE_INTENTS and _current_routine.get("current") == "sleeping":
-                    logger.info(f"[SLEEP_GUARD] npc={npc_id} routine=sleeping, blocking reactive movement={_intent_value}")
+                # SLEEP_FIX_V3 #2: reactive SLEEP_GUARD проверяет _should_sleep
+                # (вычислен выше в V3-1), а не routine["current"]. NPC в transit
+                # тоже защищён от реактивных движений.
+                if _intent_value in _MOVE_INTENTS and _should_sleep:
+                    logger.info(f"[SLEEP_GUARD] npc={npc_id} scheduled=sleeping, blocking reactive movement={_intent_value}")
                     _intent_value = "idle"
                     import dataclasses
                     from app.models.npc_state import Intent
@@ -664,7 +691,7 @@ class NpcTickPipeline:
             npc_deltas=npc_deltas,
             communication_intents=communication_intents,
             movement_intents=movement_intents,
-            l1_drift_events=l1_drift_events,
+            l1_drift_events=[],  # BUG-CORE-013 FIX: Передаём пустой список (мёртвый код удалён)
             memory_events=memory_events,
             idle_pressure_updates=_idle_pressure_updates, # V8-SOC-5 FIX
         )

@@ -8,6 +8,7 @@ path: /backend/app/services/verbalization/dm_response_normalizer.py
 import json
 import logging
 import random
+from app.services.npc.kernel_rng import KernelRNG
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -68,7 +69,9 @@ class DMResponseNormalizer:
             if root in text_lower:
                 # Silent replacement (B-plan fallback для minor NPC / DM)
                 logger.info(f"[CONTENT_POLICY] Profanity detected (root='{root}'). Replacing with fallback.")
-                return random.choice([
+                # BUG-CORE-025 FIX: Детерминированный выбор через KernelRNG (salt=text для уникальности).
+                _rng = KernelRNG(tick=0, npc_id="dm_normalizer", salt=text)
+                return _rng.choice([
                     "Происходит неловкое молчание.",
                     "Собеседник замолкает, подбирая слова.",
                     "В воздухе повисает напряжение."

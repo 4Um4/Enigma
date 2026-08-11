@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
 """
@@ -29,6 +27,9 @@ SceneState хранится в:
   backend/data/logs/scene_changes_YYYYMMDD.jsonl
 """
 
+
+from __future__ import annotations
+import os
 
 import hashlib
 import json
@@ -77,8 +78,12 @@ def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
         "applied": applied,
         **change.to_dict(),
     }
+    # P0-14 FIX: Атомарная запись строки для предотвращения truncated JSON при краше.
+    _line = json.dumps(entry, ensure_ascii=False) + "\n"
     with open(_scene_log_file(), "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        f.write(_line)
+        f.flush()
+        os.fsync(f.fileno())
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1243,9 +1248,24 @@ class SceneStateManager:
                                         else:
                                             from app.domain.traversal_schema import build_traversal_dict
                                             _traversal_dict = build_traversal_dict(_proposal)
-                                            scene_state.setdefault("active_traversals", {})[
-                                                change.target
-                                            ] = _traversal_dict
+                                            _active_travs = scene_state.setdefault("active_traversals", {})
+                                            _existing_trav = _active_travs.get(change.target)
+                                            # SLEEP_FIX #1: НЕ перезаписывать in-flight транзит.
+                                            # Если NPC уже в MOVING-транзите с той же целью — сохраняем оригинальный
+                                            # started_tick, иначе транзит никогда не завершится (expected_arrival_tick
+                                            # всегда будет current_tick + duration_ticks).
+                                            if (
+                                                _existing_trav
+                                                and _existing_trav.get("status") == "MOVING"
+                                                and _existing_trav.get("target_node") == _traversal_dict.get("target_node")
+                                            ):
+                                                logger.debug(
+                                                    f"[SSM] Traversal NEW suppressed (in-flight): "
+                                                    f"npc={change.target} target={_traversal_dict.get('target_node')} "
+                                                    f"(preserving started_tick={_existing_trav.get('started_tick')})"
+                                                )
+                                            else:
+                                                _active_travs[change.target] = _traversal_dict
                                     elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):
                                         # Контракт: macro relocation (field="position") обязан иметь proposal.
                                         # Исключение: traversal_complete и cross_loc_materialize (snap позиции, proposal не нужен).

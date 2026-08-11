@@ -741,280 +741,27 @@ class StateApplicator:
                     f"[SCC_PASS] npc={state.npc_id} decay emotion={_converted} applied to M."
                 )
 
-        # SCC: affective_load — интеграл давления. Пишется в M ТОЛЬКО через decay.
-        # Аффективный pipeline (Phase 9) и Рефлексы (Phase 8) блокируются.
-        if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
-            _payload_load = getattr(deltas.payload, "affective_load", None)
-            if _payload_load is not None:
-                if deltas.source in ("affective_decay", "sel_trace_commit"):
-                    state.affective_load = min(1.0, max(0.0, _payload_load))
-                    # DEEP-006 FIX: sel_trace_commit также легитимно пишет affective_memory (Фаза 9.1)
-                    if deltas.source == "sel_trace_commit":
-                        _payload_memory = getattr(deltas.payload, "affective_memory", None)
-                        if _payload_memory is not None:
-                            state.affective_memory = _payload_memory
-                    logger.debug(
-                        f"[SCC_PASS] npc={state.npc_id} src={deltas.source} affective_load={_payload_load:.3f} applied to M."
-                    )
-                else:
-                    logger.debug(
-                        f"[SCC_BLOCK] npc={state.npc_id} affective_load={_payload_load:.3f} blocked. S-writes to M forbidden."
-                    )
+        self._apply_emotion_social_deltas(state, domain, deltas)
 
-        # Field Channel: EMA — единственное динамическое социальное состояние
-        _ema_delta = 0.0
-        if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload):
-            _ema_delta = getattr(deltas.payload, "social_input_ema_delta", 0.0)
-
-        if _ema_delta != 0.0:
-            state.social_input_ema = max(
-                0.0, min(1.0, state.social_input_ema + _ema_delta)
-            )
-            logger.warning(
-                f"[SOCIAL_EMA] npc={state.npc_id} delta={_ema_delta:+.3f} result={state.social_input_ema:.3f}"
-            )
-            if deltas.source == "sel_trace_commit" and isinstance(
-                deltas.payload, EmotionPayload
-            ):
-                _payload_memory = getattr(deltas.payload, "affective_memory", None)
-                if _payload_memory is not None:
-                    state.affective_memory = min(1.0, max(0.0, _payload_memory))
-
-                _payload_load = getattr(deltas.payload, "affective_load", None)
-                if _payload_load is not None:
-                    state.affective_load = min(1.0, max(0.0, _payload_load))
-                    logger.debug(
-                        f"[SEL_COMMIT] npc={state.npc_id} affective_load={_payload_load:.3f}, memory={_payload_memory:.3f} applied to M."
-                    )
-
-        # ADR-O-304: Trait Dynamics — накопление энергии активации (гистерезис).
-        # Черта не активируется мгновенно. Энергия накапливается в trait_activation.
-        # Активация происходит в _apply_trait_dynamics, когда энергия превышает THETA_UP.
-        from app.core.constants import TRAIT_ACTIVATION_RATE
-
-        for trait, value in deltas.trait_updates.items():
-            _current_energy = state.trait_activation.get(trait, 0.0)
-            state.trait_activation[trait] = min(
-                1.0, _current_energy + (value * TRAIT_ACTIVATION_RATE)
-            )
-
-        # Травма
-        if new_trauma:
-            state.trauma_markers.add(new_trauma)
-            # S71: Мутация при других типах травм.
-            # ADR-O-208: TIFL больше не мутирует состояние напрямую через
-            # apply_drives_mutation (функция удалена). compute_mutation возвращает
-            # дельты, которые мы применяем через TraitDriftEvent → L1Chronicle →
-            # DriveResolver на следующем тике. Это сохраняет Закон Сохранения Я
-            # (нормализация в DriveResolver, не в мутаторе).
-            from app.domain.identity_events import TraitDriftEvent
-            from app.services.npc.break_progress_engine import compute_mutation
-
-            _drive_mutations = compute_mutation(state, new_trauma)
-            if _drive_mutations:
-                # Генерируем L1 события деформации
-                _tick = getattr(state, "intent_formed_at", 0)
-                # Канонический контракт TraitDriftEvent (ADR-O-305A)
-                _events = [
-                    TraitDriftEvent(
-                        tick_id=_tick,
-                        target_id=state.npc_id,
-                        source_id=f"trauma:{new_trauma}",
-                        effect_value=delta,
-                        observation_weight=1.0,
-                        event_type=f"trauma:{trait}",
-                    )
-                    for trait, delta in _drive_mutations.items()
-                ]
-                # Запись в L1Chronicle (если есть в state)
-                _chronicle = getattr(self, "_l1_chronicle", None)
-                if _chronicle is not None:
-                    _chronicle.commit_tick_buffer(_events, _tick)
-                else:
-                    # ADR-O-208: L3-P1. Прямая мутация drives_runtime запрещена.
-                    import logging
-
-                    logging.getLogger(__name__).warning(
-                        f"[STATE_APPLICATOR] L1Chronicle not attached to StateApplicator. "
-                        f"Drive mutation for {state.npc_id} ignored (L3 strictly ephemeral)."
-                    )
+        self._apply_trauma_and_traits(state, deltas, new_trauma)
 
         # --- Физиология (Physiology Domain) ---
         if domain == DeltaDomain.PHYSIOLOGY:
-            # Инициализация body_state при первом применении
-            if not state.body_state:
-                state.body_state = {
-                    "current_hp": 100.0,
-                    "pain": 0.0,
-                    "fatigue": 0.0,
-                    "blood_loss": 0.0,
-                    "consciousness": 1.0,
-                    "shock_impulse": 0.0,
-                    "injuries": [],
-                    "modifiers": {},
-                    "statuses": [],
-                }
-
-            if hp_delta != 0.0:
-                _max_hp = state.body_state.get("max_hp", 100.0)
-                _cur_hp = state.body_state.get("current_hp", _max_hp)
-                state.body_state["current_hp"] = max(
-                    0.0, min(_max_hp, _cur_hp + hp_delta)
-                )
-
-            if pain_delta != 0.0:
-                _cur_pain = state.body_state.get("pain", 0.0)
-                state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
-
-            if fatigue_delta != 0.0:
-                _cur_fat = state.body_state.get("fatigue", 0.0)
-                state.body_state["fatigue"] = max(
-                    0.0, min(100.0, _cur_fat + fatigue_delta)
-                )
-
-            if blood_loss_delta != 0.0:
-                _cur_blood = state.body_state.get("blood_loss", 0.0)
-                state.body_state["blood_loss"] = max(
-                    0.0, min(1.0, _cur_blood + blood_loss_delta)
-                )
-
-            if add_injuries:
-                # Конвертируем InjuryDTO в dict для JSON-сериализации
-                state.body_state.setdefault("injuries", []).extend(
-                    [asdict(inj) for inj in add_injuries]
-                )
-                logger.debug(
-                    f"[INJURY_APPLIED] npc={state.npc_id} total_injuries={len(state.body_state.get('injuries', []))} new={[i.damage_type for i in add_injuries]}"
-                )
-
-            if add_statuses:
-                state.body_state.setdefault("statuses", []).extend(add_statuses)
-
-            if remove_statuses:
-                state.body_state["statuses"] = [
-                    s
-                    for s in state.body_state.get("statuses", [])
-                    if s not in remove_statuses
-                ]
-
-            # Шоковый импульс: аддитивный с потолком 1.0, decay даёт отрицательную дельту
-            if shock_impulse != 0.0:
-                _cur_shock = state.body_state.get("shock_impulse", 0.0)
-                state.body_state["shock_impulse"] = max(
-                    0.0, min(1.0, _cur_shock + shock_impulse)
-                )
-
-            # ADR-124: Consciousness derivation из физиологии
-            # Сознание — НЕ аккумулятор. Это производная от blood_loss и shock_impulse.
-            # Кровопотеря и шок — ПРИЧИНЫ потери сознания, не пороги.
-            # Формула: consciousness = max(0, 1 - blood_loss^1.5 * 2.0 - shock_impulse * 1.5)
-            # Нелинейность: лёгкая кровопотеря почти не влияет, тяжёлая — обрушивает.
-            # Consciousness может только УПАСТЬ от физиологии в этом шаге.
-            # Восстановление — через DecayHandler (recovery), но физиология — авторитетнее.
-            _bl = state.body_state.get("blood_loss", 0.0)
-            _si = state.body_state.get("shock_impulse", 0.0)
-            _physiological_consciousness = max(0.0, 1.0 - (_bl**1.5) * 2.0 - _si * 1.5)
-            _cur_consciousness = state.body_state.get("consciousness", 1.0)
-            if _physiological_consciousness < _cur_consciousness:
-                state.body_state["consciousness"] = round(
-                    _physiological_consciousness, 4
-                )
-                logger.debug(
-                    f"[CONSCIOUSNESS_DROP] npc={state.npc_id} bl={_bl:.3f} shock={_si:.3f} old={_cur_consciousness:.3f} new={state.body_state['consciousness']:.3f}"
-                )
-
-            # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: Закон Сохранения Эмоциональной Энергии.
-            # PHYSIOLOGY fallback УБИТ. Причина: pain и shock уже включены в
-            # AffectiveIntegrator через psyche dict (inc = threat×fear + pain + shock).
-            # Двойной пересчёт здесь нарушал бы сохранение: нагрузка считалась бы
-            # дважды за один тик. Единственный писатель — AffectivePipeline.
-            pass
-
-            # Transitional: vital_state evaluation after PHYSIOLOGY domain.
-            # Legacy hp-based death paths are being removed (combat_math.apply_damage is dead code).
-            # TODO: Move to end-of-tick reconciliation phase after ALL domains applied,
-            # not just PHYSIOLOGY. Future processes (InfectionProcess, HypoxiaProcess,
-            # PoisonProcess) will modify body_state through other domains too.
-            _life_status = evaluate_vital_state(state.body_state)
-            state.body_state["life_status"] = _life_status.value
-            if _life_status == LifeStatus.DEAD:
-                logger.warning(
-                    f"[DEATH_CERTIFIED] npc={state.npc_id} bl={state.body_state.get('blood_loss', 0):.3f} structural={sum(float(i.get('structural_damage', 0)) for i in state.body_state.get('injuries', [])):.3f}"
-                )
-            if _life_status == LifeStatus.DEAD:
-                logger.warning(
-                    f"[DEATH_CERTIFIED] npc={state.npc_id} life_status={_life_status.value} bl={state.body_state.get('blood_loss', 0):.3f} structural={sum(float(i.get('structural_damage', 0)) for i in state.body_state.get('injuries', [])):.3f}"
-                )
-
-        # --- Восприятие (Perception Domain / ADR-O) ---
-        # BUG-001 FIX: директивные perception-поля (aggression_inhibition_delta,
-        # compliance_bias_delta, initiative_suppression_delta, recent_directive_data)
-        # применяются НЕЗАВИСИМО от DeltaDomain. Раньше они были внутри
-        # `if domain == DeltaDomain.PERCEPTION:`, но DirectiveInterpretationSubscriber
-        # отправляет их с DeltaDomain.IDENTITY → поля терялись → каузальная труба
-        # приказов была мертва.
-
-        # Шаг 1: инициализация PerceptualKernel (один раз, любой domain)
-        if not hasattr(state, "perceptual_kernel") or state.perceptual_kernel is None:
-            from app.models.npc_state import PerceptualKernel
-
-            state.perceptual_kernel = PerceptualKernel()
-
-        # Шаг 2: директивные perception-поля — применяются всегда (любой domain)
-        # Это каузальная труба воли: приказ → pressure → PerceptualKernel.
-        _aggr_inh = getattr(deltas.payload, "aggression_inhibition_delta", 0.0)
-        if _aggr_inh != 0.0:
-            state.perceptual_kernel.aggression_inhibition = max(
-                0.0, min(1.0, state.perceptual_kernel.aggression_inhibition + _aggr_inh)
+            self._apply_physiology_deltas(
+                state,
+                hp_delta,
+                pain_delta,
+                fatigue_delta,
+                blood_loss_delta,
+                add_injuries,
+                add_statuses,
+                remove_statuses,
+                shock_impulse,
             )
-        _comp_bias = getattr(deltas.payload, "compliance_bias_delta", 0.0)
-        if _comp_bias != 0.0:
-            state.perceptual_kernel.compliance_bias = max(
-                0.0, min(1.0, state.perceptual_kernel.compliance_bias + _comp_bias)
-            )
-        _init_sup = getattr(deltas.payload, "initiative_suppression_delta", 0.0)
-        if _init_sup != 0.0:
-            state.perceptual_kernel.initiative_suppression = max(
-                0.0,
-                min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup),
-            )
-        if _recent_dir := getattr(deltas.payload, "recent_directive_data", None):
-            state.perceptual_kernel.recent_directive = _recent_dir
 
-        # Шаг 3: PERCEPTION-специфичные поля (threat/uncertainty/anomaly)
-        if domain == DeltaDomain.PERCEPTION:
-            if threat_gradient_delta != 0.0:
-                state.perceptual_kernel.threat_gradient = max(
-                    0.0,
-                    min(
-                        1.0,
-                        state.perceptual_kernel.threat_gradient + threat_gradient_delta,
-                    ),
-                )
-            if uncertainty_delta_perc != 0.0:
-                state.perceptual_kernel.uncertainty = max(
-                    0.0,
-                    min(
-                        1.0,
-                        state.perceptual_kernel.uncertainty + uncertainty_delta_perc,
-                    ),
-                )
-            if anomaly_score_delta_perc != 0.0:
-                state.perceptual_kernel.anomaly_score = max(
-                    0.0,
-                    min(
-                        1.0,
-                        state.perceptual_kernel.anomaly_score
-                        + anomaly_score_delta_perc,
-                    ),
-                )
-
-            # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: PERCEPTION domain НЕ пишет в affective_load.
-            pass
-
-            # S72: dominant_emotion_hint
-            if dominant_emotion_hint:
-                state.perceptual_kernel.dominant_emotion = dominant_emotion_hint
+        self._apply_perception_deltas(
+            state, domain, deltas, threat_gradient_delta, uncertainty_delta_perc, anomaly_score_delta_perc, dominant_emotion_hint
+        )
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
         # Фаза 4-ROLE.2: emotional_impact для генерации TemporaryDrive
@@ -1132,6 +879,264 @@ class StateApplicator:
                 # Мутация допустима только как проекция из единственного владельца.
                 fresh = self._rel_store.get_pair(campaign_id, state.npc_id, _target)
                 state.relationship_cache.setdefault(_target, {}).update(fresh)
+
+    def _apply_physiology_deltas(
+        self,
+        state: NPCState,
+        hp_delta: float,
+        pain_delta: float,
+        fatigue_delta: float,
+        blood_loss_delta: float,
+        add_injuries: list,
+        add_statuses: list,
+        remove_statuses: list,
+        shock_impulse: float,
+    ) -> None:
+        """Применяет дельты физиологии (HP, боль, шок) к body_state."""
+        # Инициализация body_state при первом применении
+        if not state.body_state:
+            state.body_state = {
+                "current_hp": 100.0,
+                "pain": 0.0,
+                "fatigue": 0.0,
+                "blood_loss": 0.0,
+                "consciousness": 1.0,
+                "shock_impulse": 0.0,
+                "injuries": [],
+                "modifiers": {},
+                "statuses": [],
+            }
+
+        if hp_delta != 0.0:
+            _max_hp = state.body_state.get("max_hp", 100.0)
+            _cur_hp = state.body_state.get("current_hp", _max_hp)
+            state.body_state["current_hp"] = max(
+                0.0, min(_max_hp, _cur_hp + hp_delta)
+            )
+
+        if pain_delta != 0.0:
+            _cur_pain = state.body_state.get("pain", 0.0)
+            state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
+
+        if fatigue_delta != 0.0:
+            _cur_fat = state.body_state.get("fatigue", 0.0)
+            state.body_state["fatigue"] = max(
+                0.0, min(100.0, _cur_fat + fatigue_delta)
+            )
+
+        if blood_loss_delta != 0.0:
+            _cur_blood = state.body_state.get("blood_loss", 0.0)
+            state.body_state["blood_loss"] = max(
+                0.0, min(1.0, _cur_blood + blood_loss_delta)
+            )
+
+        if add_injuries:
+            # Конвертируем InjuryDTO в dict для JSON-сериализации
+            state.body_state.setdefault("injuries", []).extend(
+                [asdict(inj) for inj in add_injuries]
+            )
+            logger.debug(
+                f"[INJURY_APPLIED] npc={state.npc_id} total_injuries={len(state.body_state.get('injuries', []))} new={[i.damage_type for i in add_injuries]}"
+            )
+
+        if add_statuses:
+            state.body_state.setdefault("statuses", []).extend(add_statuses)
+
+        if remove_statuses:
+            state.body_state["statuses"] = [
+                s
+                for s in state.body_state.get("statuses", [])
+                if s not in remove_statuses
+            ]
+
+        # Шоковый импульс: аддитивный с потолком 1.0, decay даёт отрицательную дельту
+        if shock_impulse != 0.0:
+            _cur_shock = state.body_state.get("shock_impulse", 0.0)
+            state.body_state["shock_impulse"] = max(
+                0.0, min(1.0, _cur_shock + shock_impulse)
+            )
+
+        # ADR-124: Consciousness derivation из физиологии
+        _bl = state.body_state.get("blood_loss", 0.0)
+        _si = state.body_state.get("shock_impulse", 0.0)
+        _physiological_consciousness = max(0.0, 1.0 - (_bl**1.5) * 2.0 - _si * 1.5)
+        _cur_consciousness = state.body_state.get("consciousness", 1.0)
+        if _physiological_consciousness < _cur_consciousness:
+            state.body_state["consciousness"] = round(
+                _physiological_consciousness, 4
+            )
+            logger.debug(
+                f"[CONSCIOUSNESS_DROP] npc={state.npc_id} bl={_bl:.3f} shock={_si:.3f} old={_cur_consciousness:.3f} new={state.body_state['consciousness']:.3f}"
+            )
+
+        # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: PHYSIOLOGY fallback УБИТ.
+        pass
+
+        # Transitional: vital_state evaluation
+        _life_status = evaluate_vital_state(state.body_state)
+        state.body_state["life_status"] = _life_status.value
+        if _life_status == LifeStatus.DEAD:
+            logger.warning(
+                f"[DEATH_CERTIFIED] npc={state.npc_id} bl={state.body_state.get('blood_loss', 0):.3f} structural={sum(float(i.get('structural_damage', 0)) for i in state.body_state.get('injuries', [])):.3f}"
+            )
+
+    def _apply_emotion_social_deltas(
+        self, state: NPCState, domain: DeltaDomain, deltas: StateDeltas
+    ) -> None:
+        """Применяет дельты эмоций (SCC) и социального давления (EMA)."""
+        # SCC: affective_load — интеграл давления. Пишется в M ТОЛЬКО через decay.
+        if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
+            _payload_load = getattr(deltas.payload, "affective_load", None)
+            if _payload_load is not None:
+                if deltas.source in ("affective_decay", "sel_trace_commit"):
+                    state.affective_load = min(1.0, max(0.0, _payload_load))
+                    if deltas.source == "sel_trace_commit":
+                        _payload_memory = getattr(deltas.payload, "affective_memory", None)
+                        if _payload_memory is not None:
+                            state.affective_memory = _payload_memory
+                    logger.debug(
+                        f"[SCC_PASS] npc={state.npc_id} src={deltas.source} affective_load={_payload_load:.3f} applied to M."
+                    )
+                else:
+                    logger.debug(
+                        f"[SCC_BLOCK] npc={state.npc_id} affective_load={_payload_load:.3f} blocked. S-writes to M forbidden."
+                    )
+
+        # Field Channel: EMA — единственное динамическое социальное состояние
+        _ema_delta = 0.0
+        if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload):
+            _ema_delta = getattr(deltas.payload, "social_input_ema_delta", 0.0)
+
+        if _ema_delta != 0.0:
+            state.social_input_ema = max(
+                0.0, min(1.0, state.social_input_ema + _ema_delta)
+            )
+            logger.warning(
+                f"[SOCIAL_EMA] npc={state.npc_id} delta={_ema_delta:+.3f} result={state.social_input_ema:.3f}"
+            )
+            if deltas.source == "sel_trace_commit" and isinstance(
+                deltas.payload, EmotionPayload
+            ):
+                _payload_memory = getattr(deltas.payload, "affective_memory", None)
+                if _payload_memory is not None:
+                    state.affective_memory = min(1.0, max(0.0, _payload_memory))
+
+                _payload_load = getattr(deltas.payload, "affective_load", None)
+                if _payload_load is not None:
+                    state.affective_load = min(1.0, max(0.0, _payload_load))
+                    logger.debug(
+                        f"[SEL_COMMIT] npc={state.npc_id} affective_load={_payload_load:.3f}, memory={_payload_memory:.3f} applied to M."
+                    )
+
+    def _apply_perception_deltas(
+        self,
+        state: NPCState,
+        domain: DeltaDomain,
+        deltas: StateDeltas,
+        threat_gradient_delta: float,
+        uncertainty_delta_perc: float,
+        anomaly_score_delta_perc: float,
+        dominant_emotion_hint: Optional[str],
+    ) -> None:
+        """Применяет дельты восприятия и директив к PerceptualKernel."""
+        # Шаг 1: инициализация PerceptualKernel (один раз, любой domain)
+        if not hasattr(state, "perceptual_kernel") or state.perceptual_kernel is None:
+            from app.models.npc_state import PerceptualKernel
+
+            state.perceptual_kernel = PerceptualKernel()
+
+        # Шаг 2: директивные perception-поля — применяются всегда (любой domain)
+        _aggr_inh = getattr(deltas.payload, "aggression_inhibition_delta", 0.0)
+        if _aggr_inh != 0.0:
+            state.perceptual_kernel.aggression_inhibition = max(
+                0.0, min(1.0, state.perceptual_kernel.aggression_inhibition + _aggr_inh)
+            )
+        _comp_bias = getattr(deltas.payload, "compliance_bias_delta", 0.0)
+        if _comp_bias != 0.0:
+            state.perceptual_kernel.compliance_bias = max(
+                0.0, min(1.0, state.perceptual_kernel.compliance_bias + _comp_bias)
+            )
+        _init_sup = getattr(deltas.payload, "initiative_suppression_delta", 0.0)
+        if _init_sup != 0.0:
+            state.perceptual_kernel.initiative_suppression = max(
+                0.0,
+                min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup),
+            )
+        if _recent_dir := getattr(deltas.payload, "recent_directive_data", None):
+            state.perceptual_kernel.recent_directive = _recent_dir
+
+        # Шаг 3: PERCEPTION-специфичные поля (threat/uncertainty/anomaly)
+        if domain == DeltaDomain.PERCEPTION:
+            if threat_gradient_delta != 0.0:
+                state.perceptual_kernel.threat_gradient = max(
+                    0.0,
+                    min(
+                        1.0,
+                        state.perceptual_kernel.threat_gradient + threat_gradient_delta,
+                    ),
+                )
+            if uncertainty_delta_perc != 0.0:
+                state.perceptual_kernel.uncertainty = max(
+                    0.0,
+                    min(
+                        1.0,
+                        state.perceptual_kernel.uncertainty + uncertainty_delta_perc,
+                    ),
+                )
+            if anomaly_score_delta_perc != 0.0:
+                state.perceptual_kernel.anomaly_score = max(
+                    0.0,
+                    min(
+                        1.0,
+                        state.perceptual_kernel.anomaly_score
+                        + anomaly_score_delta_perc,
+                    ),
+                )
+
+            if dominant_emotion_hint:
+                state.perceptual_kernel.dominant_emotion = dominant_emotion_hint
+
+    def _apply_trauma_and_traits(
+        self, state: NPCState, deltas: StateDeltas, new_trauma: Optional[str]
+    ) -> None:
+        """Применяет накопление энергии черт и обработку травм."""
+        from app.core.constants import TRAIT_ACTIVATION_RATE
+
+        for trait, value in deltas.trait_updates.items():
+            _current_energy = state.trait_activation.get(trait, 0.0)
+            state.trait_activation[trait] = min(
+                1.0, _current_energy + (value * TRAIT_ACTIVATION_RATE)
+            )
+
+        if new_trauma:
+            state.trauma_markers.add(new_trauma)
+            from app.domain.identity_events import TraitDriftEvent
+            from app.services.npc.break_progress_engine import compute_mutation
+
+            _drive_mutations = compute_mutation(state, new_trauma)
+            if _drive_mutations:
+                _tick = getattr(state, "intent_formed_at", 0)
+                _events = [
+                    TraitDriftEvent(
+                        tick_id=_tick,
+                        target_id=state.npc_id,
+                        source_id=f"trauma:{new_trauma}",
+                        effect_value=delta,
+                        observation_weight=1.0,
+                        event_type=f"trauma:{trait}",
+                    )
+                    for trait, delta in _drive_mutations.items()
+                ]
+                _chronicle = getattr(self, "_l1_chronicle", None)
+                if _chronicle is not None:
+                    _chronicle.commit_tick_buffer(_events, _tick)
+                else:
+                    import logging
+
+                    logging.getLogger(__name__).warning(
+                        f"[STATE_APPLICATOR] L1Chronicle not attached to StateApplicator. "
+                        f"Drive mutation for {state.npc_id} ignored (L3 strictly ephemeral)."
+                    )
 
     def _apply_trait_decay(self, state: NPCState) -> None:
         """

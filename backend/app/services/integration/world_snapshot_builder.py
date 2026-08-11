@@ -272,7 +272,7 @@ class WorldSnapshotBuilder:
             _real_name = data.get("name", npc_id)
 
             _display_name = "Незнакомец"
-            print(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")
+            # BUG-FB-036 FIX: Удалён print() из production-кода, оставлен logger.debug
             logger.debug(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")
             if _confidence >= 0.9:
                 _display_name = _real_name

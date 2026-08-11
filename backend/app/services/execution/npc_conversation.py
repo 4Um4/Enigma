@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import random
 from typing import Iterable
-
+from app.services.npc.kernel_rng import KernelRNG
 from app.domain.communication import DialogueRequest
 from app.domain.execution import Artifact, QueuedTask
 
@@ -219,7 +219,9 @@ class NpcConversation:
         elif "guard" in _npc_id or "borko" in _npc_id:
             _phrases = _AMBIENT_PHRASES_GUARD + _AMBIENT_PHRASES_COMMON
 
-        text = random.choice(_phrases)
+        # BUG-CORE-024 FIX: Детерминированный выбор фраз через KernelRNG.
+        _rng = KernelRNG(tick=getattr(task, 'tick', 0), npc_id=_npc_id, salt=task.task_id)
+        text = _rng.choice(_phrases)
 
         yield Artifact(
             task_id=task.task_id,

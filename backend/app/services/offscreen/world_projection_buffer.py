@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+import hashlib
 from typing import Any, Dict, List
 
 from app.domain.world_projection import ProjectionType, WorldProjectionEvent
@@ -41,9 +42,12 @@ class WorldProjectionBuffer:
         # 1. Анализ significant_events на предмет рождения слухов
         for event in significant_events:
             if event.get("type") in ("combat", "death", "steal"):
+                # BUG-FB-038 FIX: Детерминированный event_id через md5(tick:source:type)
+                _proj_seed = f"{tick}:{event.get('source', 'world')}:{ProjectionType.RUMOR.value}".encode()
+                _proj_id = hashlib.md5(_proj_seed).hexdigest()[:8]
                 projections.append(
                     WorldProjectionEvent(
-                        event_id=f"proj_{uuid.uuid4().hex[:8]}",
+                        event_id=f"proj_{_proj_id}",
                         tick=tick,
                         projection_type=ProjectionType.RUMOR,
                         source_id=event.get("source", "world"),
@@ -75,9 +79,11 @@ class WorldProjectionBuffer:
                 current_bs.get("blood_loss", 0) > 0.5
                 and prev_bs.get("blood_loss", 0) <= 0.5
             ):
+                _proj_seed = f"{tick}:{npc_id}:{ProjectionType.AMBIENT.value}".encode()
+                _proj_id = hashlib.md5(_proj_seed).hexdigest()[:8]
                 projections.append(
                     WorldProjectionEvent(
-                        event_id=f"proj_{uuid.uuid4().hex[:8]}",
+                        event_id=f"proj_{_proj_id}",
                         tick=tick,
                         projection_type=ProjectionType.AMBIENT,
                         source_id=npc_id,

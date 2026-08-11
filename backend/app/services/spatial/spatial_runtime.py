@@ -37,7 +37,7 @@ from app.services.spatial.geometry_kernel import _line_rect_intersect, _segments
 logger = logging.getLogger(__name__)
 
 
-def normalize_scene_state(scene_state) -> Dict[str, Any]:
+def normalize_scene_state(scene_state: Any) -> Dict[str, Any]:
     """Гарантирует что scene_state — dict.
     P0 FIX (S71): SceneState Contract Enforcement.
     Если тип некорректный (list, None, float) — возвращает пустой dict с предупреждением.
@@ -273,7 +273,7 @@ def line_of_sight(
         base_range = 15.0
 
     los_range = max(1.5, base_range - density * 6.0 - danger * 2.0)
-    return distance <= los_range
+    return bool(distance <= los_range)
 
 
 def sound_reach(base_radius: float, scene_state: Dict[str, Any]) -> float:
@@ -285,7 +285,7 @@ def sound_reach(base_radius: float, scene_state: Dict[str, Any]) -> float:
     modifiers = _effective_modifiers(scene_state)
     noise = float(modifiers.get("noise", 0.0))
     density = modifiers["density"]
-    return max(0.5, base_radius + noise * 4.0 - density * 3.0)
+    return float(max(0.5, base_radius + noise * 4.0 - density * 3.0))
 
 
 # Радиусы восприятия по tier — вызывающий код передаёт нужный.

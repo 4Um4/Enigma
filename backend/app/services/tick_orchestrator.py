@@ -383,8 +383,9 @@ class TickOrchestrator:
             ]
         # ADR-L1-PERSIST: Привязка L1Chronicle к текущей кампании для ленивой загрузки
         self.l1_chronicle.bind_campaign(campaign_id)
+        # NEW-MEM-004 FIX: Использование bind_campaign вместо прямой мутации _campaign_id.
         # DEEP-013: Привязка CrystallizedBeliefStore к текущей кампании для ленивой загрузки
-        self.crystallized_belief_store._campaign_id = campaign_id
+        self.crystallized_belief_store.bind_campaign(campaign_id)
         if scene_state is None:
             return TickResultDTO(status="no_scene")
 

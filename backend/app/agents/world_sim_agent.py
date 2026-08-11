@@ -4,9 +4,12 @@ World Simulation Agent - World Event Generation
 Uses capability-based routing for world simulation.
 """
 
+import logging
 from typing import Optional
 
 from app.services.llm import ModelRouter, get_router
+
+logger = logging.getLogger(__name__)
 
 
 class WorldSimulationAgent:
@@ -54,7 +57,7 @@ class WorldSimulationAgent:
                 "simulation_log": f"Simulated in {location}",
             }
         except Exception as e:
-            print(f"World Sim Agent error: {e}, using fallback")
+            logger.error(f"World Sim Agent error: {e}, using fallback")
             return self._fallback_simulate(location, actions, current_events)
 
     def generate_event(
@@ -81,7 +84,7 @@ class WorldSimulationAgent:
                 system_prompt=system_prompt,
             )
         except Exception as e:
-            print(f"World event error: {e}")
+            logger.error(f"World event error: {e}")
             return "Ничего особенного не происходит."
 
     def _build_prompt(

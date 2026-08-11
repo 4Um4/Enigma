@@ -21,7 +21,7 @@ if rng.random() < 0.4: # deterministic for (42, "maid_lusya")
 
 import hashlib
 import random
-
+from typing import List, Any
 
 class KernelRNG:
     """
@@ -57,6 +57,10 @@ class KernelRNG:
     # ── Wrappers (explicit control boundary) ──────────────────────────
     # Каждый метод явно делегирует в _rng. Это создаёт clear API boundary:
     # kernel code использует ctx.rng.random(), не random.random().
+
+    def sample(self, population: List[Any], k: int) -> List[Any]:
+        """Детерминированный выбор k элементов из population."""
+        return self._rng.sample(population, k)
 
     def random(self) -> float:
         """Return [0.0, 1.0) — deterministic for (tick, npc_id)."""
