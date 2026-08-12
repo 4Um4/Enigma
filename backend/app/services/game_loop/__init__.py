@@ -36,7 +36,6 @@ from app.services.events.event_bus import get_event_bus
 # character_filter — используется только в npc_orchestration.py
 from app.services.game_loop.agent_runner import (
     AGENT_TIMEOUT_SEC,
-    ERROR_CODES,
     run_agent_safe,
     yield_model_info,
 )
@@ -680,9 +679,9 @@ class GameLoop:
 
         _projector = PerceptionProjector()
         _tick = self.get_current_tick(campaign_id)
-        print(f"[ARCHAE_PROJECTOR] scene_state={bool(scene_state)} all_npcs_raw={len(all_npcs_raw) if all_npcs_raw else 0}")
+        logger.debug(f"[ARCHAE_PROJECTOR] scene_state={bool(scene_state)} all_npcs_raw={len(all_npcs_raw) if all_npcs_raw else 0}")
         _res = _projector.project(scene_state, all_npcs_raw, _tick)
-        print(f"[ARCHAE_PROJECTOR] result={_res}")
+        logger.debug(f"[ARCHAE_PROJECTOR] result={_res}")
         return _res
 
     def _load_npcs_with_runtime(self, campaign_id: str) -> list:
@@ -941,6 +940,13 @@ class GameLoop:
         _active_loc = location_id or (_prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID)
         if not _active_loc:
             _active_loc = DEFAULT_LOCATION_ID
+            
+        # S186 FIX: Если запрошенная локация не была инициализирована в БД,
+        # инициализируем её принудительно, чтобы TickOrchestrator смог её тикнуть.
+        _active_scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
+        if _active_scene is None:
+            _active_scene = self.scene_manager.initialize_scene(campaign_id, _active_loc, "02:00")
+            logger.info(f"[IDLE_TICK] Принудительная инициализация локации: {_active_loc}")
 
         # Дополнение Б: Получаем список всех локаций для глобального тика
         _location_ids = [_active_loc]
@@ -950,7 +956,9 @@ class GameLoop:
             if _registry:
                 _all_locs = _registry.get_all_location_ids()
                 if _all_locs:
-                    _location_ids = _all_locs
+                    # S186 FIX: Гарантируем, что запрошенная локация всегда тикает,
+                    # даже если SpatialRegistry не вернул её в списке всех локаций.
+                    _location_ids = list(set(_all_locs + [_active_loc]))
         except Exception as e:
             logger.warning(f"[IDLE_TICK] Failed to get all locations: {e}")
 
@@ -1012,6 +1020,19 @@ class GameLoop:
         # Коммит результатов оркестратора (если ядро не сделало это само)
         if result and result.final_scene_state is not None:
              self.scene_manager.commit_tick_result(campaign_id, result.final_scene_state)
+
+        # S186 FIX: Обновляем HOT кэш LifeEngine после idle_tick.
+        # Мержим результат с существующим кэшем, чтобы не стереть NPC из других локаций.
+        if result and result.all_npcs_raw:
+            _engine = self._get_life_engine()
+            if _engine:
+                _cached_npcs = _engine.get_npc_states(campaign_id) or []
+                _updated_npcs = {n.get("npc_id", n.get("id")): n for n in _cached_npcs}
+                for n in result.all_npcs_raw:
+                    _nid = n.get("npc_id", n.get("id"))
+                    if _nid:
+                        _updated_npcs[_nid] = n
+                _engine.update_cache(campaign_id, list(_updated_npcs.values()))
 
         if result is None:
             return {"status": "no_scene", "npc_positions": {}}
@@ -1634,7 +1655,7 @@ class GameLoop:
             )
 
             logger.debug(
-                f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}"
+                f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys()) if shared_context.scene_state else 'NONE'}"
             )
 
             _updated_avatar_dict = next(
@@ -1738,6 +1759,26 @@ class GameLoop:
                 semantic_field=_semantic_field,
             )
             shared_context.intent_resolution = _resolution
+
+            # ADR-O-330: Player MOVE action creates MacroMovementGoal for MovementEngine
+            # Если игрок пишет "подойти к [NPC]", мы должны найти узел NPC и двигаться к нему.
+            _sem_action_val = _semantic_field.action_type.value if _semantic_field else ""
+            if _sem_action_val == "MOVE" and shared_context.player_target_id:
+                _target_id = shared_context.player_target_id
+                _target_pos = scene_state.get("npc_positions", {}).get(_target_id, {}).get("position", "")
+                if _target_pos:
+                    from app.domain.movement import MacroMovementGoal
+                    _player_goal = MacroMovementGoal(
+                        actor_id="player",
+                        target_node_id=_target_pos,
+                        location_id=location,
+                        reason="player_action:approach",
+                        priority=1.0
+                    )
+                    if not hasattr(_ctx, "movement_intents") or _ctx.movement_intents is None:
+                        _ctx.movement_intents = []
+                    _ctx.movement_intents.append(_player_goal)
+                    logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
 
             if self.mvp_controller:
                 from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
@@ -1941,7 +1982,7 @@ class GameLoop:
                 _tmp_scene = self.scene_manager.lock_for_tick(campaign_id, location)
                 if _tmp_scene:
                     _tmp_scene["player_body_topology"] = BodyTopologyService.serialize(_topo)
-                    self.scene_manager.unlock_for_tick(campaign_id, commit=True)
+                    self.scene_manager.unlock_tick(campaign_id)
         except Exception as _e:
             logger.warning(f"[AVATAR] ошибка загрузки: {_e}")
 

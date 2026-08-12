@@ -300,6 +300,12 @@ def publish_classified_player_event(
         _raw_type = "attack"
         shared_context.action_type = "attack"
         logger.warning(f"[FAST_PATH_ATTACK] Lexical override triggered for input: '{raw_input}'")
+    # S122 FIX: Лексический перехват команды выхода (Fast-Path).
+    # LLM может не распознать "выйти", что приведёт к UNCERTAIN.
+    elif any(verb in _raw_lower for verb in ["выйти", "выйд", "покинуть", "дверь", "на выход"]):
+        _raw_type = "move"
+        shared_context.action_type = "move"
+        logger.warning(f"[FAST_PATH_MOVE] Lexical override triggered for input: '{raw_input}'")
 
     # ADR-082: Case-Insensitive Routing. NLP возвращает 'ATTACK', маппинг ждет 'attack'.
     # Без .lower() удар уходит в PLAYER_SPOKE, минуя CombatSubscriber и ImpactEngine.

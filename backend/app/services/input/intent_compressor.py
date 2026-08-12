@@ -49,6 +49,11 @@ _ACTION_LEMMAS = {
         "сопровождай",
         "следовать",
         "следуй",
+        "выйти",
+        "выходить",
+        "покинуть",
+        "войти",
+        "входить",
         "отойди",
         "отступить",
         "отступай",
@@ -289,7 +294,7 @@ class IntentCompressor:
                 first_token = tokens_raw[0]
                 if PYMORPHY_AVAILABLE:
                     parsed = MORPH.parse(first_token.lower())
-                    if parsed and parsed[0].tag.POS in ("NOUN", "Name"):
+                    if parsed and parsed[0].tag.POS == "NOUN":
                         # Первое слово — имя/существительное, значит актор — этот NPC
                         _actor_ref = first_token.lower()
 

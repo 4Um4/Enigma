@@ -1,0 +1,25 @@
+
+============================================================
+DRIFT LABORATORY — Mode: idle_stability
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_y44n80rw
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_y44n80rw\saves
+Неизвестный режим: idle_stability
+Доступные: quick_debug, mass_traversal, save_load_storm, chunk_migration, long_horizon, replay_determinism, projection_parity, idle_simulation_stability, replay_compare
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_y44n80rw
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: idle_stability
+======================================================================
+
+  Всего сравнений (comparisons): 0
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌

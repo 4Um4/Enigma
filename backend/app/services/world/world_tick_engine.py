@@ -123,17 +123,37 @@ class WorldTickEngine:
         }
 
         for npc_id, state_l2, profile_l0 in npc_data:
-            # Пропускаем: мёртвых, сломанных
-            if state_l2.effective_hp <= 0:
+            # FIX: Гарантируем, что у нас NPCState для DecisionHub, даже если передали dict
+            from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
+            from app.models.npc_state import NPCState
+            _npc_state = None
+            if isinstance(state_l2, dict):
+                try:
+                    _npc_state = load_l2_state_from_runtime_dict(state_l2)
+                except Exception as e:
+                    logger.error(f"[WORLD_TICK] Failed to load NPCState for {npc_id}: {e}", exc_info=True)
+                    continue
+            elif isinstance(state_l2, NPCState):
+                _npc_state = state_l2
+            else:
+                logger.error(f"[WORLD_TICK] Invalid type for state_l2: {type(state_l2)} for {npc_id}")
                 continue
-            if state_l2.will_state == WillState.BROKEN:
+            
+            if _npc_state is None:
+                logger.error(f"[WORLD_TICK] NPCState is None after conversion for {npc_id}")
+                continue
+
+            # Пропускаем: мёртвых, сломанных
+            if _npc_state.effective_hp <= 0:
+                continue
+            if _npc_state.will_state == WillState.BROKEN:
                 continue
             # SLEEP_FIX #3: спящих/resting NPC не генерируют проактивные интенты.
             # Симметрично с SLEEP_GUARD в npc_tick_pipeline.py:474-480 (который
             # работает только для реактивного пути). Без этого guard_borko, у которого
             # schedule=sleeping, может получить proactive_spread_rumor и вернуться
             # в tavern из city_gate:guard_bed.
-            _npc_dict = getattr(state_l2, "_legacy_dict", None) or {}
+            _npc_dict = getattr(_npc_state, "_legacy_dict", None) or {}
             _cur_activity = ""
             if isinstance(_npc_dict, dict):
                 _cur_activity = _npc_dict.get("routine", {}).get("current", "")
@@ -172,8 +192,8 @@ class WorldTickEngine:
 
             # Каузальное замыкание: консолидированное восприятие T-1 деформирует проактивные решения
             # GAP3 FIX: Передаем body_state для соматического вето
-            _body = getattr(state_l2, "body_state", None)
-            _kernel = getattr(state_l2, "perceptual_kernel", None)
+            _body = getattr(_npc_state, "body_state", None)
+            _kernel = getattr(_npc_state, "perceptual_kernel", None)
             _decision_ctx = (
                 translate_kernel_to_context(_kernel, body_state=_body)
                 if _kernel
@@ -188,7 +208,7 @@ class WorldTickEngine:
 
             try:
                 result = hub.compute(
-                    state=state_l2,
+                    state=_npc_state,
                     personality=profile_l0,
                     event=tick_event,
                     effective_drives=_effective_drives,  # L3-P2 mandatory

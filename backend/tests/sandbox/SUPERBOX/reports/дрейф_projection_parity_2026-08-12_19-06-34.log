@@ -1,0 +1,16 @@
+
+============================================================
+DRIFT LABORATORY — Mode: projection_parity
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_spsnesqj
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_spsnesqj\saves
+
+--- MODE G: Projection Parity Audit (10000 ticks) ---
+  [PARITY] Principle: shadow state = first class entity
+  [PARITY] Comparing: legacy pipeline vs ProjectionEngine
+  [PARITY] Fields: position, local_position, location, active_traversals
+  [PARITY] Non-spatial fields EXCLUDED (not ProjectionEngine jurisdiction)
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_spsnesqj

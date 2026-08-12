@@ -129,6 +129,27 @@ def run_dm_phase(
         logger.warning(
             f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}"
         )
+        
+        # FIX: Пред-проверка дистанции для боя. DM-агент запускается раньше ImpactEngine,
+        # поэтому мы должны сообщить ему о промахе заранее, чтобы он не галлюцинировал попадание.
+        if "attack" in shared_context.action_type and shared_context.player_target_id:
+            _dist = _target.player_dists.get(shared_context.player_target_id, 0.0)
+            _MELEE_RANGE = 2.0
+            if _dist > _MELEE_RANGE:
+                shared_context.combat_data = {
+                    shared_context.player_target_id: {
+                        "miss": True,
+                        "distance": round(_dist, 2),
+                        "max_range": _MELEE_RANGE,
+                    }
+                }
+                logger.warning(
+                    f"[DM_PHASE] Pre-check: Attack out of range (dist={_dist:.1f}m). Injected combat_data for DM."
+                )
+            else:
+                logger.warning(
+                    f"[DM_PHASE] Pre-check: Attack in range (dist={_dist:.1f}m). DM will narrate hit."
+                )
 
     # Rule 47: Инициализация ДО условных веток — Python Scoping Trap
     _sem_payload = {}

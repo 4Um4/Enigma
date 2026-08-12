@@ -81,6 +81,9 @@ class TickOrchestrator:
         # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
         self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
         self._replay_recorder: Optional[Any] = None  # Подсистема 2: Replay Recorder
+        # S186: World-level Cross-Location Transfer Queue.
+        # Структура: { target_loc_id: { npc_id: npc_entry_dict } }
+        self._pending_transfers: Dict[str, Dict[str, dict]] = {}
 
         # DEBT-310.1: Hold & Release Gate storage. Хранит отложенные CommunicationIntent.
         # Ключ: intent_id. Значение: CommunicationIntent.
@@ -288,7 +291,18 @@ class TickOrchestrator:
 
                 # Фильтр: симулируем только NPC текущей локации (остальные оффскрин)
                 _npc_loc = _npc.get("location_id") or _npc.get("location", "")
-                if _npc_loc != _current_loc:
+                # S186 FIX: Приоритет _npc_runtime_locations над all_npcs_raw.
+                # Если NPC был перенесен в другую локацию, но all_npcs_raw ещё не обновился,
+                # мы не должны восстанавливать его в старой локации.
+                _runtime_loc = self._npc_runtime_locations.get(_npc_id, _npc_loc)
+                if _runtime_loc != _current_loc:
+                    continue
+
+                # S186 FIX: Запрет воскрешения призраков.
+                # Если NPC был изъят из этой локации в текущем или предыдущем тике (находится в очереди трансферов),
+                # он не должен быть восстановлен в npc_positions.
+                _is_in_transfer = any(_npc_id in pending.keys() for pending in self._pending_transfers.values())
+                if _is_in_transfer:
                     continue
 
                 if _npc_id not in npc_positions:
@@ -410,6 +424,45 @@ class TickOrchestrator:
                     _extra_scene = self._scene_manager.get_scene_state(campaign_id, _loc_id)
                     if _extra_scene:
                         _all_scenes[_loc_id] = _extra_scene
+
+        # S186 FIX: Синхронизируем location_id в all_npcs_raw с runtime локациями.
+        # NPCLoader загружает из конфига каждый тик, игнорируя runtime-трансферы.
+        # _npc_runtime_locations — персистентный RAM-кэш TickOrchestrator, обновляемый при трансферах.
+        if not hasattr(self, "_npc_runtime_locations"):
+            self._npc_runtime_locations = {}
+
+        if all_npcs_raw:
+            # 1. Синхронизация с scene_state (для NPC, которые уже materialized)
+            for _scene in _all_scenes.values():
+                _npc_positions = _scene.get("npc_positions", {})
+                for _npc_id, _entry in _npc_positions.items():
+                    self._npc_runtime_locations[_npc_id] = _scene.get("location_id", _entry.get("location_id"))
+                    for _npc in all_npcs_raw:
+                        _npc_config_id = _npc.get("npc_id") or _npc.get("id")
+                        if _npc_config_id == _npc_id:
+                            _npc["location_id"] = _entry.get("location_id", _scene.get("location_id"))
+                            _npc["location"] = _entry.get("location", _scene.get("location_id"))
+                            break
+            
+            # 2. S186 V2: Синхронизация с pending transfers (для NPC, которые в очереди)
+            for _target_loc, _pending in self._pending_transfers.items():
+                for _npc_id in _pending.keys():
+                    self._npc_runtime_locations[_npc_id] = _target_loc
+                    for _npc in all_npcs_raw:
+                        _npc_config_id = _npc.get("npc_id") or _npc.get("id")
+                        if _npc_config_id == _npc_id:
+                            _npc["location_id"] = _target_loc
+                            _npc["location"] = _target_loc
+                            break
+
+            # 3. S186 V3: Применение персистентного кэша локаций к all_npcs_raw.
+            # Если NPC был перенесен в предыдущих тиках, но не был закоммичен в SQLite,
+            # его location_id в all_npcs_raw останется из конфига, что приведет к воскрешению призрака.
+            for _npc in all_npcs_raw:
+                _npc_config_id = _npc.get("npc_id") or _npc.get("id")
+                if _npc_config_id in self._npc_runtime_locations:
+                    _npc["location_id"] = self._npc_runtime_locations[_npc_config_id]
+                    _npc["location"] = self._npc_runtime_locations[_npc_config_id]
 
         _tick_results = []
         _final_result = None
@@ -610,6 +663,22 @@ class TickOrchestrator:
         # S2 FIX (Entity Cardinality): Фильтруем NPC по текущей локации.
         # Это гарантирует, что NPC из tavern не будут обработаны повторно при тике city_gate.
         _current_loc = ctx.scene_state.get("location_id", "")
+        
+        # S186: Диагностика очереди
+        _pending_keys = list(self._pending_transfers.keys())
+        logger.info(f"[S186_DEBUG] Ticking loc={_current_loc}, pending_transfers_keys={_pending_keys}")
+        
+        # S186: Инжектим pending transfers в начале тика локации
+        if _current_loc in self._pending_transfers:
+            _pending = self._pending_transfers.pop(_current_loc)
+            _npc_positions = ctx.scene_state.setdefault("npc_positions", {})
+            for _npc_id, _entry in _pending.items():
+                logger.info(f"[S186_INJECT] Importing NPC={_npc_id} into {_current_loc}")
+                _npc_positions[_npc_id] = _entry
+                self._npc_runtime_locations[_npc_id] = _current_loc
+                if _entry not in (ctx.all_npcs_raw or []):
+                    ctx.all_npcs_raw.append(_entry)
+
         ctx.all_npcs_raw = [
             n for n in (ctx.all_npcs_raw or [])
             if n.get("body_state", {}).get("life_status") != "DEAD"
@@ -625,11 +694,12 @@ class TickOrchestrator:
         self._snapshot_positions_before(ctx) #1
         self._phase_0_simulation(ctx) #2
         self._phase_0_5_idle_services(ctx) #3
+        self._resolve_cross_location_transfers(ctx) # S186: World-level ownership transfer крос-локационное перемещение НПС
         
         # Подсистема 2: Replay Recorder (Этап 2.2)
         _recorder = getattr(self, "_replay_recorder", None)
         if _recorder:
-            _recorder.record_tick_state(ctx.tick_number, ctx.scene_state.get("game_time_seconds", 0.0), ctx)
+            _recorder.record_tick_state(ctx.tick_number, ctx.scene_state.get("game_time_seconds", 0.0), ctx.scene_state)
             if ctx.interventions:
                 _recorder.record_interventions(ctx.tick_number, ctx.interventions)
 
@@ -677,6 +747,7 @@ class TickOrchestrator:
         if _recorder:
             _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None))
             
+        self._resolve_cross_location_transfers(ctx) # S186: Extract BEFORE Phase 10 to persist clean state
         self._phase_10_persistence(ctx) #16
 
         # Подсистема 3: Causal Probes (real-time invariant monitor)
@@ -737,6 +808,44 @@ class TickOrchestrator:
         )
         self._get_event_bus().publish(_tick_completed_event)
 
+    def _resolve_cross_location_transfers(self, ctx: _TickContext) -> None:
+        """S186: Cross-Location Ownership Transfer.
+        
+        Изымает NPC из scene_state[source] в RAM-очередь TickOrchestrator,
+        если SSM пометил их location_id как целевую локацию (cross_loc_materialize).
+        Очередь будет разрешена в начале тика целевой локации (_run_core_phases).
+        """
+        _current_loc = ctx.scene_state.get("location_id", "")
+        _npc_positions = ctx.scene_state.get("npc_positions", {})
+        _ghosts = [
+            (npc_id, entry) 
+            for npc_id, entry in list(_npc_positions.items()) 
+            if entry.get("location_id", _current_loc) != _current_loc and npc_id != "player"
+        ]
+        
+        if not _ghosts:
+            return
+
+        for npc_id, entry in _ghosts:
+            _target_loc = entry.get("location_id")
+            if not _target_loc:
+                continue
+                
+            logger.info(f"[S186_TRANSFER] Extracting NPC={npc_id} from {_current_loc} to pending queue for {_target_loc}")
+            
+            # 1. Кладём NPC в RAM-очередь оркестратора
+            self._pending_transfers.setdefault(_target_loc, {})[npc_id] = entry
+            if not hasattr(self, "_npc_runtime_locations"):
+                self._npc_runtime_locations = {}
+            self._npc_runtime_locations[npc_id] = _target_loc
+            
+            # 2. Удаляем NPC из scene_state исходной локации (из RAM)
+            del _npc_positions[npc_id]
+            
+            # 3. Удаляем NPC из all_npcs_raw исходной локации, чтобы он не спамил логи
+            if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                ctx.all_npcs_raw = [n for n in ctx.all_npcs_raw if n.get("npc_id") != npc_id and n.get("id") != npc_id]
+
     def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
         """Подслой 1.1: NPIC NORMALIZATION."""
         if ctx.all_npcs_raw:
@@ -763,6 +872,19 @@ class TickOrchestrator:
                 _player_entry = next(
                     (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
                 )
+                # Если аватар отсутствует в all_npcs_raw, восстанавливаем его из npc_positions
+                if not _player_entry:
+                    _player_pos = ctx.scene_state.get("npc_positions", {}).get("player")
+                    if _player_pos:
+                        _player_entry = {
+                            "npc_id": "player",
+                            "id": "player",
+                            "name": "Игрок",
+                            "position": _player_pos.get("local_position", (0.0, 0.0)),
+                            "local_position": _player_pos.get("local_position", (0.0, 0.0)),
+                            "current_node": _player_pos.get("current_node", ""),
+                            "location_id": _player_pos.get("location_id", ctx.campaign_id),
+                        }
                 # Если список из LifeEngine не пуст, используем его как базу
                 ctx.all_npcs_raw = ctx.npc_states
                 # Возвращаем аватара игрока в конец списка
@@ -907,8 +1029,8 @@ class TickOrchestrator:
                     f"[FAST_PATH_DEBUG] actor={_fast_actor} target={_target_id}"
                 )
 
-            # BUG-N5 FIX: Исключаем игрока из fast-path макро-движения, так как он не зарегистрирован в npc_positions как spatial-сущность.
-            if _fast_actor and _fast_target_xy and _fast_actor != "player":
+            # Разрешаем игроку использовать fast-path, так как его позиция теперь обновляется в npc_positions
+            if _fast_actor and _fast_target_xy:
                 from app.domain.movement import LocalSteeringGoal
                 from app.services.spatial.movement_engine import MovementEngine
 

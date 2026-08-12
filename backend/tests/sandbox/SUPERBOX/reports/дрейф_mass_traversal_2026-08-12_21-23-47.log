@@ -1,0 +1,255 @@
+
+============================================================
+DRIFT LABORATORY — Mode: mass_traversal
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_q17qeymh
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_q17qeymh\saves
+
+--- MODE A: Mass Traversal (200 ticks) ---
+  [GROUND_TRUTH] tick=1 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=2 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=3 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=4 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=5 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=6 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=7 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=8 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=9 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=10 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=11 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=12 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=13 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=14 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=15 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=16 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=17 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=18 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=19 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=20 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=21 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=22 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=23 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=24 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=25 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=26 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=27 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=28 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=29 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=30 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=31 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=32 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=33 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=34 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=35 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=36 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=37 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=38 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=39 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=40 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=41 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=42 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=43 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=44 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=45 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=46 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=47 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=48 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=49 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=50 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=51 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=52 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=53 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=54 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=55 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=56 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=57 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=58 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=59 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=60 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=61 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=62 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=63 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=64 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=65 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=66 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=67 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=68 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=69 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=70 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=71 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=72 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=73 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=74 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=75 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=76 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=77 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=78 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=79 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=80 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=81 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=82 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=83 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=84 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=85 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=86 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=87 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=88 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=89 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=90 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=91 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=92 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=93 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=94 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=95 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=96 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=97 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=98 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=99 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=100 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=101 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=102 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=103 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=104 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=105 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=106 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=107 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=108 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=109 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=110 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=111 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=112 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=113 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=114 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=115 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=116 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=117 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=118 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=119 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=120 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=121 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=122 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=123 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=124 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=125 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=126 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=127 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=128 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=129 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=130 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=131 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=132 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=133 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=134 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=135 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=136 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=137 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=138 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=139 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=140 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=141 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=142 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=143 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=144 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=145 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=146 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=147 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=148 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=149 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=150 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=151 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=152 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=153 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=154 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=155 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=156 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=157 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=158 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=159 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=160 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=161 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=162 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=163 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=164 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=165 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=166 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=167 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=168 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=169 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=170 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=171 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=172 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=173 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=174 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=175 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=176 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=177 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=178 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=179 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=180 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=181 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=182 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=183 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=184 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=185 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=186 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=187 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=188 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=189 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=190 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=191 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=192 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=193 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=194 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=195 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=196 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=197 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=198 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=199 npc=guard_borko FAIL: missing location_id
+  [GROUND_TRUTH] tick=200 npc=guard_borko FAIL: missing location_id
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_q17qeymh
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: mass_traversal
+======================================================================
+
+  Всего сравнений (comparisons): 614
+  Крашенных тиков (crashed):     200
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   ЕСТЬ ⚠️
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 17.5 сек
+  Скорость: 35 сравнений/сек, 11.5 тиков/сек

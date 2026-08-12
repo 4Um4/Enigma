@@ -29,7 +29,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -101,7 +101,7 @@ class DriftResult:
     mode: str
     config: DriftConfig
     snapshots: List[DriftSnapshot] = field(default_factory=list)
-    final_stats: Dict[str, int] = field(default_factory=dict)
+    final_stats: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def total_comparisons(self) -> int:
@@ -271,6 +271,16 @@ class DriftLaboratory:
         saves_dst = temp_path / "saves"
         if saves_src.exists():
             shutil.copytree(saves_src, saves_dst, dirs_exist_ok=True)
+            # BUG-DRIFT-002 FIX: Сброс стартового состояния (State Synchronization).
+            # Удаляем SQLite базы данных, чтобы гарантировать чистое стартовое состояние сцены.
+            # Иначе DriftLaboratory наследует грязное состояние (эмоции, память, позиции) от прошлых прогонов,
+            # что приводит к 100% Cosmetic Drift (Class A) из-за разных решений DecisionHub на 1-м тике.
+            for db_file in saves_dst.glob("*.db"):
+                try:
+                    db_file.unlink()
+                    print(f"[DRIFT_LAB] Deleted dirty DB: {db_file.name}")
+                except Exception as e:
+                    print(f"[DRIFT_LAB] Warning: failed to delete {db_file.name}: {e}")
 
         # Изолируем конфигурацию — override settings
         settings.saves_dir = str(saves_dst)
@@ -525,6 +535,15 @@ class DriftLaboratory:
         """
         print(f"\n--- MODE A: Mass Traversal ({self.config.mass_traversal_ticks} ticks) ---")
         self._crashed_ticks = 0
+        
+        # BUG-DRIFT-001 FIX: Сброс tick до 0 перед стартом записи сессии
+        # Иначе mass_traversal продолжает тики с прошлого прогона, ломая детерминизм KernelRNG
+        if self._scene_manager is not None:
+            _scene = self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id)
+            if _scene is not None:
+                _scene["tick"] = 0
+                self._scene_manager.save_scene_state(self.config.campaign_id, _scene)
+
         self._run_idle_ticks(self.config.mass_traversal_ticks, result)
 
     def _mode_save_load_storm(self, result: DriftResult) -> None:
@@ -924,6 +943,21 @@ class DriftLaboratory:
             "replay_ticks": report["replayed_ticks"],
             "total_drifts": report["total_drifts"]
         }
+
+        # BUG-DRIFT-002 FIX: Обновляем счетчики result для корректной статистики в CSV и дашборде
+        import types
+        _snap = types.SimpleNamespace(
+            tick=report["replayed_ticks"],
+            total_comparisons=report["replayed_ticks"],
+            drift_A=0 if report["status"] == "SUCCESS" else report["total_drifts"],
+            drift_B=0,
+            drift_C=0,
+            drift_D=0,
+            drift_E=0,
+            elapsed_seconds=0.0,
+            crashed_ticks=0
+        )
+        result.snapshots.append(_snap)
 
         if report["status"] == "SUCCESS":
             print(f"\n  ✅ REPLAY COMPARE: MATCH ({report['replayed_ticks']} ticks)")
@@ -1755,6 +1789,12 @@ class _Tee:
 
 
 def main(mode: str = "long_horizon", session_id: str = None) -> None:
+    # BUG-DRIFT-004 FIX: Auto-detection рабочей директории
+    if not os.path.basename(os.getcwd()) == "backend":
+        print("⚠️ DriftLab должен запускаться из директории backend/. Текущая директория:", os.getcwd())
+        print("   Используйте: cd backend; python -m tests.sandbox.SUPERBOX.run drift <mode>")
+        sys.exit(1)
+
     mode_name = _MODE_NAMES.get(mode, mode)
     print("\n🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA")
     print(f"   Режим: {mode_name}")

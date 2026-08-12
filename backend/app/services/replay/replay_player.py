@@ -37,6 +37,13 @@ class ReplayPlayer:
         settings.replay_playback = True
         settings.replay_record = False
         
+        # BUG-DRIFT-001 FIX: Сброс scene_state["tick"] до start_tick перед стартом воспроизведения
+        # Иначе оркестратор инкрементирует tick с предыдущего значения (100), ломая детерминизм KernelRNG
+        _scene = self.game_loop.get_scene_state(self.campaign_id, self.location_id)
+        if _scene is not None:
+            _scene["tick"] = start_tick
+            self.game_loop.save_scene_state(self.campaign_id, _scene)
+        
         total_drifts = 0
         replayed_ticks = 0
 
@@ -55,7 +62,7 @@ class ReplayPlayer:
                 # 1. Подменяем wall-clock на game_time
                 with frozen_time(game_time):
                     # 2. Вызываем idle_tick (воспроизведение interventions пока упрощено)
-                    actual_result = self.game_loop.idle_tick(self.campaign_id)
+                    actual_result = self.game_loop.idle_tick(self.campaign_id, self.location_id)
 
                 # 3. Сравниваем результаты (WorldSnapshot)
                 drifts = self._compare_results(actual_result, recorded_snapshot)
@@ -111,6 +118,7 @@ class ReplayPlayer:
                     math.isclose(a_pos.get("x", 0.0), r_pos.get("x", 0.0), abs_tol=0.05) and
                     math.isclose(a_pos.get("y", 0.0), r_pos.get("y", 0.0), abs_tol=0.05)
                 ):
-                    drifts.append(f"WorldSnapshot position mismatch for NPC {npc_id}")
+                    # BUG-DRIFT-003 FIX: Возвращаем детальный лог с координатами для REPLAY_DIAG
+                    drifts.append(f"NPC={npc_id} ACTUAL={a_pos} RECORDED={r_pos}")
                 
         return drifts

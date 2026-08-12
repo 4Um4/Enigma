@@ -814,7 +814,8 @@ class PlayerTargetExtractor:
             )
 
         # Fallback: нет явного таргета в тексте
-        if target_npc_id is None and player_distances:
+        # Но если игрок хочет выйти/войти — не ищем ближайшего NPC, цель уже объект (дверь/выход)
+        if target_npc_id is None and player_distances and not target_object:
             try:
                 from app.services.spatial.spatial_runtime import sound_reach
 

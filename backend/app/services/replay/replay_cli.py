@@ -9,6 +9,9 @@ import argparse
 import sys
 import os
 import tempfile
+import logging
+
+logger = logging.getLogger(__name__)
 from pathlib import Path
 
 def main():
@@ -35,7 +38,7 @@ def main():
         
         db_path = f"backend/data/replay/{args.session}.db"
         if not os.path.exists(db_path):
-            print(f"[ERROR] Replay DB not found: {db_path}")
+            logger.error(f"[ERROR] Replay DB not found: {db_path}")
             sys.exit(1)
             
         store = ReplayStore(db_path)
@@ -53,13 +56,13 @@ def main():
         
         player = ReplayPlayer(store, game_loop, args.session, campaign_id, location_id)
         
-        print(f"[CLI] Starting replay for session {args.session} (tick {args.start} to {args.end or 'END'})")
+        logger.info(f"[CLI] Starting replay for session {args.session} (tick {args.start} to {args.end or 'END'})")
         report = player.play(start_tick=args.start, end_tick=args.end, max_drift=args.max_drift)
         
-        print("\n--- REPLAY REPORT ---")
+        logger.info("\n--- REPLAY REPORT ---")
         for k, v in report.items():
-            print(f"{k}: {v}")
-        print("---------------------")
+            logger.info(f"{k}: {v}")
+        logger.info("---------------------")
         
         if report["status"] == "SUCCESS":
             sys.exit(0)

@@ -531,13 +531,13 @@ class SpatialService:
         # Находим стартовый узел (ближайший к start_xy в той же зоне)
         start_node = self.get_nearest(target_node.zone_id, start_xy, urgency)
         if start_node is None:
-            print(f"[FIND_PATH_DIAG] FAIL: start_node is None. zone={target_node.zone_id} xy={start_xy}")
+            logger.debug(f"[FIND_PATH_DIAG] FAIL: start_node is None. zone={target_node.zone_id} xy={start_xy}")
             return []
         if start_node.node_id == target_id:
-            print(f"[FIND_PATH_DIAG] SUCCESS: start_node is target. node={start_node.node_id}")
+            logger.debug(f"[FIND_PATH_DIAG] SUCCESS: start_node is target. node={start_node.node_id}")
             return [start_node]
 
-        print(f"[FIND_PATH_DIAG] start_xy={start_xy} target={target_id} start_node={start_node.node_id} zone={target_node.zone_id}")
+        logger.debug(f"[FIND_PATH_DIAG] start_xy={start_xy} target={target_id} start_node={start_node.node_id} zone={target_node.zone_id}")
 
         # Кэш
         cache_key = (
@@ -560,7 +560,7 @@ class SpatialService:
         g_score: Dict[str, float] = {start_node.node_id: 0.0}
         
         # SLEEP_FIX: Отладка A*
-        print(f"[FIND_PATH_ASTAR] start={start_node.node_id} target={target_id} start_connections={self._connections.get(start_node.node_id, set())}")
+        logger.debug(f"[FIND_PATH_ASTAR] start={start_node.node_id} target={target_id} start_connections={self._connections.get(start_node.node_id, set())}")
 
         while open_set:
             _, _, current_id = heapq.heappop(open_set)
@@ -606,7 +606,7 @@ class SpatialService:
             f"[SPATIAL] Путь не найден: {start_node.node_id} → {target_id} "
             f"(urgency={urgency.value})"
         )
-        print(f"[FIND_PATH_DIAG] FAIL: A* no path. start={start_node.node_id} target={target_id} connections={self._connections.get(start_node.node_id, set())}")
+        logger.debug(f"[FIND_PATH_DIAG] FAIL: A* no path. start={start_node.node_id} target={target_id} connections={self._connections.get(start_node.node_id, set())}")
         return []
 
     def _edge_cost(

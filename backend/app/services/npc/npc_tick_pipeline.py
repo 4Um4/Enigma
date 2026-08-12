@@ -672,7 +672,7 @@ class NpcTickPipeline:
             # Сборка memory_events для отложенного применения
             try:
                 _mem_evt = create_memory_event(
-                    None,
+                    memory_manager=None, # NpcTickPipeline — pure reducer, MemoryManager применяется в Фазе 3
                     state_l2=state_l2, # Используем pre-decision state
                     decision=decision,
                     npc_id=npc_id,
@@ -687,11 +687,20 @@ class NpcTickPipeline:
             except Exception as e:
                 logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
 
+        # Восстанавливаем l1_drift_events из decision.deltas, если они там есть.
+        # Если DecisionHub не генерирует L1-события напрямую, они будут созданы
+        # TickOrchestrator'ом при применении memory_events.
+        _l1_events = []
+        for _d in npc_deltas:
+            # Проверяем, является ли дельта L1-событием (или содержит его)
+            if hasattr(_d, "l1_drift_events") and _d.l1_drift_events:
+                _l1_events.extend(_d.l1_drift_events)
+        
         return TickMutation(
             npc_deltas=npc_deltas,
             communication_intents=communication_intents,
             movement_intents=movement_intents,
-            l1_drift_events=[],  # BUG-CORE-013 FIX: Передаём пустой список (мёртвый код удалён)
+            l1_drift_events=_l1_events,
             memory_events=memory_events,
             idle_pressure_updates=_idle_pressure_updates, # V8-SOC-5 FIX
         )
@@ -856,13 +865,9 @@ def create_memory_event(
             },
             persistence_level="session",
         )
-        state_l2 = memory_manager.apply(
-            event=_evt_dto,
-            npc_state=state_l2,
-            campaign_id=campaign_id,
-            spatial_query=spatial_query,
-        )
-        return _evt_dto  # S122 FIX: Возвращаем событие для memory_events, а не state_l2
+        # S186 FIX: Pure Reducer. MemoryManager.apply() вызывается в pipeline_runner.py (Фаза 3).
+        # Здесь только создаём EventDTO для отложенного применения.
+        return _evt_dto
     return None
 
 

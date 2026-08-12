@@ -628,7 +628,7 @@ class DmAgent:
                 )
 
             scene_events_block = ""
-            if context.get("scene_state", {}).get("scene_events"):
+            if context and isinstance(context, dict) and context.get("scene_state", {}).get("scene_events"):
                 try:
                     scene_events_block = SceneStateManager.get_scene_events_block(
                         context["scene_state"]

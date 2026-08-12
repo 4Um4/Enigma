@@ -208,7 +208,8 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
         logger.info(
             f"[WILL] Аватар сопротивляется! State={will_response.state.value}, R={will_response.resistance:.2f}"
         )
-        from app.domain.events import EventDTO, EventType
+        from app.domain.events import EventDTO
+        from app.services.events.event_types import EventType
 
         # Генерируем структурный конфликт Воли через DeltaBuffer
         ctx.delta_buffer.append(

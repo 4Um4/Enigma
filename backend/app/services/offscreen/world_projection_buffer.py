@@ -41,9 +41,11 @@ class WorldProjectionBuffer:
 
         # 1. Анализ significant_events на предмет рождения слухов
         for event in significant_events:
-            if event.get("type") in ("combat", "death", "steal"):
+            _ev_type = getattr(event, "type", None) or (event.get("type") if isinstance(event, dict) else None)
+            if _ev_type in ("combat", "death", "steal"):
+                _ev_source = getattr(event, "source", None) or (event.get("source", "world") if isinstance(event, dict) else "world")
                 # BUG-FB-038 FIX: Детерминированный event_id через md5(tick:source:type)
-                _proj_seed = f"{tick}:{event.get('source', 'world')}:{ProjectionType.RUMOR.value}".encode()
+                _proj_seed = f"{tick}:{_ev_source}:{ProjectionType.RUMOR.value}".encode()
                 _proj_id = hashlib.md5(_proj_seed).hexdigest()[:8]
                 projections.append(
                     WorldProjectionEvent(
