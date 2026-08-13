@@ -53,6 +53,7 @@ from undo_manager import (
     RenameCommand,
     ResizeObjectCommand,
     RotateObjectCommand,
+    SimpleNodeUpdateCommand,
     TogglePassabilityCommand,
     UndoManager,
 )
@@ -2474,6 +2475,19 @@ class EditorCore:
                 self._show_toast(f"Узел удалён: {nid}")
                 self.selected_object = None
                 return
+
+        # Связи (рёбра графа)
+        for nid, ndata in loc.get("nodes", {}).items():
+            sx1, sy1 = self.world_to_screen(ndata["x"], ndata["y"])
+            for conn in ndata.get("connections", []):
+                if conn in loc.get("nodes", {}):
+                    target_data = loc["nodes"][conn]
+                    sx2, sy2 = self.world_to_screen(target_data["x"], target_data["y"])
+                    if self._point_near_line(mx, my, sx1, sy1, sx2, sy2, 5):
+                        self.dm.remove_connection(self.current_file, nid, conn)
+                        self._show_toast(f"Связь удалена: {nid} -> {conn}")
+                        self.selected_object = None
+                        return
 
         # Объекты
         for i in range(len(loc.get("objects", [])) - 1, -1, -1):

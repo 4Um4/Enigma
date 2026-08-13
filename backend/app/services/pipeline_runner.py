@@ -133,9 +133,14 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
 
     # Применение L1 Drift Events (Append-only Chronicle)
     _svc = ctx.npc_services
+    
     if mutation.l1_drift_events and _svc and _svc.memory_manager:
-        for _event in mutation.l1_drift_events:
-            _svc.memory_manager.l1_chronicle.append(_event)
+        _chronicle = getattr(_svc.memory_manager, "l1_chronicle", None) or getattr(_svc.memory_manager, "_l1_chronicle", None)
+        if _chronicle:
+            for _event in _l1_events:
+                _chronicle.append(_event)
+        else:
+            logger.debug("L1Chronicle missing in MemoryManager, skipping TraitDriftEvent append.")
 
     # Применение Memory Events (STM/L2 update)
     if mutation.memory_events and _svc and _svc.memory_manager:

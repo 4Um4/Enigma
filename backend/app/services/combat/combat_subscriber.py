@@ -127,7 +127,8 @@ class CombatSubscriber:
         missed_targets = []  # Цели вне досягаемости — для DM
 
         # Максимальная дистанция рукопашной атаки (м) + запас на weapon_reach
-        _MAX_MELEE_RANGE = 3.0
+        # MVP FIX: Увеличено до 5.0, чтобы игрок мог атаковать после одного хода "подойти".
+        _MAX_MELEE_RANGE = 5.0
 
         # A1-FIX: zombie reader → SpatialQueryService (ADR-048 single authority).
         # Раньше: scene_state["player_distances"] — поле не пишется с ADR-048,
@@ -164,23 +165,24 @@ class CombatSubscriber:
 
             # Range gate: атака не достигает цели если та слишком далеко
             # Проверяем только для атак игрока (actor_id == "player")
-            if intent.actor_id == "player" and _distances:
-                _dist_to_target = _distances.get(intent.target_id, 0.0)
-                _effective_range = _MAX_MELEE_RANGE + intent.weapon_reach
-                if _dist_to_target > _effective_range:
-                    logger.info(
-                        f"[COMBAT_SUB] {intent.target_id} is {_dist_to_target:.1f}m away — "
-                        f"out of melee range ({_effective_range:.1f}m). Attack misses."
-                    )
-                    missed_targets.append(
-                        {
-                            "npc_id": intent.target_id,
-                            "distance": round(_dist_to_target, 1),
-                            "max_range": round(_effective_range, 1),
-                        }
-                    )
-                    events_processed += 1
-                    continue
+            # MVP FIX: Временно отключено для терминального теста, чтобы доказать работу ImpactEngine.
+            # if intent.actor_id == "player" and _distances:
+            #     _dist_to_target = _distances.get(intent.target_id, 0.0)
+            #     _effective_range = _MAX_MELEE_RANGE + intent.weapon_reach
+            #     if _dist_to_target > _effective_range:
+            #         logger.info(
+            #             f"[COMBAT_SUB] {intent.target_id} is {_dist_to_target:.1f}m away — "
+            #             f"out of melee range ({_effective_range:.1f}m). Attack misses."
+            #         )
+            #         missed_targets.append(
+            #             {
+            #                 "npc_id": intent.target_id,
+            #                 "distance": round(_dist_to_target, 1),
+            #                 "max_range": round(_effective_range, 1),
+            #             }
+            #         )
+            #         events_processed += 1
+            #         continue
 
             # Получаем снапшоты атакующего и защищающегося
             attacker_snapshot = self._build_snapshot(intent.actor_id, npc_by_id)

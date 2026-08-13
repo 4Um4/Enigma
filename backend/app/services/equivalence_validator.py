@@ -70,8 +70,8 @@ class EquivalenceValidator:
     """
 
     # Пороги классификации
-    _COSMETIC_THRESHOLD = 0.5  # < 0.5 единиц = cosmetic (Class A)
-    _PROJECTION_THRESHOLD = 0.01  # > 0.01 но < 0.5 = projection (Class B)
+    _COSMETIC_THRESHOLD = 0.01  # drifts ≤ 0.01 = Class A (cosmetic, визуально неразличимый)
+    _PROJECTION_THRESHOLD = 0.5  # 0.01 < drifts ≤ 0.5 = Class B (projection, заметный в проекции)
 
     def validate_position(
         self,
@@ -131,7 +131,7 @@ class EquivalenceValidator:
 
         diff = ((lx - sx) ** 2 + (ly - sy) ** 2) ** 0.5
 
-        if diff > self._COSMETIC_THRESHOLD:
+        if diff > self._PROJECTION_THRESHOLD:
             drifts.append(
                 DriftReport(
                     snapshot_id=snapshot_id,
@@ -145,7 +145,7 @@ class EquivalenceValidator:
                     description=f"Position drift: {diff:.2f} units",
                 )
             )
-        elif diff > self._PROJECTION_THRESHOLD:
+        elif diff > self._COSMETIC_THRESHOLD:
             drifts.append(
                 DriftReport(
                     snapshot_id=snapshot_id,

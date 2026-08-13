@@ -199,6 +199,8 @@ class DriftLaboratory:
                 "long_horizon": self._mode_long_horizon,
                 "replay_determinism": self._mode_replay_determinism,
                 "projection_parity": self._mode_projection_parity,
+                # BUG-DRIFT-005 FIX: Добавлен alias idle_stability для соответствия ключу конфига
+                "idle_stability": self._mode_idle_simulation_stability,
                 "idle_simulation_stability": self._mode_idle_simulation_stability,
                 "replay_compare": self._mode_replay_compare,
             }
@@ -838,11 +840,16 @@ class DriftLaboratory:
         # ── RUN A ──────────────────────────────────────────────────
         print("\n  [REPLAY] === RUN A ===")
         random.seed(_REPLAY_SEED)
+        run_a_interrupted = False
 
-        for tick in range(1, ticks + 1):
-            self._run_idle_tick_direct()
-            if tick % 2_000 == 0:
-                print(f"  [REPLAY] Run A: tick {tick}/{ticks}")
+        try:
+            for tick in range(1, ticks + 1):
+                self._run_idle_tick_direct()
+                if tick % 2_000 == 0:
+                    print(f"  [REPLAY] Run A: tick {tick}/{ticks}")
+        except Exception as e:
+            run_a_interrupted = True
+            print(f"  [REPLAY] Run A INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
 
         # Захватываем canonical snapshot A
         scene_a = self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
@@ -865,11 +872,16 @@ class DriftLaboratory:
         # ── RUN B ──────────────────────────────────────────────────
         print("\n  [REPLAY] === RUN B ===")
         random.seed(_REPLAY_SEED)
+        run_b_interrupted = False
 
-        for tick in range(1, ticks + 1):
-            self._run_idle_tick_direct()
-            if tick % 2_000 == 0:
-                print(f"  [REPLAY] Run B: tick {tick}/{ticks}")
+        try:
+            for tick in range(1, ticks + 1):
+                self._run_idle_tick_direct()
+                if tick % 2_000 == 0:
+                    print(f"  [REPLAY] Run B: tick {tick}/{ticks}")
+        except Exception as e:
+            run_b_interrupted = True
+            print(f"  [REPLAY] Run B INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
 
         # Захватываем canonical snapshot B
         scene_b = self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
@@ -1059,6 +1071,10 @@ class DriftLaboratory:
         max_mismatches_stored = 50
 
         for tick in range(1, ticks + 1):
+            # BUG-DRIFT-005 FIX: Прогресс-бар для предотвращения обрезки лога и индикации зависания
+            if tick % 1_000 == 0:
+                print(f"  [PARITY] tick {tick}/{ticks}")
+
             # 1. Сохраняем pre_tick state (до любых мутаций)
             pre_tick = copy.deepcopy(self._scene_state)
 

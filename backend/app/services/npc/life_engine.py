@@ -85,6 +85,7 @@ from app.core.constants import (
     STRESS_RECOVERY_SAFE,
     STRESS_RECOVERY_SLEEPING,
 )
+from app.services.npc.sleep_states import is_sleeping
 
 # ── Need-driven movement: простой прокси потребностей ──────────────────
 # Не зависит от NeedEngine/EconomicProfile — живёт в словаре NPC
@@ -374,9 +375,10 @@ class LifeEngine:
 
     def _touch(self, campaign_id: str) -> None:
         """Обновляет время последнего доступа (LRU)."""
-        self._last_access[campaign_id] = (
-            float(len(self._last_access)) + 1.0  # BUG-WALL-CLOCK FIX: Монотонный счётчик вместо wall-clock
-        )
+        if not hasattr(self, "_touch_counter"):
+            self._touch_counter = 0
+        self._touch_counter += 1
+        self._last_access[campaign_id] = float(self._touch_counter)
         self._last_access.move_to_end(campaign_id)
 
     def _evict_stale(self) -> list[str]:
@@ -385,14 +387,16 @@ class LifeEngine:
         Удаляет: (1) просроченные по TTL, (2) лишние по LRU.
         Возвращает список evicted campaign_id.
         """
-        now = time.time()  # §15.2: Infrastructure (cache TTL)
+        if not hasattr(self, "_touch_counter"):
+            self._touch_counter = 0
+        current_counter = self._touch_counter
         evicted = []
 
-        # Слой 1: TTL eviction
+        # Слой 1: TTL eviction (по количеству операций, а не wall-clock)
         stale = [
             cid
             for cid, ts in self._last_access.items()
-            if now - ts > CAMPAIGN_TTL_SECONDS
+            if current_counter - ts > 1000
         ]
         for cid in stale:
             self.cleanup_campaign(cid)
@@ -803,9 +807,13 @@ class LifeEngine:
                 if runtime_npcs is not None:
                     runtime_npcs = self._normalize_runtime_npcs(runtime_npcs)
                     self._npc_cache[campaign_id] = runtime_npcs
-                    self._last_access[campaign_id] = (
-                        float(len(self._last_access)) + 1.0  # BUG-WALL-CLOCK FIX: Монотонный счётчик вместо wall-clock
-                    )
+                    # BUG-DRIFT-009 FIX: Используем единый монотонный счётчик _touch_counter,
+                    # как в _touch(). Раньше тут был float(len(self._last_access)) + 1.0,
+                    # что сбрасывало таймер при пустом кэше и вызывало мгновенный re-eviction.
+                    if not hasattr(self, "_touch_counter"):
+                        self._touch_counter = 0
+                    self._touch_counter += 1
+                    self._last_access[campaign_id] = float(self._touch_counter)
                     self._last_access.move_to_end(campaign_id)
                     logger.info(
                         f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} "
@@ -1488,8 +1496,9 @@ class LifeEngine:
             _pain = 0.0
             _fatigue = 0.0
 
-        # TODO: acoustic из scene_state environment.noise (пока недоступен в LifeEngine)
-        _acoustic = 0.0
+        # BUG-SLEEP-008 FIX: Читаем acoustic_stimulus из npc (если инжектирован оркестратором).
+        # По умолчанию 0.0, если событий громкого звука (крик, взрыв) поблизости нет.
+        _acoustic = npc.get("acoustic_stimulus", 0.0)
 
         wake_pressure = (
             _threat * 0.35 + _pain * 0.25 + _directive_salience * 0.3 + _acoustic * 0.1
@@ -1515,6 +1524,9 @@ class LifeEngine:
             # Transition: sleeping/resting → нет активности
             # НЕ вводим "awake" как состояние мира (ADR-O-142A constraint)
             _routine["current"] = ""
+            # BUG-SLEEP-004 FIX: Сбрасываем _sleep_start_tick при пробуждении,
+            # чтобы при следующем засыпании depth считался с нуля.
+            _routine.pop("_sleep_start_tick", None)
 
             changes = [
                 SceneChange(
@@ -1777,7 +1789,7 @@ class LifeEngine:
 
         # GAP9 FIX: Реалистичное Пробуждение. Если NPC напуган или в стрессе, он не может уснуть.
         # Угроза (threat_gradient) и стресс — непрерывные скаляры, в отличие от сгорающей директивы.
-        if "sleeping" in new_activity or "resting" in new_activity:
+        if is_sleeping(new_activity):
             _threat = (
                 _kernel.get("threat_gradient", 0.0)
                 if isinstance(_kernel, dict)
@@ -1805,6 +1817,12 @@ class LifeEngine:
             # NPC остаётся на месте. Лог уже записан в _resolve_position.
             return [], None
         new_location, new_position, activity_display = resolved
+        
+        # BUG-DRIFT-010 FIX: Нормализуем target_node_id, добавляя префикс локации.
+        # Без этого movement_engine в исходной локации не может однозначно определить target_loc
+        # и гоняет NPC по boundary-узлам бесконечно ("батут" S186_TRANSFER).
+        if new_position and ":" not in new_position and new_location:
+            new_position = f"{new_location}:{new_position}"
 
         prev_location = npc.get("location", new_location)
         changes: list[SceneChange] = [
@@ -1818,7 +1836,7 @@ class LifeEngine:
             )
         ]
 
-        going_to_sleep = "sleeping" in new_activity or "resting" in new_activity
+        going_to_sleep = is_sleeping(new_activity)
         changes.append(
             SceneChange(
                 type=ChangeType.NPC_POSITION,
@@ -2102,7 +2120,7 @@ class LifeEngine:
             rng = KernelRNG(tick=tick, npc_id=npc_id, salt="life_events")
         activity = npc.get("routine", {}).get("current", "")
 
-        if "sleeping" in activity:
+        if is_sleeping(activity):
             return [], None
 
         # ADR-052: Парализованный страхом NPC не инициирует случайные события
@@ -2152,7 +2170,7 @@ class LifeEngine:
         Спящие восстанавливаются быстрее.
         """
         activity = npc.get("routine", {}).get("current", "")
-        is_sleeping = "sleeping" in activity
+        _is_sleeping = is_sleeping(activity)
 
         psyche = npc.setdefault("psyche", {})
         current_stress = psyche.get("stress", 0)
@@ -2160,8 +2178,16 @@ class LifeEngine:
         if current_stress <= 0:
             return
 
-        recovery = STRESS_RECOVERY_SLEEPING if is_sleeping else STRESS_RECOVERY_SAFE
+        recovery = STRESS_RECOVERY_SLEEPING if _is_sleeping else STRESS_RECOVERY_SAFE
         psyche["stress"] = max(0, current_stress - recovery)
+        
+        # BUG-SLEEP-002 FIX: Sleep restores fatigue 7x faster than waking rest.
+        # Без этого сон бесполезен функционально — усталость убывает одинаково быстро и днём, и ночью.
+        _fatigue_rate = 0.20 if _is_sleeping else 0.03
+        _drives = npc.setdefault("drives_runtime", {})
+        _curr_fatigue = _drives.get("fatigue", 0.0)
+        if _curr_fatigue > 0:
+            _drives["fatigue"] = max(0.0, _curr_fatigue - _fatigue_rate)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

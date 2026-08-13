@@ -195,7 +195,7 @@ class SimpleNodeUpdateCommand:
         self.new = {"name": new_name, "role": new_role, "tags": new_tags}
         self.label = f"Обновление узла {node_id}"
 
-    def execute(self):
+    def do(self):
         self.dm.update_node(self.filename, self.node_id, self.new["name"], self.new["role"], self.new["tags"])
 
     def undo(self):

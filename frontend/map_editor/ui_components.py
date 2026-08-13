@@ -480,7 +480,7 @@ class ModalDialog:
             if isinstance(inp, Dropdown):
                 inp.draw(self.screen, font, small_font)
             else:
-                inp.draw(font, small_font)
+                inp.draw(self.screen, font, small_font)
 
         # Кнопки
         self.btn_ok.draw(self.screen, font)

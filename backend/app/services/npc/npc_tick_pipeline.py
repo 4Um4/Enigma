@@ -147,8 +147,7 @@ class NpcTickPipeline:
         communication_intents: List[Any] = []
         movement_intents: List[Any] = []
         npc_deltas: List[Any] = []
-        # BUG-CORE-013 FIX: l1_drift_events удалён как мёртвый код (нет .append).
-        # TickMutation имеет default_factory=list.
+        _l1_events: List[Any] = []
         memory_events: List[Any] = []
 
         for npc in _npcs_to_process:
@@ -668,6 +667,15 @@ class NpcTickPipeline:
             # и передача ResolutionOutcome в формирование TickMutation (вместо applicator.apply).
             if decision.deltas:
                 npc_deltas.extend(decision.deltas)
+                # Генерируем L1-событие для этого NPC, так как у него есть дельта (Causal Provenance)
+                from app.domain.identity_events import TraitDriftEvent
+                _l1_events.append(TraitDriftEvent(
+                    tick_id=state.tick_id,
+                    target_id=npc_id,
+                    source_id="world_tick",
+                    effect_value=0.0,
+                    observation_weight=0.1
+                ))
 
             # Сборка memory_events для отложенного применения
             try:
@@ -686,15 +694,6 @@ class NpcTickPipeline:
                     memory_events.append(_mem_evt)
             except Exception as e:
                 logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
-
-        # Восстанавливаем l1_drift_events из decision.deltas, если они там есть.
-        # Если DecisionHub не генерирует L1-события напрямую, они будут созданы
-        # TickOrchestrator'ом при применении memory_events.
-        _l1_events = []
-        for _d in npc_deltas:
-            # Проверяем, является ли дельта L1-событием (или содержит его)
-            if hasattr(_d, "l1_drift_events") and _d.l1_drift_events:
-                _l1_events.extend(_d.l1_drift_events)
         
         return TickMutation(
             npc_deltas=npc_deltas,

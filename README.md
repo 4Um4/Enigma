@@ -1,77 +1,482 @@
 # ENIGMA
-## Движок эмерджентной каузальной драмы
 
-> **Тезис:** Если игровую реальность моделировать как детерминированную причинную систему, а субъекты этой реальности разделить по восприятию, знаниям, памяти, убеждениям, мотивам и отношениям, то драматическое повествование можно не писать заранее, а получать как эмерджентное следствие их взаимодействия.
+> A deterministic causal simulation engine for agents, world state, memory,
+> perception, belief, decision and emergent narrative.
 
-ENIGMA — это не ролевая игра в традиционном смысле. Это причинно-следственный движок (causal engine), в котором драма возникает не из заранее написанных скриптов, а вычисляется как математическая разница между тем, что произошло, и тем, что субъекты *считают*, что произошло. 
+**Status: Experimental / Research Prototype**
 
-Здесь нет квестодателей, полос здоровья и диалоговых деревьев. Есть замкнутая каузальная система, где действия агента (игрока) запускают волны изменений через социальные графы, ломая убеждения, трансформируя мотивы и приводя к необратимым трагедиям.
+ENIGMA is not currently a finished autonomous-world simulator.
 
----
+It is an evolving simulation architecture whose central research question is:
 
-## Архитектурная парадигма
+> Can a deterministic game simulation produce meaningful emergent behavior
+> when agents act not directly on objective world truth, but on their own
+> incomplete and potentially incorrect models of that world?
 
-В основе ENIGMA лежат три фундаментальных принципа, отличающих её от традиционных симуляторов (Dwarf Fortress, Crusader Kings, RimWorld).
-
-### 1. Каузальный конвейер (Детерминированная реальность)
-Реальность в ENIGMA дискретна и управляется строгим 10-фазным конвейером тика (`CREATE → READ → TRANSFORM → APPLY → COMMIT → PROJECT`). 
-*   **Изоляция во времени:** В фазе `READ` агенты работают с **замороженным снимком** (frozen snapshot) прошлого тика. Они физически не могут знать, что происходит прямо сейчас. 
-*   **Запрет обратной связи:** Решение (Phase 5), применение мутации (Phase 8) и реакция на результат (Phase 2 следующего тика) разделены во времени. Это исключает парадоксы наблюдателя и состояния гонки.
-*   **Единый источник истины:** Время (`game_time_seconds`) и случайность (`KernelRNG`) полностью детерминированы. Любой сценарий можно воспроизвести с точностью до миллисекунды.
-
-### 2. Эпистемический разрыв (Субъекты восприятия)
-В традиционных играх NPC всеведущи. В ENIGMA знание отделено от факта.
-*   **Perceptual Kernel:** Агент видит мир только через сенсорный фильтр. Если событие произошло вне радиуса восприятия, его не существует.
-*   **Кристаллизация убеждений (`CrystallizedBeliefStore`):** Агенты формируют мнение о других на основе *наблюдений*, а не фактов. 
-*   **Асимметричная травма (`TRAUMA_MULTIPLIER=6.0`):** Опровержение убеждения травмирует психику в 6 раз сильнее, чем подтверждение. Драма здесь — это поломка внутренней модели мира агента, а не просто изменение числа отношений.
-
-### 3. Психоэкономика и Активный вывод (Мотивы и отношения)
-Мотивация агентов не скриптована, а вычисляется через драйвы.
-*   **PsychoEconomy:** Экономика (золото, долги) напрямую конвертируется в психологические драйвы (`control`, `significance`, `fear`, `desire`). Борко берет взятку не потому, что так велит скрипт, а потому что математический страх за семью доминирует над долгом.
-*   **Active Inference:** Агенты строят EMA-модели ожиданий (угрозы/награды) друг от друга. Ошибка предсказания (Prediction Error) конвертируется в модификаторы решений.
-*   **Социальный граф:** События распространяются по направленному графу связей (BFS), где слухи искажаются в зависимости от уровня доверия к источнику.
+This distinction is the core of the project.
 
 ---
 
-## Как рождается драма
+# 1. What ENIGMA actually is
 
-Драма в ENIGMA — это **эмерджентный каскад**. 
+ENIGMA is a Python-based simulation/game engine built around a causal tick loop.
 
-1.  **Действие:** Игрок бросает камень в пруд (например, сдаёт шпиона страже). Действие фиксируется в `DeltaBuffer`.
-2.  **Восприятие:** Другой агент видит это через `SpatialEventDetector`. В его `L1Chronicle` записывается событие.
-3.  **Ломка убеждений:** `MemoryManager` проверяет, не нарушает ли это событие ожидания агента. Если да, `CrystallizedBeliefStore` получает травмирующий удар (множитель 6.0), `stability` агента падает.
-4.  **Решение:** `DecisionHub` в следующем тике оценивает варианты. Из-за упавшего `stability` и возросшего `fear` агент выбирает крайнее действие (убийство, побег, предательство).
-5.  **Катастрофа:** `FateTracker` фиксирует, что `threat > 0.8` и `stability < 0.2`. Запускается необратимое судьбинное событие. Это событие становится новой волной в социальном графе, ломая жизни уже других NPC.
+The currently implemented system contains real infrastructure for:
 
-Текст, который видит игрок (через LLM-вербализацию), лишь описывает этот математический коллапс. LLM в ENIGMA — это голос, а не источник истины.
+- deterministic world ticks;
+- NPC state;
+- needs and drives;
+- decision scoring;
+- movement;
+- spatial state;
+- relationships;
+- trust / attraction;
+- memory;
+- identity events;
+- L1 chronicle persistence;
+- belief-related state;
+- state mutation;
+- recovery / decay;
+- economic simulation;
+- combat;
+- player actions;
+- LLM-assisted dialogue;
+- replay / drift experiments;
+- causal validation;
+- long-horizon sandbox simulation.
 
----
-
-## Текущее состояние и Roadmap
-
-Проект находится в стадии активной разработки ядра (Версия V.0.5.3.7.x). 
-
-**Что реализовано:**
-*   Полный 10-фазный каузальный конвейер.
-*   Эпистемическая модель памяти (L1/L2/L3, кристаллизация убеждений, EMA-ожидания).
-*   Детерминированная боевая система с фазой подготовки (ActionWindup) и моделированием травм.
-*   Базовая психоэкономика и социальный граф с распространением слухов.
-*   Диагностическая система (DNA-метрики, инварианты `INV-TIME-FREEZE` и др.).
-
-**Вектор развития:**
-*   **Level of Detail (LoD) для симуляции:** Оптимизация Python-ядра для масштабирования до 50+ Major NPC.
-*   **Визуализация эпистемики:** UI, который проецирует не статы, а восприятие (PeripheralCues, ActivePerceptions).
-*   **Открытие API памяти:** Внутриигровые инструменты для исследования того, как именно агенты заблуждаются.
-
----
-
-## Технические якоря
-
-*   `architecture/*.yaml` — Источник истины для топологии. Генерирует `docs/ARCHITECTURE_FLOW_GENERATED.md`.
-*   `docs/ADR (Architecture Decision Records).md` — Обоснование архитектурных решений.
-*   `docs/DTO Registry (Реестр контрактов).md` — Контракты между фазами и сервисами.
-*   `backend/app/core/tick_orchestrator.py` — Реализация каузального конвейера.
+The project does **not** currently claim that all planned epistemic or predictive systems are implemented.
 
 ---
 
-*Мир — это не загадка для разгадывания. Мир — это детерминированная физика, страдающая от несовершенства собственного восприятия.*
+# 2. The central hypothesis
+
+Traditional game AI generally follows:
+
+    WORLD STATE
+        ↓
+    NPC PERCEPTION
+        ↓
+    NPC DECISION
+        ↓
+    ACTION
+        ↓
+    WORLD CHANGE
+
+ENIGMA is investigating a deeper model:
+
+    WORLD TRUTH
+        ↓
+    PERCEPTION
+        ↓
+    OBSERVATION
+        ↓
+    MEMORY
+        ↓
+    BELIEF
+        ↓
+    EXPECTATION
+        ↓
+    MOTIVATION
+        ↓
+    DECISION
+        ↓
+    ACTION
+        ↓
+    WORLD CHANGE
+
+The critical property is:
+
+    WORLD TRUTH ≠ AGENT BELIEF
+
+and, more importantly:
+
+    AGENT A BELIEF ≠ AGENT B BELIEF
+
+if their observations, memories, trust relationships or inference histories
+differ.
+
+This property is not considered implemented merely because a class called
+"Belief" exists.
+
+It must be demonstrated experimentally.
+
+---
+
+# 3. Objective truth vs subjective model
+
+The intended long-term architecture distinguishes at least three categories:
+
+## World truth
+
+What actually happened in the simulation.
+
+Example:
+
+    A stole the ring from B.
+
+## Agent observation
+
+What an agent actually had access to.
+
+Example:
+
+    B saw A near the ring.
+
+    C was not present.
+
+## Agent belief
+
+What the agent currently considers true.
+
+Example:
+
+    B believes A stole the ring.
+
+    C believes B stole the ring.
+
+The engine must never silently collapse these into one state.
+
+---
+
+# 4. Current implementation
+
+The current codebase contains a functioning causal simulation substrate.
+
+The strongest currently demonstrated areas are:
+
+- tick orchestration;
+- state mutation;
+- NPC decision scoring;
+- needs;
+- drives;
+- relationships;
+- spatial behavior;
+- combat effects;
+- stress / affect;
+- identity pressure;
+- persistence;
+- economic modifiers;
+- long-horizon sandbox execution;
+- causal validation.
+
+The `backend/tests/sandbox/SUPERBOX` directory contains dedicated research
+tools for NPC simulation, causal validation, drift analysis, behavior
+experiments and stress testing.
+
+These tools are part of the project's evidence layer.
+
+---
+
+# 5. What is NOT currently claimed as implemented
+
+The following are research targets unless directly backed by executable code
+and a passing validation scenario:
+
+- predictive perception kernel;
+- information-theoretic surprise;
+- full predictive-processing loop;
+- 4D belief representation;
+- second-order Theory of Mind;
+- BELIEVES predicates;
+- prophecy causality;
+- self-fulfilling prophecy;
+- semantic LLM cache;
+- BGE / FAISS semantic retrieval;
+- formal Dialogue Response Integrity;
+- neural ADR classifier;
+- Active Inference integration;
+- full self-model;
+- counterfactual reasoning.
+
+A roadmap entry is not evidence of implementation.
+
+A class name is not evidence of semantics.
+
+A metric is not evidence unless its computation is traceable to the claimed
+property.
+
+---
+
+# 6. Evidence standard
+
+ENIGMA follows a strict rule:
+
+> A system is implemented only when its behavior is observable and
+> reproducibly testable.
+
+For every architectural claim there must eventually exist:
+
+    CLAIM
+      ↓
+    CODE
+      ↓
+    CALL PATH
+      ↓
+    TEST
+      ↓
+    OBSERVABLE RESULT
+
+For example:
+
+Bad:
+
+    "Belief Layer implemented."
+
+Good:
+
+    "NPC A and NPC B receive different observations of the same event.
+     Their persisted beliefs diverge.
+     Their subsequent decisions diverge because of those beliefs.
+     The divergence survives at least N ticks and survives save/load."
+
+---
+
+# 7. Current architectural layers
+
+The currently implemented architecture should be understood approximately as:
+
+    WORLD / SNAPSHOT
+          ↓
+    PERCEPTION / EVENT PROCESSING
+          ↓
+    NPC STATE
+          ↓
+    NEEDS / DRIVES
+          ↓
+    DECISION HUB
+          ↓
+    ACTION / MOVEMENT
+          ↓
+    STATE MUTATION
+          ↓
+    PERSISTENCE / CHRONICLE
+
+Additional systems attach to this pipeline:
+
+    relationships
+    economy
+    combat
+    identity
+    recovery
+    memory
+    LLM dialogue
+    replay / drift analysis
+
+This architecture is real.
+
+The deeper epistemic architecture is the next research stage.
+
+---
+
+# 8. The research frontier
+
+The next decisive question is not:
+
+    "Can ENIGMA have more systems?"
+
+It is:
+
+    "Can ENIGMA produce causal behavior from different internal models
+     of the same objective world?"
+
+The minimum experiment is a three-agent epistemic divergence scenario.
+
+Example:
+
+    WORLD TRUTH:
+
+        A stole X from B.
+
+    A:
+        knows that A stole X.
+
+    B:
+        witnessed the theft.
+
+    C:
+        did not witness the theft.
+
+    A tells C:
+        "B stole X."
+
+    C trusts A.
+
+Expected result:
+
+    Truth:
+        A stole X.
+
+    B belief:
+        A stole X.
+
+    C belief:
+        B stole X.
+
+The system must then produce different behavior from B and C.
+
+If C attacks B because of the false belief, while B treats A as the
+culprit, the simulation has demonstrated the essential property ENIGMA
+is designed to investigate.
+
+---
+
+# 9. What would constitute failure
+
+The following are failures:
+
+- all agents access the same objective truth;
+- beliefs are merely aliases for world state;
+- beliefs are overwritten globally;
+- dialogue text says an agent believes something but the decision engine
+  does not use it;
+- belief differences do not affect behavior;
+- belief differences disappear on the next tick without causal reason;
+- save/load destroys the divergence;
+- the LLM invents the belief while deterministic simulation remains unaware
+  of it;
+- the test passes only because assertions inspect strings instead of state.
+
+The goal is not to generate convincing text.
+
+The goal is to generate different causal futures.
+
+---
+
+# 10. LLM's role
+
+The LLM is not the intelligence substrate of ENIGMA.
+
+The deterministic engine owns:
+
+- state;
+- time;
+- causality;
+- perception;
+- memory;
+- belief;
+- decision;
+- action;
+- persistence.
+
+The LLM may provide:
+
+- language interpretation;
+- dialogue realization;
+- narrative expression.
+
+A generated sentence cannot create a world fact unless a deterministic
+simulation pathway accepts and validates the corresponding mutation.
+
+---
+
+# 11. Determinism
+
+Determinism is an engineering requirement for the simulation core.
+
+The system should allow:
+
+    initial state
+        +
+    seed
+        +
+    player actions
+        +
+    tick sequence
+        ↓
+    reproducible simulation
+
+Cosmetic randomness must not be confused with causal nondeterminism.
+
+Replay validation must distinguish:
+
+- structural state divergence;
+- causal divergence;
+- numerical drift;
+- cosmetic movement jitter.
+
+A replay metric must never report "zero drift" merely because the comparison
+was skipped after an upstream failure.
+
+---
+
+# 12. Documentation policy
+
+ENIGMA documentation uses three statuses.
+
+## IMPLEMENTED
+
+Executable code exists and a validation scenario demonstrates the claimed
+behavior.
+
+## PARTIAL
+
+Some infrastructure exists, but the complete semantic contract is not
+demonstrated.
+
+## PROPOSED
+
+The architecture is designed or hypothesized but is not implemented.
+
+Roadmap items are not implementation evidence.
+
+---
+
+# 13. Current project position
+
+ENIGMA is currently a causal NPC/world simulation prototype.
+
+It is not yet a completed epistemic simulation engine.
+
+The project will earn the right to use stronger claims only through executable
+experiments.
+
+The first major milestone is therefore not:
+
+    more features.
+
+It is:
+
+    DIFFERENT BELIEFS → DIFFERENT DECISIONS → DIFFERENT FUTURES
+
+If this mechanism works reliably, ENIGMA has demonstrated its central
+architectural thesis.
+
+If it does not, the architecture must be reconsidered before additional
+epistemic layers are added.
+
+---
+
+# 14. Development principle
+
+Do not build the next abstraction because it is intellectually attractive.
+
+Build it because the previous experiment proves that the simulation requires it.
+
+The project therefore proceeds from:
+
+    observable behavior
+        ↓
+    causal requirement
+        ↓
+    minimal architecture
+        ↓
+    implementation
+        ↓
+    validation
+
+not:
+
+    theory
+        ↓
+    roadmap
+        ↓
+    names
+        ↓
+    presumed implementation
+
+---
+
+# 15. License
+
+See repository license.

@@ -29,6 +29,7 @@ import logging
 from typing import List, Tuple
 
 from app.models.npc_state import NPCState
+from app.models.event_resolution import StateChange
 from app.services.reaction.micro_event import MicroEvent, MicroEventType
 
 logger = logging.getLogger(__name__)

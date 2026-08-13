@@ -136,11 +136,14 @@ def run_dm_phase(
             _dist = _target.player_dists.get(shared_context.player_target_id, 0.0)
             _MELEE_RANGE = 2.0
             if _dist > _MELEE_RANGE:
+                _combat_target_id = shared_context.player_target_id or "target"
+                _combat_target_name = shared_context.player_target_name or _combat_target_id
                 shared_context.combat_data = {
-                    shared_context.player_target_id: {
+                    _combat_target_id: {
                         "miss": True,
                         "distance": round(_dist, 2),
                         "max_range": _MELEE_RANGE,
+                        "target_name": _combat_target_name,
                     }
                 }
                 logger.warning(

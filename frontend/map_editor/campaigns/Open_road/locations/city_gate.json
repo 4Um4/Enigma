@@ -1944,8 +1944,8 @@
       "name": "Кровать №1",
       "type": "bed",
       "position": {
-        "x": 33.2,
-        "y": 0.8166666666666667
+        "x": 31.710000000000004,
+        "y": 0.8466666666666667
       },
       "size": {
         "w": 2.5,
@@ -2055,7 +2055,8 @@
       "connections": [
         "gate_arch",
         "tent_1",
-        "tent_4"
+        "tent_6",
+        "tent_9"
       ]
     },
     "entrance": {
@@ -2114,9 +2115,6 @@
       "label": "Палатка №4",
       "role": "bed",
       "connections": [
-        "gate_courtyard",
-        "tent_5",
-        "tent_7",
         "entrance",
         "tent_8"
       ]
@@ -2127,22 +2125,21 @@
       "label": "Палатка №5",
       "role": "bed",
       "connections": [
-        "tent_4",
         "tent_6",
         "entrance"
       ]
     },
     "tent_6": {
-      "x": 41.19313888888889,
-      "y": 10.72571574074074,
+      "x": 40.51753888888889,
+      "y": 10.75131574074074,
       "label": "Палатка №6",
       "role": "bed",
       "connections": [
         "tent_3",
         "tent_5",
-        "tent_9",
-        "tent_8",
-        "entrance"
+        "entrance",
+        "gate_courtyard",
+        "tent_8"
       ]
     },
     "tent_7": {
@@ -2151,7 +2148,6 @@
       "label": "Палатка №7",
       "role": "bed",
       "connections": [
-        "tent_4",
         "tent_8",
         "gate_arch"
       ]
@@ -2174,8 +2170,8 @@
       "label": "Палатка №9",
       "role": "bed",
       "connections": [
-        "tent_6",
-        "tent_8"
+        "tent_8",
+        "gate_courtyard"
       ]
     },
     "node_14": {
@@ -2213,7 +2209,7 @@
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-08-09T21:39:39.675692",
+  "modified_at": "2026-08-13T20:26:47.372331",
   "adjacency": {
     "west": "tavern"
   },

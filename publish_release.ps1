@@ -76,7 +76,45 @@ if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка компиляции Inn
 # 4. Установщик моделей больше не собираем (модели будут скачиваться по ссылкам из настроек игры)
  $SetupFiles = Get-ChildItem -Path "build" -File | Where-Object { $_.Name -like "Bloodloom_setup_v*" } | Select-Object -ExpandProperty FullName
 if (-not $SetupFiles) { Write-Host "❌ Ошибка: Не найдены скомпилированные файлы в папке build!" -ForegroundColor Red; exit }
-Write-Host "✅ Установочники собраны: $($SetupFiles -join ', ')" -ForegroundColor Green
+
+# Проверка лимита GitHub (2 ГБ) и сжатие при превышении
+ $GitHubLimit = 2147483648
+ $FilesToUpload = @()
+
+# Ищем WinRAR (Rar.exe предпочтительнее для консоли)
+ $ArchiverPath = @(
+    "C:\Program Files\WinRAR\Rar.exe",
+    "C:\Program Files (x86)\WinRAR\Rar.exe",
+    "$env:ProgramFiles\WinRAR\Rar.exe",
+    "${env:ProgramFiles(x86)}\WinRAR\Rar.exe"
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if (-not $ArchiverPath) {
+    $ArchiverPath = (Get-Command Rar.exe -ErrorAction SilentlyContinue).Source
+    if (-not $ArchiverPath) {
+        $ArchiverPath = (Get-Command WinRAR.exe -ErrorAction SilentlyContinue).Source
+    }
+}
+
+foreach ($file in $SetupFiles) {
+    $fileSize = (Get-Item $file).Length
+    if ($fileSize -ge $GitHubLimit) {
+        Write-Host "🗜️ Файл $file превышает лимит GitHub ($fileSize байт). Сжатие через WinRAR..." -ForegroundColor Yellow
+        if (-not $ArchiverPath) { Write-Host "❌ Ошибка: WinRAR (Rar.exe) не найден в системе!" -ForegroundColor Red; exit }
+
+         $ArchivePath = [System.IO.Path]::ChangeExtension($file, ".rar")
+        # a - создать архив, -m5 - макс. сжатие, -v2048m - тома по 2 ГБ, -ep - исключить пути из имен
+        & $ArchiverPath a -m5 -v2048m -ep $ArchivePath $file
+        if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка сжатия WinRAR!" -ForegroundColor Red; exit }
+
+         $ArchiveBaseName = [System.IO.Path]::GetFileNameWithoutExtension($ArchivePath)
+        $SplitArchives = Get-ChildItem -Path ([System.IO.Path]::GetDirectoryName($file)) -Filter "$ArchiveBaseName*.rar*"
+        $FilesToUpload += $SplitArchives.FullName
+    } else {
+        $FilesToUpload += $file
+    }
+}
+Write-Host "✅ Установочники собраны: $($FilesToUpload -join ', ')" -ForegroundColor Green
 
 # 5. Публикация на GitHub
 Write-Host "☁️ Публикация релиза на GitHub..." -ForegroundColor Cyan
@@ -103,7 +141,7 @@ if ($releasesJson) {
 }
 Write-Host "✅ Очистка завершена." -ForegroundColor Green
 
-gh release create $TagName $SetupFiles `
+gh release create $TagName $FilesToUpload `
     --repo "$RepoOwner/$RepoName" `
     --title "$ReleaseTitle" `
     --notes "$ReleaseNotes" `

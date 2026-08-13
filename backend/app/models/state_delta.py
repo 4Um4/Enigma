@@ -20,9 +20,11 @@ from app.models.delta_payloads import (
     EconomicPayload,
     EmotionPayload,
     IdentityPayload,
+    PerceptionPayload,
     PhysiologyPayload,
     ReputationPayload,
     SocialPayload,
+    WillConflictPayload,
 )
 from app.models.npc_state import EmotionTag, WillState
 
@@ -75,7 +77,14 @@ DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
 
 # Union тип — IDE знает все варианты, autocomplete работает
 DeltaPayload = Union[
-    SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload, PhysiologyPayload, EconomicPayload
+    SocialPayload, 
+    EmotionPayload, 
+    ReputationPayload, 
+    IdentityPayload, 
+    PhysiologyPayload, 
+    EconomicPayload,
+    PerceptionPayload,
+    WillConflictPayload,
 ]
 
 

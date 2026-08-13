@@ -253,13 +253,15 @@ class IntentCompressor:
         target_ref = None
         if PYMORPHY_AVAILABLE:
             tokens_raw = re.findall(r"[а-яА-ЯёЁa-zA-Z0-9]+", raw_text)
-            for token in tokens_raw:
+            # Ищем NOUN с конца строки: в русском цель обычно идёт после глагола ("Подойти к Люсе")
+            for token in reversed(tokens_raw):
                 parsed = MORPH.parse(token.lower())
                 # NOUN = существительное. Исключаем глаголы-существительные (например, "удар")
                 if (
                     parsed
                     and parsed[0].tag.POS == "NOUN"
                     and parsed[0].normal_form not in _ACTION_LEMMAS_FLAT
+                    and parsed[0].normal_form != "раз" # Исключаем "Еще раз!"
                 ):
                     target_ref = (
                         token.lower()

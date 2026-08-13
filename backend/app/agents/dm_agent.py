@@ -604,8 +604,9 @@ class DmAgent:
             for _npc_id, _cd in _combat_data.items():
                 # Промах по расстоянию
                 if _cd.get("miss"):
+                    _target_name = _cd.get("target_name", _npc_id)
                     _combat_lines.append(
-                        f"- {_npc_id}: НЕ ДОСТИГНУТ — слишком далеко ({_cd.get('distance', '?')}м, достать можно до {_cd.get('max_range', '?')}м)"
+                        f"- {_target_name}: НЕ ДОСТИГНУТ — слишком далеко ({_cd.get('distance', '?')}м, достать можно до {_cd.get('max_range', '?')}м)"
                     )
                     continue
                 _hit_parts = []
@@ -628,10 +629,11 @@ class DmAgent:
                 )
 
             scene_events_block = ""
-            if context and isinstance(context, dict) and context.get("scene_state", {}).get("scene_events"):
+            _scene_state = getattr(context, "scene_state", None) if not isinstance(context, dict) else context.get("scene_state")
+            if _scene_state and isinstance(_scene_state, dict) and _scene_state.get("scene_events"):
                 try:
                     scene_events_block = SceneStateManager.get_scene_events_block(
-                        context["scene_state"]
+                        _scene_state
                     )
                 except Exception as e:
                     jsonl_log(

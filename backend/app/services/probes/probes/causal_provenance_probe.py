@@ -15,7 +15,7 @@ class CausalProvenanceProbe(Probe):
             return ProbeResult(name=self.name, severity=self.severity, passed=True, details="No mutation in context.")
 
         # Получаем список всех ID NPC, для которых сгенерированы L1 события
-        l1_npc_ids = {getattr(e, "npc_id", None) for e in getattr(mutation, "l1_drift_events", [])}
+        l1_npc_ids = {getattr(e, "target_id", None) for e in getattr(mutation, "l1_drift_events", [])}
         
         # Проверяем дельты (npc_deltas)
         for delta in getattr(mutation, "npc_deltas", []):

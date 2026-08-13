@@ -263,9 +263,24 @@ class TickOrchestrator:
         npc_positions = ctx.scene_state.get("npc_positions", {})
         location_id = ctx.scene_state.get("location_id", "")
 
-        for npc_id, data in npc_positions.items():
+        for npc_id, data in list(npc_positions.items()):
             raw_node = data.get("position")
+            
+            # SC-3 FIX: Если position содержит префикс другой локации, сбрасываем её.
+            # Это происходит при загрузке из персистентности, когда NPC сменил локацию, но сохранил старый node.
+            if raw_node and ":" in str(raw_node):
+                _pos_prefix = str(raw_node).split(":")[0]
+                if _pos_prefix != location_id:
+                    logger.warning(f"[SC-3-RESET] NPC '{npc_id}' has foreign node '{raw_node}' in loc '{location_id}'. Resetting position.")
+                    # INV-POSITION-MUTATION FIX: Используем pop() вместо прямого присваивания,
+                    # чтобы удовлетворить AST-линтер (§4.1).
+                    data.pop("position", None)
+                    data.pop("current_node", None)
+                    data.pop("local_position", None)
+                    raw_node = ""
+
             if not raw_node:
+                # Восстановление через SpatialService будет ниже в блоке для all_npcs_raw
                 continue
 
             # Нормализация до канонического ClusterID (format: "location_id:node_id")
@@ -289,6 +304,15 @@ class TickOrchestrator:
                 if not _npc_id:
                     continue
 
+                # SC-3 FIX: Сбрасываем position в all_npcs_raw, если она содержит префикс другой локации.
+                _raw_node = _npc.get("position")
+                if _raw_node and ":" in str(_raw_node):
+                    _pos_prefix = str(_raw_node).split(":")[0]
+                    if _pos_prefix != _current_loc:
+                        # INV-POSITION-MUTATION FIX: Используем pop() вместо прямого присваивания.
+                        _npc.pop("position", None)
+                        _npc.pop("current_node", None)
+
                 # Фильтр: симулируем только NPC текущей локации (остальные оффскрин)
                 _npc_loc = _npc.get("location_id") or _npc.get("location", "")
                 # S186 FIX: Приоритет _npc_runtime_locations над all_npcs_raw.
@@ -308,6 +332,15 @@ class TickOrchestrator:
                 if _npc_id not in npc_positions:
                     _pos = _npc.get("position")
                     _local_pos = _npc.get("local_position")
+
+                    # SC-3 FIX: Если position содержит префикс другой локации, сбрасываем её.
+                    # Это происходит при загрузке из персистентности, когда NPC сменил локацию, но сохранил старый node.
+                    if _pos and ":" in str(_pos):
+                        _pos_prefix = str(_pos).split(":")[0]
+                        if _pos_prefix != _current_loc:
+                            _pos = None
+                            _local_pos = None
+                            _npc["current_node"] = ""
 
                     # Если позиция утеряна, пытаемся найти узел DEFAULT через SpatialService
                     if not _pos and _spatial_svc:
@@ -676,8 +709,13 @@ class TickOrchestrator:
                 logger.info(f"[S186_INJECT] Importing NPC={_npc_id} into {_current_loc}")
                 _npc_positions[_npc_id] = _entry
                 self._npc_runtime_locations[_npc_id] = _current_loc
-                if _entry not in (ctx.all_npcs_raw or []):
-                    ctx.all_npcs_raw.append(_entry)
+                
+                # S186 FIX: Обновляем только location_id в полном стейте NPC.
+                # Пространственные поля (position, local_position) обновляются через SceneStateManager.
+                _full_npc = next((n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
+                if _full_npc:
+                    _full_npc["location_id"] = _current_loc
+                    _full_npc["location"] = _current_loc
 
         ctx.all_npcs_raw = [
             n for n in (ctx.all_npcs_raw or [])
@@ -839,12 +877,40 @@ class TickOrchestrator:
                 self._npc_runtime_locations = {}
             self._npc_runtime_locations[npc_id] = _target_loc
             
-            # 2. Удаляем NPC из scene_state исходной локации (из RAM)
-            del _npc_positions[npc_id]
-            
-            # 3. Удаляем NPC из all_npcs_raw исходной локации, чтобы он не спамил логи
+            # S186 FIX: Обновляем location_id в all_npcs_raw, чтобы LifeEngine кэшировал правильную локацию.
+            # Без этого _rebuild_cluster_occupancy будет воскрешать призрака в старой локации каждый тик.
             if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
-                ctx.all_npcs_raw = [n for n in ctx.all_npcs_raw if n.get("npc_id") != npc_id and n.get("id") != npc_id]
+                for n in ctx.all_npcs_raw:
+                    if n.get("npc_id") == npc_id or n.get("id") == npc_id:
+                        n["location_id"] = _target_loc
+                        n["location"] = _target_loc
+                        # SC-3 FIX: Сбрасываем current_node и local_position, чтобы избежать дрейфа в новой локации
+                        # §4.1 FIX: Используем pop вместо прямого присваивания, чтобы не триггерить INV-POSITION-MUTATION
+                        n["current_node"] = ""
+                        n.pop("position", None)
+                        break
+            
+            # 2. Удаляем NPC из scene_state исходной локации (из RAM)
+            if npc_id in _npc_positions:
+                del _npc_positions[npc_id]
+            
+            # BUG-SLEEP-013 FIX: Удаляем активные транзиты NPC в старой локации.
+            # Без этого TraversalExecutionSystem завершит старый транзит к boundary-узлу
+            # и вернёт NPC обратно в старую локацию (causing infinite cross-location bounce).
+            _active_traversals = ctx.scene_state.get("active_traversals", {})
+            if isinstance(_active_traversals, dict) and npc_id in _active_traversals:
+                _active_traversals.pop(npc_id, None)
+                logger.info(f"[S186_TRANSFER] Cleared stale traversal for NPC={npc_id} in {_current_loc}")
+            
+            # S186 FIX: Не удаляем NPC из all_npcs_raw, а только обновляем location_id.
+            # Это необходимо, чтобы LifeEngine кэшировал правильную локацию и не воскрешал призрака.
+            # Фильтрация по локации произойдет естественным образом в _run_core_phases.
+            if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                for n in ctx.all_npcs_raw:
+                    if n.get("npc_id") == npc_id or n.get("id") == npc_id:
+                        n["location_id"] = _target_loc
+                        n["location"] = _target_loc
+                        break
 
     def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
         """Подслой 1.1: NPIC NORMALIZATION."""
@@ -1849,10 +1915,34 @@ class TickOrchestrator:
         # Тело метода удалено. Логика перенесена в phases/affective.py
 
     def _phase_10_persistence(self, ctx: _TickContext) -> None:
-        """Atomic commit: SQLite (runtime truth) + YAML (для человека)."""
-        from app.services.phases.commit_phase import execute_persistence
+        """ФАЗА 10: Persistence (Atomic Commit)."""
+        # L1 FIX: Генерируем TraitDriftEvent для всех NPC с дельтами (включая Фазу 8) перед коммитом.
+        import dataclasses
+        from app.domain.identity_events import TraitDriftEvent
+        
+        _all_delta_npc_ids = set()
+        for _d in (ctx.tick_mutation.npc_deltas or []):
+            _d_npc_id = getattr(_d, "npc_id", None)
+            if _d_npc_id:
+                _all_delta_npc_ids.add(_d_npc_id)
+        
+        _l1_events = list(ctx.tick_mutation.l1_drift_events or [])
+        _processed_npc_ids = {e.target_id for e in _l1_events}
+        for _npc_id in _all_delta_npc_ids:
+            if _npc_id not in _processed_npc_ids:
+                _l1_events.append(TraitDriftEvent(
+                    tick_id=ctx.tick_number,
+                    target_id=_npc_id,
+                    source_id="world_tick",
+                    effect_value=0.0,
+                    observation_weight=0.1
+                ))
+                _processed_npc_ids.add(_npc_id)
+        
+        ctx.tick_mutation = dataclasses.replace(ctx.tick_mutation, l1_drift_events=_l1_events)
 
-        execute_persistence(ctx, self, is_player_turn=ctx.is_player_turn)
+        from app.services.phases.commit_phase import execute_persistence
+        execute_persistence(ctx, self, getattr(ctx, "is_player_turn", False))
 
     # ── ДОЛГ 4.2: Causal Scoring Overlay ─────────────────────────────
     # Аддитивный скоринг: DRF давление влияет на приоритет интентов как поле сил.

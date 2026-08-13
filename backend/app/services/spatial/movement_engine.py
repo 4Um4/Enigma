@@ -229,7 +229,30 @@ class MovementEngine:
                 if ":" in intent.target_node_id:
                     target_loc = intent.target_node_id.split(":")[0]
                 else:
-                    target_loc = intent.location_id or current_loc
+                    # BUG-SPATIAL-035 FIX: Если target_node_id не имеет префикса (напр. "tent_1"),
+                    # ищем узел в текущей и смежных локациях для корректного определения target_loc.
+                    # Без этого cross_loc_intercept не срабатывает, и NPC застревает на boundary-узле.
+                    _short_target = intent.target_node_id
+                    _cur_svc = self._resolve_spatial_service(current_loc, campaign_id, scene_state) if scene_state else None
+                    if _cur_svc and _cur_svc.get_node(_short_target):
+                        target_loc = current_loc
+                    elif scene_state:
+                        _adj = scene_state.get("adjacency", {})
+                        _found = False
+                        for _n_loc in _adj.values():
+                            if not _n_loc or _n_loc == current_loc:
+                                continue
+                            _n_svc = self._resolve_spatial_service(_n_loc, campaign_id, scene_state)
+                            if _n_svc and (_n_svc.get_node(_short_target) or _n_svc.get_node(f"{_n_loc}:{_short_target}")):
+                                target_loc = _n_loc
+                                intent.location_id = _n_loc
+                                logger.info(f"[CROSS_LOC_LOOKUP] npc={intent.actor_id} target={_short_target} found in adjacent loc={_n_loc}")
+                                _found = True
+                                break
+                        if not _found:
+                            target_loc = intent.location_id or current_loc
+                    else:
+                        target_loc = intent.location_id or current_loc
 
                 if getattr(intent, "actor_id", "") == "guard_borko":
                     _ss = "YES" if scene_state else "NO"
@@ -333,6 +356,8 @@ class MovementEngine:
                             if not hasattr(intent, 'original_target_node_id'):
                                 intent.original_target_node_id = intent.target_node_id
                             intent.target_node_id = boundary_node.node_id.split(":")[-1]
+                            # Возвращаем intent.location_id = current_loc, чтобы интент обработался в контексте текущей локации.
+                            # S186_TRANSFER использует npc_positions["location_id"], а не intent.location_id.
                             intent.location_id = current_loc
                             target_loc = current_loc
                         else:
@@ -451,10 +476,9 @@ class MovementEngine:
 
         if npc_positions:
             for _ in range(10):  # Увеличено с 5 для стабильности обхода коллизий
-                cx = tx + rng.uniform(
-                    -1.0, 1.0
-                )  # Расширено с 0.8 для выхода за collision_radius
-                cy = ty + rng.uniform(-1.0, 1.0)
+                # BUG-DRIFT-008 FIX: Уменьшено с 1.0 до 0.3, чтобы попадать в COSMETIC threshold.
+                cx = tx + rng.uniform(-0.3, 0.3)
+                cy = ty + rng.uniform(-0.3, 0.3)
                 is_colliding = any(
                     (
                         (cx - other_data.get("local_position", {}).get("x", 0.0)) ** 2
@@ -469,8 +493,9 @@ class MovementEngine:
                     best_x, best_y = cx, cy
                     break
         else:
-            best_x = tx + rng.uniform(-0.5, 0.5)
-            best_y = ty + rng.uniform(-0.5, 0.5)
+            # BUG-DRIFT-008 FIX: Уменьшено с 0.5 до 0.3
+            best_x = tx + rng.uniform(-0.3, 0.3)
+            best_y = ty + rng.uniform(-0.3, 0.3)
 
         tx, ty = best_x, best_y
         logger.debug(

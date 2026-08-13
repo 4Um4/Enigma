@@ -145,7 +145,8 @@
       "role": "entrance",
       "connections": [
         "main_hall_west",
-        "corner_table"
+        "corner_table",
+        "exit_east"
       ]
     },
     "main_hall_west": {
@@ -191,7 +192,6 @@
       "connections": [
         "main_hall_west",
         "bar_west",
-        "behind_bar",
         "bar_pass_north"
       ]
     },
@@ -203,8 +203,7 @@
       "connections": [
         "bar_area",
         "bar_pass_north",
-        "main_hall",
-        "fireplace"
+        "main_hall"
       ]
     },
     "bar_pass_north": {
@@ -239,7 +238,6 @@
       ],
       "connections": [
         "bar_side",
-        "bar_area",
         "fireplace",
         "node_17"
       ]
@@ -253,8 +251,7 @@
         "right_table",
         "main_hall",
         "behind_bar",
-        "node_16",
-        "bar_west"
+        "node_16"
       ]
     },
     "corner_table": {
@@ -281,8 +278,7 @@
         "main_hall",
         "fireplace",
         "corner_table",
-        "main_hall_west",
-        "kitchen_bed_1"
+        "main_hall_west"
       ]
     },
     "kitchen": {
@@ -297,24 +293,22 @@
       "connections": [
         "kitchen_bed_1",
         "kitchen_bed_2",
-        "node_16",
-        "entrance"
+        "node_16"
       ]
     },
     "kitchen_bed_1": {
-      "x": 14.878264531893002,
-      "y": 4.762567515432099,
+      "x": 15.294931198559668,
+      "y": 6.0959008487654325,
       "label": "Кровать на кухне 1",
       "role": "bed",
       "connections": [
         "kitchen",
-        "kitchen_bed_2",
-        "right_table"
+        "kitchen_bed_2"
       ]
     },
     "kitchen_bed_2": {
-      "x": 18.325,
-      "y": 4.725,
+      "x": 18.491666666666667,
+      "y": 6.183333333333333,
       "label": "Кровать на кухне 2",
       "role": "bed",
       "connections": [
@@ -334,16 +328,15 @@
       ]
     },
     "exit_east": {
-      "x": 19.0,
-      "y": 4.5,
+      "x": 8.218993333333334,
+      "y": 12.451713333333332,
       "label": "Выход в Город",
       "role": "boundary",
       "tags": [
         "boundary:exit"
       ],
       "connections": [
-        "kitchen",
-        "node_16"
+        "entrance"
       ]
     },
     "node_17": {
@@ -1404,7 +1397,7 @@
         "y": 13.0
       },
       "size": {
-        "w": 2.5,
+        "w": 3.55,
         "h": 0.2,
         "d": 2.2
       },
@@ -1531,7 +1524,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-08-09T21:39:39.678555",
+  "modified_at": "2026-08-13T20:26:47.375099",
   "origin": {
     "x": 0,
     "y": 0

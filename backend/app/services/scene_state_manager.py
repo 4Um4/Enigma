@@ -476,9 +476,20 @@ class SceneStateManager:
         if "snapshot_tick" in scene:
             del scene["snapshot_tick"]
         # ADR-046 Fix: Гарантировать наличие имени (name) в npc_positions для Target Resolution (Слой 2)
+        _loc_id = scene.get("location_id", "")
         for npc_id, pos_data in scene.get("npc_positions", {}).items():
-            if isinstance(pos_data, dict) and not pos_data.get("name"):
-                pos_data["name"] = _npc_id_to_display(npc_id)
+            if isinstance(pos_data, dict):
+                if not pos_data.get("name"):
+                    pos_data["name"] = _npc_id_to_display(npc_id)
+                
+                # SC-3 FIX: Сбрасываем position, если она содержит префикс другой локации.
+                _pos = pos_data.get("position", "")
+                if _pos and ":" in str(_pos):
+                    _prefix = str(_pos).split(":")[0]
+                    if _prefix != _loc_id:
+                        logger.warning(f"[SC-3-LOAD] NPC '{npc_id}' has foreign node '{_pos}' in loc '{_loc_id}'. Resetting.")
+                        pos_data["position"] = ""
+                        pos_data["current_node"] = ""
         # ADR-102: Инжект campaign_id для SpatialService (замена мёртвого load_graph)
         scene["campaign_id"] = campaign_id
         return scene
@@ -1713,6 +1724,16 @@ class SceneStateManager:
             # BUG-SPATIAL-004 FIX: Блок пространственного контекста удалён (ADR-O-314).
             # Игрок течёт через тот же path, что и NPC (editor_coords / svc.get_node).
             current_node = entry.get("position", "")
+            
+            # SC-3 FIX: Если current_node содержит префикс другой локации (например, после load),
+            # сбрасываем его, чтобы SpatialService мог пересчитать позицию в текущей локации.
+            if current_node and ":" in current_node:
+                _node_prefix = current_node.split(":")[0]
+                if _node_prefix != location_id:
+                    logger.warning(f"[SC-3] NPC '{npc_id}' has foreign node '{current_node}' in loc '{location_id}'. Resetting position.")
+                    entry["position"] = ""
+                    entry["current_node"] = ""
+                    current_node = ""
             initial_node = initial_nodes.get(npc_id)
 
             # NPC двигался, если есть начальный узел и текущий не совпадает

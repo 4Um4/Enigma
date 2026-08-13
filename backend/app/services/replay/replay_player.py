@@ -85,16 +85,16 @@ class ReplayPlayer:
         }
 
     def _load_tick(self, tick_id: int) -> Optional[Dict[str, Any]]:
+        # Убраны tick_state_json и tick_mutation_json: они не используются в play(),
+        # что вызывало лишнюю десериализацию JSON и затраты CPU при реплее.
         row = self.store.conn.execute(
-            "SELECT game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
+            "SELECT game_time_seconds, world_snapshot_json FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
             (self.session_id, tick_id)
         ).fetchone()
         if not row:
             return None
         return {
             "game_time_seconds": row["game_time_seconds"],
-            "tick_state": self.store._from_json_bytes(row["tick_state_json"]),
-            "tick_mutation": self.store._from_json_bytes(row["tick_mutation_json"]),
             "world_snapshot": self.store._from_json_bytes(row["world_snapshot_json"])
         }
 

@@ -50,7 +50,7 @@ class ExpectationStore:
             conn.commit()
             conn.close()
         except Exception as e:
-            _logger.error(f"[EXPECTATION_STORE] DB init failed: {e}")
+            logger.error(f"[EXPECTATION_STORE] DB init failed: {e}")
 
     def get_expectation(self, npc_id: str, source_id: str) -> Expectation:
         key = (npc_id, source_id)
@@ -134,4 +134,4 @@ class ExpectationStore:
             conn.commit()
             conn.close()
         except Exception as e:
-            _logger.error(f"[EXPECTATION_STORE] Failed to persist: {e}")
+            logger.error(f"[EXPECTATION_STORE] Failed to persist: {e}")
