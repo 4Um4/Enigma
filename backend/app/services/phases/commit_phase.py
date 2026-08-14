@@ -56,7 +56,7 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
             orchestrator._state_applicator.apply_batch(
                 _aggregated, ctx.all_npcs_raw, ctx.campaign_id
             )
-            ctx.delta_buffer.clear()
+        ctx.delta_buffer.clear()
 
     # SIL: Reconciliation S → M. Сбрасываем semantic_buffer в all_npcs_raw.
     if ctx.semantic_buffer and ctx.all_npcs_raw:
@@ -116,7 +116,7 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
         saved = orchestrator._scene_manager.commit(
             campaign_id=ctx.campaign_id,
             scene_state=ctx.scene_state,
-            npc_dicts=ctx.npc_states,
+            npc_dicts=ctx.all_npcs_raw,
             significant_events=ctx.significant_events or [],
         )
 

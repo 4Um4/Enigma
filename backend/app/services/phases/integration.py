@@ -228,13 +228,25 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     _shock_norm_idle = float(_body_idle.get("shock_impulse", 0.0))
                     _somatic_urg_idle = (_pain_norm_idle + _shock_norm_idle) / 2.0
 
+                    # S189 ARCH-SLEEP Phase E.0: Модуляция восприятия через CouplingProfile.
+                    # Внешние стимулы затухают, если тело слабо связано с миром (сон/усталость).
+                    _cp = _body_idle.get("coupling_profile")
+                    if _cp:
+                        _threat_percieved = perception_payload.threat_gradient_delta * _cp.get("external_hearing_mult", 1.0)
+                        _uncert_percieved = perception_payload.uncertainty_delta * _cp.get("external_vision_mult", 1.0)
+                        _anom_percieved = perception_payload.anomaly_score_delta * _cp.get("external_vision_mult", 1.0)
+                    else:
+                        _threat_percieved = perception_payload.threat_gradient_delta
+                        _uncert_percieved = perception_payload.uncertainty_delta
+                        _anom_percieved = perception_payload.anomaly_score_delta
+
                     projected_kernel = PerceptualKernel(
                         threat_gradient=min(
                             1.0,
                             max(
                                 0.0,
                                 pk_dict.get("threat_gradient", 0.0)
-                                + perception_payload.threat_gradient_delta,
+                                + _threat_percieved,
                             ),
                         ),
                         uncertainty=min(
@@ -242,7 +254,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                             max(
                                 0.0,
                                 pk_dict.get("uncertainty", 0.0)
-                                + perception_payload.uncertainty_delta,
+                                + _uncert_percieved,
                             ),
                         ),
                         anomaly_score=min(
@@ -250,7 +262,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                             max(
                                 0.0,
                                 pk_dict.get("anomaly_score", 0.0)
-                                + perception_payload.anomaly_score_delta,
+                                + _anom_percieved,
                             ),
                         ),
                         compliance_bias=pk_dict.get("compliance_bias", 0.0),

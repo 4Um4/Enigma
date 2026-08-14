@@ -324,6 +324,8 @@ def create_tick_context(
     hub_event: Any = None,
     eco_profile: Any = None,  # S151: Профиль игрока для EmbodiedStatusDTO
     mvp_controller: Any = None,  # ENIGMA SELF-HEALING: For MvpPipelineProbe (N1, M-03)
+    epistemic_store: Any = None, # S189: Epistemic Core (ADR-O-354)
+    epistemic_context_resolver: Any = None, # S189: Epistemic Core (ADR-O-354)
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
 
@@ -333,6 +335,10 @@ def create_tick_context(
 
     from app.services.dto import _TickContext
     from app.services.npc.kernel_rng import KernelRNG
+
+    # S189: Epistemic services injection (read-only)
+    _epistemic_store = epistemic_store
+    _epistemic_resolver = epistemic_context_resolver
 
     # S83.1: Tick = Pure Function Evaluation. Freeze input snapshot.
     input_snapshot = copy.deepcopy(scene_state)

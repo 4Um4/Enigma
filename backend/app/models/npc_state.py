@@ -65,6 +65,9 @@ BODY_STATE_DISABLED_DATA = {
     "consciousness": 0.0,
     "current_hp": 0,
     "fatigue": 100.0,
+    # S188 ARCH-SLEEP Phase A: Непрерывные оси телесного режима
+    "sleep_pressure": 0.0,  # Накопленная потребность сна (0.0-1.0)
+    "arousal": 1.0,         # Физиологическое возбуждение (у отключенного тела максимум)
 }
 
 # Здоровое тело — инжектируется при New Game для NPC из static config.
@@ -82,6 +85,9 @@ BODY_STATE_HEALTHY = {
     "modifiers": {},
     "statuses": [],
     "life_status": "ALIVE",
+    # S188 ARCH-SLEEP Phase A: Непрерывные оси телесного режима
+    "sleep_pressure": 0.0,  # Накопленная потребность сна (0.0-1.0)
+    "arousal": 0.0,         # Физиологическое возбуждение (покой = 0.0)
 }
 
 

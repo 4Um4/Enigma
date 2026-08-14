@@ -87,6 +87,7 @@ class CommunicationIntent:
         None  # GAP8 FIX: ID цели директивы (для NPC-to-NPC Social Physics)
     )
     thread_id: str = ""  # BUG-DL-04: ID нити диалога
+    priority: float = 0.5  # H-28 FIX: DRF overlay для модуляции приоритета реплик
 
     def __post_init__(self) -> None:
         # Устав 7.2: пустой topic = LLM плывёт по ассоциациям

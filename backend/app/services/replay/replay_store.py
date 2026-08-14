@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Any, Optional, List, Dict
 
+import threading
 logger = logging.getLogger(__name__)
 
 class ReplayStore:
@@ -23,6 +24,7 @@ class ReplayStore:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
         self._init_db()
 
     def _init_db(self):
@@ -129,18 +131,31 @@ class ReplayStore:
         world_snapshot: Any = None
     ) -> None:
         """Записывает срез тика (вход, выход, проекция)."""
-        self.conn.execute(
-            """INSERT OR REPLACE INTO tick_snapshots 
-               (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json) 
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (
-                session_id, tick_id, game_time_seconds,
-                self._to_json_bytes(tick_state),
-                self._to_json_bytes(tick_mutation),
-                self._to_json_bytes(world_snapshot)
+        with self._lock:
+            # 1. Гарантируем существование строки (заполняем NOT NULL поля дефолтами, если строки нет)
+            self.conn.execute(
+                """INSERT OR IGNORE INTO tick_snapshots 
+                   (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json) 
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (session_id, tick_id, game_time_seconds, b'{}', b'{}', b'{}')
             )
-        )
-        self.conn.commit()
+            # 2. Точечно обновляем только переданные поля
+            self.conn.execute(
+                """UPDATE tick_snapshots SET 
+                       game_time_seconds = COALESCE(?, game_time_seconds),
+                       tick_state_json = COALESCE(?, tick_state_json),
+                       tick_mutation_json = COALESCE(?, tick_mutation_json),
+                       world_snapshot_json = COALESCE(?, world_snapshot_json)
+                   WHERE session_id = ? AND tick_id = ?""",
+                (
+                    game_time_seconds if game_time_seconds != 0.0 else None,
+                    self._to_json_bytes(tick_state) if tick_state is not None else None,
+                    self._to_json_bytes(tick_mutation) if tick_mutation is not None else None,
+                    self._to_json_bytes(world_snapshot) if world_snapshot is not None else None,
+                    session_id, tick_id
+                )
+            )
+            self.conn.commit()
 
     def record_intervention(
         self,
@@ -166,17 +181,20 @@ class ReplayStore:
         prompt: str,
         response: str,
         model_name: str,
-        latency_ms: int
+        latency_ms: int,
+        system_prompt: Optional[str] = None,
+        params: Any = None
     ) -> None:
         """Записывает вызов LLM для кэширования при replay."""
         from app.services.replay.llm_cache import compute_prompt_hash
-        prompt_hash = compute_prompt_hash(prompt)
-        self.conn.execute(
-            """INSERT INTO llm_calls (session_id, tick_id, agent_name, prompt_hash, prompt_json, response_json, model_name, latency_ms)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (session_id, tick_id, agent_name, prompt_hash, self._to_json_bytes(prompt), self._to_json_bytes(response), model_name, latency_ms)
-        )
-        self.conn.commit()
+        prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
+        with self._lock:
+            self.conn.execute(
+                """INSERT INTO llm_calls (session_id, tick_id, agent_name, prompt_hash, prompt_json, response_json, model_name, latency_ms)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (session_id, tick_id, agent_name, prompt_hash, self._to_json_bytes(prompt), self._to_json_bytes(response), model_name, latency_ms)
+            )
+            self.conn.commit()
 
     def record_causal_probe(
         self,
@@ -209,13 +227,15 @@ class ReplayStore:
         )
         self.conn.commit()
 
-    def get_llm_call(self, agent_name: str, prompt_hash: str) -> Optional[Dict[str, Any]]:
+    def get_llm_call(self, session_id: str, agent_name: str, prompt_hash: str) -> Optional[Dict[str, Any]]:
         """Ищет закэшированный ответ LLM для воспроизведения (Этап 2.3)."""
+        # prompt_hash теперь вычисляется с учётом system_prompt и params в router.py
         try:
-            row = self.conn.execute(
-                "SELECT response_json, model_name FROM llm_calls WHERE agent_name = ? AND prompt_hash = ? ORDER BY call_id DESC LIMIT 1",
-                (agent_name, prompt_hash)
-            ).fetchone()
+            with self._lock:
+                row = self.conn.execute(
+                    "SELECT response_json, model_name FROM llm_calls WHERE session_id = ? AND agent_name = ? AND prompt_hash = ? ORDER BY call_id DESC LIMIT 1",
+                    (session_id, agent_name, prompt_hash)
+                ).fetchone()
             if row:
                 return {
                     "response": self._from_json_bytes(row["response_json"]),

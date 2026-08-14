@@ -233,5 +233,5 @@ class DialogueExecutor:
 
             return validation.text
         except Exception as e:
-            logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Fallback to stub.")
-            return ""
+            logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Raising exception to prevent silent failure.")
+            raise

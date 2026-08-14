@@ -39,6 +39,7 @@ from app.services.llm.provider import LlmProvider, ProviderInfo, ProviderType
 from app.services.llm.provider import CAPABILITY_MODEL_PREFERENCES, Capability
 
 
+
 class ProviderStatus(str, Enum):
     UNINITIALIZED = "uninitialized"
     INITIALIZING = "initializing"
@@ -134,6 +135,7 @@ class ModelPool:
 
         self._pool_lock = asyncio.Lock()
         self._switch_semaphore = asyncio.Semaphore(1)
+        self._thread_lock = threading.RLock()
         self._logger = logging.getLogger(__name__)
         self._warm_model_key: Optional[str] = None
         self.debug = False
@@ -166,10 +168,11 @@ class ModelPool:
 
     def get_model(self, key: str) -> Optional[ModelProvider]:
         """Синхронный доступ — загружает модель если ещё не в VRAM."""
-        if self._active_key == key and self._active_model is not None:
-            self._active_model.mark_used()
-            return self._active_model
-        return self._load_model(key)
+        with self._thread_lock:
+            if self._active_key == key and self._active_model is not None:
+                self._active_model.mark_used()
+                return self._active_model
+            return self._load_model(key)
 
     # ── Async Lazy Loading ─────────────────────────────────────────────────────
     async def get_model_async(
@@ -282,10 +285,11 @@ class ModelPool:
                     return None
 
     def _load_model(self, key: str) -> Optional[ModelProvider]:
-        config = self._model_configs.get(key)
-        if not config:
-            self._logger.error(f"ModelPool: Config not found: '{key}'")
-            return None
+        with self._thread_lock:
+            config = self._model_configs.get(key)
+            if not config:
+                self._logger.error(f"ModelPool: Config not found: '{key}'")
+                return None
 
         if self._active_model is not None:
             self._unload_active_model()

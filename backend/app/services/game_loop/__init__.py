@@ -223,6 +223,7 @@ class GameLoop:
 
         # Подсистема 2: Инициализация ReplayRecorder
         if settings.replay_mode != "off":
+            settings.replay_record = True
             from app.services.replay.replay_store import ReplayStore
             from app.services.replay.replay_recorder import ReplayRecorder
             _replay_db_path = Path(data_dir) / "replay.db"
@@ -268,6 +269,9 @@ class GameLoop:
 
         # Регистрация NpcDialogueSubscriber для замыкания цикла NPC-NPC диалогов
         self._register_npc_dialogue_subscriber(memory_manager, _rel_store)
+        
+        # S189: Epistemic Core Integration (ADR-O-354).
+        self._register_epistemic_core(_rel_store)
 
         self._tick_orch.add_idle_handler(SocialDecayHandler())
 
@@ -356,11 +360,34 @@ class GameLoop:
         except Exception as e:
             logger.exception(f"[GAME_LOOP] Failed to register NpcDialogueSubscriber: {e}")
 
+    def _register_epistemic_core(self, rel_store: Any) -> None:
+        """S189: Инициализирует Epistemic Core и регистрирует ClaimEventSubscriber (ADR-O-354)."""
+        try:
+            from app.services.npc.epistemic_store import EpistemicStore
+            from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+            from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
+            from app.services.events.claim_event_subscriber import ClaimEventSubscriber, RelationshipReliabilityProvider
+            from app.services.events.event_bus import get_event_bus
+            from app.services.events.event_types import EventType
+
+            _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
+            _epistemic_store = EpistemicStore()
+            _reliability_provider = RelationshipReliabilityProvider(rel_store, _campaign_id)
+            _belief_engine = BeliefRevisionEngine(reliability_provider=_reliability_provider)
+            _resolver = EpistemicContextResolver(store=_epistemic_store)
+
+            _subscriber = ClaimEventSubscriber(engine=_belief_engine, store=_epistemic_store)
+            _bus = get_event_bus()
+            _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+
+            self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
+            logger.info("[GAME_LOOP] Epistemic Core (ClaimEventSubscriber) registered")
+        except Exception as e:
+            logger.exception(f"[GAME_LOOP] Failed to register Epistemic Core: {e}")
+
     def _get_skip_lock(self, campaign_id: str) -> threading.Lock:
         """Возвращает lock для конкретной кампании, защищающий от параллельных skip/idle."""
-        if campaign_id not in self._skip_locks:
-            self._skip_locks[campaign_id] = threading.Lock()
-        return self._skip_locks[campaign_id]
+        return self._skip_locks.setdefault(campaign_id, threading.Lock())
 
     @property
     def saves_dir(self) -> Path:

@@ -341,7 +341,7 @@ class ReputationEngine:
                 "name": self._factions[fid].name,
                 "nature": self._factions[fid].nature,
                 "reputation": state.reputation,
-                "members": List[Any](self._factions[fid].npc_members),
+                "members": list(self._factions[fid].npc_members),
             }
             for fid, state in self._states.items()
             if fid in self._factions

@@ -1077,12 +1077,8 @@ class LifeEngine:
                         f"[DIAG_BORKO] npc_id={npc_id} NOT in scene_state! npc_loc={npc.get('location_id')} scene_loc={scene_state.get('location_id')} npc_pos={npc.get('position')}"
                     )
 
-        # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
-        # Behavior transition gate: определяет, должен ли спящий NPC пробудиться.
-        # НЕ трогает body_state["consciousness"] — поведенческий переход, не физиологический.
-        _wake_changes = self._arousal_gate(npc, tick)
-        if _wake_changes:
-            return _wake_changes, []  # NPC только что проснулся — пропускаем schedule
+        # BUG-SLEEP-007 FIX: Логика пробуждения перенесена в SleepLifecycleService (Phase 0.6)
+        # LifeEngine теперь отвечает только за генерацию интентов (пойти спать), а не за lifecycle.
 
         # ── ДОЛГ 4.3: Viability Pre-Generation Gate ──
         # Вычисляем допустимые домены ДО генерации кандидатов.
@@ -1170,8 +1166,8 @@ class LifeEngine:
                 event_intent.domain = IntentDomain.EXPLORATION
                 candidates.append(event_intent)
 
-        # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
-        self.recover_stress_tick(npc)
+        # S188 ARCH-SLEEP: recover_stress_tick перенесён в SleepLifecycleService (Phase 0.6).
+        # Оставление вызова здесь нарушает ADR-O-353 (двойное применение восстановления).
 
         # ── Viability логирование ──
         if IntentDomain.ROUTINE not in _viable:
@@ -1621,10 +1617,8 @@ class LifeEngine:
         ADR-049: Возвращает list["MacroMovementGoal"] вместо прямого исполнения.
         ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
         """
-        # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
-        _wake_changes = self._arousal_gate(npc, tick)
-        if _wake_changes:
-            return _wake_changes, []  # NPC только что проснулся
+        # S188 ARCH-SLEEP: Arousal Gate перенесён в SleepLifecycleService (Phase 0.6).
+        # Оставление вызова здесь нарушает ADR-O-353 (двойное срабатывание пробуждения).
 
         _viable = self._compute_viability_mask(npc)
         changes: list[SceneChange] = []

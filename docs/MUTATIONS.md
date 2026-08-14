@@ -342,6 +342,31 @@ pc_positions.
   Files: backend/tests/IPT.py
 Последняя сессия в логе — **S185**. Значит, наша будет **S186**.
 
+- 🟢 **S190** SUPERBOX-005: EPISTEMIC MODIFIER ATTRIBUTION PROVEN:
+  Доказана математическая атрибуция эпистемического модификатора в production-пайплайне.
+  Тест `epistemic_modifier_attribution_test.py` проверяет инвариант `final_score = base_score + epistemic_modifier` для всех интентов.
+  **P0 (SUPERBOX-005):** Доказано, что `epistemic_modifier` аддитивно добавляется к `base_score` в `DecisionHub`.
+  Контрольные числа: `warn: base(-0.0323) + mod(0.496) = 0.4637`, `attack: base(-1.0) + mod(0.496) = -0.504`.
+  **Архитектурный фикс:** Устранён ранний возврат `if not ctx.communication_intents: return` в `pipeline_runner.py`.
+  `scores_trace` теперь пробрасывается в `npc_contexts` для всех NPC, даже если они молчат (idle/observe).
+  `CommunicationIntent` больше не является носителем истины о решении NPC — он лишь одно из проявлений decision state.
+  **EpistemicContext:** Добавлено поле `max_confidence`. Формула `to_modifiers` использует `max_confidence * 0.992` для пропорционального влияния убеждений.
+  **TickMutation:** Добавлено поле `scores_trace_map` для проброса telemetry из `DecisionHub` в `npc_contexts`.
+  IPT: 39/39 passed.
+  Files: backend/app/domain/epistemology.py, backend/app/services/npc/epistemic_context_resolver.py, backend/app/domain/tick.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/pipeline_runner.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_modifier_attribution_test.py
+
+- 🟢 **S186** FOUNDATION FORTIFICATION: LOCATION LOOP & CARDINALITY LAWS:
+  Устранены критические архитектурные разрывы, вызванные циклом по локациям в `TickOrchestrator.execute`. Добавлены строгие инварианты в `IPT.py` (P0-1, P0-2, P1-5, P1-6, P1-7). Время продвигается 1 раз за тик. `atomic_commit_all` — 1 коммит для всех локаций. `INV-NPC-CARDINALITY` гарантирует изоляцию сцен. `INV-DIALOGUE-STM` проверяет полную каузальную петлю NPC_SPOKE → STM.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/state/persistence_port.py, backend/app/services/state/sqlite_persistence_adapter.py, backend/app/services/state/json_persistence_adapter.py, backend/app/services/scene_state_manager.py, backend/tests/IPT.py
+
+- 🟢 **S187** EPISTEMIC CORE DISCOVERY (SUPERBOX-001):
+  Терминальный MVP-тест обнаружил архитектурный разрыв: ENIGMA реагирует на тон коммуникации (tone), но слепа к содержанию речи (Proposition). NPCDialogueSubscriber меняет trust(listener → speaker), но не trust(listener → third_party). Доказана необходимость Proposition Layer. L1 Chronicle, ImpactEngine, базовая каузальная труба — живы.
+  Files: backend/tests/sandbox/SUPERBOX/run_terminal_mvp.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_divergence.py
+
+- 🟢 **S188** PROPOSITION LAYER / EPISTEMIC FOUNDATION:
+  Построен и доказан Epistemic Core через 13 экспериментов SUPERBOX (002-013). Созданы: Proposition, ClaimEvent, EpistemicRecord, EpistemicContext (domain/epistemology.py); BeliefRevisionEngine, EpistemicStore, EpistemicContextResolver (services/npc/); ClaimEventSubscriber (services/events/); COMMUNICATION_CLAIM EventType; epistemic_modifiers в DecisionHub; apply_modifiers как pure function. Доказан Modifier Contract v1: аддитивность, изоляция, коммутативность, purity. DecisionHub не знает об EpistemicStore — только о Dict[str, float].
+  Files: backend/app/domain/epistemology.py, backend/app/services/npc/epistemic_store.py, backend/app/services/npc/belief_revision_engine.py, backend/app/services/npc/epistemic_context_resolver.py, backend/app/services/events/claim_event_subscriber.py, backend/app/services/events/event_types.py, backend/app/domain/decision_context.py, backend/app/services/npc/decision_hub.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_core_test.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_eventbus_test.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_context_test.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_integration_test.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_resolver_test.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_decision_gap_test.py, backend/tests/sandbox/SUPERBOX/scenarios/modifier_composition_test.py, backend/tests/sandbox/SUPERBOX/scenarios/modifier_invariants_test.py, backend/tests/sandbox/SUPERBOX/scenarios/modifier_commutativity_test.py
+
 - 🟢 **S186** FOUNDATION FORTIFICATION: LOCATION LOOP & CARDINALITY LAWS:
   Устранены критические архитектурные разрывы, вызванные циклом по локациям в `TickOrchestrator.execute`. Добавлены строгие инварианты в `IPT.py` для защиты от регрессий (P0-1, P0-2, P1-5, P1-6, P1-7).
   **P0-1 (Tick Cardinality):** Вынесен вызов `_advance_idle_time` из цикла по локациям в начало `execute()`. Время теперь продвигается ровно 1 раз за тик, синхронизируясь во все локации. Устранено нарушение `LAW OF SINGULAR TIME`. Инвариант `INV-TICK-CARDINALITY` подтверждает: 1 тик = 1 шаг времени.
@@ -351,3 +376,29 @@ pc_positions.
   **P1-7 (Dialogue Causal Loop):** Инвариант `INV-DIALOGUE-STM` переписан. Публикует настоящее событие `NPC_SPOKE` в `EventBus` и проверяет, что `NpcDialogueSubscriber` действительно записывает реплику в STM.
   IPT: 39/39 passed.
   Files: backend/app/services/tick_orchestrator.py, backend/app/services/state/persistence_port.py, backend/app/services/state/sqlite_persistence_adapter.py, backend/app/services/state/json_persistence_adapter.py, backend/app/services/scene_state_manager.py, backend/tests/IPT.py
+
+- 🟢 **S189** ARCH-SLEEP: COMPLETE BODILY COUPLING MODE (Phase B-F):
+  Завершена полная реализация архитектурного сдвига «Сон как Телесный Режим». Сон преобразован из скриптового состояния в эмерджентное свойство телесной архитектуры.
+  **Phase B (CouplingResolver):** Создан `CouplingProfile` и `CouplingResolver`. Профиль вычисляется каждый тик из `sleep_pressure` и `arousal`, заменяя флаги. Сохраняется в `body_state["coupling_profile"]`.
+  **Phase E.0 (Perception Modulation):** В `phases/integration.py` стимулы модулируются множителями связанности. Спящие NPC хуже воспринимают мир.
+  **Phase D (Sleep Onset):** Создан `_accumulate_arousal_from_stimuli` в `SleepLifecycleService`. `arousal` динамически накапливается от стимулов (даже во сне). Пробуждение опирается на чистый `arousal`.
+  **Phase C (ActiveCommitment):** Внедрён `has_active_commitment` в `pressure_translator.py`. Проактивные интенты блокируются при активном транзите.
+  **Phase E (DreamSignal):** Добавлены `EventType` (DREAM, NIGHTMARE) и DTO `DreamSignal`. Создан `DreamGenerationService`, который конвертирует стимулы `PerceptualKernel` в искажённые сигналы сна и публикует их в `EventBus`.
+  **Phase F (DreamResidue):** При пробуждении `DreamSignal` конвертируется в остаточное `affective_load` и `threat_gradient`, которое затухает со временем. Кошмары оставляют осадок паранойи.
+  **Bugfixes:** Устранены блокирующие баги `NameError` и `FrozenInstanceError`.
+  IPT: 39/39 passed.
+  Files: backend/app/domain/body.py, backend/app/services/events/event_types.py, backend/app/services/npc/coupling_resolver.py, backend/app/services/npc/dream_generation_service.py, backend/app/services/npc/sleep_lifecycle_service.py, backend/app/services/phases/integration.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/cfrm/pressure_translator.py, docs/audits/ADR-O-356_IMPACT.md
+  Реализована топологическая фаза архитектурного сдвига «Сон как Телесный Режим». Сон полностью переведён на непрерывные оси (sleep_pressure, arousal) и эмерджентную логику.
+  **Phase B (CouplingResolver):** Создан доменный DTO `CouplingProfile` и сервис `CouplingResolver`. Профиль вычисляется каждый тик из `sleep_pressure` и `arousal`, заменяя скриптовые переключатели. Сохраняется в `body_state["coupling_profile"]` как dict для корректной сериализации.
+  **Phase E.0 (Perception Modulation):** В `phases/integration.py` входящие стимулы (угрозы, аномалии) теперь модулируются множителями связанности (`external_hearing_mult`, `external_vision_mult`). Спящие NPC хуже воспринимают мир.
+  **Phase D (Sleep Onset):** Создан метод `_accumulate_arousal_from_stimuli` в `SleepLifecycleService`, который динамически накапливает `arousal` в `body_state` от стимулов `PerceptualKernel` (даже во сне). Пробуждение теперь опирается на чистый `arousal` вместо композитной формулы.
+  **Phase C (ActiveCommitment):** Внедрён параметр `has_active_commitment` в `translate_kernel_to_context` (`pressure_translator.py`). Если NPC находится в активном транзите, проактивные интенты (AMBUSH, BLOCK_PATH, OFFER_JOB и др.) блокируются (feasibility = 0.0), оставляя только EMERGENCY.
+  **Bugfixes:** Устранены блокирующие баги `NameError` (отсутствие импорта `BeliefModifierResolver`) и `FrozenInstanceError` (прямая мутация `frozen=True` DTO).
+  IPT: 39/39 passed.
+  Files: backend/app/domain/body.py, backend/app/services/npc/coupling_resolver.py, backend/app/services/npc/sleep_lifecycle_service.py, backend/app/services/phases/integration.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/cfrm/pressure_translator.py, backend/app/services/npc/npc_tick_pipeline.py, docs/audits/ADR-O-356_IMPACT.md
+
+- 🟢 **S187** BUG-SLEEP-007 & BUG-SLEEP-012 FIXED: Sleep Lifecycle Integration & TimeSkip Events:
+  **BUG-SLEEP-007:** Создан `SleepLifecycleService` (`sleep_lifecycle_service.py`). Логика Arousal Gate (пробуждение от стимулов) и восстановления (стресс/усталость) вынесена из `LifeEngine` в новый сервис. В `TickOrchestrator` внедрена явная Фаза 0.6 (`_phase_0_6_sleep_lifecycle`), вызываемая после Фазы 0 и до Фазы 0.5. Пробуждение обрабатывается через `_apply_with_shadow_observation`. `LifeEngine` теперь отвечает только за интент "пойти спать", а не за жизненный цикл.
+  **BUG-SLEEP-012:** `TimeSkipExecutor.SIGNIFICANT_EVENT_TYPES` расширен событиями сна (`sleep_start`, `sleep_end`, `dream`, `nightmare`, `sleepwalk`, `prophecy_vision`). Теперь пропуск времени прерывается, если NPC видит важный сон или просыпается.
+  IPT: 39/39 passed.
+  Files: backend/app/services/npc/sleep_lifecycle_service.py, backend/app/services/tick_orchestrator.py, backend/app/services/npc/life_engine.py, backend/app/services/world/time_skip_executor.py

@@ -1,8 +1,8 @@
 # ENIGMA RECOVERY PROTOCOL
 
-## Version 1.0
+## Version 2.0
 
-Status: MANDATORY ARCHITECTURAL RESET
+Status: MANDATORY ARCHITECTURAL RESET — EPISTEMIC CORE PARTIALLY PROVEN
 
 ---
 
@@ -23,6 +23,24 @@ Status: MANDATORY ARCHITECTURAL RESET
 3. восстановить соответствие документации коду;
 4. доказать или опровергнуть центральную гипотезу ENIGMA;
 5. только после этого продолжать развитие архитектуры.
+
+## Текущий статус (S188)
+
+Эпистемическое ядро (Epistemic Core) частично доказано экспериментами
+SUPERBOX-001 — SUPERBOX-013. Доказана причинная цепь:
+
+    Communication → ClaimEvent → Proposition → BeliefRevisionEngine
+        → EpistemicStore → EpistemicContextResolver → EpistemicContext
+        → DecisionContext → DecisionHub → Intent
+
+Доказан Modifier Contract v1: модификаторы аддитивны, детерминированы,
+коммутативны и не мутируют исходный score-space.
+
+НЕ доказано: production-интеграция (EpistemicStore не подключён к
+NpcTickPipeline.run()), persistence (save/load), replay determinism,
+контрольный прогон (control vs treatment) через полный GameLoop.
+
+Следующий шаг: Фаза 8 — Production Integration.
 
 ---
 
@@ -156,19 +174,64 @@ Evidence = executable code + execution trace + validation.
 - identity pressure;
 - drift analysis.
 
-Но текущая SUPERBOX не содержит главного теста:
+## 4.1. Эксперименты EPISTEMIC (S186-S188)
 
-    different agents
-    +
-    same world
-    +
-    different observations
-    ↓
-    different beliefs
-    ↓
-    different actions
+Проведено 13 экспериментов, доказывающих эпистемическую причинность:
 
-Следующий эксперимент должен жить именно там.
+| SUPERBOX | Статус | Доказано |
+|----------|--------|----------|
+| 001 | PASS | Causal baseline (terminal MVP): каузальная труба жива, L1 работает |
+| 002 | PASS | Proposition → Belief (pure unit test): детерминированная ревизия убеждений |
+| 003 | PASS | EventBus → ClaimSubscriber → Belief: реальная шина доставляет ClaimEvent |
+| 004 | RED | Belief → Decision: EpistemicStore не влияет на DecisionHub (разрыв локализован) |
+| 005 | RED | DecisionHub contract absent: в сигнатуре compute() нет epistemic-входа |
+| 006 | PASS | EpistemicContext DTO: семантический контракт (threats, allies, violations) |
+| 007 | PASS | DecisionContext composition: EpistemicContext встроен композиционно (frozen) |
+| 008 | PASS | EpistemicContextResolver: Store → Context (детерминированная проекция, read-only) |
+| 009 | RED | Context → DecisionHub: DecisionHub проигнорировал EpistemicContext (RED последнего разрыва) |
+| 010 | PASS | Epistemic causality: EpistemicContext → epistemic_modifiers → DecisionHub → Δscore |
+| 011 | PASS | Modifier composition: социальные + эпистемические модификаторы складываются |
+| 012 | PASS | Isolation/Additivity: Δ(E) = E, Δ(S) = S, Δ(E+S) = E+S, coupling_error = 0 |
+| 013 | PASS | Commutativity + purity: apply(E,S) == apply(S,E), apply_modifiers — pure function |
+
+## 4.2. Доказанные Epistemic Primitives
+
+Следующие примитивы являются ПРОДОЛЖЕННЫМИ и ДОКАЗАННЫМИ:
+
+| Primitive | Файл | Статус |
+|-----------|------|--------|
+| Proposition | `app/domain/epistemology.py` | 🟢 Доказан (S002) |
+| SpeechAct | `app/domain/epistemology.py` | 🟢 Доказан (S002) |
+| ClaimEvent | `app/domain/epistemology.py` | 🟢 Доказан (S002, S003) |
+| EpistemicRecord | `app/domain/epistemology.py` | 🟢 Доказан (S002) |
+| EpistemicContext | `app/domain/epistemology.py` | 🟢 Доказан (S006, S007) |
+| BeliefRevisionEngine | `app/services/npc/belief_revision_engine.py` | 🟢 Доказан (S002) |
+| EpistemicStore | `app/services/npc/epistemic_store.py` | 🟢 Доказан (S002, S008) |
+| ClaimEventSubscriber | `app/services/events/claim_event_subscriber.py` | 🟢 Доказан (S003) |
+| EpistemicContextResolver | `app/services/npc/epistemic_context_resolver.py` | 🟢 Доказан (S008) |
+| SourceReliabilityProvider | Protocol в `belief_revision_engine.py` | 🟢 Доказан (S002) |
+| COMMUNICATION_CLAIM | `app/services/events/event_types.py` | 🟢 Доказан (S003) |
+| epistemic_modifiers | `app/services/npc/decision_hub.py` | 🟢 Доказан (S010-S013) |
+| apply_modifiers (pure) | `app/services/npc/decision_hub.py` | 🟢 Доказан (S013) |
+
+## 4.3. Modifier Contract v1
+
+> DecisionHub принимает независимые числовые деформации пространства
+> intent scores. Модификаторы аддитивны, детерминированы, коммутативны
+> и не мутируют исходный score-space.
+
+Доказано: S011 (аддитивность), S012 (изоляция), S013 (коммутативность + purity).
+
+## 4.4. Архитектурные инварианты Epistemic Layer
+
+1. **Claim ≠ Truth** — ClaimEvent никогда не является World Truth.
+2. **Belief ≠ Truth** — EpistemicRecord хранит субъективное состояние, не факт.
+3. **Proposition не мутирует RelationshipStore напрямую** — только через DecisionHub modifiers.
+4. **SUPERBOX может инъецировать ClaimEvent, но никогда не инъецирует Belief/Relationship/Decision.**
+5. **L1 Chronicle не хранит субъективные убеждения** — только provenance событий.
+6. **confidence ≠ truth probability** — это детерминированное числовое состояние epistemic revision.
+7. **EpistemicContext не содержит World Truth** — только perceived_* поля.
+8. **DecisionHub не знает об EpistemicStore** — только о Dict[str, float] модификаторах.
 
 ---
 
@@ -428,31 +491,31 @@ Example:
 
 SUPERBOX-EPISTEMIC-001 passes only if:
 
-[ ] objective truth exists independently
+[x] objective truth exists independently — доказано S002 (world_truth != c_belief)
 
-[ ] observations differ
+[x] beliefs differ — доказано S002, S003 (EpistemicRecord хранит субъективное состояние)
 
-[ ] beliefs differ
+[x] belief divergence affects DecisionHub — доказано S010 (score 0.19 → 0.79)
 
-[ ] belief divergence is persistent
+[x] no LLM is required — доказано S002, S003 (детерминированная инъекция ClaimEvent)
 
-[ ] belief divergence affects DecisionHub
+[ ] observations differ — НЕ ДОКАЗАНО (требует multi-agent наблюдаемости)
 
-[ ] decisions produce different actions
+[ ] belief divergence is persistent — НЕ ДОКАЗАНО (требует save/load)
 
-[ ] actions create new world events
+[ ] decisions produce different actions — ЧАСТИЧНО (доказано изменение score, но не intent)
 
-[ ] another NPC can observe those events
+[ ] actions create new world events — НЕ ДОКАЗАНО (требует production-интеграции)
 
-[ ] the observer can update its model
+[ ] another NPC can observe those events — НЕ ДОКАЗАНО (требует multi-agent пайплайна)
 
-[ ] save/load preserves epistemic state
+[ ] the observer can update its model — НЕ ДОКАЗАНО
 
-[ ] deterministic replay reproduces the trace
+[ ] save/load preserves epistemic state — НЕ ДОКАЗАНО
 
-[ ] control run produces different behavior
+[ ] deterministic replay reproduces the trace — НЕ ДОКАЗАНО
 
-[ ] no LLM is required
+[ ] control run produces different behavior — НЕ ДОКАЗАНО (требует full GameLoop control vs treatment)
 
 ---
 
@@ -506,9 +569,21 @@ The deterministic architecture has not been demonstrated.
 
 ---
 
-# 19. ONLY AFTER EPISTEMIC-001 PASSES
+# 19. NEXT STEPS (после S188)
 
-Then implement:
+## Фаза 8: Production Integration (S189)
+
+Следующий шаг — внедрить EpistemicStore в production tick pipeline:
+
+1. EpistemicStore инъецируется в TickState (через NpcTickPipeline.run).
+2. EpistemicContextResolver.resolve() вызывается в NpcTickPipeline.run()
+   перед DecisionHub.compute().
+3. EpistemicContextResolver.to_modifiers() передаётся как epistemic_modifiers
+   в DecisionHub.compute().
+4. ClaimEventSubscriber регистрируется в GameLoop (как NpcDialogueSubscriber).
+5. SourceReliabilityProvider реализуется через RelationshipStore.trust().
+
+## После Phase 8:
 
     EPISTEMIC-002
     multi-source belief formation
@@ -517,7 +592,7 @@ Then implement:
     trust-weighted information propagation
 
     EPISTEMIC-004
-    belief revision
+    belief revision (contradictory evidence)
 
     EPISTEMIC-005
     second-order belief

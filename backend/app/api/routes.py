@@ -447,10 +447,9 @@ def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_l
         if _beliefs:
             result["crystallized_beliefs"] = [
                 {
-                    "target": b.target_npc,
-                    "trust": getattr(b, "trust", 0.0),
-                    "fear": getattr(b, "fear", 0.0),
-                    "affection": getattr(b, "affection", 0.0),
+                    "source_id": b.source_id,
+                    "trait": b.trait,
+                    "weight": b.weight,
                 } for b in _beliefs
             ]
 

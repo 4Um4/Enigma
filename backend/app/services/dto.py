@@ -124,15 +124,20 @@ class _TickContext:
     # НЕ хранит RNG state напрямую — хранит factory, чтобы каждый NPC
     # получил независимый deterministic stream.
     rng_factory: Optional[Callable[[str], "KernelRNG"]] = None
+    # H-27 FIX: Кэш для RNG, чтобы несколько вызовов rng_for(npc_id) возвращали один поток
+    _rng_cache: Dict[str, KernelRNG] = field(default_factory=dict, init=False, repr=False)
 
     def rng_for(self, npc_id: str) -> KernelRNG:
-        """Возвращает deterministic KernelRNG для данного NPC на текущем тике.
+        """Возвращает deterministic KernelRNG для данного NPC на текущий тик.
 
         Использование:
             rng = ctx.rng_for("maid_lusya")
             if rng.random() < 0.4:
                 ...
         """
+        if npc_id in self._rng_cache:
+            return self._rng_cache[npc_id]
+
         if self.rng_factory is None:
             # Fallback для legacy тестов, где factory не задан.
             # В production этого быть не должно.
@@ -143,8 +148,12 @@ class _TickContext:
                 f"for npc={npc_id} tick={self.tick_number}. "
                 f"This indicates incomplete initialization."
             )
-            return KernelRNG(tick=self.tick_number, npc_id=npc_id)
-        return self.rng_factory(npc_id)
+            _rng = KernelRNG(tick=self.tick_number, npc_id=npc_id)
+        else:
+            _rng = self.rng_factory(npc_id)
+        
+        self._rng_cache[npc_id] = _rng
+        return _rng
 
     # Фаза 5: решения DecisionHub
     decision_events: list = field(default_factory=list)

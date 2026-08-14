@@ -88,6 +88,13 @@ class SignificanceDetector:
             "npc_enters_player_location",
             "trauma_event",
             "npc_speaks_about_player",
+            # BUG-SLEEP-012 FIX: Sleep events прерывают time-skip, чтобы игрок не пропустил нарратив.
+            "sleep_start",
+            "sleep_end",
+            "dream",
+            "nightmare",
+            "sleepwalk",
+            "prophecy_vision",
         }
     )
 

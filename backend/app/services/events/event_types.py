@@ -18,6 +18,13 @@ from enum import Enum
 
 
 class EventType(str, Enum):
+    DREAM = "dream"
+    NIGHTMARE = "nightmare"
+    SLEEPWALK = "sleepwalk"
+    PROPHECY_VISION = "prophecy_vision"
+    # ── Эпистемический слой ──────────────────
+    COMMUNICATION_CLAIM = "communication_claim"  # S188: Передача Proposition (ClaimEvent)
+
     # ── Физический мир ────────────────────────────────────────────────────
     OBJECT_MOVED = "object_moved"
     OBJECT_DESTROYED = "object_destroyed"

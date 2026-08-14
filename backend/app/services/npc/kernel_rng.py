@@ -39,7 +39,7 @@ class KernelRNG:
     - Different npc_id or salt → different seed (independence)
     """
 
-    def __init__(self, tick: int, npc_id: str, salt: str = ""):
+    def __init__(self, tick: int, npc_id: str, salt: str = "default"):
         if not isinstance(tick, int) or tick < 0:
             raise ValueError(f"tick must be non-negative int, got {tick}")
         if not isinstance(npc_id, str) or not npc_id:

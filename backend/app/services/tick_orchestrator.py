@@ -74,6 +74,8 @@ class TickOrchestrator:
         self._event_bus = event_bus
         # Ленивая инициализация для оставшихся
         self._life_engine = None
+        # S188: SleepLifecycleService создаётся один раз, а не на каждый тик (PERF-SLEEP)
+        self._sleep_lifecycle_svc: Any = None
         self._snapshot_builder = None
         self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
         # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
@@ -158,6 +160,13 @@ class TickOrchestrator:
             self._life_engine = get_life_engine()
         return self._life_engine
 
+    def _get_sleep_lifecycle_svc(self):
+        """S188: Возвращает инстанс SleepLifecycleService (DI)."""
+        if self._sleep_lifecycle_svc is None:
+            from app.services.npc.sleep_lifecycle_service import SleepLifecycleService
+            self._sleep_lifecycle_svc = SleepLifecycleService(self._get_event_bus())
+        return self._sleep_lifecycle_svc
+
     def get_current_tick(self, campaign_id: str) -> int:
         """Единый источник тика — TemporalEngine (Устав §3).
 
@@ -240,6 +249,11 @@ class TickOrchestrator:
     def set_reputation_engine(self, engine: Any) -> None:
         """Внедряет ReputationEngine (DI) для reputation decay."""
         self._reputation_engine = engine
+
+    def set_epistemic_services(self, store: Any, resolver: Any) -> None:
+        """S189: Инъекция EpistemicStore и EpistemicContextResolver (ADR-O-354)."""
+        self._epistemic_store = store
+        self._epistemic_context_resolver = resolver        
 
     def add_idle_handler(self, handler: Any) -> None:
         """Добавляет IdleTickHandler для Фазы 0.5 (DI)."""
@@ -516,6 +530,8 @@ class TickOrchestrator:
             hub_event=hub_event,
             eco_profile=eco_profile,
             mvp_controller=getattr(self, "_mvp_controller", None),
+            epistemic_store=getattr(self, "_epistemic_store", None),
+            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),
         )
         self._advance_idle_time(_time_ctx)
         
@@ -543,8 +559,11 @@ class TickOrchestrator:
                 task_scheduler=task_scheduler,
                 hub_event=hub_event,  # BUG-CORE-003 FIX: Передача контекста в фабрику
                 eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
-                mvp_controller=getattr(self, "_mvp_controller", None),  # ENIGMA SELF-HEALING: For probes
+                mvp_controller=getattr(self, "_mvp_controller", None),
+                epistemic_store=getattr(self, "_epistemic_store", None),
+                epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),
             )
+        # Синхронизируем обновлённое время во все сцены локаций
             self._rebuild_cluster_occupancy(ctx)
 
             # BUG-CORE-001 FIX: Мёртвый код (135 строк после return) удалён.
@@ -632,7 +651,11 @@ class TickOrchestrator:
                     f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} loc={_loc_id} error={e}"
                 )
                 logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id} (loc={_loc_id}): {e}", exc_info=True)
-                return TickResultDTO(status="error", error=str(e))
+                _err_res = TickResultDTO(status="error", error=str(e), final_scene_state=ctx.scene_state)
+                _tick_results.append(_err_res)
+                if _is_active:
+                    _final_result = _err_res
+                continue
             finally:
                 # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
                 event_bus.detach_cfrm_bridge()
@@ -729,10 +752,14 @@ class TickOrchestrator:
                 and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
             ]
 
-        self._snapshot_positions_before(ctx) #1
-        self._phase_0_simulation(ctx) #2
-        self._phase_0_5_idle_services(ctx) #3
-        self._resolve_cross_location_transfers(ctx) # S186: World-level ownership transfer крос-локационное перемещение НПС
+        self._snapshot_positions_before(ctx) # PRE-TICK
+        self._phase_0_simulation(ctx) # 0
+        
+        # BUG-SLEEP-007 FIX: Явная подфаза Phase 0 Sleep Lifecycle
+        self._phase_0_6_sleep_lifecycle(ctx) # 0.6
+        
+        self._phase_0_5_idle_services(ctx) # 0.5
+        self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
         
         # Подсистема 2: Replay Recorder (Этап 2.2)
         _recorder = getattr(self, "_replay_recorder", None)
@@ -744,24 +771,24 @@ class TickOrchestrator:
         # Дополнение Б (п. Б.11): Adaptive Tick Loader
         # Если LOD активен и это дальняя локация — пропускаем тяжелые фазы (память, решения, движение)
         if not tick_fully:
-            self._phase_10_persistence(ctx) #16
+            self._phase_10_persistence(ctx) # 10
             return
             
-        self._phase_1_npic_normalize(ctx) #4
-        self._phase_1_input_merge(ctx) #5
-        self._apply_willpower_gate(ctx) #6
-        self._phase_2_event_bus_primary(ctx) #7
-        self._phase_3_memory(ctx) #8
-        self._phase_4_pre_decision(ctx) #9
-        self._phase_5_decision(ctx) #10
+        self._phase_1_npic_normalize(ctx) # 1
+        self._phase_1_input_merge(ctx) # 1.1
+        self._apply_willpower_gate(ctx) # 4.1
+        self._phase_2_event_bus_primary(ctx) # 2
+        self._phase_3_memory(ctx) # 3
+        self._phase_4_pre_decision(ctx) # 4
+        self._phase_5_decision(ctx) # 5
         
         # Подсистема 2: Запись TickMutation после Фазы 5
         if _recorder:
             _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))
             
-        self._phase_6_post_decision(ctx) #11
-        self._phase_7_windup_resolution(ctx)  #12 ADR-O-310: Execution Gate
-        self._phase_8_drain_secondary(ctx) #13
+        self._phase_6_post_decision(ctx) # 6
+        self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
+        self._phase_8_drain_secondary(ctx) # 8
 
         # TODO (Фаза 2 / Эпоха 7): Интеграция FrontEngine.
         # Здесь, после обработки событий (Фаза 8) и до интеграции (Фаза 9),
@@ -778,15 +805,15 @@ class TickOrchestrator:
         # и Traveller.generate_visits() для спавна странников (торговцев, путников).
         # Это обеспечит внешние экономические шоки для локации.
 
-        self._phase_9_integration(ctx) #14
-        self._run_affective_pipeline(ctx) #15
+        self._phase_9_integration(ctx) # 9
+        self._run_affective_pipeline(ctx) # 9.1
         
         # Подсистема 2: Запись WorldSnapshot после Фазы 9
         if _recorder:
-            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None))
+            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9
             
-        self._resolve_cross_location_transfers(ctx) # S186: Extract BEFORE Phase 10 to persist clean state
-        self._phase_10_persistence(ctx) #16
+        self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
+        self._phase_10_persistence(ctx) # 10
 
         # Подсистема 3: Causal Probes (real-time invariant monitor)
         from app.services.probes.probe_runner import ProbeRunner
@@ -1283,6 +1310,18 @@ class TickOrchestrator:
 
         # Тело метода удалено. Логика перенесена в phases/simulation.py
 
+    def _phase_0_6_sleep_lifecycle(self, ctx: _TickContext) -> None:
+        """Фаза 0.6: Sleep lifecycle — обновление sleep depth, recovery, wake checks.
+        Вынесено из LifeEngine для чистоты пайплайна и поддержки BUG-SLEEP-012.
+        """
+        _svc = self._get_sleep_lifecycle_svc()
+        
+        for _npc in (ctx.all_npcs_raw or []):
+            _changes = _svc.process_sleep_lifecycle(_npc, ctx.tick_number)
+            if _changes:
+                # Применяем пробуждение через стандартный механизм SceneChange
+                self._apply_with_shadow_observation(ctx, _changes, "phase_0_6_sleep")
+
     def _process_continuous_motion(
         self, ctx: _TickContext, _spatial_svc: Optional["SpatialService"] = None
     ) -> None:
@@ -1677,6 +1716,8 @@ class TickOrchestrator:
             spatial_query=_spatial_query_for_pipeline,
             l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX
             idle_pressure_map=_idle_pressure_map, # V8-SOC-5 FIX
+            epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core
+            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
@@ -1960,7 +2001,7 @@ class TickOrchestrator:
         if not _claims:
             return
 
-        for _intent in intents:
+        for _idx, _intent in enumerate(intents):
             # BUG-CORE-015 FIX: DRF overlay применяется к CommunicationIntent (speaker) и MovementIntent (actor_id).
             if hasattr(_intent, "speaker"):
                 _npc_id = _intent.speaker
@@ -1993,12 +2034,15 @@ class TickOrchestrator:
                 _alignment_mult = _DRF_ALIGNED if _aligned else _DRF_MISALIGNED
                 _drf_bonus += _energy * _weight * _alignment_mult
 
-            # BUG-CORE-015 FIX: CommunicationIntent не имеет поля priority, DRF overlay применяется только к интентам с этим полем.
-            if not hasattr(_intent, "priority"):
-                continue
+            # H-28 FIX: CommunicationIntent теперь имеет поле priority.
+            # DRF overlay применяется ко всем интентам.
+            # S189 FIX: CommunicationIntent — frozen dataclass, мутация через dataclasses.replace.
             _old_priority = _intent.priority
-            _intent.priority = min(1.0, _intent.priority + _drf_bonus)
+            _new_priority = min(1.0, _old_priority + _drf_bonus)
             if _drf_bonus > 0.01:
                 logger.debug(
-                    f"[DRF_VOTE] npc={_npc_id} base={_old_priority:.2f} bonus={_drf_bonus:.3f} final={_intent.priority:.2f}"
+                    f"[DRF_VOTE] npc={_npc_id} base={_old_priority:.2f} bonus={_drf_bonus:.3f} final={_new_priority:.2f}"
                 )
+            if _new_priority != _old_priority:
+                import dataclasses
+                intents[_idx] = dataclasses.replace(_intent, priority=_new_priority)

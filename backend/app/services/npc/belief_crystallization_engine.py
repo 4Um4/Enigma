@@ -108,7 +108,7 @@ class BeliefCrystallizationEngine:
                     if decayed_weight <= 0.0:
                         # Старое убеждение разрушено, формируем новое
                         # Остаточный вес переносится (опровергнуто, но не полностью)
-                        new_weight = min(abs(decayed_weight), MAX_WEIGHT)
+                        new_weight = min(base_weight, MAX_WEIGHT)
                         target_trait = target_trait  # Трейт меняется на новый
                     else:
                         # Убеждение ещё держится, но ослабло

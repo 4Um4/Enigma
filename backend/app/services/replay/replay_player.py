@@ -35,6 +35,7 @@ class ReplayPlayer:
         
         # Активируем LLM Cache (чтение)
         settings.replay_playback = True
+        _old_replay_record = settings.replay_record
         settings.replay_record = False
         
         # BUG-DRIFT-001 FIX: Сброс scene_state["tick"] до start_tick перед стартом воспроизведения
@@ -42,6 +43,11 @@ class ReplayPlayer:
         _scene = self.game_loop.get_scene_state(self.campaign_id, self.location_id)
         if _scene is not None:
             _scene["tick"] = start_tick
+            # H-05 FIX: Сбрасываем game_time_seconds, чтобы избежать рассинхрона с TemporalEngine
+            _first_tick_id = start_tick if start_tick > 0 else 1
+            _recorded_first_tick = self._load_tick(_first_tick_id)
+            if _recorded_first_tick:
+                _scene["game_time_seconds"] = _recorded_first_tick["game_time_seconds"]
             self.game_loop.save_scene_state(self.campaign_id, _scene)
         
         total_drifts = 0
@@ -77,6 +83,9 @@ class ReplayPlayer:
         finally:
             # Восстанавливаем состояние
             settings.replay_playback = False
+            settings.replay_record = _old_replay_record
+            if hasattr(self, "_old_replay_record"):
+                settings.replay_record = self._old_replay_record
 
         return {
             "replayed_ticks": replayed_ticks,

@@ -697,34 +697,54 @@ def inv_adr_net(world: TestWorld) -> InvariantResult:
         sys.path.insert(0, _backend_dir)
         
     try:
-        from app.services.adr_net.adr_parser import run_parser
+        from app.services.adr_net.adr_graph import ADRGraphBuilder
+        from app.services.adr_net.adr_conflict_detector import ADRConflictDetector
         _root_dir = str(Path(__file__).resolve().parents[2])
         _audits_dir = os.path.join(_root_dir, "docs", "audits")
         _master_idx = os.path.join(_root_dir, "docs", "ADR (Architecture Decision Records).md")
         
-        graph = run_parser(audits_dir=_audits_dir, master_index=_master_idx)
+        # H-21 FIX: Используем GraphBuilder для создания networkx графа
+        builder = ADRGraphBuilder(audits_dir=_audits_dir, master_index=_master_idx)
+        graph = builder.build()
         
-        if len(graph) < 20:
+        # Подсчитываем узлы ADR (исключая FILE и LAW узлы)
+        _adr_nodes = [n for n, d in graph.nodes(data=True) if d.get("node_type") == "ADR"]
+        _with_files = sum(1 for n in _adr_nodes if any(True for _, _, d in graph.out_edges(n, data=True) if d.get("edge_type") == "IMPLEMENTS"))
+        
+        if len(_adr_nodes) < 20:
             return InvariantResult(
                 "INV-ADR-NET",
                 "CRITICAL",
                 False,
-                f"ADR-Net распарсил только {len(graph)} ADR. Ожидается > 20. Граф сломан.",
+                f"ADR-Net распарсил только {len(_adr_nodes)} ADR. Ожидается > 20. Граф сломан.",
                 ["docs/ADR (Architecture Decision Records).md", "docs/audits/"]
             )
             
-        # Проверяем, что хотя бы 10% ADR имеют привязку к файлам (аудиты пишутся не для всех ADR)
-        _with_files = sum(1 for n in graph.values() if n.files)
-        if _with_files < len(graph) * 0.1:
+        if _with_files < len(_adr_nodes) * 0.1:
             return InvariantResult(
                 "INV-ADR-NET",
                 "CRITICAL",
                 False,
-                f"Только {_with_files}/{len(graph)} ADR имеют привязку к файлам. Граф неполный.",
+                f"Только {_with_files}/{len(_adr_nodes)} ADR имеют привязку к файлам. Граф неполный.",
                 ["docs/audits/"]
             )
             
-        return InvariantResult("INV-ADR-NET", "CRITICAL", True, f"ADR-Net: {len(graph)} nodes, {_with_files} with files.", [])
+        # H-21 FIX: Запускаем детектор конфликтов и циклов
+        detector = ADRConflictDetector(graph)
+        cycles = detector.detect_cycles()
+        conflicts = detector.detect_file_ownership_conflicts()
+        
+        if cycles or conflicts:
+            _details = f"Cycles: {len(cycles)}, Conflicts: {len(conflicts)}"
+            return InvariantResult(
+                "INV-ADR-NET",
+                "CRITICAL",
+                False,
+                f"ADR-Net обнаружил архитектурные конфликты! {_details}",
+                ["backend/app/services/adr_net/adr_conflict_detector.py"]
+            )
+            
+        return InvariantResult("INV-ADR-NET", "CRITICAL", True, f"ADR-Net: {len(_adr_nodes)} nodes, {_with_files} with files.", [])
     except Exception as e:
         return InvariantResult(
             "INV-ADR-NET",

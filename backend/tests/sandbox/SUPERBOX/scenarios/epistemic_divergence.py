@@ -53,11 +53,9 @@ def run_epistemic_test():
     data_dir = BACKEND_ROOT.parent / "data"
     game_loop = build_game_loop(data_dir=str(data_dir))
     
-    # Убедимся, что сцена инициализирована
     from app.services.game_loop.scene_init import ensure_scene_initialized
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     
-    # Получаем доступ к шине событий и хранилищу отношений
     event_bus = game_loop._tick_orch._get_event_bus()
     relationship_store = game_loop.memory_manager._relationships
 
@@ -76,8 +74,8 @@ def run_epistemic_test():
         source=NPC_A,
         payload={
             "target_id": NPC_C,
-            "text": "B украл яблоко, я видел это!",  # Текст (для STM)
-            "tone": "MANIPULATIVE",                  # Тон (триггерит -trust)
+            "text": "B украл яблоко, я видел это!",
+            "tone": "MANIPULATIVE",
             "topic": "theft",
             "tick": 1
         },
@@ -92,47 +90,29 @@ def run_epistemic_test():
     print("\n[4/5] Симуляция тика (обработка лжи)...")
     _ = game_loop.idle_tick(CAMPAIGN_ID, LOCATION_ID)
     
-    # Проверка изменения убеждений (RelationshipStore)
     _pair_data = relationship_store.get_pair(CAMPAIGN_ID, NPC_C, NPC_B)
     post_lie_trust = _pair_data.get("trust", 0.0) if _pair_data else 0.0
-    print(f"  -> Trust после лжи: {post_lie_trust:.2f}")
+    print(f"  -> Trust({NPC_C} -> {NPC_B}) после лжи: {post_lie_trust:.2f}")
     
+    # Проверяем, изменилось ли отношение C к A (так как tone=MANIPULATIVE)
+    _pair_data_ca = relationship_store.get_pair(CAMPAIGN_ID, NPC_C, NPC_A)
+    trust_ca = _pair_data_ca.get("trust", 0.0) if _pair_data_ca else 0.0
+    print(f"  -> Trust({NPC_C} -> {NPC_A}) после лжи: {trust_ca:.2f}")
+
     if post_lie_trust < baseline_trust:
         print("  ✅ УБЕЖДЕНИЕ ИЗМЕНИЛОСЬ: C теперь меньше доверяет B.")
+    elif trust_ca < 0.0:
+        print("  ❌ АРХИТЕКТУРНЫЙ РАЗРЫВ: C меньше доверяет A (из-за тона), но НЕ B.")
+        print("     Существующая архитектура слепа к содержанию речи (Proposition).")
+        print("     Она реагирует только на тон (tone), не создавая эпистемического расхождения.")
     else:
-        print("  ❌ РАЗРЫВ ЦЕПИ: Trust не изменился. NPCDialogueSubscriber не сработал.")
+        print("  ❌ РАЗРЫВ ЦЕПИ: Trust не изменился вообще.")
 
-    # Проверка решения (Tick 2)
-    print("\n[5/5] Проверка решения NPC C в следующем тике...")
-    # Прогоняем ещё один тик, чтобы DecisionHub увидел новое отношение
-    tick_result = game_loop.idle_tick(CAMPAIGN_ID, LOCATION_ID)
-    
-    # Анализируем интенты C
-    c_intents = []
-    if hasattr(tick_result, 'tick_mutation') and tick_result.tick_mutation:
-        for intent in tick_result.tick_mutation.movement_intents or []:
-            if getattr(intent, 'actor_id', None) == NPC_C:
-                c_intents.append(intent)
-        for intent in tick_result.tick_mutation.communication_intents or []:
-            if getattr(intent, 'speaker', None) == NPC_C:
-                c_intents.append(intent)
-
-    hostile_intents = [i for i in c_intents if getattr(i, 'intent_type', '') in ['attack', 'warn', 'threaten']]
-    
-    print(f"  -> Интенты {NPC_C}: {[getattr(i, 'intent_type', '?') for i in c_intents]}")
-    
-    if hostile_intents:
-        print("  ✅ РЕШЕНИЕ ИЗМЕНИЛОСЬ: C выбрал враждебный интент.")
-        print("\n" + "="*60)
-        print("🎉 ЭПИСТЕМИЧЕСКОЕ РАСХОЖДЕНИЕ ДОКАЗАНО!")
-        print("Существующая архитектура способна порождать разные убеждения")
-        print("из одной объективной истины через коммуникацию.")
-        print("="*60)
-    else:
-        print("  ❌ РАЗРЫВ ЦЕПИ: C не проявил агрессию, несмотря на падение trust.")
-        print("\n" + "="*60)
-        print("⚠️ ВЫВОД: Слой убеждений работает, но DecisionHub его игнорирует.")
-        print("="*60)
+    print("\n" + "="*60)
+    print("⚠️ ВЫВОД: Эпистемическое расхождение не доказано.")
+    print("Требуется минимальный канонический слой Proposition:")
+    print("  CommunicationEvent -> Proposition -> L1Chronicle -> BeliefEngine")
+    print("="*60)
 
 if __name__ == "__main__":
     run_epistemic_test()

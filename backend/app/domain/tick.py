@@ -62,6 +62,9 @@ def create_tick_state(
     l1_chronicle: Optional[Any] = None,
     # V8-SOC-5 FIX: Передаём текущее idle_pressure в редюсер
     idle_pressure_map: Optional[Any] = None,
+    # S189: Epistemic Core (ADR-O-354). Read-only проекция убеждений для DecisionHub.
+    epistemic_store: Optional[Any] = None,
+    epistemic_context_resolver: Optional[Any] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -106,6 +109,9 @@ def create_tick_state(
         l1_chronicle=l1_chronicle,
         # V8-SOC-5 FIX
         idle_pressure_map=frozen(idle_pressure_map) if idle_pressure_map else {},
+        # S189: Epistemic Core
+        epistemic_store=epistemic_store,
+        epistemic_context_resolver=epistemic_context_resolver,
     )
 
 
@@ -166,6 +172,9 @@ class TickState:
     spatial_query: Optional[Any] = None
     # V8-PSY-1 FIX: L1Chronicle пробрасывается в редюсер для StateApplicator
     l1_chronicle: Optional[Any] = None
+    # S189: Epistemic Core (ADR-O-354). Read-only проекция убеждений для DecisionHub.
+    epistemic_store: Optional[Any] = None
+    epistemic_context_resolver: Optional[Any] = None
     # V8-SOC-5 FIX: Текущее давление разговоров (читается из LifeEngine)
     idle_pressure_map: Any = field(default_factory=dict)
     # S129: Bridge 7
@@ -179,14 +188,14 @@ class TickMutation:
 
     TZ-10: Expanded with deferred mutations (l1_events, memory_events).
     """
-
-    npc_deltas: List[Any]  # List[StateDelta]
-    communication_intents: List[Any]  # List[CommunicationIntent]
-    movement_intents: List[Any]  # List[MovementIntent]
-    l1_drift_events: List[Any] = field(default_factory=list)  # List[TraitDriftEvent]
-    memory_events: List[Any] = field(default_factory=list)  # List[EventDTO]
-    # V8-SOC-5 FIX: Обновлённое давление разговоров (пишется в LifeEngine)
-    idle_pressure_updates: Dict[Any, float] = field(default_factory=dict)
+    npc_deltas: List[Any]
+    communication_intents: List[Any]
+    movement_intents: List[Any]
+    l1_drift_events: List[Any]
+    memory_events: List[Any]
+    idle_pressure_updates: Dict[str, float]
+    # S189: Добавлено для SUPERBOX-005 (атрибация модификаторов)
+    scores_trace_map: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

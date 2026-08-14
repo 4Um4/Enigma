@@ -18,12 +18,11 @@ class ADRConflictDetector:
         self.graph = graph
 
     def detect_cycles(self) -> List[List[str]]:
-        """Детектор циклических зависимостей (SUPERSEDES/DEPENDS_ON)."""
-        # Упрощаем граф до простого направленного для поиска циклов
+        """Детектор циклических зависимостей."""
+        # H-18 FIX: Парсер пока не извлекает SUPERSEDES/DEPENDS_ON, поэтому ищем циклы по всем рёбрам.
         simple_graph = nx.DiGraph()
         for u, v, data in self.graph.edges(data=True):
-            if data.get("edge_type") in ["SUPERSEDES", "DEPENDS_ON", "CONFLICTS_WITH"]:
-                simple_graph.add_edge(u, v)
+            simple_graph.add_edge(u, v)
         
         cycles = list(nx.simple_cycles(simple_graph))
         if cycles:
@@ -31,12 +30,24 @@ class ADRConflictDetector:
         return cycles
 
     def detect_file_ownership_conflicts(self) -> List[Dict]:
-        """Детектор: один файл IMPLEMENTS разными ADR с разными ролями (если будет добавлено)."""
+        """Детектор: один файл IMPLEMENTS разными ADR с разными законами (Double Truth)."""
         conflicts = []
-        # В текущей модели парсера мы не извлекаем role, поэтому пока заглушка.
-        # При добавлении role в ADRNode, здесь можно будет проверить:
-        # file -> [ADR1 (IMPLEMENTS), ADR2 (CONSUMES)] — это нормально.
-        # file -> [ADR1 (IMPLEMENTS), ADR2 (IMPLEMENTS)] — это конфликт (Double Truth).
+        file_implementers: dict[str, list[str]] = {}
+        for u, v, data in self.graph.edges(data=True):
+            if data.get("edge_type") == "IMPLEMENTS":
+                file_implementers.setdefault(v, []).append(u)
+        
+        for file_id, adrs in file_implementers.items():
+            if len(adrs) > 1:
+                # H-19 FIX: Если все ADR разделяют хотя бы один закон, это не конфликт (разные версии одного закона)
+                _all_laws = [set(self.graph.nodes[adr].get("laws", [])) for adr in adrs]
+                _intersection = set.intersection(*_all_laws) if _all_laws else set()
+                if not _intersection:
+                    conflicts.append({
+                        "file": file_id,
+                        "adrs": adrs,
+                        "conflict": "File IMPLEMENTS ADRs with disjoint laws (Double Truth risk)"
+                    })
         return conflicts
 
     def check_all(self) -> Dict[str, Any]:

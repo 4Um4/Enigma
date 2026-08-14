@@ -367,6 +367,34 @@ class DecisionHub:
             target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
         )
 
+    @staticmethod
+    def apply_modifiers(
+        scores: Dict[str, float],
+        eco_modifiers: Optional[Dict[str, float]] = None,
+        social_modifiers: Optional[Dict[str, float]] = None,
+        reputation_modifiers: Optional[Dict[str, float]] = None,
+        drive_modifiers: Optional[Dict[str, float]] = None,
+        contract_modifiers: Optional[Dict[str, float]] = None,
+        npc_memory_modifiers: Optional[Dict[str, float]] = None,
+        epistemic_modifiers: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, float]:
+        """S188: Чистая функция (Pure Reducer) для аддитивного применения модификаторов.
+        Не мутирует входной словарь scores, возвращает новый.
+        Modifier Contract v1: все модификаторы являются независимыми аддитивными деформациями.
+        """
+        result = dict(scores) # Создаём копию, чтобы не мутировать вход
+        all_mods = [
+            eco_modifiers, social_modifiers, reputation_modifiers,
+            drive_modifiers, contract_modifiers, npc_memory_modifiers,
+            epistemic_modifiers
+        ]
+        for mod_dict in all_mods:
+            if mod_dict:
+                for intent, modifier in mod_dict.items():
+                    if intent in result:
+                        result[intent] = round(result[intent] + modifier, 4)
+        return result
+
     def compute(
         self,
         state: NPCState,
@@ -382,6 +410,7 @@ class DecisionHub:
         drive_modifiers: Optional[Dict[str, float]] = None,
         contract_modifiers: Optional[Dict[str, float]] = None,
         npc_memory_modifiers: Optional[Dict[str, float]] = None,
+        epistemic_modifiers: Optional[Dict[str, float]] = None,
         reflex_constraints: Optional[Dict] = None,
         topic: Optional[str] = None,
         decision_ctx: Optional["DecisionContext"] = None,  # S28: Каузальная деформация
@@ -496,41 +525,17 @@ class DecisionHub:
                 f"[PHYSICS_OF_POWER] npc={state.npc_id} mode={_epistemic_mode} action={_sa_pop} → intent={_expected_intent} boost={_boost_pop:.3f} legit={_obedience_legitimacy:.3f} will={_will_pop:.3f} threat={_threat_pop:.3f} approach={scores[Intent.APPROACH.value]:.3f}"
             )
 
-        # Фаза 2.4-ECO: экономические модификаторы (опционально)
-        if eco_modifiers:
-            for intent, modifier in eco_modifiers.items():
-                if intent in scores:
-                    scores[intent] = round(scores[intent] + modifier, 4)
-
-        # Фаза 3.2: социальные модификаторы (ревность, защита, страх)
-        if social_modifiers:
-            for intent, modifier in social_modifiers.items():
-                if intent in scores:
-                    scores[intent] = round(scores[intent] + modifier, 4)
-
-        # Фаза 3.5: репутационные модификаторы (фракции влияют на уверенность)
-        if reputation_modifiers:
-            for intent, modifier in reputation_modifiers.items():
-                if intent in scores:
-                    scores[intent] = round(scores[intent] + modifier, 4)
-
-        # Фаза 4-ROLE.2: модификаторы от временных драйвов (vengeance, greed, desperation)
-        if drive_modifiers:
-            for intent, modifier in drive_modifiers.items():
-                if intent in scores:
-                    scores[intent] = round(scores[intent] + modifier, 4)
-
-        # Этап 6: невыполненные контракты → повышают приоритет remind/demand
-        if contract_modifiers:
-            for intent, modifier in contract_modifiers.items():
-                if intent in scores:
-                    scores[intent] = round(scores[intent] + modifier, 4)
-
-        # Этап 7: NPC-NPC память → модификаторы от recall о целевом NPC
-        if npc_memory_modifiers:
-            for intent, modifier in npc_memory_modifiers.items():
-                if intent in scores:
-                    scores[intent] = round(scores[intent] + modifier, 4)
+        # S188: Универсальное применение модификаторов (коммутативно и аддитивно)
+        scores = self.apply_modifiers(
+            scores,
+            eco_modifiers=eco_modifiers,
+            social_modifiers=social_modifiers,
+            reputation_modifiers=reputation_modifiers,
+            drive_modifiers=drive_modifiers,
+            contract_modifiers=contract_modifiers,
+            npc_memory_modifiers=npc_memory_modifiers,
+            epistemic_modifiers=epistemic_modifiers
+        )
 
         # ── Причинный слой: ReflexConstraints (ограничения от рефлекса) ──
         # НЕ блокирует полностью — ограничивает через penalties и allowed_intents

@@ -550,7 +550,7 @@ class LlamaCppProvider(StreamingLlmProvider):
         if not self.server_url:
             logger.debug("[LLAMA_DEBUG] _check_server: server_url is missing!")
             return False
-        for endpoint in ["/health", ""]:
+        for endpoint in ["/health", "/v1/models", ""]:
             try:
                 url = self.server_url.rstrip("/") + endpoint
                 logger.debug(f"[LLAMA_DEBUG] _check_server: trying {url}")

@@ -274,11 +274,12 @@ class ModelRouter:
                 )
 
     def _abort_generation(self) -> None:
-        """Прервать зависшую генерацию на llama-server."""
+        """Прервать зависшую генерацию на llama-server (H-10 FIX: безопасный вызов)."""
         try:
             pool = self._get_model_pool()
-            if pool._active_model:
-                pool._active_model.provider.abort_generation()
+            _active_model = pool.active_model
+            if _active_model and hasattr(_active_model.provider, "abort_generation"):
+                _active_model.provider.abort_generation()
                 logger.debug(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
         except Exception as e:
             logger.debug(f"[R4A_ABORT] failed: {e}")
@@ -314,7 +315,7 @@ class ModelRouter:
                 start_time = time.time()
                 model_provider = pool.get_model(model_key)
 
-                if model_provider and model_provider.is_available():
+                if model_provider:
                     try:
                         # Execute request
                         _root_logger.info(
@@ -341,8 +342,9 @@ class ModelRouter:
                         import traceback
 
                         latency_ms = (time.time() - start_time) * 1000
-                        if hasattr(pool, "record_request"):
-                            pool.record_request(model_key, latency_ms, 0, success=False)
+                        # H-09 FIX: Включаем backoff и статус ERROR для упавшей модели
+                        model_provider.mark_error(str(e))
+                        pool.record_failure(model_key)
                         logger.error(f"ModelRouter: Model {model_key} failed: {e}")
                         logger.error(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
                         continue
@@ -356,18 +358,21 @@ class ModelRouter:
                 continue
 
             model_provider = pool.get_model(model_key)
-            if model_provider and model_provider.is_available():
+            if model_provider:
                 try:
                     return model_provider.provider.complete(
                         prompt, params, system_prompt
                     )
                 except Exception as e:
                     logger.warning(f"Fallback {model_key} failed: {e}")
-                    continue
+                    # H-12 FIX: Прерываем цикл, чтобы не thrash VRAM, выгружая и загружая модели подряд.
+                    break
             else:
                 # S129 FIX: Безопасное логирование без вложенных вызовов is_available()
                 _status = model_provider.status if model_provider else "None"
                 logger.error(f"ModelRouter: Fallback Model {model_key} not available. Status: {_status}")
+                # H-12 FIX: Если модель не загрузилась, нет смысла пытаться загрузить следующую.
+                break
 
         # Все модели пула недоступны — не создаём новые провайдеры (это порождало
         # дублирующие llama-cli процессы на занятую VRAM)
@@ -496,20 +501,31 @@ class ModelRouter:
         # Подсистема 2: LLM Cache для Replay (Этап 2.3)
         from app.services.replay.llm_cache import compute_prompt_hash
         from app.core.config import settings
-        _prompt_hash = compute_prompt_hash(prompt)
+        _prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
         
         if settings.replay_playback:
-            # Режим воспроизведения: читаем из кэша, не дёргаем LLM
+            # Режим воспроизведения: читаем только из кэша
             from app.services.replay.replay_store import ReplayStore
             _store = getattr(self, "_replay_store", None)
             if _store:
-                _cached = _store.get_llm_call(agent_name, _prompt_hash)
+                _current_session = getattr(self, "_current_session_id", "unknown")
+                _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
                 if _cached and _cached.get("response"):
                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
                     return _cached["response"]
-                # Cache miss в playback mode — это критическая ошибка (нарушение детерминизма)
+                # Cache miss в playback mode — критическая ошибка
                 logger.error(f"[LLM_CACHE] MISS in playback mode! agent={agent_name} hash={_prompt_hash[:8]}")
-                # Возвращаем пустую строку, чтобы не крашить игру, но это нарушит replay
+                raise RuntimeError("Replay determinism broken: LLM cache miss in playback")
+        elif settings.replay_record:
+            # Режим записи: пытаемся читать из кэша (hot-path), при miss идём к LLM
+            from app.services.replay.replay_store import ReplayStore
+            _store = getattr(self, "_replay_store", None)
+            if _store:
+                _current_session = getattr(self, "_current_session_id", "unknown")
+                _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
+                if _cached and _cached.get("response"):
+                    logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
+                    return _cached["response"]
                 
         # Worker thread (to_thread): прямой синхронный вызов без semaphore
         # Semaphore привязан к main loop — в новом loop он мёртв
@@ -541,6 +557,25 @@ class ModelRouter:
                 _root_logger.info(
                     f"[R4A_WORKER] returned {len(_result) if _result else 0} chars"
                 )
+                # C-11 FIX: Worker-thread path не писал в кэш. Пишем до возврата.
+                # H-07 FIX: Не пишем пустые ответы в кэш, чтобы не нарушать детерминизм.
+                # H-08 FIX: Передаём system_prompt и params для корректного вычисления хэша.
+                if settings.replay_record and _result:
+                    from app.services.replay.replay_store import ReplayStore
+                    _store = getattr(self, "_replay_store", None)
+                    if _store:
+                        _tick_id = getattr(self, "_current_tick_id", 0)
+                        _store.record_llm_call(
+                            session_id=getattr(self, "_current_session_id", "unknown"),
+                            tick_id=_tick_id,
+                            agent_name=agent_name,
+                            prompt=prompt,
+                            response=_result,
+                            model_name=self.get_model_for_agent(agent_name),
+                            latency_ms=0,
+                            system_prompt=system_prompt,
+                            params=params
+                        )
                 return _result
             except Exception as e:
                 _root_logger.error(f"[R4A_WORKER] exception: {e}")
@@ -578,7 +613,9 @@ class ModelRouter:
                     prompt=prompt,
                     response=_result,
                     model_name=self.get_model_for_agent(agent_name),
-                    latency_ms=0
+                    latency_ms=0,
+                    system_prompt=system_prompt,
+                    params=params
                 )
                 
         return _result

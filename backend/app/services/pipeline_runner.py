@@ -35,6 +35,8 @@ def build_tick_state(
     spatial_query: Optional[Any] = None,    # P5 FIX: Явная инъекция от оркестратора
     l1_chronicle: Optional[Any] = None,     # V8-PSY-1 FIX: Инъекция L1Chronicle
     idle_pressure_map: Optional[Any] = None, # V8-SOC-5 FIX: Инъекция idle_pressure
+    epistemic_store: Optional[Any] = None, # S189: Инъекция EpistemicStore
+    epistemic_context_resolver: Optional[Any] = None, # S189: Инъекция EpistemicContextResolver
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
     
@@ -82,6 +84,8 @@ def build_tick_state(
         response_targets=ctx.response_targets,
         l1_chronicle=l1_chronicle, # V8-PSY-1 FIX
         idle_pressure_map=idle_pressure_map, # V8-SOC-5 FIX
+        epistemic_store=epistemic_store, # S189: Epistemic Core
+        epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
     )
     return _tick_state
 
@@ -137,7 +141,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     if mutation.l1_drift_events and _svc and _svc.memory_manager:
         _chronicle = getattr(_svc.memory_manager, "l1_chronicle", None) or getattr(_svc.memory_manager, "_l1_chronicle", None)
         if _chronicle:
-            for _event in _l1_events:
+            for _event in mutation.l1_drift_events:
                 _chronicle.append(_event)
         else:
             logger.debug("L1Chronicle missing in MemoryManager, skipping TraitDriftEvent append.")
@@ -216,8 +220,11 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             except Exception as e:
                 logger.warning(f"[PIPELINE_RUNNER] Memory apply failed for {_npc_id}: {e}")
 
-    if not ctx.communication_intents:
-        return
+    # S189: SUPERBOX-005 FIX. Убран ранний возврат.
+    # Даже если communication_intents пуст, мы должны собрать npc_contexts для молчащих NPC,
+    # чтобы сохранить их scores_trace для каузальной атрибуции.
+    # if not ctx.communication_intents:
+    #     return
 
     from dataclasses import dataclass
 
@@ -297,5 +304,61 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 "micro_events": [],
                 "perceived_events": [],
                 "communication_intent": _intent,
+                "scores_trace": mutation.scores_trace_map.get(_speaker, {}), # S189: SUPERBOX-005
+            }
+        )
+
+    # S189: SUPERBOX-005 — Fallback для NPC без реплик (idle/observe).
+    # Если NPC не создал CommunicationIntent, его scores_trace всё равно должен попасть в npc_contexts.
+    # Молчание — это не отсутствие когнитивного состояния.
+    _existing_ctx_ids = {c.get("npc_id") for c in ctx.npc_contexts}
+    
+    for _npc_id, _trace in mutation.scores_trace_map.items():
+        if _npc_id in _existing_ctx_ids:
+            continue
+
+        _npc_dict = next(
+            (
+                n
+                for n in ctx.all_npcs_raw
+                if n.get("npc_id") == _npc_id or n.get("id") == _npc_id
+            ),
+            None
+        )
+        if not _npc_dict:
+            continue
+            
+        _profile_l0 = personality_from_legacy(_npc_dict)
+        _empty_deltas = StateDeltas(
+            npc_id=_npc_id,
+            domain=DeltaDomain.IDENTITY,
+            payload=IdentityPayload(),
+            source="silent_npc_adapter",
+        )
+        _adapter = _DecisionResultAdapter(
+            npc_id=_npc_id,
+            intent=NpcIntent.IDLE,
+            intent_target=None,
+            score=0.0,
+            deltas=_empty_deltas,
+            communication=None,
+            decision=None,
+        )
+        ctx.npc_contexts.append(
+            {
+                "npc_id": _npc_id,
+                "tier": _profile_l0.tier if _profile_l0 else "minor",
+                "profile_l0": _profile_l0,
+                "topic": "",
+                "decision_result": _adapter,
+                "observed_state": {
+                    "name": _npc_dict.get("name", _npc_id),
+                    "description": _npc_dict.get("description", ""),
+                    "narrative_cache": _npc_dict.get("narrative_cache", []),
+                },
+                "micro_events": [],
+                "perceived_events": [],
+                "communication_intent": None,
+                "scores_trace": _trace,
             }
         )

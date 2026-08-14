@@ -49,6 +49,7 @@ def translate_kernel_to_context(
     body_state: Optional[Dict[str, Any]] = None,
     social_input_ema: float = 0.0,
     gregariousness: float = 0.5,
+    has_active_commitment: bool = False,
 ) -> DecisionContext:
     """
     Проекция консолидированного восприятия (T-1) в топологию решений.
@@ -62,6 +63,13 @@ def translate_kernel_to_context(
         constraints["INTIMIDATE"] = 0.0
     if kernel.aggression_inhibition > 0.9 and kernel.compliance_bias > 0.7:
         constraints["RESIST"] = 0.0
+
+    # S189 ARCH-SLEEP Phase C: ActiveCommitment.
+    # Если NPC куда-то идёт (активный транзит), он не может инициировать новые проактивные действия.
+    # Оставляем только EMERGENCY (flee, attack).
+    if has_active_commitment:
+        for action in ["AMBUSH", "BLOCK_PATH", "OFFER_JOB", "REQUEST_SERVICE", "SPREAD_RUMOR", "CALL_FOR_HELP", "WARN", "TALK", "TRADE", "APPROACH"]:
+            constraints[action] = 0.0
 
     # GAP3 FIX & NPIC: Соматическое Вето. Физиология vetoирует решения мозга.
     # §ENIGMA-003: Если тело неизвестно, агент не может действовать (Unknown ≠ Neutral).

@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.character_service import CharacterService
 from app.services.game_loop import GameLoop
+from app.services.llm import initialize_router
 from app.services.memory import LayeredMemory
 from app.services.memory.memory_manager import MemoryManager
 from app.services.memory.sqlite_store import SqliteMemoryStore
@@ -32,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 def build_game_loop(data_dir: Path) -> GameLoop:
     """Собирает GameLoop со всеми зависимостями. Вызывать ТОЛЬКО из startup."""
+    # Гарантируем инициализацию LLM-роутера и пула моделей (важно для IPT и sandbox)
+    initialize_router()
     saves_dir = Path(settings.saves_dir)
     # Закон 4.2.1: SQLite = runtime truth
     store = SqliteMemoryStore(saves_dir / "enigma_memory.db")

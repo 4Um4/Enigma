@@ -17,6 +17,7 @@ import math
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from app.domain.tick import TickMutation, TickState
+from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
 
@@ -147,6 +148,7 @@ class NpcTickPipeline:
         communication_intents: List[Any] = []
         movement_intents: List[Any] = []
         npc_deltas: List[Any] = []
+        _scores_trace_map: Dict[str, Dict[str, float]] = {} # S189: SUPERBOX-005
         _l1_events: List[Any] = []
         memory_events: List[Any] = []
 
@@ -359,6 +361,7 @@ class NpcTickPipeline:
             # TZ-10: Чтение preloaded reputation modifier из TickState
             _rep_modifiers_for_hub = state.reputation_modifiers_map.get(npc_id)
 
+            # S189: epistemic_modifiers передаются как независимый числовой слой (ADR-O-355).
             # TODO (Фаза 2 / Эпоха 7): Интеграция ExpectationStore (Active Inference).
             # Здесь должен вызываться PEModifierResolver().resolve(expectation)
             # для добавления drive_modifiers на основе ожиданий NPC (награда/угроза).
@@ -376,7 +379,7 @@ class NpcTickPipeline:
                 if _drive_mods:
                     _drive_modifiers_for_hub = _drive_mods
 
-            from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
+            from app.services.npc.topic_extractor import extract_topic
 
             # Сбор belief-модификаторов в изолированный слой (R7 + R8).
             # R7 (событийный) и R8 (кристаллизованный) описывают частично одно и то же
@@ -455,6 +458,11 @@ class NpcTickPipeline:
             _greg = (
                 _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
             )
+            # S189 ARCH-SLEEP Phase C: ActiveCommitment.
+            # Если NPC находится в активном транзите, проактивные интенты блокируются.
+            _my_trav = state.scene_state.get("active_traversals", {}).get(npc_id, {}) if state.scene_state else {}
+            _has_active_commitment = _my_trav.get("status") == "MOVING"
+
             # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
             _decision_ctx = (
                 translate_kernel_to_context(
@@ -462,12 +470,25 @@ class NpcTickPipeline:
                     body_state=_body,
                     social_input_ema=_social_input_ema,
                     gregariousness=_greg,
+                    has_active_commitment=_has_active_commitment,
                 )
                 if _kernel
                 else None
             )
 
             _effective_drives = state.effective_drives_map.get(npc_id)
+            
+            # S189: Epistemic Core Integration (ADR-O-354).
+            # Редюсер читает EpistemicStore (read-only) и преобразует в нейтральные модификаторы.
+            # DecisionHub остаётся изолирован от эпистемической семантики.
+            _epistemic_modifiers: Optional[Dict[str, float]] = None
+            if state.epistemic_store and state.epistemic_context_resolver:
+                try:
+                    _epistemic_ctx = state.epistemic_context_resolver.resolve(npc_id)
+                    _epistemic_modifiers = state.epistemic_context_resolver.to_modifiers(_epistemic_ctx)
+                except Exception as _epistemic_err:
+                    logger.warning(f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}")
+
             if _effective_drives is None:
                 continue
 
@@ -526,6 +547,7 @@ class NpcTickPipeline:
                 pending_response_target=_response_target, # S129: Bridge 7
                 relationship_store=state.relationship_store, # S135: SSOT
                 campaign_id=state.campaign_id, # S135: SSOT
+                epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
             )
             # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
             # Без этого SHI=0% (симуляция работает, но невидима).
@@ -676,6 +698,9 @@ class NpcTickPipeline:
                     effect_value=0.0,
                     observation_weight=0.1
                 ))
+            
+            # S189: Сохраняем scores_trace для SUPERBOX-005
+            _scores_trace_map[npc_id] = decision.decision.scores_trace
 
             # Сборка memory_events для отложенного применения
             try:
@@ -702,6 +727,7 @@ class NpcTickPipeline:
             l1_drift_events=_l1_events,
             memory_events=memory_events,
             idle_pressure_updates=_idle_pressure_updates, # V8-SOC-5 FIX
+            scores_trace_map=_scores_trace_map, # S189: SUPERBOX-005
         )
 
 

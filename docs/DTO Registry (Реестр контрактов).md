@@ -281,7 +281,7 @@
 
 **Актуальные DTO:**
 - **`TimeSkipResult`** (`services/world/time_skip_executor.py`): Результат промотки времени. Поля: `final_state`, `event_log`, `stop_reason`, `ticks_skipped`, `stops`, `significant_event`, `checkpoints`, `summary`.
-- **`SignificantEvent`** (`services/world/time_skip_executor.py`): Остановка Policy B. Поля: `type` (str), `tick` (int), `details` (Dict).
+- **`SignificantEvent`** (`services/world/time_skip_executor.py`): Остановка Policy B. Поля: `type` (str), `tick` (int), `details` (Dict). **ADR-O-353 (S187):** Список `SIGNIFICANT_EVENT_TYPES` расширен событиями сна (`sleep_start`, `sleep_end`, `dream`, `nightmare`, `sleepwalk`, `prophecy_vision`) для предотвращения потери нарратива при ускорении времени (BUG-SLEEP-012).
 - **`Milestone`** (`services/world/time_skip_executor.py`): Запомненный этап для Policy C. Поля: `type`, `tick`, `details`, `requires_playback`.
 - **`MilestoneCheckpoint`** (`services/world/time_skip_executor.py`): Sparse checkpoint. Поля: `tick`, `state` (deepcopy of scene_state), `milestone`.
 - **`MicroEvent`** (`services/reaction/micro_event.py`): Событие микро-реакции (вздрогнул, зажмурился). Генерируется `ReactionRules`, резолвится `ReactionResolver` в `EmotionPayload`.
@@ -292,6 +292,38 @@
 - ❌ **Direct Cache Access:** Прямой доступ к `LifeEngine._npc_cache` из `GameLoop` или детекторов. Используется `LifeEngine.get_npc_light_states()`.
 - ❌ **Time Advancement in Kernel:** `TimeSkipExecutor` (или `GameLoop`) инкрементирует тик, ядро остаётся pure function.
 - ❌ **Deferred Commit in Kernel:** `TickOrchestrator.execute()` обязан завершать commit состояния ДО возврата, иначе детекторы Time Skip прочитают устаревший SSOT.
+
+## 10. EPISTEMIC LAYER (S188)
+**Поток:** Communication → ClaimEvent → Proposition → BeliefRevisionEngine → EpistemicStore → EpistemicContextResolver → EpistemicContext → epistemic_modifiers → DecisionHub.
+
+**Актуальные DTO:**
+
+- **`Proposition`** (`domain/epistemology.py`): Чистая семантика утверждения. Не содержит информации об истинности. Поля: `subject_id` (str), `predicate` (Predicate: STOLE | ATTACKED | HELPED), `object_id` (str), `polarity` (bool, default=True). S188 MVP: бинарный субъект–предикат–объект контракт.
+- **`SpeechAct`** (`domain/epistemology.py`): Enum. `ASSERT`, `DENY`, `QUESTION`.
+- **`ClaimEvent`** (`domain/epistemology.py`): Контекст передачи информации. Объективное событие в мире. Поля: `event_id` (str), `claim_id` (str — одно Claim может передаваться многократно), `speaker_id` (str), `listener_id` (str), `proposition` (Proposition), `speech_act` (SpeechAct, default=ASSERT), `tick` (int).
+- **`EpistemicRecord`** (`domain/epistemology.py`): Субъективное убеждение агента. Состояние сознания, не факт мира. Поля: `agent_id` (str), `proposition` (Proposition), `confidence` (float 0.0–1.0 — детерминированное состояние, НЕ probability), `source_id` (str — от кого получено), `source_claim_id` (str — provenance), `first_observed_tick` (int), `last_updated_tick` (int).
+- **`EpistemicContext`** (`domain/epistemology.py`): Decision-relevant проекция убеждений. Не содержит World Truth. Поля: `agent_id` (str), `perceived_threats` (tuple[str, ...]), `perceived_allies` (tuple[str, ...]), `perceived_violations` (int).
+- **`BeliefRevisionEngine`** (`services/npc/belief_revision_engine.py`): Детерминированный движок ревизии. Принимает `ClaimEvent` + `Optional[EpistemicRecord]`, возвращает `EpistemicRecord`. Использует `SourceReliabilityProvider` (Protocol) для оценки надёжности источника. Не использует LLM. Не мутирует `RelationshipStore`.
+- **`SourceReliabilityProvider`** (`services/npc/belief_revision_engine.py`): Protocol. Метод: `get_reliability(observer: str, source: str, context: Optional[dict]) -> float`. Изолирует движок убеждений от социальных систем.
+- **`EpistemicStore`** (`services/npc/epistemic_store.py`): In-memory хранилище `EpistemicRecord`. Ключ: `(agent_id, Proposition)`. Методы: `get()`, `get_all_for_agent()`, `upsert()`. Read-only для `DecisionHub`.
+- **`EpistemicContextResolver`** (`services/npc/epistemic_context_resolver.py`): Проецирует `EpistemicStore` → `EpistemicContext`. Методы: `resolve(agent_id) -> EpistemicContext` (read-only), `to_modifiers(context) -> Dict[str, float]` (static, pure function). Порог `CONFIDENCE_THRESHOLD = 0.5`.
+- **`ClaimEventSubscriber`** (`services/events/claim_event_subscriber.py`): Адаптер `EventBus` → `Epistemic Core`. Слушает `COMMUNICATION_CLAIM`. Преобразует `EventDTO` в `ClaimEvent`, передаёт в `BeliefRevisionEngine`, сохраняет в `EpistemicStore`.
+- **`COMMUNICATION_CLAIM`** (`services/events/event_types.py`): Новый `EventType`. Передача `Proposition` (ClaimEvent) через `EventBus`. Не содержит текста — только нормализованную структуру.
+- **`DecisionContext`** (`domain/decision_context.py`): ОБНОВЛЁН. Добавлено поле `epistemic_context: Optional[EpistemicContext] = None` (S188). Frozen. Композиционная инъекция.
+- **`DecisionHub.compute()`** (`services/npc/decision_hub.py`): ОБНОВЛЁН. Добавлен параметр `epistemic_modifiers: Optional[Dict[str, float]] = None` (S188). DecisionHub не знает об EpistemicStore — только о числовых модификаторах.
+- **`DecisionHub.apply_modifiers()`** (`services/npc/decision_hub.py`): НОВЫЙ static method (S188). Pure function. Принимает `scores: Dict[str, float]` и до 7 словарей модификаторов. Возвращает новый `Dict[str, float]`. Не мутирует вход. Аддитивна. Коммутативна.
+
+🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (ADR-O-354, ADR-O-355):**
+- ❌ **Claim ≠ Truth (ADR-O-354):** `ClaimEvent` никогда не является World Truth и не мутирует World State.
+- ❌ **Belief ≠ Truth (ADR-O-354):** `EpistemicRecord` хранит субъективное состояние, не факт. `confidence` ≠ truth probability.
+- ❌ **Proposition не мутирует RelationshipStore (ADR-O-354):** Только через `epistemic_modifiers` → `DecisionHub`.
+- ❌ **DecisionHub не знает об EpistemicStore (ADR-O-354):** DecisionHub получает только `Dict[str, float]`.
+- ❌ **L1 Chronicle не хранит субъективные убеждения (ADR-O-354):** Только provenance событий («A сообщил C утверждение P»), не объявляет P фактом.
+- ❌ **EpistemicContext не содержит World Truth (ADR-O-354):** Только `perceived_*` поля.
+- ❌ **Модификаторы с побочными эффектами (ADR-O-355):** Запрещены.
+- ❌ **Мутация входного scores в apply_modifiers (ADR-O-355):** Запрещена. Функция создаёт копию.
+- ❌ **Некоммутативные операции (ADR-O-355):** `multiplier`, `cap`, `override` без нового контракта v2 запрещены.
+- ❌ **SUPERBOX инъецирует Belief/Relationship/Decision напрямую:** Инъекция только `ClaimEvent`.
 
 ### Список Песочниц (Fail Conditions)
 Каждый запрет из этого реестра должен быть покрыт тестом:

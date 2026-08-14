@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
-# BUG-DOMAIN-PURITY FIX (§1.2): Убираем импорт из models, используем Any для аннотации типа
+# BUG-DOMAIN-PURITY FIX (§1.2): Убираем импорт из models, используем Any для аннотацию типа
+
+# S188: Импорт EpistemicContext из домена (чистая зависимость domain -> domain)
+from app.domain.epistemology import EpistemicContext
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,10 @@ class DecisionContext:
     # Модификаторы из compute_behavior_modifiers (предшественник Homeostasis)
     social_outgoing: float = 0.0
     social_incoming: float = 0.0
+    
+    # S188: Эпистемическая проекция (субъективные угрозы/союзники).
+    # DecisionHub читает это поле, не зная об EpistemicStore.
+    epistemic_context: Optional[EpistemicContext] = None
 
     @classmethod
     def from_kernel(cls, kernel: "Any") -> "DecisionContext":

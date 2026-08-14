@@ -55,6 +55,44 @@ class BodySlot:
     don_time_ticks: int = 0       # Сколько тиков занимает надевание (броня = 10-100)
     doff_time_ticks: int = 0      # Сколько тиков занимает снимание
 
+class CouplingMode(str, Enum):
+    """Диагностическая метка режима связанности тела (для UI и логов)."""
+    FULL_WAKE = "FULL_WAKE"
+    DROWSY = "DROWSY"
+    SLEEP = "SLEEP"
+    DEEP_SLEEP = "DEEP_SLEEP"
+    REM = "REM"
+
+
+@dataclass(frozen=True)
+class CouplingProfile:
+    """
+    Непрерывный профиль связанности тела.
+    Вычисляется из BodyState (sleep_pressure, arousal) каждый тик.
+    Заменяет хардкод-флаги вроде is_sleeping.
+    """
+    external_vision_mult: float = 1.0     # 0.0 (слеп) ... 1.0 (полное зрение)
+    external_hearing_mult: float = 1.0   # 0.0 (глух) ... 1.0 (идеальный слух)
+    motor_output_mult: float = 1.0       # 0.0 (паралич сна) ... 1.0 (полный контроль)
+    memory_activation_mult: float = 0.5  # 0.0 (амнезия) ... 1.0 (гипервоспоминания)
+    imagination_mult: float = 0.1        # 0.0 (нет снов) ... 1.0 (яркие галлюцинации)
+    coupling_mode: CouplingMode = CouplingMode.FULL_WAKE
+
+
+@dataclass(frozen=True)
+class DreamSignal:
+    """
+    Субъективный сигнал восприятия во сне (Phase E).
+    Рождается из внешних стимулов (шум, удар), искажённых через CouplingProfile.
+    Epistemic Pipeline обрабатывает его как субъективный опыт (provenance=DREAM).
+    """
+    target_id: str         # NPC, который видит сон
+    tick: int              # Тик симуляции
+    raw_stimulus: str      # "noise", "threat", "pain"
+    distorted_perception: str  # "thunder", "monster", "falling"
+    salience: float = 0.5  # Сила сигнала (0.0 - 1.0)
+
+
 @dataclass
 class BodyTopology:
     """Физическая модель тела для хранения предметов."""

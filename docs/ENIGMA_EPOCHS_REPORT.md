@@ -1,8 +1,8 @@
 # ДОКЛАД: ПЯТЬ ЭПОХ ЭВОЛЮЦИИ ENIGMA И КАРТА БУДУЩЕГО
 
 > **Документ:** Архитектурный доклад об эволюции системы
-> **Версия:** На момент v0.5.3.6.8 (S147)
-> **Дата:** 2026-08-02
+> **Версия:** На момент v0.5.3.7.8 (S188)
+> **Дата:** 2026-08-13
 > **Источник:** `MUTATIONS.md`, `ADR Master Index`, `00_CAUSAL_CONTRACT_v2.0.md`, `ENTITY_CONTINUITY_CONTRACT.md`, TZ-документы из `docs/Почти Актуальные TZ/`
 > **Покрытие:** S03 → S147 (5 завершённых эпох) + проектирование Эпох 6-10
 
@@ -493,43 +493,92 @@ ENIGMA — не игра в обычном смысле. Это **исследо
 
 ---
 
-## ЭПОХА 6: СТАБИЛИЗАЦИЯ И ИНФРАСТРУКТУРА (v6.9 — v7.0)
+## ЭПОХА 6: СТАБИЛИЗАЦИЯ, ИНФРАСТРУКТУРА И ЭПИСТЕМИЧЕСКИЙ ФУНДАМЕНТ (S148 — S188)
 
-**Девиз:** «Stable baseline, infrastructure for scale»
+**Девиз:** «Stable baseline, infrastructure for scale, epistemic core proven»
 
 ### Контекст
 
-Текущая v6.8 имеет SHI=100%, но 5 критических багов остаются (BUG-CORE-005, BUG-PERC-008, BUG-SPATIAL-001, BUG-FB-002, BUG-FB-010+011) + 2 регрессии v6.8 (BUG-V68-001, BUG-V68-002). Прежде чем расширять систему, нужно закрыть долги и построить инфраструктуру, которая позволит LLM-архитектору масштабироваться за пределы v9.0.
+Эпоха 6 началась с закрытия критических багов и построения инфраструктуры (S148-S185), но её главная архитектурная победа — **доказательство эпистемической причинности** через SUPERBOX-001 — SUPERBOX-013 (S186-S188).
 
 ### Главные сдвиги
 
-#### 6.1. Закрытие 7 критических багов (v6.9)
+#### 6.1. Закрытие критических багов и инфраструктура (S148-S185)
 
-- **BUG-CORE-005:** Добавить `else:` ветвь в `npc_tick_pipeline.py:545-606` для non-sleeping NPC с APPROACH/FLEE/SEEK_ALLY intents
-- **BUG-FB-002:** Добавить `commit_tick_result` + `unlock_tick` в `finally:` блоке `skip_time`
-- **BUG-FB-010+011:** `atomic_commit` пишет `scene:{cid}:{loc}`, `delete_campaign` использует prefix delete
-- **BUG-PERC-008:** Убрать фильтр 0.05 в `behavior_manifestation_service.py:140-145`
-- **BUG-SPATIAL-001:** Мутировать `intent.intermediate_target_node_id` вместо `intent.target_node_id`
-- **BUG-V68-001:** Заменить silent `except` на `logger.warning`
-- **BUG-V68-002:** Восстановить `for listener in _listeners` loop в `NPC_SPOKE` ветке
+- **S148-S149:** Presentation v2.0, DriftLaboratory v2, PBT, Causal Probes
+- **S150-S156:** Dialogue Hard Contract, Zombie Traversal Detector, ADR-Net Parser, Replay System
+- **S157-S167:** Economy & Social Emergence, UI Epistemic Integration, UI Doctrine, UI Refactor
+- **S168-S175:** UI Polish, Visual Casting, Map Editor
+- **S176-S185:** WorldTick Temporal Ownership, Bugfix Report Execution, Pytest Recovery, Pure Reducer, Sprint S1-S7 (Cardinality, Causal Ordering, Semantic Pipeline, Dialogue & Travel FSM, Replay Determinism, Load Integrity)
 
-#### 6.2. Инфраструктура долговечности (MVI, v7.0)
+#### 6.2. Фундамент пайплайна (S186)
 
-Основано на TZ `ENIGMA_TZ_INFRASTRUCTURE.md` (4 подсистемы):
-1. **Property-Based IPT** — hypothesis-генерация edge-cases для всех 12+ инвариантов
-2. **Replay System** — запись TickState + InterventionEvent + LLM cache для воспроизведения багов
-3. **Causal Probes** — real-time invariant monitor (vs post-mortem CausalObserver)
-4. **ADR-Net** — traversable dependency graph для любого LLM
+- **P0-1 (Tick Cardinality):** Время продвигается ровно 1 раз за тик
+- **P0-2 (NPC Cardinality):** NPC из разных локаций не появляются в npc_positions друг друга
+- **P1-5 (Commit Cardinality):** atomic_commit_all — ровно 1 коммит за тик
+- **P1-6 (EventBus Cardinality):** NPC_MOVED не превышает total_npcs
+- **P1-7 (Dialogue Causal Loop):** NPC_SPOKE → STM → NPCDialogueSubscriber
 
-**MVI = 48 часов**, полная = 158 часов.
+#### 6.3. EPISTEMIC CORE — Proposition Layer (S187-S188)
+
+**Главный архитектурный сдвиг Эпохи 6.**
+
+Доказана причинная цепь:
+
+    Communication → ClaimEvent → Proposition → BeliefRevisionEngine
+        → EpistemicStore → EpistemicContextResolver → EpistemicContext
+        → DecisionContext → DecisionHub → Intent
+
+**SUPERBOX-001 (S187):** Терминальный MVP-тест обнаружил архитектурный разрыв:
+ENIGMA реагирует на тон коммуникации, но слепа к содержанию речи.
+NPCDialogueSubscriber меняет trust(listener → speaker), но не trust(listener → third_party).
+
+**SUPERBOX-002 — SUPERBOX-013 (S188):** Построен и доказан Epistemic Core:
+
+| Примитив | Назначение |
+|----------|------------|
+| Proposition | Чистая семантика (subject, predicate, object, polarity) |
+| ClaimEvent | Контекст передачи (speaker, listener, proposition, speech_act) |
+| EpistemicRecord | Субъективное убеждение (confidence, source, provenance) |
+| BeliefRevisionEngine | Детерминированная ревизия (reliability × claim_weight) |
+| EpistemicStore | In-memory хранилище убеждений (read-only для DecisionHub) |
+| ClaimEventSubscriber | Адаптер EventBus → Epistemic Core |
+| EpistemicContextResolver | Store → Context (семантическая проекция) |
+| EpistemicContext | Decision-relevant projection (threats, allies, violations) |
+| epistemic_modifiers | Dict[str, float] — нейтральная деформация для DecisionHub |
+| apply_modifiers (pure) | Чистая функция, аддитивная, коммутативная, не мутирующая |
+
+**Modifier Contract v1:**
+> DecisionHub принимает независимые числовые деформации пространства
+> intent scores. Модификаторы аддитивны, детерминированы, коммутативны
+> и не мутируют исходный score-space.
+
+**Архитектурные инварианты:**
+1. Claim ≠ Truth
+2. Belief ≠ Truth
+3. Proposition не мутирует RelationshipStore напрямую
+4. SUPERBOX инъецирует ClaimEvent, но не Belief/Relationship/Decision
+5. L1 Chronicle не хранит субъективные убеждения
+6. confidence ≠ truth probability
+7. EpistemicContext не содержит World Truth
+8. DecisionHub не знает об EpistemicStore
+
+**Что НЕ доказано:**
+- Production-интеграция (EpistemicStore → NpcTickPipeline.run)
+- Persistence (save/load)
+- Replay determinism
+- Control vs Treatment через full GameLoop
+- Multi-agent наблюдаемость
 
 ### Итоги Эпохи 6
 
-- Stable baseline (0 критических багов)
-- Property-based testing
-- Replay воспроизводит любой баг за <2 мин
-- Real-time probes в production
-- ADR-graph отвечает на "что ломается, если поменяю X" за <10ms
+- Stable baseline (IPT 39/39 passed)
+- Property-based testing (PBT)
+- Replay system
+- Causal probes в production
+- ADR-Net graph
+- **Epistemic Core доказан** (13 экспериментов SUPERBOX)
+- **Modifier Contract v1** зафиксирован
 
 ---
 
@@ -731,7 +780,7 @@ U_M(m, c) = I(m, c) · R(m) · U(c) − C(m, c)
 | 3 | v0.5.3.x | S105-S125 | Идентичность | BeliefCrystallization, Triple Membrane, Embodied Traversal |
 | 4 | v0.5.3.x | S126-S141 | Восприятие | 5-layer Reality→Perception, World Continuity |
 | 5 | v0.5.3.6.x | S142-S147 | Санация | V8.x closure, Workplace Affordance |
-| **6** | **v6.9-v7.0** | **S148+** | **Стабилизация + Infrastructure** | **PBT, Replay, Probes, ADR-Net** |
+| **6** | **v6.9-v7.0** | **S148-S188** | **Стабилизация + Infrastructure + Epistemic Core** | **PBT, Replay, Probes, ADR-Net, Proposition Layer** |
 | **7** | **v7.5-v8.0** | — | **Vertical Slice + Prophecy** | **Killer Feature: player-as-prophet** |
 | **8** | **v8.5-v9.0** | — | **Генерационная глубина** | **WorldChronicle, Memetic, Lineage** |
 | **9** | **v9.5** | — | **Полноценное общество** | **Factions, Economy, Politics** |
@@ -833,7 +882,7 @@ Versu закрылся. Façade остался academic demo. Prom Week — pape
 Эпоха 3: моделирует идентичность.
 Эпоха 4: моделирует восприятие.
 Эпоха 5: моделирует MVP.
-Эпоха 6: моделирует саму себя (инфраструктура).
+Эпоха 6: моделирует саму себя (инфраструктура) + эпистемическую причинность (Proposition Layer).
 Эпоха 7: моделирует будущее (Prophecy).
 Эпоха 8: моделирует поколения.
 Эпоха 9: моделирует общество.

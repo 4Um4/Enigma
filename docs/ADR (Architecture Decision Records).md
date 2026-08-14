@@ -259,7 +259,8 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — динам�
 **Сессия:** S179
 
 **Контекст:** INV-TEMPORAL-ISOLATION падал в IPT. Археология выявила две причины:
-1. NpcTickPipeline.run() нарушал ADR-TZ09-1, вызывая StateApplicator, который мутировал elationship_store и l1_chronicle. Также мутация происходила при load_l2_state_from_runtime_dict(npc) для проверки слуха.
+1. NpcTickPipeline.run() нарушал ADR-TZ09-1, вызывая StateApplicator, который мутировал 
+elationship_store и l1_chronicle. Также мутация происходила при load_l2_state_from_runtime_dict(npc) для проверки слуха.
 2. TemporalIsolationProbe хэшировал весь TickState, включая сервисные объекты. Их внутренние кэши (LRU) обновлялись при чтении, что ложно меняло хэш.
 
 **Решение:**
@@ -373,3 +374,52 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — динам�
 - ❌ Использование `load_scene()` для загрузки конкретной локации (он возвращает только default).
 - ❏ Отсутствие проверки `tick` и `game_time_seconds` после цикла Save/Load.
 - ❏ Запись состояния в обход `SceneStateManager.commit()` или `unlock_tick()`.
+
+## ADR-O-356: Sleep as Bodily Coupling Mode (Topological Phase) [ONTO]
+> **Статус:** ACTIVE
+> **Домен:** DOM-01 (Foundation), DOM-05 (Physiology & Combat), DOM-03 (Perception & Phenomenology)
+> **Сессия:** S189
+
+**Контекст:**
+Сон реализовывался как скриптовый переключатель (флаг `is_sleeping`). Это не позволяло моделировать эмерджентное пробуждение от стимулов и искажение восприятия во сне.
+
+**Решение:**
+1. **Phase B (CouplingResolver):** Внедрён `CouplingProfile` (DTO) и `CouplingResolver` (сервис). Профиль вычисляется каждый тик из `sleep_pressure` и `arousal` (в `body_state`), заменяя хардкод-флаги. Содержит множители: `external_vision_mult`, `external_hearing_mult`, `motor_output_mult`, `memory_activation_mult`, `imagination_mult` и метку `CouplingMode`.
+2. **Phase E.0 (Perception Modulation):** В `phases/integration.py` входящие стимулы модулируются множителями связанности. Спящие NPC хуже воспринимают угрозы и аномалии.
+3. **Phase D (Sleep Onset):** В `SleepLifecycleService` создан метод `_accumulate_arousal_from_stimuli`, который динамически накапливает `arousal` в `body_state` от стимулов `PerceptualKernel` (даже во сне). Пробуждение опирается на чистый `arousal`.
+4. **Phase C (ActiveCommitment):** В `pressure_translator.py` внедрён параметр `has_active_commitment`. Если NPC в активном транзите, проактивные интенты блокируются (feasibility = 0.0).
+
+**Taboo:**
+- ❌ Возврат к скриптовым флагам `is_sleeping` в логике сна.
+- ❌ Игнорирование `CouplingProfile` при модуляции восприятия в `phases/integration.py`.
+- ❌ Использование композитных формул `wake_pressure` вместо чистого `arousal` для проверки пробуждения.
+- ❌ Генерация проактивных интентов для NPC в активном транзите.
+
+## ADR-O-353: Sleep Lifecycle Extraction & TimeSkip Events [ONTO]
+**Статус:** ACTIVE
+**Домен:** DOM-01 (Foundation), DOM-05 (Physiology & Combat)
+**Сессия:** S187
+
+**Контекст:**
+Логика сна (пробуждение от стимулов, восстановление стресса/усталости) была захардкожена внутри `LifeEngine` (`_arousal_gate`, `recover_stress_tick`). Это нарушало Separation of Concerns и делало невозможным расширение сна (кошмары, сны) без засорения `LifeEngine`. Кроме того, `TimeSkipExecutor` игнорировал события сна, что приводило к потере нарратива (кошмары, пророчества) при ускорении времени (BUG-SLEEP-007, BUG-SLEEP-012).
+
+**Решение:**
+1. Создан `SleepLifecycleService` (`backend/app/services/npc/sleep_lifecycle_service.py`), отвечающий за проверку пробуждения (Arousal Gate), применение восстановления во сне и публикацию событий сна (`sleep_end`, `dream`, и т.д.).
+2. Внедрена явная Фаза 0.6 (`_phase_0_6_sleep_lifecycle`) в `TickOrchestrator`, вызываемая между Фазой 0 (Simulation) и Фазой 0.5 (Idle Services).
+3. `LifeEngine` больше не содержит методов `_arousal_gate` и `recover_stress_tick` — они перенесены в `SleepLifecycleService`.
+4. `TimeSkipExecutor.SIGNIFICANT_EVENT_TYPES` расширен событиями: `sleep_start`, `sleep_end`, `dream`, `nightmare`, `sleepwalk`, `prophecy_vision`.
+
+**Taboo:**
+- ❌ Возврат логики проверки пробуждения (`_arousal_gate`) или восстановления сна в `LifeEngine`.
+- ❌ Прямая мутация `_sleep_start_tick` или `routine["current"]` в обход `SleepLifecycleService`.
+- ❌ Игнорирование событий сна в `TimeSkipExecutor` при пропуске времени (Policy B).
+
+`ADR-O-354` [ONTO] **Epistemic Core Foundation** — Proposition Layer: Claim ≠ Truth, Belief ≠ Truth, Communication → ClaimEvent → Proposition → BeliefRevisionEngine → EpistemicStore → EpistemicContextResolver → EpistemicContext → epistemic_modifiers → DecisionHub
+  Taboo: ❌ ClaimEvent напрямую мутирует RelationshipStore; ❌ DecisionHub импортирует EpistemicStore; ❌ L1 Chronicle хранит субъективные убеждения; ❌ confidence интерпретируется как truth probability
+  Status: VERIFIED (SUPERBOX-002 — SUPERBOX-013)
+  Files: backend/app/domain/epistemology.py, backend/app/services/npc/epistemic_store.py, backend/app/services/npc/belief_revision_engine.py, backend/app/services/npc/epistemic_context_resolver.py, backend/app/services/events/claim_event_subscriber.py
+
+`ADR-O-355` [ONTO] **Modifier Contract v1** — DecisionHub принимает независимые числовые деформации (Dict[str, float]). Модификаторы аддитивны, детерминированы, коммутативны и не мутируют исходный score-space. apply_modifiers — pure function.
+  Taboo: ❌ Модификаторы с побочными эффектами; ❌ Мутация входного scores; ❌ Некоммутативные операции (multiplier, cap, override) без нового контракта v2
+  Status: VERIFIED (SUPERBOX-011, S012, S013)
+  Files: backend/app/services/npc/decision_hub.py

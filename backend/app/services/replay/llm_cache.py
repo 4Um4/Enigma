@@ -9,9 +9,12 @@ from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-def compute_prompt_hash(prompt: str) -> str:
-    """Вычисляет стабильный SHA-256 хеш промпта для дедупликации."""
-    return hashlib.sha256(prompt.encode('utf-8')).hexdigest()
+def compute_prompt_hash(prompt: str, system_prompt: Optional[str] = None, params: Any = None) -> str:
+    """Вычисляет стабильный SHA-256 хеш промпта для дедупликации (H-08 FIX)."""
+    import json
+    _params_str = json.dumps(params, default=str) if params else ""
+    _hash_str = f"{prompt}|{system_prompt or ''}|{_params_str}"
+    return hashlib.sha256(_hash_str.encode('utf-8')).hexdigest()
 
 class LLMCache:
     """Read-through кэш, делегирующий чтение в ReplayStore."""
