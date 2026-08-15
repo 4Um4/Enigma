@@ -57,13 +57,14 @@ def advance_game_time(
         _delta_seconds = 0
 
     # Явные запросы времени в тексте игрока
-    _wait_match = re.search(r"жд[уаю]\s+(\d+)\s+(час|минут|секунд)", raw_input, re.I)
+    # M-18 FIX: Расширяем regex для поддержки "подожди", "wait", "pause", "спать" и англ. единиц
+    _wait_match = re.search(r"(?:жд[уаю]|подожди|wait|pause|спать)\s+(\d+)\s+(час|минут|секунд|hours?|minutes?|seconds?)", raw_input, re.I)
     if _wait_match:
         _amount = int(_wait_match.group(1))
-        _unit = _wait_match.group(2)
-        if "час" in _unit:
+        _unit = _wait_match.group(2).lower()
+        if "час" in _unit or "hour" in _unit:
             _delta_seconds = _amount * 3600
-        elif "минут" in _unit:
+        elif "минут" in _unit or "minute" in _unit:
             _delta_seconds = _amount * 60
         else:
             _delta_seconds = _amount
@@ -73,7 +74,7 @@ def advance_game_time(
 
     # S139 FIX: SSOT — абсолютное время читается ТОЛЬКО из scene_state.
     # §12: Строгая типизация int (DTO требует int, float ломает UI и логику).
-    _current_total = int(scene_state.get("game_time_seconds", 0))
+    _current_total = round(scene_state.get("game_time_seconds", 0))
     if _current_total == 0:
         # Fallback только для легаси-сцен, где game_time_seconds ещё не проинициализирован
         _env_time = scene_state.get("environment", {}).get("time_of_day", "12:00")

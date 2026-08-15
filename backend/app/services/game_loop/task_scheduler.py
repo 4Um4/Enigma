@@ -163,8 +163,9 @@ class TaskScheduler:
                 break
 
             task_dict = _eligible.payload.get("task_dict", {})
-            # N3 FIX: Извлекаем task_type из payload и передаём явно
-            _task_type = _eligible.payload.get("task_type", "canonical")
+            # S196 FIX: task_type хранится на уровне объекта QueuedDialogue, не внутри payload.
+            # Ранее всегда падало в "canonical", отправляя ambient-задачи в LLM (нарушение ADR-O-342).
+            _task_type = getattr(_eligible, "task_type", "canonical")
             
             # ADR-O-343: Narrative Arbitration после извлечения из очереди
             _admitted, _reason = self._speech_scheduler.admit(task_dict, campaign_id)
@@ -350,6 +351,7 @@ class TaskScheduler:
                     npc_npc_context=payload_dict.get("npc_npc_context", ""),
                     thread_id=payload_dict.get("thread_id", ""),
                     prepared_prompt=payload_dict.get("prepared_prompt", ""), # V8-DLG-10 FIX
+                    proposition=payload_dict.get("proposition"), # S197: Восстановление Proposition
                 )
             except Exception as e:
                 logger.error(

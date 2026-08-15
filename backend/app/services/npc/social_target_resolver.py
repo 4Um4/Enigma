@@ -49,7 +49,7 @@ class SocialTargetResolver:
                 _trust = _target_rel.get("trust", SOCIAL_TRUST_NEUTRAL)
             else:
                 # Legacy fallback (только если SSOT недоступен)
-                _trust = getattr(state, "relationship_cache", {}).get(nid, {}).get("trust", SOCIAL_TRUST_NEUTRAL)
+                _trust = getattr(state, "relationship_cache", {}).get(nid, {}).get("trust", SOCIAL_TRUST_NEUTRAL)  # noqa: ENIGMA002
 
             # Отсекаем только явных врагов
             if _trust < SOCIAL_TRUST_HOSTILE_THRESHOLD:
@@ -78,7 +78,8 @@ class SocialTargetResolver:
                     _best_target = nid
 
         if _best_target:
-            logger.warning(
+            # IPT-CLEANUP: WARNING → INFO. Нормальный выбор social target — не warning.
+            logger.info(
                 f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_best_target} (dist={_min_dist:.1f}, LoS=True)"
             )
         return _best_target

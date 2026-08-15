@@ -139,8 +139,8 @@ async def yield_model_info(state):
         dm_key = router_llm.select_model(Capability.NARRATIVE)
         npc_cap = Capability.DIALOGUE_GENERATION if has_major else Capability.DIALOGUE
         npc_key = router_llm.select_model(npc_cap)
-        dm_cfg = pool.get_model_config(dm_key) if pool else None
-        npc_cfg = pool.get_model_config(npc_key) if pool else None
+        dm_cfg = pool.get_model_config(dm_key) if pool else None  # noqa: ENIGMA001
+        npc_cfg = pool.get_model_config(npc_key) if pool else None  # noqa: ENIGMA001
         yield {
             "type": "model",
             "data": {

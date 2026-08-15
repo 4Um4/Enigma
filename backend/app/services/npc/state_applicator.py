@@ -16,7 +16,7 @@ R2.3 — StateApplicator: единственный модуль с правом 
   - RelationshipStore обновляется здесь, а не в DecisionHub
   - python_engines.py подключается через NPCStateAdapter (инкрементально)
 
-NOTE: psyche_engine — DEPRECATED (мёртвый код). ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
+(ProactiveDecision.deltas_dict мигрировано в StateDeltas)
 """
 
 
@@ -203,7 +203,7 @@ class StateApplicator:
                                 ),
                             ),
                         )
-                        if getattr(_orig_delta.payload, "recent_directive_data", None):
+                        if getattr(_orig_delta.payload, "recent_directive_data", None):  # noqa: ENIGMA002
                             _pk.recent_directive = (
                                 _orig_delta.payload.recent_directive_data
                             )
@@ -257,13 +257,13 @@ class StateApplicator:
             return new_state
 
         except Exception as e:
-            # Если что-то пошло не так — возвращаем оригинал нетронутым
+            # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
             logger.error(
                 f"[STATE_APPLICATOR] Ошибка применения для '{state.npc_id}': {e}. "
-                f"Возвращаем оригинальный state.",
+                f"Пробрасываем исключение.",
                 exc_info=True,
             )
-            return state
+            raise
 
     def apply_physical(
         self,
@@ -392,11 +392,12 @@ class StateApplicator:
             return new_state, state_changes
 
         except Exception as e:
+            # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
             logger.error(
                 f"[STATE_APPLICATOR] apply_physical ошибка для '{state.npc_id}': {e}. "
-                f"Возвращаем оригинальный state."
+                f"Пробрасываем исключение."
             )
-            return state, state_changes
+            raise
 
     def _check_wound(
         self,
@@ -491,11 +492,12 @@ class StateApplicator:
             self._apply_deltas(new_state, deltas, campaign_id)
             return new_state
         except Exception as e:
+            # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
             logger.error(
                 f"[STATE_APPLICATOR] apply_deltas_only ошибка для '{state.npc_id}': {e}. "
-                f"Возвращаем оригинальный state."
+                f"Пробрасываем исключение."
             )
-            return state
+            raise
 
     # ─────────────────────────────────────────────────────────────────────────
     # Внутренние методы применения
@@ -693,12 +695,7 @@ class StateApplicator:
             and isinstance(deltas.payload, PerceptionPayload)
             else 0.0
         )
-        dominant_emotion_hint = (
-            deltas.payload.dominant_emotion_hint
-            if domain == DeltaDomain.PERCEPTION
-            and isinstance(deltas.payload, PerceptionPayload)
-            else None
-        )
+        # N-26 FIX: dominant_emotion_hint удалён (движок не назначает эмоцию, §S72.1).
 
         # Стресс
         if stress_delta != 0.0:
@@ -760,7 +757,7 @@ class StateApplicator:
             )
 
         self._apply_perception_deltas(
-            state, domain, deltas, threat_gradient_delta, uncertainty_delta_perc, anomaly_score_delta_perc, dominant_emotion_hint
+            state, domain, deltas, threat_gradient_delta, uncertainty_delta_perc, anomaly_score_delta_perc
         )
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
@@ -986,12 +983,12 @@ class StateApplicator:
         """Применяет дельты эмоций (SCC) и социального давления (EMA)."""
         # SCC: affective_load — интеграл давления. Пишется в M ТОЛЬКО через decay.
         if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
-            _payload_load = getattr(deltas.payload, "affective_load", None)
+            _payload_load = getattr(deltas.payload, "affective_load", None)  # noqa: ENIGMA002
             if _payload_load is not None:
                 if deltas.source in ("affective_decay", "sel_trace_commit"):
                     state.affective_load = min(1.0, max(0.0, _payload_load))
                     if deltas.source == "sel_trace_commit":
-                        _payload_memory = getattr(deltas.payload, "affective_memory", None)
+                        _payload_memory = getattr(deltas.payload, "affective_memory", None)  # noqa: ENIGMA002
                         if _payload_memory is not None:
                             state.affective_memory = _payload_memory
                     logger.debug(
@@ -1017,11 +1014,11 @@ class StateApplicator:
             if deltas.source == "sel_trace_commit" and isinstance(
                 deltas.payload, EmotionPayload
             ):
-                _payload_memory = getattr(deltas.payload, "affective_memory", None)
+                _payload_memory = getattr(deltas.payload, "affective_memory", None)  # noqa: ENIGMA002
                 if _payload_memory is not None:
                     state.affective_memory = min(1.0, max(0.0, _payload_memory))
 
-                _payload_load = getattr(deltas.payload, "affective_load", None)
+                _payload_load = getattr(deltas.payload, "affective_load", None)  # noqa: ENIGMA002
                 if _payload_load is not None:
                     state.affective_load = min(1.0, max(0.0, _payload_load))
                     logger.debug(
@@ -1036,7 +1033,6 @@ class StateApplicator:
         threat_gradient_delta: float,
         uncertainty_delta_perc: float,
         anomaly_score_delta_perc: float,
-        dominant_emotion_hint: Optional[str],
     ) -> None:
         """Применяет дельты восприятия и директив к PerceptualKernel."""
         # Шаг 1: инициализация PerceptualKernel (один раз, любой domain)
@@ -1062,7 +1058,7 @@ class StateApplicator:
                 0.0,
                 min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup),
             )
-        if _recent_dir := getattr(deltas.payload, "recent_directive_data", None):
+        if _recent_dir := getattr(deltas.payload, "recent_directive_data", None):  # noqa: ENIGMA002
             state.perceptual_kernel.recent_directive = _recent_dir
 
         # Шаг 3: PERCEPTION-специфичные поля (threat/uncertainty/anomaly)
@@ -1093,8 +1089,7 @@ class StateApplicator:
                     ),
                 )
 
-            if dominant_emotion_hint:
-                state.perceptual_kernel.dominant_emotion = dominant_emotion_hint
+            # N-26 FIX: dominant_emotion_hint удалён (движок не назначает эмоцию, §S72.1).
 
     def _apply_trauma_and_traits(
         self, state: NPCState, deltas: StateDeltas, new_trauma: Optional[str]
@@ -1127,7 +1122,7 @@ class StateApplicator:
                     )
                     for trait, delta in _drive_mutations.items()
                 ]
-                _chronicle = getattr(self, "_l1_chronicle", None)
+                _chronicle = getattr(self, "_l1_chronicle", None)  # noqa: ENIGMA002
                 if _chronicle is not None:
                     _chronicle.commit_tick_buffer(_events, _tick)
                 else:
@@ -1335,7 +1330,7 @@ class StateApplicator:
         # L5: Post-Commit Validation Gate (No Repair Principle)
         # L5A: Structural Existence — ADR-139 Single Write Authority.
         # ADR-O-208: L3-P1. drives_runtime — эфемерный кэш. Если он пуст, валидируем L0 (drives_base).
-        drives = getattr(state, "drives_runtime", None) or getattr(
+        drives = getattr(state, "drives_runtime", None) or getattr(  # noqa: ENIGMA002
             state, "drives_base", None
         )
         if not drives or not isinstance(drives, dict):

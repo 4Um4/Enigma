@@ -7,15 +7,21 @@ ADR-049: Реализация принципа "Страх — это интег
 """
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 if TYPE_CHECKING:
     from app.models.npc_state import PerceptualKernel
 
+logger = logging.getLogger(__name__)
+
 # Константы Active Inference (вынесены из TickOrchestrator)
 _MEMORY_DECAY_RATE: float = 0.85
-_TRAUMA_SCAR_RATE: float = 0.2
 _SURPRISE_GAIN: float = 1.2
+
+def _compute_scar_rate(abs_error: float) -> float:
+    """Вычисляет скорость формирования 'шрама памяти' на основе ошибки предсказания."""
+    return 0.1 + (0.4 * (abs_error**1.5))
 
 
 def integrate_affective_pressure(
@@ -35,7 +41,10 @@ def integrate_affective_pressure(
     _w_uncertainty = psyche.get("control", 0.25)
     _w_anomaly = psyche.get("significance", 0.25)
 
-    willpower = psyche.get("willpower", 0.5)
+    willpower_raw = psyche.get("willpower", 50.0)
+    # M-26 FIX: willpower может приходить в шкале 0-100 (из decision.py) или 0-1 (из старых сейвов).
+    # Нормализуем к 0-1, чтобы формула (1.0 - willpower * 0.5) работала корректно.
+    willpower = willpower_raw / 100.0 if willpower_raw > 1.0 else willpower_raw
     _w_somatic = 1.0 - willpower * 0.5
 
     # 1. Мгновенное восприятие (pk_load)
@@ -47,14 +56,19 @@ def integrate_affective_pressure(
         + getattr(kernel, "somatic_urgency", 0.0) * _w_somatic,
     )
 
+    # M-25 FIX: Guard against NaN/Inf propagation
+    import math
+    if math.isnan(pk_load) or math.isinf(pk_load):
+        logger.error(f"[AFFECTIVE] NaN/Inf detected in pk_load. Resetting to 0.0.")
+        pk_load = 0.0
+
     # 2. Active Inference: Ошибка предсказания (Surprise)
     delta = pk_load - current_memory
     _abs_error = abs(delta)
 
     # 3. Обновление базового ожидания (Prior / Котёл)
     # ADR-O-206 Cut 2: Вес памяти модулируется Surprise (ошибкой предсказания).
-    # Нелинейная функция: маленькие surprise почти ничего не делают, большие оставляют шрам.
-    _scar_rate = 0.1 + (0.4 * (_abs_error**1.5))
+    _scar_rate = _compute_scar_rate(_abs_error)
     new_memory = min(1.0, current_memory * _MEMORY_DECAY_RATE + pk_load * _scar_rate)
 
     # 4. Эмоциональный ответ (Posterior / Affective Load)

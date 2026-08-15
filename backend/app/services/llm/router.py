@@ -225,23 +225,6 @@ class ModelRouter:
         capability_obj = self._normalize_capability(capability)
         preferred_keys = self.get_capability_preferences(capability_obj)
 
-        # === ЛОГИРОВАНИЕ ПРОМПТА ДЛЯ ОТЛАДКИ ===
-        _prompt_preview = (prompt[:500] + "...") if len(prompt) > 500 else prompt
-        _sys_preview = (
-            (system_prompt[:200] + "...")
-            if system_prompt and len(system_prompt) > 200
-            else system_prompt
-        )
-        jsonl_log(
-            {
-                "level": "INFO",
-                "agent": "llm_input",
-                "capability": str(capability_obj),
-                "prompt_preview": _prompt_preview,
-                "system_prompt": _sys_preview or "",
-            }
-        )
-
         # === ЗАЩИТА VRAM ===
         # Ленивое создание Semaphore в текущем event loop
         if self._vram_semaphore is None:
@@ -503,10 +486,36 @@ class ModelRouter:
         from app.core.config import settings
         _prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
         
+        # === ЛОГИРОВАНИЕ ПРОМПТА ДЛЯ ОТЛАДКИ (M-08 FIX) ===
+        _prompt_preview = (prompt[:500] + "...") if len(prompt) > 500 else prompt
+        _sys_preview = (
+            (system_prompt[:200] + "...")
+            if system_prompt and len(system_prompt) > 200
+            else system_prompt
+        )
+        jsonl_log(
+            {
+                "level": "INFO",
+                "agent": "llm_input",
+                "capability": str(capability),
+                "prompt_preview": _prompt_preview,
+                "system_prompt": _sys_preview or "",
+                "tick_id": getattr(self, "_current_tick_id", 0),
+                "npc_id": agent_name,
+                "prompt_hash": _prompt_hash,
+                "response_hash": None, # Логируется в llm_output
+                "model": self.get_model_for_agent(agent_name),
+                "latency": 0.0, # Логируется в llm_output
+                "cache_hit": False, # Логируется в llm_output
+                "intent_before": None,
+                "intent_after": None,
+            }
+        )
+        
         if settings.replay_playback:
             # Режим воспроизведения: читаем только из кэша
             from app.services.replay.replay_store import ReplayStore
-            _store = getattr(self, "_replay_store", None)
+            _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
             if _store:
                 _current_session = getattr(self, "_current_session_id", "unknown")
                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
@@ -519,7 +528,7 @@ class ModelRouter:
         elif settings.replay_record:
             # Режим записи: пытаемся читать из кэша (hot-path), при miss идём к LLM
             from app.services.replay.replay_store import ReplayStore
-            _store = getattr(self, "_replay_store", None)
+            _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
             if _store:
                 _current_session = getattr(self, "_current_session_id", "unknown")
                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
@@ -530,19 +539,20 @@ class ModelRouter:
         # Worker thread (to_thread): прямой синхронный вызов без semaphore
         # Semaphore привязан к main loop — в новом loop он мёртв
         if threading.current_thread() is not threading.main_thread():
-            capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
-            preferred_keys = self.get_capability_preferences(capability_obj)
-            # Если предыдущий запрос завис — abort перед новым и ждём освобождения
-            if self._request_in_progress:
-                _root_logger.warning("[R4A_WORKER] aborting stuck request...")
-                self._abort_generation()
-                # Ждём пока llama-server обработает abort (1с) + закрыет HTTP
-                time.sleep(1.0)
-                # Если всё ещё завис — повторяем abort
+            with self._worker_lock: # H-11 FIX: Потокобезопасная проверка и установка флага
+                capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
+                preferred_keys = self.get_capability_preferences(capability_obj)
+                # Если предыдущий запрос завис — abort перед новым и ждём освобождения
                 if self._request_in_progress:
+                    _root_logger.warning("[R4A_WORKER] aborting stuck request...")
                     self._abort_generation()
+                    # Ждём пока llama-server обработает abort (1с) + закрыет HTTP
                     time.sleep(1.0)
-            self._request_in_progress = True
+                    # Если всё ещё завис — повторяем abort
+                    if self._request_in_progress:
+                        self._abort_generation()
+                        time.sleep(1.0)
+                self._request_in_progress = True
             try:
                 _root_logger.info(
                     f"[R4A_WORKER] direct sync call, capability={capability_obj}"
@@ -562,7 +572,7 @@ class ModelRouter:
                 # H-08 FIX: Передаём system_prompt и params для корректного вычисления хэша.
                 if settings.replay_record and _result:
                     from app.services.replay.replay_store import ReplayStore
-                    _store = getattr(self, "_replay_store", None)
+                    _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
                     if _store:
                         _tick_id = getattr(self, "_current_tick_id", 0)
                         _store.record_llm_call(
@@ -576,6 +586,20 @@ class ModelRouter:
                             system_prompt=system_prompt,
                             params=params
                         )
+                
+                # M-09/M-10 FIX: Логируем ответ LLM с метриками
+                from app.services.replay.llm_cache import compute_prompt_hash
+                jsonl_log({
+                    "level": "INFO",
+                    "agent": "llm_output",
+                    "tick_id": getattr(self, "_current_tick_id", 0),
+                    "npc_id": agent_name,
+                    "prompt_hash": _prompt_hash,
+                    "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
+                    "model": self.get_model_for_agent(agent_name),
+                    "latency": 0.0, # В worker-thread точная latency недоступна без start_time
+                    "cache_hit": False
+                })
                 return _result
             except Exception as e:
                 _root_logger.error(f"[R4A_WORKER] exception: {e}")
@@ -603,7 +627,7 @@ class ModelRouter:
         # Запись в кэш (если режим записи)
         if settings.replay_record:
             from app.services.replay.replay_store import ReplayStore
-            _store = getattr(self, "_replay_store", None)
+            _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
             if _store:
                 _tick_id = getattr(self, "_current_tick_id", 0)
                 _store.record_llm_call(

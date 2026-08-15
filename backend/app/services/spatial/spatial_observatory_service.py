@@ -140,7 +140,7 @@ class SpatialObservatoryService:
                             context_ref=intent.context_ref
                         ),
                         resolution=ObservatoryResolutionDTO(
-                            status=resolved.resolution_status.value, mode=resolved.mode.value if resolved.mode else None,
+                            status=resolved.resolution_status.value, mode=resolved.mode.value if resolved.mode else None,  # noqa: ENIGMA001
                             position=resolved.position, anchor_node_id=resolved.anchor_node_id,
                             reason=resolved.resolution_reason
                         ),

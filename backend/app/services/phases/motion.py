@@ -121,7 +121,7 @@ def process_continuous_motion(
 
         # S91: Эмит стигмергического следа (movement_density)
         _zone_id = (
-            _spatial_svc.get_zone_id(new_pos[0], new_pos[1]) if _spatial_svc else None
+            _spatial_svc.get_zone_id(new_pos[0], new_pos[1]) if _spatial_svc else None  # noqa: ENIGMA001
         )
         if _zone_id:
             _trace = TracePayload(

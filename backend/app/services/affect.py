@@ -56,15 +56,15 @@ def scan_affective_resonance(
     # Сбор семантического контекста текущего момента
     # ADR-035: Приоритет semantic_action из parameters. Защита от AttributeError и None.
     _action = (
-        getattr(intent, "parameters", None)
+        getattr(intent, "parameters", None)  # noqa: ENIGMA002
         and intent.parameters.semantic_action
-        or getattr(intent, "action", "")
+        or getattr(intent, "action", "")  # noqa: ENIGMA002
         or ""
     ).lower()
     _target = (
-        getattr(intent, "parameters", None)
+        getattr(intent, "parameters", None)  # noqa: ENIGMA002
         and intent.parameters.target_reference
-        or getattr(intent, "target", "")
+        or getattr(intent, "target", "")  # noqa: ENIGMA002
         or ""
     ).lower()
     context_tags = set()

@@ -148,10 +148,10 @@ class ReplayStore:
                        world_snapshot_json = COALESCE(?, world_snapshot_json)
                    WHERE session_id = ? AND tick_id = ?""",
                 (
-                    game_time_seconds if game_time_seconds != 0.0 else None,
-                    self._to_json_bytes(tick_state) if tick_state is not None else None,
-                    self._to_json_bytes(tick_mutation) if tick_mutation is not None else None,
-                    self._to_json_bytes(world_snapshot) if world_snapshot is not None else None,
+                    game_time_seconds if game_time_seconds != 0.0 else None,  # noqa: ENIGMA001
+                    self._to_json_bytes(tick_state) if tick_state is not None else None,  # noqa: ENIGMA001
+                    self._to_json_bytes(tick_mutation) if tick_mutation is not None else None,  # noqa: ENIGMA001
+                    self._to_json_bytes(world_snapshot) if world_snapshot is not None else None,  # noqa: ENIGMA001
                     session_id, tick_id
                 )
             )

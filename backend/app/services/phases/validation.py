@@ -36,7 +36,7 @@ def validate_shadow_vs_legacy(
     _legacy_location = _npc_entry.get("location_id", _npc_entry.get("location", ""))
 
     # Shadow state из ThickSceneChange
-    _shadow_pos = thick.spatial.target_xy if thick.spatial else None
+    _shadow_pos = thick.spatial.target_xy if thick.spatial else None  # noqa: ENIGMA001
     _shadow_node = thick.spatial.target_node if thick.spatial else ""
 
     # Shadow boundary/target location
@@ -74,7 +74,7 @@ def validate_shadow_vs_legacy(
     # Legacy boundary: NPC оказался в другой локации после apply
     # ADR-O-201: Boundary вычисляется из SceneChange (cause), а не из мутированного state.
     # Это устраняет Causal Drift (Class D) при cross_loc_materialize.
-    _legacy_is_boundary = "cross_loc_materialize" in getattr(thick, "cause", "")
+    _legacy_is_boundary = "cross_loc_materialize" in getattr(thick, "cause", "")  # noqa: ENIGMA002
     _shadow_is_boundary = bool(thick.boundary and thick.boundary.is_boundary)
     _drifts += orchestrator._equivalence_validator.validate_boundary(
         snapshot_id=snapshot.snapshot_id,
@@ -92,7 +92,7 @@ def validate_shadow_vs_legacy(
     # поэтому сравнение legacy active_traversals с shadow thick.traversal некорректно.
     if thick.field == "position":
         _legacy_traversal = scene_state.get("active_traversals", {}).get(npc_id)
-        _shadow_traversal = thick.traversal if thick.traversal else None
+        _shadow_traversal = thick.traversal if thick.traversal else None  # noqa: ENIGMA001
         _drifts += orchestrator._equivalence_validator.validate_traversal(
             snapshot_id=snapshot.snapshot_id,
             tick=tick,

@@ -166,8 +166,8 @@ class AgentAction:
         """S135: Чтение из SSOT (RelationshipStore). Vacuum = None.
         Шкала SSOT: -1.0..1.0 (0.5 = neutral).
         """
-        _rel_store = getattr(state, "relationship_store", None)
-        _campaign_id = getattr(state, "campaign_id", "")
+        _rel_store = getattr(state, "relationship_store", None)  # noqa: ENIGMA002
+        _campaign_id = getattr(state, "campaign_id", "")  # noqa: ENIGMA002
 
         if _rel_store:
             _rel_data = _rel_store.get_relationship(_campaign_id, state.npc_id, target_id)
@@ -337,6 +337,7 @@ class DecisionHub:
         topic: Optional[str],
         emotion_value: str,
         scores: Optional[Dict[str, float]] = None,
+        epistemic_context: Optional[Any] = None, # S197: Для извлечения trigger_proposition
     ) -> Optional[CommunicationIntent]:
         """Создаёт CommunicationIntent для вербального intent (Устав 2.2).
 
@@ -357,6 +358,11 @@ class DecisionHub:
             f"top3={[(i, round(s, 2)) for i, s in _top_intents]}"
         )
 
+        # S197: Извлекаем Proposition из EpistemicContext для Causal Provenance
+        _proposition = None
+        if epistemic_context and hasattr(epistemic_context, 'trigger_proposition'):
+            _proposition = epistemic_context.trigger_proposition
+
         return CommunicationIntent(
             speaker=npc_id,
             audience=intent_target or "all",
@@ -365,6 +371,7 @@ class DecisionHub:
             emotional_state=emotion_value,
             exposure_level=ExposureLevel.from_semantic("normal"),
             target_id=intent_target, # V8-MEM-2 FIX: Проброс target_id для Attack Windup
+            proposition=_proposition, # S197
         )
 
     @staticmethod
@@ -419,6 +426,7 @@ class DecisionHub:
         pending_response_target: Optional[str] = None,  # S129: Bridge 7
         relationship_store: Optional[Any] = None,  # S135: SSOT для чтения отношений
         campaign_id: str = "",  # S135: Ключ кампании для SSOT
+        epistemic_context: Optional[Any] = None,  # S197: Для извлечения trigger_proposition
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -433,7 +441,7 @@ class DecisionHub:
         # ЕДИНСТВЕННАЯ точка блокировки DecisionHub.
         # evaluate_vital_state — единственный владелец решения о жизни/смерти.
         # is_conscious — единственный владелец решения о сознании.
-        _body = getattr(state, "body_state", None) or {}
+        _body = getattr(state, "body_state", None) or {}  # noqa: ENIGMA002
         _life_status = evaluate_vital_state(_body)
         if _life_status == LifeStatus.DEAD or not is_conscious(_body):
             return AgentAction(
@@ -481,14 +489,14 @@ class DecisionHub:
         # Мост action_to_intent гарантирует нормализацию ActionType.MOVE → Intent.APPROACH.
         from app.domain.action_intent_bridge import action_to_intent
 
-        _payload_pop = getattr(event, "payload", {}) or {}
+        _payload_pop = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
         _sa_pop = (
-            _payload_pop.get("semantic_action")
+            _payload_pop.get("semantic_action")  # noqa: ENIGMA001
             if isinstance(_payload_pop, dict)
             else None
         )
         _tid_pop = (
-            _payload_pop.get("target_id") if isinstance(_payload_pop, dict) else None
+            _payload_pop.get("target_id") if isinstance(_payload_pop, dict) else None  # noqa: ENIGMA001
         )
         _expected_intent = action_to_intent(_sa_pop)
 
@@ -500,7 +508,7 @@ class DecisionHub:
             _fear_raw = self._get_rel_value(state, "player", "fear")
             # L3-P2: Воля определяется текущей проекцией, не архетипом
             _will_pop = effective_drives.get("control", 0.5)
-            _kernel_pop = getattr(state, "perceptual_kernel", None)
+            _kernel_pop = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
             _threat_pop = _kernel_pop.threat_gradient if _kernel_pop else 0.0
 
             # §ENIGMA-004: Epistemic Isolation.
@@ -594,9 +602,9 @@ class DecisionHub:
         # DecisionHub ВИДИТ: hp, conditions, wounds, threats — не "пытались атаковать"
         _hp = getattr(state, "hp", 0)
         _max_hp = getattr(state, "max_hp", 0)
-        _conditions = getattr(state, "conditions", {})
-        _threat_acc = getattr(state, "threat_accumulator", None)
-        _wounds = getattr(state, "wounds", [])
+        _conditions = getattr(state, "conditions", {})  # noqa: ENIGMA002
+        _threat_acc = getattr(state, "threat_accumulator", None)  # noqa: ENIGMA002
+        _wounds = getattr(state, "wounds", [])  # noqa: ENIGMA002
 
         # Низкое HP → усиление FLEE
         if _max_hp > 0 and _hp < _max_hp * 0.3:
@@ -615,7 +623,7 @@ class DecisionHub:
             scores[Intent.IDLE] = round(scores.get(Intent.IDLE, 0.0) + 0.5, 4)
 
         # Prone → штраф к атаке и бегу
-        if "prone" in _conditions or getattr(state, "posture", "") == "prone":
+        if "prone" in _conditions or getattr(state, "posture", "") == "prone":  # noqa: ENIGMA002
             scores[Intent.ATTACK] = round(scores.get(Intent.ATTACK, 0.0) - 0.5, 4)
             scores[Intent.FLEE] = round(scores.get(Intent.FLEE, 0.0) - 0.3, 4)
 
@@ -691,7 +699,7 @@ class DecisionHub:
         # ── Commitment: бонус к текущему + стоимость смены ──
         commitment = self._get_commitment(state)
         threshold = self._commitment_threshold(commitment)
-        current_intent_str_pre = state.intent.value if state.intent else None
+        current_intent_str_pre = state.intent.value if state.intent else None  # noqa: ENIGMA001
 
         if current_intent_str_pre and current_intent_str_pre in scores:
             # Бонус к текущему intent — инерция в пространстве score
@@ -715,7 +723,7 @@ class DecisionHub:
         threshold = self._commitment_threshold(commitment)
 
         # Текущий score (если intent есть и он в кандидатах)
-        current_intent_str = state.intent.value if state.intent else None
+        current_intent_str = state.intent.value if state.intent else None  # noqa: ENIGMA001
         current_score = (
             scores.get(current_intent_str, 0.0) if current_intent_str else 0.0
         )
@@ -729,7 +737,7 @@ class DecisionHub:
         # ── Pressure Accumulation: накопление давления по парам ──
         # Ключ ВСЕГДА (str, str) — best_candidate_str из scores
         acc_key = (
-            (current_intent_str, best_candidate_str) if current_intent_str else None
+            (current_intent_str, best_candidate_str) if current_intent_str else None  # noqa: ENIGMA001
         )
         accumulated = 0.0
         if acc_key:
@@ -787,6 +795,7 @@ class DecisionHub:
             spatial_query=spatial_query,
             all_npc_ids=all_npc_ids or [],
             pending_response_target=pending_response_target,
+            epistemic_context=epistemic_context, # S197: Передаём для выбора цели убеждения
         )
         deltas = self._compute_deltas(state, personality, event, best_intent)
         narrative = None  # факт создаётся через MemoryManager.apply(), не здесь
@@ -827,12 +836,16 @@ class DecisionHub:
                 if hasattr(state.emotion, "value")
                 else str(state.emotion),
                 scores=scores if scores is not None else {},
+                epistemic_context=epistemic_context, # S197
             )
         except Exception as _comm_err:
             logger.exception(f"[BUILD_COMM_FAILED] npc={state.npc_id} intent={best_intent}: {_comm_err}")
             _communication = None
 
-        logger.info(f"[DECISION_HUB_RETURN] npc={state.npc_id} intent={best_intent} comm_built={_communication is not None}")
+        logger.info(
+            f"[DECISION_HUB_RETURN] npc={state.npc_id} intent={best_intent} comm_built={_communication is not None} "
+            f"epistemic_context={'YES' if epistemic_context else 'NO'}"
+        )
         return AgentAction(decision=_decision, communication=_communication)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1197,11 +1210,11 @@ class DecisionHub:
 
         # ADR-067: Приказ (MOVE) = single-target pressure. Свидетели не должны лезть в объятия.
         if intent == Intent.APPROACH.value:
-            _payload = getattr(event, "payload", {})
+            _payload = getattr(event, "payload", {})  # noqa: ENIGMA002
             _is_directive = (
                 isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE"
             )
-            _is_target = getattr(event, "target_id", None) == state.npc_id
+            _is_target = getattr(event, "target_id", None) == state.npc_id  # noqa: ENIGMA002
             if _is_directive and not _is_target:
                 rel_mod -= 0.8  # Жёсткий штраф для свидетелей директивы
         trait_mod = self._trait_modifier(intent, active_traits or {})
@@ -1212,7 +1225,7 @@ class DecisionHub:
             # fear уже учтён в _relationship_modifier (fear × 0.65).
             # risk_penalty использует только объективную угрозу (threat_gradient),
             # иначе fear входит в формулу дважды и FLEE побеждает все интенты.
-            _kernel = getattr(state, "perceptual_kernel", None)
+            _kernel = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
             _perceived_threat = _kernel.threat_gradient if _kernel else 0.0
             risk_penalty = round(_perceived_threat * risk * 0.9, 4)
         elif intent == Intent.OBSERVE.value:
@@ -1234,7 +1247,7 @@ class DecisionHub:
 
             # S118 FIX: Превентивная агрессия. Если NPC субъективно чувствует высокую угрозу
             # (threat_gradient > 0.5), он может атаковать первым (fight > flight), даже в idle_tick.
-            _kernel_atk = getattr(state, "perceptual_kernel", None)
+            _kernel_atk = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
             _perceived_threat_atk = _kernel_atk.threat_gradient if _kernel_atk else 0.0
             _is_high_threat = _perceived_threat_atk > 0.5
 
@@ -1434,7 +1447,7 @@ class DecisionHub:
             _effective_tid = event.target_id
             if _effective_tid is None:
                 _ptid = (
-                    event.payload.get("target_id")
+                    event.payload.get("target_id")  # noqa: ENIGMA001
                     if isinstance(event.payload, dict)
                     else None
                 )
@@ -1702,7 +1715,7 @@ class DecisionHub:
             for _m in state.narrative_cache:
                 if not hasattr(_m, "importance") or _m.importance < 0.1:
                     continue
-                _type = getattr(_m, "event_type", "")
+                _type = getattr(_m, "event_type", "")  # noqa: ENIGMA002
                 _weight = (
                     0.15
                     if _type in ("player_attacks", "combat", "intimidation", "theft")
@@ -1875,14 +1888,29 @@ class DecisionHub:
         spatial_query: Optional[Any] = None,
         all_npc_ids: Optional[List[str]] = None,
         pending_response_target: Optional[str] = None,
+        epistemic_context: Optional[Any] = None, # S197: Для целеполагания на основе убеждений
     ) -> Optional[str]:
         """Определяет цель intent."""
+        # S197: Epistemic Targeting. Если NPC warn и имеет trigger_proposition, целью является subject_id.
+        if intent == "warn":
+            _prop = getattr(epistemic_context, "trigger_proposition", None) if epistemic_context else None  # noqa: ENIGMA001, ENIGMA002
+            logger.info(
+                f"[TARGET_RESOLVE_TRACE] npc={state.npc_id} intent='warn' "
+                f"has_epistemic_context={epistemic_context is not None} prop={_prop!r}"
+            )
+            if _prop and _prop.subject_id and _prop.subject_id != state.npc_id:
+                logger.info(
+                    f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=warn target={_prop.subject_id} "
+                    f"predicate={getattr(_prop.predicate, 'value', _prop.predicate)}"
+                )
+                return _prop.subject_id
+
         if all_npc_ids is None:
             all_npc_ids = []
 
         # S135: Получаем SSOT из инстанса DecisionHub
-        _rel_store = getattr(self, "_rel_store", None)
-        _campaign_id = getattr(self, "_campaign_id", "")
+        _rel_store = getattr(self, "_rel_store", None)  # noqa: ENIGMA002
+        _campaign_id = getattr(self, "_campaign_id", "")  # noqa: ENIGMA002
         if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
             return None
         if intent == Intent.FLEE.value:
@@ -1915,7 +1943,7 @@ class DecisionHub:
             if _target:
                 return _target
             # Fallback на актора, если резолвер ничего не нашёл
-            return event.actor_id if event.actor_id != state.npc_id else None
+            return event.actor_id if event.actor_id != state.npc_id else None  # noqa: ENIGMA001
 
         # 4. По умолчанию — актор события
         return event.actor_id
@@ -1962,7 +1990,7 @@ class DecisionHub:
             score=1.0,
             scores_trace={"explain": 1.0},
             deltas=[],
-            narrative_fact=facts[0].summary if facts else None,
+            narrative_fact=facts[0].summary if facts else None,  # noqa: ENIGMA001
             explanation_mode=True,
         )
         _communication = self._build_communication(

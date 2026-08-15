@@ -14,7 +14,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from app.domain.intent import IntentDTO
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.domain.intent import IntentDTO
 from app.models.delta_payloads import EmotionPayload
 
 

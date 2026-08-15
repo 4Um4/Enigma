@@ -65,7 +65,6 @@ class BodyCapabilities:
     radius: float = 0.35
     height: float = 1.8
     can_walk: bool = True
-    # S131: Базовые гуманоиды могут перешагивать мебель (canonical baseline).
     can_jump: bool = True
     max_jump_height: float = 1.0
     max_jump_distance: float = 2.0

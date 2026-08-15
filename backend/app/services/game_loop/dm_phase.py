@@ -94,7 +94,7 @@ def run_dm_phase(
     _spatial_data = build_spatial_data_for_dm(
         location,
         _scene_for_dm,
-        spatial_query=getattr(shared_context, "spatial_query", None),
+        spatial_query=getattr(shared_context, "spatial_query", None),  # noqa: ENIGMA002
     )
 
     # R1: DM видит прошлую речь NPC — из DialogueSession
@@ -122,7 +122,7 @@ def run_dm_phase(
 
     # Сохраняем классификацию из Router
     logger.debug(
-        f"[DIAG_DM_RESULT] is_valid={dm_result.is_valid} has_event_ctx={dm_result.event_context is not None} error={getattr(dm_result, 'error', None)}"
+        f"[DIAG_DM_RESULT] is_valid={dm_result.is_valid} has_event_ctx={dm_result.event_context is not None} error={getattr(dm_result, 'error', None)}"  # noqa: ENIGMA002
     )
     if dm_result.event_context:
         shared_context.action_type = dm_result.event_context.event_type
@@ -223,7 +223,7 @@ def run_dm_phase(
         if dm_result.scene_context.line_of_sight is not None:
             from app.services.scene_change import ChangeType, SceneChange
 
-            _scene_manager = getattr(game_loop, "scene_manager", None)
+            _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
             if _scene_manager:
                 _los_change = SceneChange(
                     type=ChangeType.SCENE_METADATA,
@@ -254,14 +254,14 @@ def run_dm_phase(
             and shared_context.intent_resolution
         ):
             _params = (
-                shared_context.intent_resolution.original_intent.parameters
+                shared_context.intent_resolution.original_intent.parameters  # noqa: ENIGMA001
                 if shared_context.intent_resolution.original_intent
                 else None
             )
             if _params:
-                _sa = getattr(_params, "semantic_action", None)
-                _tid = getattr(_params, "target_id", None)
-                _tref = getattr(_params, "target_reference", None)
+                _sa = getattr(_params, "semantic_action", None)  # noqa: ENIGMA002
+                _tid = getattr(_params, "target_id", None)  # noqa: ENIGMA002
+                _tref = getattr(_params, "target_reference", None)  # noqa: ENIGMA002
                 # ADR-ACTION-BRIDGE: Инъекция семантики в EventContext
                 if _sa:
                     _base_event.semantic_action = _sa
@@ -284,7 +284,7 @@ def run_dm_phase(
 
         if _intent_target_id:
             # Intent полностью замкнут — цель известна
-            if getattr(_base_event, "target_id", None) is None:
+            if getattr(_base_event, "target_id", None) is None:  # noqa: ENIGMA002
                 _base_event = dataclasses.replace(
                     _base_event, target_id=_intent_target_id
                 )

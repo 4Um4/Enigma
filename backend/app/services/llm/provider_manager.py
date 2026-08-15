@@ -551,7 +551,7 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
         # наличие локального файла модели не требуется — сервер уже запущен.
         # Раньше ModelPool пропускал регистрацию, из-за чего Router падал с
         # "Все модели пула недоступны", хотя llama-server был жив.
-        _use_server_mode = bool(getattr(settings, "llama_cpp_server_url", None)) and pt_str == "llama_cpp"
+        _use_server_mode = bool(getattr(settings, "llama_cpp_server_url", None)) and pt_str == "llama_cpp"  # noqa: ENIGMA002
         if pt_str in _LOCAL_PROVIDERS and not _use_server_mode and not Path(model_config.path).exists():
             logger.info(f"ModelPool: Skipped '{key}' — файл модели не найден и server_url не задан")
             results[key] = False

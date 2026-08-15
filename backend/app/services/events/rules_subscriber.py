@@ -104,7 +104,7 @@ class RulesSubscriber:
 
     def handle(self, event: Any, snapshot: Dict[str, Any]) -> Optional[RulesDelta]:
         """PURE FUNCTION: event + snapshot → delta."""
-        event_type = getattr(event, "type", None) or event.get("type", "")
+        event_type = getattr(event, "type", None) or event.get("type", "")  # noqa: ENIGMA002
         if not self.can_handle(event_type):
             return None
 
@@ -143,7 +143,7 @@ class RulesSubscriber:
             dc = _DC_BY_ACTION_TYPE.get(action_type, 12)
 
             # Детерминированный бросок d20 (seed from event id + tick)
-            _event_id = getattr(event, "id", "") or str(event.get("id", ""))
+            _event_id = getattr(event, "id", "") or str(event.get("id", ""))  # noqa: ENIGMA002
             _tick = snapshot.get("tick_number", 0)
             _seed = (
                 int(hashlib.sha256(f"{_event_id}:{_tick}".encode()).hexdigest(), 16)

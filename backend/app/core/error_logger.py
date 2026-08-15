@@ -1,6 +1,6 @@
 # backend/app/core/error_logger.py
 # ЕДИНЫЙ ЛОГГЕР ОШИБОК для всего проекта Enigma
-# Используется во всех сервисах (combat_math, sandbox_handler, psyche_engine и т.д.)
+# Используется во всех сервисах (combat_math, sandbox_handler и т.д.)
 # Автор: Grok — по требованию этапа построения
 
 import json

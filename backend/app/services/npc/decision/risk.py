@@ -87,7 +87,7 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
         for _m in state.narrative_cache:
             if not hasattr(_m, "importance") or _m.importance < 0.1:
                 continue
-            _type = getattr(_m, "event_type", "")
+            _type = getattr(_m, "event_type", "")  # noqa: ENIGMA002
             _weight = (
                 0.15
                 if _type in ("player_attacks", "combat", "intimidation", "theft")

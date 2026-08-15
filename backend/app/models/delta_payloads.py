@@ -49,19 +49,6 @@ class ReputationPayload:
 
 
 @dataclass(frozen=True)
-class DopaminePayload:
-    """S-93: Reward Prediction Error (FEP).
-    Эфемерный сигнал, генерируемый в Фазе 5. Содержит только фактические данные (actual).
-    ExpectationStore (Single Writer) вычисляет и применяет EMA самостоятельно.
-    """
-
-    source_id: str = "player"
-    prediction_error: float = 0.0  # PE = actual - expected (-1.0 до 1.0)
-    actual_reward: float = 0.0  # Нормализованная награда (0..1)
-    actual_threat: float = 0.0  # Нормализованная угроза (0..1)
-
-
-@dataclass(frozen=True)
 class IdentityPayload:
     identity_integrity_delta: float = 0.0
     pressure_resistance_delta: float = 0.0
@@ -86,9 +73,7 @@ class PerceptionPayload:
     threat_gradient_delta: float = 0.0  # Рост ощущения угрозы
     uncertainty_delta: float = 0.0  # Рост неопределённости
     anomaly_score_delta: float = 0.0  # Рост ощущения аномальности
-    dominant_emotion_hint: Optional[str] = (
-        None  # S72 DEPRECATED: движок не назначает эмоцию. Поле сохранено для совместимости сериализации, всегда None.
-    )
+    # N-26 FIX: dominant_emotion_hint удалён (движок не назначает эмоцию, §S72.1).
 
 
 @dataclass(frozen=True)

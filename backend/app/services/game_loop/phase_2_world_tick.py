@@ -97,8 +97,8 @@ def tick_world_proactive(
             location=location,
             npc_data=_proactive_npc_data,
             scene_state=shared_context.scene_state or {},
-            reputation_modifiers=_rep_mods if _rep_mods else None,
-            effective_drives_map=_effective_drives_map
+            reputation_modifiers=_rep_mods if _rep_mods else None,  # noqa: ENIGMA001
+            effective_drives_map=_effective_drives_map  # noqa: ENIGMA001
             if _effective_drives_map
             else None,
         )
@@ -180,7 +180,7 @@ def tick_world_proactive(
             
             # Игрок (если есть в профилях)
             if "player" in _wt_eco_profiles:
-                _avatar = getattr(shared_context, "avatar_state", None)
+                _avatar = getattr(shared_context, "avatar_state", None)  # noqa: ENIGMA002
                 if _avatar and _avatar.body_state:
                     _wt_eco_profiles["player"].gold = float(_avatar.body_state.get("money", 0.0))
 
@@ -240,7 +240,7 @@ def tick_world_proactive(
                             economy_tracker.record_income(_res.seller_id, _res.price)
                 
                 # S150 FIX: Если в сделке участвует игрок, обновляем его avatar_state напрямую
-                _avatar = getattr(shared_context, "avatar_state", None)
+                _avatar = getattr(shared_context, "avatar_state", None)  # noqa: ENIGMA002
                 if _avatar and _avatar.body_state:
                     for _delta in _wt_economy_deltas:
                         if _delta.npc_id == "player" and isinstance(_delta.payload, EconomicPayload):

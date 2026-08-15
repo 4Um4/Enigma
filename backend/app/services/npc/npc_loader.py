@@ -643,8 +643,7 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
 
     state = NPCState(
         npc_id=raw_data.get("id", "unknown"),
-        hp=int(raw_data.get("hp", 0)),
-        max_hp=int(raw_data.get("max_hp", 0)),
+        # N-23 FIX: hp/max_hp удалены из NPCState, читаются только из body_state.
         stress=float(psyche.get("stress", 0.0)),
         will_state=will_enum,
         life_project=_life_project,
@@ -656,9 +655,11 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
         dependency=float(psyche.get("dependency", 0.0)),
         trauma_markers=set(psyche.get("trauma_flags", [])),
         relationship_cache={
-            "trust": float(ss.get("trust", 0.0)),
-            "fear": float(ss.get("fear_of_player", 0.0)),
-            "debt": float(ss.get("debt", 0.0)),
+            "player": {
+                "trust": float(ss.get("trust", 0.0)),
+                "fear": float(ss.get("fear_of_player", 0.0)),
+                "debt": float(ss.get("debt", 0.0)),
+            }
         },
         # Роль из статического профиля — нужна для фильтрации интентов
         current_role=raw_data.get("status_profile", {}).get("title", ""),

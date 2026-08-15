@@ -344,14 +344,14 @@ def create_tick_context(
     input_snapshot = copy.deepcopy(scene_state)
 
     # KERNEL-ISOLATION: factory для per-NPC deterministic RNG.
-    _rng_factory = lambda npc_id: KernelRNG(tick=tick_number, npc_id=npc_id)
+    _rng_factory = lambda npc_id: KernelRNG(tick=tick_number, npc_id=npc_id, salt="tick_context_factory")
 
     # Извлекаем player_intent (IntentDTO) из interventions (если есть действие игрока)
     _player_intent = None
     if interventions:
         for _interv in interventions:
-            if getattr(_interv, "source", "") == "player":
-                _payload = getattr(_interv, "payload", {})
+            if getattr(_interv, "source", "") == "player":  # noqa: ENIGMA002
+                _payload = getattr(_interv, "payload", {})  # noqa: ENIGMA002
                 _action_str = _payload.get("semantic_action", "OBSERVE")
                 # Мапим строковое действие в стандартный формат IntentDTO
                 from app.domain.intent import IntentDTO, IntentParametersDTO
@@ -369,8 +369,8 @@ def create_tick_context(
                 )
                 break
 
-    _is_player = any(getattr(i, "source", "") == "player" for i in interventions)
-    _spatial_query = getattr(shared_context, "spatial_query", None) if shared_context else None
+    _is_player = any(getattr(i, "source", "") == "player" for i in interventions)  # noqa: ENIGMA002
+    _spatial_query = getattr(shared_context, "spatial_query", None) if shared_context else None  # noqa: ENIGMA001, ENIGMA002
     if _spatial_query is None:
         logger.debug("SpatialQueryService missing in shared_context (tick_utils). Falling back or IPT/DriftLab.")
     ctx = _TickContext(

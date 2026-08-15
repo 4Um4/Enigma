@@ -18,8 +18,8 @@ class HistoricalConstraintProbe(Probe):
             return ProbeResult(name=self.name, severity=self.severity, passed=True, details="No mutation or drives_map in context.")
 
         # Проверяем все интенты (решения NPC)
-        for intent in getattr(mutation, "communication_intents", []) + getattr(mutation, "movement_intents", []):
-            npc_id = getattr(intent, "speaker", None) or getattr(intent, "actor_id", None)
+        for intent in getattr(mutation, "communication_intents", []) + getattr(mutation, "movement_intents", []):  # noqa: ENIGMA002
+            npc_id = getattr(intent, "speaker", None) or getattr(intent, "actor_id", None)  # noqa: ENIGMA002
             if npc_id:
                 # Если NPC принял решение, у него должен быть L3 (effective_drives)
                 if npc_id not in drives_map:

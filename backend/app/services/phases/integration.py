@@ -64,7 +64,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                 "[CFRM_P2_SKIP] spatial_service is None — affective pipeline disabled"
             )
         cluster_graph = (
-            deps.spatial_service.build_cluster_graph() if deps.spatial_service else None
+            deps.spatial_service.build_cluster_graph() if deps.spatial_service else None  # noqa: ENIGMA001
         )
         if cluster_graph is None and deps.spatial_service:
             logger.warning("[CFRM_P2_SKIP] build_cluster_graph() returned None")
@@ -87,7 +87,9 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                 if _ph_count
                 else {}
             )
-            logger.warning(
+            # IPT-CLEANUP: WARNING → DEBUG. Отладочный вывод CFRM-фазы — не warning.
+            # ADR-116: Диагностика phenomena_states для разработчика.
+            logger.debug(
                 f"[CFRM_P2] phenomena_count={_ph_count} threats={_ph_threats}"
             )
 
@@ -115,7 +117,6 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     threat_gradient_delta=pressure.fear,
                     uncertainty_delta=pressure.uncertainty,
                     anomaly_score_delta=p_state.anomaly_score * 0.5,
-                    dominant_emotion_hint=None,  # S72: эмоция назначается Affective Pipeline, не движком
                 )
 
                 # Perception delta — только если возмущение значимое
@@ -275,7 +276,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
                     from app.domain.perception import ProjectionFrame
 
-                    if "_projection_frames" not in locals():
+                    if "_projection_frames" not in locals():  # noqa: ENIGMA003
                         _projection_frames = []
                     if (
                         projected_kernel.threat_gradient > 0.05
@@ -347,7 +348,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                             hasattr(deps, "l1_chronicle")
                             and deps.l1_chronicle is not None
                         ):
-                            _emo_tag = getattr(emotion_payload, "emotion_tag", None)
+                            _emo_tag = getattr(emotion_payload, "emotion_tag", None)  # noqa: ENIGMA002
                             if (
                                 _emo_tag
                                 and hasattr(_emo_tag, "value")
@@ -458,7 +459,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         (n for n in _npc_truth_source if n.get("npc_id") == "player"), None
     )
     _avatar_projection = (
-        assemble_avatar_presentation(player_dict) if player_dict else None
+        assemble_avatar_presentation(player_dict) if player_dict else None  # noqa: ENIGMA001
     )
 
     # TZ-08 v0.2: Perception pipeline — internal causal observability layer (post-mutation).

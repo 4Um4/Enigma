@@ -1,7 +1,7 @@
 {
   "version": 1,
   "campaign_id": "Open_road",
-  "compiled_at": "2026-08-13T20:26:08.214713",
+  "compiled_at": "2026-08-15T15:08:16.590274",
   "chunks": [
     {
       "location_id": "city_gate",
@@ -12,7 +12,7 @@
       "height": 20.0,
       "is_outdoor": true,
       "label": "Городские ворота",
-      "content_hash": "ebb79053572711e047765966cf602e16"
+      "content_hash": "c548b58b743fc650ee1a64e923a2ffc0"
     },
     {
       "location_id": "market_square",
@@ -23,7 +23,7 @@
       "height": 25.0,
       "is_outdoor": true,
       "label": "Торговая площадь",
-      "content_hash": "626a8760ce999bb3c9c04fc49428718f"
+      "content_hash": "a0331bb707b8bdd13ce2011618b1108a"
     },
     {
       "location_id": "tavern",
@@ -34,7 +34,7 @@
       "height": 15.0,
       "is_outdoor": false,
       "label": "Таверна Серебряного Волка",
-      "content_hash": "33abb7c26feeec3ab4d329215e6130ac"
+      "content_hash": "b0db41c32430f81e1b1325440690e622"
     }
   ],
   "adjacency": [

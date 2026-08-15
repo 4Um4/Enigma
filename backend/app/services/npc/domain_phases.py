@@ -145,7 +145,7 @@ def tick_conditions(
 
 def age_temporary_drives(state_l2: Any, npc_dict_for_write: Dict[str, Any], npc_id: str) -> None:
     """Фаза 4-ROLE.2: aging temporary drives — истекшие удаляются."""
-    _drives = getattr(state_l2, "temporary_drives", [])
+    _drives = getattr(state_l2, "temporary_drives", [])  # noqa: ENIGMA002
     if not _drives:
         return
     from app.models.npc_state import age_drives

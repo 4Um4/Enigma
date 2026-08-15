@@ -584,7 +584,7 @@ class SceneOutcomeBuilder:
 
         # Emotion — из deltas, если есть (через деградационный шлюз v2->v1)
         _legacy_d = LegacyStateDeltaAdapter.collapse(decision.deltas)
-        emotion = _legacy_d.emotion_tag.value if _legacy_d.emotion_tag else None
+        emotion = _legacy_d.emotion_tag.value if _legacy_d.emotion_tag else None  # noqa: ENIGMA001
 
         # Latent signals для этого NPC
         npc_latent = self._extract_npc_latent(decision)
@@ -627,7 +627,7 @@ class SceneOutcomeBuilder:
                     _summary = (
                         _item.get("summary", "")
                         if isinstance(_item, dict)
-                        else getattr(_item, "summary", "")
+                        else getattr(_item, "summary", "")  # noqa: ENIGMA002
                     )
                     _is_secret = (
                         _item.get("is_secret", False)
@@ -665,8 +665,8 @@ class SceneOutcomeBuilder:
         return NpcOutcome(
             npc_id=npc_id,
             # FIX: Используем getattr для безопасности, так как может прийти NPCPersonality вместо NPCProfileL0
-            name=(getattr(profile, "name", None) if profile else None)
-            or (real_state.get("name") if isinstance(real_state, dict) else None)
+            name=(getattr(profile, "name", None) if profile else None)  # noqa: ENIGMA001, ENIGMA002
+            or (real_state.get("name") if isinstance(real_state, dict) else None)  # noqa: ENIGMA001
             or npc_id,
             description_snippet=_desc_snippet,
             intent=decision.intent.value

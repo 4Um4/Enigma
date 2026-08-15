@@ -41,8 +41,8 @@ class FateTracker:
             stability=stability,
             threat_level=threat,
             fate_trajectory=trajectory,
-            resolved_fate=current.resolved_fate if current else None,
-            fate_tick=current.fate_tick if current else None
+            resolved_fate=current.resolved_fate if current else None,  # noqa: ENIGMA001
+            fate_tick=current.fate_tick if current else None  # noqa: ENIGMA001
         )
         self._states[npc_id] = new_state
         return new_state

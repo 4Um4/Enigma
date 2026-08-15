@@ -27,6 +27,7 @@ path: backend/app/services/tick_orchestrator.py
 from __future__ import annotations
 
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Union
@@ -158,7 +159,9 @@ class TickOrchestrator:
     def _get_life_engine(self):
         if self._life_engine is None:
             self._life_engine = get_life_engine()
-        return self._life_engine
+        # Sprint 1.4: Возвращаем как LifeEngineInterface для будущей DI
+        from app.contracts.life_engine import LifeEngineInterface
+        return self._life_engine  # type: ignore[return-value]
 
     def _get_sleep_lifecycle_svc(self):
         """S188: Возвращает инстанс SleepLifecycleService (DI)."""
@@ -386,10 +389,9 @@ class TickOrchestrator:
                             f"[CFRM] ClusterOccupancy: NPC '{_npc_id}' в локации {_current_loc}, но нет позиции и SpatialService не смог найти узел."
                         )
 
-        elapsed_ms = 0.0  # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
-        logger.info(
-            f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities in {elapsed_ms:.2f}ms"
-        )
+        # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
+        # Замер времени выполнения удалён для соблюдения Закона Изоляции Реального Времени.
+        logger.info(f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities processed")
 
         # Игрок — тоже наблюдатель в причинном пузыре
         if player_data := npc_positions.get("player"):
@@ -517,6 +519,8 @@ class TickOrchestrator:
         # S1-FIX (INV-TICK-CARDINALITY): Продвигаем время ровно 1 раз за тик.
         # Создаём временный контекст для продвижения времени, используя активную локацию (или первую из списка).
         _time_scene = _all_scenes.get(active_location_id) or next(iter(_all_scenes.values()))
+        
+
         _time_ctx = create_tick_context(
             campaign_id=campaign_id,
             scene_state=_time_scene,
@@ -529,9 +533,9 @@ class TickOrchestrator:
             task_scheduler=task_scheduler,
             hub_event=hub_event,
             eco_profile=eco_profile,
-            mvp_controller=getattr(self, "_mvp_controller", None),
-            epistemic_store=getattr(self, "_epistemic_store", None),
-            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),
+            mvp_controller=getattr(self, "_mvp_controller", None),  # noqa: ENIGMA002
+            epistemic_store=getattr(self, "_epistemic_store", None),  # noqa: ENIGMA002
+            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
         )
         self._advance_idle_time(_time_ctx)
         
@@ -559,9 +563,9 @@ class TickOrchestrator:
                 task_scheduler=task_scheduler,
                 hub_event=hub_event,  # BUG-CORE-003 FIX: Передача контекста в фабрику
                 eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
-                mvp_controller=getattr(self, "_mvp_controller", None),
-                epistemic_store=getattr(self, "_epistemic_store", None),
-                epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),
+                mvp_controller=getattr(self, "_mvp_controller", None),  # noqa: ENIGMA002
+                epistemic_store=getattr(self, "_epistemic_store", None),  # noqa: ENIGMA002
+                epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
             )
         # Синхронизируем обновлённое время во все сцены локаций
             self._rebuild_cluster_occupancy(ctx)
@@ -587,7 +591,8 @@ class TickOrchestrator:
                 axis = result.axis
 
                 if result.confidence < 0.5:
-                    logging.warning(
+                    # IPT-CLEANUP: root logger → module logger. Fallback классификация — это отладочный сигнал, не warning.
+                    logger.debug(
                         f"[CFRM] classify_event: {event.type} -> {axis.value} (confidence={result.confidence}, source={result.source.value})"
                     )
 
@@ -641,8 +646,10 @@ class TickOrchestrator:
                 _current_loc = _scene.get("location_id", "default")
                 _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
 
-            # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
-            _start_time = 0.0
+            # M-24 FIX: Восстанавливаем измерение времени для AdaptiveTickLoader (LOD throttling).
+            # Используем Clock протокол (infrastructure metric, §15.2) — не влияет на детерминизм.
+            from app.core.clock import get_clock
+            _start_perf = get_clock().timestamp()
             
             try:
                 self._run_core_phases(ctx, tick_fully=_tick_fully)
@@ -660,24 +667,28 @@ class TickOrchestrator:
                 # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
                 event_bus.detach_cfrm_bridge()
                 
-                # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
-                _duration_ms = 0.0
+                # M-24 FIX: Вычисляем реальную длительность тика для LOD throttling.
+                _duration_ms = (get_clock().timestamp() - _start_perf) * 1000.0
                 _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
                 self._adaptive_loader.record_tick(_duration_ms, _npc_count)
 
             # S83.1: TickOrchestrator = единственный владелец результата тика.
+            # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
+            if hasattr(self, "_epistemic_store") and self._epistemic_store:
+                ctx.scene_state["epistemic_records"] = self._epistemic_store.to_dict()
+
             final_snapshot = ctx.scene_state
 
             # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
-            _final_facts = getattr(ctx, "observed_facts_for_dm", [])
+            _final_facts = getattr(ctx, "observed_facts_for_dm", [])  # noqa: ENIGMA002
             # INV-DEF: Эмиттер сводки тика для CausalObserver (InvariantHealthChecker)
             _moved_count = sum(
                 1
                 for v in ctx.scene_state.get("active_traversals", {}).values()
-                if getattr(v, "status", None) == "MOVING"
+                if getattr(v, "status", None) == "MOVING"  # noqa: ENIGMA002
             )
             _decisions_count = len(ctx.communication_intents) + sum(
-                1 for i in getattr(ctx, "movement_intents", []) if i
+                1 for i in getattr(ctx, "movement_intents", []) if i  # noqa: ENIGMA002
             )
             _verbal_count = len(ctx.communication_intents)
             _game_time = ctx.scene_state.get("game_time_seconds", 0.0)
@@ -740,15 +751,16 @@ class TickOrchestrator:
                     _full_npc["location_id"] = _current_loc
                     _full_npc["location"] = _current_loc
 
+
         ctx.all_npcs_raw = [
             n for n in (ctx.all_npcs_raw or [])
-            if n.get("body_state", {}).get("life_status") != "DEAD"
+            if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
             and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
         ]
         if hasattr(ctx, "npc_states") and ctx.npc_states:
             ctx.npc_states = [
                 n for n in ctx.npc_states
-                if n.get("body_state", {}).get("life_status") != "DEAD"
+                if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
                 and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
             ]
 
@@ -762,7 +774,7 @@ class TickOrchestrator:
         self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
         
         # Подсистема 2: Replay Recorder (Этап 2.2)
-        _recorder = getattr(self, "_replay_recorder", None)
+        _recorder = getattr(self, "_replay_recorder", None)  # noqa: ENIGMA002
         if _recorder:
             _recorder.record_tick_state(ctx.tick_number, ctx.scene_state.get("game_time_seconds", 0.0), ctx.scene_state)
             if ctx.interventions:
@@ -784,7 +796,7 @@ class TickOrchestrator:
         
         # Подсистема 2: Запись TickMutation после Фазы 5
         if _recorder:
-            _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))
+            _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))  # noqa: ENIGMA002
             
         self._phase_6_post_decision(ctx) # 6
         self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
@@ -810,7 +822,7 @@ class TickOrchestrator:
         
         # Подсистема 2: Запись WorldSnapshot после Фазы 9
         if _recorder:
-            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9
+            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
             
         self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
         self._phase_10_persistence(ctx) # 10
@@ -830,11 +842,11 @@ class TickOrchestrator:
             scene_state=ctx.scene_state,
             all_npcs_raw=ctx.all_npcs_raw,
             mvp_controller=ctx.mvp_controller,  # ENIGMA SELF-HEALING: Pass to probes
-            tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I
-            tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III
-            tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III
-            tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX
-            effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II
+            tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I  # noqa: ENIGMA002
+            tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III  # noqa: ENIGMA002
+            tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III  # noqa: ENIGMA002
+            tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX  # noqa: ENIGMA002
+            effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II  # noqa: ENIGMA002
             spatial_service=_spatial_svc  # BUG-SPATIAL-036: Передаём сервис для SC-2..SC-8
         )
         from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
@@ -865,9 +877,9 @@ class TickOrchestrator:
                 "snapshot": {
                     "tick": ctx.tick_number,
                     "campaign_id": ctx.campaign_id,
-                    "active_location": getattr(ctx, "active_location_id", None) or getattr(ctx, "active_location", None),
-                    "npc_count": len(ctx.all_npcs_raw) if getattr(ctx, "all_npcs_raw", None) else 0,
-                    "all_npcs_raw": getattr(ctx, "all_npcs_raw", []) or [],
+                    "active_location": getattr(ctx, "active_location_id", None) or getattr(ctx, "active_location", None),  # noqa: ENIGMA002
+                    "npc_count": len(ctx.all_npcs_raw) if getattr(ctx, "all_npcs_raw", None) else 0,  # noqa: ENIGMA002
+                    "all_npcs_raw": getattr(ctx, "all_npcs_raw", []) or [],  # noqa: ENIGMA002
                 },
             }
         )
@@ -1009,18 +1021,18 @@ class TickOrchestrator:
         if hasattr(dm_ctx, "intent_resolution") and dm_ctx.intent_resolution:
             _intent_res = dm_ctx.intent_resolution
             _params = (
-                _intent_res.original_intent.parameters
+                _intent_res.original_intent.parameters  # noqa: ENIGMA001
                 if _intent_res.original_intent
                 else None
             )
             _fast_actor = None
             _fast_target_xy = None
-            _target_id = getattr(_params, "target_id", None) if _params else None
-            _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX
+            _target_id = getattr(_params, "target_id", None) if _params else None  # noqa: ENIGMA001, ENIGMA002
+            _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX  # noqa: ENIGMA002
             
             # V8-TICK-1 FIX: определяем семантические переменные для directive_payload
-            _sem_action = getattr(_params, "semantic_action", "") if _params else ""
-            _sem_target = getattr(_params, "target_reference", "") if _params else ""
+            _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
+            _sem_target = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
 
             if _movement_req:
                 _fast_actor = _movement_req.actor_id
@@ -1160,7 +1172,7 @@ class TickOrchestrator:
         S115 FIX: Перенос логики директив из _process_player_dm_action.
         Обрабатывает InterventionEvent от игрока (MOVE, THREATEN, etc.).
         """
-        _payload = getattr(interv, "payload", {})
+        _payload = getattr(interv, "payload", {})  # noqa: ENIGMA002
         _sem_action = _payload.get("semantic_action")
         _sem_target = _payload.get("target_reference", "")
         _target_id = _payload.get("target_id")
@@ -1450,7 +1462,8 @@ class TickOrchestrator:
                 from app.core.config import settings
                 
                 _loc_id = ctx.scene_state.get("location_id", "")
-                _data_dir = str(settings.data_dir)
+                _data_dir = getattr(ctx, "_cached_data_dir", None) or str(settings.data_dir)  # noqa: ENIGMA002
+                ctx._cached_data_dir = _data_dir
                 
                 # Находим соседние локации
                 _adjacent_locs = sound_bleeds_to_adjacent(
@@ -1640,7 +1653,7 @@ class TickOrchestrator:
         _alive_npcs = [
             n
             for n in (ctx.all_npcs_raw or ctx.npc_states)
-            if n.get("body_state", {}).get("life_status") != "DEAD"
+            if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
         ]
 
         # DEEP-015 FIX: Мёртвый код ExpectationStore (Active Inference) удалён.
@@ -1671,7 +1684,7 @@ class TickOrchestrator:
         from app.services.phases.decision import evaluate_behavior_and_identity
 
         # Шаг 1.1: Извлекаем RelationshipStore (SSOT) из StateApplicator для расчёта social_pressure
-        _rel_store = getattr(self._state_applicator, "_rel_store", None) if self._state_applicator else None
+        _rel_store = getattr(self._state_applicator, "_rel_store", None) if self._state_applicator else None  # noqa: ENIGMA001, ENIGMA002
 
         evaluate_behavior_and_identity(
             npc_states=ctx.npc_states,
@@ -1679,7 +1692,7 @@ class TickOrchestrator:
             tick_number=ctx.tick_number,
             game_day=getattr(ctx, "game_day", 0),
             memory_manager=self._get_memory_manager(),
-            l1_chronicle=getattr(self, "l1_chronicle", None),
+            l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002
             economic_profiles_map=_economic_profiles_map,
             social_modifiers_map=_social_modifiers_map,
             relationship_store=_rel_store,  # Шаг 1.1: Передача SSOT
@@ -1687,7 +1700,7 @@ class TickOrchestrator:
 
         # P5 FIX: Передаём разрешённый spatial_service напрямую, чтобы избежать потери в npc_services
         _spatial_svc_for_pipeline = self._resolve_spatial_service(ctx)
-        _spatial_query_for_pipeline = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+        _spatial_query_for_pipeline = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
         if _spatial_query_for_pipeline is None:
             logger.debug("SpatialQueryService missing in shared_context. Falling back to scene_state reader (IPT/DriftLab).")
         # P5 FIX: Fallback для IPT/DriftLab, где shared_context может быть пустым. SpatialQueryService — чистый ридер scene_state.
@@ -1714,10 +1727,10 @@ class TickOrchestrator:
             identity_traits_map=_identity_traits_map,
             spatial_service=_spatial_svc_for_pipeline,
             spatial_query=_spatial_query_for_pipeline,
-            l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX
+            l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX  # noqa: ENIGMA002
             idle_pressure_map=_idle_pressure_map, # V8-SOC-5 FIX
-            epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core
-            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core
+            epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core  # noqa: ENIGMA002
+            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core  # noqa: ENIGMA002
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
@@ -1815,7 +1828,7 @@ class TickOrchestrator:
         TraversalExecutionSystem.advance(ctx.scene_state, ctx.tick_number)
 
         deps = Phase0_5Deps(
-            l1_chronicle=getattr(self, "l1_chronicle", None),
+            l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002
             dynamic_field=self._dynamic_field,
             homeostasis_sub=self._homeostasis_sub,
             social_input_proj=self._social_input_proj,
@@ -1884,7 +1897,7 @@ class TickOrchestrator:
         """ФАЗА 8: Layered Reduction — делегировано в phases/reduction.py (S100)."""
         from app.services.phases.reduction import execute_reduction_phase
 
-        _l1 = getattr(self, "l1_chronicle", None)
+        _l1 = getattr(self, "l1_chronicle", None)  # noqa: ENIGMA002
         execute_reduction_phase(
             ctx,
             combat_sub=self._combat_sub,
@@ -1948,8 +1961,8 @@ class TickOrchestrator:
             belief_engine=self.belief_engine,
             state_applicator=self._state_applicator,
             snapshot_builder=self._get_snapshot_builder(),
-            manifest_svc=getattr(self, "_manifest_svc", None),
-            project_svc=getattr(self, "_project_svc", None),
+            manifest_svc=getattr(self, "_manifest_svc", None),  # noqa: ENIGMA002
+            project_svc=getattr(self, "_project_svc", None),  # noqa: ENIGMA002
         )
         run_affective_pipeline(ctx, deps)
 
@@ -1963,7 +1976,7 @@ class TickOrchestrator:
         
         _all_delta_npc_ids = set()
         for _d in (ctx.tick_mutation.npc_deltas or []):
-            _d_npc_id = getattr(_d, "npc_id", None)
+            _d_npc_id = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
             if _d_npc_id:
                 _all_delta_npc_ids.add(_d_npc_id)
         
@@ -2017,7 +2030,7 @@ class TickOrchestrator:
             if not _npc_claims:
                 continue
 
-            _reason = getattr(_intent, "reason", "")
+            _reason = getattr(_intent, "reason", "")  # noqa: ENIGMA002
 
             # Аддитивный скоринг: base + Σ(energy × weight × alignment)
             _drf_bonus = 0.0

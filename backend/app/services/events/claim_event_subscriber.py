@@ -33,14 +33,23 @@ class RelationshipReliabilityProvider:
         _trust_100 = _pair_data.get("trust", 50.0)
         return max(0.0, min(1.0, _trust_100 / 100.0))
 
+HEARING_RADIUS = 10.0
+
 class ClaimEventSubscriber:
     """
     Слушает COMMUNICATION_CLAIM на EventBus.
     Преобразует EventDTO в ClaimEvent и передаёт в BeliefRevisionEngine.
+    S192: Observation Divergence — фильтрует слушателей через пространственную мембрану (SpatialQueryService).
     """
-    def __init__(self, engine: BeliefRevisionEngine, store: EpistemicStore):
+    def __init__(
+        self, 
+        engine: BeliefRevisionEngine, 
+        store: EpistemicStore,
+        spatial_query_provider: Optional[Any] = None,
+    ):
         self._engine = engine
         self._store = store
+        self._get_spatial_query = spatial_query_provider
 
     def on_claim_event(self, event: Any) -> None:
         if not hasattr(event, 'payload'):
@@ -61,19 +70,58 @@ class ClaimEventSubscriber:
                 polarity=prop_data.get("polarity", True)
             )
 
-            claim = ClaimEvent(
-                event_id=str(event.id),
-                claim_id=payload.get("claim_id", str(event.id)),
-                speaker_id=event.source,
-                listener_id=payload.get("target_id"),
-                proposition=prop,
-                speech_act=SpeechAct(payload.get("speech_act", "assert")),
-                tick=payload.get("tick", 0)
-            )
+            # S192.1: Perception Membrane Hardening.
+            # target_id — это семантический адресат, но физически услышать могут только те, кто в радиусе.
+            # Телепатия (передача убеждений без физического контакта) запрещена.
+            _listeners = set()
 
-            existing = self._store.get(claim.listener_id, prop)
-            updated_record = self._engine.revise(claim.listener_id, claim, existing)
-            self._store.upsert(updated_record)
+            if self._get_spatial_query:
+                _sq = self._get_spatial_query()
+                if _sq:
+                    _npc_positions = getattr(_sq, "_npc_positions", {})  # noqa: ENIGMA002
+                    # S198: Если spatial_query пуст, fallback на target_id (гарантия детерминизма)
+                    if not _npc_positions:
+                        _primary_target = payload.get("target_id")
+                        if _primary_target:
+                            _listeners.add(_primary_target)
+                    else:
+                        for _nid in _npc_positions.keys():
+                            if _nid == "player" or _nid == event.source:
+                                continue
+                            _dist = _sq.distance(event.source, _nid)
+                            if _dist <= HEARING_RADIUS:
+                                _listeners.add(_nid)
+                        # S198: Явно проверяем target_id, даже если он отсутствует в _npc_positions
+                        _primary_target = payload.get("target_id")
+                        if _primary_target and _primary_target not in _listeners:
+                            if _primary_target not in _npc_positions:
+                                _listeners.add(_primary_target)
+                            else:
+                                _dist = _sq.distance(event.source, _primary_target)
+                                if _dist <= HEARING_RADIUS:
+                                    _listeners.add(_primary_target)
+                else:
+                    _primary_target = payload.get("target_id")
+                    if _primary_target:
+                        _listeners.add(_primary_target)
+            else:
+                _primary_target = payload.get("target_id")
+                if _primary_target:
+                    _listeners.add(_primary_target)
+
+            for _listener_id in _listeners:
+                claim = ClaimEvent(
+                    event_id=str(event.id),
+                    claim_id=payload.get("claim_id", str(event.id)),
+                    speaker_id=event.source,
+                    listener_id=_listener_id,
+                    proposition=prop,
+                    speech_act=SpeechAct(payload.get("speech_act", "assert")),
+                    tick=payload.get("tick", 0)
+                )
+                existing = self._store.get(_listener_id, prop)
+                updated_record = self._engine.revise(_listener_id, claim, existing)
+                self._store.upsert(updated_record)
 
         except Exception as e:
             logger.exception(f"[CLAIM_SUB] Failed to process claim event: {e}")

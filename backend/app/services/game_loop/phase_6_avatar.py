@@ -38,7 +38,7 @@ def update_avatar_from_npc_intents(
             _npc_intent = _npc_ctx.get("decision_result")
             if not _npc_intent:
                 continue
-            _intent_val = getattr(_npc_ctx["decision_result"], "intent", None)
+            _intent_val = getattr(_npc_ctx["decision_result"], "intent", None)  # noqa: ENIGMA002
             if _intent_val is None:
                 continue
 

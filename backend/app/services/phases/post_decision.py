@@ -6,8 +6,10 @@ path: /project/backend/app/services/phases/post_decision.py
 """
 from __future__ import annotations
 
+import copy
 import dataclasses
 import logging
+import uuid
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -35,19 +37,19 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
         # ADR-O-313: Перехват разговорных интентов в Universal Task Layer.
         # Разговор больше не является немедленным событием. Это задача (QueuedTask).
         # Всё, что не атака (уходит в Windup), считается диалогом/социальным действием.
-        if getattr(intent, "intent_type", "") != "attack":
+        if getattr(intent, "intent_type", "") != "attack":  # noqa: ENIGMA002
             from app.domain.communication import DialogueRequest
             from app.domain.execution import QueuedTask, TaskKind, TaskPriority
 
             # S118 FIX: Используем audience, так как в CommunicationIntent нет поля target_id.
             # Если audience="all", передаём None, чтобы TaskScheduler выбрал цель через SpatialQueryService.
-            _target_id = intent.audience if intent.audience != "all" else None
+            _target_id = intent.audience if intent.audience != "all" else None  # noqa: ENIGMA001
 
             _svc = ctx.npc_services
-            _memory_mgr = _svc.memory_manager if _svc else getattr(orchestrator, "_memory_manager", None)
+            _memory_mgr = _svc.memory_manager if _svc else getattr(orchestrator, "_memory_manager", None)  # noqa: ENIGMA002
             if _memory_mgr is None:
                 logger.error("MemoryManager missing in both NpcServices and Orchestrator. Check wiring.")
-            _intent_type = getattr(intent, "intent_type", "")
+            _intent_type = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
             # ADR-O-342: Hard Contract (Принцип 2). Если нет STM (истории разговора),
             # нельзя начинать содержательный диалог. Принудительно меняем на approach.
             # Исключение: soliloquy (разговор с самим собой) — STM не нужен.
@@ -80,14 +82,12 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     logger.warning(f"[POST_DECISION] T-04: Failed to recall memory for {intent.speaker}: {_e}")
 
             # BUG-DL-04: Генерируем thread_id для изоляции нити диалога
-            import uuid
-            _thread_id = getattr(intent, "thread_id", "") or f"thread-{uuid.uuid4().hex[:8]}"
+            _thread_id = getattr(intent, "thread_id", "") or f"thread-{uuid.uuid4().hex[:8]}"  # noqa: ENIGMA002
 
             # V8-DLG-10 FIX: Собираем prepared_prompt через VerbalizationContext
             _prepared_prompt = ""
             if _svc and _svc.memory_manager:
                 try:
-                    import copy
                     from app.services.npc.npc_tick_pipeline import build_verbalization_context
                     from app.services.npc.npc_loader import load_l2_state_from_runtime_dict, load_profile_from_legacy_json
 
@@ -97,8 +97,8 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                         _profile_l0 = load_profile_from_legacy_json(_npc_dict_copy)
                         _state_l2 = load_l2_state_from_runtime_dict(_npc_dict_copy)
 
-                        _hub_event = ctx.interventions[0] if ctx.interventions else None
-                        _raw_input = getattr(_hub_event, "payload", {}).get("raw_input", "") if _hub_event else ""
+                        _hub_event = ctx.interventions[0] if ctx.interventions else None  # noqa: ENIGMA001
+                        _raw_input = getattr(_hub_event, "payload", {}).get("raw_input", "") if _hub_event else ""  # noqa: ENIGMA002
 
                         _v_ctx = build_verbalization_context(
                             memory_manager=_svc.memory_manager,
@@ -127,21 +127,35 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 except Exception as _e:
                     logger.warning(f"[POST_DECISION] V8-DLG-10: Failed to build prepared_prompt for {intent.speaker}: {_e}")
 
+            # S197: Конвертация Proposition в dict для сериализуемого DialogueRequest
+            _prop = getattr(intent, "proposition", None)  # noqa: ENIGMA002
+            _prop_data = None
+            if _prop:
+                _prop_data = {
+                    "subject_id": _prop.subject_id,
+                    "predicate": _prop.predicate.value,
+                    "object_id": _prop.object_id,
+                    "polarity": _prop.polarity
+                }
+
             _req = DialogueRequest(
                 topic=intent.topic,
                 target_id=_target_id,
                 exposure=intent.exposure_level,
-                intent_type=_intent_type,  # BUG-PERC-032 FIX: Используем перехваченный _intent_type (approach если нет STM)
+                intent_type=_intent_type,
                 emotional_state=intent.emotional_state,
                 npc_npc_context=_history_text,
                 thread_id=_thread_id,
                 prepared_prompt=_prepared_prompt,
+                proposition=_prop_data,
             )
 
+            # M-30 FIX: Добавляем counter в task_id для предотвращения коллизий
+            _task_counter = len(ctx.communication_intents)
             _task = QueuedTask(
-                task_id=f"task-{ctx.tick_number}-{intent.speaker}-dlg",
+                task_id=f"task-{ctx.tick_number}-{intent.speaker}-{_task_counter}-dlg",
                 tick=ctx.tick_number,
-                counter=len(ctx.communication_intents),
+                counter=_task_counter,
                 kind=TaskKind.DIALOGUE,
                 priority=TaskPriority.NORMAL,
                 creator_system="DecisionHub",
@@ -153,6 +167,12 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
 
             if "pending_tasks" not in ctx.scene_state:
                 ctx.scene_state["pending_tasks"] = []
+            
+            # M-29 FIX: Очищаем pending_tasks от старых задач (оставляем только текущего тика)
+            ctx.scene_state["pending_tasks"] = [
+                t for t in ctx.scene_state["pending_tasks"]
+                if t.get("tick", 0) >= ctx.tick_number - 1
+            ]
             # Ручная сериализация, чтобы избежать проблем с frozen dataclasses и Enums
             _task_dict = {
                 "task_id": _task.task_id,
@@ -173,6 +193,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "npc_npc_context": _req.npc_npc_context,
                     "thread_id": _req.thread_id,
                     "prepared_prompt": _req.prepared_prompt, # V8-DLG-10 FIX
+                    "proposition": _req.proposition, # S197: Добавлено для сериализации
                 },
                 "created_tick": _task.created_tick,
             }
@@ -182,11 +203,11 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
         event = adapter.to_event(intent)
 
         # ADR-O-310: Windup Write Gate
-        if getattr(intent, "intent_type", "") == "attack":
+        if getattr(intent, "intent_type", "") == "attack":  # noqa: ENIGMA002
             from app.domain.action_windup import ActionWindup, WindupStatus
 
-            _actor_id = getattr(intent, "speaker", "")
-            _target_id = getattr(intent, "target_id", "")
+            _actor_id = getattr(intent, "speaker", "")  # noqa: ENIGMA002
+            _target_id = getattr(intent, "target_id", "")  # noqa: ENIGMA002
 
             if _actor_id and _target_id:
                 # B1.5-FIX: Изоляция по campaign_id (ключ - кортеж).
@@ -203,7 +224,6 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 )
 
                 if not _has_active:
-                    import uuid
 
                     # DEBT-310.1: Сохраняем сам интент, генерируем ID для него.
                     _intent_id = uuid.uuid4().hex
@@ -266,8 +286,8 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                             windup.held_intent_id, None
                         )
                         if _held_intent:
-                            _actor_id = getattr(_held_intent, "speaker", "")
-                            _target_id = getattr(_held_intent, "target_id", "")
+                            _actor_id = getattr(_held_intent, "speaker", "")  # noqa: ENIGMA002
+                            _target_id = getattr(_held_intent, "target_id", "")  # noqa: ENIGMA002
 
                             # DEBT-310.2: Minimal Guard - Stale Intent Validation
                             _is_stale = False
@@ -351,9 +371,8 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
             if windup.status == WindupStatus.PENDING:
                 updated_windups.append(windup)
 
-        orchestrator._windup_registry[_reg_key] = [
-            w for w in updated_windups if w.status == WindupStatus.PENDING
-        ]
+        # H-37 FIX: Сохраняем все ветки (PENDING, COMPLETED, INTERRUPTED) для audit trail.
+        orchestrator._windup_registry[_reg_key] = updated_windups
 
     if executed_windups > 0:
         logger.info(

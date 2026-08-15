@@ -133,7 +133,7 @@ class SqliteMemoryStore:
                 (entry_id, collection, timestamp, payload_json),
             )
             self._conn.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error(f"[SQLITE] append to {collection} failed: {e}")
             self._conn.rollback()
         return entry_id
@@ -151,7 +151,7 @@ class SqliteMemoryStore:
                 entry["timestamp"] = row["timestamp"]
                 result.append(entry)
             return result
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error(f"[SQLITE] recent from {collection} failed: {e}")
             return []
 
@@ -214,7 +214,7 @@ class SqliteMemoryStore:
                 ),
             )
             self._conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError, TypeError) as e:
             logger.error(f"[SQLITE] save_event_memory failed: {e}")
             self._conn.rollback()
 
@@ -243,7 +243,7 @@ class SqliteMemoryStore:
                 d["is_compressed"] = bool(d["is_compressed"])
                 result.append(d)
             return result
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error(f"[SQLITE] load_event_memories failed: {e}")
             return []
 
@@ -297,7 +297,7 @@ class SqliteMemoryStore:
                     ),
                 )
             self._conn.commit()
-        except Exception as e:
+        except (sqlite3.Error, json.JSONDecodeError, TypeError) as e:
             logger.error(f"[SQLITE] batch save failed for {npc_id}: {e}")
             self._conn.rollback()
 

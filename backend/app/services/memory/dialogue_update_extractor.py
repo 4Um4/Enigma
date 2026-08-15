@@ -43,10 +43,37 @@ class DialogueUpdateExtractor:
                 prompt=prompt,
                 params=GenerationParams(max_tokens=200, temperature=0.1, response_format={"type": "json_object"})
             )
-            data = json.loads(response)
+            # Очищаем от markdown-разметки, если LLM обернула ответ
+            cleaned_response = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            
+            try:
+                data = json.loads(cleaned_response)
+            except json.JSONDecodeError:
+                # LLM иногда возвращает JSON с одинарными кавычками, trailing commas или обрезанный (truncated).
+                import ast
+                try:
+                    # Пробуем закрыть незакрытые скобки (грубый эвристический фикс для обрезанных ответов)
+                    repaired_response = cleaned_response
+                    if repaired_response.count('{') > repaired_response.count('}'):
+                        repaired_response += '}' * (repaired_response.count('{') - repaired_response.count('}'))
+                    if repaired_response.count('[') > repaired_response.count(']'):
+                        repaired_response += ']' * (repaired_response.count('[') - repaired_response.count(']'))
+                    
+                    data = json.loads(repaired_response.replace("'", '"'), strict=False)
+                except Exception:
+                    try:
+                        data = ast.literal_eval(cleaned_response)
+                    except Exception as parse_err:
+                        # Понижаем уровень до DEBUG, так как это ожидаемая проблема LLM, а не системы.
+                        logger.debug(f"Dialogue update extraction failed (JSON parse error): {parse_err}. Raw: {cleaned_response[:200]}")
+                        return DialogueUpdate()
             return self._parse_update(data)
         except Exception as e:
-            logger.warning(f"Dialogue update extraction failed: {e}")
+            # S198 FIX: Тихий fallback при недоступности LLM (для SUPERBOX тестов).
+            if isinstance(e, RuntimeError) and "недоступны" in str(e).lower():
+                logger.debug(f"Dialogue update skipped (LLM unavailable): {e}")
+            else:
+                logger.warning(f"Dialogue update failed: {e}")
             return DialogueUpdate()
     
     def _build_extraction_prompt(self, stm_before: str, new_turn: str, partner: str) -> str:

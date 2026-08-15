@@ -33,7 +33,6 @@ class CrystallizedBeliefStore:
             return
 
         if not self._campaign_id:
-            self._loaded = True
             return
 
         try:

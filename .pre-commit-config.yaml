@@ -1,0 +1,45 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: enigma-domain-purity
+        name: ENIGMA Domain Purity (§1.2)
+        entry: python scripts/lint_domain_purity.py
+        language: system
+        pass_filenames: false
+
+      - id: enigma-wall-clock
+        name: ENIGMA Wall-Clock Isolation (§15)
+        entry: python scripts/lint_wall_clock.py
+        language: system
+        pass_filenames: false
+
+      - id: enigma-kernel-rng
+        name: ENIGMA Kernel RNG (ADR-O-301)
+        entry: python scripts/lint_kernel_rng.py
+        language: system
+        pass_filenames: false
+
+      - id: enigma-epistemic-boundary
+        name: ENIGMA Epistemic Boundary (§17)
+        entry: python scripts/lint_epistemic_boundary.py
+        language: system
+        pass_filenames: false
+
+      - id: enigma-ast-arch
+        name: ENIGMA AST Architecture Rules (§1)
+        entry: python scripts/lint_enigma_ast.py
+        language: system
+        pass_filenames: false
+
+      - id: enigma-pycache-clean
+        name: ENIGMA __pycache__ clean
+        entry: bash -c 'find backend/ frontend/ -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true'
+        language: system
+        pass_filenames: false

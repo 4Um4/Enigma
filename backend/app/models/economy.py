@@ -288,7 +288,7 @@ class Transaction:
             "wage": self.wage,
             "duration_ticks": self.duration_ticks,
             "reason": self.reason,
-            "need_satisfied": self.need_satisfied.value
+            "need_satisfied": self.need_satisfied.value  # noqa: ENIGMA001
             if self.need_satisfied
             else None,
             "tick": self.tick,

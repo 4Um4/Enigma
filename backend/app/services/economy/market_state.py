@@ -98,7 +98,7 @@ class RandomMarketState(MarketState):
         # BUG-CORE-023 FIX: Детерминированный KernelRNG для воспроизводимости экономики.
         # tick=0 используется как базовый seed, так как MarketState — долгоживущий объект.
         from app.services.npc.kernel_rng import KernelRNG
-        self._rng = rng or KernelRNG(tick=0, npc_id="market_state")
+        self._rng = rng or KernelRNG(tick=0, npc_id="market_state", salt="economy_market")
         self._phase: MarketPhase = MarketPhase.QUIET
         self._visits_this_wave: int = 0
         self._max_visits_this_wave: int = self._rng.randint(

@@ -45,13 +45,13 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     )
     ctx.scene_changes = changes or []
     # Заполняем полные стейты для фаз 3-6, 10 (Устав §3.1)
-    ctx.npc_states = engine.get_npc_states(ctx.campaign_id)
+    ctx.npc_states = engine.get_npc_states(ctx.campaign_id) or []
     # ADR-002: Единый мутатор работает с all_npcs_raw. В idle-пути это те же данные, что и npc_states
     # ADR-030: Сохраняем аватара игрока, если он был передан в контексте (от GameLoop),
     # так как LifeEngine не кэширует аватара.
     if ctx.npc_states:
         _player_entry = next(
-            (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+            (n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == "player"), None
         )
         ctx.all_npcs_raw = ctx.npc_states
         if _player_entry:
@@ -60,7 +60,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             ]
             ctx.all_npcs_raw.append(_player_entry)
     else:
-        ctx.all_npcs_raw = ctx.npc_states
+        ctx.all_npcs_raw = ctx.npc_states or []
     if changes and orchestrator._scene_manager:
         orchestrator._apply_with_shadow_observation(
             ctx, changes, phase_label="IDLE_COGNITIVE"

@@ -290,7 +290,7 @@ class CombatSubscriber:
 
         # Если intensity не указана, берём из ACTION_INTENSITY
         if "force" not in payload and "intensity" not in payload:
-            event_type_str = getattr(event, "type", "").lower()
+            event_type_str = getattr(event, "type", "").lower()  # noqa: ENIGMA002
             intensity = ACTION_INTENSITY.get(event_type_str, 0.2)
             force = intensity * _DEFAULT_FORCE_SCALE
 

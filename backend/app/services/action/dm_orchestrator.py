@@ -101,7 +101,7 @@ class DMOrchestrator:
         # --- Этап 3: Дополнительная валидация (Scene-based) ---
         # Проверка: цель NPC реально видит игрока?
         # ADR-O-112: Физический контакт отменяет LOS — если игрока бьют, он "видит" атакующего
-        _is_physical_contact = router_result.raw_event and getattr(
+        _is_physical_contact = router_result.raw_event and getattr(  # noqa: ENIGMA002
             router_result.raw_event, "event_type", ""
         ) in ("player_attacks", "combat")
         if (

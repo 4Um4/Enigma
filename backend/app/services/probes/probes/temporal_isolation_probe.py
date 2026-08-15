@@ -15,7 +15,7 @@ class TemporalIsolationProbe(Probe):
         
         if hash_before is not None and hash_after is not None:
             if hash_before != hash_after:
-                _mutated = getattr(ctx, "tick_state_mutated_fields", None) or []
+                _mutated = getattr(ctx, "tick_state_mutated_fields", None) or []  # noqa: ENIGMA002
                 return ProbeResult(
                     name=self.name,
                     severity=self.severity,

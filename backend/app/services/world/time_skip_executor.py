@@ -113,7 +113,7 @@ class SignificanceDetector:
         # Детекция боя через shock_impulse убрана — это может быть падение или реакция, а не бой.
         # Полагаемся только на явные типы событий от ядра (если они появятся) и абсолютные значения.
         for delta in result_dto.significant_events:
-            event_type = getattr(delta, "source", None) or (
+            event_type = getattr(delta, "source", None) or (  # noqa: ENIGMA002
                 delta.get("source", "") if isinstance(delta, dict) else ""
             )
             if event_type in self.SIGNIFICANT_EVENT_TYPES:
@@ -196,7 +196,7 @@ class SemanticMilestoneFilter:
 
         # 1. Event-based milestones
         for event in result_dto.significant_events:
-            event_type = getattr(event, "source", None) or (
+            event_type = getattr(event, "source", None) or (  # noqa: ENIGMA002
                 event.get("source") if isinstance(event, dict) else ""
             )
             if event_type in self.MILESTONE_TYPES:
@@ -302,7 +302,11 @@ class SkipPolicyA:
                 spatial_service=spatial_service,
                 npc_services=npc_services,
             )
-            event_log.extend(result.significant_events)
+            # M-21 FIX: Защита от None. M-22 FIX: Проверка статуса.
+            if getattr(result, "status", "ok") == "error":
+                logger.error(f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}")
+                break
+            event_log.extend(result.significant_events or [])
 
         return TimeSkipResult(
             final_state=_state,
@@ -347,7 +351,11 @@ class SkipPolicyB:
                 spatial_service=spatial_service,
                 npc_services=npc_services,
             )
-            event_log.extend(result.significant_events)
+            # M-21 FIX: Защита от None. M-22 FIX: Проверка статуса.
+            if getattr(result, "status", "ok") == "error":
+                logger.error(f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}")
+                break
+            event_log.extend(result.significant_events or [])
 
             _curr_npcs = get_npcs(campaign_id)
             significant = self._detector.check(_tick, result, _prev_npcs, _curr_npcs)
@@ -408,7 +416,11 @@ class SkipPolicyC:
                 spatial_service=spatial_service,
                 npc_services=npc_services,
             )
-            event_log.extend(result.significant_events)
+            # M-21 FIX: Защита от None. M-22 FIX: Проверка статуса.
+            if getattr(result, "status", "ok") == "error":
+                logger.error(f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}")
+                break
+            event_log.extend(result.significant_events or [])
 
             _curr_npcs = get_npcs(campaign_id)
             milestone = self._filter.check(

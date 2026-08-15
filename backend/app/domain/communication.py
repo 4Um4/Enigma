@@ -5,6 +5,7 @@
 
 from dataclasses import dataclass
 from typing import Literal, Optional
+from app.domain.epistemology import Proposition
 
 # ADR-O-311: Exposure Default Contract — радиус выводится из semantic.
 _EXPOSURE_DEFAULT_RADIUS: dict[str, float] = {
@@ -64,6 +65,8 @@ class DialogueRequest:
     thread_id: str = ""
     # V8-DLG-10 FIX: Готовый промпт от VerbalizationContext, собранный в post_decision
     prepared_prompt: str = ""
+    # S197: Эпистемический мост. Если реплика несёт утверждение (claim), оно передаётся сюда.
+    proposition: Optional[dict] = None
 
 
 @dataclass(frozen=True)
@@ -88,6 +91,9 @@ class CommunicationIntent:
     )
     thread_id: str = ""  # BUG-DL-04: ID нити диалога
     priority: float = 0.5  # H-28 FIX: DRF overlay для модуляции приоритета реплик
+    # S197: Causal Provenance. Утверждение, породившее этот Intent.
+    # Пробрасывается из EpistemicContext через DecisionHub в DialogueRequest.
+    proposition: Optional[Proposition] = None
 
     def __post_init__(self) -> None:
         # Устав 7.2: пустой topic = LLM плывёт по ассоциациям

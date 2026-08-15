@@ -29,6 +29,7 @@ class PipelineContext:
     campaign_id: str
     world_id: str
     location: str
+    player_name: str = "player"
 
     # ── Состояние мира ─────────────────────────────────────────────
     scene_state: Dict[str, Any]
@@ -56,6 +57,7 @@ class PipelineContext:
 
     # ── Игрок и его действие ───────────────────────────────────────
     player: Dict[str, Any] = field(default_factory=dict)
+    player_name: str = "player"
     player_markers: List[Any] = field(default_factory=list)
     player_target_id: str = ""
     player_target_name: str = ""

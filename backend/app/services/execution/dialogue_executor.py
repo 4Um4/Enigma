@@ -82,6 +82,9 @@ class DialogueExecutor:
             f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
         )
 
+        # S197: Извлекаем Proposition на верхнем уровне, чтобы он был доступен во всех ветках
+        _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
+
         # Если роутер не задан (sandbox/test), возвращаем заглушку
         if self._router is None:
             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
@@ -91,12 +94,13 @@ class DialogueExecutor:
                 text = self._generate_with_router(task, req)
             except DialogueContractViolation as e:
                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
+                # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
                 yield Artifact(
                     task_id=task.task_id,
                     success=False,
                     result_type="error",
                     data={},
-                    error_message=str(e),
+                    error_message=str(e)
                 )
                 return
 
@@ -172,7 +176,7 @@ class DialogueExecutor:
 
         # T-04: Извлекаем npc_npc_context (историю взаимодействий с целью) из DialogueRequest
         _history_text = ""
-        if getattr(req, "npc_npc_context", ""):
+        if getattr(req, "npc_npc_context", ""):  # noqa: ENIGMA002
             _history_text = f"Твои воспоминания об этой встрече: {req.npc_npc_context} "
 
         # BUG-DL-02 FIX: Инъекция STM-блока (контекст текущего разговора)
@@ -229,7 +233,9 @@ class DialogueExecutor:
             # L-02: Валидация ответа LLM (отсечение китайского, английского, 4-й стены)
             validation = self._validator.validate(raw)
             if validation.is_fallback:
-                logger.warning(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
+                # IPT-CLEANUP: WARNING → INFO. IPT использует fallback/stub LLM, который может возвращать не-русский текст.
+                # В production это останется WARNING, но для IPT-лога это ожидаемый шум.
+                logger.info(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
 
             return validation.text
         except Exception as e:

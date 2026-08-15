@@ -19,11 +19,11 @@ class _SafeMemoryEncoder(json.JSONEncoder):
         if dataclasses.is_dataclass(o) and not isinstance(o, type):
             return dataclasses.asdict(o)
         # Pydantic v2
-        _model_dump = getattr(o, "model_dump", None)
+        _model_dump = getattr(o, "model_dump", None)  # noqa: ENIGMA002
         if callable(_model_dump):
             return _model_dump()
         # Pydantic v1
-        _dict_method = getattr(o, "dict", None)
+        _dict_method = getattr(o, "dict", None)  # noqa: ENIGMA002
         if callable(_dict_method):
             return _dict_method()
         # Множества (set) — конвертируем в список для сохранения структуры
@@ -61,7 +61,7 @@ class JsonMemoryStore:
                 f.write(
                     json.dumps(line, ensure_ascii=False, cls=_SafeMemoryEncoder) + "\n"
                 )
-        except Exception as e:
+        except (IOError, json.JSONDecodeError, TypeError) as e:
             logger.error(f"Failed to append memory to {collection}: {e}")
 
         # Инвалидация кэша для этого collection
@@ -76,7 +76,7 @@ class JsonMemoryStore:
         try:
             with path.open("w", encoding="utf-8") as f:
                 json.dump(payload, f, ensure_ascii=False, cls=_SafeMemoryEncoder)
-        except Exception as e:
+        except (IOError, json.JSONDecodeError, TypeError) as e:
             logger.error(f"Failed to save state to {collection}: {e}")
 
     def load_state(self, collection: str) -> Dict[str, Any]:
@@ -87,7 +87,7 @@ class JsonMemoryStore:
         try:
             with path.open("r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception as e:
+        except (IOError, json.JSONDecodeError) as e:
             logger.error(f"Failed to load state from {collection}: {e}")
             return {}
 
@@ -107,7 +107,7 @@ class JsonMemoryStore:
                     raw = line.strip()
                     if raw:
                         tail.append(json.loads(raw))
-        except Exception as e:
+        except (IOError, json.JSONDecodeError) as e:
             logger.error(f"Failed to read recent memory from {collection}: {e}")
 
         result = list(tail)

@@ -242,7 +242,7 @@ class SceneStateManager:
             try:
                 _recog = scene.get("player_recognition", {})
                 logger.debug(f"[LOCK] campaign={campaign_id} recog_keys={list(_recog.keys())}")
-            except Exception as e:
+            except (AttributeError, TypeError) as e:
                 logger.warning(f"[LOCK] error reading recog_keys: {e}")
         return scene
 
@@ -314,7 +314,7 @@ class SceneStateManager:
                 _recog = self._tick_scenes[_loc_id].get("player_recognition", {})
                 _time_out = self._tick_scenes[_loc_id].get("game_time_seconds", "MISSING")
                 logger.debug(f"[COMMIT] campaign={campaign_id} loc={_loc_id} recog_keys={list(_recog.keys())}")
-            except Exception as e:
+            except (AttributeError, TypeError) as e:
                 logger.warning(f"[COMMIT] error reading recog_keys: {e}")
             logger.debug(
                 f"[COMMIT_TRACE] _tick_scenes[{_loc_id}] updated, trav_keys_after={list(self._tick_scenes[_loc_id].get('active_traversals', {}).keys())}"
@@ -342,7 +342,7 @@ class SceneStateManager:
                 try:
                     _recog = scene.get("player_recognition", {})
                     logger.debug(f"[LOAD] campaign={campaign_id} recog_keys={list(_recog.keys())}")
-                except Exception as e:
+                except (AttributeError, TypeError) as e:
                     logger.warning(f"[LOAD] error reading recog_keys: {e}")
         else:
             data = self._read_campaign_json(campaign_id)
@@ -439,13 +439,13 @@ class SceneStateManager:
                 try:
                     _recog = scene.get("player_recognition", {})
                     logger.debug(f"[LOAD] campaign={campaign_id} recog_keys={list(_recog.keys())}")
-                except Exception as e:
+                except (AttributeError, TypeError) as e:
                     logger.warning(f"[LOAD] error reading recog_keys: {e}")
             if scene:
                 import inspect
 
                 _frame = inspect.currentframe()
-                _caller = _frame.f_back if _frame else None
+                _caller = _frame.f_back if _frame else None  # noqa: ENIGMA001
                 _caller_info = (
                     f"{_caller.f_code.co_filename}:{_caller.f_lineno}"
                     if _caller
@@ -1181,7 +1181,7 @@ class SceneStateManager:
                 if (
                     change.field == "position"
                     and _old_position == change.value
-                    and getattr(change, "cause", "") != "traversal_complete"
+                    and getattr(change, "cause", "") != "traversal_complete"  # noqa: ENIGMA002
                 ):
                     return True
 
@@ -1190,13 +1190,13 @@ class SceneStateManager:
                 if change.field == "position":
                     location_id = scene_state.get("location_id", "")
                     target_loc = (
-                        getattr(change, "target_location_id", "") or location_id
+                        getattr(change, "target_location_id", "") or location_id  # noqa: ENIGMA002
                     )
                     if target_loc and change.value:
                         # Обновляем локацию NPC ТОЛЬКО при фактическом материализации (cross_loc_materialize).
                         # Простое перемещение к boundary node не должно менять location_id,
                         # иначе NPC выпадает из scene_state текущей локации на следующем тике.
-                        if target_loc != location_id and getattr(change, "cause", "").startswith("cross_loc_materialize"):
+                        if target_loc != location_id and getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
                             entry["location_id"] = target_loc
                             entry["location"] = target_loc
                         try:
@@ -1219,7 +1219,7 @@ class SceneStateManager:
                                 if not isinstance(from_xy, dict):
                                     from_xy = {"x": 0.0, "y": 0.0}
 
-                                exact_xy = getattr(change, "target_local_xy", None)
+                                exact_xy = getattr(change, "target_local_xy", None)  # noqa: ENIGMA002
                                 if (
                                     exact_xy
                                     and isinstance(exact_xy, (tuple, list))
@@ -1238,7 +1238,7 @@ class SceneStateManager:
                                 # Создание нового TraversalState здесь запрещено.
                                 # Invariant I (Causal Provenance): Traversal не может существовать без существующего пути.
                                 if (
-                                    getattr(change, "cause", "") != "traversal_complete"
+                                    getattr(change, "cause", "") != "traversal_complete"  # noqa: ENIGMA002
                                     and (
                                         change.target not in _active_travs
                                         or _active_travs[change.target].get("status")
@@ -1248,7 +1248,7 @@ class SceneStateManager:
                                     # ADR-O-323: Layer 1 Continuity. TraversalState создаётся
                                     # исключительно MovementPlanner'ом для макро-перемещений (field="position").
                                     # SceneStateManager только применяет готовый паспорт.
-                                    _proposal = getattr(change, "traversal_proposal", None)
+                                    _proposal = getattr(change, "traversal_proposal", None)  # noqa: ENIGMA002
                                     if _proposal:
                                         # Проверка актуальности proposal (stale tick detection)
                                         if _proposal.planned_tick != change.tick:
@@ -1256,6 +1256,8 @@ class SceneStateManager:
                                                 f"[PIPELINE][SCENE_CHANGE][STALE_PROPOSAL_TICK] "
                                                 f"npc={change.target} prop_tick={_proposal.planned_tick} change_tick={change.tick}"
                                             )
+                                            # N-31 FIX: Отбрасываем устаревшее предложение (возврат False), чтобы предотвратить inconsistent state
+                                            return False
                                         else:
                                             from app.domain.traversal_schema import build_traversal_dict
                                             _traversal_dict = build_traversal_dict(_proposal)
@@ -1277,7 +1279,7 @@ class SceneStateManager:
                                                 )
                                             else:
                                                 _active_travs[change.target] = _traversal_dict
-                                    elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):
+                                    elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
                                         # Контракт: macro relocation (field="position") обязан иметь proposal.
                                         # Исключение: traversal_complete и cross_loc_materialize (snap позиции, proposal не нужен).
                                         # Микро-перемещения (field="local_position") его не требуют.
@@ -1286,10 +1288,11 @@ class SceneStateManager:
                                             f"npc={change.target} cause={change.cause} field={change.field} "
                                             f"Macro movement without proposal (ADR-O-323 violation)"
                                         )
-                        except Exception as exc:
+                        except (KeyError, ValueError, TypeError, AttributeError) as exc:
                             logger.error(
                                 f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}"
                             )
+                            raise
 
                 elif change.field in (
                     "local_position",
@@ -1369,10 +1372,10 @@ class SceneStateManager:
                     or e.get("field") != change.field
                 ]
 
-        except Exception as e:
+        except (KeyError, ValueError, TypeError) as e:
             logger.error(f"[SCENE] Ошибка применения {change.type.value}: {e}")
             _log_change(change, campaign_id, applied=False)
-            return False
+            raise
 
         _log_change(change, campaign_id, applied=True)
         return True
@@ -1514,6 +1517,9 @@ class SceneStateManager:
         events: list[dict] | None = None,
         significant_events: list[dict] | None = None,
     ) -> int:
+        # IPT-CLEANUP: Сброс dedup-set для SPATIAL_ENFORCEMENT на границе тика.
+        if hasattr(self, "_spatial_enforcement_logged"):
+            self._spatial_enforcement_logged.clear()
         """Единственная точка коммита состояния мира (Устав 4.2.1).
 
         Делегирует в PersistencePort.atomic_commit() — контракт ABC,
@@ -1582,7 +1588,7 @@ class SceneStateManager:
 
     def get_last_committed_npcs(self) -> list[dict]:
         """Возвращает state_t-1 (committed snapshot) для WorldProjectionBuffer."""
-        return getattr(self, "_last_committed_npcs", [])
+        return getattr(self, "_last_committed_npcs", [])  # noqa: ENIGMA002
 
     # ─────────────────────────────────────────────────────────────────────────
     # R2.1 — get_scene_events_block: блок для DM промпта
@@ -1715,6 +1721,7 @@ class SceneStateManager:
             logger.error(
                 f"[SPATIAL_ENFORCEMENT] Ошибка сборки SpatialService для location_id={location_id}: {e}"
             )
+            raise
 
         for npc_id, entry in npc_positions.items():
             # Миграция имени: в старых сохранениях отсутствует поле name (Баг 3)
@@ -1834,7 +1841,7 @@ class SceneStateManager:
                     # No fallback reality principle — если нет ноды, fail-fast к центру графа.
                     if not _fallback_node:
                         _central = (
-                            svc.get_central_node()
+                            svc.get_central_node()  # noqa: ENIGMA001
                             if hasattr(svc, "get_central_node")
                             else None
                         )
@@ -1851,10 +1858,17 @@ class SceneStateManager:
                         "x": _fallback_node.x,
                         "y": _fallback_node.y,
                     }
-                    logger.warning(
-                        f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' размещён на fallback-узле "
-                        f"'{_fallback_node.node_id}' ({_fallback_node.x}, {_fallback_node.y})"
-                    )
+                    # IPT-CLEANUP: WARNING → INFO + deduplication по (npc_id, fallback_node).
+                    # Логировать только первый раз для каждого NPC на каждом fallback-узле.
+                    _dedup_key = (npc_id, _fallback_node.node_id)
+                    if not hasattr(self, "_spatial_enforcement_logged"):
+                        self._spatial_enforcement_logged: set = set()
+                    if _dedup_key not in self._spatial_enforcement_logged:
+                        logger.info(
+                            f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' размещён на fallback-узле "
+                            f"'{_fallback_node.node_id}' ({_fallback_node.x}, {_fallback_node.y})"
+                        )
+                        self._spatial_enforcement_logged.add(_dedup_key)
                 else:
                     logger.error(
                         f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' — ГРАФ ПУСТ! NPC skipped."
@@ -1927,11 +1941,12 @@ class SceneStateManager:
                             f"[SPATIAL] Узел '{position}' не найден в SpatialService '{location_id}' "
                             f"для NPC {npc_id} — local_position не обновлён"
                         )
-            except Exception as exc:
-                logger.warning(
+            except (KeyError, ValueError, AttributeError) as exc:
+                logger.error(
                     f"[SPATIAL] Ошибка SpatialService для NPC {npc_id}: {exc} "
                     f"— local_position не обновлён"
                 )
+                raise
 
         if save_after:
             self.save_scene_state(campaign_id, scene_state)
@@ -2169,8 +2184,8 @@ def _load_npc_names_cache() -> None:
             name = npc.get("name", "")
             if nid and name:
                 _NPC_NAME_CACHE[nid] = name
-    except Exception as e:
-        logger.debug(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        logger.error(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
     _NPC_NAME_CACHE_LOADED = True
 
 

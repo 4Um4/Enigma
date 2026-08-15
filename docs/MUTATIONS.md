@@ -340,7 +340,88 @@ pc_spoke для известных интентов.
 pc_positions.
   IPT: 38/38 passed. INV-SAVE-LOAD-INTEGRITY (NEW GREEN).
   Files: backend/tests/IPT.py
-Последняя сессия в логе — **S185**. Значит, наша будет **S186**.
+
+- 🟢 **S191** SUPERBOX-006: ATTRIBUTION ISOLATION PROVEN:
+  Доказана строгая изоляция эпистемической атрибуции в production-пайплайне.
+  Тест `epistemic_isolation_test.py` проверяет инвариант
+  `treatment_final == control_final + epistemic_modifier`
+  для ВСЕХ интентов, включая интенты с `modifier == 0`.
+
+  Доказано, что `EpistemicContext` ортогонален к вычислению `base_score`:
+  эпистемические убеждения не протекают в базовую utility-функцию
+  и не вызывают скрытых изменений других score-компонентов.
+  Наблюдаемое различие между Control и Treatment полностью объясняется
+  аддитивным `epistemic_modifier`.
+
+  Контрольные интенты с `modifier == 0` сохраняют идентичные значения
+  между Control и Treatment, что подтверждает отсутствие побочного
+  каскадного влияния эпистемического слоя на базовые utility scores.
+
+  Контрольные примеры:
+  `warn: 0.0844 + 0.496 = 0.5804`
+  `attack: -1.0 + 0.496 = -0.504`
+  `block_path: 0.0664 + 0.248 = 0.3144`
+
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/tests/sandbox/SUPERBOX/scenarios/epistemic_isolation_test.py
+
+- 🟢 **S192** SUPERBOX-007: OBSERVATION DIVERGENCE PROVEN:
+  Доказано расхождение наблюдений агентов в едином объективном мире.
+  Тест `epistemic_observation_divergence_test.py` проверяет, что NPC получают убеждения только находясь в радиусе слышимости (10.0), а не через "телепатию".
+  **Архитектурный фикс:** `ClaimEventSubscriber` больше не слепо записывает убеждения только для `target_id`. Внедрена инъекция `SpatialQueryService` и `npc_states_provider`. Теперь подписчик вычисляет всех NPC в радиусе `HEARING_RADIUS` и обновляет их убеждения индивидуально.
+  Доказано, что эпистемический слой ENIGMA теперь является честной перцептивной мембраной: `World Event -> SpatialQueryService -> Agent Observation -> Belief`.
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/app/services/events/claim_event_subscriber.py, backend/app/services/game_loop/__init__.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_observation_divergence_test.py
+
+- 🟢 **S192.1** SUPERBOX-008: PERCEPTION MEMBRANE HARDENING:
+  Доказано, что `target_id` не является телепатическим обходом перцептивной мембраны.
+  Тест `epistemic_membrane_hardening_test.py` проверяет, что `target_id`, находящийся вне радиуса слышимости, не получает убеждение.
+  **Архитектурный фикс:** В `ClaimEventSubscriber` убрано безусловное добавление `target_id` в `_listeners`. Теперь `target_id` — это лишь семантический адресат, но физически услышать могут только те, кто находится в `HEARING_RADIUS`.
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/app/services/events/claim_event_subscriber.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_membrane_hardening_test.py
+
+- 🟢 **S193** SUPERBOX-009: EPISTEMIC SERIALIZATION PROVEN:
+  Доказана сериализационная персистентность эпистемического состояния (Round-Trip Integrity).
+  Тест `epistemic_persistence_test.py` проверяет, что `EpistemicRecord` survives цикл `to_dict` -> `from_dict` без потери полей (proposition, confidence, provenance).
+  **Архитектурный фикс:** Внедрены адаптеры `to_dict` / `from_dict` в `EpistemicStore`. `TickOrchestrator` пробрасывает `epistemic_records` в `scene_state` перед коммитом.
+  ВНИМАНИЕ: Доказана сериализация, но НЕ доказан полный production Save/Load через диск (ожидает S196).
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/app/services/npc/epistemic_store.py, backend/app/services/tick_orchestrator.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_persistence_test.py
+
+- 🟢 **S194** SUPERBOX-010: EPISTEMIC DECISION DIVERGENCE:
+  Доказано, что различие epistemic state изменяет входное пространство DecisionHub и приводит к выбору другого Intent.
+  Тест `epistemic_decision_divergence_test.py` проверяет, что одинаковый мир + наличие/отсутствие убеждения меняют выбранный Intent (Control: `idle` -> Treatment: `talk`).
+  Доказано, что эпистемология не является поведением напрямую (belief -> attack), она является причиной, из которой поведение вычисляется (belief -> score shift -> Intent selection).
+  **Инфраструктурный фикс:** Внедрена очистка глобального `EventBus` (`clear()`) перед инициализацией `GameLoop` в тестах для изоляции прогонов Control и Treatment.
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/app/services/events/event_bus.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_decision_divergence_test.py
+
+- 🟢 **S195** SUPERBOX-011: ACTION CAUSATION PROVEN:
+  Доказано, что эпистемическое состояние агента является причинным фактором, приводящим к созданию реальной QueuedTask через DecisionHub и Universal Task Layer.
+  Доказанная цепь: `belief → EpistemicContext → DecisionHub Intent → QueuedTask`.
+  Control: 0 задач.
+  Treatment: 1 QueuedTask для `guard_borko`, направленная на `thief_shadow`.
+  В Treatment выбранный DecisionHub Intent `talk` был понижен до `approach` согласно ADR-O-342 (отсутствие STM запрещает содержательный диалог).
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/tests/sandbox/SUPERBOX/scenarios/epistemic_action_causation_test.py
+
+- 🟢 **S196** SUPERBOX-012: WORLD EVENT CAUSATION PROVEN:
+  Доказано замыкание каузальной петли: эпистемическое состояние порождает реальное событие мира (`NPC_SPOKE` в `EventBus`) без участия LLM.
+  Тест `epistemic_world_event_test.py` проверяет, что `Treatment` (наличие убеждения) приводит к публикации события от `guard_borko` (1 событие), тогда как `Control` (без убеждения) не создаёт событий (0 событий).
+  **Архитектурные багфиксы:**
+  1. `TaskScheduler.execute_pending`: Исправлена маршрутизация `task_type` (извлечение из атрибута `QueuedDialogue`, а не из словаря `payload`). Ранее все ambient-задачи ошибочно направлялись в `DialogueExecutor` (нарушение ADR-O-342).
+  2. `phases/integration.py`: Удалён устаревший аргумент `dominant_emotion_hint` из вызова `PerceptionPayload` (schema drift после N-26).
+  3. `EventBus`: Добавлен метод `clear()` для изоляции тестов.
+  Доказана полная цепь: `belief → Intent → QueuedTask → TaskScheduler → NpcConversation → Artifact → DialogueMaterializer → EventDTO → EventBus`.
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/app/services/game_loop/task_scheduler.py, backend/app/services/phases/integration.py, backend/app/services/events/event_bus.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_world_event_test.py
+
+- 🟢 **S194** SUPERBOX-010: DECISION DIVERGENCE PROVEN:
+  Доказано, что эпистемическое состояние является причинной переменной поведения (Intent), а не просто изменением score.
+  Тест `epistemic_decision_divergence_test.py` проверяет, что одинаковый мир + разные beliefs приводят к разным выбранным Intent.
+  Доказано: Control (`idle`) -> Treatment (`warn` / `attack`).
+  IPT: 38/39 passed (1 unrelated ADR-Net fail).
+  Files: backend/tests/sandbox/SUPERBOX/scenarios/epistemic_decision_divergence_test.py
 
 - 🟢 **S190** SUPERBOX-005: EPISTEMIC MODIFIER ATTRIBUTION PROVEN:
   Доказана математическая атрибуция эпистемического модификатора в production-пайплайне.

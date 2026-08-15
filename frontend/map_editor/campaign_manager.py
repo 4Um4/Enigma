@@ -8,6 +8,7 @@ path: /frontend/map_editor/campaign_manager.py
 
 import copy
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -135,6 +136,7 @@ class CampaignManager:
         result = self.dm.save(filename)
         if result:
             self._update_modified()
+            self._sync_to_runtime()
         return result
 
     def save_all_locations(self) -> int:
@@ -144,7 +146,52 @@ class CampaignManager:
             if self.dm.save(fname):
                 count += 1
         self._update_modified()
+        if count > 0:
+            self._sync_to_runtime()
         return count
+
+    def _sync_to_runtime(self):
+        """Синхронизирует карты с saves и build/staging, пересобирает кэш графа (spatial_registry.json)."""
+        if not self._campaign_dir or not self.current_campaign_name:
+            return
+        
+        campaign_name = self.current_campaign_name
+        source_dir = self._campaign_dir / "locations"
+        if not source_dir.exists():
+            return
+            
+        target_dirs = [
+            Path("saves") / campaign_name / "locations",
+            Path("build/staging/saves") / campaign_name / "locations",
+            Path("build/staging/frontend/map_editor/campaigns") / campaign_name / "locations"
+        ]
+        
+        for target_dir in target_dirs:
+            try:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                for src_file in source_dir.glob("*.json"):
+                    shutil.copy2(src_file, target_dir / src_file.name)
+            except Exception as e:
+                print(f"[EDITOR_SYNC] Warning: Failed to sync to {target_dir}: {e}")
+
+        # Принудительная пересборка SpatialRegistry через Orchestrator
+        try:
+            import sys
+            frontend_dir = Path(__file__).parent.parent
+            if str(frontend_dir) not in sys.path:
+                sys.path.insert(0, str(frontend_dir))
+            from spatial_compilation_orchestrator import SpatialCompilationOrchestrator
+            
+            # Удаляем старый артефакт, чтобы форсировать пересборку
+            artifact_path = self._campaign_dir / "compiled" / "spatial_registry.json"
+            if artifact_path.exists():
+                artifact_path.unlink()
+                
+            orch = SpatialCompilationOrchestrator()
+            orch.rebuild_if_needed(campaign_name)
+            print(f"[EDITOR_SYNC] SpatialRegistry rebuilt for {campaign_name}")
+        except Exception as e:
+            print(f"[EDITOR_SYNC] Warning: Failed to rebuild SpatialRegistry: {e}")
 
     def save_location_as(
         self, source_filename: str, new_filename: str

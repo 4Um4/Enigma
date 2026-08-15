@@ -50,8 +50,8 @@ class NpcDialogueSubscriber:
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
         if hasattr(event, "payload"):
-            speaker = getattr(event, "source", "")
-            payload = getattr(event, "payload", {}) or {}
+            speaker = getattr(event, "source", "")  # noqa: ENIGMA002
+            payload = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
         else:
             speaker = event.get("source", "")
             payload = event.get("payload", {})
@@ -129,6 +129,8 @@ class NpcDialogueSubscriber:
                 _session = self.memory.get_dialogue_session(_campaign_id, listener, partner_id=speaker)
                 _stm_before = _session.to_prompt_block()
                 _update = self._extractor.extract(_stm_before, text, speaker)
+                # S198 DIAGNOSTIC: Что извлёк LLM?
+                logger.warning(f"[S198_DIAG_C] DIALOGUE_UPDATE speaker={speaker} listener={listener} claims={getattr(_update, 'new_claims', None)}")
             
             self.memory.add_dialogue_turn(
                 campaign_id=_campaign_id,
