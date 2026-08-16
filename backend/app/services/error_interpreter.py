@@ -122,7 +122,7 @@ class ErrorInterpreter:
     def _get_fix_recommendation(self, error_code: str, context: Dict) -> str:
         fixes = {
             "timeout": [
-                "1. Проверьте llama-server: http://127.0.0.1:8181/health",
+                f"1. Проверьте llama-server: {settings.llama_cpp_server_url}/health",
                 "2. Увеличьте model_load_timeout_sec в config.py",
                 "3. Перезапустите backend/start_enigma.bat",
             ],

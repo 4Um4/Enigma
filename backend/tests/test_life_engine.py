@@ -241,7 +241,7 @@ class TestUpdateRoutine:
         # LifeEngine генерирует Intent, а MovementEngine резолвит его в пространстве.
         assert _intent is not None, "Должен быть сгенерирован MovementIntent для сна"
         assert _intent.location_id == "inn_rooms", "Торнин должен идти в inn_rooms"
-        assert _intent.target_node_id == "bed", "Торнин должен идти к кровати"
+        assert _intent.target_node_id == "inn_rooms:bed", "Торнин должен идти к кровате"
 
         # Данные NPC обновились (только активность, не пространственная мутация)
         assert npc["routine"]["current"] == "sleeping"

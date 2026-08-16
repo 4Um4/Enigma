@@ -256,6 +256,9 @@ class SqliteMemoryStore:
         """Atomic commit: все записи NPC за тик — одна транзакция (Закон 4.2.1)."""
         try:
             for i, d in enumerate(memories):
+                # Закон 4.2.1: Откат всей транзакции при невалидных данных (None вместо dict)
+                if not isinstance(d, dict):
+                    raise TypeError(f"Invalid memory data: expected dict, got {type(d)}")
                 mem_id = f"{npc_id}_seq_{d.get('sequence_id', i)}"
                 tags = d.get("tags", ())
                 known_by = d.get("known_by", ())

@@ -73,7 +73,6 @@ class SpeechScheduler:
         self._pair_last_speech_ts[pair_key] = now
         self._admitted_contexts[pair_key] = (causal_context_version, now)
 
-        logger.warning(f"[S198_DIAG_B] SPEECH_ADMITTED speaker={speaker_id} target={target_id} intent={intent_type}")
         logger.info(f"[SPEECH_SCHED] Admitted {speaker_id} -> {target_id} ({intent_type})")
         return True, "ADMITTED"
 

@@ -361,14 +361,14 @@ class PlayerAvatarService:
             behavior_mask=mask,
             trauma_markers=set(data.get("trauma_markers") or []),
             current_role=data.get("current_role", ""),
-            hp=int(data.get("hp", 0)),
-            max_hp=int(data.get("max_hp", 0)),
             conditions=conditions,
             wounds=wounds,
             posture=data.get("posture", "standing"),
+            # ADR-HP-UNIFICATION: hp/max_hp убраны из конструктора NPCState.
+            # Значения берутся из body_state (если есть) или из legacy hp/max_hp.
             # ADR-128: body_state — SSOT физиологии. Без этого injuries,
             # blood_loss, pain, shock_impulse теряются при каждой загрузке.
-            body_state=dict(data.get("body_state") or {}),
+            body_state={**{"current_hp": float(data.get("hp", 0)), "max_hp": float(data.get("max_hp", 0))}, **dict(data.get("body_state") or {})},
             # ADR-128: affective_load — интеграл давления. Без этого
             # эмоциональный pipeline сбрасывается в 0.0 при каждой загрузке.
             affective_load=float(data.get("affective_load", 0.0)),

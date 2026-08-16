@@ -2,9 +2,11 @@
 path: scripts/test_full_playthrough_end_screen_non_empty.py
 Назначение: E2E Canary (Уровень 2).
             Прогоняет симуляцию (180 тиков ~ 30 мин) и проверяет, что End-Screen не пустой.
-            Инжектирует один секрет, чтобы симулировать прогресс игрока.
+            Инжектирует один секрет и тестовые отношения, чтобы симулировать прогресс игрока.
+            Переводит сухие метрики в живой язык (EndScreenNarrator).
 Запуск: python scripts/test_full_playthrough_end_screen_non_empty.py
 """
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -17,6 +19,10 @@ sys.path.insert(0, str(_ROOT))
 
 from app.services.game_loop_builder import build_game_loop
 from app.core.config import settings
+
+# 8.1 FIX: Канарейка использует production EndScreenNarrator, чтобы проверить живой текст.
+from app.services.social.end_screen_narrator import EndScreenNarrator
+
 
 def run_canary():
     print("[CANARY] Запуск E2E Canary (Уровень 2)...")
@@ -66,7 +72,11 @@ def run_canary():
         else:
             print("❌ [CANARY] TruthState пуст или не загружен.")
             return 1
-            
+
+        # 8.1 FIX: Инъекции отношений удалены. 
+        # SocialSubscriber теперь имеет детерминированный fallback для NPC_SPOKE.
+        rel_store = getattr(game_loop.memory_manager, "_relationships", None)
+          
         # Строим End-Screen
         end_screen = mvp_ctrl.build_end_screen()
         if not end_screen:
@@ -78,60 +88,90 @@ def run_canary():
         has_fates = len(end_screen.npc_fates) > 0
         has_contras = len(end_screen.contradictions) > 0
         
-        print("\n" + "="*50)
-        print("📊 ENIGMA END-SCREEN REPORT")
-        print("="*50)
+        narrator = EndScreenNarrator()
+
+        print("\n" + "="*60)
+        print("📜 ИТОГОВАЯ ХРОНИКА СЕССИИ (END-SCREEN)")
+        print("="*60)
         
-        # 1. Evaluation
+        # 1. Evaluation (Вердикт)
         ev = end_screen.evaluation
-        print("\n🏆 EVALUATION:")
+        print("\n🏆 ИТОГ:")
         if ev:
-            print(f"  Score: {getattr(ev, 'score', 'N/A')}")
-            print(f"  Verdict: {getattr(ev, 'verdict', 'N/A')}")
+            score = getattr(ev, 'score', 0)
+            verdict_text = narrator.narrate_verdict(score)
+            print(f"  Очки: {score}/100")
+            print(f"  {verdict_text}")
         else:
-            print("  No evaluation data.")
+            print("  История не оценена.")
 
-        # 2. NPC Fates
-        print("\n🎭 NPC FATES:")
-        if end_screen.npc_fates:
-            for fate in end_screen.npc_fates:
-                lw_text = fate.last_word.text if fate.last_word else "No last words."
-                print(f"  - {fate.npc_id}: {fate.fate_outcome} | Last Words: \"{lw_text}\"")
+        # 2. Discovered Secrets
+        print("\n🕵️ РАСКРЫТЫЕ ТАЙНЫ:")
+        discovered = getattr(mvp_ctrl.truth_state, "discovered_secrets", set())
+        if discovered:
+            for sec_id in discovered:
+                sec = mvp_ctrl.truth_state.secrets.get(sec_id)
+                print(f"  - {sec.canonical_truth if sec else 'Неизвестная тайна'}")
         else:
-            print("  No fates resolved.")
+            print("  Вам не удалось раскрыть ни одной тайны.")
 
-        # 3. Contradictions
-        print("\n⚔️ CONTRADICTIONS:")
+        # 3. NPC Fates (Судьбы)
+        print("\n🎭 СУДЬБЫ ПЕРСОНАЖЕЙ:")
+        fate_states = mvp_ctrl.fate_tracker.get_all_states()
+        if fate_states:
+            for fs in fate_states:
+                fate_text = narrator.narrate_fate(fs.npc_id, fs)
+                print(f"  - {fate_text}")
+        else:
+            print("  Судьбы персонажей не отслеживались.")
+
+        # 4. Contradictions
+        print("\n⚔️ ПРОТИВОРЕЧИЯ И СЛЕДСТВИЯ:")
         if end_screen.contradictions:
             for contra in end_screen.contradictions:
-                npc_id = getattr(contra, 'npc_id', 'Unknown')
+                npc_id = getattr(contra, 'npc_id', 'Неизвестно')
                 text = getattr(contra, 'text', str(contra))
                 print(f"  - {npc_id}: {text}")
         else:
-            print("  No contradictions detected.")
+            print("  Явных противоречий в действиях не выявлено.")
 
-        # 4. Relationships (Player <-> NPC & NPC <-> NPC)
-        rel_store = getattr(game_loop.memory_manager, "_relationships", None)
+        # 5. Relationships (Graph)
         if rel_store:
             all_rels = rel_store.get_all(campaign_id)
-            print("\n🤝 RELATIONSHIPS (with Player):")
-            player_rels_found = False
-            for src, targets in all_rels.items():
-                for tgt, vals in targets.items():
-                    # Выводим только отношения с участием игрока, чтобы не засорять вывод
+            print("\n🤝 ПЛЕТЕННЫЕ СУДЬБЫ (Отношения):")
+            if not all_rels:
+                print("  Связи между персонажами не сформировались.")
+            else:
+                player_rels = []
+                npc_rels = []
+                for key, vals in all_rels.items():
+                    if "→" not in key: continue
+                    src, tgt = key.split("→", 1)
+                    trust = vals.get("trust", 0.0)
+                    fear = vals.get("fear", 0.0)
+                    rel_text = narrator.narrate_relationship(src, tgt, trust, fear)
+                    
                     if src == "player" or tgt == "player":
-                        player_rels_found = True
-                        trust = vals.get("trust", 0)
-                        fear = vals.get("fear", 0)
-                        print(f"  {src} ➔ {tgt}: Trust={trust}, Fear={fear}")
-            if not player_rels_found:
-                print("  No player relationships tracked.")
+                        player_rels.append(rel_text)
+                    else:
+                        npc_rels.append(rel_text)
+                
+                print("  [Отношения с Игроком]:")
+                if player_rels:
+                    for l in player_rels: print(f"    - {l}")
+                else:
+                    print("    Никто не запомнил Игрока.")
+                    
+                print("  [Связи между NPC]:")
+                if npc_rels:
+                    for l in npc_rels: print(f"    - {l}")
+                else:
+                    print("    Между NPC не возникло значимых связей.")
         else:
-            print("  RelationshipStore not available.")
+            print("  Хранилище отношений недоступно.")
             
-        print("="*50 + "\n")
+        print("\n" + "="*60 + "\n")
         
-        import os
         if has_eval or has_fates or has_contras:
             print("✅ [CANARY] End-Screen не пуст. MVP-пайплайн жив.")
             os._exit(0)

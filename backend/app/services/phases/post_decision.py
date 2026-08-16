@@ -57,7 +57,11 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 _stm_check = _memory_mgr.get_stm_prompt_block_pair(
                     ctx.campaign_id, intent.speaker, _target_id
                 )
-                if not _stm_check and _intent_type not in ("greeting", "approach"):
+                # S199.2: Классификация интентов для обхода ADR-O-342.
+                # claim-producing действия (warn, intimidate) не требуют контекста диалога (STM)
+                # и могут быть материализованы детерминированно.
+                _CLAIM_PRODUCING_INTENTS = {"warn", "intimidate"}
+                if not _stm_check and _intent_type not in ("greeting", "approach") and _intent_type not in _CLAIM_PRODUCING_INTENTS:
                     logger.debug(f"[POST_DECISION] Intercept {intent.speaker} -> {_target_id}: No STM, changing intent '{_intent_type}' to 'approach'")
                     _intent_type = "approach"
 

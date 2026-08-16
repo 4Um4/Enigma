@@ -116,6 +116,53 @@ class SocialSubscriber:
             return Phase8Result()
 
         from app.services.social.propagation import propagate_social_rumors
+        from app.services.events.event_types import EventType
+
+        # 8.1 FIX: Детерминированный fallback для трекинга отношений.
+        # Если LLM не парсит семантику, NPC A и B всё равно должны влиять на отношения при разговоре.
+        # Явная проверка атрибутов без скрытых дефолтов (§1.2 Silent Failure Eradication)
+        if not hasattr(ctx.shared_context, "relationship_store") or not hasattr(ctx.shared_context, "campaign_id"):
+            logger.warning("[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.")
+        else:
+            _rel_store = ctx.shared_context.relationship_store
+            _campaign_id = ctx.shared_context.campaign_id
+            for _ev in events:
+                if _ev.type == EventType.NPC_SPOKE.value:
+                    _sp = _ev.source
+                    _tg = _ev.payload.get("target_id")
+                    # Phase 8.2: Детерминированный fallback для社交ной семантики.
+                    # gossip разрушает доверие к сплетнику (speaker).
+                    # accuse повышает страх к обвиняемому (target).
+                    # praise повышает доверие к хвалимому (target).
+                    _intent = _ev.payload.get("intent_type", "talk")
+                    _TRUST_DELTA = 0.5
+                    _TARGET_TRUST_DELTA = 0.0
+                    _TARGET_FEAR_DELTA = 0.0
+                    
+                    if _intent == "gossip":
+                        _TRUST_DELTA = -2.0
+                    elif _intent == "praise":
+                        _TARGET_TRUST_DELTA = 1.5
+                    elif _intent == "accuse":
+                        _TARGET_FEAR_DELTA = 1.0
+                    if _sp and _tg and _sp != _tg:
+                        try:
+                            if _intent in ("intimidate", "attack"):
+                                _rel_store.update(_campaign_id, _sp, _tg, {"fear": 1.0})
+                            elif _intent == "gossip":
+                                # Сплетни разрушают доверие ИГРОКА к сплетнику
+                                _rel_store.update(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA})
+                            elif _intent == "praise":
+                                # Хвала повышает доверие ИГРОКА к хвалимому
+                                _rel_store.update(_campaign_id, "player", _tg, {"trust": _TARGET_TRUST_DELTA})
+                            elif _intent == "accuse":
+                                # Обвинение повышает страх ИГРОКА к обвиняемому
+                                _rel_store.update(_campaign_id, "player", _tg, {"fear": _TARGET_FEAR_DELTA})
+                            else:
+                                # Симуляция светской беседы — рост доверия игрока к спикеру
+                                _rel_store.update(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA})
+                        except Exception as _e:
+                            logger.error(f"[SOCIAL_SUB] RelationshipStore fallback failed: {_e}")
 
         social_engine = self._social_engine_factory(ctx.campaign_id)
         self._social_tick, deltas = propagate_social_rumors(

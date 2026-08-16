@@ -423,3 +423,34 @@ elationship_store и l1_chronicle. Также мутация происходи�
   Taboo: ❌ Модификаторы с побочными эффектами; ❌ Мутация входного scores; ❌ Некоммутативные операции (multiplier, cap, override) без нового контракта v2
   Status: VERIFIED (SUPERBOX-011, S012, S013)
   Files: backend/app/services/npc/decision_hub.py
+
+### ADR-O-357: Trust-Anchored Belief Revision & Social Semantics Law
+**Статус:** PROPOSED
+**Домен:** epistemic, social, fate, ui
+**Files:** backend/app/services/npc/trust_based_reliability_provider.py, backend/app/services/npc/belief_revision_engine.py, backend/app/services/events/social_subscriber.py, backend/app/services/social/fate_tracker.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/domain/snapshot.py, frontend/analysis_renderer.py, frontend/game_screen.py, backend/app/models/pipeline_context.py, backend/app/services/state/context_builder.py, backend/app/services/game_loop/__init__.py, backend/tests/IPT.py
+**Суть:** Надёжность источника убеждений зависит от доверия (trust). Введены детерминированные fallback'и для социальных интентов. NPC могут сойти с ума (BROKEN) после 5 тиков в CRITICAL. Добавлена вкладка "Мои убеждения" в UI.
+
+
+## ADR-O-358: Epistemic Player Integration (Фаза 8.3)
+
+**Статус:** Принято  
+**Домен:** Epistemology, Social  
+**Связанные ADR:** ADR-O-354 (Epistemic Core), ADR-O-306 (Epistemic Heterogeneity)  
+
+### Контекст
+EpistemicStore для игрока оставался пустым в рантайме с LLM. Игрок слышал реплики, но они не превращались в его убеждения. TrustBasedReliabilityProvider не мог вызвать падение confidence, так как reliability была ограничена `max(0.0, ...)`.
+
+### Решение
+1. `ClaimEventSubscriber` подписан на `NPC_SPOKE` для детерминированного fallback: `intent_type` маппится на `Proposition` (accuse → STOLE, praise → HELPED, intimidate/attack → ATTACKED).
+2. Игрок больше не исключается из списка слушателей `COMMUNICATION_CLAIM`.
+3. `RelationshipReliabilityProvider` возвращает `-0.5` при `trust < -30`, что заставляет `confidence` убывать.
+4. `BeliefRevisionEngine` защищён `max(0.0, ...)` от ухода в отрицательные значения.
+
+### Табу
+- Запрещено исключать игрока из перцептивной мембраны (он полноправный наблюдатель).
+- Запрет `max(0.0, min(1.0, ...))` в `get_reliability` — отрицательные значения нужны для моделирования недоверия врагам.
+
+### Files
+- `backend/app/services/events/claim_event_subscriber.py`
+- `backend/app/services/npc/belief_revision_engine.py`
+- `backend/app/services/game_loop/__init__.py

@@ -327,16 +327,63 @@ async def restart_llm():
 # --- LLM Downloader API ---
 from app.services.llm.downloader import get_model_status, download_model
 
-@router.get("/api/llm/status")
+@router.get("/llm/status")
 async def llm_status() -> dict:
     """Возвращает статус скачивания LLM-моделей."""
     return get_model_status()
 
-@router.post("/api/llm/download/{model_key}")
+@router.post("/llm/download/{model_key}")
 async def llm_download(model_key: str, background_tasks: BackgroundTasks) -> dict:
     """Запускает скачивание модели в фоне."""
     background_tasks.add_task(download_model, model_key)
     return {"status": "started", "model": model_key}
+
+@router.post("/llm/select/{model_key}")
+async def llm_select(model_key: str) -> dict:
+    """Меняет активную модель, перезапускает LLM-сервер и отправляет тестовый промпт."""
+    from app.services.llm.downloader import get_llm_sources
+    from app.core.config import settings, BASE_DIR
+    from app.services.llm.server_lifecycle import restart_llama_server
+    from fastapi import HTTPException
+
+    sources = get_llm_sources()
+    if model_key not in sources:
+        raise HTTPException(status_code=404, detail="Model not found in config")
+        
+    info = sources[model_key]
+    target_path = BASE_DIR / info["target_path"]
+    if not target_path.exists():
+        raise HTTPException(status_code=400, detail="Model is not downloaded yet")
+        
+    # Обновляем путь к модели в конфиге
+    settings.llama_cpp_model_path = str(target_path)
+    settings.default_model = model_key
+    
+    # ГЛАВНЫЙ ФИКС: restart_llama_server видит, что старый сервер жив, и не перезапускает его.
+    # Нам нужно принудительно убить старую модель, выгрузить её из VRAM и запустить новую.
+    from app.services.llm.server_lifecycle import kill_llama_server
+    kill_llama_server()
+    
+    import time
+    time.sleep(2)  # Даём Windows время освободить порт 8181
+    
+    success = restart_llama_server()
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to restart LLM server with new model")
+        
+    # Отправляем тестовый промпт, чтобы убедиться, что модель жива
+    test_response = ""
+    try:
+        from app.services.llm.llama_cpp_provider import LlamaCppProvider
+        provider = LlamaCppProvider(server_url=settings.llama_cpp_server_url)
+        test_response = provider.complete(
+            prompt="Привет, Пикачу - я выбираю тебя! Продекламируй своё имя этому миру!",
+            system_prompt="Ты играешь роль выбранной LLM-модели. Ответь коротко и ярко."
+        )
+    except Exception as e:
+        test_response = f"[Ошибка тестового запроса]: {e}"
+        
+    return {"status": "restarted", "model": model_key, "test_response": test_response}
 
 
 @router.get("/system/requirements")
@@ -545,6 +592,7 @@ def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> Dict[s
         return {"error": "MVP controller not initialized"}
     
     # V8-MVP-3: Сериализация вынесена в MvpTavernController
+    # 8.1 FIX: Теперь отдаёт текстовые поля для UI
     return game_loop.mvp_controller.serialize_end_screen()
 
 @router.post("/game/finalize/{campaign_id}")

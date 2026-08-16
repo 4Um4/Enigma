@@ -40,7 +40,6 @@ def test_hp_double_truth_invariant():
 
     # 3. Проверяем начальную консистентность
     assert state.effective_hp == 100.0
-    assert state.hp == 100
 
     # 4. Симулируем урон (мутацию)
     # StateApplicator пишет в body_state и синхронизирует hp
@@ -55,7 +54,8 @@ def test_hp_double_truth_invariant():
 
     # 6. Тест отключения body_state (fallback)
     state.body_state = None
-    assert state.effective_hp == 75.0, "Fallback на deprecated hp сломан"
+    # ADR-HP-UNIFICATION: При отсутствии body_state effective_hp возвращает 0.0. Fallback на legacy hp удалён.
+    assert state.effective_hp == 0.0, "Fallback на deprecated hp должен быть удалён"
 
 
 def test_l3_ephemeral_invariant():

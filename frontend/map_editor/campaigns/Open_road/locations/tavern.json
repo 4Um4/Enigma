@@ -285,7 +285,7 @@
       "x": 16.712863297325104,
       "y": 2.3801183127572014,
       "label": "Кухня",
-      "role": "default",
+      "role": "serving_station",
       "tags": [
         "workplace:maid",
         "serving_station"

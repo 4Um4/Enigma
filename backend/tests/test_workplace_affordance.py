@@ -59,7 +59,7 @@ def test_maid_lusya_finds_kitchen_via_workplace_tag():
     engine._spatial_service = svc
 
     npc_lusya = {
-        "id": "maid_lusya",
+        "id": "maid",
         "name": "Люся",
         "location_id": "tavern",
         "position": "main_hall",

@@ -137,6 +137,7 @@ class DialogueExecutor:
                 "exposure": req.exposure.semantic,
                 "topic": req.topic,
                 "emotional_state": req.emotional_state,
+                "proposition": _proposition, # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
             },
         )
 

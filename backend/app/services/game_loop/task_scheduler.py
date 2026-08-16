@@ -125,24 +125,27 @@ class TaskScheduler:
             if task_dict.get("kind") == "dialogue":
                 speaker_id = task_dict.get("owner_id", "")
                 _payload = task_dict.get("payload", {})
-                from app.services.verbalization.tone_mapper import ToneMapper
+                _tone = _payload.get("emotional_state", "neutral").upper()
+                _intent_type = _payload.get("intent_type", "")
+                _has_prop = bool(_payload.get("proposition"))
 
-                _tone = ToneMapper.map(_payload.get("emotional_state"))
-                if _tone == "ANGRY":
-                    priority = 15
-                elif _payload.get("secret_relevant"):
-                    priority = 10
+                # S198 FIX: Эпистемическая коммуникация (WARN, TALK с proposition) обязана быть canonical.
+                # ambient болтовня не порождает COMMUNICATION_CLAIM.
+                if _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade"):
+                    _task_type = "canonical"
+                    _priority = 1  # Высокий приоритет (heapq min-heap)
                 else:
-                    priority = 5
+                    _task_type = "ambient"
+                    _priority = 5  # Низкий приоритет
 
                 self._dialogue_queue.enqueue(
-                    task_type="canonical" if _tone != "NEUTRAL" else "ambient",
+                    task_type=_task_type,
                     payload={
                         "speaker_id": speaker_id,
                         "task_dict": task_dict,
                     },
-                    priority=priority,
-                    game_time_seconds=_game_time,
+                    priority=_priority,
+                    game_time_seconds=_game_time
                 )
 
         # BUG-CORE-010 / BUG-DLG-005 FIX: Диалоговые задачи перенесены в DialogueQueue.

@@ -215,6 +215,7 @@ def main():
     
     logger.info("=== SUPERBOX-013: PASS ===")
     logger.info("Second-Order Observation proven: NPC_A's action cascaded to NPC_B's belief.")
+    print("\n✅ SUPERBOX-013: PASS — Second-Order Observation proven.")
 
 if __name__ == "__main__":
     main()

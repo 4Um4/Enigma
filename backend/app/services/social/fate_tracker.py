@@ -16,6 +16,8 @@ class FateTracker:
     def __init__(self) -> None:
         self._states: Dict[str, FateState] = {}
         self._events: List[FateEvent] = []
+        # Phase 8.2: Счётчик тиков в CRITICAL для инварианта INV-FATE-CRITICAL-BROKEN
+        self._critical_ticks: Dict[str, int] = {}
 
     def update_state(self, npc_id: str, stability: float, threat: float) -> FateState:
         """Обновляет стабильность и угрозу NPC. Вычисляет траекторию."""
@@ -29,12 +31,16 @@ class FateTracker:
         # Определение траектории (STABLE имеет приоритет над IMPROVING для 0.8/0.1)
         if threat > 0.8 and stability < 0.2:
             trajectory = FateTrajectory.CRITICAL
-        elif threat > 0.5 or stability < 0.4:
-            trajectory = FateTrajectory.DETERIORATING
-        elif stability > 0.9 and threat < 0.1:
-            trajectory = FateTrajectory.IMPROVING
+            # Phase 8.2: Увеличиваем счетчик критических тиков
+            self._critical_ticks[npc_id] = self._critical_ticks.get(npc_id, 0) + 1
         else:
             trajectory = FateTrajectory.STABLE
+            # Сброс счетчика при выходе из CRITICAL
+            self._critical_ticks[npc_id] = 0
+            if threat > 0.5 or stability < 0.4:
+                trajectory = FateTrajectory.DETERIORATING
+            elif stability > 0.9 and threat < 0.1:
+                trajectory = FateTrajectory.IMPROVING
 
         new_state = FateState(
             npc_id=npc_id,

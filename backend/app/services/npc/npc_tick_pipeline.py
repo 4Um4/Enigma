@@ -501,9 +501,7 @@ class NpcTickPipeline:
             # Если drives is None (спящий NPC), используем fallback на base_drives,
             # чтобы DecisionHub мог вычислить utility и эпистемика могла его перебить.
             if _effective_drives is None:
-                _effective_drives = _npc_dict_for_write.get("drives_base", {}).get("base", [])
-                if not _effective_drives:
-                    continue
+                continue
 
             # V8-PSY-FIX: Если NPC должен спать, подавляем проактивные интенты и FLEE,
             # чтобы он не повышал стресс и мог уснуть (GAP9 контракт).
@@ -529,7 +527,6 @@ class NpcTickPipeline:
                 _scheduled_activity in ("sleeping", "resting", "спит")
                 or _current_activity in ("sleeping", "resting", "спит")
             )
-            
             if _should_sleep:
                 from app.services.npc.decision_hub import PROACTIVE_INTENTS
                 for _p_intent in PROACTIVE_INTENTS:
@@ -543,9 +540,6 @@ class NpcTickPipeline:
             _all_npc_ids = [
                 n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id")
             ]
-            # S198 DIAGNOSTIC: Трассировка decision для thief_shadow
-            if npc_id == "thief_shadow":
-                logger.warning(f"[S198_DIAG_A_ENTER] thief_shadow in DecisionHub. epistemic_modifiers={_epistemic_modifiers}")
 
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,

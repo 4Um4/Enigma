@@ -51,6 +51,7 @@ class DialogueMaterializer:
                 "topic": data.get("topic"),
                 "exposure": exposure_semantic,
                 "tone": _tone,
+                "intent_type": data.get("intent_type", "talk"),
             },
             visibility=visibility,
             radius=10.0,
@@ -59,8 +60,6 @@ class DialogueMaterializer:
 
         # S197: Если реплика несёт утверждение (Proposition), публикуем COMMUNICATION_CLAIM
         _prop_data = data.get("proposition")
-        # S198 DIAGNOSTIC: Проверка публикации CLAIM
-        logger.warning(f"[S198_DIAG_D] MATERIALIZE speaker={data.get('speaker_id')} target={data.get('target_id')} has_proposition={bool(_prop_data)} prop_data={_prop_data}")
         if _prop_data:
             events.append(EventDTO.create(
                 event_type=EventType.COMMUNICATION_CLAIM.value,

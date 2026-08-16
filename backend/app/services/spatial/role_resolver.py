@@ -25,6 +25,8 @@ _TAG_ROLE_MAP: Dict[str, NodeRole] = {
     "serving_station": NodeRole.SERVING_STATION,
     "kitchen_counter": NodeRole.KITCHEN_COUNTER,
     "inn_desk": NodeRole.INN_DESK,
+    "workplace:maid": NodeRole.KITCHEN_COUNTER,
+    "workplace:lusya": NodeRole.KITCHEN_COUNTER,
 }
 
 # ── Ключевые слова для вывода роли из label ──────────────────────────

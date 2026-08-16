@@ -22,3 +22,27 @@ Traceback (most recent call last):
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'PipelineContext' object has no attribute 'player_name'. Did you mean: 'player_state'?
 
+
+=== 2026-08-16 17:55:51 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 727, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1193, in run_turn
+    state = await self._run_pipeline(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 2140, in _run_pipeline
+    dm_result, _resolution = await self._execute_dm_and_intent_resolution(
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        actions, shared_context, scene_state, _ctx, campaign_id, location
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1818, in _execute_dm_and_intent_resolution
+    _player_data_dict = _match.dict() if _match else None  # noqa: ENIGMA001
+                        ^^^^^^^^^^^
+AttributeError: 'NPCState' object has no attribute 'dict'
+

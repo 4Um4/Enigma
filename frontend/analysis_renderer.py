@@ -28,7 +28,9 @@ class AnalysisRenderer:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
 
-    def draw_journal(self, journal_data: list, active_tab: str, tab_rects: list) -> list:
+    def draw_journal(self, journal_data: list, active_tab: str, tab_rects: list, player_beliefs: list = None) -> list:
+        if player_beliefs is None:
+            player_beliefs = []
         """Отрисовка панели Журнала (ADR-JOURNAL). Возвращает обновлённые хитбоксы вкладок."""
         if not journal_data:
             return []
@@ -49,10 +51,12 @@ class AnalysisRenderer:
         _new_rects = []
 
         # S166: Вкладки инструмента расследования (Закон XII)
+        # Phase 8.2: Добавлена вкладка "Мои убеждения" (EPISTEMIC-002)
         _tabs = [
             ("observations", "Наблюдения"),
             ("hypotheses", "Гипотезы"),
-            ("facts", "Факты")
+            ("facts", "Факты"),
+            ("beliefs", "Убеждения")
         ]
 
         for _tab_id, _tab_name in _tabs:
@@ -68,7 +72,42 @@ class AnalysisRenderer:
         _font_text = pygame.font.Font(None, 22)
         _font_name = pygame.font.Font(None, 26)
 
-        if active_tab == "observations":
+        if active_tab == "beliefs":
+            # Phase 8.2: Рендер списка убеждений игрока с полосой confidence
+            if not player_beliefs:
+                _empty_surf = _font_text.render("У вас пока нет сформированных убеждений.", True, COLOR_TEXT_MUTED)
+                _journal_surf.blit(_empty_surf, (15, _y_offset))
+            else:
+                for _belief in reversed(player_beliefs):
+                    _prop = _belief.get("proposition", {})
+                    _subj = _prop.get("subject_id", "???")
+                    _pred = _prop.get("predicate", "???")
+                    _conf = float(_belief.get("confidence", 0.0))
+                    
+                    # Текст убеждения
+                    _text = f"{_subj} {_pred}"
+                    _text_surf = _font_text.render(_text, True, COLOR_TEXT_DEFAULT)
+                    _journal_surf.blit(_text_surf, (15, _y_offset))
+                    
+                    # Полоса уверенности (10 символов)
+                    _bar_len = int(_conf * 10)
+                    _bar = "[" + "█" * _bar_len + "░" * (10 - _bar_len) + "]"
+                    _bar_surf = _font_text.render(_bar, True, COLOR_TEXT_SCALE_HIGHLIGHT)
+                    _journal_surf.blit(_bar_surf, (15, _y_offset + 20))
+                    
+                    # Метка уверенности
+                    if _conf < 0.2:
+                        _label = "Сомнительно"
+                    elif _conf > 0.8:
+                        _label = "Уверенность"
+                    else:
+                        _label = "Неуверенно"
+                    _label_surf = _font_text.render(_label, True, COLOR_TEXT_MUTED)
+                    _journal_surf.blit(_label_surf, (15, _y_offset + 40))
+                    
+                    _y_offset += 65
+
+        elif active_tab == "observations":
             if not journal_data:
                 _empty_surf = _font_text.render("Вы ничего не заметили.", True, COLOR_TEXT_MUTED)
                 _journal_surf.blit(_empty_surf, (15, _y_offset))

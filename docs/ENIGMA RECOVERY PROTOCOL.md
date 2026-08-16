@@ -510,7 +510,7 @@ SUPERBOX-EPISTEMIC-001 passes only if:
 [x] actions create new world tasks — ДОКАЗАНО S195 (SUPERBOX-011: belief → Intent → QueuedTask)
 [x] actions execute into observable world events — ДОКАЗАНО S196 (SUPERBOX-012: QueuedTask исполняется через NpcConversation и порождает NPC_SPOKE в EventBus)
 
-[ ] another NPC can observe those events — НЕ ДОКАЗАНО (требует multi-agent пайплайна)
+[x] another NPC can observe those events — ДОКАЗАНО S198 (SUPERBOX-013: NPC_A публикует COMMUNICATION_CLAIM, NPC_B слышит его через NpcDialogueSubscriber)[x] the observer can update its model — ДОКАЗАНО S198 (SUPERBOX-013: ClaimEventSubscriber детерминированно обновляет EpistemicStore для NPC_B на основе услышанного утверждения)
 
 [ ] the observer can update its model — НЕ ДОКАЗАНО
 
