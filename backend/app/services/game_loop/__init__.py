@@ -1831,8 +1831,24 @@ class GameLoop:
             else:
                 _player_data_dict = None
             _raw_action = actions[0].action if actions else ""
+            
+            # S200: Получаем сессию диалога игрока с целевым NPC для контекстного резолва
+            _target_npc = shared_context.player_target_id or "player"
+            _dialogue_session = None
+            if self.memory_manager and _target_npc != "player":
+                try:
+                    _dialogue_session = self.memory_manager.get_dialogue_session(
+                        campaign_id=campaign_id, 
+                        npc_id=_target_npc, 
+                        partner_id="player"
+                    )
+                except Exception as _ds_err:
+                    logger.warning(f"[S200] Failed to get dialogue session for {_target_npc}: {_ds_err}")
+
             _semantic_field = await self._intent_compressor.compress(
-                raw_text=_raw_action, scene_context=scene_state
+                raw_text=_raw_action, 
+                scene_context=scene_state,
+                dialogue_session=_dialogue_session
             )
 
             _resolution = resolve_player_intent(
@@ -1866,12 +1882,13 @@ class GameLoop:
                     logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
 
             if self.mvp_controller:
-                from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
-                _resolver = ActionSemanticResolver(self.mvp_controller.truth_state)
-                _action = _resolver.resolve(
-                    raw_text=_raw_action,
+                # S199: Уничтожен раздвоенный semantic authority. 
+                # MvpTavernController теперь получает PlayerAction через bridge из расширенного IntentSemanticField.
+                from app.services.player_cognition.legacy_bridge import intent_to_player_action
+                _action = intent_to_player_action(
+                    intent=_semantic_field,
                     tick=shared_context.current_tick,
-                    target_id=shared_context.player_target_id,
+                    truth_state=self.mvp_controller.truth_state
                 )
                 self.mvp_controller.action_compiler.process_action(_action)
 

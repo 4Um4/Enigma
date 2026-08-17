@@ -39,6 +39,23 @@ class PlayerActionPayload(TypedDict, total=False):
     player_name: str
 
 
+class SocialActionPayload(TypedDict, total=False):
+    """S201: Канонический payload для SOCIAL_ACTION.
+    Включает все семантические поля из расширенного IntentSemanticField (S199).
+    """
+    action: str                   # ActionType (ATTACK, DIALOGUE, STEAL, etc.)
+    actor: str                    # npc_id или "player"
+    target: str                   # npc_id или object_id
+    speech_act: str               # SpeechAct enum value
+    social_intent: str            # SocialIntent enum value
+    proposition: Optional[Dict[str, Any]]  # Serialized Proposition
+    physical_force: float
+    emotional_charge: float
+    social_pressure: float
+    visibility: str               # "public" / "private" / "whisper"
+    radius: float                # 0.0-20.0
+
+
 # ── EventDTO ──
 
 
@@ -88,6 +105,28 @@ class EventDTO:
             visibility=visibility,
             radius=radius,
             persistence_level=persistence_level,
+        )
+
+    @classmethod
+    def create_social_action(
+        cls,
+        source: str,
+        payload: Dict[str, Any],
+        visibility: str = "public",
+        radius: float = 10.0,
+    ) -> "EventDTO":
+        """S201: Фабричный метод для создания канонического SOCIAL_ACTION события.
+        visibility и radius берутся из SocialActionPayload, если не переданы явно.
+        """
+        _visibility = payload.get("visibility", visibility)
+        _radius = payload.get("radius", radius)
+        return cls.create(
+            event_type="social_action",
+            source=source,
+            payload=payload,
+            visibility=_visibility,
+            radius=_radius,
+            persistence_level="session"
         )
 
 

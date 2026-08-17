@@ -12,6 +12,7 @@ from typing import Callable, Iterable, Optional
 
 from app.domain.communication import DialogueRequest
 from app.domain.execution import Artifact, QueuedTask
+from app.domain.intent_profiles import requires_dialogue_context, requires_llm_materialization
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,9 @@ class DialogueExecutor:
         if self._router is None:
             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
             text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
+        elif not requires_llm_materialization(req.intent_type):
+            # S199.2: Детерминированная материализация для claim-producing интентов без LLM
+            text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
         else:
             try:
                 text = self._generate_with_router(task, req)
@@ -189,7 +193,8 @@ class DialogueExecutor:
         
         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
-        if not _stm_text and req.intent_type not in ("greeting", "approach"):
+        # Исключение: claim-producing интенты (warn, intimidate) не требуют контекста диалога.
+        if not _stm_text and req.intent_type not in ("greeting", "approach") and requires_dialogue_context(req.intent_type):
             logger.warning(f"[DIALOGUE_EXEC] No STM for {task.owner_id} -> {req.target_id}, "
                            f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
             from dataclasses import replace as _dc_replace

@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 
 from app.domain.communication import DialogueRequest
+from app.domain.intent_profiles import requires_dialogue_context
 from app.domain.execution import (
     Materializer,
     QueuedTask,
@@ -265,7 +266,7 @@ class TaskScheduler:
                 )
 
                 # ADR-O-342: Hard Contract. Если STM пуст для резолвнутой цели, меняем intent на approach
-                if self._memory_manager and task.payload.intent_type not in ("greeting", "approach"):
+                if self._memory_manager and task.payload.intent_type not in ("greeting", "approach") and requires_dialogue_context(task.payload.intent_type):
                     _stm_check = self._memory_manager.get_stm_prompt_block_pair(
                         campaign_id, task.owner_id, _resolved_target
                     )

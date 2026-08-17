@@ -1,48 +1,24 @@
 
-=== 2026-08-15 23:30:25 ===
+=== 2026-08-17 21:31:11 ===
 Traceback (most recent call last):
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 724, in game_action
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 797, in game_action
     result = await game_loop.run_turn(turn_request)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1193, in run_turn
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1201, in run_turn
     state = await self._run_pipeline(
             ^^^^^^^^^^^^^^^^^^^^^^^^^
     ...<6 lines>...
     )
     ^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 2140, in _run_pipeline
-    dm_result, _resolution = await self._execute_dm_and_intent_resolution(
-                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        actions, shared_context, scene_state, _ctx, campaign_id, location
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 2155, in _run_pipeline
+    shared_context, world_tick_meta = self._init_pipeline_context(
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        actions, campaign_id, world_id, location
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1808, in _execute_dm_and_intent_resolution
-    _player_name = shared_context.player_name or "player"
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'PipelineContext' object has no attribute 'player_name'. Did you mean: 'player_state'?
-
-
-=== 2026-08-16 17:55:51 ===
-Traceback (most recent call last):
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 727, in game_action
-    result = await game_loop.run_turn(turn_request)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1193, in run_turn
-    state = await self._run_pipeline(
-            ^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<6 lines>...
-    )
-    ^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 2140, in _run_pipeline
-    dm_result, _resolution = await self._execute_dm_and_intent_resolution(
-                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        actions, shared_context, scene_state, _ctx, campaign_id, location
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1818, in _execute_dm_and_intent_resolution
-    _player_data_dict = _match.dict() if _match else None  # noqa: ENIGMA001
-                        ^^^^^^^^^^^
-AttributeError: 'NPCState' object has no attribute 'dict'
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1869, in _execute_dm_and_intent_resolution
+    _target_pos = scene_state.get("npc_positions", {}).get(_target_id, {}).get("position", "")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'app.services.player_cognition.action_semantic_resolver'
 

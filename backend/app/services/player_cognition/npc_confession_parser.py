@@ -1,7 +1,7 @@
 """
 Файл: backend/app/services/player_cognition/npc_confession_parser.py
-Назначение: Парсинг LLM-ответов NPC на предмет признаний секретов.
-Зависимости: app.models.truth_state, app.services.player_cognition.observation_log, app.services.player_cognition.player_belief_model
+Назначение: Парсинг LLM-ответов NPC на предмет признаний секретов. Использует PropositionMatcher (семантический матч, не keyword overlap).
+Зависимости: app.models.truth_state, app.services.player_cognition.observation_log, app.services.player_cognition.player_belief_model, app.services.player_cognition.legacy_bridge
 Основные сущности: NpcConfessionParser
 """
 
@@ -12,6 +12,8 @@ from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.truth_state import TruthState
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
+from app.services.player_cognition.legacy_bridge import PropositionMatcher
+from app.domain.epistemology import Proposition, Predicate
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ class NpcConfessionParser:
         self._truth = truth_state
         self._log = observation_log
         self._beliefs = belief_model
+        self._matcher = PropositionMatcher(truth_state)
 
     def parse_and_record(
         self,
@@ -43,24 +46,39 @@ class NpcConfessionParser:
         discovered = []
         reply_lower = reply_text.lower()
 
-        # Для каждого секрета, где npc_id — participant, проверяем keywords
+        # S199: Используем PropositionMatcher вместо keyword overlap.
+        # Извлекаем Proposition из ответа (эвристически, пока LLM не возвращает Proposition напрямую).
+        # Если LLM-ответ содержит "я украл", "я ударил", "я помог", создаём Proposition.
+        _prop = None
+        if "украл" in reply_lower or "взял" in reply_lower:
+            _prop = Proposition(subject_id=npc_id, predicate=Predicate.STOLE, object_id="unknown", polarity=True)
+        elif "ударил" in reply_lower or "напал" in reply_lower:
+            _prop = Proposition(subject_id=npc_id, predicate=Predicate.ATTACKED, object_id="unknown", polarity=True)
+        elif "помог" in reply_lower or "спас" in reply_lower:
+            _prop = Proposition(subject_id=npc_id, predicate=Predicate.HELPED, object_id="unknown", polarity=True)
+
+        # Если Proposition найден, используем PropositionMatcher для поиска секрета
+        if _prop:
+            secret_id = self._matcher.match(_prop, npc_id)
+            if secret_id:
+                self._record_confession(npc_id, secret_id, reply_text, tick, target_id)
+                discovered.append(secret_id)
+                return discovered
+
+        # Fallback на старую логику keyword overlap (если Proposition не найден)
         for secret_id, secret in self._truth.secrets.items():
-            participants = getattr(secret, "participants", [])  # noqa: ENIGMA002
+            participants = getattr(secret, "participants", [])
             if npc_id not in participants:
                 continue
 
-            # Проверяем canonical_truth на совпадение с ответом
-            canonical = getattr(secret, "canonical_truth", "").lower()  # noqa: ENIGMA002
-            confession_keywords = getattr(secret, "confession_keywords", [])  # noqa: ENIGMA002
+            canonical = getattr(secret, "canonical_truth", "").lower()
+            confession_keywords = getattr(secret, "confession_keywords", [])
 
-            # Если секрет имеет confession_keywords — используем их
             if confession_keywords:
                 if any(kw.lower() in reply_lower for kw in confession_keywords):
                     self._record_confession(npc_id, secret_id, reply_text, tick, target_id)
                     discovered.append(secret_id)
-            # Иначе — эвристика: если ответ подтверждает canonical_truth
             elif canonical and len(canonical) > 10:
-                # Простая проверка: 3+ слова из canonical в ответе
                 canon_words = set(canonical.split()) - {"и", "в", "на", "не", "что", "это"}
                 reply_words = set(reply_lower.split())
                 overlap = len(canon_words & reply_words)

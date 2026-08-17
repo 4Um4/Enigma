@@ -95,3 +95,6 @@ class EventType(str, Enum):
     PROXIMITY_CLOSE = "proximity_close"
     PROXIMITY_LEAVE = "proximity_leave"
     UNKNOWN = "unknown"
+
+    # ── S201: Social Act Materialization ─────────────────────────────────
+    SOCIAL_ACTION = "social_action"  # Канонический канал социальных событий

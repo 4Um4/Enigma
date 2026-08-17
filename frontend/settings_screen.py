@@ -19,8 +19,9 @@ sys.path.insert(0, str(_ROOT))
 
 import importlib
 settings = importlib.import_module("app.core.config").settings
-save_content_policy = importlib.import_module("app.core.content_policy").save_content_policy
-from app.core.content_policy import ContentPolicy
+_content_policy_mod = importlib.import_module("app.core.content_policy")
+save_content_policy = _content_policy_mod.save_content_policy
+ContentPolicy = _content_policy_mod.ContentPolicy
 from display_manager import load_display_settings, save_display_settings, get_available_resolutions, create_window
 
 # === Минимальная цветовая схема ===

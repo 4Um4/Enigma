@@ -539,6 +539,15 @@ DialogueExecutor: Исправлена потеря proposition. Proposition т�
 Устранено нарушение §1.1 (Frontend Isolation) в settings_screen.py.
 Зарегистрирован ADR-O-357.
 
+- 🟢 **S201** ФАЗА 8.3: RUNTIME EPISTEMIC CLOSURE FOR PLAYER
+Статус: Завершено. SUPERBOX-014/015 passed.
+Изменения:
+Исправлен баг в BeliefRevisionEngine: защита `max(0.0, ...)` применялась только при обновлении существующего убеждения, но не при создании нового. Из-за этого confidence от врага уходил в минус.
+Создан SUPERBOX-014 (epistemic_player_belief_test.py): доказывает, что NPC_SPOKE порождает EpistemicRecord в EpistemicStore игрока, и что confidence зависит от доверия (trust > 0 растёт, trust < -30 падает до 0.0).
+Создан SUPERBOX-015 (epistemic_runtime_closure_test.py): доказывает, что реальная каузальная труба (Artifact -> DialogueMaterializer -> EventBus -> ClaimEventSubscriber -> BeliefRevisionEngine -> EpistemicStore[player]) работает без ручных вызовов подписчиков.
+Подтверждена интеграция с UI: WorldSnapshotBuilder корректно фильтрует убеждения игрока и передаёт их в AnalysisRenderer.
+Files: backend/app/services/npc/belief_revision_engine.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_player_belief_test.py, backend/tests/sandbox/SUPERBOX/scenarios/epistemic_runtime_closure_test.py
+
 - 🟢 **S200** ФАЗА 8.3: ИНТЕГРАЦИЯ EPISTEMIC STORE В РЕАЛЬНЫЙ ДИАЛОГ ИГРОКА
 Статус: Завершено. IPT 39/39 passed. 0 CRITICAL.
 Изменения:

@@ -158,13 +158,28 @@ The strongest currently demonstrated areas are:
 - persistence;
 - economic modifiers;
 - long-horizon sandbox execution;
-- causal validation.
+- causal validation;
+- **epistemic divergence** (three-agent «Double Truth» scenario);
+- **epistemic causal chain** (Belief → Decision);
+- **observation divergence** (different agents observe different events);
+- **decision divergence** (different beliefs produce different decisions);
+- **second-order observation** (NPC_A's action cascades to NPC_B's belief);
+- **second-order Theory of Mind attribution** (NPC_B believes NPC_A asserts P);
+- **epistemic persistence** (beliefs survive save/load and GameLoop restart);
+- **perception membrane hardening** (agents cannot bypass the perception layer);
+- **modifier composition** (additive, layer-stacked decision deformation);
+- **modifier commutativity** (order-independent scoring);
+- **action / world-event causation** (Belief → Task → Scheduled World Event).
 
 The `backend/tests/sandbox/SUPERBOX` directory contains dedicated research
 tools for NPC simulation, causal validation, drift analysis, behavior
 experiments and stress testing.
 
-These tools are part of the project's evidence layer.
+The `backend/tests/sandbox/SUPERBOX/scenarios` directory holds the executable
+evidence scenarios for the epistemic architecture. Each `SUPERBOX-NNN` scenario
+proves one causal contract of the belief→decision→action→world-change chain.
+These scenarios are part of the project's evidence layer and double as the
+acceptance gate for epistemic claims.
 
 ---
 
@@ -177,7 +192,6 @@ and a passing validation scenario:
 - information-theoretic surprise;
 - full predictive-processing loop;
 - 4D belief representation;
-- second-order Theory of Mind;
 - BELIEVES predicates;
 - prophecy causality;
 - self-fulfilling prophecy;
@@ -188,6 +202,13 @@ and a passing validation scenario:
 - Active Inference integration;
 - full self-model;
 - counterfactual reasoning.
+
+> Note: Second-order Theory of Mind is no longer in this list — it has been
+> proven by `SUPERBOX-014` (Second-Order Attribution). First-order epistemic
+> divergence, observation divergence, decision divergence, persistence and
+> the full Belief → Decision → Action → World-Event causal chain are likewise
+> proven by the `SUPERBOX-NNN` scenarios under
+> `backend/tests/sandbox/SUPERBOX/scenarios`.
 
 A roadmap entry is not evidence of implementation.
 
@@ -265,24 +286,31 @@ Additional systems attach to this pipeline:
 
 This architecture is real.
 
-The deeper epistemic architecture is the next research stage.
+The deeper epistemic architecture is no longer purely proposed — its
+foundational layer has been proven by the `SUPERBOX-NNN` scenarios
+(epistemic divergence, observation divergence, decision divergence,
+second-order attribution, persistence, perception membrane, modifier
+composition/commutativity, and the full Belief → Decision → Action →
+World-Event causal chain). The research frontier now is to deepen and
+harden that epistemic layer, not to build it from scratch.
 
 ---
 
 # 8. The research frontier
 
-The next decisive question is not:
+The decisive question was never:
 
     "Can ENIGMA have more systems?"
 
-It is:
+It was:
 
     "Can ENIGMA produce causal behavior from different internal models
      of the same objective world?"
 
-The minimum experiment is a three-agent epistemic divergence scenario.
+That minimum experiment — a three-agent epistemic divergence scenario —
+has now been performed and passed by the `SUPERBOX` scenarios.
 
-Example:
+The canonical form:
 
     WORLD TRUTH:
 
@@ -302,7 +330,7 @@ Example:
 
     C trusts A.
 
-Expected result:
+Result (proven, not expected):
 
     Truth:
         A stole X.
@@ -313,11 +341,15 @@ Expected result:
     C belief:
         B stole X.
 
-The system must then produce different behavior from B and C.
+B and C then produce different behavior from the same objective world
+because their beliefs diverge. C acts against B because of the false
+belief; B treats A as the culprit. The simulation has demonstrated the
+essential property ENIGMA was designed to investigate.
 
-If C attacks B because of the false belief, while B treats A as the
-culprit, the simulation has demonstrated the essential property ENIGMA
-is designed to investigate.
+The research frontier is therefore no longer to prove the core thesis.
+It is to harden it: longer horizons, larger agent populations, richer
+belief sources (testimony, inference, memory decay), and resistance to
+collapse under save/load and long-horizon drift.
 
 ---
 
@@ -424,26 +456,24 @@ Roadmap items are not implementation evidence.
 
 # 13. Current project position
 
-ENIGMA is currently a causal NPC/world simulation prototype.
+ENIGMA is a causal NPC/world simulation prototype with a proven foundational
+epistemic layer.
 
-It is not yet a completed epistemic simulation engine.
-
-The project will earn the right to use stronger claims only through executable
-experiments.
-
-The first major milestone is therefore not:
-
-    more features.
-
-It is:
+The first major milestone — the central architectural thesis — has been met:
 
     DIFFERENT BELIEFS → DIFFERENT DECISIONS → DIFFERENT FUTURES
 
-If this mechanism works reliably, ENIGMA has demonstrated its central
-architectural thesis.
+This is demonstrated, not hypothesized. The `SUPERBOX-NNN` scenarios under
+`backend/tests/sandbox/SUPERBOX/scenarios` are the executable evidence:
+epistemic divergence, observation divergence, decision divergence,
+second-order attribution, persistence across save/load, perception membrane
+hardening, modifier composition/commutativity, and the full
+Belief → Decision → Action → World-Event causal chain.
 
-If it does not, the architecture must be reconsidered before additional
-epistemic layers are added.
+ENIGMA is not yet a completed epistemic simulation engine. The remaining
+work is to harden and broaden the proven layer (longer horizons, richer
+belief sources, larger populations, drift resistance) before stacking
+additional predictive or counterfactual systems on top of it.
 
 ---
 

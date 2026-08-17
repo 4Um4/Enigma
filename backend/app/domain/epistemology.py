@@ -24,10 +24,42 @@ class Predicate(Enum):
 
 
 class SpeechAct(Enum):
-    """Тип коммуникативного акта."""
-    ASSERT = "assert"
-    DENY = "deny"
-    QUESTION = "question"
+    """Тип коммуникативного акта (Searle's Speech Act Theory, адаптировано под ENIGMA)."""
+    ASSERT       = "assert"        # утверждение
+    QUESTION     = "question"      # вопрос
+    REQUEST      = "request"       # просьба
+    ORDER        = "order"         # приказ
+    OFFER        = "offer"         # предложение
+    PROMISE      = "promise"       # обещание
+    THREAT       = "threat"        # угроза
+    APOLOGY      = "apology"       # извинение
+    COMPLIMENT   = "compliment"    # комплимент
+    INSULT       = "insult"        # оскорбление
+    ACCUSATION   = "accusation"    # обвинение
+    GREETING     = "greeting"      # приветствие
+    FAREWELL     = "farewell"      # прощание
+    CONTINUE     = "continue"      # «продолжай», «ну?», «и?»
+    CLARIFY      = "clarify"       # «не это я имел в виду»
+    REJECT       = "reject"        # отказ
+    ACCEPT       = "accept"        # согласие
+    # Legacy / MVP aliases (для обратной совместимости со старым кодом)
+    DENY         = "reject"
+
+class SocialIntent(Enum):
+    """Каузальная цель социального действия (не путать с лингвистической формой SpeechAct)."""
+    OBTAIN_INFORMATION   = "obtain_information"
+    OBTAIN_COOPERATION   = "obtain_cooperation"
+    OBTAIN_COMPLIANCE    = "obtain_compliance"     # через угрозу
+    REPAIR_RELATIONSHIP  = "repair_relationship"
+    BUILD_RAPPORT        = "build_rapport"
+    INTIMIDATE           = "intimidate"
+    FLIRT                = "flirt"
+    COMFORT              = "comfort"
+    DECEIVE              = "deceive"
+    CONFESS              = "confess"
+    PROVOKE              = "provoke"
+    DEFEND               = "defend"
+    NEUTRAL              = "neutral"               # бытовая коммуникация
 
 
 @dataclass(frozen=True)

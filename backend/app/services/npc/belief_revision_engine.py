@@ -62,7 +62,8 @@ class BeliefRevisionEngine:
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=second_order_prop,
-                confidence=incoming_confidence,
+                # S199 (Фаза 8.3): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
+                confidence=max(0.0, incoming_confidence),
                 source_id=claim.speaker_id,
                 source_claim_id=claim.claim_id,
                 first_observed_tick=current_tick,

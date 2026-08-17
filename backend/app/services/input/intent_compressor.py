@@ -19,7 +19,9 @@ from app.domain.intent_profile import (
     SemanticAmbiguity,
     TargetZone,
 )
+from app.domain.epistemology import Proposition, Predicate, SocialIntent, SpeechAct
 from app.services.input.llm_compressor_client import LLMCompressorClient
+from app.services.memory.dialogue_session import DialogueSession
 
 try:
     import pymorphy3
@@ -208,12 +210,12 @@ class IntentCompressor:
         self._llm_client = llm_client
 
     async def compress(
-        self, raw_text: str, scene_context: Dict[str, Any]
+        self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[DialogueSession] = None
     ) -> IntentSemanticField:
-        fast_result = self._fast_path_parse(raw_text)
+        fast_result = self._fast_path_parse(raw_text, dialogue_session)
         if fast_result is not None:
             return fast_result
-        return await self._slow_path_parse(raw_text, scene_context)
+        return await self._slow_path_parse(raw_text, scene_context, dialogue_session)
 
     def _lemmatize(self, text: str) -> set:
         """Разбивает текст на токены и приводит к начальной форме (лемме)."""
@@ -229,8 +231,22 @@ class IntentCompressor:
                 lemmas.add(token)
         return lemmas
 
-    def _fast_path_parse(self, raw_text: str) -> Optional[IntentSemanticField]:
+    def _fast_path_parse(self, raw_text: str, dialogue_session: Optional[DialogueSession] = None) -> Optional[IntentSemanticField]:
         lemmas = self._lemmatize(raw_text)
+
+        # S200: Context-sensitive Fast Path. Если игрок пишет "продолжай", "ну?", "и?"
+        # и есть активная сессия диалога, это CONTINUE. Используем леммы (pymorphy3).
+        _continue_indicators = {"продолжать", "ну", "и", "давать", "так"}
+        if dialogue_session and not dialogue_session.is_empty and not lemmas.isdisjoint(_continue_indicators):
+            return IntentSemanticField(
+                action=ActionType.DIALOGUE,
+                speech_act=SpeechAct.CONTINUE,
+                conversation_continuation="CONTINUE",
+                dialogue_thread=dialogue_session.thread_id,
+                raw_text=raw_text,
+                confidence=ConfidenceVector(action=0.9, parse=1.0, target=0.8, emotion=0.5),
+                ambiguity=SemanticAmbiguity.CLEAR,
+            )
 
         matched_action = None
         for action_type, action_lemmas in _ACTION_LEMMAS.items():
@@ -318,18 +334,18 @@ class IntentCompressor:
         )
 
     async def _slow_path_parse(
-        self, raw_text: str, scene_context: Dict[str, Any]
+        self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[DialogueSession] = None
     ) -> IntentSemanticField:
-        llm_response = await self._llm_client.compress_intent(raw_text, scene_context)
+        llm_response = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
 
         if llm_response is None:
             # S97 FIX: Fallback если LLM недоступна (502 Bad Gateway) — пытаемся извлечь актора локально
-            _fast_result = self._fast_path_parse(raw_text)
+            _fast_result = self._fast_path_parse(raw_text, dialogue_session)
             if _fast_result:
                 return _fast_result
 
             return IntentSemanticField(
-                action_type=ActionType.UNCERTAIN,
+                action=ActionType.UNCERTAIN,
                 raw_text=raw_text,
                 confidence=ConfidenceVector(
                     parse=0.1, target=0.0, emotion=0.0, action=0.1
@@ -338,15 +354,41 @@ class IntentCompressor:
             )
 
         try:
+            # S199/S200: Парсим расширенные поля из LLM-ответа
+            _prop_data = llm_response.get("proposition")
+            _proposition = None
+            if _prop_data and isinstance(_prop_data, dict):
+                _proposition = Proposition(
+                    subject_id=_prop_data.get("subject_id", ""),
+                    predicate=Predicate(_prop_data.get("predicate", "asserts")),
+                    object_id=_prop_data.get("object_id", ""),
+                    polarity=_prop_data.get("polarity", True)
+                )
+
+            _speech_act_val = llm_response.get("speech_act")
+            _speech_act = SpeechAct(_speech_act_val) if _speech_act_val else None
+
+            _social_intent_val = llm_response.get("social_intent")
+            _social_intent = SocialIntent(_social_intent_val) if _social_intent_val else None
+
+            _action_val = llm_response.get("action", llm_response.get("action_type", ActionType.UNCERTAIN))
+
             return IntentSemanticField(
-                action_type=llm_response.get("action_type", ActionType.UNCERTAIN),
-                actor_reference=llm_response.get("actor_reference"),
-                target_reference=llm_response.get("target_reference"),
-                target_zone=llm_response.get("target_zone", TargetZone.UNDEFINED),
+                action=ActionType(_action_val) if _action_val else ActionType.UNCERTAIN,
+                actor=llm_response.get("actor", llm_response.get("actor_reference")),
+                target=llm_response.get("target", llm_response.get("target_reference")),
+                speech_act=_speech_act,
+                proposition=_proposition,
+                social_intent=_social_intent,
+                requested_outcome=llm_response.get("requested_outcome"),
+                offered_outcome=llm_response.get("offered_outcome"),
+                condition=llm_response.get("condition"),
+                conversation_continuation=llm_response.get("conversation_continuation"),
+                dialogue_thread=dialogue_session.thread_id if dialogue_session else None,
+                target_zone=TargetZone(llm_response.get("target_zone", TargetZone.UNDEFINED.value)),
                 physical_force=float(llm_response.get("physical_force", 0.5)),
                 emotional_charge=float(llm_response.get("emotional_charge", 0.5)),
                 social_pressure=float(llm_response.get("social_pressure", 0.0)),
-                commitment_level=float(llm_response.get("commitment_level", 0.8)),
                 tool_reference=llm_response.get("tool_reference"),
                 semantic=EmotionalVector(**llm_response.get("semantic", {})),
                 raw_text=raw_text,
@@ -355,10 +397,6 @@ class IntentCompressor:
                 ),
             )
         except Exception as _parse_err:
-            # ИСПРАВЛЕНО: раньше except Exception: pass молча возвращал UNCERTAIN.
-            # Любая ошибка в структуре LLM-ответа (KeyError, TypeError, pydantic
-            # ValidationError) → теряли весь LLM-ответ без WARN-лога. Теперь логируем
-            # raw response + тип ошибки.
             import logging
 
             _logger = logging.getLogger(__name__)
@@ -368,7 +406,7 @@ class IntentCompressor:
                 f"Raw LLM response: {llm_response}"
             )
             return IntentSemanticField(
-                action_type=ActionType.UNCERTAIN,
+                action=ActionType.UNCERTAIN,
                 raw_text=raw_text,
                 confidence=ConfidenceVector(
                     parse=0.3, target=0.1, emotion=0.1, action=0.3

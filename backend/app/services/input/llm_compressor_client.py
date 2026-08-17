@@ -32,17 +32,17 @@ class LlamaCppCompressorClient:
         self.base_url = base_url or settings.llama_cpp_server_url
 
     async def compress_intent(
-        self, raw_text: str, scene_context: Dict[str, Any]
+        self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None
     ) -> Optional[Dict[str, Any]]:
         import asyncio
-        return await asyncio.to_thread(self._sync_compress, raw_text, scene_context)
+        return await asyncio.to_thread(self._sync_compress, raw_text, scene_context, dialogue_session)
 
-    def _sync_compress(self, raw_text: str, scene_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _sync_compress(self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """Синхронная реализация через urllib (обходит баги прокси и httpx)."""
         import re
         import urllib.request
 
-        system_prompt, user_prompt = self._build_prompts(raw_text, scene_context)
+        system_prompt, user_prompt = self._build_prompts(raw_text, scene_context, dialogue_session)
         payload = {
             "messages": [
                 {"role": "system", "content": system_prompt},
@@ -78,7 +78,7 @@ class LlamaCppCompressorClient:
             logger.debug(f"LLM compressor request failed: {e}")
             return None
 
-    def _build_prompts(self, raw_text: str, scene_context: Dict[str, Any]) -> tuple[str, str]:
+    def _build_prompts(self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None) -> tuple[str, str]:
         # Извлекаем имена NPC для подсказки модели
         npc_names = []
         if isinstance(scene_context, dict):
@@ -88,18 +88,39 @@ class LlamaCppCompressorClient:
 
         names_hint = ", ".join(npc_names) if npc_names else "нет"
 
-        system_prompt = f"""Ты — семантический парсер. Переведи ввод игрока в строгий JSON.
-Допустимые action_types: ["MOVE", "OBSERVE", "INTERACT", "ATTACK", "THREATEN", "PERSUADE", "FLIRT", "STEAL", "GIVE", "UNCERTAIN"].
+        system_prompt = f"""Ты — продвинутый семантический парсер. Переведи ввод игрока в строгий JSON, отражающий многомерную семантику высказывания.
+Допустимые action: ["MOVE", "OBSERVE", "INTERACT", "ATTACK", "THREATEN", "PERSUADE", "FLIRT", "STEAL", "GIVE", "UNCERTAIN"].
+Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
+Допустимые social_intent: ["obtain_information", "obtain_cooperation", "obtain_compliance", "repair_relationship", "build_rapport", "intimidate", "flirt", "comfort", "deceive", "confess", "provoke", "defend", "neutral"].
+
 Извлеки:
-- action_type: тип действия.
-- actor_reference: КТО совершает действие. Если игрок говорит о себе ("я подойду") — "player". Если приказывает NPC ("Торнин, отойди" или "пусть Торнин уйдёт") — имя NPC (например, "Торнин"). Доступные имена NPC: {names_hint}.
-- target_reference: к кому или к чему направлено действие (строка).
+- action: канонический тип действия.
+- actor: КТО совершает действие. Если игрок говорит о себе ("я подойду") — "player". Если приказывает NPC ("Торнин, отойди" или "пусть Торнин уйдёт") — имя NPC (например, "Торнин"). Доступные имена NPC: {names_hint}.
+- target: к кому или к чему направлено действие (строка).
+- speech_act: тип речевого акта (Searle).
+- social_intent: истинная социальная цель.
+- proposition: объект {{"subject_id": "...", "predicate": "stole|attacked|helped|asserts", "object_id": "...", "polarity": true|false}} если есть утверждение о факте, иначе null.
+- requested_outcome: что игрок хочет получить (строка).
+- offered_outcome: что игрок предлагает (строка).
+- condition: условие (строка).
 - target_zone: ["HEAD", "TORSO", "ARMS", "LEGS", "GROIN", "UNDEFINED"].
-- physical_force, emotional_charge, social_pressure, commitment_level: числа от 0.0 до 1.0.
+- physical_force, emotional_charge, social_pressure: числа от 0.0 до 1.0.
 - semantic: объект с ключами aggression, fear, shame, confidence, desperation (0.0-1.0).
-Если не уверен, установи action_type = "UNCERTAIN".
+- conversation_continuation: ["CONTINUE", "NEW_TOPIC", "RETURN_TO", "CLARIFY", null].
+
+Если не уверен, установи action = "UNCERTAIN".
 Верни ТОЛЬКО валидный JSON без markdown разметки."""
 
-        user_prompt = f"Ввод: \"{raw_text}\"\nКонтекст: {json.dumps(scene_context, ensure_ascii=False)}"
+        # S200: Добавляем контекст активного диалога в промпт
+        dialogue_context_str = ""
+        if dialogue_session and not dialogue_session.is_empty:
+            dialogue_context_str = f"\n\nТекущий диалог с {dialogue_session.partner_id}:\n"
+            dialogue_context_str += f"- Topic: {dialogue_session.topic or 'не определена'}\n"
+            if dialogue_session.buffer:
+                last_turn = dialogue_session.buffer[-1]
+                dialogue_context_str += f"- Последняя реплика ({last_turn.speaker}): {last_turn.text}\n"
+            dialogue_context_str += "Если игрок пишет 'продолжай', 'ну?', 'и?', 'а что?' — интерпретируй как CONTINUE относительно последней реплики NPC.\n"
+
+        user_prompt = f"Ввод: \"{raw_text}\"\nКонтекст: {json.dumps(scene_context, ensure_ascii=False)}{dialogue_context_str}"
 
         return system_prompt, user_prompt

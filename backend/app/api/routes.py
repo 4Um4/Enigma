@@ -371,14 +371,37 @@ async def llm_select(model_key: str) -> dict:
     if not success:
         raise HTTPException(status_code=500, detail="Failed to restart LLM server with new model")
         
-    # Отправляем тестовый промпт, чтобы убедиться, что модель жива
+    # Отправляем реальный игровой промпт с профилем NPC (Борко), чтобы проверить качество модели
     test_response = ""
     try:
+        import json
+        # Загружаем профиль стражника Борко
+        borko_path = BASE_DIR / "config" / "npc" / "individuals" / "borko.json"
+        borko_data = {}
+        if borko_path.exists():
+            with open(borko_path, "r", encoding="utf-8") as f:
+                borko_data = json.load(f)
+
+        name = borko_data.get("name", "Борко")
+        desc = borko_data.get("description", "")
+        voice = borko_data.get("voice_profile", "")
+        notes = borko_data.get("author_notes", "")
+
+        # Формируем честный системный промпт, как в реальной игре
+        sys_prompt = (
+            f"Ты играешь роль {name}. {desc} "
+            f"Твоя манера речи: {voice} "
+            f"Психология: {notes}"
+        )
+        
+        # Провокационный промпт, требующий отыгрыша роли
+        user_prompt = "Игрок подходит к тебе и шепчет: 'Борко, я знаю, ты пропустил караван, после которого нашли труп. Кого ты покрыл?'. Ответь одной короткой фразой."
+
         from app.services.llm.llama_cpp_provider import LlamaCppProvider
         provider = LlamaCppProvider(server_url=settings.llama_cpp_server_url)
         test_response = provider.complete(
-            prompt="Привет, Пикачу - я выбираю тебя! Продекламируй своё имя этому миру!",
-            system_prompt="Ты играешь роль выбранной LLM-модели. Ответь коротко и ярко."
+            prompt=user_prompt,
+            system_prompt=sys_prompt
         )
     except Exception as e:
         test_response = f"[Ошибка тестового запроса]: {e}"

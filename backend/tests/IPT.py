@@ -592,6 +592,40 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_semantic_unification(world: TestWorld) -> InvariantResult:
+    """INV-SEMANTIC-UNIFICATION: Проверка, что ActionSemanticResolver не вызывается из production path (S199)."""
+    import inspect
+    from app.services.game_loop import GameLoop
+    
+    src = inspect.getsource(GameLoop)
+    if "ActionSemanticResolver" in src:
+        return InvariantResult(
+            "INV-SEMANTIC-UNIFICATION",
+            "CRITICAL",
+            False,
+            "ActionSemanticResolver всё ещё вызывается в GameLoop. Нарушение S199 (Semantic Unification).",
+            ["backend/app/services/game_loop/__init__.py"]
+        )
+    return InvariantResult("INV-SEMANTIC-UNIFICATION", "CRITICAL", True, "", [])
+
+
+def inv_dialogue_context_binding(world: TestWorld) -> InvariantResult:
+    """INV-DIALOGUE-CONTEXT-BINDING: Проверка, что IntentCompressor имеет доступ к DialogueSession (S200)."""
+    import inspect
+    from app.services.input.intent_compressor import IntentCompressor
+    
+    src = inspect.getsource(IntentCompressor)
+    if "dialogue_session" not in src:
+        return InvariantResult(
+            "INV-DIALOGUE-CONTEXT-BINDING",
+            "CRITICAL",
+            False,
+            "IntentCompressor.compress() не принимает dialogue_session. Нарушение S200.",
+            ["backend/app/services/input/intent_compressor.py"]
+        )
+    return InvariantResult("INV-DIALOGUE-CONTEXT-BINDING", "CRITICAL", True, "", [])
+
+
 def inv_time_freezer(world: TestWorld) -> InvariantResult:
     """INV-TIME-FREEZER: TimeFreezer подменяет wall-clock (Этап 2.4)."""
     import sys
@@ -1671,6 +1705,8 @@ INVARIANTS: List[Callable] = [
     inv_replay_determinism,
     inv_save_load_integrity,
     inv_intent_event_completeness,
+    inv_semantic_unification,
+    inv_dialogue_context_binding,
     inv_trav_terminality,
     inv_dialogue_liveness,
     inv_event_cardinality,
