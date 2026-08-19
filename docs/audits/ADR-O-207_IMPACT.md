@@ -1,4 +1,8 @@
-﻿# ADR-O-207 Impact Audit: Runtime Ontology Collapse Plan (ROCP v1.1)
+﻿# ADR-O-207 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-207` [STANDARD] **IMPACT**
+# ADR-O-207 Impact Audit: Runtime Ontology Collapse Plan (ROCP v1.1)
 
 > Этот файл — детальный аудит перехода к строгой 4+1-слойной онтологии рантайма и уничтожению Dual-Type State.
 > Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`

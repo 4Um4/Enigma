@@ -1,4 +1,8 @@
-﻿# ADR-O-305 Impact Audit: Belief Crystallization Engine (L2.5)
+﻿# ADR-O-305 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-305` [STANDARD] **IMPACT**
+# ADR-O-305 Impact Audit: Belief Crystallization Engine (L2.5)
 > Этот файл — детальный аудит ADR-O-305. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains

@@ -1,3 +1,7 @@
+﻿# ADR-INV-DEF Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-INV-DEF` [STANDARD] **IMPACT**
 # ADR-INV-DEF Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

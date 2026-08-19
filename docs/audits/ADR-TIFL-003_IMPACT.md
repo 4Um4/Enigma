@@ -1,4 +1,8 @@
-﻿# ADR-TIFL-003 Impact Audit: Identity Constraint Layer (ICL) & Thermodynamic Crystallization
+﻿# ADR-TIFL-003 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-TIFL-003` [STANDARD] **IMPACT**
+# ADR-TIFL-003 Impact Audit: Identity Constraint Layer (ICL) & Thermodynamic Crystallization
 
 > Этот файл — детальный аудит внедрения геометрии устойчивых Я-конфигураций (аттракторов) и починки type-domain mismatch.
 > Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`

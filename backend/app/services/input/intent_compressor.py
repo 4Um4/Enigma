@@ -87,8 +87,8 @@ _ACTION_LEMMAS = {
         "пользоваться",
         "положить",
         "класть",
-        "дать",
-        "давать",
+        "отдать",
+        "передать",
         "поднять",
         "поднимать",
     },
@@ -221,6 +221,7 @@ class IntentCompressor:
         """Разбивает текст на токены и приводит к начальной форме (лемме)."""
         if not PYMORPHY_AVAILABLE:
             return set(text.lower().split())
+        assert MORPH is not None  # Удовлетворяет Pylance (MORPH не None, если PYMORPHY_AVAILABLE)
         tokens = re.findall(r"[а-яА-ЯёЁa-zA-Z0-9]+", text.lower())
         lemmas = set()
         for token in tokens:
@@ -292,12 +293,32 @@ class IntentCompressor:
 
         # ADR-035 FIX: Fast Path обязан генерировать вектор эмоций, иначе Труба Воли мертва
         _semantic = EmotionalVector()  # дефолт
+        _social_intent = SocialIntent.NEUTRAL
+        
         if matched_action == ActionType.ATTACK:
             _semantic = EmotionalVector(aggression=0.8, confidence=0.8)
+            _social_intent = SocialIntent.INTIMIDATE
         elif matched_action == ActionType.THREATEN:
             _semantic = EmotionalVector(aggression=0.5, fear=0.3, confidence=0.7)
+            _social_intent = SocialIntent.OBTAIN_COMPLIANCE
+        elif matched_action == ActionType.PERSUADE:
+            _semantic = EmotionalVector(confidence=0.7)
+            _social_intent = SocialIntent.OBTAIN_COOPERATION
+        elif matched_action == ActionType.FLIRT:
+            _semantic = EmotionalVector(confidence=0.6)
+            _social_intent = SocialIntent.FLIRT
         elif matched_action == ActionType.MOVE:
             _semantic = EmotionalVector(confidence=0.6)
+
+        # S202: Генерируем Proposition для ATTACK и THREATEN (атака = факт "X атаковал Y")
+        _proposition = None
+        if matched_action in (ActionType.ATTACK, ActionType.THREATEN) and target_ref:
+            _proposition = Proposition(
+                subject_id="player",
+                predicate=Predicate.ATTACKED,
+                object_id=target_ref,
+                polarity=True
+            )
 
         # ADR-O-315: Fast path по умолчанию считает актора игроком ("я"),
         # если в тексте нет явного указания на 3-е лицо ("пусть торнин уйдёт").
@@ -320,9 +341,11 @@ class IntentCompressor:
             _actor_ref = target_ref if target_ref else _actor_ref
 
         return IntentSemanticField(
-            action_type=matched_action,
-            actor_reference=_actor_ref,
-            target_reference=target_ref,
+            action=matched_action,
+            actor=_actor_ref,
+            target=target_ref,
+            proposition=_proposition,
+            social_intent=_social_intent,
             raw_text=raw_text,
             physical_force=physical,
             emotional_charge=emotional,
@@ -354,27 +377,53 @@ class IntentCompressor:
             )
 
         try:
-            # S199/S200: Парсим расширенные поля из LLM-ответа
+            # S199/S200/S203: Fault-tolerant parsing. LLM может возвращать неизвестные значения.
+            from enum import Enum
+            from typing import TypeVar, Type, Optional, Any
+            _E = TypeVar("_E", bound=Enum)
+
+            def _safe_enum(enum_cls: Type[_E], val: Optional[Any], default: Optional[_E] = None) -> Optional[_E]:
+                if not val: return default
+                if not isinstance(val, str):
+                    val = str(val)
+                try:
+                    return enum_cls(val)
+                except ValueError:
+                    # Маппинг частых галлюцинаций
+                    if enum_cls is ActionType:
+                        if val.upper() == "HELP": return ActionType.GIVE  # type: ignore
+                        if val.upper() in ("ASSERT", "ASSERTS"): return ActionType.DIALOGUE  # type: ignore
+                    if enum_cls is TargetZone:
+                        return TargetZone.UNDEFINED  # type: ignore
+                    if enum_cls is SocialIntent:
+                        if val == "clarify": return SocialIntent.NEUTRAL  # type: ignore
+                    return default
+
             _prop_data = llm_response.get("proposition")
             _proposition = None
             if _prop_data and isinstance(_prop_data, dict):
+                _pred = _safe_enum(Predicate, _prop_data.get("predicate", "asserts"), Predicate.ASSERTS) or Predicate.ASSERTS
                 _proposition = Proposition(
                     subject_id=_prop_data.get("subject_id", ""),
-                    predicate=Predicate(_prop_data.get("predicate", "asserts")),
+                    predicate=_pred,
                     object_id=_prop_data.get("object_id", ""),
                     polarity=_prop_data.get("polarity", True)
                 )
 
             _speech_act_val = llm_response.get("speech_act")
-            _speech_act = SpeechAct(_speech_act_val) if _speech_act_val else None
+            _speech_act = _safe_enum(SpeechAct, _speech_act_val) if _speech_act_val else None
 
             _social_intent_val = llm_response.get("social_intent")
-            _social_intent = SocialIntent(_social_intent_val) if _social_intent_val else None
+            _social_intent = _safe_enum(SocialIntent, _social_intent_val, SocialIntent.NEUTRAL) if _social_intent_val else None
 
             _action_val = llm_response.get("action", llm_response.get("action_type", ActionType.UNCERTAIN))
+            _action = _safe_enum(ActionType, _action_val, ActionType.UNCERTAIN)
+
+            _tz_val = llm_response.get("target_zone", TargetZone.UNDEFINED.value)
+            _target_zone = _safe_enum(TargetZone, _tz_val, TargetZone.UNDEFINED)
 
             return IntentSemanticField(
-                action=ActionType(_action_val) if _action_val else ActionType.UNCERTAIN,
+                action=_action,
                 actor=llm_response.get("actor", llm_response.get("actor_reference")),
                 target=llm_response.get("target", llm_response.get("target_reference")),
                 speech_act=_speech_act,
@@ -385,12 +434,12 @@ class IntentCompressor:
                 condition=llm_response.get("condition"),
                 conversation_continuation=llm_response.get("conversation_continuation"),
                 dialogue_thread=dialogue_session.thread_id if dialogue_session else None,
-                target_zone=TargetZone(llm_response.get("target_zone", TargetZone.UNDEFINED.value)),
-                physical_force=float(llm_response.get("physical_force", 0.5)),
-                emotional_charge=float(llm_response.get("emotional_charge", 0.5)),
-                social_pressure=float(llm_response.get("social_pressure", 0.0)),
+                target_zone=_target_zone,
+                physical_force=float(llm_response.get("physical_force") or 0.5),
+                emotional_charge=float(llm_response.get("emotional_charge") or 0.5),
+                social_pressure=float(llm_response.get("social_pressure") or 0.0),
                 tool_reference=llm_response.get("tool_reference"),
-                semantic=EmotionalVector(**llm_response.get("semantic", {})),
+                semantic=EmotionalVector(**(llm_response.get("semantic") or {})),
                 raw_text=raw_text,
                 confidence=ConfidenceVector(
                     parse=0.8, target=0.6, emotion=0.7, action=0.8

@@ -1,3 +1,7 @@
+﻿# ADR-O-356 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-356` [STANDARD] **IMPACT**
 # ADR-O-356 Impact Audit: Sleep as Bodily Coupling Mode (Complete)
 > Этот файл — детальный аудит ADR-O-356. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S189 (2026-05-21)

@@ -1,3 +1,8 @@
+# ADR-159 [FIX] Shelter Urge Saturation Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-159 [FIX] Shelter Urge Saturation` [STANDARD] **IMPACT**
+
 ﻿## ADR-159 [FIX] Shelter Urge Saturation — BED Role Extension & DEFAULT Fallback
 
 **Проблема:** `shelter_urge` рос до 1.0 и никогда не удовлетворялся — в city_gate и market_square нет BED-узлов. `resolve_node(role=NodeRole.BED)` возвращал None. NPC стояли на месте с максимальной потребностью.

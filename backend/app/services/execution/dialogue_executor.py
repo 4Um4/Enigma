@@ -142,6 +142,7 @@ class DialogueExecutor:
                 "topic": req.topic,
                 "emotional_state": req.emotional_state,
                 "proposition": _proposition, # S198 FIX: Сохраняем эпистемическое утверждение для COMMUNICATION_CLAIM
+                "intent_type": req.intent_type, # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
             },
         )
 

@@ -1,3 +1,7 @@
+﻿# ADR-O-205 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-205` [STANDARD] **Projection Layer System**
 ### ADR-PRE-FLIGHT CHECKLIST: ADR-O-205 (Projection Layer System)
 # ADR-O-205
 

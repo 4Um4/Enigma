@@ -1,4 +1,8 @@
-﻿# ADR-O-305A Impact Audit: Evidence Semantics
+﻿# ADR-O-305A Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-305A` [STANDARD] **IMPACT**
+# ADR-O-305A Impact Audit: Evidence Semantics
 > Этот файл — детальный аудит контракта L1 → L1.5. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## 1. Контракт DTO (Вход: L1)

@@ -1,4 +1,8 @@
 ﻿# ADR-L1-PERSIST Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-L1-PERSIST` [STANDARD] **IMPACT**
+# ADR-L1-PERSIST Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains
@@ -15,3 +19,4 @@
 
 ## Rollback
 - [Как откатить]
+

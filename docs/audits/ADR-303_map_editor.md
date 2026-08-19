@@ -1,4 +1,8 @@
-﻿# ADR-303: Coordinate Truth & Physical World Unification
+﻿# ADR-303 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-303` [STANDARD] **map editor**
+# ADR-303: Coordinate Truth & Physical World Unification
 
 > **Статус:** ACCEPTED (Частично реализовано — S81)
 > **Тип:** ONTOLOGY (ADR-O)

@@ -1,4 +1,8 @@
-﻿# ADR-TIFL-002 Impact Audit: Identity as Competitive Drift Field (ICDF)
+﻿# ADR-TIFL-002 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-TIFL-002` [STANDARD] **IMPACT**
+# ADR-TIFL-002 Impact Audit: Identity as Competitive Drift Field (ICDF)
 
 > Этот файл — детальный аудит перехода от линейного усиления драйвов к конкурентному перераспределению массы личности.
 > Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`

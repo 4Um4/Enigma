@@ -1,3 +1,7 @@
+﻿# ADR-064 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-064` [STANDARD] **IMPACT**
 # ADR-064 Impact Audit: Directive Pipeline Data Continuity
 ## Changed Domains
 - Will (ObediencePressure), Social (Legitimacy)

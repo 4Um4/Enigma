@@ -1,3 +1,7 @@
+﻿# ADR-053 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-053` [STANDARD] **IMPACT**
 # ADR-053 Impact Audit: LifeEngine Intent Pipeline Restoration
 ## Changed Domains
 - npc (life_engine), spatial (tick_orchestrator)
@@ -15,3 +19,4 @@
 
 ## Rollback
 - Вернуть `changes = self._simulate_minor(...)` и `all_changes.extend(changes)` в LifeEngine.tick().
+

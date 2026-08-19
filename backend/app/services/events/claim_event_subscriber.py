@@ -60,6 +60,8 @@ class ClaimEventSubscriber:
         Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
         Если LLM не предоставила proposition, извлекает его из intent_type.
         """
+        import dataclasses
+        
         if not hasattr(event, 'payload'):
             return
 
@@ -73,25 +75,33 @@ class ClaimEventSubscriber:
         speaker_id = event.source
 
         # Маппинг интентов на пропозиции
+        # subject_id — кто совершил действие, object_id — над кем/чем.
         prop = None
         if intent_type == "accuse" and target_id:
+            # "Я обвиняю тебя в краже" -> target украл неизвестно что
             prop = Proposition(subject_id=target_id, predicate=Predicate.STOLE, object_id="unknown")
         elif intent_type == "praise" and target_id:
+            # "Я хвалю тебя за помощь" -> target помог неизвестно кому
             prop = Proposition(subject_id=target_id, predicate=Predicate.HELPED, object_id="unknown")
         elif intent_type in ("intimidate", "attack") and target_id:
-            prop = Proposition(subject_id=target_id, predicate=Predicate.ATTACKED, object_id="unknown")
+            # "Я угрожаю тебе" -> speaker напал на target
+            prop = Proposition(subject_id=speaker_id, predicate=Predicate.ATTACKED, object_id=target_id)
 
         if prop:
-            # Добавляем proposition в payload и делегируем основному обработчику
-            payload["proposition"] = {
+            # Создаём НОВЫЙ payload и НОВЫЙ event, чтобы не мутировать frozen EventDTO
+            new_payload = dict(payload)
+            new_payload["proposition"] = {
                 "subject_id": prop.subject_id,
                 "predicate": prop.predicate.value,
                 "object_id": prop.object_id,
                 "polarity": True
             }
-            payload.setdefault("claim_id", f"fallback-{event.id}")
-            payload.setdefault("speech_act", "assert")
-            self.on_claim_event(event)
+            new_payload.setdefault("claim_id", f"fallback-{event.id}")
+            new_payload.setdefault("speech_act", "assert")
+            
+            # Создаём новый event с теми же полями, но новым payload
+            new_event = dataclasses.replace(event, payload=new_payload)
+            self.on_claim_event(new_event)
 
     def on_claim_event(self, event: Any) -> None:
         if not hasattr(event, 'payload'):
@@ -117,6 +127,12 @@ class ClaimEventSubscriber:
             # Телепатия (передача убеждений без физического контакта) запрещена.
             _listeners = set()
 
+            # S202: Определяем источник звука. Если это атака, звук исходит от цели (удар).
+            _origin_id = event.source
+            _prop_data = payload.get("proposition")
+            if _prop_data and _prop_data.get("predicate") == "attacked":
+                _origin_id = payload.get("target_id", event.source)
+
             if self._get_spatial_query:
                 _sq = self._get_spatial_query()
                 if _sq:
@@ -129,9 +145,9 @@ class ClaimEventSubscriber:
                     else:
                         for _nid in _npc_positions.keys():
                             # S199 (Фаза 8.3): Игрок больше не исключается — он полноправный наблюдатель.
-                            if _nid == event.source:
+                            if _nid == _origin_id:
                                 continue
-                            _dist = _sq.distance(event.source, _nid)
+                            _dist = _sq.distance(_origin_id, _nid)
                             if _dist <= HEARING_RADIUS:
                                 _listeners.add(_nid)
                         # S198: Явно проверяем target_id, даже если он отсутствует в _npc_positions
@@ -140,7 +156,7 @@ class ClaimEventSubscriber:
                             if _primary_target not in _npc_positions:
                                 _listeners.add(_primary_target)
                             else:
-                                _dist = _sq.distance(event.source, _primary_target)
+                                _dist = _sq.distance(_origin_id, _primary_target)
                                 if _dist <= HEARING_RADIUS:
                                     _listeners.add(_primary_target)
                 else:

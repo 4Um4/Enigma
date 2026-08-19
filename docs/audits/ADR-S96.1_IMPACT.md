@@ -1,3 +1,12 @@
+# ADR-S96.1 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-S96.1` [STANDARD] **IMPACT**
+
+﻿# ADR-S96.1 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-S96.1` [STANDARD] **IMPACT**
 # ADR-S96.1 Impact Audit: L2.5 → L3 Projection Contract Closure
 
 ## Changed Domains
@@ -19,3 +28,4 @@
 ## Rollback
 - Revert `drive_resolver.py` to read `l1_events_weighted` and re-add the `pass` statement.
 - Revert `tick_orchestrator.py` lines 1843, 3059, 3302 to pass `_l1_events` instead of `_beliefs`.
+

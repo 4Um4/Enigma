@@ -1,3 +1,7 @@
+﻿# ADR-102 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-102` [STANDARD] **IMPACT**
 # ADR-102 Impact Audit: SpatialService replaces load_graph() + FLEE Fix
 
 ## Changed Domains

@@ -1,6 +1,10 @@
 ﻿# ADR-O-142 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
+`ADR-O-142` [STANDARD] **IMPACT**
+# ADR-O-142 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
 ## Суть
 Двухуровневая модель сознания NPC. Consciousness FSM (SLEEPING/AWAKE/UNCONSCIOUS/DEAD) + Behavior Layer (routine/activity_overrides/schedule).
 Arousal Gate = единственный мутатор FSM, стоит ДО schedule resolution в LifeEngine.

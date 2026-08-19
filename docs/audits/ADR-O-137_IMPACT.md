@@ -1,4 +1,8 @@
-﻿# ADR-O-137 Impact Audit: Viability Pre-Generation Gate (ДОЛГ 4.3)
+﻿# ADR-O-137 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-137` [STANDARD] **IMPACT**
+# ADR-O-137 Impact Audit: Viability Pre-Generation Gate (ДОЛГ 4.3)
 
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

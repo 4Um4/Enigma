@@ -1,3 +1,7 @@
+﻿# ADR-156 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-156` [STANDARD] **IMPACT**
 # ADR-156 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
@@ -22,3 +26,4 @@
 ## Rollback
 - Откатить изменения в `frontend/game_screen.py` (вернуть чтение `scene_state.get("player_spatial", {})`).
 - Восстановить блоки `"player_spatial": {...}` в моках `scene_state` в указанных тестах.
+

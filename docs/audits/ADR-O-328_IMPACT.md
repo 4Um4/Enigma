@@ -1,3 +1,7 @@
+﻿# ADR-O-328 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-328` [STANDARD] **IMPACT**
 ## ADR-O-328: Dual Rail Boundary Consistency [ONTO]
 > **Статус:** ACTIVE
 > **Домен:** DOM-04 (Spatial & Locomotion), DOM-08 (Observability)

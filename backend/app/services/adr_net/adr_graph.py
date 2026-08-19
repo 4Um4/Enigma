@@ -4,6 +4,8 @@ path: /project/backend/app/services/adr_net/adr_graph.py
 Назначение: Построение NetworkX MultiDiGraph на основе распарсенных ADR (Этап 4.2).
 Зависимости: networkx, app.services.adr_net.adr_parser
 Основные сущности: ADRGraphBuilder
+
+Запуск: 
 """
 import logging
 from pathlib import Path

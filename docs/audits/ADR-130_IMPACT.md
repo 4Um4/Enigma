@@ -1,3 +1,7 @@
+﻿# ADR-130 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-130` [STANDARD] **IMPACT**
 # ADR-130 Impact Audit: Movement Lock & Target Resolution
 
 ## Changed Domains

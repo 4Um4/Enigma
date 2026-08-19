@@ -1,3 +1,7 @@
+﻿# ADR-115 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-115` [STANDARD] **IMPACT**
 # ADR-115 Impact Audit: DOUBLE TRUTH perceptual_kernel
 
 ## Changed Domains
@@ -34,3 +38,4 @@ pc.get("perceptual_kernel") для GAP9 (пробуждение от сна)
 ## Files Changed
 - ackend/app/models/npc_state.py: write_to_legacy(), from_legacy(), _pk_from_dict()
 - rchitecture/physiology.yaml: добавлено правило ADR-115
+

@@ -1,4 +1,8 @@
 ﻿# ADR-159 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-159` [STANDARD] **IMPACT**
+# ADR-159 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains
@@ -35,3 +39,4 @@
 - Вернуть @pytest.mark.skip к тестам в 	est_impact_engine.py.
 - Вернуть pply_perception_memory к вызову memory_manager.apply() внутри reducer.
 - Вернуть CrystallizedBeliefStore к in-memory only (убрать store параметр).
+

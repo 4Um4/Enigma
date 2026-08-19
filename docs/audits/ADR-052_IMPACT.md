@@ -1,3 +1,7 @@
+﻿# ADR-052 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-052` [STANDARD] **IMPACT**
 # ADR-052 Impact Audit: LOD0 Micro-Movement Pipeline Restoration
 ## Changed Domains
 - spatial (movement resolution), npc_tick_pipeline (intent generation)
@@ -16,3 +20,4 @@
 ## Rollback
 - Удалить нормализацию current_base/target_base в _resolve_reactive_movement.
 - Вернуть строгое сравнение target_node_id == current_node.
+

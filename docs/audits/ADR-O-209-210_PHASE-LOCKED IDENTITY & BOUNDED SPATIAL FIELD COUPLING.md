@@ -1,3 +1,7 @@
+﻿# ADR-O-209-210 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-209-210` [STANDARD] **PHASE-LOCKED IDENTITY & BOUNDED SPATIAL FIELD COUPLING**
 # ADR-O-209/210: PHASE-LOCKED IDENTITY & BOUNDED SPATIAL FIELD COUPLING
 
 **Тип АДР:** ONTO (Ontology Shift)
@@ -116,3 +120,4 @@ S_total = S_internal_j + S_env
       │
       ▼
 ElasticWarp(S_total) ──> g_eff ──> DecisionHub
+

@@ -1,3 +1,7 @@
+﻿# ADR-O-327 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-327` [STANDARD] **IMPACT**
 # ADR-O-327 Impact Audit: BodyTopology Vertical Slice (Lower Limb)
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

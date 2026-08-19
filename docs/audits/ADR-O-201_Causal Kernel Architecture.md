@@ -1,3 +1,7 @@
+﻿# ADR-O-201 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-201` [STANDARD] **Causal Kernel Architecture**
 # ADR-O-201: Causal Kernel Architecture
 
 <!-- ADR-O-201 -->

@@ -1,3 +1,7 @@
+﻿# ADR-CI-MYPY Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-CI-MYPY` [STANDARD] **IMPACT**
 # ADR-CI-MYPY Impact Audit
 > Этот файл — детальный аудит фикса CI и mypy --strict compliance.
 
@@ -22,3 +26,4 @@
 - Удалить mypy.ini, вернуть файлы в architecture/.
 - Убрать try/except в task_scheduler.py.
 - Вернуть MINIMUM_RESPONSE_LATENCY_SEC = 2.0.
+

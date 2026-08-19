@@ -1,3 +1,12 @@
+# ADR-PRE-FLIGHT CHECKLIST Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-PRE-FLIGHT CHECKLIST` [STANDARD] **IMPACT**
+
+﻿# ADR-PRE-FLIGHT CHECKLIST Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-PRE-FLIGHT CHECKLIST` [STANDARD] ****
 ### ADR-PRE-FLIGHT CHECKLIST (Perception → Emotion Converter)
 
 1. **Тип АДР:** ONTOLOGY (ADR-O) — Восстановление каузальной цепи Восприятие → Эмоция.
@@ -49,5 +58,6 @@
    - Tick Latency Delta: 0
 5. **Откат (Rollback):** Вернуть `local_target_xy` в `MovementIntent`.
 6. **Регрессия:** `python -m pytest backend/tests/sandbox/ -v --tb=short`
+
 
 

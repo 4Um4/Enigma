@@ -1,3 +1,7 @@
+﻿# ADR-311 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-311` [STANDARD] **IMPACT**
 # ADR-311 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
@@ -22,3 +26,4 @@
 - Удалить поле inal_scene_state из TickResultDTO.
 - Убрать возврат ctx.scene_state из TickOrchestrator.execute().
 - Верратить коммит _scene в GameLoop.idle_tick.
+

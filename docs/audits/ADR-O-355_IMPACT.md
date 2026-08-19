@@ -1,3 +1,7 @@
+﻿# ADR-O-355 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-355` [STANDARD] **IMPACT**
 # ADR-O-355 Impact Audit: Modifier Contract v1
 
 > Этот файл — детальный аудит ADR-O-355. Единый атлас: `docs/ADR (Architecture Decision Records).md`

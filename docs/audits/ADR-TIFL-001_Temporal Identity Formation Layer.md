@@ -1,3 +1,7 @@
+﻿# ADR-TIFL-001 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-TIFL-001` [STANDARD] **Temporal Identity Formation Layer**
 ### ADR-PRE-FLIGHT CHECKLIST: ADR-TIFL-001 (Temporal Identity Formation Layer)
 
 **1. Тип АДР:** ONTOLOGY (ADR-O). Переход от символьной мутации личности к непрерывной каузальной адаптации.

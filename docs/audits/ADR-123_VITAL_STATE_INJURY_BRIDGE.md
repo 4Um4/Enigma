@@ -1,3 +1,7 @@
+﻿# ADR-123 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-123` [STANDARD] **VITAL STATE INJURY BRIDGE**
 # ADR-123: Vital State Evaluator & Injury-Physiology Bridge
 
 ## Статус: ПРИНЯТ

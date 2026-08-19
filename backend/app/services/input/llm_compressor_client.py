@@ -49,6 +49,7 @@ class LlamaCppCompressorClient:
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.1,
+            "response_format": {"type": "json_object"} # Принудительный JSON Mode
         }
 
         try:
@@ -64,7 +65,8 @@ class LlamaCppCompressorClient:
             proxy_handler = urllib.request.ProxyHandler({})
             opener = urllib.request.build_opener(proxy_handler)
 
-            with opener.open(req, timeout=15) as response:
+            # S203 FIX: Увеличен таймаут до 60 сек, т.к. qwen_7b на CPU может думать дольше 15 сек.
+            with opener.open(req, timeout=60.0) as response:
                 resp_data = json.loads(response.read().decode("utf-8"))
                 content = resp_data["choices"][0]["message"]["content"]
 
@@ -74,8 +76,15 @@ class LlamaCppCompressorClient:
                     content = json_match.group(0)
 
                 return json.loads(content)
-        except (urllib.error.URLError, json.JSONDecodeError, KeyError, IndexError) as e:
+        except json.JSONDecodeError as e:
+            # S203 FIX: Логируем сырой ответ LLM, чтобы понять, почему парсинг падает.
+            logger.error(f"[LLM_COMPRESSOR] JSONDecodeError: {e}. Raw content: {content if 'content' in locals() else 'N/A'}")
+            return None
+        except (urllib.error.URLError, KeyError, IndexError) as e:
             logger.debug(f"LLM compressor request failed: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"[LLM_COMPRESSOR] Unexpected error: {e}")
             return None
 
     def _build_prompts(self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None) -> tuple[str, str]:
@@ -89,9 +98,25 @@ class LlamaCppCompressorClient:
         names_hint = ", ".join(npc_names) if npc_names else "нет"
 
         system_prompt = f"""Ты — продвинутый семантический парсер. Переведи ввод игрока в строгий JSON, отражающий многомерную семантику высказывания.
-Допустимые action: ["MOVE", "OBSERVE", "INTERACT", "ATTACK", "THREATEN", "PERSUADE", "FLIRT", "STEAL", "GIVE", "UNCERTAIN"].
+Допустимые action: ["MOVE", "OBSERVE", "INTERACT", "ATTACK", "THREATEN", "PERSUADE", "FLIRT", "STEAL", "GIVE", "DIALOGUE", "UNCERTAIN"].
+Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
+Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
-Допустимые social_intent: ["obtain_information", "obtain_cooperation", "obtain_compliance", "repair_relationship", "build_rapport", "intimidate", "flirt", "comfort", "deceive", "confess", "provoke", "defend", "neutral"].
+Допустимые social_intent и их жесткая связь с action и speech_act:
+- "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
+- "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).
+- "obtain_compliance": action="THREATEN", speech_act="THREAT" или "ORDER". (Заставить подчиниться через угрозу).
+- "repair_relationship": action="DIALOGUE", speech_act="APOLOGY". (Помириться, извиниться).
+- "build_rapport": action="DIALOGUE", speech_act="ASSERT" или "COMPLIMENT". (Сблизиться, дружеская беседа, нейтральный контакт).
+- "intimidate": action="THREATEN" или "ATTACK", speech_act="THREAT" или "INSULT". (Запугать, унизить, угроза насилием. Примеры: "ты труп", "ты играешь с огнём", "я тебя уничтожу").
+- "flirt": action="FLIRT" или "DIALOGUE", speech_act="COMPLIMENT". (Флирт, комплименты внешности, романтика. Примеры: "ты красивая", "ты мне нравишься", "не могу оторвать взгляд", "ты очаровательна", "мне с тобой так хорошо", "я думаю о тебе"). Любое выражение симпатии = "flirt".
+- "comfort": action="DIALOGUE" или "GIVE", speech_act="ASSERT" или "PROMISE". (Утешить, поддержать в горе. Примеры: "всё будет хорошо", "не плачь", "я с тобой", "я помогу тебе", "давай я обниму тебя", "ты сильная", "твоя боль - моя боль"). Любая поддержка или забота = "comfort".
+- "deceive": action="DIALOGUE", speech_act="ASSERT". (Солгать, обмануть).
+- "confess": action="DIALOGUE", speech_act="ASSERT". (Признаться в чём-то).
+- "provoke": action="DIALOGUE" или "ATTACK", speech_act="INSULT". (Спровоцировать на конфликт).
+- "defend": action="DIALOGUE" или "ATTACK", speech_act="ASSERT". (Защитить кого-то).
+- "neutral": action="DIALOGUE", speech_act="ASSERT". (Бытовая коммуникация).
+Выбирай social_intent строго по смыслу. Выражение симпатии = "flirt", а не "build_rapport". Угрозы = "intimidate", а не "repair_relationship". Запрос секрета = "obtain_information", а не "neutral". Утешение и поддержка = "comfort", а не "obtain_cooperation" или "build_rapport".
 
 Извлеки:
 - action: канонический тип действия.

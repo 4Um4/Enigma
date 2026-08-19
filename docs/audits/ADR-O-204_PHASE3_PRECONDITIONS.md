@@ -1,3 +1,7 @@
+﻿# ADR-O-204 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-204` [STANDARD] **PHASE3 PRECONDITIONS**
 # ADR-O-204
 
 <!-- ADR-O-204 -->

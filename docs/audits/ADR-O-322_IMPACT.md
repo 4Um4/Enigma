@@ -1,3 +1,7 @@
+﻿# ADR-O-322 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-322` [STANDARD] **IMPACT**
 # ADR-O-322 Impact Audit: Epistemology Machine Architecture
 > Этот файл — детальный аудит онтологического сдвига. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
@@ -25,4 +29,5 @@
 
 ## Rollback
 Откат невозможен. Предыдущая линейная модель (Pipeline) признана хрупкой и убита.
+
 

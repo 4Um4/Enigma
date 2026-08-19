@@ -1,3 +1,7 @@
+﻿# ADR-INFRA-MVI Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-INFRA-MVI` [STANDARD] **IMPACT**
 # ADR-INFRA-MVI Impact Audit
 > Этот файл — детальный аудит завершения Minimum Viable Infrastructure (MVI) из ТЗ ENIGMA_TZ_INFRASTRUCTURE.
 
@@ -25,3 +29,4 @@
 - Удалить wiring в game_loop/__init__.py и eplay_recorder.py.
 - Вернуть CausalProvenanceProbe, HistoricalConstraintProbe, TemporalIsolationProbe к заглушкам.
 - Удалить alidators.py, llm_cache.py, probe_alerts.py, dr_visualizer.py.
+

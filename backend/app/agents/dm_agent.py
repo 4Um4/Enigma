@@ -983,15 +983,58 @@ class DmAgent:
         q: asyncio.Queue[str | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
+        import re as _re
+        # S203/P0 FIX: Streaming-aware JSON field decoder.
+        # Пропускает префикс JSON до значения dm_response и стримит только содержимое строки.
+        class _StreamingJsonFieldDecoder:
+            _PREFIX_RE = _re.compile(r'^\s*\{?\s*"dm_response"\s*:\s*"')
+            def __init__(self):
+                self._buf = ""
+                self._streaming = False
+                self._done = False
+            def feed(self, token: str) -> str:
+                if self._done: return ""
+                self._buf += token
+                if not self._streaming:
+                    m = self._PREFIX_RE.match(self._buf)
+                    if not m and len(self._buf) > 60:
+                        self._streaming = True
+                        out = self._buf
+                        self._buf = ""
+                        return out
+                    if m:
+                        self._buf = self._buf[m.end():]
+                        self._streaming = True
+                    else:
+                        return ""
+                out = []
+                i = 0
+                while i < len(self._buf):
+                    c = self._buf[i]
+                    if c == '\\' and i + 1 < len(self._buf):
+                        out.append(self._buf[i+1]); i += 2; continue
+                    if c == '"':
+                        self._done = True
+                        self._buf = ""
+                        return "".join(out)
+                    out.append(c); i += 1
+                self._buf = ""
+                return "".join(out)
+
         def _producer():
             buffer = ""
             tail_len = max(len(st) for st in _STOP_TOKENS)
+            decoder = _StreamingJsonFieldDecoder()
             try:
                 for token in provider.stream_tokens(
                     prompt=prompt,
                     params=GenerationParams(max_tokens=settings.dm_max_tokens),
                     system_prompt=system_prompt,
                 ):
+                    if not token:
+                        continue
+                    # P0 FIX: Пропускаем токен через декодер, чтобы извлечь только dm_response
+                    token = decoder.feed(token)
                     if not token:
                         continue
                     buffer += token

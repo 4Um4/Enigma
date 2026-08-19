@@ -1,3 +1,7 @@
+﻿# ADR-058 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-058` [STANDARD] **IMPACT**
 # ADR-058 Impact Audit: Frontend Dual-Time Ontology (Sprint 30)
 
 ## Измененный АДР

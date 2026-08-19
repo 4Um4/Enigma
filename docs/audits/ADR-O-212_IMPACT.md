@@ -1,6 +1,10 @@
 ﻿# ADR-O-212 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
+`ADR-O-212` [STANDARD] **IMPACT**
+# ADR-O-212 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
 ## Changed Domains
 - DOM-02: Will, Pressure & Decision (DecisionHub получает bias от InstitutionLayer)
 - DOM-06: Social & Memory (Введены VillageMemoryField, SocialMemoryUpdater, InstitutionLayer)

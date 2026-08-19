@@ -1,4 +1,8 @@
-﻿# ADR-150 Impact Audit: Need-Driven Semantic Spatial Binding
+﻿# ADR-150 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-150` [STANDARD] **IMPACT**
+# ADR-150 Impact Audit: Need-Driven Semantic Spatial Binding
 
 ## Changed Domains
 - LifeEngine (_check_need_driven_movement)
@@ -23,3 +27,4 @@
 
 ## Key Files Changed
 - backend/app/services/npc/life_engine.py (_check_need_driven_movement)
+

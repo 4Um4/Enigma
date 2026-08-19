@@ -1,3 +1,7 @@
+﻿# ADR-049 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-049` [STANDARD] **IMPACT**
 # ADR-049 Impact Audit: Causal Pressure Pipeline & Affective Accumulation
 
 ## Измененный АДР

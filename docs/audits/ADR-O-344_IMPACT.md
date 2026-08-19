@@ -1,3 +1,7 @@
+﻿# ADR-O-344 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-344` [STANDARD] **IMPACT**
 # ADR-O-344 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
@@ -21,3 +25,4 @@
 
 ## Rollback
 Вернуть цикл `for _loc_id in _location_ids:` в `GameLoop.idle_tick` и вернуть `+60.0` хардкод. Удалить глобальный цикл из `TickOrchestrator.execute`.
+
