@@ -27,3 +27,6 @@
 
 ## Rollback
 - Revert changes in `diagnostics/pattern_registry.py`, `backend/app/services/npc/npc_tick_pipeline.py`, `backend/app/services/npc/life_engine.py`.
+
+
+Files: N/A

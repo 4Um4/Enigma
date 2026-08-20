@@ -27,3 +27,6 @@
 - Откатить изменения в `frontend/game_screen.py` (вернуть чтение `scene_state.get("player_spatial", {})`).
 - Восстановить блоки `"player_spatial": {...}` в моках `scene_state` в указанных тестах.
 
+
+
+Files: N/A

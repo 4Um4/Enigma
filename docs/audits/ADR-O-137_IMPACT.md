@@ -47,3 +47,6 @@
 1. **Переусиление SURVIVAL** — 4 механизма влияния (threat guard, viability mask, DRF scoring, initiative_suppression). Мониторить: NPC не должен быть парализован при threat=0.35
 2. **Бинарность viability** — текущая маска: 0 или 1. Нет градации (threat=0.31 = ROUTINE удалён, threat=0.29 = ROUTINE жив). Целевая архитектура: viability tensor с непрерывным сжатием
 3. **Domain drift** — `domain` поле может не соответствовать реальной семантике при росте системы. Нужен аудит при добавлении новых генераторов интентов
+
+
+Files: N/A

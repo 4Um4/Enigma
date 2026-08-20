@@ -26,3 +26,6 @@
 ## Rollback
 Вернуть цикл `for _loc_id in _location_ids:` в `GameLoop.idle_tick` и вернуть `+60.0` хардкод. Удалить глобальный цикл из `TickOrchestrator.execute`.
 
+
+
+Files: N/A

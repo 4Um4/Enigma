@@ -606,6 +606,6 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
     if not _cache:
         _npc_id = raw_data.get("id", "unknown")
         _cache = _convert_origin_events(raw_data.get("origin_events", []), _npc_id)
-    state.narrative_cache = _cache
+    object.__setattr__(state, "narrative_cache", _cache)
 
     return state

@@ -76,3 +76,6 @@ class EvidenceOfPersistence:
 
 ## 7. Rollback
 Удалить класс `PatternDetector` и DTO `EvidenceOfPersistence`. L1 Chronicle остаётся без агрегатора, Belief Engine отключается.
+
+
+Files: N/A

@@ -121,3 +121,6 @@ S_total = S_internal_j + S_env
       ▼
 ElasticWarp(S_total) ──> g_eff ──> DecisionHub
 
+
+
+Files: N/A

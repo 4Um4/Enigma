@@ -33,3 +33,6 @@
 - backend/app/services/npc/life_engine.py (5 condensed)
 - backend/app/services/spatial/movement_engine.py (1 condensed)
 
+
+
+Files: N/A

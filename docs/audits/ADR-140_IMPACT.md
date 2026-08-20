@@ -54,3 +54,6 @@ Death Guard вызывает DM вместо возврата хардкод-с�
 - Rule 62: DM narration без проверки player life_status = каузальный обман
 - Rule 65: avatar_to_prompt без life_status = слепой DM
 - Rule 66: Death Guard без вызова DM = подмена нарратива хардкодом
+
+
+Files: N/A

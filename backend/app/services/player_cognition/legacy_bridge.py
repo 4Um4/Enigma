@@ -6,6 +6,7 @@
 """
 
 import logging
+from difflib import SequenceMatcher
 from typing import Optional
 
 from app.domain.intent_profile import IntentSemanticField
@@ -16,31 +17,43 @@ from app.models.truth_state import TruthState
 logger = logging.getLogger(__name__)
 
 class PropositionMatcher:
-    """Семантический матч IntentDTO.proposition с TruthState.secrets."""
+    """Семантический матч IntentDTO.proposition с TruthState.secrets через Embedding Similarity (Stub)."""
     def __init__(self, truth_state: Optional[TruthState]):
         self._truth = truth_state
+        # Маппинг предикатов на эталонные фразы для семантического сравнения
+        self._predicate_templates = {
+            Predicate.STOLE: "украл взял кража",
+            Predicate.ATTACKED: "ударил напал убил атака",
+            Predicate.HELPED: "помог спас выручил поддержка",
+        }
+
+    def _similarity(self, text1: str, text2: str) -> float:
+        """Заглушка для BGE-small-ru. Вычисляет семантическую близость через SequenceMatcher."""
+        return SequenceMatcher(None, text1, text2).ratio()
 
     def match(self, prop: Optional[Proposition], target_id: str) -> Optional[str]:
         if not prop or not self._truth:
             return None
         
-        # MVP-матч: если predicate=STOLE и target_id="merchant_goran", ищем секрет о краже
-        # В будущем заменяется на embedding similarity (BGE-small-ru)
+        best_match_id = None
+        best_match_score = 0.0
+        threshold = 0.2  # Порог семантической близости
+        
         for secret_id, secret in self._truth.secrets.items():
             participants = getattr(secret, "participants", [])
             if target_id not in participants:
                 continue
             
             canon = getattr(secret, "canonical_truth", "").lower()
-            # Базовая эвристика: если в каноне есть упоминание предиката
-            if prop.predicate == Predicate.STOLE and ("краж" in canon or "украл" in canon or "взял" in canon):
-                return secret_id
-            if prop.predicate == Predicate.ATTACKED and ("удар" in canon or "напад" in canon or "убил" in canon):
-                return secret_id
-            if prop.predicate == Predicate.HELPED and ("помог" in canon or "спас" in canon):
-                return secret_id
+            template = self._predicate_templates.get(prop.predicate, "")
+            
+            # Вычисляем семантическую близость между канонической правдой и шаблоном предиката
+            score = self._similarity(canon, template)
+            if score > best_match_score and score > threshold:
+                best_match_score = score
+                best_match_id = secret_id
                 
-        return None
+        return best_match_id
 
 def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state: Optional[TruthState]) -> PlayerAction:
     """Временный мост: конвертирует расширенный IntentDTO в PlayerAction для MvpTavernController.

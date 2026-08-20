@@ -50,3 +50,6 @@ Streaming path (`dm_agent._stream_response()` → `provider.stream_tokens()`) о
 - ❌ LLM-вызов в обход Router (прямой `provider.stream_tokens()` без `notify_stream_start/end`)
 - ❌ Новый LLM path без `[R4A_*]` маркера
 - ❌ CDS pattern_registry без покрытия нового LLM-маркера
+
+
+Files: N/A

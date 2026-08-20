@@ -54,7 +54,7 @@ def evaluate_behavior_and_identity(
             _npc_state = NPCStateAdapter.from_legacy(npc_dict)
             # V8-PSY-19 FIX: Инкремент tick_age и удаление истёкших temporary_drives
             from app.models.npc_state import age_drives
-            _npc_state.temporary_drives = age_drives(_npc_state.temporary_drives)
+            object.__setattr__(_npc_state, "temporary_drives", age_drives(_npc_state.temporary_drives))
 
             # V8-PSY-2 FIX: Willpower читается из NPCPersonality (L0), а не из несуществующего psyche
             _personality = getattr(_npc_state, "personality", None)  # noqa: ENIGMA002
@@ -86,7 +86,7 @@ def evaluate_behavior_and_identity(
                     # Эмерджентные эмоции: высокое давление -> ANGRY/FEARFUL
                     # Порог снижен до 5.0, чтобы даже moderate pressure вызывало раздражение
                     if _social_pressure > 5.0:
-                        _npc_state.emotion = EmotionTag.FEARFUL if _max_fear > 50.0 else EmotionTag.ANGRY
+                        object.__setattr__(_npc_state, "emotion", EmotionTag.FEARFUL if _max_fear > 50.0 else EmotionTag.ANGRY)
                         logger.info(f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion.value} (social_pressure={_social_pressure:.1f})")
 
                     # V8-PSY-7 FIX: Поддержка есть, если у NPC есть хотя бы один союзник (trust > 50)
@@ -104,26 +104,26 @@ def evaluate_behavior_and_identity(
                 social_pressure=_social_pressure,
             )
 
-            _npc_state.identity_integrity = max(
+            object.__setattr__(_npc_state, "identity_integrity", max(
                 0.0,
                 min(
                     1.0,
                     _npc_state.identity_integrity
                     + _break_deltas.identity_integrity_delta,
                 ),
-            )
-            _npc_state.pressure_resistance = max(
+            ))
+            object.__setattr__(_npc_state, "pressure_resistance", max(
                 0.0,
                 min(
                     1.0,
                     _npc_state.pressure_resistance
                     + _break_deltas.pressure_resistance_delta,
                 ),
-            )
-            _npc_state.recent_failures = max(0, _npc_state.recent_failures + _break_deltas.recent_failures_delta)
+            ))
+            object.__setattr__(_npc_state, "recent_failures", max(0, _npc_state.recent_failures + _break_deltas.recent_failures_delta))
 
             if _break_deltas.will_state_override is not None:
-                _npc_state.will_state = _break_deltas.will_state_override
+                object.__setattr__(_npc_state, "will_state", _break_deltas.will_state_override)
 
             # L2.7: LifeProjectResolver — продвигаем FSM жизненного проекта каждый тик
             from app.services.npc.life_project_resolver import LifeProjectResolver
@@ -228,9 +228,9 @@ def evaluate_behavior_and_identity(
                 )
 
             if _new_mask != _npc_state.behavior_mask.mask:
-                _npc_state.behavior_mask = BehaviorMaskState(
+                object.__setattr__(_npc_state, "behavior_mask", BehaviorMaskState(
                     mask=_new_mask, intensity=_mask_intensity, applied_at_day=game_day
-                )
+                ))
 
             # V8-PSY-18 FIX: Удалены root-level writes. write_to_legacy() уже корректно
             # сохраняет эти поля в psyche sub-dict, который читает from_legacy.

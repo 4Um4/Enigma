@@ -39,3 +39,6 @@
 2. Откатить патчи в `diagnostics/*` (удалить инъекции `InvariantHealthChecker` из `CausalObserver`, `ReportRenderer`, `DNAComputer` и `pattern_registry`).
 3. Откатить ассерты в `post_decision.py`, `tick_orchestrator.py`, `world_snapshot_builder.py`.
 4. Вернуть §3.7 и §4 в `docs/РЕЖИМ РАБОТЫ.md` к исходному виду, удалить §3.8.
+
+
+Files: N/A

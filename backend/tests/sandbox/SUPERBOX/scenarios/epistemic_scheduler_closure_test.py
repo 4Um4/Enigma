@@ -27,7 +27,8 @@ from app.domain.communication import DialogueRequest, ExposureLevel
 from app.domain.epistemology import Predicate
 from app.services.events.event_types import EventType
 from app.services.events.event_bus import get_event_bus
-from app.services.events.claim_event_subscriber import ClaimEventSubscriber, RelationshipReliabilityProvider
+from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
@@ -49,7 +50,7 @@ def run_test():
     rel_store = RelationshipStore(data_dir=str(BACKEND_ROOT.parent / "saves" / "test_sandbox"))
     rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
     
-    reliability_provider = RelationshipReliabilityProvider(rel_store, CAMPAIGN_ID)
+    reliability_provider = TrustBasedReliabilityProvider(rel_store, CAMPAIGN_ID)
     engine = BeliefRevisionEngine(reliability_provider=reliability_provider)
     store = EpistemicStore()
     

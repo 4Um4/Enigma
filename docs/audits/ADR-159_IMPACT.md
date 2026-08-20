@@ -40,3 +40,6 @@
 - Вернуть pply_perception_memory к вызову memory_manager.apply() внутри reducer.
 - Вернуть CrystallizedBeliefStore к in-memory only (убрать store параметр).
 
+
+
+Files: N/A

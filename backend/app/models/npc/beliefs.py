@@ -21,7 +21,7 @@ from enum import Enum
 from typing import Dict, Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class BeliefFragment:
     """Одно убеждение NPC о мире."""
 
@@ -29,6 +29,17 @@ class BeliefFragment:
     confidence: float  # 0.0–1.0, уверенность в нём
     source: str  # "perception" | "memory" | "rumor"
     timestamp: int  # тик, когда получено
+
+
+@dataclass(frozen=True)
+class BeliefDelta:
+    """Delta для применения к BeliefState (SSOT epistemic)."""
+    belief_type: BeliefType
+    old_value: float
+    new_value: float
+    confidence: float
+    source: str
+    timestamp: int
 
 
 class BeliefType(str, Enum):

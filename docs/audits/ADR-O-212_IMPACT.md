@@ -27,3 +27,6 @@
 1. Деградация инерции: установить `adaptation_rate = 1.0`, `resistance_to_change = 0.0` (мир возвращается к мгновенным реакциям).
 2. Отключение социальной памяти: прекратить вызов `SocialMemoryUpdater.ingest()`. InstitutionLayer замёрзнет в текущем состоянии.
 3. Полный откат: удалить чтение `InstitutionLayer` из DecisionHub и LifeEngine.
+
+
+Files: N/A

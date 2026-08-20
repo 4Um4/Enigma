@@ -20,3 +20,5 @@
 **Taboo:**
 - ❌ Добавлять новые потребности без `_NEED_ROLE_MAP` записи (ADR-150, сохраняется)
 - ❌ `resting` без semantic fallback при отсутствии BED (теперь DEFAULT fallback)
+
+Files: N/A

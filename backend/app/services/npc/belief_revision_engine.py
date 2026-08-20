@@ -31,16 +31,24 @@ class BeliefRevisionEngine:
         self,
         listener_id: str,
         claim: ClaimEvent,
-        existing_record: Optional[EpistemicRecord]
+        existing_record: Optional[EpistemicRecord],
+        reliability_context: Optional[dict] = None
     ) -> EpistemicRecord:
         """
         Обрабатывает ClaimEvent и возвращает новую/обновлённую EpistemicRecord.
+
+        ADR-O-360: reliability_context позволяет источнику события указать
+        тип канала (testimony / direct_observation). Провайдер — единственный
+        владелец формулы reliability; движок только пробрасывает контекст.
         """
         # 1. Оценка надёжности источника (делегируется провайдеру)
+        _context = {"claim": claim}
+        if reliability_context:
+            _context.update(reliability_context)
         reliability = self._reliability_provider.get_reliability(
             observer=listener_id,
             source=claim.speaker_id,
-            context={"claim": claim}
+            context=_context
         )
         
         # Базовый вес утверждения (в будущем может зависеть от speech_act)

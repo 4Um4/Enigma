@@ -20,3 +20,6 @@
 - `test_tick_orchestrator_full_loop.py`
 ## Rollback
 - Удалить поля `confidence`, `possible_causes`, `observed_facts` из DTO и мапперов.
+
+
+Files: N/A

@@ -20,3 +20,6 @@
 - Удалить блок обновления `player_recognition` из `phases/integration.py`.
 - Удалить поля `display_name`, `recognition_confidence` из `NPCPositionDTO`.
 - Вернуть хардкод `npc_id.split("_")` во фронтенд.
+
+
+Files: N/A

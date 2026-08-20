@@ -46,3 +46,6 @@ FactExtractor извлекает только атомарные сущност�
 
 ## Principle Enforced
 **Single Author + Independent Verifier + Shared Materialization Contract**
+
+
+Files: N/A

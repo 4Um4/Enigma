@@ -39,3 +39,6 @@ pc.get("perceptual_kernel") для GAP9 (пробуждение от сна)
 - ackend/app/models/npc_state.py: write_to_legacy(), from_legacy(), _pk_from_dict()
 - rchitecture/physiology.yaml: добавлено правило ADR-115
 
+
+
+Files: N/A

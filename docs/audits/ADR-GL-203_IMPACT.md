@@ -81,3 +81,6 @@
 1. **Execution Order Graph Canonicalization:** Фиксация семантических инвариантов DAG traversal в коде.
 2. **Causal Trace Index (CTI):** Индексирование всех state transitions по причине (execution path), а не по времени.
 3. **Replay-aware SEL validation layer:** Слой валидации, гарантирующий, что SEL даёт идентичный результат на идентичных трассировках.
+
+
+Files: N/A

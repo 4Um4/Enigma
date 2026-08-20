@@ -394,7 +394,10 @@ class GameLoop:
             from app.services.npc.epistemic_store import EpistemicStore
             from app.services.npc.belief_revision_engine import BeliefRevisionEngine
             from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
-            from app.services.events.claim_event_subscriber import ClaimEventSubscriber, RelationshipReliabilityProvider
+            from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+            # ADR-O-357 enforcement: reliability вычисляет канонический провайдер,
+            # инлайн в подписчике удалён (см. docs/audits/ADR-O-357_IMPACT.md, Addendum).
+            from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
             from app.services.events.event_bus import get_event_bus
             from app.services.events.event_types import EventType
 
@@ -404,7 +407,7 @@ class GameLoop:
             _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
             _epistemic_data = _scene.get("epistemic_records", []) if _scene else []
             _epistemic_store = EpistemicStore.from_dict(_epistemic_data)
-            _reliability_provider = RelationshipReliabilityProvider(rel_store, _campaign_id)
+            _reliability_provider = TrustBasedReliabilityProvider(rel_store, _campaign_id)
             _belief_engine = BeliefRevisionEngine(reliability_provider=_reliability_provider)
             _resolver = EpistemicContextResolver(store=_epistemic_store)
 
@@ -422,6 +425,19 @@ class GameLoop:
             from app.services.events.social_action_subscriber import SocialActionSubscriber
             _social_sub = SocialActionSubscriber(_bus)
             _bus.subscribe(EventType.SOCIAL_ACTION, _social_sub.on_social_action)
+
+            # ADR-O-360 (Phase C): ObservationSubscriber — второй канал убеждений
+            # (THEFT → LOS-свидетели → EpistemicStore). Мембрана: SpatialQueryService
+            # (event.radius НЕ используется — DEBT-R1). Tick — через оркестратор
+            # (существующий метод, без фантомных импортов).
+            from app.services.events.observation_subscriber import ObservationSubscriber
+            _obs_sub = ObservationSubscriber(
+                engine=_belief_engine,
+                store=_epistemic_store,
+                spatial_query_provider=self._get_spatial_query_for_subscriber,
+                tick_provider=lambda: self._tick_orch.get_current_tick(_campaign_id),
+            )
+            _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
   
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
             logger.info("[GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered")
@@ -1705,16 +1721,22 @@ class GameLoop:
 
         _avatar_state_before = copy.deepcopy(_avatar_state) if _avatar_state else None  # noqa: ENIGMA001
 
-        if _rules_delta and _rules_delta.money_delta != 0.0 and _avatar_state:
-            if not _avatar_state.body_state:
-                _avatar_state.body_state = {}
-            _current_money = float(_avatar_state.body_state.get("money", 0.0))
-            _avatar_state.body_state["money"] = max(
-                0.0, _current_money + _rules_delta.money_delta
+        # Stage 0 Task 0.8: SSOT Economic. Прямая мутация аватара запрещена.
+        # Дельта денег применяется через StateApplicator.apply_batch вместе с остальными NPC.
+        if _rules_delta and _rules_delta.money_delta != 0.0:
+            from app.models.state_delta import StateDeltas, DeltaDomain
+            from app.models.delta_payloads import EconomicPayload
+            
+            _eco_delta = StateDeltas(
+                npc_id="player",
+                domain=DeltaDomain.ECONOMY,
+                payload=EconomicPayload(money_delta=_rules_delta.money_delta)
             )
-            logger.info(
-                f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar. New total: {_avatar_state.body_state['money']}"
-            )
+            _state_applicator = self._svc.get_state_applicator(campaign_id)
+            _player_dict = next((n for n in _ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+            if _player_dict and _state_applicator:
+                _state_applicator.apply_batch([_eco_delta], _ctx.all_npcs_raw, campaign_id)
+                logger.info(f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar via StateApplicator.")
 
         from dataclasses import asdict, is_dataclass
 

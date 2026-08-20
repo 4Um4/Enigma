@@ -32,3 +32,6 @@ L1.5 (PatternDetector) генерирует чистую статистику (`
 
 ## Rollback
 Удалить `BeliefCrystallizationEngine` и `CrystallizedBelief`. DecisionHub вернётся к чтению сырых драйвов. L1.5 остаётся нетронутым.
+
+
+Files: N/A

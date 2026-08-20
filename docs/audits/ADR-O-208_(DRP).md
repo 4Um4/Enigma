@@ -17,3 +17,6 @@
 *   **Мутация:** TIFL генерирует `StateDelta(target=L1)`.
 *   **Коммит:** StateApplicator складывает дельту в `active_traits`. `npc_raw["drives"]` уничтожается как источник правды.
 
+
+
+Files: N/A

@@ -51,3 +51,6 @@
 Сейчас initiative_suppression, attention_capture, viability_mask — три независимых veto.
 В будущем рассмотреть единый Behavioral Inhibition Layer для всех блокировок поведения.
 Не проектировать. Не реализовывать. Только якорь.
+
+
+Files: N/A

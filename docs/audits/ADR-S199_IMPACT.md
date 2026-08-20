@@ -29,3 +29,6 @@
 - Восстановить вызов `ActionSemanticResolver` в `GameLoop._execute_dm_and_intent_resolution()`.
 - Удалить `legacy_bridge.py` и `PropositionMatcher`.
 - Удалить `SOCIAL_ACTION` из `EventType`.
+
+
+Files: N/A

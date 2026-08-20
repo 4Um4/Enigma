@@ -20,3 +20,6 @@
 ## Rollback
 - Вернуть `changes = self._simulate_minor(...)` и `all_changes.extend(changes)` в LifeEngine.tick().
 
+
+
+Files: N/A

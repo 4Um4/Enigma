@@ -284,7 +284,7 @@ class MemoryManager:
         cache = list(npc_state.narrative_cache)
         cache.append(mem)
         cache.sort(key=lambda f: f.importance, reverse=True)
-        npc_state.narrative_cache = tuple(cache[:NARRATIVE_CACHE_MAX])
+        object.__setattr__(npc_state, "narrative_cache", tuple(cache[:NARRATIVE_CACHE_MAX]))
 
         # 8. SQLite persistence — runtime truth (Закон 4.2.1)
         # event.id как mem_id — трассируемая связь EventDTO → EventMemory

@@ -23,3 +23,6 @@
 ## Rollback
 - Удалить вычисление `gait_asymmetry` и `cue_key="LIMPING"`.
 - Убрать поле `gait_asymmetry` из `EmbodiedTraceDTO`.
+
+
+Files: N/A

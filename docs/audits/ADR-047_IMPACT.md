@@ -34,3 +34,6 @@ ONTOLOGY (ADR-O) — Убита ретро-симуляция, внедрен а
 3. Удалить блок `ADR-047` из `scene_init.py`.
 4. Удалить `scene_state["last_save_real_time"] = _time.time()` из `SceneStateManager.commit()`.
 5. Вернуть тесты `test_persistence_port.py` к жестко заданным словарям без `last_save_real_time`.
+
+
+Files: N/A

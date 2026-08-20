@@ -90,6 +90,40 @@ class StateApplicator:
         self._reputation_engine = reputation_engine
         self._l1_chronicle = l1_chronicle # V8-PSY-1 FIX
 
+    def update_relationships(
+        self,
+        state: NPCState,
+        campaign_id: str,
+        target_id: str,
+        trust_delta: float = 0.0,
+        fear_delta: float = 0.0,
+        debt_delta: float = 0.0,
+    ) -> None:
+        """Stage 0 Task 0.7: Единственный write-API для RelationshipStore.
+        Обновляет SSOT и синхронно обновляет read-cache (state.relationship_cache).
+        """
+        _delta = {}
+        if trust_delta != 0.0:
+            _delta["trust"] = trust_delta
+        if fear_delta != 0.0:
+            _delta["fear"] = fear_delta
+        if debt_delta != 0.0:
+            _delta["debt"] = debt_delta
+            
+        if not _delta:
+            return
+
+        self._rel_store.update(
+            campaign_id=campaign_id,
+            source=state.npc_id,
+            target=target_id,
+            delta=_delta,
+        )
+        # P1 ARCH: Заполнение read-cache из SSOT (RelationshipStore).
+        # Мутация допустима только как проекция из единственного владельца.
+        fresh = self._rel_store.get_pair(campaign_id, state.npc_id, target_id)
+        state.relationship_cache.setdefault(target_id, {}).update(fresh)
+
     def apply(
         self,
         state: NPCState,
@@ -863,19 +897,13 @@ class StateApplicator:
                     or state.intent_target
                     or "player"
                 )
-                self._rel_store.update(
+                self.update_relationships(
                     campaign_id=campaign_id,
-                    source=state.npc_id,
-                    target=_target,
-                    delta={
-                        "trust": trust_delta,
-                        "fear": fear_delta,
-                    },
+                    source_id=state.npc_id,
+                    target_id=_target,
+                    trust_delta=trust_delta,
+                    fear_delta=fear_delta,
                 )
-                # P1 ARCH: Заполнение read-cache из SSOT (RelationshipStore).
-                # Мутация допустима только как проекция из единственного владельца.
-                fresh = self._rel_store.get_pair(campaign_id, state.npc_id, _target)
-                state.relationship_cache.setdefault(_target, {}).update(fresh)
 
     def _apply_physiology_deltas(
         self,
@@ -1278,34 +1306,35 @@ class StateApplicator:
         # L1: Материализация (будет перенесена в Orchestrator на Этапе 5)
         state = NPCStateAdapter.from_legacy(npc_dict)
 
-        # Обработка экономики (ECONOMY) — применяем напрямую к npc_dict и state.body_state
-        # Так как gold не входит в NPCState напрямую, обрабатываем здесь (Устав §2.3)
-        if deltas.domain == DeltaDomain.ECONOMY and deltas.payload:
-            _money_delta = float(deltas.payload.get("money_delta", 0.0))
-            if _money_delta != 0.0:
-                # Для игрока: body_state["money"]
-                if state.npc_id == "player" and state.body_state:
-                    state.body_state["money"] = float(state.body_state.get("money", 0.0)) + _money_delta
-                # Для NPC: npc_dict["gold"]
-                if "gold" in npc_dict or state.npc_id != "player":
-                    npc_dict["gold"] = float(npc_dict.get("gold", 0.0)) + _money_delta
-            return
-
-        # Обработка экономики (ECONOMY) — применяем напрямую к npc_dict и state.body_state
-        # Так как gold не входит в NPCState напрямую, обрабатываем здесь (Устав §2.3)
+        # Stage 0 Task 0.8: SSOT Economic. 
+        # Единая точка обработки EconomicPayload. 
+        # Пишем прямо в npc_dict, чтобы избежать потери данных при return.
         if deltas.domain == DeltaDomain.ECONOMY and isinstance(deltas.payload, EconomicPayload):
             _money_delta = float(deltas.payload.money_delta or 0.0)
             if _money_delta != 0.0:
-                # Для игрока: body_state["money"]
-                if state.npc_id == "player" and state.body_state:
-                    state.body_state["money"] = float(state.body_state.get("money", 0.0)) + _money_delta
-                # Для NPC: npc_dict["gold"]
-                if "gold" in npc_dict or state.npc_id != "player":
+                if state.npc_id == "player":
+                    if "body_state" not in npc_dict:
+                        npc_dict["body_state"] = {}
+                    npc_dict["body_state"]["money"] = float(npc_dict["body_state"].get("money", 0.0)) + _money_delta
+                else:
                     npc_dict["gold"] = float(npc_dict.get("gold", 0.0)) + _money_delta
             return
 
         # Делегирование в Commit Kernel
         self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id)
+
+    def apply_belief_delta(self, state: NPCState, delta: "BeliefDelta") -> None:
+        """Stage 1 Task 1.6: Единственный физический write-path в state.beliefs."""
+        from app.models.npc.beliefs import BeliefFragment
+        state.beliefs.update(
+            delta.belief_type,
+            BeliefFragment(
+                value=delta.new_value,
+                confidence=delta.confidence,
+                source=delta.source,
+                timestamp=delta.timestamp,
+            )
+        )
 
     def apply_deltas_and_commit(
         self,

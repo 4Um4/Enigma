@@ -29,3 +29,6 @@
 1. Восстановить inline циклы `if eco_modifiers: for ...` в `DecisionHub.compute()`
 2. Удалить `apply_modifiers` static method
 3. Удалить `epistemic_modifiers` параметр из `compute()`
+
+
+Files: N/A

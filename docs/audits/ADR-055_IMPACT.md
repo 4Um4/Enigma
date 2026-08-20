@@ -34,3 +34,6 @@ ONTOLOGY (ADR-O) — Смена парадигмы: прямой прыжок Pe
 2. Удалить `AffectivePressureDTO` из `backend/app/models/affect.py`.
 3. В `tick_orchestrator.py` (Фаза 9) удалить блок `ADR-O: Affective Pressure Pipeline` после `ctx.delta_buffer.append(delta)`.
 4. В `legacy_delta_adapter.py` вернуть процедурный коллапс `threat_gradient_delta * 20.0 -> stress_delta`.
+
+
+Files: N/A

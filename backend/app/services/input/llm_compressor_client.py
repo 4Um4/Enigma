@@ -118,6 +118,34 @@ class LlamaCppCompressorClient:
 - "neutral": action="DIALOGUE", speech_act="ASSERT". (Бытовая коммуникация).
 Выбирай social_intent строго по смыслу. Выражение симпатии = "flirt", а не "build_rapport". Угрозы = "intimidate", а не "repair_relationship". Запрос секрета = "obtain_information", а не "neutral". Утешение и поддержка = "comfort", а не "obtain_cooperation" или "build_rapport".
 
+# Few-Shot Examples (S203 §8.2.1-8.2.4)
+Ввод: "ты такая красивая" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "compliment"}}
+Ввод: "ты мне нравишься" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "compliment"}}
+Ввод: "мне с тобой так хорошо" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "compliment"}}
+Ввод: "я думаю о тебе постоянно" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "assert"}}
+Ввод: "я счастлив, что встретил тебя" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "compliment"}}
+Ввод: "можно я приглашу тебя на танец?" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "request"}}
+Ввод: "я хочу узнать тебя ближе" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "request"}}
+Ввод: "давай проведём вечер вместе" -> {{"action": "FLIRT", "social_intent": "flirt", "speech_act": "offer"}}
+Ввод: "всё будет хорошо, не плачь" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "promise"}}
+Ввод: "я с тобой, не бойся" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "assert"}}
+Ввод: "ты не одна, я рядом" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "assert"}}
+Ввод: "не извиняйся, ты ни в чём не виновата" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "assert"}}
+Ввод: "мне жаль, что тебе так больно" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "apology"}}
+Ввод: "я хочу, чтобы ты улыбалась" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "promise"}}
+Ввод: "ты можешь опереться на моё плечо" -> {{"action": "DIALOGUE", "social_intent": "comfort", "speech_act": "offer"}}
+Ввод: "я тебя уничтожу" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "threat"}}
+Ввод: "ты труп" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "threat"}}
+Ввод: "я знаю, где ты живёшь" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "threat"}}
+Ввод: "ты ничего не значишь" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "insult"}}
+Ввод: "ты играешь с огнём" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "threat"}}
+Ввод: "я выпью твою кровь" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "threat"}}
+Ввод: "не смей больше открывать рот" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "order"}}
+Ввод: "ты ходишь по тонкому льду" -> {{"action": "THREATEN", "social_intent": "intimidate", "speech_act": "threat"}}
+Ввод: "что ты скрываешь?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "question"}}
+Ввод: "признавайся, что у тебя за секрет?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "order"}}
+Ввод: "привет, как дела?" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "greeting"}}
+
 Извлеки:
 - action: канонический тип действия.
 - actor: КТО совершает действие. Если игрок говорит о себе ("я подойду") — "player". Если приказывает NPC ("Торнин, отойди" или "пусть Торнин уйдёт") — имя NPC (например, "Торнин"). Доступные имена NPC: {names_hint}.

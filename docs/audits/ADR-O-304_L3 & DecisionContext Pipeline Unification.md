@@ -63,3 +63,6 @@ DecisionHub стал **projection-native system**. `personality.drives_base` (L0
 *   **Memory Inertia (L1 history trace)** — сопротивление резкому выходу из устойчивого состояния.
 
 L0 навсегда останется затравкой, но L3 должен обрастись порогами кристаллизации ($\theta_{up}$, $\theta_{down}$) и `dwell_time`.
+
+
+Files: N/A

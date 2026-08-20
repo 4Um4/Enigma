@@ -1273,7 +1273,7 @@ def inv_player_epistemic_closure(world: TestWorld) -> InvariantResult:
 
 def inv_epistemic_trust_monotonicity(world: TestWorld) -> InvariantResult:
     """INV-EPISTEMIC-TRUST-MONOTONICITY: Для одинакового claim, trust(A) > trust(B) => confidence(A) >= confidence(B)."""
-    from app.services.events.claim_event_subscriber import RelationshipReliabilityProvider
+    from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
     
     _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
     if not _epistemic_store:
@@ -1284,7 +1284,7 @@ def inv_epistemic_trust_monotonicity(world: TestWorld) -> InvariantResult:
         return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "WARNING", True, "RelationshipStore missing, skip.", [])
 
     _campaign_id = world.campaign_id
-    _provider = RelationshipReliabilityProvider(_rel_store, _campaign_id)
+    _provider = TrustBasedReliabilityProvider(_rel_store, _campaign_id)
 
     # Симулируем двух источников с разным trust
     _rel_store.update(_campaign_id, "player", "npc_friend", {"trust": 80.0})
@@ -1880,141 +1880,6 @@ INVARIANTS: List[Callable] = [
     inv_tick_cardinality,
     inv_commit_cardinality,
 ]
-
-
-def inv_player_epistemic_closure(world: TestWorld) -> InvariantResult:
-    """INV-PLAYER-EPISTEMIC-CLOSURE: NPC_SPOKE -> EpistemicStore[player] update."""
-    from app.services.events.event_types import EventType
-    from app.domain.events import EventDTO
-    from app.domain.epistemology import Predicate
-
-    _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
-    if not _epistemic_store:
-        return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", False, "EpistemicStore not initialized", [])
-
-    # Очищаем убеждения игрока перед тестом
-    _epistemic_store._records = {k: v for k, v in _epistemic_store._records.items() if k[0] != "player"}
-
-    bus = world.game_loop._tick_orch._get_event_bus()
-    
-    # Публикуем NPC_SPOKE с intent_type="accuse"
-    event = EventDTO.create(
-        event_type=EventType.NPC_SPOKE.value,
-        source="guard_borko",
-        payload={
-            "target_id": "thief_shadow",
-            "text": "Тень украл яблоко!",
-            "intent_type": "accuse",
-            "exposure": "normal",
-            "tone": "NEUTRAL",
-            "topic": "theft"
-        }
-    )
-    bus.publish(event)
-
-    # Даём время обработать (EventBus синхронный, но ClaimEventSubscriber может быть в потоке)
-    import time
-    time.sleep(0.1)
-
-    _player_beliefs = _epistemic_store.get_all_for_agent("player")
-    
-    if not _player_beliefs:
-        return InvariantResult(
-            "INV-PLAYER-EPISTEMIC-CLOSURE",
-            "CRITICAL",
-            False,
-            "NPC_SPOKE (accuse) не породил убеждение в EpistemicStore[player]. Труба разорвана.",
-            [
-                "backend/app/services/events/claim_event_subscriber.py",
-                "backend/app/services/game_loop/__init__.py"
-            ]
-        )
-    
-    return InvariantResult("INV-PLAYER-EPISTEMIC-CLOSURE", "CRITICAL", True, "NPC_SPOKE -> EpistemicStore[player] работает.", [])
-
-
-def inv_epistemic_trust_monotonicity(world: TestWorld) -> InvariantResult:
-    """INV-EPISTEMIC-TRUST-MONOTONICITY: Для одинакового claim, trust(A) > trust(B) => confidence(A) >= confidence(B)."""
-    from app.services.events.claim_event_subscriber import RelationshipReliabilityProvider
-    
-    _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
-    if not _epistemic_store:
-        return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", False, "EpistemicStore not initialized", [])
-
-    _rel_store = world.game_loop.memory_manager._relationships if world.game_loop.memory_manager else None
-    if not _rel_store:
-        return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "WARNING", True, "RelationshipStore missing, skip.", [])
-
-    _campaign_id = world.campaign_id
-    _provider = RelationshipReliabilityProvider(_rel_store, _campaign_id)
-
-    # Симулируем двух источников с разным trust
-    _rel_store.update(_campaign_id, "player", "npc_friend", {"trust": 80.0})
-    _rel_store.update(_campaign_id, "player", "npc_enemy", {"trust": -50.0})
-
-    rel_friend = _provider.get_reliability(observer="player", source="npc_friend")
-    rel_enemy = _provider.get_reliability(observer="player", source="npc_enemy")
-
-    if rel_friend <= rel_enemy:
-        return InvariantResult(
-            "INV-EPISTEMIC-TRUST-MONOTONICITY",
-            "CRITICAL",
-            False,
-            f"Reliability violated: friend({rel_friend:.2f}) <= enemy({rel_enemy:.2f}). Trust не монотонен.",
-            ["backend/app/services/events/claim_event_subscriber.py"]
-        )
-    
-    return InvariantResult("INV-EPISTEMIC-TRUST-MONOTONICITY", "CRITICAL", True, "Reliability монотонно зависит от trust.", [])
-
-
-def inv_epistemic_truth_immutability(world: TestWorld) -> InvariantResult:
-    """INV-EPISTEMIC-TRUTH-IMMUTABILITY: ClaimEvent не должен мутировать поля World Truth в scene_state."""
-    from app.services.events.event_types import EventType
-    from app.domain.events import EventDTO
-
-    _scene = world._get_scene()
-    if not _scene:
-        return InvariantResult("INV-EPISTEMIC-TRUTH-IMMUTABILITY", "WARNING", True, "Scene state missing, skip.", [])
-
-    # Сохраняем слепок важных полей
-    _truth_fields = ["npc_positions", "game_time_seconds", "tick", "active_traversals", "pending_tasks"]
-    _before = {k: _scene.get(k) for k in _truth_fields}
-
-    bus = world.game_loop._tick_orch._get_event_bus()
-    
-    # Публикуем событие с пропозицией
-    event = EventDTO.create(
-        event_type=EventType.COMMUNICATION_CLAIM.value,
-        source="guard_borko",
-        payload={
-            "target_id": "thief_shadow",
-            "claim_id": "test_claim_immutability",
-            "proposition": {
-                "subject_id": "thief_shadow",
-                "predicate": "stole",
-                "object_id": "gold",
-                "polarity": True
-            },
-            "speech_act": "assert",
-            "tick": 1
-        }
-    )
-    bus.publish(event)
-
-    _after = world._get_scene()
-    
-    for field in _truth_fields:
-        if _before.get(field) != _after.get(field):
-            return InvariantResult(
-                "INV-EPISTEMIC-TRUTH-IMMUTABILITY",
-                "CRITICAL",
-                False,
-                f"ClaimEvent изменил поле World Truth: {field}",
-                ["backend/app/services/events/claim_event_subscriber.py"]
-            )
-            
-    return InvariantResult("INV-EPISTEMIC-TRUTH-IMMUTABILITY", "CRITICAL", True, "World Truth неизменна после ClaimEvent.", [])
-
 
 def run_invariants() -> int:
     """Главная точка входа. Возвращает exit code (0 = OK, 1 = есть FAIL)."""

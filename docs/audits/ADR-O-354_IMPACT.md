@@ -42,3 +42,6 @@
 8. Удалить `epistemic_modifiers` параметр из `DecisionHub.compute()`
 9. Удалить `apply_modifiers` static method из `DecisionHub`
 10. Удалить все `backend/tests/sandbox/SUPERBOX/scenarios/epistemic_*.py`
+
+
+Files: N/A

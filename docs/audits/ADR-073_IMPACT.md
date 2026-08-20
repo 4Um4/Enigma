@@ -30,3 +30,6 @@
 2. Удалить проброс из `IntentEventAdapter`
 3. Убрать `body_state` из `translate_kernel_to_context`
 4. Вернуть `continue` без интерполяции в `_enrich_local_positions`
+
+
+Files: N/A

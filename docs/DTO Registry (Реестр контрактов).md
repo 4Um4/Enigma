@@ -69,7 +69,8 @@
 ### 📦 `IntentCompressor`
 - 📁 `svc/game_loop/input/intent_compressor.py`
 - **Async-компрессор.** `compress()` → `IntentSemanticField`. Slow-Path (LLM) / Fast-Path.
-- 🚫 **ЗАПРЕТ:** LLM внутри `phase_1_input.py`; `IntentCompressor(llm_client=None)`.
+- **S204:** Промпт LLM усилен 26 Few-Shot Examples (ADR-O-359).
+- 🚫 **ЗАПРЕТ:** LLM внутри `phase_1_input.py`; `IntentCompressor(llm_client=None)`. Хардкод keyword-matching для social_intent.
 
 ### 📦 `EventContext`
 - 📁 `svc/npc/decision_hub.py`

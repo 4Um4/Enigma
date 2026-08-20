@@ -81,3 +81,6 @@ Select-String -Path "backend/app/services/npc/break_progress_engine.py" -Pattern
 
 # 4. Существующие доменные исключения (чтобы добавить OntologyViolationError в нужное место)
 Get-ChildItem -Path "backend/app/domain/" -Filter "*.py" -Recurse | Select-String -Pattern "class.*Error|class.*Exception" | Select-Object -Property Path, LineNumber, Line
+
+
+Files: N/A

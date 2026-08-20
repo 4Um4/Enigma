@@ -46,3 +46,6 @@
 *   `test_narrative_projection_from_redirect.py` — Нарратив генерирует текст о контроле/агрессии, если `redirect ATTACK > 0`, даже при высоком `affective_load`. (Доказательство: разум рационализирует победу драйва).
 *   `test_memory_projection_from_error.py` — Память фиксирует высокую важность при большом `delta` (Surprise) в Котле, независимо от того, какой драйв победил.
 *   `test_no_cross_projection_leakage.py` — Верификация инварианта: Motor layer не имеет доступа к `redirect`; Narrative layer не имеет доступа к `somatic_urgency`.
+
+
+Files: N/A

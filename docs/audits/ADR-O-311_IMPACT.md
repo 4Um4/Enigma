@@ -29,3 +29,6 @@
 2. Удалить `ExposureLevel` из `CommunicationIntent` (поле становится optional с дефолтом)
 3. Удалить `_EXPOSURE_DEFAULT_RADIUS` и `ExposureLevel` из `communication.py
 
+
+
+Files: N/A

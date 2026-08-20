@@ -21,3 +21,6 @@
 - Удалить нормализацию current_base/target_base в _resolve_reactive_movement.
 - Вернуть строгое сравнение target_node_id == current_node.
 
+
+
+Files: N/A

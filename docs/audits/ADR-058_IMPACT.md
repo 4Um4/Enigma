@@ -32,3 +32,6 @@ ARCHITECTURE (Frontend) — Смена парадигмы: фронтенд из
 1. Вернуть импорт `find_path` в `game_screen.py`.
 2. Удалить поля `traversal_*` и `initiative_suppression` из `PerceivedEntity`.
 3. Откатить `_draw_npcs` к наивному `delay_factor` без `dt`.
+
+
+Files: N/A

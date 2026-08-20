@@ -45,3 +45,6 @@
 3. Удалить `scene["campaign_id"] = campaign_id` из scene_state_manager.py
 4. Убрать `exclude_node_ids` из get_furthest() и вызова в npc_tick_pipeline.py
 5. Убрать `_canonical_current` нормализацию в npc_tick_pipeline.py
+
+
+Files: N/A

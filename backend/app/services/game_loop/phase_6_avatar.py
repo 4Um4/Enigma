@@ -43,29 +43,29 @@ def update_avatar_from_npc_intents(
                 continue
 
             if _intent_val.value == "attack":
-                _avatar_state.stress = min(100.0, _avatar_state.stress + 5.0)
+                object.__setattr__(_avatar_state, "stress", min(100.0, _avatar_state.stress + 5.0))
                 if _avatar_state.emotion in (
                     emotion_tag_cls.NEUTRAL,
                     emotion_tag_cls.HAPPY,
                 ):
-                    _avatar_state.emotion = emotion_tag_cls.FEARFUL
+                    object.__setattr__(_avatar_state, "emotion", emotion_tag_cls.FEARFUL)
                 _avatar_changed = True
 
                 # ADR-0015, ADR-0021: Урон аватару от NPC теперь рассчитывается
                 # через CombatSubscriber → ImpactEngine в Фазе 8 (Layered Reduction).
                 # Прямая мутация HP аватара здесь запрещена.
             elif _intent_val.value == "intimidate":
-                _avatar_state.stress = min(100.0, _avatar_state.stress + 2.0)
+                object.__setattr__(_avatar_state, "stress", min(100.0, _avatar_state.stress + 2.0))
                 if _avatar_state.emotion == emotion_tag_cls.NEUTRAL:
-                    _avatar_state.emotion = emotion_tag_cls.SUSPICIOUS
+                    object.__setattr__(_avatar_state, "emotion", emotion_tag_cls.SUSPICIOUS)
                 _avatar_changed = True
             elif _intent_val.value == "help":
-                _avatar_state.stress = max(0.0, _avatar_state.stress - 3.0)
+                object.__setattr__(_avatar_state, "stress", max(0.0, _avatar_state.stress - 3.0))
                 if _avatar_state.emotion in (
                     emotion_tag_cls.FEARFUL,
                     emotion_tag_cls.SAD,
                 ):
-                    _avatar_state.emotion = emotion_tag_cls.NEUTRAL
+                    object.__setattr__(_avatar_state, "emotion", emotion_tag_cls.NEUTRAL)
                 _avatar_changed = True
 
         if _avatar_changed:

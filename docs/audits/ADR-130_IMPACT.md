@@ -52,3 +52,6 @@
 |-----|-----------|-----|
 | G1: Schedule overrides reactive movement | update_routine() не видел active_traversals → мутировал routine["current"] и создавал schedule intent поверх активного транзита | ADR-130 Movement Lock: scene_state traversal-aware guard |
 | G2: Uninvited NPC approach | _context_relevance() читал event.target_id (None) без fallback на payload.target_id → все NPC считались целевыми | ADR-130 target_id fallback: payload["target_id"] as secondary source |
+
+
+Files: N/A

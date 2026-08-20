@@ -334,6 +334,28 @@
 ⚙️ Bugfix: `intent_type` не передавался в `Artifact.data` в `DialogueExecutor`, из-за чего `DialogueMaterializer` публиковал `NPC_SPOKE` с `intent_type="talk"`, и fallback в `ClaimEventSubscriber` не срабатывал. Маппинг `subject_id`/`object_id` для `intimidate`/`attack` исправлен (`speaker` нападает на `target`). Создан `SUPERBOX-016`.
 📁 svc/execution/dialogue_executor, svc/events/claim_event_subscriber, tests/SUPERBOX/scenarios/epistemic_scheduler_closure.
 
+### S204: Фаза 8.3 — Epistemic Invariants & ADR-Net Sanitation | ✅ IPT 44/44
+🎯 Финальное замыкание Фазы 8.3. Внедрение инвариантов эпистемической честности и починка ADR-Net парсера.
+⚙️ Добавлены 3 новых инварианта в IPT: `INV-PLAYER-EPISTEMIC-CLOSURE` (публикация NPC_SPOKE обновляет EpistemicStore[player]), `INV-EPISTEMIC-TRUST-MONOTONICITY` (trust монотонно влияет на reliability), `INV-EPISTEMIC-TRUTH-IMMUTABILITY` (ClaimEvent не мутирует World Truth).
+⚙️ Массовая санация `docs/audits/`: созданы скрипты `scripts/fix_adr_headers.py` и `scripts/fix_adr_files.py`. Все 157 файлов ADR приведены к стандарту парсера (заголовок `ADR-XXX [TYPE] **Title**` и секция `Files:`). `INV-ADR-NET` полностью зелёный.
+📁 backend/tests/IPT.py, scripts/fix_adr_*.py, docs/audits/*.
+
+### S205: Semantic Torture Test Pass (S203 Completion) | ✅ IPT 41/41
+🎯 Доведение S203 (Natural Language Torture Test) до целевых метрик без хардкода.
+⚙️ `LLMCompressorClient` промпт расширен 26 Few-Shot Examples (покрытие идиом и косвенной речи). `PropositionMatcher` в `legacy_bridge.py` переведён на `SequenceMatcher` (Embedding Similarity stub). Тестовый датасет `semantic_torture_test.py` расширен до 50+ фраз на категорию. Метрика Intent Preservation достигла 88.0% (цель 85%), Causal Class Equivalence — 86.9% (INTIMIDATE 95.9%). Регрессий IPT не обнаружено (41/41 passed).
+📁 svc/input/llm_compressor_client, svc/player_cognition/legacy_bridge, tests/sandbox/SUPERBOX/scenarios/semantic_torture_test.
+
+### S206: ADR-O-357 Enforcement — Canonical Testimony Reliability | ✅ IPT 44/44
+🎯 Устранение Double Truth в reliability: инлайн-провайдер удалён, канонический TrustBasedReliabilityProvider вживлён в живой контур.⚙️ Archæology: обнаружены dead-code провайдер (с NameError-опечаткой), дубль в IPT.py, сцепление инварианта с инлайном. Гейт: SUPERBOX-RELIABILITY-BASELINE (BEFORE/AFTER, предрегистрированная delta-матрица; semantic delta только в градуации врага: cross-confirm −31→0.786, −50→0.514, −100→0.0). Атомарный коммит: 7 патчей (game_loop, subscriber, IPT, SUPERBOX 014/015/016, harness). Prior незнакомца = 50 (константа). Долги: DEBT-R1 (radius 999.0 THEFT), DEBT-R4 (except в подписчике), DEBT-R6 (изоляция SUPERBOX-сценариев).📁 svc/npc/trust_based_reliability_provider, svc/events/claim_event_subscriber, svc/game_loop/init, tests/IPT, tests/sandbox/SUPERBOX/scenarios/*, docs/audits/ADR-O-357_IMPACT.md
+⚠️ Anti-race protocol: номер S205 взят как max(известных)+1 по контексту (S204 последний). Перед записью сверь фактический хвост MUTATIONS.md — если параллельная сессия заняла номер, сдвинь и обнови ссылки в Addendum.
+IPT: ✅ 44/44 (гейт-прогон). КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+
+### S207: Phase C — Observation Channel & Source-Weighted Reliability (ADR-O-360) | ✅ IPT 44/44
+🎯 Второй канал убеждений: THEFT → LOS-свидетели → EpistemicStore (direct_observation). Testimony и observation на одном движке ревизии.
+⚙️ ObservationSubscriber (новый, мембрана visibility+дистанция — event.radius игнорируется); context-ветка TrustBasedReliabilityProvider (DIRECT_OBSERVATION_RELIABILITY=0.9); revise(+reliability_context, проброс). Инцидент: двойное применение патча → фантомный импорт → ImportError проглочен try/except (DEBT-R5) → тихая смерть ядра → поймано INV-PLAYER-EPISTEMIC-CLOSURE (2 CRITICAL) → фиксом-дедупликацией. Номера: ADR-O-360 (O-359 занят), S207. SUPERBOX-OBSERVATION 5/5 (T1 0.9; T2 no-telepathy дистанция; T3 truth-immutability; T4 same-source буст; T5 вражеский cross-confirm 0.7143 точной формулой). Формат spatial_walls/spatial_obstacles верифицирован (T2b).
+📁 svc/events/observation_subscriber, svc/npc/trust_based_reliability_provider, svc/npc/belief_revision_engine, svc/game_loop/__init__, tests/sandbox/SUPERBOX/scenarios/epistemic_observation_test, docs/ADR (атлас L14.4), docs/audits/ADR-O-360_IMPACT.md
+
+
 ---
 
 ## 3. СВОДКА ИНВАРИАНТОВ (IPT)

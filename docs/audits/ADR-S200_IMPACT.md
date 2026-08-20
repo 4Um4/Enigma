@@ -25,3 +25,6 @@
 ## Rollback
 - Удалить параметр `dialogue_session` из `IntentCompressor.compress()` и `LLMCompressorClient.compress_intent()`.
 - Удалить Fast Path проверку на `_continue_indicators` в `IntentCompressor._fast_path_parse()`.
+
+
+Files: N/A

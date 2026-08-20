@@ -176,12 +176,17 @@ NPC формирует `SpatialTargetIntent`. `SpatialTargetResolver` разре
 **L14.2: Trust-Based Reliability Law** (ADR-O-357, S199)
 Надёжность убеждений зависит от `trust` (из `RelationshipStore`). `trust < -30` → обратный эффект (confidence падает). Слова врага не убеждают.
 - ❌ **Taboo:** Фиксированная reliability; Игнорирование отрицательного trust.
-- 📁 `svc/npc/trust_based_reliability_provider.py`, `svc/events/claim_event_subscriber.py`
+- 📁 `svc/npc/trust_based_reliability_provider.py` (единственная реализация; инлайн в подписчике удалён, S205)
 
 **L14.3: Player Epistemic Closure Law** (ADR-O-358, S200-S201)
 Игрок — полноправный наблюдатель в `EpistemicStore`. `ClaimEventSubscriber` подписан на `NPC_SPOKE`. Детерминированный fallback: `intent_type` → `Proposition`.
 - ❌ **Taboo:** `if _nid == "player": continue` в подписчике; Отрицательный `confidence` (защита `max(0.0)`).
 - 📁 `svc/events/claim_event_subscriber.py`, `svc/npc/belief_revision_engine.py`
+
+**L14.4: Source-Weighted Reliability & Observation Channel** (ADR-O-360, S207)
+Убеждения поступают по двум каналам: `testimony` (trust-функция ADR-O-357) и `direct_observation` (`DIRECT_OBSERVATION_RELIABILITY`, калибруемый параметр < 1.0). `ObservationSubscriber` слушает мировые события (THEFT), фильтрует свидетелей мембраной LOS+дистанция через `SpatialQueryService`. Наблюдение = `ClaimEvent(witness→witness)` — движок ревизии един для обоих каналов.
+- ❌ **Taboo:** `event.radius` как контракт наблюдения (DEBT-R1); наблюдение без LOS/дистанции; `DIRECT_OBSERVATION_RELIABILITY >= 1.0`; расширение `_OBSERVABLE_EVENT_PREDICATES` без детерминированного маппинга на Predicate.
+- 📁 `svc/events/observation_subscriber.py`, `svc/npc/trust_based_reliability_provider.py`
 
 ---
 
@@ -315,6 +320,16 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — FSM, упр
 **Статус:** ACTIVE | **Сессия:** S189
 **Суть:** Сон = эмерджентное свойство телесной архитектуры. `CouplingResolver` (множители `external_vision_mult`, `motor_output_mult`). `Sleep Onset` (arousal от стимулов). `DreamSignal` → `DreamResidue` (affective_load).
 - ❌ **Taboo:** Скриптовые флаги `is_sleeping`; Игнорирование стимулов во сне.
+
+`ADR-O-359` [ONTO] **LLM Few-Shot Intent Grounding** — Для стабилизации `qwen_7b` в задаче извлечения `social_intent` запрещено использовать хардкод keyword-matching.
+  Taboo: ❌ Хардкод `if action == FLIRT: social_intent = FLIRT`; Keyword hell в `intent_compressor.py`.
+  Status: ACTIVE
+  Files: `backend/app/services/input/llm_compressor_client.py`, `backend/app/services/player_cognition/legacy_bridge.py`, `backend/tests/sandbox/SUPERBOX/scenarios/semantic_torture_test.py
+
+### ADR-O-361: Calibration Laboratory Boundary [ONTO]
+Статус: ACTIVE | Сессия: S208Суть: Лаборатория калибровки психики — надстройка над ядром на двух границах. (1) overlay_constants() — identity-патч ссылок на константы (app.core.constants + все from-import биндинги загруженных модулей; decision_hub.py:27-43 биндит имена напрямую — патч только модуля констант = тихая ложь эксперимента). Verify на входе и выходе, полный откат, запрет вложенности. (2) ObservabilityTap — единственный пассивный наблюдатель (sync-подписчик EventBus + post-commit диффы сторов); отказ наблюдателя не роняет тик. Per-NPC параметры — НЕ константы: npc_overrides материализуются патчем NPC JSON во временной копии кампании. Вмешательства — только InterventionEvent → TickOrchestrator.execute (ADR-TZ08-1). LLM исключён из прогонов (MockProvider, environment != production). Метрическое время — детерминированная проекция тиков (tick / ticks_per_real_minute); wall-clock — только метаданные (§15.2). Параллельные эксперименты — только изоляция процессами. Зоны: MANNEQUIN / CHAOS / ENIGMA / WARNING / BROKEN (NaN|инварианты → BROKEN). Калибруемый параметр эпистемики ADR-O-360 (DIRECT_OBSERVATION_RELIABILITY < 1.0) регистрируется в схеме пресетов с его taboo.
+❌ Taboo: overlay без verify; вложенные overlay; параллельные overlay в одном процессе; фейковая реализация [PLAN]-параметров; I/O или проброс исключений из Tap в каузальный поток; мутация NPCState/констант в обход границ лаборатории; wall-clock/global random в симуляционном контуре runner'а; silent except в путях патча (урок S207 / DEBT-R5).
+📁 backend/app/services/calibration/config_overlay.py, backend/app/services/calibration/__init__.py, backend/tests/calibration_lab/test_m0_config_overlay.py, docs/audits/ADR-O-361_IMPACT.md, architecture/calibration.yaml (M0), config/calibration/ (M0)
 
 ---
 

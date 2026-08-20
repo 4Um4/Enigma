@@ -27,3 +27,6 @@
 - Убрать try/except в task_scheduler.py.
 - Вернуть MINIMUM_RESPONSE_LATENCY_SEC = 2.0.
 
+
+
+Files: N/A

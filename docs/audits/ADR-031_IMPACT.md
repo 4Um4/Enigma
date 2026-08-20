@@ -12,3 +12,6 @@
 4. **Бюджет ресурсов:** RAM 0 / VRAM 0. Tick Latency: +20-50ms (сетевой round-trip вместо локального вычисления).
 5. **Откат (Rollback):** Вернуть локальные вызовы `try_move`/`move_towards` (восстановить `movement_system.py` из Git). Временно отключить оптимистичный рендеринг.
 6. **Регрессия:** `backend/tests/sandbox/system/test_player_movement_intent.py`
+
+
+Files: N/A

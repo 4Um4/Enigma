@@ -279,3 +279,6 @@ def resolve(tension: ThreeAxisTension) -> NDAResolution:
 **Feature flags:** `THREE_AXIS_TENSION`, `NDA_ENGINE`
 **Откат:** Флаги в False → возврат к `_compute_tension`
 **Аудит:** `docs/audits/ADR-131_IMPACT.md`
+
+
+Files: N/A

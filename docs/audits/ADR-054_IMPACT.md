@@ -20,3 +20,6 @@
 - Вернуть `threat_gradient` в тестовых фикстурах вместо `initiative_suppression`.
 - Вернуть `current_tick=1` в вызовах `_simulate_minor`.
 
+
+
+Files: N/A

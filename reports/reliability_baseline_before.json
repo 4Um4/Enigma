@@ -1,0 +1,250 @@
+{
+  "mode": "before",
+  "scenarios_single_source": [
+    {
+      "trust": -100.0,
+      "reliability": -0.5,
+      "create": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "same_source_repeat": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "trust": -50.0,
+      "reliability": -0.5,
+      "create": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "same_source_repeat": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "trust": -31.0,
+      "reliability": -0.5,
+      "create": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "same_source_repeat": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "trust": -30.0,
+      "reliability": 0.0,
+      "create": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "same_source_repeat": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "trust": -10.0,
+      "reliability": 0.0,
+      "create": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "same_source_repeat": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "trust": 0.0,
+      "reliability": 0.0,
+      "create": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "same_source_repeat": {
+        "confidence": 0.0,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "trust": 50.0,
+      "reliability": 0.5,
+      "create": {
+        "confidence": 0.5,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 0.75,
+          "attack": 0.75,
+          "block_path": 0.375
+        }
+      },
+      "same_source_repeat": {
+        "confidence": 0.6,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 0.9,
+          "attack": 0.9,
+          "block_path": 0.45
+        }
+      }
+    },
+    {
+      "trust": 100.0,
+      "reliability": 1.0,
+      "create": {
+        "confidence": 1.0,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 1.5,
+          "attack": 1.5,
+          "block_path": 0.75
+        }
+      },
+      "same_source_repeat": {
+        "confidence": 1.0,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 1.5,
+          "attack": 1.5,
+          "block_path": 0.75
+        }
+      }
+    }
+  ],
+  "scenarios_cross_source": [
+    {
+      "enemy_trust": -100.0,
+      "reliability_friend": 0.8,
+      "reliability_enemy": -0.5,
+      "friend_create": {
+        "confidence": 0.8,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 1.2,
+          "attack": 1.2,
+          "block_path": 0.6
+        }
+      },
+      "enemy_cross_confirm": {
+        "confidence": 0.3,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "enemy_same_repeat": {
+        "confidence": 0.2,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "enemy_trust": -50.0,
+      "reliability_friend": 0.8,
+      "reliability_enemy": -0.5,
+      "friend_create": {
+        "confidence": 0.8,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 1.2,
+          "attack": 1.2,
+          "block_path": 0.6
+        }
+      },
+      "enemy_cross_confirm": {
+        "confidence": 0.3,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "enemy_same_repeat": {
+        "confidence": 0.2,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    },
+    {
+      "enemy_trust": -31.0,
+      "reliability_friend": 0.8,
+      "reliability_enemy": -0.5,
+      "friend_create": {
+        "confidence": 0.8,
+        "perceived_threats": [
+          "thief_shadow"
+        ],
+        "modifiers": {
+          "warn": 1.2,
+          "attack": 1.2,
+          "block_path": 0.6
+        }
+      },
+      "enemy_cross_confirm": {
+        "confidence": 0.3,
+        "perceived_threats": [],
+        "modifiers": {}
+      },
+      "enemy_same_repeat": {
+        "confidence": 0.2,
+        "perceived_threats": [],
+        "modifiers": {}
+      }
+    }
+  ],
+  "edge_cases": [
+    {
+      "case": "store_missing",
+      "reliability": 0.5,
+      "confidence": 0.5,
+      "perceived_threats": [
+        "thief_shadow"
+      ],
+      "modifiers": {
+        "warn": 0.75,
+        "attack": 0.75,
+        "block_path": 0.375
+      }
+    },
+    {
+      "case": "unknown_pair",
+      "reliability": 0.5,
+      "confidence": 0.5,
+      "perceived_threats": [
+        "thief_shadow"
+      ],
+      "modifiers": {
+        "warn": 0.75,
+        "attack": 0.75,
+        "block_path": 0.375
+      }
+    }
+  ],
+  "failures": []
+}

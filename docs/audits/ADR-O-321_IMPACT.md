@@ -27,3 +27,6 @@
 - Удалить поле `recent_failures` из `NPCState` и адаптеров.
 - Откатить `LifeProjectResolver.resolve()` к сигнатуре с `identity_crisis: bool`.
 - Вернуть хардкод `gold >= 1000` в `phases/decision.py`.
+
+
+Files: N/A

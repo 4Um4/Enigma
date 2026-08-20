@@ -27,3 +27,6 @@
 - Убрать возврат ctx.scene_state из TickOrchestrator.execute().
 - Верратить коммит _scene в GameLoop.idle_tick.
 
+
+
+Files: N/A

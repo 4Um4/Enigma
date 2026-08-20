@@ -25,3 +25,6 @@
 - Удалить `DynamicAffordanceField` из `TickOrchestrator`.
 - Вернуть `WorldTopologyProvider` к чистому чтению `is_point_in_bounds` без мержа деформаций.
 - Удалить `DeformationRecord` и `TracePayload` из `motion_core.py`.
+
+
+Files: N/A

@@ -30,3 +30,6 @@
 - Откатить STEP 8 (state_applicator) → STEP 1 (kernel_rng.py).
 - Возврат к `random.Random(seed)` в `DecisionHub` и `random.*` в сервисах.
 
+
+
+Files: N/A

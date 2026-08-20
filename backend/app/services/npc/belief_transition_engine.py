@@ -16,13 +16,13 @@ Write-path эпистемического слоя.
 
 
 import logging
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, Optional
 
 if TYPE_CHECKING:
     from app.models.npc_state import NPCState
     from app.services.npc.decision_hub import EventContext
 
-from app.models.npc.beliefs import BeliefFragment, BeliefType
+from app.models.npc.beliefs import BeliefDelta, BeliefFragment, BeliefType
 
 logger = logging.getLogger(__name__)
 
@@ -72,14 +72,15 @@ class BeliefTransitionEngine:
     READ: BeliefModifierResolver (следующий шаг, День 3).
     """
 
-    def integrate(
+    def commit(
         self,
         state: "NPCState",
         event: "EventContext",
         current_tick: int,
-    ) -> None:
+    ) -> List["BeliefDelta"]:
         """
-        Интегрировать событие в убеждения NPC.
+        Генерирует BeliefDelta из EventContext.
+        Не мутирует state напрямую. StateApplicator применит дельту (SSOT).
 
         Формула убеждения:
             new = old * inertia + signal * (1 - inertia)
@@ -97,19 +98,22 @@ class BeliefTransitionEngine:
         distance_factor = max(0.1, 1.0 - event.distance * _DISTANCE_DECAY_K)
         base_signal = round(event.intensity * distance_factor, 4)
 
-        self._update_danger(
-            state,
-            event_type_str,
-            base_signal,
-            event.visible_threat_markers,
-            current_tick,
+        deltas: List[BeliefDelta] = []
+        _d_danger = self._update_danger(
+            state, event_type_str, base_signal, event.visible_threat_markers, current_tick
         )
+        if _d_danger:
+            deltas.append(_d_danger)
 
         # PLAYER_HOSTILE — только если источник события игрок
         if event.actor_id == "player":
-            self._update_player_hostile(
+            _d_hostile = self._update_player_hostile(
                 state, event_type_str, base_signal, current_tick
             )
+            if _d_hostile:
+                deltas.append(_d_hostile)
+                
+        return deltas
 
     # ──────────────────────────────────────────────────────────────────────
     # Внутренние методы
@@ -122,7 +126,7 @@ class BeliefTransitionEngine:
         base_signal: float,
         visible_markers: List[Any],
         tick: int,
-    ) -> None:
+    ) -> Optional[BeliefDelta]:
         """Обновить убеждение DANGER."""
 
         # Определить направление сигнала
@@ -138,7 +142,7 @@ class BeliefTransitionEngine:
             signal = base_signal * 0.5
             confidence_delta = +0.05
         else:
-            return  # неизвестный тип без маркеров → не трогаем убеждение
+            return None  # неизвестный тип без маркеров → не трогаем убеждение
 
         old = state.beliefs.get(BeliefType.DANGER)
         old_value = old.value if old else 0.0
@@ -150,14 +154,13 @@ class BeliefTransitionEngine:
         )
         new_confidence = max(0.1, min(1.0, old_confidence + confidence_delta))
 
-        state.beliefs.update(
-            BeliefType.DANGER,
-            BeliefFragment(
-                value=round(new_value, 4),
-                confidence=round(new_confidence, 4),
-                source="perception",
-                timestamp=tick,
-            ),
+        return BeliefDelta(
+            belief_type=BeliefType.DANGER,
+            old_value=old_value,
+            new_value=round(new_value, 4),
+            confidence=round(new_confidence, 4),
+            source="perception",
+            timestamp=tick,
         )
 
     def _update_player_hostile(
@@ -166,7 +169,7 @@ class BeliefTransitionEngine:
         event_type_str: str,
         base_signal: float,
         tick: int,
-    ) -> None:
+    ) -> Optional[BeliefDelta]:
         """Обновить убеждение PLAYER_HOSTILE."""
 
         if event_type_str in _THREAT_TYPES:
@@ -174,7 +177,7 @@ class BeliefTransitionEngine:
         elif event_type_str in _SAFE_TYPES:
             signal = -base_signal * 0.2
         else:
-            return
+            return None
 
         old = state.beliefs.get(BeliefType.PLAYER_HOSTILE)
         old_value = old.value if old else 0.0
@@ -187,13 +190,11 @@ class BeliefTransitionEngine:
             ),
         )
 
-        state.beliefs.update(
-            BeliefType.PLAYER_HOSTILE,
-            BeliefFragment(
-                value=round(new_value, 4),
-                # Игрок — прямой наблюдаемый источник: уверенность фиксирована
-                confidence=0.85,
-                source="perception",
-                timestamp=tick,
-            ),
+        return BeliefDelta(
+            belief_type=BeliefType.PLAYER_HOSTILE,
+            old_value=old_value,
+            new_value=round(new_value, 4),
+            confidence=0.85,
+            source="perception",
+            timestamp=tick,
         )

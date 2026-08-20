@@ -14,3 +14,6 @@
     *   ❌ Наличие поля `target_node_id` в DTO, создаваемых `DecisionHub` или `LifeEngine`.
     *   ❌ Передача `position` (координат) внутри `SpatialTargetIntent`.
     *   ❌ Прямой вызов `find_path` или `nearest_node` из логики принятия решений NPC.
+
+
+Files: N/A

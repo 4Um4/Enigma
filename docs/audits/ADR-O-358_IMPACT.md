@@ -18,7 +18,7 @@
 - Latency: +1 подписчик на NPC_SPOKE (минимальное влияние, синхронная шина)
 
 ## Sandbox Tests
-- IPT: 43/43 passed (3 новых инварианта эпистемической честности)
+- IPT: 44/44 passed (3 новых инварианта эпистемической честности)
 - ClaimEventSubscriber.on_npc_spoke() fallback протестирован через IPT и SUPERBOX-014/015/016
 - SUPERBOX-016: Полная рантайм-труба TaskScheduler → EpistemicStore[player]
 

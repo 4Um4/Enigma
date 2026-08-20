@@ -29,3 +29,6 @@
 
 ## Rollback
 Удалить блок `_ps = _scene_state.get("player_spatial", {})...` в npc_orchestration.py
+
+
+Files: N/A

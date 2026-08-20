@@ -39,3 +39,6 @@ ONTOLOGY (ADR-O) — Смена парадигмы перемещения от �
 5. В `SceneInit` заменить `_life_changes, _life_intents = _life_engine.tick(...)` на `_life_changes = _life_engine.tick(...)`.
 6. Вернуть `DirectiveInterpretationSubscriber().handle(_mock_event, [])`.
 ```
+
+
+Files: N/A

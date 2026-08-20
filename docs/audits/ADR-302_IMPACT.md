@@ -73,3 +73,6 @@
 5. **Identity Preservation**: Замена M₀ на S_intermediate в Phase 10 выполняется строго через срез `[:]`.
 6. **SIL Reconciliation Order**: Слияние S → M происходит ДО `scene_manager.commit()`.
 7. **Affective Pipeline Sovereignty (НОВЫЙ)**: `_run_affective_pipeline` ОБЯЗАН выполняться безусловно 1 раз за тик. Не имеет права зависеть от DM/`shared_context`. (Нарушение = Split-Brain).
+
+
+Files: N/A

@@ -25,3 +25,6 @@
 2. Удалить директорию `diagnostics/`.
 3. Удалить директорию `reports/`.
 4. Удалить строки импорта и запуска `CausalObserver` из `game_launcher.py`.
+
+
+Files: N/A

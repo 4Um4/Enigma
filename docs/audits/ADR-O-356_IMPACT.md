@@ -31,3 +31,6 @@
 3. Убрать модуляцию `_cp` в `phases/integration.py`.
 4. Убрать конвертацию `dream_residue` в `_check_wake_up`.
 5. Удалить файлы `coupling_resolver.py`, `dream_generation_service.py` и DTO `CouplingProfile`/`DreamSignal`.
+
+
+Files: N/A

@@ -20,3 +20,6 @@
 - ❌ Вычисление `legacy_is_boundary` на основе `scene_state["npc_positions"][npc_id]["location_id"]` (мутированное состояние).
 - ❌ Создание `SceneChange` с `cause="cross_loc_materialize"` без `target_location_id`.
 - ❌ Объявление ФАЗЫ 3 готовой при наличии крашнувшихся тиков или < 100k comparisons.
+
+
+Files: N/A

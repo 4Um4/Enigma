@@ -51,3 +51,6 @@
 | reaction_subscriber.py | perceiving_ids fallback | if perceiving_list: |
 | reaction_subscriber.py | stress→emotion thresholds | stress_delta>=15→fear, >=8→anxious |
 | game_loop/__init__.py | удалён дублирующий update_cache | 229-233 |
+
+
+Files: N/A

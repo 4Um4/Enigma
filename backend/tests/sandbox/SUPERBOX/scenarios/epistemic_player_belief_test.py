@@ -26,7 +26,8 @@ logger.setLevel(logging.INFO)
 from app.domain.events import EventDTO
 from app.domain.epistemology import Predicate
 from app.services.events.event_types import EventType
-from app.services.events.claim_event_subscriber import ClaimEventSubscriber, RelationshipReliabilityProvider
+from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
@@ -48,7 +49,7 @@ def run_test():
     rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
     rel_store.update(CAMPAIGN_ID, "player", NPC_B, {"trust": -50.0}) # NPC_B - враг
     
-    reliability_provider = RelationshipReliabilityProvider(rel_store, CAMPAIGN_ID)
+    reliability_provider = TrustBasedReliabilityProvider(rel_store, CAMPAIGN_ID)
     engine = BeliefRevisionEngine(reliability_provider=reliability_provider)
     store = EpistemicStore()
     
@@ -121,8 +122,8 @@ def run_test():
 
     if belief_from_enemy:
         print(f"  Убеждение от врага (NPC_B): confidence={belief_from_enemy.confidence:.2f}")
-        # NPC_B враг (trust=-50 -> reliability=-0.5). 
-        # incoming_confidence = -0.5. Обновление: max(0.0, 0.0 + (-0.5 * 0.2)) = 0.0
+        # NPC_B враг (trust=-50 -> reliability=-0.286, ADR-O-357 enforcement).
+        # create-ветка: max(0.0, 0.0 + (-0.286 * 1.0)) = 0.0 — ассерт invariant к формуле врага.
         if belief_from_enemy.confidence == 0.0:
             print("  ✅ Недоверие к врагу корректно обнуляет confidence (защита от ухода в минус).")
         else:

@@ -84,3 +84,6 @@ State Resolution Binding = Phase 7.5 в TickOrchestrator — синхрониз�
 - test_sleeping_npc_wakes_on_directive
 - test_unconscious_cannot_be_woken_by_directive
 - test_consciousness_state_survives_legacy_roundtrip
+
+
+Files: N/A

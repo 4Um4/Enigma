@@ -314,9 +314,11 @@ class NpcTickPipeline:
                         scene_facts=[],
                     )
                 )
-                BeliefTransitionEngine().integrate(
+                _belief_deltas = BeliefTransitionEngine().commit(
                     state_l2, _event_for_belief, state.tick_id
                 )
+                for _bd in _belief_deltas:
+                    state_applicator.apply_belief_delta(state_l2, _bd)
             except Exception as _belief_err:
                 logger.warning(
                     f"[BELIEF] belief update failed for {npc_id}: {_belief_err}"

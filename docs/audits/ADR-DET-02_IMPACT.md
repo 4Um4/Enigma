@@ -39,3 +39,6 @@ path: /project/docs/ADR (Architecture Decision Records).md
 - **Deferred**: DEBT-SEM-01 (Semantic Arbitration Layer).
 
 Какую задачу будем решать следующей?
+
+
+Files: N/A

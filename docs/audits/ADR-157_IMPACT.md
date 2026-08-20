@@ -26,3 +26,6 @@
 - Убрать `trust_env=False` из `httpx.Client` в `health.py`.
 - Вернуть `httpx.AsyncClient` в `LlamaCppCompressorClient` (но это вернёт баг с прокси).
 - Убрать `ProxyHandler({})` из `llama_cpp_provider.py`.
+
+
+Files: N/A

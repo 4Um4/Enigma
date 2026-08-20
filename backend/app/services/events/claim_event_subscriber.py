@@ -14,27 +14,10 @@ from app.services.npc.epistemic_store import EpistemicStore
 
 logger = logging.getLogger(__name__)
 
-class RelationshipReliabilityProvider:
-    """
-    S189: Адаптер RelationshipStore -> SourceReliabilityProvider (ADR-O-354).
-    Возвращает trust (0.0-1.0) как базовую надёжность источника.
-    """
-    def __init__(self, relationship_store: Any, campaign_id: str):
-        self._store = relationship_store
-        self._campaign_id = campaign_id
-
-    def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
-        if not self._store:
-            return 0.5 # Нейтральная надёжность при отсутствии SSOT
-        
-        # ADR-O-354: RelationshipStore.get_pair(campaign_id, observer, source) масштаб 0-100.
-        # S189 FIX: Убран silent failure (ADR-O-308). Ошибка в RelationshipStore должна крашить тик.
-        _pair_data = self._store.get_pair(self._campaign_id, observer, source) or {}
-        _trust_100 = _pair_data.get("trust", 50.0)
-        # S199 (Фаза 8.2/8.3): Враги (trust < -30) вызывают обратный эффект — игрок не верит им, confidence падает.
-        if _trust_100 < -30:
-            return -0.5
-        return max(0.0, min(1.0, _trust_100 / 100.0))
+# S20x (ADR-O-357 enforcement): инлайн-провайдер reliability УДАЛЁН.
+# Каноническая реализация: app/services/npc/trust_based_reliability_provider.py
+# (TrustBasedReliabilityProvider). Подписчик — потребитель reliability,
+# но не владелец формулы trust → reliability.
 
 HEARING_RADIUS = 10.0
 
@@ -169,18 +152,31 @@ class ClaimEventSubscriber:
                     _listeners.add(_primary_target)
 
             for _listener_id in _listeners:
-                claim = ClaimEvent(
-                    event_id=str(event.id),
-                    claim_id=payload.get("claim_id", str(event.id)),
-                    speaker_id=event.source,
-                    listener_id=_listener_id,
-                    proposition=prop,
-                    speech_act=SpeechAct(payload.get("speech_act", "assert")),
-                    tick=payload.get("tick", 0)
-                )
-                existing = self._store.get(_listener_id, prop)
-                updated_record = self._engine.revise(_listener_id, claim, existing)
-                self._store.upsert(updated_record)
+                # DEBT-R4 (S208): изоляция per-listener. Сбой ревизии одного
+                # слушателя не должен молча убивать убеждения остальных
+                # (класс инцидента S207: один битый элемент глушит хвост цикла).
+                # Политика ARCH-017: Belief → degrade (продолжаем), но отказ
+                # наблюдаем с идентификатором жертвы. Полная типизация ошибок
+                # (PerceptionError-категории) — отдельная задача, не здесь.
+                try:
+                    claim = ClaimEvent(
+                        event_id=str(event.id),
+                        claim_id=payload.get("claim_id", str(event.id)),
+                        speaker_id=event.source,
+                        listener_id=_listener_id,
+                        proposition=prop,
+                        speech_act=SpeechAct(payload.get("speech_act", "assert")),
+                        tick=payload.get("tick", 0)
+                    )
+                    existing = self._store.get(_listener_id, prop)
+                    updated_record = self._engine.revise(_listener_id, claim, existing)
+                    self._store.upsert(updated_record)
+                except Exception as _listener_err:
+                    logger.error(
+                        f"[CLAIM_SUB] Belief revision failed: listener={_listener_id}, "
+                        f"claim={payload.get('claim_id', event.id)}: {_listener_err}",
+                        exc_info=True,
+                    )
 
         except Exception as e:
             logger.exception(f"[CLAIM_SUB] Failed to process claim event: {e}")

@@ -78,7 +78,7 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
             )
             ctx.scene_changes.clear()
 
-        if ctx.dirty_npcs or ctx.wt_dirty or ctx.prop_dirty:
+        if ctx.dirty_npcs or ctx.prop_dirty:
             orchestrator._scene_manager.commit(
                 campaign_id=ctx.campaign_id,
                 scene_state=ctx.shared_context.scene_state,
@@ -87,7 +87,8 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
             _sources: list[str] = []
             if ctx.dirty_npcs:
                 _sources.append(f"npc={len(ctx.dirty_npcs)}")
-            if ctx.wt_dirty:
+            # Stage 0 Task 0.10: wt_dirty упразднён. Параллельный WorldTick-путь закрыт.
+            # if ctx.wt_dirty:
                 _sources.append("world_tick")
             if ctx.prop_dirty:
                 _sources.append("social")

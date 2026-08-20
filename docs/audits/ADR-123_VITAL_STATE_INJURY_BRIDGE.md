@@ -108,3 +108,6 @@ Impact → Injury → InjuryProcessor(+blood_loss/tick) → DeltaBuffer
 - `InjuryProcessor.handle()` — кровотечение из ран
 - `_compute_bleeding_rate()` — зональные/типовые модификаторы
 - DecisionHub guard — DEAD/UNCONSCIOUS → IDLE
+
+
+Files: N/A

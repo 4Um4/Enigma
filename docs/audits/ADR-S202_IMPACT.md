@@ -26,3 +26,6 @@
 - В `ClaimEventSubscriber` вернуть `_origin_id = event.source` вместо `payload.get("target_id", event.source)`.
 - Удалить генерацию `Proposition` для `ATTACK` в `IntentCompressor._fast_path_parse()`.
 - Удалить публикацию `SOCIAL_ACTION` из `GameLoop._execute_dm_and_intent_resolution()`.
+
+
+Files: N/A

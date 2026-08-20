@@ -37,3 +37,6 @@
 3. Вернуть прямые вызовы `SpatialService.build_for_location` во всех файлах (заменить `SpatialFactory.build_for_campaign`).
 4. Вернуть прямые мутации `scene_state` в `npc_orchestration.py` и `dm_phase.py`.
 5. Удалить `SpatialFactory` и `ChangeType.NPC_METADATA` / `SCENE_METADATA`.
+
+
+Files: N/A

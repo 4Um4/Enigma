@@ -27,3 +27,6 @@
 1. Вернуть `target_ref = svc.get_node(...entrance...)` в `MovementEngine`.
 2. Вернуть проверку `initiative_suppression > 0.7` в `LifeEngine`.
 3. Удалить поля `recent_directive` из моделей.
+
+
+Files: N/A
