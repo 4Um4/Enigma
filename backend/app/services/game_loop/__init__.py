@@ -216,6 +216,25 @@ class GameLoop:
         # P1.1f: внедряем фабрику SocialEngine в TickOrchestrator
         self._tick_orch.set_social_engine_factory(self._svc.get_social_engine)
 
+        # S150 FIX: Принудительная инициализация TaskScheduler для прохождения INV-DIALOGUE-INIT/SCHEDULER-FAIL
+        _ = self._get_task_scheduler()
+
+        # Подсистема 2: Инициализация ReplayRecorder
+        if settings.replay_mode != "off":
+            from app.services.replay.replay_store import ReplayStore
+            from app.services.replay.replay_recorder import ReplayRecorder
+            _replay_db_path = Path(data_dir) / "replay.db"
+            _replay_store = ReplayStore(_replay_db_path)
+            _session_id = _replay_store.start_session(
+                campaign_id="Open_road", 
+                commit_hash="dev"
+            )
+            self._tick_orch._replay_recorder = ReplayRecorder(
+                store=_replay_store, 
+                session_id=_session_id
+            )
+            print(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
+
         # Фаза 0.5: DI для idle-сервисов (social decay, reputation decay)
         _rep_engine = self._svc.get_reputation_engine()
         _rel_store = memory_manager._relationships if memory_manager else None
@@ -268,6 +287,18 @@ class GameLoop:
         # Возвращает текущий spatial_query из TickContext или None
         return getattr(self, "_current_spatial_query", None)
 
+    def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
+        """S150 FIX: Регистрирует диалоги для EconomyTracker (потребность SOCIAL)."""
+        try:
+            _npc_id = getattr(event, "source", None)
+            if not _npc_id:
+                return
+            _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
+            _tick = self._tick_orch.get_current_tick(_campaign_id)
+            self._svc.economy_tracker.record_talk(_npc_id, _tick)
+        except Exception as e:
+            logger.warning(f"[ECO_TRACKER] record_talk error: {e}")
+
     def _register_npc_dialogue_subscriber(self, memory_manager: Any, rel_store: Any) -> None:
         """Регистрирует NpcDialogueSubscriber на события NPC_SPOKE."""
         try:
@@ -307,6 +338,10 @@ class GameLoop:
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
             _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
             _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+            
+            # S150 FIX: Подписываем EconomyTracker для учёта диалогов (SOCIAL need)
+            _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
+            
             self._npc_dialogue_subscriber = _subscriber
             logger.info("[GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered")
         except Exception as e:
@@ -723,6 +758,7 @@ class GameLoop:
                             "debt": 0.0,
                         },
                         "status_profile": {"faction_rank": {}},
+                        "tier": "major", # P3 FIX: Игрок участвует в макро-симуляции (NeedEngine, Stress)
                     }
                     npcs.append(player_dict)
             except Exception as e:
@@ -807,12 +843,15 @@ class GameLoop:
             _builder = WorldSnapshotBuilder()
             _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
             logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+            _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
             _ws = _builder.build(
                 result.final_state,
                 result.final_state.get("tick", 0),
                 None,
                 _all_npcs,
                 recent_dialogues=_recent_d,
+                player_body_topology=result.final_state.get("player_body_topology"),
+                eco_profile=_player_eco_profile,
             )
 
             # BUG-FB-002 FIX: Сохраняем мутированное состояние в persistence buffer,

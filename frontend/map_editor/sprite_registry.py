@@ -17,8 +17,8 @@ from typing import Dict, Optional, Tuple
 
 import pygame
 
-# Базовая директория с палитрами
-_BASE_DIR = os.path.join(os.path.dirname(__file__), "pixels", "2-Bit Pack")
+# Базовая директория с палитрами (NEW-MVP-007 FIX: 2-Bit Pack не существует, используем pixels)
+_BASE_DIR = os.path.join(os.path.dirname(__file__), "pixels")
 # Стандартный размер тайла для 2-Bit стилей
 _DEFAULT_TILE_SIZE = 16
 

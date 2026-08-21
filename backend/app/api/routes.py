@@ -404,6 +404,44 @@ def finalize_campaign(campaign_id: str, game_loop=Depends(get_game_loop)) -> dic
     
     return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True}
 
+# NEW-MEM-002 FIX: API endpoint для просмотра таблиц воспоминаний NPC
+@router.get("/debug/memories/{campaign_id}/{npc_id}")
+def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_loop)) -> Dict[str, Any]:
+    """Возвращает crystallized_beliefs и event_memories для NPC."""
+    result: Dict[str, Any] = {"crystallized_beliefs": [], "event_memories": []}
+    
+    # 1. Crystallized Beliefs
+    _tick_orch = getattr(game_loop, "_tick_orch", None)
+    if _tick_orch and hasattr(_tick_orch, "crystallized_belief_store"):
+        _store = _tick_orch.crystallized_belief_store
+        _beliefs = _store.get_beliefs(npc_id)
+        if _beliefs:
+            result["crystallized_beliefs"] = [
+                {
+                    "target": b.target_npc,
+                    "trust": getattr(b, "trust", 0.0),
+                    "fear": getattr(b, "fear", 0.0),
+                    "affection": getattr(b, "affection", 0.0),
+                } for b in _beliefs
+            ]
+
+    # 2. Event Memories (L2)
+    _mm = getattr(game_loop, "memory_manager", None)
+    if _mm and hasattr(_mm, "_layered"):
+        _sqlite_store = getattr(_mm._layered, "store", None)
+        if _sqlite_store:
+            _mems = _sqlite_store.load_event_memories(campaign_id, npc_id)
+            if _mems:
+                result["event_memories"] = [
+                    {
+                        "text": getattr(m, "text", ""),
+                        "importance": getattr(m, "importance", 0.0),
+                        "tick": getattr(m, "tick", 0),
+                    } for m in _mems
+                ]
+
+    return result
+
 @router.post("/game/action")
 async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
     try:

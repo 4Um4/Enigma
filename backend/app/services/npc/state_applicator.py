@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 from app.core.constants import TRAIT_DECAY_RATE
 from app.domain.vital_state import LifeStatus, evaluate_vital_state
 from app.models.delta_payloads import (
+    EconomicPayload,
     EmotionPayload,
     IdentityPayload,
     PerceptionPayload,
@@ -1269,6 +1270,32 @@ class StateApplicator:
 
         # L1: Материализация (будет перенесена в Orchestrator на Этапе 5)
         state = NPCStateAdapter.from_legacy(npc_dict)
+
+        # Обработка экономики (ECONOMY) — применяем напрямую к npc_dict и state.body_state
+        # Так как gold не входит в NPCState напрямую, обрабатываем здесь (Устав §2.3)
+        if deltas.domain == DeltaDomain.ECONOMY and deltas.payload:
+            _money_delta = float(deltas.payload.get("money_delta", 0.0))
+            if _money_delta != 0.0:
+                # Для игрока: body_state["money"]
+                if state.npc_id == "player" and state.body_state:
+                    state.body_state["money"] = float(state.body_state.get("money", 0.0)) + _money_delta
+                # Для NPC: npc_dict["gold"]
+                if "gold" in npc_dict or state.npc_id != "player":
+                    npc_dict["gold"] = float(npc_dict.get("gold", 0.0)) + _money_delta
+            return
+
+        # Обработка экономики (ECONOMY) — применяем напрямую к npc_dict и state.body_state
+        # Так как gold не входит в NPCState напрямую, обрабатываем здесь (Устав §2.3)
+        if deltas.domain == DeltaDomain.ECONOMY and isinstance(deltas.payload, EconomicPayload):
+            _money_delta = float(deltas.payload.money_delta or 0.0)
+            if _money_delta != 0.0:
+                # Для игрока: body_state["money"]
+                if state.npc_id == "player" and state.body_state:
+                    state.body_state["money"] = float(state.body_state.get("money", 0.0)) + _money_delta
+                # Для NPC: npc_dict["gold"]
+                if "gold" in npc_dict or state.npc_id != "player":
+                    npc_dict["gold"] = float(npc_dict.get("gold", 0.0)) + _money_delta
+            return
 
         # Делегирование в Commit Kernel
         self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id)

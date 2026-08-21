@@ -2,7 +2,7 @@ Traceback (most recent call last):
   File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 533, in game_action
     result = await game_loop.run_turn(turn_request)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1210, in run_turn
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1227, in run_turn
     if state.shared_context and state.shared_context.world_snapshot:
                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'PipelineContext' object has no attribute 'world_snapshot'

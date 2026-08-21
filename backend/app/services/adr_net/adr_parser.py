@@ -41,7 +41,7 @@ class ADRNode:
 
 # Регулярка для парсинга строки вида: `ADR-148` [STD] **Title** — Desc.
 _ADR_LINE_REGEX = re.compile(r"`(ADR-[O0-9\-]+)`\s*\[(\w+)\]\s*\*\*(.+?)\*\*")
-_FILES_REGEX = re.compile(r"Files:\s*(.+)")
+_FILES_REGEX = re.compile(r"[-*]?\s*\*{0,2}Files:?\*{0,2}\s*(.+)")
 
 def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
     """Парсит один файл ADR-0XX_IMPACT.md."""
@@ -102,14 +102,16 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                 law_title = law_match.group(2)
                 adr_ids_raw = law_match.group(3).split(",")
                 
-                # Ищем Files в следующей строке (обычно это - Files: ...)
+                # Ищем Files в следующих строках (до 5 строк вниз, чтобы не промахнуться при длинном описании)
                 current_files = []
-                if i + 3 < len(lines) and "Files:" in lines[i+3]:
-                    files_match = _FILES_REGEX.search(lines[i+3])
-                    if files_match:
-                        raw_files = files_match.group(1).strip().rstrip(".")
-                        current_files = [f.strip().strip("`").strip() for f in raw_files.split(",")]
-                        current_files = [f for f in current_files if f]
+                for offset in range(1, 6):
+                    if i + offset < len(lines) and "Files:" in lines[i+offset]:
+                        files_match = _FILES_REGEX.search(lines[i+offset])
+                        if files_match:
+                            raw_files = files_match.group(1).strip().rstrip(".")
+                            current_files = [f.strip().strip("`").strip() for f in raw_files.split(",")]
+                            current_files = [f for f in current_files if f]
+                        break
                 
                 for adr_id_raw in adr_ids_raw:
                     adr_id_raw = adr_id_raw.strip()

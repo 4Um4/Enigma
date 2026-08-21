@@ -277,6 +277,32 @@ def main() -> None:
                     char_screen = CharacterSelectScreen(screen, clock, selected_folder)
                     selected_data = char_screen.run()
                     if selected_data is not None:
+                        # NEW-MVP-002 FIX: Ждём готовности backend и инициализируем кампанию (без сброса).
+                        import time as _time
+                        import urllib.request as _ur
+                        _backend_ok = False
+                        for _attempt in range(10):
+                            try:
+                                with _ur.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as _hr:
+                                    if _hr.status == 200:
+                                        _backend_ok = True
+                                        break
+                            except Exception:
+                                _time.sleep(0.5)
+                        
+                        if _backend_ok:
+                            try:
+                                from api_client import create_game_gateway
+                                _gateway, _ = create_game_gateway()
+                                # continuity_mode="continuous" сохраняет прогресс и инициализирует MVP
+                                _gateway.new_game(
+                                    campaign_id=selected_folder,
+                                    continuity_mode="continuous",
+                                    source_campaign_id=selected_folder
+                                )
+                            except Exception as e:
+                                print(f"  ⚠ Continue backend init failed: {e}")
+
                         screen = pygame.display.get_surface()
                         game_screen = GameScreen(screen, clock)
                         game_screen.run(selected_folder, selected_data["character_id"])

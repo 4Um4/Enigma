@@ -888,9 +888,12 @@ class GameScreen:
                             _gateway.finalize_campaign(campaign_folder)
                         self.end_screen_data = _gateway.get_end_screen(campaign_folder)
                         self.show_end_screen = True
-                    except Exception as e:
-                        print(f"[END_SCREEN_ERROR] {e}", flush=True)
-                        system_log.append(f"[END_SCREEN] API Error: {e}")
+                    except Exception as _mvp_err:
+                        print(f"[MVP] popup failed: {_mvp_err}")
+                        # NEW-MVP-001 FIX: Показываем окно даже с ошибкой, чтобы не зацикливать попытки.
+                        self.show_end_screen = True
+                        self._end_screen_data = {"error": str(_mvp_err)}
+                        system_log.append(f"[END_SCREEN] API Error: {_mvp_err}")
 
                 # Движение к NPC: отправляем намерение, бэкенд строит маршрут
                 if move.target_npc_id and move.target_npc_id in npc_positions:

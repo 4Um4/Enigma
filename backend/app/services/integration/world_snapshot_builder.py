@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.domain.presentation import EmbodiedStatusDTO
 from app.domain.snapshot import (
     ActivePerception,
     AvatarStateDTO,
@@ -21,6 +22,9 @@ from app.domain.snapshot import (
     VisibleEventDTO,
     WorldSnapshotDTO,
 )
+from app.models.economy import EconomicProfile
+from app.services.economy.need_presentation_mapper import NeedPresentationMapper
+from app.services.integration.avatar_status_builder import AvatarStatusBuilder
 
 
 class WorldSnapshotBuilder:
@@ -44,6 +48,7 @@ class WorldSnapshotBuilder:
         player_body_topology: Optional[Dict] = None,  # ТЗ Presentation v2.0: Инвентарь
         visual_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал визуальной презентации
         audible_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал аудио презентации
+        eco_profile: Optional[EconomicProfile] = None,  # S151: Профиль игрока для EmbodiedStatusDTO
     ) -> WorldSnapshotDTO:
         """Собирает снимок из финального состояния тика.
 
@@ -99,6 +104,7 @@ class WorldSnapshotBuilder:
             ),  # ТЗ EMBODIED UI: domain → API DTO конвертация
             player_body_topology=player_body_topology,  # ТЗ Presentation v2.0
             visual_dto=visual_dto,  # ТЗ Presentation v2.0
+            embodied_status=self._build_embodied_status(eco_profile, player_body_topology),  # S151
             audible_dto=audible_dto,  # ТЗ Presentation v2.0
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
@@ -285,6 +291,18 @@ class WorldSnapshotBuilder:
         """
         # Пока событий в scene_state нет — пустой список
         return []
+
+    def _build_embodied_status(
+        self,
+        eco_profile: Optional[EconomicProfile],
+        topology: Optional[Dict[str, Any]],
+    ) -> Optional[EmbodiedStatusDTO]:
+        """S151: Сборка DTO воплощённого статуса для UI."""
+        if not eco_profile:
+            return None
+        _mapper = NeedPresentationMapper()
+        _builder = AvatarStatusBuilder(_mapper)
+        return _builder.build(eco_profile, topology)
 
     def _extract_player_position(self, scene_state: Dict) -> Tuple[float, float]:
         """Вытаскивает координаты игрока."""

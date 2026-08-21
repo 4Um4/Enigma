@@ -9,7 +9,7 @@ import logging
 import urllib.request
 from typing import Any, Dict, Optional
 
-from app.services.llm.provider import LlmProvider  # BUG-DLG-041 FIX: Исправлен импорт (llm_provider → provider)
+from app.services.llm.provider import GenerationParams, LlmProvider  # BUG-DLG-041 FIX: Исправлен импорт (llm_provider → provider)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class OpenAICompatibleProvider(LlmProvider):
         return self._available
 
     def complete(
-        self, prompt: str, params: Dict[str, Any], system_prompt: Optional[str] = None
+        self, prompt: str, params: Optional[GenerationParams] = None, system_prompt: Optional[str] = None
     ) -> str:
         if not self._available:
             raise RuntimeError("OpenAICompatibleProvider: API key is missing.")
@@ -50,11 +50,13 @@ class OpenAICompatibleProvider(LlmProvider):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        _temp = params.temperature if params else self._temperature
+        _max_tok = params.max_tokens if params else self._max_tokens
         payload = {
             "model": self._model_name,
             "messages": messages,
-            "temperature": params.get("temperature", self._temperature),
-            "max_tokens": params.get("max_tokens", self._max_tokens),
+            "temperature": _temp,
+            "max_tokens": _max_tok,
         }
 
         data = json.dumps(payload).encode("utf-8")

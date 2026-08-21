@@ -28,6 +28,7 @@ def tick_world_proactive(
     shared_context: Any,
     tick_ctx: TickBuffer,
     tick_orchestrator: Any = None,  # ADR-O-208: для effective_drives computation
+    economy_tracker: Any = None,
 ) -> None:
     """ФАЗА 3.4: WorldTickEngine — проактивные действия NPC."""
     if not world_tick_engine.should_tick(campaign_id):
@@ -145,9 +146,28 @@ def tick_world_proactive(
         # NeedEngine.tick() — потребности растут даже без игрока
         try:
             from app.services.economy.need_engine import NeedEngine
+            from app.services.economy.trade_resolver import TradeResolver
+            from app.services.economy.transaction_engine import TransactionEngine
+            from app.models.state_delta import StateDeltas, DeltaDomain
+            from app.models.delta_payloads import EconomicPayload
+            from app.core.constants import TICKS_PER_DAY
 
             _wt_eco_profiles = economic_profiles_getter(campaign_id)
             _wt_ne = NeedEngine()
+            
+            # 1. Синхронизация Gold (Вход в тик) — SSOT body_state["money"]/npc_dict["gold"]
+            for _pid, _wt_npc_raw, _ in _proactive_npc_data:
+                _wt_ep = _wt_eco_profiles.get(_pid)
+                if _wt_ep:
+                    _wt_ep.gold = float(_wt_npc_raw.get("gold", 0.0))
+            
+            # Игрок (если есть в профилях)
+            if "player" in _wt_eco_profiles:
+                _avatar = getattr(shared_context, "avatar_state", None)
+                if _avatar and _avatar.body_state:
+                    _wt_eco_profiles["player"].gold = float(_avatar.body_state.get("money", 0.0))
+
+            # 2. Тик NeedEngine
             for _pid, _wt_npc_raw, _ in _proactive_npc_data:
                 _wt_ep = _wt_eco_profiles.get(_pid)
                 if _wt_ep:
@@ -161,6 +181,71 @@ def tick_world_proactive(
                     ):
                         _wt_current_activity = _wt_npc_raw.routine.get("current", "")
                     _wt_ne.tick(_wt_ep, current_activity=_wt_current_activity)
+
+            # 3. Интеграция TradeResolver
+            _wt_tx_engine = TransactionEngine()
+            _wt_trade_resolver = TradeResolver(_wt_tx_engine)
+            _wt_trade_results = _wt_trade_resolver.resolve_tick(
+                profiles=_wt_eco_profiles,
+                trade_intents={},  # TradeResolver сам найдёт нуждающихся (второй проход)
+                location=location,
+            )
+
+            # 4. Применение транзакций через StateApplicator (запрет прямой мутации)
+            _wt_economy_deltas = []
+            for _res in _wt_trade_results:
+                if not _res.success:
+                    continue
+                logger.warning(f"[TRADE] {_res.buyer_id} покупает {_res.goods} у {_res.seller_id} за {_res.price}G")
+                
+                _buyer_delta = StateDeltas(
+                    npc_id=_res.buyer_id,
+                    domain=DeltaDomain.ECONOMY,
+                    payload=EconomicPayload(money_delta=-_res.price, goods_delta=_res.goods)
+                )
+                _wt_economy_deltas.append(_buyer_delta)
+                
+                _seller_delta = StateDeltas(
+                    npc_id=_res.seller_id,
+                    domain=DeltaDomain.ECONOMY,
+                    payload=EconomicPayload(money_delta=_res.price, goods_delta=None)
+                )
+                _wt_economy_deltas.append(_seller_delta)
+
+            if _wt_economy_deltas:
+                # S150 FIX: Применяем дельты к NPC
+                _wt_applicator.apply_batch(_wt_economy_deltas, tick_ctx.all_npcs_raw, campaign_id)
+                
+                # S150 FIX: Регистрируем доход продавца в EconomyTracker
+                if economy_tracker:
+                    for _res in _wt_trade_results:
+                        if _res.success:
+                            economy_tracker.record_income(_res.seller_id, _res.price)
+                
+                # S150 FIX: Если в сделке участвует игрок, обновляем его avatar_state напрямую
+                _avatar = getattr(shared_context, "avatar_state", None)
+                if _avatar and _avatar.body_state:
+                    for _delta in _wt_economy_deltas:
+                        if _delta.npc_id == "player" and isinstance(_delta.payload, EconomicPayload):
+                            _money_delta = float(_delta.payload.money_delta or 0.0)
+                            _avatar.body_state["money"] = float(_avatar.body_state.get("money", 0.0)) + _money_delta
+
+            # 5. Активация EconomyTracker (раз в TICKS_PER_DAY)
+            if economy_tracker:
+                _tick_num = tick_orchestrator.get_current_tick(campaign_id) if tick_orchestrator else 0
+                if _tick_num > 0 and _tick_num % TICKS_PER_DAY == 0:
+                    _base_drives = {}
+                    for _pid, _wt_npc_raw, _p_l0 in _proactive_npc_data:
+                        _base_drives[_pid] = _p_l0.drives_base
+                    _inc_sat, _soc_sat = economy_tracker.check_daily_needs(
+                        profiles=_wt_eco_profiles,
+                        npc_drives=_base_drives,
+                        tick=_tick_num,
+                        location_locked=False,
+                    )
+                    economy_tracker.reset_daily()
+                    logger.warning(f"[ECO_TRACKER] day_end: income={_inc_sat} social={_soc_sat} satisfied")
+
             tick_ctx.wt_dirty = True
         except Exception as _wt_ne_err:
             logger.warning(f"[WORLD_TICK] NeedEngine error: {_wt_ne_err}")

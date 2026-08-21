@@ -444,14 +444,23 @@ class SceneRenderer:
 
             if sprite:
                 scaled = pygame.transform.scale(sprite, (npc_size, npc_size))
-                self.screen.blit(scaled, (sx - npc_size // 2, sy - npc_size // 2))
+                # NEW-ORIENT-002 FIX: Вращаем спрайт по body_heading (Y инвертирован в pygame)
+                _angle_deg = -math.degrees(getattr(entity, "body_heading", 1.5708))
+                rotated = pygame.transform.rotate(scaled, _angle_deg)
+                _rect = rotated.get_rect(center=(sx, sy))
+                self.screen.blit(rotated, _rect)
                 if is_focused:
                     pygame.draw.circle(
                         self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2
                     )  # Белый контур фокуса
             else:
                 color = _COLORS["npc_focused"] if is_focused else _COLORS["npc_body"]
-                pygame.draw.circle(self.screen, color, (sx, sy), radius)
+                # NEW-ORIENT-002 FIX: Рисуем треугольник вместо круга, чтобы была видна ориентация
+                _heading = getattr(entity, "body_heading", 1.5708)
+                _tip = (sx + 12 * math.cos(_heading), sy + 12 * math.sin(_heading))
+                _left = (sx + 8 * math.cos(_heading + 2.5), sy + 8 * math.sin(_heading + 2.5))
+                _right = (sx + 8 * math.cos(_heading - 2.5), sy + 8 * math.sin(_heading - 2.5))
+                pygame.draw.polygon(self.screen, color, [_tip, _left, _right])
                 if is_focused:
                     pygame.draw.circle(
                         self.screen, (255, 255, 255), (sx, sy), radius, 2

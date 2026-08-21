@@ -11,6 +11,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
+from app.domain.presentation import EmbodiedStatusDTO
+
 
 class PhysicalPresentationState(str, Enum):
     """Визуальное физическое состояние аватара для рендера."""
@@ -82,6 +84,7 @@ class NPCPositionDTO:
     body_heading: float = (
         1.5708  # ADR-O-315: Непрерывный угол ориентации тела (рад). Pi/2 = Юг.
     )
+    head_yaw: float = 0.0  # NEW-ORIENT-003 FIX: Ориентация головы (offset от body_heading, [-pi, pi])
     activity: str = (
         "idle"  # 'idle', 'walking', 'talking', 'working' (переименовано с action)
     )
@@ -257,6 +260,9 @@ class WorldSnapshotDTO:
     )
     audible_dto: Optional[Dict[str, Any]] = (
         None  # Канал аудио презентации (голос, дыхание, шаги)
+    )
+    embodied_status: Optional[EmbodiedStatusDTO] = (
+        None  # S151: Текстовый статус аватара (золото, еда, вес, потребности)
     )
 
 

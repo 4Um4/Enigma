@@ -155,5 +155,18 @@
   IPT: 26/26 passed.
   Files: backend/app/services/replay/__init__.py, backend/app/services/replay/replay_store.py, backend/app/services/replay/replay_recorder.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py
 
+- 🟢 **S157** ECONOMY & SOCIAL EMERGENCE (P2/P3 Partial):
+  **P2: Emergent Social Drama (DOUBLE TRUTH Elimination):** 
+  `ActionConsequenceCompiler` (MVP) now writes `trust`/`fear` deltas directly into `RelationshipStore` (Kernel SSOT). 
+  Fixed the disconnect where blackmail/help affected the end-screen tracker but not the core simulation. 
+  `DirectiveInterpretationSubscriber` now sees these changes, making NPCs obey out of fear.
+  **P3: Economy Contour Activation (Partial):**
+  Player avatar now has `tier="major"`, enabling `NeedEngine` to tick hunger for the player in `phase_2_world_tick.py`. 
+  `ServiceFactory` now creates an `EconomicProfile` for the player.
+  **P1: Balance Fix (BreakProgressEngine):**
+  Reduced `BREAK_DELTA_*` constants in `constants.py` to prevent identity integrity from dropping to 0.000 from background stress in 3 days. 
+  Added asymptotic decay (`integrity * delta`) to the final stages of breakdown.
+  IPT: 27/27 passed. P2 Smoke Test passed.
+  Files: backend/app/services/game_loop/__init__.py, backend/app/services/social/mvp_tavern_controller.py, backend/app/services/player_cognition/action_consequence_compiler.py, backend/app/services/game_loop/service_factories.py, backend/app/services/npc/break_progress_engine.py, backend/app/core/constants.py
 
 

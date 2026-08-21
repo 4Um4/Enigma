@@ -15,10 +15,10 @@ content:
 controls:
   keybindings: {}
 graphics:
-  display_mode: exclusive
+  display_mode: windowed
   resolution:
-    height: 1440
-    width: 2560
+    height: 1050
+    width: 1680
 interface:
   language: ru
 performance:

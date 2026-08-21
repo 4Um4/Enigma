@@ -216,6 +216,9 @@ class CausalObserver:
 
             if COMPILED["llm_nothing"].search(line):
                 self._tick_checker.on_llm_nothing()
+            
+            if COMPILED["llm_pool_fail"].search(line):
+                self._tick_checker.on_llm_pool_fail()
                 return
 
             if COMPILED["llm_cjk"].search(line):

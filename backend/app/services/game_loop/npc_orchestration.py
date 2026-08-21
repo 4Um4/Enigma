@@ -211,6 +211,7 @@ def run_npc_orchestration(
             active_location_id=_active_loc,
             location_ids=_location_ids,
             hub_event=ctx.hub_event if _loc_id == _active_loc else None,  # BUG-CORE-003 FIX
+            task_scheduler=game_loop._get_task_scheduler(),  # REGRESSION-CORE-001 FIX: Проброс task_scheduler в ядро
         )
         # BUG-FB-031 FIX: Сохраняем world_snapshot из ядра в shared_context, чтобы не пересобирать его с нуля в GameLoop
         if hasattr(_loc_result, "world_snapshot") and _loc_result.world_snapshot is not None:
@@ -362,6 +363,7 @@ def run_npc_orchestration(
         shared_context,
         ctx,
         tick_orchestrator=game_loop._tick_orch,  # ADR-O-208: для effective_drives computation
+        economy_tracker=game_loop._svc.economy_tracker,
     )
 
     # Salience Engine: метаданные для фильтрации объектов в промпте

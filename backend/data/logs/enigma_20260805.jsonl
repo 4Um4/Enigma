@@ -1,0 +1,50 @@
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-05T19:16:19.962355", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T19:16:19.963022", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 5074, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-05T19:52:02.327406", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T19:52:02.328113", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 4517, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "ВВОДНАЯ СЦЕНА:\nТекущее состояние сцены (ТОЛЬКО ЭТИ объекты существуют в локации):\n- Барная стойка #1: цел\n- Стол #3: цел\n- Декорация №1: цел\n- Декорация №2: цел\n- Стол №3: цел\nОбстановка: ярко освещено, шумно, warm_busy\n\nЛюся: \nСтражник Борко: \nКузнец Орм: \nТорнин Серебряная Луна: \nТень: \nКупец Горан: \nPlayer: у входа\nNPC которых нет в этом списке — в локации отсутствуют.\n\nПРОСТРАНСТВЕННЫЙ КОНТЕКСТ ИГРОКА:\n- Позиция игрока: стоит\n- Игрок обращается к: Торнин Серебряная Луна\n- Расстояния: Люся: б...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\n\n⚠️ ЯЗЫКОВОЕ ОГРАНИЧЕНИЕ (КРИТИЧЕСКОЕ):\nОтвечай ТОЛЬКО на русском языке. Каждое слово должно быть на русском.\nНЕ ПИШИ по-китайски (中文). НЕ ПИШИ по-а..."}
+{"timestamp": "2026-08-05T19:52:11.744540", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T19:52:11.744940", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-05T20:23:03.072714", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T20:23:03.073449", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1824, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "ВВОДНАЯ СЦЕНА:\nТекущее состояние сцены (ТОЛЬКО ЭТИ объекты существуют в локации):\n- Барная стойка #1: цел\n- Стол #3: цел\n- Декорация №1: цел\n- Декорация №2: цел\n- Стол №3: цел\nОбстановка: ярко освещено, шумно, warm_busy\n\nЛюся: tavern:fireplace\nСтражник Борко: city_gate:guard_post\nКузнец Орм: \nТорнин Серебряная Луна: \nТень: city_gate:exit_west [скрыт]\nКупец Горан: \nPlayer: у входа\nNPC которых нет в этом списке — в локации отсутствуют.\n\nПРОСТРАНСТВЕННЫЙ КОНТЕКСТ ИГРОКА:\n- Позиция игрока: стоит\n- И...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\n\n⚠️ ЯЗЫКОВОЕ ОГРАНИЧЕНИЕ (КРИТИЧЕСКОЕ):\nОтвечай ТОЛЬКО на русском языке. Каждое слово должно быть на русском.\nНЕ ПИШИ по-китайски (中文). НЕ ПИШИ по-а..."}
+{"timestamp": "2026-08-05T20:23:07.577378", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T20:23:07.579544", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-05T20:28:19.937939", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T20:28:19.938715", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1729, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "ВВОДНАЯ СЦЕНА:\nТекущая локация: таверна\n\nНапиши атмосферное описание от второго лица ('ты видишь...'). 2-3 предложения. Без вопросов.\n\nДействия игроков:\nВВорг: Как зовут?\n\nДействия NPC (факт — отражай в повествовании):\nНикто из NPC не перемещается. ЗАПРЕЩЕНО описывать приближение, отход или любое изменение позиции NPC.\n\nОбращение игрока:\nИгрок обращается напрямую к Купец Горан. Купец Горан ОБЯЗАН ответить — реплика в кавычках. Это диалог, NPC говорит. Остальные NPC — наблюдатели (могут отреагиро...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\n\n⚠️ ЯЗЫКОВОЕ ОГРАНИЧЕНИЕ (КРИТИЧЕСКОЕ):\nОтвечай ТОЛЬКО на русском языке. Каждое слово должно быть на русском.\nНЕ ПИШИ по-китайски (中文). НЕ ПИШИ по-а..."}
+{"timestamp": "2026-08-05T20:28:26.662978", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T20:28:26.663542", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "Действия игроков:\nВВорг: Я Чахлый\n\nДействия NPC (факт — отражай в повествовании):\nНикто из NPC не перемещается. ЗАПРЕЩЕНО описывать приближение, отход или любое изменение позиции NPC.\n\n[Краткая память — текущий разговор]\nИгрок: Как зовут?\n\nОбращение игрока:\nИгрок обращается напрямую к Купец Горан. Купец Горан ОБЯЗАН ответить — реплика в кавычках. Это диалог, NPC говорит. Остальные NPC — наблюдатели (могут отреагировать мимикой или жестом, но молчат).\n\nЗАПРЕЩЕНО: повторять предыдущий ответ дослов...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\n\n⚠️ ЯЗЫКОВОЕ ОГРАНИЧЕНИЕ (КРИТИЧЕСКОЕ):\nОтвечай ТОЛЬКО на русском языке. Каждое слово должно быть на русском.\nНЕ ПИШИ по-китайски (中文). НЕ ПИШИ по-а..."}
+{"timestamp": "2026-08-05T20:28:44.795811", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T20:28:44.796051", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-05T20:50:34.136871", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T20:50:34.137699", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 5516, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-08-05T21:50:37.134018", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T21:50:37.134757", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 5788, "status": "complete"}
+{"timestamp": "2026-08-05T21:51:02.884672", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T21:51:02.885222", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 7034, "status": "complete"}
+{"timestamp": "2026-08-05T21:52:16.607247", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-08-05T21:52:16.615507", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 0, "vram_after_mb": 0}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 7089, "status": "complete"}

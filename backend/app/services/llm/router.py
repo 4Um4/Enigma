@@ -571,7 +571,8 @@ class ModelRouter:
                 return _result
             except Exception as e:
                 _root_logger.error(f"[R4A_WORKER] exception: {e}")
-                return ""
+                # NEW-DLG-004 FIX: Пробрасываем исключение, чтобы вызывающий код знал о падении LLM, а не получал пустую строку.
+                raise
             finally:
                 self._request_in_progress = False
                 

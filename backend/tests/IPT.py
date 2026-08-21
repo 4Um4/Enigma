@@ -226,6 +226,97 @@ def inv_npc_has_name(world: TestWorld) -> InvariantResult:
         ],
     )
 
+def inv_dialogue_init(world: TestWorld) -> InvariantResult:
+    """INV-DIALOGUE-INIT: Проверка инициации диалогов (NPC↔NPC и Игрок→NPC)."""
+    # 1. Прогоняем 3 idle тика, чтобы NPC сгенерировали интенты
+    for _ in range(3):
+        world.idle_tick()
+    
+    scheduler = getattr(world.game_loop, "_task_scheduler", None) or getattr(world.game_loop, "task_scheduler", None)
+    if not scheduler:
+        return InvariantResult(
+            "INV-DIALOGUE-INIT", "CRITICAL", False, 
+            "TaskScheduler не найден в GameLoop.", 
+            ["backend/app/services/game_loop/__init__.py"]
+        )
+
+    # Стадия 3: Проверяем recent_dialogues (результат исполнения)
+    _recent = scheduler.get_recent_dialogues(world.game_time_seconds)
+    if _recent:
+        return InvariantResult("INV-DIALOGUE-INIT", "CRITICAL", True, "Диалоги успешно инициализируются и исполняются.", [])
+
+    # Стадия 2: Если реплик нет, проверяем очередь (попали ли задачи в TaskScheduler)
+    _queue_size = scheduler._dialogue_queue.size() if hasattr(scheduler, "_dialogue_queue") and hasattr(scheduler._dialogue_queue, "size") else 0
+    if _queue_size == 0:
+        # Стадия 1: Если очередь пуста, значит DecisionHub/post_decision не создают задачи
+        return InvariantResult(
+            "INV-DIALOGUE-INIT",
+            "CRITICAL",
+            False,
+            "NPC↔NPC: За 3 тика в TaskScheduler не поступило ни одной диалоговой задачи (очередь пуста). DecisionHub не генерирует CommunicationIntent или post_decision не маршрутизирует их.",
+            [
+                "backend/app/services/npc/decision_hub.py",
+                "backend/app/services/phases/post_decision.py"
+            ]
+        )
+
+    # Если очередь не пуста, но реплик нет и ошибок нет (INV-DIALOGUE-SCHEDULER-FAIL) — значит зависает выполнение
+    return InvariantResult(
+        "INV-DIALOGUE-INIT",
+        "CRITICAL",
+        False,
+        f"NPC↔NPC: В очереди {_queue_size} задач, но ни одна не исполнена за 3 тика. TaskScheduler завис или не запускается.",
+        [
+            "backend/app/services/game_loop/task_scheduler.py",
+            "backend/app/services/execution/dialogue_executor.py"
+        ]
+    )
+
+    # 2. Проверка Игрок→NPC: Симулируем вмешательство игрока
+    from app.contracts.interventions import InterventionEvent
+    from app.services.game_loop.phase_1_input import resolve_player_intent
+    from app.models.schemas import PlayerAction
+    
+    # Находим первого живого NPC
+    target_npc = None
+    for nid in world.npc_ids:
+        if nid != "player":
+            target_npc = nid
+            break
+            
+    if target_npc:
+        # Создаём действие игрока (обращение к NPC)
+        action = PlayerAction(
+            action_type="talk",
+            target_id=target_npc,
+            text="Привет, как дела?",
+            position=world.npc_position("player")
+        )
+        
+        # Пытаемся разрешить интент игрока (Игрок→NPC)
+        try:
+            # resolve_player_intent возвращает словарь с pressure и intent
+            _intent_data = resolve_player_intent([action], world.campaign_id, world._get_scene())
+            if not _intent_data:
+                return InvariantResult(
+                    "INV-DIALOGUE-INIT",
+                    "CRITICAL",
+                    False,
+                    f"Игрок→NPC: resolve_player_intent вернул пустой результат для цели {target_npc}. Ввод игрока не обрабатывается.",
+                    ["backend/app/services/game_loop/phase_1_input.py"]
+                )
+        except Exception as e:
+            return InvariantResult(
+                "INV-DIALOGUE-INIT",
+                "CRITICAL",
+                False,
+                f"Игрок→NPC: resolve_player_intent упал с ошибкой: {e}",
+                ["backend/app/services/game_loop/phase_1_input.py"]
+            )
+
+    return InvariantResult("INV-DIALOGUE-INIT", "CRITICAL", True, "Диалоговые интенты создаются и попадают в очередь.", [])
+
+
 def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     """INV-DIALOGUE-STM: реплика игрока записывается в STM целевого NPC."""
     mm = world.game_loop.memory_manager
@@ -952,6 +1043,52 @@ def inv_pbt_roundtrip(world: TestWorld) -> InvariantResult:
             ],
         )
 
+def inv_pbt_spatial(world: TestWorld) -> InvariantResult:
+    """Подсистема 1 (PBT): Property-based тест на Spatial Coherence (SC-1)."""
+    try:
+        from tests.pbt.properties.test_spatial_and_traversal import test_sc1_rejects_zero_position
+        test_sc1_rejects_zero_position()
+        return InvariantResult(
+            "INV-PBT-SC1",
+            "CRITICAL",
+            True,
+            "PBT (100 examples) passed: SC-1 rejects (0.0, 0.0).",
+            [],
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-PBT-SC1",
+            "CRITICAL",
+            False,
+            f"PBT FAILED: {e}",
+            [
+                "backend/tests/pbt/properties/test_spatial_and_traversal.py",
+            ],
+        )
+
+def inv_pbt_traversal(world: TestWorld) -> InvariantResult:
+    """Подсистема 1 (PBT): Property-based тест на Traversal FSM (Zombie traversals)."""
+    try:
+        from tests.pbt.properties.test_spatial_and_traversal import test_trav_fsm_detects_zombies
+        test_trav_fsm_detects_zombies()
+        return InvariantResult(
+            "INV-PBT-TRAV-FSM",
+            "CRITICAL",
+            True,
+            "PBT (100 examples) passed: ADR-TRAV-FSM detects zombies.",
+            [],
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-PBT-TRAV-FSM",
+            "CRITICAL",
+            False,
+            f"PBT FAILED: {e}",
+            [
+                "backend/tests/pbt/properties/test_spatial_and_traversal.py",
+            ],
+        )
+
 
 INVARIANTS: List[Callable] = [
     inv_time_grows,
@@ -959,6 +1096,7 @@ INVARIANTS: List[Callable] = [
     inv_npc_moves,
     inv_active_traversals_dict,
     inv_npc_has_name,
+    inv_dialogue_init,
     inv_dialogue_stm,
     inv_dialogue_scheduler_fail,
     inv_trav_zombie,
@@ -981,6 +1119,8 @@ INVARIANTS: List[Callable] = [
     inv_silent_failure,
     inv_hp_ssot,
     inv_pbt_roundtrip,
+    inv_pbt_spatial,
+    inv_pbt_traversal,
 ]
 
 

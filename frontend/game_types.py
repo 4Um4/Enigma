@@ -47,6 +47,8 @@ class PerceivedEntity:
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0  # S133: Высота прыжка (проекция от backend Execution Kernel)
+    body_heading: float = 1.5708  # NEW-ORIENT-003 FIX: Ориентация тела (рад)
+    head_yaw: float = 0.0  # NEW-ORIENT-003 FIX: Ориентация головы (offset от body_heading, [-pi, pi])
     distance: float = 999.0
     los: bool = False
     los_blocked_by: Optional[str] = None
