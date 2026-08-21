@@ -49,6 +49,8 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Optional
 
+from app.services.npc.kernel_rng import KernelRNG
+
 from app.core.config import settings
 from app.services.scene_change import (
     SceneChange,
@@ -321,8 +323,11 @@ class LifeEngine:
 
                 # 3. Агрегированные события — вероятность * время
                 # 5% за тик, но мы не считаем тики — используем эвристику
-                if tier == "major" and random.random() < 0.4:  # 40% шанс за долгий idle
-                    event_changes = self.check_random_events(npc, self.get_current_tick(campaign_id))
+                # KERNEL-ISOLATION: deterministic RNG вместо global random.
+                _tick = self.get_current_tick(campaign_id)
+                _rng = KernelRNG(tick=_tick, npc_id=npc_id)
+                if tier == "major" and _rng.random() < 0.4:  # 40% шанс, deterministic
+                    event_changes = self.check_random_events(npc, _tick, rng=_rng)
                     all_changes.extend(event_changes)
 
             except Exception as e:
@@ -570,7 +575,7 @@ class LifeEngine:
             )
             return [], [], [] # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)
         logger.warning(f"[TICK_DECISIONS] cache_hit: {len(npcs)} NPCs for '{campaign_id}'")
-        hub = DecisionHub()
+        # DecisionHub будет создаваться per-NPC с deterministic RNG
         decisions: list[dict] = []
         communication_intents: list[CommunicationIntent] = []
         movement_intents: list[MovementIntent] = []
@@ -578,6 +583,10 @@ class LifeEngine:
 
         for npc in npcs:
             npc_id = npc.get("id", "?")
+            # KERNEL-ISOLATION: deterministic RNG для idle tick.
+            _tick = self.get_current_tick(campaign_id)
+            _rng = KernelRNG(tick=_tick, npc_id=npc_id)
+            hub = DecisionHub(rng=_rng)
 
             try:
                 state_l2 = load_l2_state_from_runtime_dict(npc)
@@ -832,11 +841,11 @@ class LifeEngine:
                                 _all_npcs = scene_state.get("npc_positions", {})
                                 _other_npcs = [v for k, v in _all_npcs.items() if k != npc_id and v.get("local_position")]
                                 if _other_npcs:
-                                    _target_npc = random.choice(_other_npcs)
+                                    _target_npc = _rng.choice(_other_npcs)
                                     _anchor_xy = _target_npc.get("local_position")
                                     _intent_mask = "eavesdrop"
                                 else:
-                                    _angle = random.uniform(0, 2 * math.pi)
+                                    _angle = _rng.uniform(0, 2 * math.pi)
                                     _anchor_xy = {"x": _npc_xy.get("x", 0.0) + math.cos(_angle) * 2.0, "y": _npc_xy.get("y", 0.0) + math.sin(_angle) * 2.0}
                                     _intent_mask = "seek_quiet_corner"
                                     
@@ -1925,14 +1934,19 @@ class LifeEngine:
         self,
         npc: dict,
         tick: int = 0,
+        rng: Optional[KernelRNG] = None,
     ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         С вероятностью RANDOM_EVENT_CHANCE (5%) генерирует случайное событие.
         Возвращает список SceneChange или пустой список.
 
         Спящие NPC не получают случайных событий.
+
+        KERNEL-ISOLATION: rng must be provided for replay determinism.
         """
         npc_id   = npc.get("id", "unknown")
+        if rng is None:
+            rng = KernelRNG(tick=tick, npc_id=npc_id)
         activity = npc.get("routine", {}).get("current", "")
 
         if "sleeping" in activity:
@@ -1945,11 +1959,12 @@ class LifeEngine:
         if _init_sup > 0.7:
             return [], None
 
-        if random.random() > RANDOM_EVENT_CHANCE:
+        # KERNEL-ISOLATION: deterministic RNG.
+        if rng.random() > RANDOM_EVENT_CHANCE:
             return [], None
 
         events = self._make_random_events(npc, tick)
-        event_id, changes, movement_intent = random.choice(events)
+        event_id, changes, movement_intent = rng.choice(events)
 
         if event_id == "minor_argument":
             psyche = npc.setdefault("psyche", {})

@@ -360,9 +360,19 @@ class DmAgent:
                 _name = _npc.get("name", _nid)
                 if _desc or _title:
                     _role_str = f"{_title}: " if _title else ""
-                    _npc_ctx_lines.append(f"- {_name}: {_role_str}{_desc}")
+                    _line = f"- {_name}: {_role_str}{_desc}"
+                else:
+                    _line = f"- {_name}"
+                # SHI-FIX VOICE: добавляем voice_profile (стиль речи) и author_notes (режиссёрская)
+                _voice = _npc.get("voice_profile", "")
+                _author = _npc.get("author_notes", "")
+                if _voice:
+                    _line += f"\n  Голос: {_voice}"
+                if _author and getattr(settings, "hardcore_mode", False):
+                    _line += f"\n  Режиссёрская: {_author}"
+                _npc_ctx_lines.append(_line)
             if _npc_ctx_lines:
-                builder.add_custom_block("Контекст NPC (кто они — используй для правдоподобия)", "\n".join(_npc_ctx_lines))
+                builder.add_custom_block("Контекст NPC (кто они и как говорят — используй для правдоподобия)", "\n".join(_npc_ctx_lines))
         
         # Блок 5: Проверки — для диалога пропускаем автоуспех
         if not _is_light_dialog:

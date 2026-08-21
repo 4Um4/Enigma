@@ -122,6 +122,19 @@ if _CDS_LOG_PATH.exists():
     logging.getLogger().addHandler(_cds_handler)
     logging.getLogger().setLevel(logging.INFO)
 
+# ADR-DEBUG-001: Явное включение WARNING для каузально-критичных логгеров.
+_CRITICAL_LOGGERS = [
+    "app.services.scene.r3_direct_builder",   # R3_DIRECT warnings
+    "app.services.world.world_tick_engine",   # DecisionHub.compute errors
+    "app.services.npc.l1_chronicle",          # L1 persistence failures
+    "app.services.npc.decision_hub",          # compute() signature errors
+    "app.services.npc.life_engine",           # PIPELINE_FAULT L3_MISSING
+    "app.services.verbalization",             # DM contract building
+    "app.services.combat.injury_processor",   # injury creation failures
+]
+for _logger_name in _CRITICAL_LOGGERS:
+    logging.getLogger(_logger_name).setLevel(logging.WARNING)
+
 from app.api.routes import router
 from app.api import routes_debug
 from app.api.routes_stream import router as stream_router

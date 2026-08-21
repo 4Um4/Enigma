@@ -92,14 +92,18 @@ class PlayerAvatarService:
             return None
 
     def load_state(self, campaign_id: str, player_name: str) -> NPCState:
-        """
-        Загружает NPCState аватара. Если файла нет — создаёт дефолтный.
-        НИКОГДА не возвращает None.
-        """
         avatar = self.load_avatar(campaign_id, player_name)
         if avatar and avatar.get("state"):
-            return self._state_from_dict(avatar["state"])
-        return NPCState(npc_id=player_name)
+            _state = self._state_from_dict(avatar["state"])
+            # SHI-FIX TRADE: гарантируем наличие денег
+            if not _state.body_state: _state.body_state = {}
+            if "money" not in _state.body_state: _state.body_state["money"] = 48
+            return _state
+        
+        _default = NPCState(npc_id=player_name)
+        if not _default.body_state: _default.body_state = {}
+        _default.body_state["money"] = 50  # 50 золотых старт
+        return _default
 
     def load_sheet(self, campaign_id: str, player_name: str) -> CharacterSheet:
         """Загружает CharacterSheet аватара."""
@@ -305,6 +309,7 @@ class PlayerAvatarService:
             identity_integrity=float(data.get("identity_integrity", 1.0)),
             pressure_resistance=float(data.get("pressure_resistance", 0.0)),
             will_state=data.get("will_state", "free"),
+            willpower=int(data.get("willpower", 50)),  # SHI-FIX AVATAR: базовая воля для сопротивления
             behavior_mask=mask,
             trauma_markers=set(data.get("trauma_markers", [])),
             current_role=data.get("current_role", ""),

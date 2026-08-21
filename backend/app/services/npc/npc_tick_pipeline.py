@@ -227,8 +227,7 @@ class NpcTickPipeline:
             _effective_drives = state.effective_drives_map.get(npc_id)
             if _effective_drives is None: continue
 
-            # KERNEL-ISOLATION: DecisionHub получает deterministic RNG, привязанный к (tick, npc_id).
-            # Раньше был DecisionHub() без seed → non-deterministic. Это первый CRITICAL leak.
+            # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id)
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2, personality=profile_l0, effective_drives=_effective_drives,
@@ -237,6 +236,8 @@ class NpcTickPipeline:
                 drive_modifiers=_drive_modifiers_for_hub, reflex_constraints=_reflex_constraints,
                 topic=_topic, decision_ctx=_decision_ctx,
             )
+            # SHI-FIX: логируем решение для CDS — без этого SHI=0% (симуляция работает, но невидима)
+            print(f"[DECISION_HUB] npc={npc_id} tick={state.tick_id} intent={decision.intent.value} score={decision.score:.3f}", flush=True)
 
             _is_move_command = False
             if state.hub_event:
@@ -812,9 +813,8 @@ def build_verbalization_context(
                 logger.warning(f"[L3_MISSING] npc={npc_id} lacks EffectiveDrives in Pipeline. Tick skipped.")
                 continue
 
-            # KERNEL-ISOLATION: DecisionHub получает deterministic RNG, привязанный к (tick, npc_id).
-            # Раньше был DecisionHub() без seed → non-deterministic. Это второй CRITICAL leak.
-            _rng = KernelRNG(tick=inp.current_tick, npc_id=npc_id)
+            # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
+            _rng = rng_factory(npc_id) if rng_factory else KernelRNG(tick=inp.current_tick, npc_id=npc_id)
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -829,6 +829,7 @@ def build_verbalization_context(
                 topic=_topic,
                 decision_ctx=_decision_ctx,
             )
+            print(f"[DECISION_HUB] npc={npc_id} tick={inp.current_tick} intent={decision.intent.value} score={decision.score:.3f}", flush=True)
 
             # ADR-035: Reactive Spatial Command Reflex.
             # Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub, включая flee.

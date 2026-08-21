@@ -248,6 +248,8 @@ class _TickContext:
     cluster_occupancy: ClusterOccupancy = field(default_factory=ClusterOccupancy)
     # DRF: Unified Causal Bus — единая память причинных напряжений тика.
     # (Перемещён выше, до полей с дефолтами)
+    # ADR-O-310: windup_registry перенесён на уровень TickOrchestrator (self._windup_registry)
+    # чтобы переживать тики. Здесь больше не определяется.
 
 
 # ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
@@ -267,6 +269,9 @@ class DMContextDTO:
     is_session_start: bool
     current_tick: int = 0
     all_npcs_raw: list = field(default_factory=list)
+    # SHI-FIX COMMAND: проброс intent_resolution для DirectiveInterpretationSubscriber.
+    # Без этого _process_player_dm_action не видит semantic_action → compliance_bias не растёт.
+    intent_resolution: Any = None
 
 
 @dataclass
@@ -306,6 +311,10 @@ class TickOrchestrator:
         self._snapshot_builder = None
         self._transit_tracker = None
         self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
+        # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
+        # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
+        # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
+        self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
         # S91: Персистентные стигмергические слои (DynamicAffordanceField + Provider)
         from app.services.spatial.world_topology_provider import WorldTopologyProvider, DynamicAffordanceField
         self._dynamic_field = DynamicAffordanceField()
@@ -658,6 +667,7 @@ class TickOrchestrator:
         self._phase_4_pre_decision(ctx)
         self._phase_5_decision(ctx)
         self._phase_6_post_decision(ctx)
+        self._phase_7_windup_resolution(ctx) # ADR-O-310: Execution Gate
         self._phase_8_drain_secondary(ctx)
         self._phase_9_integration(ctx)
         self._run_affective_pipeline(ctx)
@@ -886,6 +896,18 @@ class TickOrchestrator:
                                     _npc_state.setdefault("body_state", {})["shock_impulse"] = getattr(_npc_state.get("body_state", {}), "shock_impulse", 0.0) + delta.payload.shock_impulse
                                     _npc_state.setdefault("body_state", {})["consciousness"] = max(0.0, 1.0 - delta.payload.shock_impulse)
                             logger.warning(f"[COGNITIVE_OVERLAY] Applied {len(_directive_deltas)} directive deltas to NPC raw state for DecisionHub.")
+                            # SHI-FIX: L1Chronicle emission for directives
+                            if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
+                                from app.models.delta_payloads import IdentityPayload
+                                _dir_events = []
+                                for _d in _directive_deltas:
+                                    if hasattr(_d, 'payload') and isinstance(_d.payload, IdentityPayload) and _d.payload.recent_directive_data:
+                                        _dir_events.append(TraitDriftEvent(
+                                            tick_id=ctx.tick_number, target_id=_d.npc_id or _d.intent_target,
+                                            source_id="player", effect_value=0.1, observation_weight=1.0, event_type="directive"
+                                        ))
+                                if _dir_events:
+                                    self.l1_chronicle.commit_tick_buffer(_dir_events, ctx.tick_number)
                     except Exception as e:
                         logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
                 else:
@@ -1875,20 +1897,35 @@ class TickOrchestrator:
                     _npc_state.will_state = _break_deltas.will_state_override
 
                 # ADR-O-208: Сохраняем вычисленные дельты обратно в npc_dict.
-                # Без этого BreakProgressEngine остаётся "воздушным замком" —
-                # _npc_state исчезает, а npc_dict не обновляется.
                 from app.models.npc_state import NPCState
                 NPCState.write_to_legacy(_npc_state, npc_dict)
 
-                # L1Chronicle: Фиксируем давление, даже если воля не сломана.
+                # L1Chronicle: Фиксация давления и идентичности.
                 if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
                     _affect = _npc_state.affective_load * 100
+                    _events_to_log = []
                     if _affect > 10.0:
-                         self.l1_chronicle.commit_tick_buffer([
+                        _events_to_log.append(
                             TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
                                            source_id=f"break_progress:{_break_deltas.stage}",
                                            effect_value=-0.01, observation_weight=1.0, event_type="pressure")
-                        ], ctx.tick_number)
+                        )
+                    # Логируем identity и will всегда, когда есть давление
+                    if _affect > 10.0 or _break_deltas.identity_integrity_delta < 0:
+                        _events_to_log.append(
+                            TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
+                                           source_id=f"break_progress:{_break_deltas.stage}",
+                                           effect_value=_break_deltas.identity_integrity_delta, observation_weight=1.0, event_type="identity")
+                        )
+                        _events_to_log.append(
+                            TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
+                                           source_id=f"break_progress:{_break_deltas.stage}",
+                                           effect_value=-0.01, observation_weight=1.0, event_type="will")
+                        )
+
+                    if _events_to_log:
+                        self.l1_chronicle.commit_tick_buffer(_events_to_log, ctx.tick_number)
+
                     if _break_deltas.will_state_override is not None:
                         self.l1_chronicle.commit_tick_buffer([
                             TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
@@ -1962,8 +1999,78 @@ class TickOrchestrator:
         # 4. Committer: Применение мутаций к контексту
         ctx.communication_intents = _mutation.communication_intents or []
         ctx.movement_intents = _mutation.movement_intents or []
-        ctx.significant_events = _mutation.npc_deltas or []  # Маппинг для Phase 10
+        ctx.significant_events = _mutation.npc_deltas or []
         # TODO: Полная обработка npc_deltas через StateApplicator将在 Phase 4
+
+        # SHI-FIX: Построение ctx.npc_contexts из communication_intents.
+        # Без этого R3_DIRECT получает 0 decisions → DM видит пустой мир → "Ничего не произошло".
+        # TickMutation не содержит npc_contexts (только comm_intents), поэтому маппим здесь.
+        # CommunicationIntent имеет .speaker/.topic, а R3_DIRECT ждёт .npc_id/.intent/.deltas —
+        # создаём _DecisionResultAdapter.
+        if ctx.communication_intents:
+            from app.models.npc_state import personality_from_legacy
+            from app.models.npc_state import Intent as NpcIntent
+            from app.models.state_delta import StateDeltas, DeltaDomain
+            from app.models.delta_payloads import IdentityPayload
+            from dataclasses import dataclass
+
+            @dataclass
+            class _DecisionResultAdapter:
+                """Адаптер CommunicationIntent → интерфейс DecisionResult для R3_DIRECT."""
+                npc_id: str
+                intent: Any
+                intent_target: str = "player"
+                score: float = 0.5
+                deltas: Any = None
+                communication: Any = None
+                decision: Any = None
+                narrative_fact: Optional[str] = None
+                micro_event: Optional[str] = None
+
+            for _intent in ctx.communication_intents:
+                _speaker = getattr(_intent, 'speaker', '') or getattr(_intent, 'npc_id', '')
+                if not _speaker:
+                    continue
+                _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _speaker or n.get("id") == _speaker), None)
+                if not _npc_dict:
+                    continue
+                _profile_l0 = personality_from_legacy(_npc_dict)
+                _topic = getattr(_intent, 'topic', '') or getattr(_intent, 'intent_type', '')
+                _intent_type_str = getattr(_intent, 'intent_type', 'диалог').lower()
+                _npc_intent = NpcIntent.TALK
+                try:
+                    if "угроз" in _intent_type_str or "threat" in _intent_type_str:
+                        _npc_intent = NpcIntent.THREATEN
+                    elif "atan" in _intent_type_str or "attack" in _intent_type_str:
+                        _npc_intent = NpcIntent.ATTACK
+                    elif "бег" in _intent_type_str or "flee" in _intent_type_str:
+                        _npc_intent = NpcIntent.FLEE
+                except Exception:
+                    pass
+                _empty_deltas = StateDeltas(
+                    npc_id=_speaker, domain=DeltaDomain.IDENTITY,
+                    payload=IdentityPayload(), source="communication_intent_adapter",
+                )
+                _adapter = _DecisionResultAdapter(
+                    npc_id=_speaker, intent=_npc_intent,
+                    intent_target=getattr(_intent, 'target_id', 'player') or 'player',
+                    score=0.5, deltas=_empty_deltas, communication=_intent, decision=None,
+                )
+                ctx.npc_contexts.append({
+                    "npc_id": _speaker,
+                    "tier": _profile_l0.tier if _profile_l0 else "minor",
+                    "profile_l0": _profile_l0,
+                    "topic": _topic,
+                    "decision_result": _adapter,
+                    "observed_state": {
+                        "name": _npc_dict.get("name", _speaker),
+                        "description": _npc_dict.get("description", ""),
+                        "narrative_cache": _npc_dict.get("narrative_cache", []),
+                    },
+                    "micro_events": [],
+                    "perceived_events": [],
+                    "communication_intent": _intent,
+                })
         
         # Каузальный мост: когнитивные решения → пространственное движение
         if ctx.movement_intents:
@@ -2022,29 +2129,82 @@ class TickOrchestrator:
                 _target_id = getattr(intent, 'target_id', '')
                 
                 if _actor_id and _target_id:
-                    # Создаём окно подготовки (пока статичная длительность = 2 тика для тестов)
-                    windup = ActionWindup(
-                        actor_id=_actor_id,
-                        target_id=_target_id,
-                        action_type="attack",
-                        started_tick=ctx.tick_number,
-                        duration_ticks=2,
-                        status=WindupStatus.PENDING
-                    )
-                    # Добавляем в стек подготовок актёра
-                    if _actor_id not in ctx.windup_registry:
-                        ctx.windup_registry[_actor_id] = []
-                    ctx.windup_registry[_actor_id].append(windup)
-                    windups_created += 1
+                    # B1.5-FIX: Изоляция по campaign_id (ключ - кортеж).
+                    _reg_key = (ctx.campaign_id, _actor_id)
+                    if _reg_key not in self._windup_registry:
+                        self._windup_registry[_reg_key] = []
                     
-                    # Помечаем EventDTO флагом is_windup (для будущего CombatSubscriber)
-                    event.payload["is_windup"] = True
-                    event.payload["windup_duration"] = 2
+                    # B1.5-FIX: Защита от накопления (Deduplication).
+                    # Если у актора уже есть PENDING windup для этого же target и action_type,
+                    # не создаём новый (даём текущему завершиться).
+                    _has_active = any(
+                        w.target_id == _target_id and w.action_type == "attack" and w.status == WindupStatus.PENDING
+                        for w in self._windup_registry[_reg_key]
+                    )
+                    
+                    if not _has_active:
+                        # Создаём окно подготовки (пока статичная длительность = 2 тика для тестов)
+                        windup = ActionWindup(
+                            actor_id=_actor_id,
+                            target_id=_target_id,
+                            action_type="attack",
+                            started_tick=ctx.tick_number,
+                            duration_ticks=2,
+                            status=WindupStatus.PENDING,
+                            pending_event=event # ADR-O-310: Freeze EventDTO
+                        )
+                        # Добавляем в стек подготовок актёра (на уровне Orchestrator)
+                        self._windup_registry[_reg_key].append(windup)
+                        windups_created += 1
+                        
+                        # Помечаем EventDTO флагом is_windup (для будущего CombatSubscriber)
+                        event.payload["is_windup"] = True
+                        event.payload["windup_duration"] = 2
+                        
+                        # ADR-O-310: НЕ публикуем EventDTO сейчас. Он будет опубликован в Фазе 7.
+                        continue # Пропускаем bus.publish(event) ниже
             
             bus.publish(event)
             converted += 1
 
         logger.debug(f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created")
+
+    def _phase_7_windup_resolution(self, ctx: _TickContext) -> None:
+        """ADR-O-310: Windup Execution Gate.
+        
+        Проверяет self._windup_registry на завершённые подготовки.
+        Если windup завершён (started_tick + duration_ticks <= ctx.tick_number),
+        публикует отложенный EventDTO в EventBus.
+        """
+        import dataclasses
+        from app.domain.action_windup import WindupStatus
+        
+        bus = get_event_bus()
+        executed_windups = 0
+        
+        for _reg_key, windups in list(self._windup_registry.items()):
+            _campaign_id, _actor_id = _reg_key
+            # B1.5-FIX: Изоляция по campaign_id
+            if _campaign_id != ctx.campaign_id:
+                continue
+                
+            updated_windups = []
+            for windup in windups:
+                if windup.status == WindupStatus.PENDING:
+                    if windup.started_tick + windup.duration_ticks <= ctx.tick_number:
+                        # Windup completed! Publish the frozen event.
+                        if windup.pending_event:
+                            bus.publish(windup.pending_event)
+                            executed_windups += 1
+                        # Replace with completed status (frozen dataclass)
+                        windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
+                updated_windups.append(windup)
+            
+            # Cleanup completed/interrupted windups to prevent registry bloat
+            self._windup_registry[_reg_key] = [w for w in updated_windups if w.status == WindupStatus.PENDING]
+
+        if executed_windups > 0:
+            logger.debug(f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)")
 
     # ── Player Turn: фазы 8-10 (Устав §3 — единая последовательность) ──
 
@@ -2214,6 +2374,16 @@ class TickOrchestrator:
 
             if deltas:
                 ctx.delta_buffer.extend(deltas)
+                # SHI-FIX: L1Chronicle emission for decay
+                if hasattr(handler, 'name') and handler.name == "physiology_decay":
+                    if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
+                        _decay_events = []
+                        for _d in deltas:
+                            if _d.npc_id and (abs(getattr(_d.payload, 'pain_delta', 0.0)) > 0 or abs(getattr(_d.payload, 'blood_loss_delta', 0.0)) > 0):
+                                 _decay_events.append(TraitDriftEvent(tick_id=ctx.tick_number, target_id=_d.npc_id,
+                                                               source_id="physiology_decay", effect_value=-0.01, observation_weight=1.0, event_type="decay"))
+                        if _decay_events:
+                            self.l1_chronicle.commit_tick_buffer(_decay_events, ctx.tick_number)
 
         # S75-R1.1 FIX: Perceptual Decay (Rule 38, ADR-122).
         # threat_gradient, uncertainty, anomaly_score затухают в idle-тиках.
@@ -2549,6 +2719,7 @@ class TickOrchestrator:
             from app.models.delta_payloads import PhysiologyPayload
             from app.models.state_delta import DeltaDomain
             _combat_data = {}
+            _combat_l1_events = [] # SHI-FIX: L1Chronicle emission for attack/damage
             for d in (combat_result.deltas or []):
                 if d.domain == DeltaDomain.PHYSIOLOGY and d.payload and isinstance(d.payload, PhysiologyPayload):
                     _target = d.npc_id or d.target or "unknown"
@@ -2558,6 +2729,15 @@ class TickOrchestrator:
                         "shock_impulse": d.payload.shock_impulse,
                         "injuries": [{"zone": i.target_zone, "severity": i.structural_damage, "damage_type": i.damage_type} for i in d.payload.add_injuries] if d.payload.add_injuries else []
                     }
+                    # SHI-FIX: L1Chronicle emission for attack/damage
+                    if d.payload.hp_delta < 0 or d.payload.add_injuries:
+                        _combat_l1_events.append(TraitDriftEvent(tick_id=ctx.tick_number, target_id=_target, source_id="player", effect_value=-0.2, observation_weight=1.0, event_type="attack"))
+                        _combat_l1_events.append(TraitDriftEvent(tick_id=ctx.tick_number, target_id=_target, source_id="combat", effect_value=d.payload.hp_delta, observation_weight=1.0, event_type="damage"))
+            
+            # SHI-FIX: Commit L1 events
+            if _combat_l1_events and hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
+                self.l1_chronicle.commit_tick_buffer(_combat_l1_events, ctx.tick_number)
+
             # Промахи по расстоянию — DM должен знать что атака не достигла цели
             _missed = getattr(combat_result, 'missed_targets', [])
             for _miss in _missed:
@@ -2920,6 +3100,14 @@ class TickOrchestrator:
                         # Это обнажает честную динамику для диагностики S73-R1.
                         
                         if emotion_payload:
+                            # SHI-FIX: L1Chronicle emission for fear
+                            if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
+                                _emo_tag = getattr(emotion_payload, 'emotion_tag', None)
+                                if _emo_tag and hasattr(_emo_tag, 'value') and 'fear' in _emo_tag.value:
+                                    self.l1_chronicle.commit_tick_buffer([
+                                        TraitDriftEvent(tick_id=ctx.tick_number, target_id=entity_id,
+                                                       source_id="combat", effect_value=0.2, observation_weight=1.0, event_type="fear")
+                                    ], ctx.tick_number)
                             # Передаем новое значение интеграла в Applicator для сохранения в NPCState
                             from dataclasses import replace
                             emotion_payload = replace(emotion_payload, affective_load=new_load)

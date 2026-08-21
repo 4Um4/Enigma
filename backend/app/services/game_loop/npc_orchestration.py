@@ -126,6 +126,7 @@ def run_npc_orchestration(
         is_session_start=is_session_start,
         current_tick=shared_context.current_tick or 0,
         all_npcs_raw=ctx.all_npcs_raw,
+        intent_resolution=getattr(shared_context, 'intent_resolution', None),  # SHI-FIX COMMAND
     )
     _tick_result = tick_orchestrator.tick_player_turn(
         campaign_id=campaign_id,
@@ -181,6 +182,7 @@ def run_npc_orchestration(
         game_loop.memory_manager._relationships,
         game_loop._svc.get_or_create_economic_profiles,
         campaign_id, location, shared_context, ctx,
+        tick_orchestrator=game_loop._tick_orch,  # ADR-O-208: для effective_drives computation
     )
 
     # Salience Engine: метаданные для фильтрации объектов в промпте

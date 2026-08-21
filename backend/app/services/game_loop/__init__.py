@@ -1235,7 +1235,10 @@ class GameLoop:
         # Формируем snapshot для подписчика
         _rules_snapshot = {
             'all_npcs_raw': _ctx.all_npcs_raw or [],
-            'tick_number': shared_context.current_tick or 0
+            'tick_number': shared_context.current_tick or 0,
+            'campaign_id': campaign_id,
+            'relationship_store': self.memory_manager._relationships if self.memory_manager else None,
+            'raw_input': actions[0].action if actions else ""
         }
         
         _rules_sub = RulesSubscriber()
@@ -1258,6 +1261,9 @@ class GameLoop:
 
         # ФАЗЫ 8-10: Ядро (execute) уже выполнило все фазы симуляции и сформировало perception_snapshot.
         # Здесь game_loop только строит нарративную проекцию (dm_frame) для DM-агента.
+        # SHI-FIX: shared_context.npc_contexts должен быть заполнен ДО build_r3_dm_frame,
+        # иначе R3_DIRECT видит 0 decisions (старый/пустой список).
+        shared_context.npc_contexts = getattr(_player_result, 'npc_contexts', []) or []
         try:
             from app.services.scene.r3_direct_builder import build_r3_dm_frame
             npc_result = build_r3_dm_frame(

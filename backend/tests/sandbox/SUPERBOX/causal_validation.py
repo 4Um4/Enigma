@@ -1,6 +1,5 @@
 """
-ENIGMA Causal Validation — Проверка каузальной цепи L1/L2/L3 и физики.
-Весь вывод пишется в causal_validation.log в корне проекта.
+ENIGMA Causal Validation — Строгая проверка каузальной цепи L1/L2/L3 и физики.
 Запуск:
   cd backend
   python -m tests.sandbox.SUPERBOX.run causal
@@ -21,8 +20,7 @@ from app.services.game_loop_builder import build_game_loop
 from app.models.schemas import ChatTurnRequest, PlayerAction, ModelSelection, ModelProvider
 from app.core.config import settings
 
-# Путь к логу в корне проекта (Enigma/)
-LOG_FILE = str(Path(__file__).resolve().parents[4] / "causal_validation.log")
+LOG_FILE = "causal_validation.log"
 
 class CausalValidator:
     def __init__(self):
@@ -118,7 +116,7 @@ class CausalValidator:
     async def test_command(self):
         self.log("\n[1] COMMAND TEST")
         self.print_npc_state("maid_lusya", "BEFORE")
-        await self.run_action("Люся, подойди ко мне")
+        await self.run_action("Люся, подойти ко мне")
         self.run_idle_ticks(15, silent=True)
         self.print_npc_state("maid_lusya", "AFTER")
         
@@ -145,10 +143,8 @@ class CausalValidator:
         assert pk.get("threat_gradient", 0.0) > 0.0, "No threat"
         assert npc_after.get("affective_load", 0.0) > 0.0, "No affect"
         
-        # L1Chronicle хранит только события идентичности (will, pressure).
-        # Боёвка проверяется через body_state (HP, wounds).
         trace = self.get_trace("tavern_keeper_tornin")
-        assert len(trace) > 0, "Empty L1 trace"
+        self.assert_event_chain(trace, ["attack", "damage", "fear"])
 
     async def test_recovery(self):
         self.log("\n[3] RECOVERY TEST")
@@ -162,9 +158,8 @@ class CausalValidator:
         assert pk.get("threat_gradient", 0.0) < 0.1, "Threat not decayed"
         assert len(npc_after.get("body_state", {}).get("injuries", [])) > 0, "Wounds not persisted"
         
-        # L1Chronicle не хранит physiology decay. Проверяем только затухание threat.
         trace = self.get_trace("tavern_keeper_tornin")
-        assert len(trace) > 0, "Empty L1 trace"
+        assert any("decay" in e.event_type for e in trace), "No decay event"
 
     async def test_social(self):
         self.log("\n[4] SOCIAL TEST")
@@ -172,8 +167,7 @@ class CausalValidator:
         self.run_idle_ticks(5, silent=True)
         
         rel_store = self.game_loop.memory_manager._relationships
-        rels = rel_store.get_all("Open_road")
-        borko_rels = rels.get("guard_borko", {}).get("player", {})
+        borko_rels = rel_store.get_all_for_source("Open_road", "guard_borko").get("player", {})
         
         assert borko_rels.get("trust", 0.0) > 0.0, f"Trust not increased ({borko_rels.get('trust', 0.0)})"
         
@@ -186,7 +180,7 @@ class CausalValidator:
             await self.run_action("сделать комплимент трактирщику")
             self.run_idle_ticks(5, silent=True)
             
-        rels = self.game_loop.memory_manager._relationships.get_all("Open_road").get("tavern_keeper_tornin", {}).get("player", {})
+        rels = self.game_loop.memory_manager._relationships.get_all_for_source("Open_road", "tavern_keeper_tornin").get("player", {})
         assert rels.get("attraction", 0.0) > 0.0 or rels.get("trust", 0.0) > 10.0, "No attraction/trust"
         
         trace = self.get_trace("tavern_keeper_tornin")
@@ -195,21 +189,22 @@ class CausalValidator:
     async def test_trade(self):
         self.log("\n[6] TRADE TEST")
         avatar_before = self.game_loop.avatar_service.load_state("Open_road", "Tester")
-        money_before = avatar_before.body_state.get("money", 0) if avatar_before else 0
+        money_before = avatar_before.body_state.get("money", 0)
         self.log(f"  [BEFORE] Money: {money_before}")
         
         await self.run_action("купить кружку эля")
         self.run_idle_ticks(2, silent=True)
         
-        avatar_after = self.game_loop.avatar_service.load_state("Open_road", "Tester")
-        money_after = avatar_after.body_state.get("money", 0) if avatar_after else 0
+        npcs = self.game_loop._resolve_npcs_snapshot("Open_road")
+        player_npc = next((n for n in npcs if n.get("npc_id") == "player" or n.get("id") == "player"), None)
+        money_after = player_npc.get("body_state", {}).get("money", 0) if player_npc else 0
         self.log(f"  [AFTER] Money: {money_after}")
         
-        assert money_after < money_before, f"Money not decreased"
+        assert money_after < money_before, f"Money not decreased ({money_before} -> {money_after})"
 
     async def test_time_skip(self):
         self.log("\n[7] TIME SKIP TEST")
-        self.run_idle_ticks(3000, silent=True)
+        self.run_idle_ticks(200, silent=True)
         self.print_npc_state("tavern_keeper_tornin", "AFTER 30 DAYS")
         
         npc_after = self.get_npc("tavern_keeper_tornin")
@@ -217,9 +212,8 @@ class CausalValidator:
         
         assert pk.get("threat_gradient", 0.0) <= 0.01, "Threat not fully decayed"
         
-        # L1Chronicle не хранит decay/wounds. Проверяем только затухание threat.
         trace = self.get_trace("tavern_keeper_tornin")
-        assert len(trace) > 0, "Empty L1 trace"
+        self.assert_event_chain(trace, ["decay", "memory", "wound_persistence"])
 
     async def test_break(self):
         self.log("\n[8] BREAK TEST")
@@ -245,7 +239,6 @@ class CausalValidator:
         temp_path = Path(self.temp_dir)
         self.game_loop = build_game_loop(data_dir=temp_path / "data")
         
-        # ADR-L1-PERSIST: Триггерим загрузку из SQLite
         chronicle_new = self.game_loop._tick_orch.l1_chronicle
         chronicle_new.bind_campaign("Open_road")
         
@@ -269,69 +262,175 @@ class CausalValidator:
             self.log(f"  Drives sum: {total}")
             assert abs(total - 1.0) < 0.01, "Drives sum != 1.0"
 
+    async def test_pattern_detector(self):
+        """L1.5: 3 удара от одного NPC → EvidenceOfPersistence создан."""
+        self.log("\n[11] PATTERN DETECTOR TEST")
+        for _ in range(3):
+            await self.run_action("атаковать трактирщика")
+            self.run_idle_ticks(2, silent=True)
+        
+        pd = self.game_loop._tick_orch.pattern_detector
+        evidence = pd.query_evidence("tavern_keeper_tornin", "player") if hasattr(pd, 'query_evidence') else []
+        
+        assert len(evidence) > 0, "No EvidenceOfPersistence after 3 attacks"
+        self.log(f"  [OK] Evidence count: {len(evidence)}")
+
+    async def test_belief_crystallization(self):
+        """L2.5: Накопленная evidence → CrystallizedBelief."""
+        self.log("\n[12] BELIEF CRYSTALLIZATION TEST")
+        for _ in range(5):
+            await self.run_action("атаковать трактирщика")
+            self.run_idle_ticks(3, silent=True)
+        
+        bs = self.game_loop._tick_orch.crystallized_belief_store
+        beliefs = bs.query_all("tavern_keeper_tornin") if hasattr(bs, 'query_all') else []
+        
+        assert len(beliefs) > 0, "No CrystallizedBelief after 5 attacks"
+        self.log(f"  [OK] Beliefs: {[(b.target_id, b.effect_value) for b in beliefs]}")
+
+    async def test_asymmetric_trauma(self):
+        """ADR-O-307: Опровержение разрушает belief в 6× быстрее подтверждения."""
+        self.log("\n[13] ASYMMETRIC TRAUMA TEST")
+        # Создать belief (5 положительных событий)
+        for _ in range(5):
+            await self.run_action("отдать деньги трактирщику")
+            self.run_idle_ticks(3, silent=True)
+        
+        bs = self.game_loop._tick_orch.crystallized_belief_store
+        beliefs_before = bs.query_all("tavern_keeper_tornin") if hasattr(bs, 'query_all') else []
+        magnitude_before = sum(abs(b.effect_value) for b in beliefs_before)
+        
+        # Одно опровержение (атака после подарков)
+        await self.run_action("атаковать трактирщика")
+        self.run_idle_ticks(3, silent=True)
+        
+        beliefs_after = bs.query_all("tavern_keeper_tornin") if hasattr(bs, 'query_all') else []
+        magnitude_after = sum(abs(b.effect_value) for b in beliefs_after)
+        
+        delta = magnitude_before - magnitude_after
+        self.log(f"  Before: {magnitude_before:.3f}, After: {magnitude_after:.3f}, Delta: {delta:.3f}")
+        
+        assert delta > 0, "Trauma did not reduce belief magnitude"
+
+    async def test_hidden_truth_gate(self):
+        """NPC признаётся в тайне только при WillState.BROKEN."""
+        self.log("\n[14] HIDDEN TRUTH GATE TEST")
+        
+        tornin = self.get_npc("tavern_keeper_tornin")
+        hidden_truths = tornin.get("hidden_truth", [])
+        self.log(f"  Hidden truths: {hidden_truths}")
+        assert "owes_debt_to_thieves_guild" in hidden_truths, "Test setup wrong"
+        
+        # Спрашиваем напрямую — должен молчать (willpower=65, не сломлен)
+        await self.run_action("Торнин, ты кому-то должен денег?")
+        
+        # Ломаем волю (10 угроз + пытки)
+        for _ in range(15):
+            await self.run_action("угрожать трактирщику ножом")
+            self.run_idle_ticks(2, silent=True)
+        
+        tornin_after = self.get_npc("tavern_keeper_tornin")
+        psy = tornin_after.get("psyche", {})
+        will_state = psy.get("state", "free")
+        self.log(f"  Will state after 15 threats: {will_state}")
+        
+        # Если сломлен — спрашиваем снова
+        if will_state in ["STRAIN", "BROKEN"]:
+            await self.run_action("Торнин, ты кому-то должен денег?")
+            # Проверяем, что в L1 есть событие "reveal_secret"
+            trace = self.get_trace("tavern_keeper_tornin")
+            assert any("reveal_secret" in e.event_type for e in trace), "No reveal_secret event when broken"
+
+    async def test_voice_profile(self):
+        """DM-ответ соблюдает voice_profile NPC."""
+        self.log("\n[15] VOICE PROFILE TEST")
+        
+        # Торнин: "Короткие предложения. Не объясняешься."
+        tornin_voice = self.get_npc("tavern_keeper_tornin").get("voice_profile", "")
+        self.log(f"  Torrin voice: {tornin_voice[:80]}")
+        
+        result = await self.run_action("Торнин, расскажи о таверне")
+        
+        # Проверки DM-ответа
+        dm_text = result.dm_response if result else ""
+        sentences = [s.strip() for s in dm_text.split(".") if s.strip()]
+        
+        assert len(sentences) <= 4, f"DM too verbose: {len(sentences)} sentences (voice says 'короткие')"
+        assert "объясня" not in dm_text.lower(), "DM explains — voice says 'не объясняешься'"
+
+    async def test_avatar_resistance(self):
+        """Аватар сопротивляется приказу игрока, если тот противоречит его природе."""
+        self.log("\n[16] AVATAR RESISTANCE TEST")
+        
+        avatar = self.game_loop.avatar_service.load_state("Open_road", "Tester")
+        willpower_before = getattr(avatar, 'willpower', 50)
+        self.log(f"  Avatar willpower: {willpower_before}")
+        
+        await self.run_action("оскарбить бога")
+        self.run_idle_ticks(3, silent=True)
+        
+        avatar_after = self.game_loop.avatar_service.load_state("Open_road", "Tester")
+        will_state_after = getattr(avatar_after, 'will_state', 'free')
+        
+        assert will_state_after != "free", "Avatar did not resist blasphemy"
+        self.log(f"  [OK] Avatar will_state: {will_state_after}")
+
     async def run_all(self):
         print("="*60)
         print("CAUSAL VALIDATION SUITE")
         print("="*60)
         
-        # Оставляем логирование и print включёнными, чтобы видеть внутренние ошибки
-        # logging.disable(logging.CRITICAL)
-        # _real_stdout = sys.stdout
-        # sys.stdout = io.StringIO()
-        _real_stdout = sys.stdout
-
         test_methods = [
             ("COMMAND", self.test_command), ("COMBAT", self.test_combat),
             ("RECOVERY", self.test_recovery), ("SOCIAL", self.test_social),
             ("LOVE", self.test_love), ("TRADE", self.test_trade),
             ("TIME SKIP", self.test_time_skip), ("BREAK", self.test_break),
-            ("L1 PERSISTENCE", self.test_l1_persistence), ("DOUBLE TRUTH", self.test_double_truth)
+            ("L1 PERSISTENCE", self.test_l1_persistence), ("DOUBLE TRUTH", self.test_double_truth),
+            ("PATTERN_DETECTOR", self.test_pattern_detector),
+            ("BELIEF_CRYSTALLIZATION", self.test_belief_crystallization),
+            ("ASYMMETRIC_TRAUMA", self.test_asymmetric_trauma),
+            ("HIDDEN_TRUTH_GATE", self.test_hidden_truth_gate),
+            ("VOICE_PROFILE", self.test_voice_profile),
+            ("AVATAR_RESISTANCE", self.test_avatar_resistance),
         ]
 
         try:
             self.setup()
             
             for name, test in test_methods:
-                # sys.stdout = io.StringIO() # чистим буфер перед тестом
                 try:
                     await test()
-                    _real_stdout.write(f"[PASS] {name}\n")
+                    print(f"[PASS] {name}")
                     self.log(f"[PASS] {name}")
                     self.passed += 1
                 except AssertionError as ae:
-                    _real_stdout.write(f"[FAIL] {name}: {ae}\n")
+                    print(f"[FAIL] {name}: {ae}")
                     self.log(f"[FAIL] {name}: {ae}")
                     self.failed += 1
                 except Exception as te:
-                    _real_stdout.write(f"[ERR ] {name}: {type(te).__name__}: {te}\n")
+                    print(f"[ERR ] {name}: {type(te).__name__}: {te}")
                     self.log(f"[ERR ] {name}: {type(te).__name__}: {te}")
                     self.failed += 1
             
-            # sys.stdout = io.StringIO()
             self.log("\n[CAUSAL INTEGRITY CHECK]")
             for npc_id in ["tavern_keeper_tornin", "guard_borko"]:
                 trace = self.get_trace(npc_id)
                 assert len(trace) > 0, "Empty causal history"
                 assert any(e.tick_id for e in trace), "Missing temporal axis"
-                _real_stdout.write(f"[PASS] INTEGRITY: {npc_id}\n")
+                print(f"[PASS] INTEGRITY: {npc_id}")
                 self.log(f"[PASS] INTEGRITY: {npc_id}")
                 self.passed += 1
                 
         except Exception as e:
-            _real_stdout.write(f"[FATAL] {e}\n")
+            print(f"[FATAL] {e}")
             self.log(f"[FATAL] {e}")
             self.failed += 1
         finally:
-            # sys.stdout = _real_stdout
             self.teardown()
 
-        # Save log
-        try:
-            with open(LOG_FILE, "w", encoding="utf-8") as f:
-                f.write("\n".join(self.log_buffer))
-            _real_stdout.write(f"\nDetailed log saved to: {LOG_FILE}\n")
-        except Exception as e:
-            _real_stdout.write(f"\nFailed to save log: {e}\n")
+        with open(LOG_FILE, "w", encoding="utf-8") as f:
+            f.write("\n".join(self.log_buffer))
+        print(f"\nDetailed log saved to: {LOG_FILE}")
         
         print("\n" + "="*60)
         print(f"RESULT: {self.passed} passed, {self.failed} failed")

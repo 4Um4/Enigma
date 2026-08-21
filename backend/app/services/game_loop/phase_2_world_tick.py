@@ -27,6 +27,7 @@ def tick_world_proactive(
     location: str,
     shared_context: Any,
     tick_ctx: TickBuffer,
+    tick_orchestrator: Any = None,  # ADR-O-208: для effective_drives computation
 ) -> None:
     """ФАЗА 3.4: WorldTickEngine — проактивные действия NPC."""
     if not world_tick_engine.should_tick(campaign_id):
@@ -58,12 +59,24 @@ def tick_world_proactive(
                 if _rm:
                     _rep_mods[_pid] = _rm
 
+        # ADR-O-208: Вычисляем effective_drives_map (L3 projection) для всех major NPC.
+        _effective_drives_map = {}
+        if tick_orchestrator is not None and hasattr(tick_orchestrator, '_compute_effective_drives'):
+            try:
+                _tick_num = tick_orchestrator.get_current_tick(campaign_id)
+                _effective_drives_map, _, _ = tick_orchestrator._compute_effective_drives(
+                    tick_ctx.all_npcs_raw, _tick_num
+                )
+            except Exception as _ed_err:
+                logger.warning(f"[PHASE_2] effective_drives computation failed: {_ed_err}")
+
         _tick_result = world_tick_engine.compute_proactive_decisions(
             campaign_id=campaign_id,
             location=location,
             npc_data=_proactive_npc_data,
             scene_state=shared_context.scene_state or {},
             reputation_modifiers=_rep_mods if _rep_mods else None,
+            effective_drives_map=_effective_drives_map if _effective_drives_map else None,
         )
         shared_context.world_tick_result = _tick_result
         if _tick_result.decisions:
