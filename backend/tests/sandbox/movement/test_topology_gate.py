@@ -14,15 +14,19 @@ from app.services.spatial.graph_compiler import compile_graph
 
 def _make_synthetic_map(wall_id_on_door: bool = False) -> dict:
     """Создаёт синтетическую карту 10x10 с двумя узлами и стеной между ними."""
+    # Если door нет на стене, она не разрезает её (даже по координатам).
+    # Если door на стене и имеет wall_id, она разрезает стену.
+    door_pos = {"x": 0.0, "y": 0.0}
     door_obj = {
         "id": "door_1",
         "type": "door",
-        "position": {"x": 5.0, "y": 5.0},
+        "position": door_pos,
         "size": {"w": 1.0, "h": 1.0},
         "passability": {"walk": True},
     }
     if wall_id_on_door:
         door_obj["wall_id"] = "wall_1"
+        door_obj["position"] = {"x": 5.0, "y": 5.0}
 
     return {
         "size": {"w": 10.0, "h": 10.0},

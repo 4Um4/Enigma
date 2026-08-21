@@ -25,6 +25,7 @@ def build_context(
     recent_memory: Optional[List[Any]] = None,
     reaction_order: Optional[List[Any]] = None,
     forced_first_speaker: Optional[str] = None,
+    relationship_store: Any = None, # Phase 8.2: Инъекция для SocialSubscriber
 ) -> "PipelineContext":
     """
     Собирает единый context dict для DM и NPC агентов.
@@ -50,10 +51,13 @@ def build_context(
         campaign_id=campaign_id,
         world_id=world_id,
         location=location,
+        player_name=player,
         player_state={player: {}},
         # ── Состояние мира (единственный источник правды) ────────────
         scene_state=scene_state,
         world_context_slice=get_world_state().build_context_slice(scene_state),
+        # Phase 8.2: Проброс RelationshipStore
+        relationship_store=relationship_store,
         # ── Результаты Python-движков ─────────────────────────────────
         python_engines=python_engines,
         npc_contexts=npc_contexts,

@@ -40,6 +40,7 @@ class WorldSnapshotBuilder:
         scene_state: Dict,
         tick: int,
         last_event_id: Optional[Any] = None,
+        epistemic_store: Optional[Any] = None, # Phase 8.2: Для проекции убеждений игрока
         avatar_state: Optional["AvatarStateDTO"] = None,  # ADR-035
         all_npcs_raw: Optional[List[Dict]] = None,  # ADR-037: Для вычисления среды
         player_perception: Optional[
@@ -90,6 +91,11 @@ class WorldSnapshotBuilder:
 
         # ADR-037: Вычисление средового давления на основе психики NPC в сцене
         ambient_phenomenology = self._compute_ambient_phenomenology(all_npcs_raw)
+
+        # Phase 8.2: Эпистемическая проекция убеждений игрока (UI DOCTRINE §IV, §XII)
+        _player_beliefs = []
+        if epistemic_store:
+            _player_beliefs = [r for r in epistemic_store.to_dict() if r.get("agent_id") == "player"]
 
         # Sprint UI-EPISTEMIC-01A: Транспорт реплик через PerceivedNarrativeDTO
         _perceived_narratives: List[PerceivedNarrativeDTO] = []

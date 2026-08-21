@@ -413,7 +413,7 @@ def _validate_navigation_geometry(
 
         # S137.1: Собираем заблокированные рёбра, чтобы удалить их из графа.
         _blocked_edges = set()
-        for to_id in neighbors:
+        for to_id in list(neighbors):
             # Проверяем только A -> B, чтобы избежать дублирования логов (B -> A)
             if from_id > to_id:
                 continue
@@ -462,6 +462,11 @@ def _validate_navigation_geometry(
                         f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph.\n"
                         f"FIX: Добавьте door wall_id в стену ({_blocker}) в файле карты, либо удалите ребро {from_id} -> {to_id} из графа."
                     )
+                    # Немедленно удаляем ребро из connections, чтобы оно не использовалось для маршрутизации
+                    if from_id in connections:
+                        connections[from_id].discard(to_id)
+                    if to_id in connections:
+                        connections[to_id].discard(from_id)
                 else:
                     logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
                     logger.warning(

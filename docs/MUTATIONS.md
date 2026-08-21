@@ -9,10 +9,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий проведено | 178 |
+| Сессий проведено | 198 |
 | Доменов | 10 |
 | Текущий статус | Стабильный (IPT 5/5 passed, 0 критических дрейфов) |
-| Диапазон аудита | S03 — S178 |
+| Диапазон аудита | S03 — S198 |
 
 ---
 
@@ -458,6 +458,20 @@ pc_positions.
   IPT: 39/39 passed.
   Files: backend/app/services/tick_orchestrator.py, backend/app/services/state/persistence_port.py, backend/app/services/state/sqlite_persistence_adapter.py, backend/app/services/state/json_persistence_adapter.py, backend/app/services/scene_state_manager.py, backend/tests/IPT.py
 
+- 🟢 **S190** ENIGMA SELF-HEALING SYSTEM: FULL CLOSURE (P0-P4):
+  Завершено оздоровление системы самоисцеления. Все 5 "дыр" (P0-P4) закрыты и интегрированы в CI.
+  **P0 (CI Gates):** Внедрены `.github/workflows/ci.yml` и `.pre-commit-config.yaml`. Автоматический запуск линтеров и IPT при коммите.
+  **P1 (Doc Drift):** Создан `scripts/validate_doc_refs.py`. Парсит markdown, блокирует PR с битыми ссылками на код.
+  **P2 (AST Plugin):** Создан `scripts/lint_enigma_ast.py` (правила ENIGMA001-003). Найдено и подавлено `# noqa` 439 легаси-тихих отказов. Новые нарушения блокируются.
+  **P3 (Live Dashboard):** Внедрён эндпоинт `/api/dashboard`. Живой HTML-дашборд, опрашивающий `/api/health` (тики, очереди, LLM, MVP) в реальном времени.
+  **P4 (E2E Canary):** Создан `scripts/test_full_playthrough_end_screen_non_empty.py`. Прогоняет 180 тиков без UI/LLM, проверяет End-Screen и выводит текстовый отчёт на русском языке.
+  **Bugfixes:**
+  1. `tick_orchestrator.py`: `all_npcs_raw` передавался как `None` в `idle_tick`, вызывая краш на 61-м тике. Добавлена передача списка NPC.
+  2. `pipeline_context.py`: Добавлено отсутствующее поле `player_name`, вызывавшее `AttributeError`.
+  3. `mvp_tavern_controller.py`: Загрузка `TruthState` перенесена из `init_campaign` в `__init__` (Fail Loud, Fail Early), чтобы фикс работал при загрузке сохранений.
+  IPT: 39/39 passed.
+  Files: .github/workflows/ci.yml, .pre-commit-config.yaml, scripts/validate_doc_refs.py, scripts/lint_enigma_ast.py, scripts/fix_silent_failures_noqa.py, scripts/test_full_playthrough_end_screen_non_empty.py, backend/app/api/routes.py, backend/app/services/game_loop/__init__.py, backend/app/models/pipeline_context.py, backend/app/services/social/mvp_tavern_controller.py
+
 - 🟢 **S189** ARCH-SLEEP: COMPLETE BODILY COUPLING MODE (Phase B-F):
   Завершена полная реализация архитектурного сдвига «Сон как Телесный Режим». Сон преобразован из скриптового состояния в эмерджентное свойство телесной архитектуры.
   **Phase B (CouplingResolver):** Создан `CouplingProfile` и `CouplingResolver`. Профиль вычисляется каждый тик из `sleep_pressure` и `arousal`, заменяя флаги. Сохраняется в `body_state["coupling_profile"]`.
@@ -483,3 +497,54 @@ pc_positions.
   **BUG-SLEEP-012:** `TimeSkipExecutor.SIGNIFICANT_EVENT_TYPES` расширен событиями сна (`sleep_start`, `sleep_end`, `dream`, `nightmare`, `sleepwalk`, `prophecy_vision`). Теперь пропуск времени прерывается, если NPC видит важный сон или просыпается.
   IPT: 39/39 passed.
   Files: backend/app/services/npc/sleep_lifecycle_service.py, backend/app/services/tick_orchestrator.py, backend/app/services/npc/life_engine.py, backend/app/services/world/time_skip_executor.py
+
+- 🟢 **S198** SUPERBOX-013: SECOND-ORDER OBSERVATION PROVEN:Доказано замыкание каузальной петли второго порядка (наблюдение действия другого агента и обновление убеждений).Тест epistemic_second_order_test.py проверяет, что эпистемическое состояние Агента А (thief_shadow знает, что merchant_goran украл) порождает коммуникативный интент (WARN), который материализуется в событие (COMMUNICATION_CLAIM), слышится Агентом В и детерминированно обновляет его EpistemicStore.Архитектурные фиксы:
+EpistemicContextResolver: Усилен модификатор для WARN/ATTACK (1.5x вместо 0.992x), чтобы эпистемическая необходимость перебивала сильные базовые drives (например, BLOCK_PATH).
+TaskScheduler: Исправлена маршрутизация диалоговых задач. Если задача несёт proposition или значимый intent_type (например, warn), она обязана быть canonical с высоким приоритетом, а не ambient болтовнёй.
+DialogueExecutor: Исправлена потеря proposition. Proposition теперь явно прокидывается в Artifact.data и доходит до DialogueMaterializer, который публикует COMMUNICATION_CLAIM.IPT: 39/39 passed.Files: backend/app/services/npc/epistemic_context_resolver.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/execution/dialogue_executor.py, docs/ENIGMA RECOVERY PROTOCOL.md
+
+**🟢 S198 ФАЗА 8.1: СОЦИАЛЬНЫЙ СЛОЙ И END-SCREEN**
+1. **SocialSubscriber (Шаг 1):** Внедрён детерминированный fallback для `NPC_SPOKE`. Если NPC A говорит с NPC B (intent=talk), их `trust` растёт на +0.5. Если intent=intimidate/attack — `fear` растёт на +1.0. В `DialogueMaterializer` добавлен `intent_type` в payload. `RelationshipStore` теперь генерирует записи без ручных инъекций.
+2. **FateTracker (Шаг 2):** Логика в `mvp_tavern_controller.py` расширена. `stability` связана со `stress` (из `psyche`), `threat` — с `threat_gradient`. Добавлены триггеры: `DEATH` (если HP <= 0 или статус DEAD), `ESCAPE` (если NPC в `active_traversals`), `BROKEN` (при критическом стрессе).
+3. **EndScreenNarrator (Шаг 3):** Класс перенесён из канарейки в `backend/app/services/social/end_screen_narrator.py`. Модель `EndScreenData` расширена полями `verdict_text`, `fate_texts`, `relationship_texts`. `EndScreenDataBuilder` теперь генерирует связный русский текст из метрик.
+4. **API & UI (Шаг 4):** `serialize_end_screen` отдаёт новые текстовые поля. `EndScreenRenderer` переписан: рендерит вердикт крупным шрифтом, списки судеб и социального графа. Добавлены i18n ключи.
+5. **Канарейка:** Ручные инъекции отношений удалены. Скрипт использует production-класс `EndScreenNarrator`.
+
+**Критерии приёмки:**
+- [x] `RelationshipStore` генерирует записи без ручных инъекций.
+- [x] NPC могут умереть или сойти с ума (FateTracker работает).
+- [x] End-Screen показывает связный русский текст, а не таблицу чисел.
+- [x] Канарейка проходит без ручных инъекций отношений.
+
+**Files changed:**
+- `backend/app/services/execution/dialogue_materializer.py`
+- `backend/app/services/events/social_subscriber.py`
+- `backend/app/services/social/mvp_tavern_controller.py`
+- `backend/app/services/social/end_screen_narrator.py` (new)
+- `backend/app/models/end_screen.py`
+- `backend/app/services/social/end_screen_builder.py`
+- `backend/app/api/routes.py`
+- `frontend/end_screen_renderer.py`
+- `frontend/i18n.py`
+- `frontend/api_client.py`
+- `scripts/test_full_playthrough_end_screen_non_empty.py`
+
+**🟢 **S199** — ФАЗА 8.2: EPISTEMIC-002 И СОЦИАЛЬНЫЕ ТРИГГЕРЫ
+Статус: Завершено. IPT 39/39 passed. 0 CRITICAL.Изменения:
+
+Создан TrustBasedReliabilityProvider (EPISTEMIC-002): reliability источника убеждений теперь зависит от trust (из RelationshipStore). При trust < -30 срабатывает обратный эффект (игрок не верит врагу, confidence падает).
+Расширены детерминированные триггеры в SocialSubscriber: gossip (-2.0 trust к спикеру), accuse (+1.0 fear к таргету), praise (+1.5 trust к таргету).
+Добавлена динамика безумия: FateTracker получил счётчик _critical_ticks. Если NPC находится в CRITICAL 5 тиков подряд, он получает FateOutcome.BROKEN (INV-FATE-CRITICAL-BROKEN).
+Реализована вкладка "Мои убеждения" в UI (AnalysisRenderer): показывает player_beliefs из WorldSnapshotDTO с полосой confidence и метками ("Сомнительно", "Уверенность").
+Устранено нарушение §1.1 (Frontend Isolation) в settings_screen.py.
+Зарегистрирован ADR-O-357.
+
+- 🟢 **S200** ФАЗА 8.3: ИНТЕГРАЦИЯ EPISTEMIC STORE В РЕАЛЬНЫЙ ДИАЛОГ ИГРОКА
+Статус: Завершено. IPT 39/39 passed. 0 CRITICAL.
+Изменения:
+ClaimEventSubscriber подписан на NPC_SPOKE. Внедрён детерминированный fallback: intent_type (accuse, praise, intimidate, attack) маппится в Proposition (STOLE, HELPED, ATTACKED), если LLM не предоставила явную пропозицию.
+Убран жёсткий фильтр `if _nid == "player": continue`. Игрок теперь полноправный наблюдатель в EpistemicStore.
+RelationshipReliabilityProvider возвращает -0.5 при trust < -30, заставляя confidence падать при словах врага.
+BeliefRevisionEngine защищён `max(0.0, ...)` от отрицательных значений confidence.
+Зарегистрирован ADR-O-358.
+Files: backend/app/services/events/claim_event_subscriber.py, backend/app/services/npc/belief_revision_engine.py, backend/app/services/game_loop/__init__.py, docs/audits/ADR-O-358_IMPACT.md

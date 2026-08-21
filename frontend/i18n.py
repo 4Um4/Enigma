@@ -78,6 +78,8 @@ L = {
     "ui:end_screen_wrong_guesses": "Ошибочных догадок",
     "ui:end_screen_missed": "Пропущено",
     "ui:end_screen_methods_used": "Использованные методы",
+    "ui:end_screen_fates": "Итоги судеб",
+    "ui:end_screen_relationships": "Социальный граф",
     "ui:end_screen_return_hint": "Нажмите ENTER для возврата в меню",
     "ui:scale_1x": "▶ 1x",
     "ui:scale_4x": "▶▶ 4x",

@@ -70,8 +70,10 @@ class EpistemicContextResolver:
         modifiers = {}
         if context.perceived_threats:
             # S189: Модификатор пропорционален max_confidence.
-            # При confidence=0.5 даёт 0.496 (0.5 * 0.992), что меняет score с 0.221 на 0.717.
-            _epistemic_boost = round(context.max_confidence * 0.992, 4)
+            # S198 FIX: Увеличен множитель для warn/attack до 1.5, чтобы эпистемическая 
+            # необходимость перебивать сильные базовые drives (например, block_path=0.509).
+            # При confidence=1.0 даёт 1.5, что гарантирует победу WARN над BLOCK_PATH.
+            _epistemic_boost = round(context.max_confidence * 1.5, 4)
             modifiers["warn"] = _epistemic_boost
             modifiers["attack"] = _epistemic_boost
             modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)

@@ -65,6 +65,9 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
     )
 
+    # Единый источник истины для API и LLM портов
+    api_host: str = "127.0.0.1"
+    api_port: int = 8000  # FastAPI / uvicorn
     llama_cpp_server_url: str = "http://localhost:8181"
     llama_cpp_port: int = 8181  # C2 FIX: Единый источник истины для порта LLM
     llama_cpp_max_tokens: int = 1024

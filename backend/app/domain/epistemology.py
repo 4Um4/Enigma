@@ -19,6 +19,8 @@ class Predicate(Enum):
     STOLE = "stole"
     ATTACKED = "attacked"
     HELPED = "helped"
+    # S199: Second-Order ToM. Агент верит, что другой агент утверждает P.
+    ASSERTS = "asserts"
 
 
 class SpeechAct(Enum):

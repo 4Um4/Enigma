@@ -17,8 +17,8 @@ controls:
 graphics:
   display_mode: windowed
   resolution:
-    height: 1050
-    width: 1680
+    height: 1080
+    width: 1920
 interface:
   language: ru
 performance:

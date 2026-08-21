@@ -415,6 +415,8 @@ class GameLoop:
             )
             _bus = get_event_bus()
             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
+            # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
+            _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
 
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
             logger.info("[GAME_LOOP] Epistemic Core (ClaimEventSubscriber) registered")
@@ -1071,12 +1073,18 @@ class GameLoop:
                 self._current_spatial_query = None
 
         _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
+        
+        # S198 FIX: Гарантируем, что idle_shared_context имеет relationship_store для SocialSubscriber
+        _idle_ctx = getattr(self, "_idle_shared_context", None)
+        if _idle_ctx and not getattr(_idle_ctx, "relationship_store", None):
+            _idle_ctx.relationship_store = getattr(self, "_rel_store", None)
+            
         result = self._tick_orch.execute(
             campaign_id=campaign_id,
             scene_state=_scene,
             tick_number=_scene.get("tick", 0) + 1,  # ADR-O-344: Оркестратор владеет инкрементом
             spatial_service=_spatial_svc,
-            shared_context=getattr(self, "_idle_shared_context", None),  # noqa: ENIGMA002
+            shared_context=_idle_ctx,  # noqa: ENIGMA002
             active_location_id=_active_loc,
             location_ids=_location_ids,
             eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
@@ -1815,7 +1823,13 @@ class GameLoop:
                 f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}"
             )
 
-            _player_data_dict = _match.dict() if _match else None  # noqa: ENIGMA001
+            import dataclasses as _dc
+            if _match and _dc.is_dataclass(_match):
+                _player_data_dict = _dc.asdict(_match)
+            elif _match and hasattr(_match, "model_dump"):
+                _player_data_dict = _match.model_dump()
+            else:
+                _player_data_dict = None
             _raw_action = actions[0].action if actions else ""
             _semantic_field = await self._intent_compressor.compress(
                 raw_text=_raw_action, scene_context=scene_state
@@ -2099,6 +2113,7 @@ class GameLoop:
             python_engines={},
             recent_memory=[e["dm"] for e in _raw_mem if e.get("dm")],
             reaction_order=[],
+            relationship_store=getattr(self, "_rel_store", None), # Phase 8.2
         )
         return shared_context, world_tick_meta
 

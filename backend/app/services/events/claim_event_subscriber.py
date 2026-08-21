@@ -31,15 +31,19 @@ class RelationshipReliabilityProvider:
         # S189 FIX: Убран silent failure (ADR-O-308). Ошибка в RelationshipStore должна крашить тик.
         _pair_data = self._store.get_pair(self._campaign_id, observer, source) or {}
         _trust_100 = _pair_data.get("trust", 50.0)
+        # S199 (Фаза 8.2/8.3): Враги (trust < -30) вызывают обратный эффект — игрок не верит им, confidence падает.
+        if _trust_100 < -30:
+            return -0.5
         return max(0.0, min(1.0, _trust_100 / 100.0))
 
 HEARING_RADIUS = 10.0
 
 class ClaimEventSubscriber:
     """
-    Слушает COMMUNICATION_CLAIM на EventBus.
+    Слушает COMMUNICATION_CLAIM и NPC_SPOKE на EventBus.
     Преобразует EventDTO в ClaimEvent и передаёт в BeliefRevisionEngine.
     S192: Observation Divergence — фильтрует слушателей через пространственную мембрану (SpatialQueryService).
+    S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
     """
     def __init__(
         self, 
@@ -50,6 +54,44 @@ class ClaimEventSubscriber:
         self._engine = engine
         self._store = store
         self._get_spatial_query = spatial_query_provider
+
+    def on_npc_spoke(self, event: Any) -> None:
+        """
+        Фаза 8.3: Детерминированный fallback для NPC_SPOKE.
+        Если LLM не предоставила proposition, извлекает его из intent_type.
+        """
+        if not hasattr(event, 'payload'):
+            return
+
+        payload = event.payload
+        # Если LLM уже предоставила proposition, COMMUNICATION_CLAIM обработает его.
+        if payload.get("proposition"):
+            return
+
+        intent_type = payload.get("intent_type", "talk")
+        target_id = payload.get("target_id")
+        speaker_id = event.source
+
+        # Маппинг интентов на пропозиции
+        prop = None
+        if intent_type == "accuse" and target_id:
+            prop = Proposition(subject_id=target_id, predicate=Predicate.STOLE, object_id="unknown")
+        elif intent_type == "praise" and target_id:
+            prop = Proposition(subject_id=target_id, predicate=Predicate.HELPED, object_id="unknown")
+        elif intent_type in ("intimidate", "attack") and target_id:
+            prop = Proposition(subject_id=target_id, predicate=Predicate.ATTACKED, object_id="unknown")
+
+        if prop:
+            # Добавляем proposition в payload и делегируем основному обработчику
+            payload["proposition"] = {
+                "subject_id": prop.subject_id,
+                "predicate": prop.predicate.value,
+                "object_id": prop.object_id,
+                "polarity": True
+            }
+            payload.setdefault("claim_id", f"fallback-{event.id}")
+            payload.setdefault("speech_act", "assert")
+            self.on_claim_event(event)
 
     def on_claim_event(self, event: Any) -> None:
         if not hasattr(event, 'payload'):
@@ -86,7 +128,8 @@ class ClaimEventSubscriber:
                             _listeners.add(_primary_target)
                     else:
                         for _nid in _npc_positions.keys():
-                            if _nid == "player" or _nid == event.source:
+                            # S199 (Фаза 8.3): Игрок больше не исключается — он полноправный наблюдатель.
+                            if _nid == event.source:
                                 continue
                             _dist = _sq.distance(event.source, _nid)
                             if _dist <= HEARING_RADIUS:

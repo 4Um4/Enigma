@@ -2132,10 +2132,13 @@ class GameScreen:
 
             # === ADR-JOURNAL: VN-стиль журнал (клавиша J) ===
             if self.show_journal and isinstance(scene_state, dict):
+                # Phase 8.2: Передаём player_beliefs из world_snapshot для вкладки "Мои убеждения"
+                _player_beliefs = self.current_snapshot.get("player_beliefs", []) if self.current_snapshot else []
                 self._journal_tab_rects = self._analysis_renderer.draw_journal(
                     self._dialog_journal_backend,
                     self._journal_active_tab,
-                    self._journal_tab_rects
+                    self._journal_tab_rects,
+                    _player_beliefs
                 )
 
             # P8: Отрисовка панели инвентаря

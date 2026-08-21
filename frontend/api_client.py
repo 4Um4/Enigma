@@ -553,16 +553,8 @@ class DirectGameGateway:
         if not self._bridge.ready or not self._bridge._loop:
             return {}
         if hasattr(self._bridge._loop, "mvp_controller") and self._bridge._loop.mvp_controller:
-            end_screen = self._bridge._loop.mvp_controller.build_end_screen()
-            ev = end_screen.evaluation
-            return {
-                "score": ev.score,
-                "secrets_total": ev.secrets_total,
-                "secrets_identified": ev.secrets_identified,
-                "secrets_misidentified": ev.secrets_misidentified,
-                "secrets_missed": ev.secrets_missed,
-                "methods_used": ev.methods_used,
-            }
+            # 8.1 FIX: Делегируем сериализацию контроллеру, чтобы получить текстовые поля
+            return self._bridge._loop.mvp_controller.serialize_end_screen()
         return {}
 
     def set_continuity_mode(self, mode: str) -> dict:

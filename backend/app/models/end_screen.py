@@ -24,3 +24,6 @@ class EndScreenData:
     evaluation: EvaluationResult
     npc_fates: List[NpcFateScreenData]
     contradictions: List[Contradiction]
+    verdict_text: str = ""
+    fate_texts: List[str] = field(default_factory=list)
+    relationship_texts: List[str] = field(default_factory=list)

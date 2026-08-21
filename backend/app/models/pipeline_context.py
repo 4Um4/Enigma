@@ -35,6 +35,8 @@ class PipelineContext:
     scene_state: Dict[str, Any] = field(default_factory=dict)
     player_state: Dict[str, Any] = field(default_factory=dict)
     world_context_slice: Dict[str, Any] = field(default_factory=dict)
+    # Phase 8.2: Проброс RelationshipStore для детерминированных социальных fallback'ов
+    relationship_store: Any = None
 
     # ── Результаты Python-движков (из context_builder) ────────────
     python_engines: Dict[str, Any] = field(default_factory=dict)

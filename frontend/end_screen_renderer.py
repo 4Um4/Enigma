@@ -68,6 +68,53 @@ class EndScreenRenderer:
                 self.screen.blit(surf, (w // 2 - 130, y))
                 y += 25
                 
+        # 8.1 FIX: Вердикт (крупный текст)
+        verdict = data.get("verdict_text", "")
+        if verdict:
+            y += 20
+            verdict_surf = self.font_header.render(verdict, True, COLOR_JOURNAL_TITLE)
+            # Простой wrap текста
+            max_width = w - 200
+            words = verdict.split(' ')
+            lines, current_line = [], ""
+            for word in words:
+                test_line = (current_line + " " + word).strip()
+                if self.font_header.size(test_line)[0] <= max_width:
+                    current_line = test_line
+                else:
+                    lines.append(current_line)
+                    current_line = word
+            if current_line: lines.append(current_line)
+            
+            for i, line in enumerate(lines):
+                surf = self.font_header.render(line, True, COLOR_JOURNAL_TITLE)
+                self.screen.blit(surf, (100, y + i * 40))
+            y += len(lines) * 40 + 30
+
+        # 8.1 FIX: Итоги судеб
+        fate_texts = data.get("fate_texts", [])
+        if fate_texts:
+            y += 20
+            f_header = self.font_body.render(t("ui:end_screen_fates"), True, COLOR_TEXT_DIM)
+            self.screen.blit(f_header, (100, y))
+            y += 30
+            for text in fate_texts:
+                surf = self.font_body.render(f"• {text}", True, COLOR_TEXT_MUTED)
+                self.screen.blit(surf, (120, y))
+                y += 25
+
+        # 8.1 FIX: Социальный граф
+        rel_texts = data.get("relationship_texts", [])
+        if rel_texts:
+            y += 20
+            r_header = self.font_body.render(t("ui:end_screen_relationships"), True, COLOR_TEXT_DIM)
+            self.screen.blit(r_header, (100, y))
+            y += 30
+            for text in rel_texts[:5]: # Ограничиваем 5 записями, чтобы не вылезти за экран
+                surf = self.font_body.render(f"• {text}", True, COLOR_TEXT_MUTED)
+                self.screen.blit(surf, (120, y))
+                y += 25
+
         # Подсказка для выхода
         y = h - 60
         hint = self.font_body.render(t("ui:end_screen_return_hint"), True, COLOR_TEXT_DIM)

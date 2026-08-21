@@ -477,10 +477,14 @@ class MovementEngine:
         best_x, best_y = tx, ty
 
         if npc_positions:
+            import math
             for _ in range(10):  # Увеличено с 5 для стабильности обхода коллизий
-                # BUG-DRIFT-008 FIX: Уменьшено с 1.0 до 0.3, чтобы попадать в COSMETIC threshold.
-                cx = tx + rng.uniform(-0.3, 0.3)
-                cy = ty + rng.uniform(-0.3, 0.3)
+                # ADR-056: Генерация точки в круге радиуса 1.5 (полярные координаты),
+                # чтобы гарантированно найти свободную точку и не нарушать dist_to_target <= 1.5.
+                angle = rng.uniform(0, 2 * math.pi)
+                radius = rng.uniform(collision_radius, 1.5)
+                cx = tx + radius * math.cos(angle)
+                cy = ty + radius * math.sin(angle)
                 is_colliding = any(
                     (
                         (cx - other_data.get("local_position", {}).get("x", 0.0)) ** 2
@@ -495,9 +499,8 @@ class MovementEngine:
                     best_x, best_y = cx, cy
                     break
         else:
-            # BUG-DRIFT-008 FIX: Уменьшено с 0.5 до 0.3
-            best_x = tx + rng.uniform(-0.3, 0.3)
-            best_y = ty + rng.uniform(-0.3, 0.3)
+            best_x = tx + rng.uniform(-1.5, 1.5)
+            best_y = ty + rng.uniform(-1.5, 1.5)
 
         tx, ty = best_x, best_y
         logger.debug(

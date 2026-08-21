@@ -37,7 +37,14 @@ class MvpTavernController:
         self._campaign_id: Optional[str] = None
         
         # Инициализация базовых трекеров
-        self.truth_state: Optional[TruthState] = None
+        # ENIGMA SELF-HEALING FIX: Загружаем канон сразу при создании контроллера (Fail Loud, Fail Early).
+        # Это гарантирует, что TruthState доступен даже при загрузке сохранения (load_game), когда init_campaign не вызывается.
+        self.truth_state = TruthStateLoader.load(self._canon_path)
+        if self.truth_state is None:
+            raise RuntimeError(f"TruthState failed to load from {self._canon_path}. MVP pipeline is disabled.")
+        TruthStateLoader.validate(self.truth_state)
+        assert len(self.truth_state.secrets) > 0, "TruthState loaded with 0 secrets"
+        
         self.observation_log = ObservationLog()
         self.belief_model = PlayerBeliefModel()
         self.social_fabric = SocialFabricTracker()
@@ -54,19 +61,18 @@ class MvpTavernController:
         self.world_diff_builder = WorldDiffBuilder()
         
         # Компилятор последствий (связывает трекеры вместе)
-        # truth_state и faction_tracker передаются как None, они установятся в init_campaign
         self.action_compiler = ActionConsequenceCompiler(
             observation_log=self.observation_log,
             belief_model=self.belief_model,
             social_fabric=self.social_fabric,
-            truth_state=None,
+            truth_state=self.truth_state,
             faction_tracker=self.faction_tracker
         )
         
         # V8-MVP-12 FIX: Парсер признаний NPC
         from app.services.player_cognition.npc_confession_parser import NpcConfessionParser
         self.confession_parser = NpcConfessionParser(
-            truth_state=None,
+            truth_state=self.truth_state,
             observation_log=self.observation_log,
             belief_model=self.belief_model
         )
@@ -91,16 +97,10 @@ class MvpTavernController:
                 ) from e
 
     def init_campaign(self, campaign_id: str) -> None:
-        """Загрузка канона и сброс состояния для новой кампании."""
+        """Сброс состояния для новой кампании (канон уже загружен в __init__)."""
         self._campaign_id = campaign_id
-        # Загружаем каноническую истину
-        self.truth_state = TruthStateLoader.load(self._canon_path)
-        if self.truth_state is None:
-            raise RuntimeError(f"TruthState failed to load from {self._canon_path}. MVP pipeline is disabled.")
-        TruthStateLoader.validate(self.truth_state)
-        assert len(self.truth_state.secrets) > 0, "TruthState loaded with 0 secrets"
         
-        # M-02/M-12 FIX: Инжектируем загруженный truth_state в action_compiler
+        # M-02/M-12 FIX: Обновляем ссылки на truth_state в под-сервисах (на случай сброса состояния)
         self.action_compiler._truth = self.truth_state
         self.confession_parser._truth = self.truth_state # V8-MVP-12 FIX
         # P2 FIX: Инжектируем RelationshipStore и campaign_id в ActionCompiler
@@ -141,14 +141,38 @@ class MvpTavernController:
             threat = max(0.0, min(1.0, float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))))
             _fate_state = self.fate_tracker.update_state(npc_id, stability, threat)
             
-            # V8-MVP-17 FIX: Вызов trigger_fate при критической траектории
-            if _fate_state and _fate_state.fate_trajectory == FateTrajectory.CRITICAL and not _fate_state.resolved_fate:
-                self.fate_tracker.trigger_fate(
-                    npc_id=npc_id,
-                    outcome=FateOutcome.BROKEN,
-                    tick=ctx.get("tick", 0),
-                    cause="critical_stability",
-                )
+            if _fate_state and not _fate_state.resolved_fate:
+                _body = npc.get("body_state", {})
+                _hp = float(_body.get("current_hp", 100.0))
+                _status = _body.get("life_status", "ALIVE")
+                _traversals = ctx.get("active_traversals", {})
+                _is_leaving = npc_id in _traversals
+                
+                # 8.1 FIX: Судьбы разрешаются на основе физиологии и пространства
+                if _status == "DEAD" or _hp <= 0:
+                    self.fate_tracker.trigger_fate(
+                        npc_id=npc_id, outcome=FateOutcome.DEATH, 
+                        tick=ctx.get("tick", 0), cause="vital_failure",
+                        description=f"{npc_id} погиб из-за физиологического отказа."
+                    )
+                elif _is_leaving:
+                    self.fate_tracker.trigger_fate(
+                        npc_id=npc_id, outcome=FateOutcome.ESCAPE, 
+                        tick=ctx.get("tick", 0), cause="left_location",
+                        description=f"{npc_id} покинул локацию."
+                    )
+                elif _fate_state.fate_trajectory == FateTrajectory.CRITICAL:
+                    # Phase 8.2: Инвариант INV-FATE-CRITICAL-BROKEN
+                    # BROKEN вызывается только если NPC пробыл в CRITICAL 5 тиков подряд
+                    # Прямой доступ: _critical_ticks обязан быть в FateTracker (Phase 8.2)
+                    # Использование getattr с дефолтом маскирует ошибку инициализации (§1.2)
+                    _crit_ticks = self.fate_tracker._critical_ticks.get(npc_id, 0)
+                    if _crit_ticks >= 5:
+                        self.fate_tracker.trigger_fate(
+                            npc_id=npc_id, outcome=FateOutcome.BROKEN, 
+                            tick=ctx.get("tick", 0), cause="critical_stability",
+                            description=f"{npc_id} сломался из-за 5 тиков критического стресса."
+                        )
             
         # DilemmaEngine: проверяем триггеры
         if self.truth_state:
@@ -178,7 +202,7 @@ class MvpTavernController:
 
     def build_end_screen(self):
         """Собирает данные для финального экрана."""
-        if not self.truth_state:
+        if self.truth_state is None:
             raise RuntimeError("TruthState not loaded")
             
         evaluation = self.evaluation_engine.evaluate(
@@ -192,12 +216,14 @@ class MvpTavernController:
             contradictions=self.cognitive_dissonance.get_all_contradictions(),
             fate_tracker=self.fate_tracker,
             last_words_system=self.last_words_system,
-            social_fabric=self.social_fabric
+            social_fabric=self.social_fabric,
+            relationship_store=self._relationship_store,
+            campaign_id=self._campaign_id or ""
         )
 
     def build_world_diff(self):
         """Собирает WorldStateDiff для передачи в следующую кампанию."""
-        if not self.truth_state:
+        if self.truth_state is None:
             raise RuntimeError("TruthState not loaded")
             
         return self.world_diff_builder.build(
@@ -263,4 +289,7 @@ class MvpTavernController:
             "contradictions": _contradictions_data,
             "faction_alignments": _faction_alignments,
             "social_fabric_deltas": _social_fabric_deltas,
+            "verdict_text": end_screen.verdict_text,
+            "fate_texts": end_screen.fate_texts,
+            "relationship_texts": end_screen.relationship_texts,
         }

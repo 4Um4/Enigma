@@ -19,6 +19,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Центрируем окно игры на экране (должно быть до импорта pygame)
+os.environ['SDL_VIDEO_CENTERED'] = '1'
+
 # Два пути нужны из-за голых импортов внутри map_editor (sprite_registry и т.д.)
 # TODO: временное решение — после миграции map_editor на относительные импорты убрать второй путь
 _ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -30,29 +33,38 @@ sys.path.insert(0, os.path.join(_FRONTEND_DIR, "map_editor"))
 sys.path.insert(0, _ROOT)  # нужен для импорта пакета diagnostics/ из корня
 
 import pygame  # noqa: E402
-from campaign_select import CampaignSelectScreen  # noqa: E402
-from character_select import CharacterSelectScreen  # noqa: E402
-from game_menu import GameMenu, MenuAction  # noqa: E402
-from game_screen import GameScreen  # noqa: E402
-from settings_screen import SettingsScreen  # noqa: E402
+from campaign_select import CampaignSelectScreen  # type: ignore  # noqa: E402
+from character_select import CharacterSelectScreen  # type: ignore  # noqa: E402
+from game_menu import GameMenu, MenuAction  # type: ignore  # noqa: E402
+from game_screen import GameScreen  # type: ignore  # noqa: E402
+from settings_screen import SettingsScreen  # type: ignore  # noqa: E402
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
-# Backend URL — Pygame клиент подключается сюда
+# Backend URL — загружается из конфига внутри main() и _ensure_backend_running()
 _BACKEND_URL = "http://localhost:8000"
 _BACKEND_STARTUP_TIMEOUT = 120  # секунд ожидания (LLM грузится долго)
 
 
 def _ensure_backend_running() -> subprocess.Popen:
     """
-    Запускает FastAPI в фоне если ещё не запущен.
+    Запускает FastAPI, рисует экран загрузки и ждёт готовности.
     Возвращает Popen для управления жизненным циклом.
     """
+    import urllib.request
+    import time
+    import pygame
+    
+    # Локальный импорт конфига (после настройки sys.path в main)
+    from app.core.config import settings as _enigma_settings  # type: ignore
+    _api_host = _enigma_settings.api_host
+    _api_port = _enigma_settings.api_port
+    global _BACKEND_URL
+    _BACKEND_URL = f"http://localhost:{_api_port}"
+
     # Проверяем — уже запущен?
     try:
-        import urllib.request
-
         with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
             if resp.status == 200:
                 print("  ✓ Backend уже запущен")
@@ -60,21 +72,14 @@ def _ensure_backend_running() -> subprocess.Popen:
     except Exception:
         pass  # backend не запущен — это норма при первичном запуске
 
-    # Запускаем uvicorn в фоне
-    # BUG M FIX: Перенаправляем stdout/stderr subprocess в CDS лог,
-    # чтобы print()-маркеры (DRF_EMIT, IDLE_TRACE, TRAV_CREATE_PRE и т.д.)
-    # были видны CausalObserver. Без этого 89 критических маркеров слепы.
     _cds_log_for_subprocess = Path(_BACKEND_DIR) / "logs" / "cds_backend.log"
-    # Создаем папку logs, если её нет (для портативной установки)
     _cds_log_for_subprocess.parent.mkdir(parents=True, exist_ok=True)
     _subprocess_log = open(str(_cds_log_for_subprocess), "a", encoding="utf-8")
     
-    # Дополнение А (п. А.3.2): Флаг CREATE_NO_WINDOW для скрытия консоли uvicorn
     _creation_flags = 0
     if sys.platform == 'win32':
         _creation_flags = 0x08000000  # CREATE_NO_WINDOW
         
-    # Фикс кодировки: заставляем subprocess использовать UTF-8, чтобы не падать на символах типа ✓
     _env = os.environ.copy()
     _env["PYTHONIOENCODING"] = "utf-8"
     _env["PYTHONUTF8"] = "1"
@@ -86,9 +91,9 @@ def _ensure_backend_running() -> subprocess.Popen:
             "uvicorn",
             "app.main:app",
             "--host",
-            "127.0.0.1",
+            _api_host,
             "--port",
-            "8000",
+            str(_api_port),
         ],
         cwd=_BACKEND_DIR,
         stdout=_subprocess_log,
@@ -97,9 +102,53 @@ def _ensure_backend_running() -> subprocess.Popen:
         env=_env,
     )
 
-    # Ждём готовности
-    print(f"  ○ Запуск backend ({_BACKEND_URL})... (в фоне)")
-    # Не ждём — FallbackGateway в игре переключится на Direct если HTTP недоступен
+    print(f"  ○ Запуск backend ({_BACKEND_URL})... (ожидание готовности)")
+    
+    # Инициализируем экран загрузки
+    screen = pygame.display.get_surface()
+    if not screen:
+        screen = pygame.display.set_mode((800, 600))
+        pygame.display.set_caption("Загрузка Enigma...")
+    
+    font = pygame.font.SysFont("Arial", 24)
+    clock = pygame.time.Clock()
+    
+    for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
+        # Обработка событий Pygame, чтобы окно не зависало (Not Responding)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                proc.terminate()
+                pygame.quit()
+                sys.exit(0)
+                
+        # Рисуем экран загрузки
+        screen.fill((20, 20, 20))
+        loading_text = font.render("Идёт загрузка мира...", True, (200, 200, 200))
+        screen.blit(loading_text, (50, 50))
+        
+        # Прогресс-бар
+        progress = _attempt / _BACKEND_STARTUP_TIMEOUT
+        pygame.draw.rect(screen, (50, 50, 50), (50, 100, 700, 20))
+        pygame.draw.rect(screen, (0, 120, 200), (50, 100, int(700 * progress), 20))
+        
+        sec_text = font.render("Идёт загрузка мира...", True, (150, 150, 150))
+        screen.blit(sec_text, (50, 130))
+        pygame.display.flip()
+        clock.tick(30)
+        
+        if proc.poll() is not None:
+            print(f"\n  ✗ Backend процесс упал с кодом {proc.returncode}. Проверьте лог: {_cds_log_for_subprocess}")
+            return None
+            
+        try:
+            with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
+                if resp.status == 200:
+                    print("\n  ✓ Backend готов к работе")
+                    return proc
+        except Exception:
+            pass
+            
+    print(f"\n  ⚠ Backend не ответил за {_BACKEND_STARTUP_TIMEOUT}с")
     return proc
 
 
@@ -123,12 +172,12 @@ def _init_menu_display():
 
 
 def _kill_zombies():
-    """Убивает зомби-процессы python (uvicorn) на порту 8000 перед стартом."""
+    """Убивает зомби-процессы python (uvicorn) на порту API перед стартом."""
     import subprocess
+    from app.core.config import settings as _enigma_settings  # type: ignore
 
     try:
-        # Убиваем только зависший бэкенд (uvicorn), LLM не трогаем!
-        for port in [8000]:
+        for port in [_enigma_settings.api_port]:
             res = subprocess.run(
                 f"netstat -ano | findstr :{port}",
                 shell=True,
@@ -150,6 +199,10 @@ def main() -> None:
     """Главная функция — запускает backend, инициализирует pygame, запускает цикл меню"""
     print("\n=== Enigma Startup ===")
     
+    # Инициализируем pygame до запуска бэкенда, чтобы отрисовать экран загрузки
+    print("=== Pygame Init ===")
+    pygame.init()
+    
     # Дополнение А (п. А.4): Запуск GPU профайлера перед стартом бэкенда
     try:
         from app.core.gpu_probe import run_probe
@@ -160,9 +213,7 @@ def main() -> None:
         print(f"  [GPU_PROBE] Failed: {_gpu_err}")
 
     backend_proc = _ensure_backend_running()
-    print("=== Pygame Init ===\n")
-
-    pygame.init()
+    
     screen, clock, menu = _init_menu_display()
 
     # --- CDS: Causal Diagnostic System ---
@@ -335,9 +386,18 @@ def main() -> None:
     pygame.quit()
 
     # Убиваем backend + llama-server при любом выходе
+    print("\n[CLEANUP] Завершение процессов backend и LLM...")
     if sys.platform == "win32":
-        from app.core.config import settings as _enigma_settings
-        for _port in [8000, _enigma_settings.llama_cpp_port]:
+        from app.core.config import settings as _enigma_settings  # type: ignore
+        # 1. Убиваем дерево процессов uvicorn, если оно ещё живо
+        if backend_proc is not None and backend_proc.poll() is None:
+            try:
+                subprocess.run(["taskkill", "/T", "/F", "/PID", str(backend_proc.pid)], capture_output=True, timeout=5)
+            except Exception:
+                pass
+            
+        # 2. Убиваем всё, что слушает порты бэкенда и LLM (на случай зомби)
+        for _port in [_enigma_settings.api_port, _enigma_settings.llama_cpp_port]:
             try:
                 _find = subprocess.run(
                     ["netstat", "-ano"],
@@ -365,8 +425,6 @@ def main() -> None:
     # Принудительно убиваем процесс игры, чтобы не было зомби (Фикс PyInstaller/Windows)
     import os
     os._exit(0)
-
-    sys.exit(0)
 
 
 if __name__ == "__main__":

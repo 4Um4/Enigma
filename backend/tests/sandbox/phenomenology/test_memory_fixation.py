@@ -54,9 +54,20 @@ TODO:
 
 from dataclasses import replace as dc_replace
 from unittest.mock import MagicMock
+import urllib.request
 
 import pytest
 from app.domain.identity_events import EffectiveDrives
+
+def is_llm_available():
+    try:
+        urllib.request.urlopen("http://127.0.0.1:8080/health", timeout=1)
+        return True
+    except Exception:
+        return False
+
+# Пропускаем тесты, если LLM-сервер недоступен
+pytestmark = pytest.mark.skipif(not is_llm_available(), reason="LLM server is not running on port 8080")
 
 _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 

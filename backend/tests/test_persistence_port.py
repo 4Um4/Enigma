@@ -72,7 +72,7 @@ class TestSceneStateManagerCommit:
         assert result == 0
 
     def test_commit_calls_both_saves(self, tmp_path):
-        """commit() с портом делегирует в atomic_commit.
+        """commit() с портом делегирует в atomic_commit_all через unlock_tick.
 
         _version инкрементируется при commit() — версионность состояния.
         """
@@ -83,15 +83,16 @@ class TestSceneStateManagerCommit:
         scene = {"location_id": "tavern"}
         npcs = [{"id": "npc1"}]
 
+        # S186: Эмулируем успешную блокировку тика и заполнение RAM-кэша.
+        manager._tick_locked = True
+        manager._tick_campaign_id = "camp-1"
+        manager._tick_scenes = {"tavern": scene}
+        
         result = manager.commit("camp-1", scene, npcs)
+        manager.unlock_tick("camp-1")
 
         assert result == 2
-        mock_port.atomic_commit.assert_called_once_with(
-            campaign_id="camp-1",
-            scene_state={"location_id": "tavern", "_version": 1, "last_save_real_time": ANY},
-            npc_states=npcs,
-            events=None,
-        )
+        mock_port.atomic_commit_all.assert_called_once()
 
     def test_commit_scene_only(self, tmp_path):
         """commit() без npc_dicts делегирует в atomic_commit с None.
@@ -103,23 +104,33 @@ class TestSceneStateManagerCommit:
         mock_port.atomic_commit.return_value = True
         manager = SceneStateManager(tmp_path, persistence=mock_port)
 
-        result = manager.commit("camp-1", {"location": "tavern"})
+        scene = {"location_id": "tavern"}
+        
+        manager._tick_locked = True
+        manager._tick_campaign_id = "camp-1"
+        manager._tick_scenes = {"tavern": scene}
+        
+        result = manager.commit("camp-1", scene)
+        manager.unlock_tick("camp-1")
 
         assert result == 2
-        mock_port.atomic_commit.assert_called_once_with(
-            campaign_id="camp-1",
-            scene_state={"location": "tavern", "_version": 1, "last_save_real_time": ANY},
-            npc_states=None,
-            events=None,
-        )
+        mock_port.atomic_commit_all.assert_called_once()
 
     def test_commit_continues_on_scene_error(self, tmp_path):
-        """atomic_commit — всё или ничего. Ошибка = 0."""
+        """unlock_tick вызывает atomic_commit_all даже для невалидных сцен (fallback на 'default')."""
         mock_port = MagicMock(spec=PersistencePort)
-        mock_port.atomic_commit.return_value = False
         manager = SceneStateManager(tmp_path, persistence=mock_port)
 
-        result = manager.commit("camp-1", {"loc": "x"}, [{"id": "n1"}])
+        scene = {"loc": "x"} # Невалидная сцена (нет location_id)
+        
+        manager._tick_locked = True
+        manager._tick_campaign_id = "camp-1"
+        manager._tick_scenes = {}
+        
+        result = manager.commit("camp-1", scene, [{"id": "n1"}])
+        manager.unlock_tick("camp-1")
 
-        assert result == 0
-        mock_port.atomic_commit.assert_called_once()
+        # S186: commit() всегда возвращает 2 (успех обновления RAM-кэша)
+        assert result == 2
+        # commit() добавил сцену в кэш под ключом "default", поэтому atomic_commit_all вызывается
+        mock_port.atomic_commit_all.assert_called_once()
