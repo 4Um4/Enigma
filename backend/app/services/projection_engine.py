@@ -127,8 +127,10 @@ class ProjectionEngine:
                 # ADR-XXX: Рождение traversal — ProjectionEngine прокидывает dict,
                 # но статусная мутация теперь через SSM FSM. Создание остаётся здесь,
                 # так как это первичная запись (transition None→MOVING).
+                # ADR-O-201: Immutability of ThickSceneChange — deep copy fields to prevent state mutation.
+                import copy
                 from app.domain.traversal_schema import build_traversal_dict
-                _fields = thick.traversal.fields
+                _fields = copy.deepcopy(thick.traversal.fields)
                 scene_state.setdefault("active_traversals", {})[thick.target] = _fields
                 logger.debug(
                     f"[PROJECTION] Traversal NEW: npc={thick.target} "

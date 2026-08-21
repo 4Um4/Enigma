@@ -133,6 +133,12 @@ nodes:
     type: service
     layer: Application
     label: "Game Loop (Pipeline Controller)"
+  TimeSkipExecutor:
+    type: service
+    layer: Application
+    label: "Time Skip (Observation Layer)"
+    file: services/world/time_skip_executor.py
+    description: "TZ-08 Addendum: Time Skip as Observation Policy. Calls Kernel.execute() in a loop."
   MemoryManager:
     type: service
     layer: Application
@@ -335,6 +341,12 @@ edges:
   - from: WorldProjectionBuffer
     to: WorldProjectionEvent
     label: "generates derived events"
+  - from: TimeSkipExecutor
+    to: TickOrchestrator
+    label: "kernel.execute() loop"
+  - from: GameLoop
+    to: TimeSkipExecutor
+    label: "get_npcs_callback"
 constraints:
   - source: LifeEngine
     target: NPC_Position

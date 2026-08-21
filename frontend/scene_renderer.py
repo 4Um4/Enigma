@@ -476,7 +476,7 @@ class SceneRenderer:
             # Рисуем тултип наблюдения при наведении (hover_text уже на русском из API)
             if self._hover_npc_id == entity.entity_id and entity.perception_cues:
                 for _cue in entity.perception_cues:
-                    _txt = _cue.get("hover_text") or _cue.get("cue_type", "...")
+                    _txt = _cue.get("hover_text") or _cue.get("cue_key", "...")
                     _font = pygame.font.SysFont("segoeui", 14)
                     _surf = _font.render(_txt, True, (255, 255, 230))
                     self.screen.blit(_surf, (sx - _surf.get_width()//2, sy - 30))

@@ -11,6 +11,7 @@ ENIGMA Sandbox Suite — единый ангар исследовательск�
   python -m tests.sandbox.SUPERBOX.run drift save_load_storm
   python -m tests.sandbox.SUPERBOX.run drift chunk_migration
   python -m tests.sandbox.SUPERBOX.run behavior trait_economy
+  python -m tests.sandbox.SUPERBOX.run player_stress
   python -m tests.sandbox.SUPERBOX.run all
 
 Правило: все долгоживущие исследовательские инструменты живут в SUPERBOX/.
@@ -47,6 +48,19 @@ def main() -> None:
             run_trait_economy_probe()
         else:
             print(f"Unknown behavior scenario: {mode}")
+
+    elif tool == "player_stress":
+        import asyncio
+        from tests.sandbox.SUPERBOX.player_stress_test import run_player_stress_test
+        success = asyncio.run(run_player_stress_test())
+        sys.exit(0 if success else 1)
+
+    elif tool == "causal":
+        import asyncio
+        from tests.sandbox.SUPERBOX.causal_validation import CausalValidator
+        validator = CausalValidator()
+        success = asyncio.run(validator.run_all())
+        sys.exit(0 if success else 1)
 
     elif tool == "all":
         print("=== NPC Sandbox ===")

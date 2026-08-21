@@ -29,6 +29,14 @@
 
 ## 1. ДОМЕНЫ И ЭВОЛЮЦИЯ
 
+- 🔵 **S89** ТЗ-09: Execution Pipeline Collapse.
+  - Уничтожено ветвление `_phase_5_player_decision` / `_phase_5_decision`. 
+  - Введены `TickState` (deep immutable snapshot) и `TickMutation` (pure result).
+  - `NpcTickPipeline.run()` стал единственным execution kernel. Временная зависимость от `svc` оставлена до Фазы 4.
+  - `TickOrchestrator._phase_5_decision` собирает снимок, вызывает редюсер и применяет мутации.
+  - `GameLoop.idle_tick` нормализует среду в `InterventionEvent`.
+  - Устранены побочные эффекты: `FrozenInstanceError` (через `dataclasses.replace`), `MappingProxyType` pickle error (через `deepcopy`).
+
 - 🔵 **TZ-08 v0.2** Строгая миграция ядра в Event-Driven модель.
   - Внедрён `InterventionEvent` как единственный внешний входной протокол.
   - `execute()` стал чистой функцией `state_t + events → state_t+1`. Ветвление `dm_ctx` убито.
@@ -229,6 +237,18 @@
 - 🟢 **S85.2** Belief Decay Model: Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
 - 🔴 **S86** ТЗ-02 (Шаг 9): `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` (`target_id`, `tick_id`, `effect_value`) полностью канонизирован.
 - 💀 **S86** ТЗ-02 (Шаг 10 ОТМЕНЁН): Применение `ctx.drives_updates` к `state.drives_runtime` ЗАПРЕЩЕНО. `CalibrationEngine` оставлен в pass-through режиме. Мутация скалярных драйвов минуя Belief Layer (L2.5) нарушает ADR-O-208/211. L3 проекция строго эфемерна.
+- 🔵 **S92** ТЗ-08 Addendum: Time Skip Architecture.
+  - Внедрён `TimeSkipExecutor` (`backend/app/services/world/time_skip_executor.py`) как единая точка входа для промотки времени.
+  - Реализованы `SkipPolicyA` (headless batch), `SkipPolicyB` (stop on significance), `SkipPolicyC` (milestone sampling).
+  - Внедрены `SignificanceDetector` и `SemanticMilestoneFilter` как чистые функции анализа `TickResultDTO.significant_events` и абсолютных состояний NPC.
+  - Инъекция зависимости SSOT: `TimeSkipExecutor` принимает `get_npcs_callback` (напр. `GameLoop._resolve_npcs_snapshot`), чтобы не хардкодить `LifeEngine` и не нарушать Dependency Inversion.
+  - Продвижение времени (инкремент `scene_state["tick"]`) выполняется в `TimeSkipExecutor`, ядро остаётся чистой функцией.
+  - Защита от гонок: `GameLoop.skip_time` использует `threading.Lock` привязанный к `campaign_id`.
+  - Лёгкий срез NPC: `LifeEngine.get_npc_light_states()` для оптимизации производительности детекторов.
+- 🟢 **S92** ADR-117 FIX: Исправлен баг сериализации `compress_narrative_cache` в `tick_orchestrator.py`. `NPCState.write_to_legacy` вызывался как метод экземпляра, хотя является `@staticmethod`, что приводило к потере данных NPC между тиками.
+- 🟢 **S92** ADR-O-201 FIX: Исправлен баг shallow copy в `projection_engine.py`. `scene_state.active_traversals[npc] = thick.traversal.fields` присваивал ссылку, нарушая иммутабельность `ThickSceneChange`. Заменено на `copy.deepcopy`.
+- 🟢 **S92** DOM-04 Tests Update: Обновлены песочницы `test_boundary_nodes.py`, `test_adjacency_inference.py`, `test_boundary_transition.py`, `test_projection_engine.py`, `test_causal_closure.py` для соответствия ADR-TRAV-FSM, ADR-O-304 и 5-элементному возврату `compile_graph` (добавлен `rooms_geometry`). eSkipExecutor принимает get_npcs_callback (напр. GameLoop._resolve_npcs_snapshot), чтобы не хардкодить LifeEngine и не нарушать Dependency Inversion.
+  - Продвижение времени (инкремент scene_state["tick"]) выполняется в TimeSkipExecutor, ядро остаётся чистой функцией.
 - 🔵 **S88** Epistemic Boundary (Symbolic Interpretation Layer): DM-контур переведён на символьную интерпретацию. `stance_from_decision` и `_project_psychology` переведены на чтение `observed_state` и `intent`. Числовые пороги `stress/fear/trust` удалены из вербализации.
 - 🔵 **S88** WorldProjectionBuffer (Shadow Causality): Реализован как pure function (ADR-O-309). Инкапсулирован внутри `SceneStateManager.commit()`. Внедрён strict temporal sealing (diff state_t vs state_t-1). `TickOrchestrator` очищен от логики истории состояний.
 - 💀 **S88** LLM Context Exile: Функция `build_verbalization_context` полностью удалена из ядра симуляции (`npc_tick_pipeline.py`). Ядро больше не формирует промпты.

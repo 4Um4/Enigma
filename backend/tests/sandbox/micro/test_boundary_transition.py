@@ -77,8 +77,9 @@ def test_boundary_traversal_emits_transition_scene_change():
     
     orch._process_traversals(ctx)
     
-    # Проверяем что traversal завершён
-    assert trav["status"] == "COMPLETED"
+    # ADR-TRAV-FSM: TickOrchestrator не мутирует статус напрямую.
+    # Он эмитит SceneChange(cause="traversal_complete", traversal_status="COMPLETED").
+    # Проверка применения статуса будет в тесте SSM.
     
     # Проверяем что apply_changes был вызван с SceneChange
     applied = orch._scene_manager is not None
@@ -185,7 +186,9 @@ def test_runtime_applies_boundary_snap():
     )
     
     # Mock SpatialService — патчим на месте импорта (локальный import внутри метода)
-    mock_node = MagicMock(x=20.0, y=15.0)
+    # Используем spec=NodeRef, чтобы mock поддерживал атрибуты x и y как реальные числа.
+    from app.models.spatial_contracts import NodeRef
+    mock_node = NodeRef(id="city_gate:entry_west", x=20.0, y=15.0, role=NodeRole.ENTRANCE, zone_id="city_gate")
     mock_svc_instance = MagicMock()
     mock_svc_instance.get_node = MagicMock(return_value=mock_node)
     mock_svc_instance.build_for_location = MagicMock(return_value=mock_svc_instance)

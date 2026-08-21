@@ -48,7 +48,13 @@ class PlayerAvatarService:
     def __init__(self, root: str = "saves") -> None:
         self.root = Path(root)
         # ADR-JOURNAL: Буфер последних 100 реплик (RAM SSOT)
-        self._dialog_journal: List[Dict[str, str]] = []
+        # B1.3-FIX: Привязка журнала к campaign_id (раньше был общий список).
+        self._dialog_journals: Dict[str, List[Dict[str, str]]] = {}
+
+    def clear_journal(self, campaign_id: str) -> None:
+        """B1.3-FIX: Очистка RAM-кэша журнала при new_game (устранение утечки старых данных)."""
+        if campaign_id in self._dialog_journals:
+            del self._dialog_journals[campaign_id]
 
     def _avatar_path(self, campaign_id: str) -> Path:
         return self.root / campaign_id / "player_avatar.json"
@@ -77,6 +83,9 @@ class PlayerAvatarService:
                     f"{data.get('state', {}).get('npc_id')} != {player_name}"
                 )
                 return None
+            # B1.3-FIX: Загрузка журнала из файла в кэш (если есть)
+            if "dialog_journal" in data:
+                self._dialog_journals[campaign_id] = data["dialog_journal"]
             return data
         except Exception as e:
             logger.error(f"[AVATAR] ошибка загрузки: {e}")
@@ -128,6 +137,8 @@ class PlayerAvatarService:
             "sheet": sheet.model_dump(),
             "profile": profile.to_dict(),
             "state": self._state_to_dict(state),
+            # B1.3-FIX: Персистентность журнала (если кэш инициализирован)
+            "dialog_journal": self._dialog_journals.get(campaign_id, []),
         }
         path.write_text(
             json.dumps(data, ensure_ascii=False, indent=2),
@@ -144,6 +155,10 @@ class PlayerAvatarService:
         except Exception:
             data = {}
         data["state"] = self._state_to_dict(state)
+        # B1.3-FIX: Персистентность журнала при save_state.
+        # Сохраняем только если кэш инициализирован, иначе оставляем то, что есть в файле.
+        if campaign_id in self._dialog_journals:
+            data["dialog_journal"] = self._dialog_journals[campaign_id]
         path.write_text(
             json.dumps(data, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -317,18 +332,20 @@ class PlayerAvatarService:
         self._dialog_journal = data.get("dialog_journal", [])
 
     # ── ADR-JOURNAL: Управление очередью реплик ───────────────────
-    def append_journal(self, speaker: str, text: str):
+    def append_journal(self, campaign_id: str, speaker: str, text: str):
         """Добавление реплики в журнал. Инвариант J-100 (FIFO)."""
         if not text:
             return
-        self._dialog_journal.append({"speaker": speaker, "text": text})
+        if campaign_id not in self._dialog_journals:
+            self._dialog_journals[campaign_id] = []
+        self._dialog_journals[campaign_id].append({"speaker": speaker, "text": text})
         # Ограничение 100 последних высказываний
-        if len(self._dialog_journal) > 100:
-            self._dialog_journal = self._dialog_journal[-100:]
+        if len(self._dialog_journals[campaign_id]) > 100:
+            self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][-100:]
 
-    def get_journal(self) -> list:
-        """Возвращает буфер журнала для проекции во WorldSnapshotDTO."""
-        return self._dialog_journal
+    def get_journal(self, campaign_id: str) -> list:
+        """Возвращает буфер журнала для проекции во WorldSnapshotDTO (копия, чтобы предотвратить мутацию)."""
+        return list(self._dialog_journals.get(campaign_id, []))
 
 
 # Глобальный экземпляр

@@ -619,8 +619,12 @@ class DmAgent:
         dm_output = DMResponseNormalizer.normalize(raw)
         dm_text = dm_output.dm_text
 
+        # FIX-3: Убрано `dm_text = result.get("dm_response", "")` —
+        # result здесь не существует (DMResponseNormalizer возвращает DMOutput, не dict).
+        # Это вызывало NameError → пустой dm_text → валидатор fallback → "Ничего не произошло".
+        # dm_text уже установлен из dm_output.dm_text выше.
+
         # 2. Валидация — только текст dm_response, не сырой JSON
-        dm_text = result.get("dm_response", "")
         from app.services.verbalization.response_validator import ResponseValidator
         validator = ResponseValidator(contract)
         # A4-FIX: передаём recent_text для проверки повторов.
@@ -646,25 +650,27 @@ class DmAgent:
             )
             if isinstance(raw_retry, str):
                 try:
-                    result = json.loads(raw_retry)
+                    _result_retry = json.loads(raw_retry)
                     # json.loads может вернуть str/int/list — оборачиваем в dict
-                    if not isinstance(result, dict):
-                        result = {"dm_response": str(result).strip()}
+                    if not isinstance(_result_retry, dict):
+                        _result_retry = {"dm_response": str(_result_retry).strip()}
                 except Exception:
-                    result = {"dm_response": raw_retry.strip()}
+                    _result_retry = {"dm_response": raw_retry.strip()}
             else:
-                result = raw_retry if isinstance(raw_retry, dict) else {"dm_response": str(raw_retry)}
+                _result_retry = raw_retry if isinstance(raw_retry, dict) else {"dm_response": str(raw_retry)}
 
-            dm_text = result.get("dm_response", "")
+            dm_text = _result_retry.get("dm_response", "")
             # A4-FIX: передаём recent_text для проверки повторов.
-        _recent = self._get_last_dm_response()
-        validation = validator.validate(dm_text, recent_text=_recent)
+            _recent = self._get_last_dm_response()
+            validation = validator.validate(dm_text, recent_text=_recent)
 
         if validation.is_fallback:
             jsonl_log({"level": "WARN", "agent": "dm_agent", "violation": validation.violation, "fallback_text": validation.text})
-            result["dm_response"] = validation.text
+            dm_text = validation.text
 
-        return result
+        # FIX-4: Гарантируем, что возвращаем dict с dm_response.
+        # result может не существовать, если не было CJK retry.
+        return {"dm_response": dm_text}
 
     def _get_last_dm_response(self) -> Optional[str]:
         """Возвращает последний DM-ответ из истории (safe access)."""

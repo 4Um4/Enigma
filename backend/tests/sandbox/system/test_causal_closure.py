@@ -13,6 +13,7 @@ import pytest
 
 from app.domain.decision_context import DecisionContext, UtilityFieldDeformation, ActionSpaceCompression
 from app.services.npc.decision_hub import DecisionHub, EventContext
+from app.domain.identity_events import EffectiveDrives
 from app.models.npc_state import NPCState, PerceptualKernel
 from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.services.events.event_types import EventType
@@ -94,11 +95,14 @@ def test_full_obedience_closure(fearful_profile, idle_event):
     )
     
     # 3. Вызов реального DecisionHub
+    from app.domain.identity_events import EffectiveDrives
+    _effective_drives = EffectiveDrives(values={"fear": 0.6, "control": 0.3, "significance": 0.4, "desire": 0.2})
     hub = DecisionHub(seed=42)
     result = hub.compute(
         state=state,
         personality=fearful_profile,
         event=idle_event,
+        effective_drives=_effective_drives,
         decision_ctx=decision_ctx
     )
     
@@ -147,6 +151,7 @@ def test_brave_resistance_closure(brave_profile, idle_event):
         state=state,
         personality=brave_profile,
         event=idle_event,
+        effective_drives=EffectiveDrives(values={"fear": 0.6, "control": 0.3, "significance": 0.4, "desire": 0.2}),
         decision_ctx=decision_ctx
     )
     

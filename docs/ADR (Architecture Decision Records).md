@@ -141,6 +141,11 @@
   Taboo: ❌ Передача `dm_ctx` в `TickOrchestrator` как активного контракта. ❌ Ветвление `if dm_ctx is not None:` внутри `execute()`.
   Files: contracts/interventions.py, tick_orchestrator.py
 
+`ADR-TZ09-1` [ONTO] **Execution Pipeline Collapse (Унификация Каузального Канала)** — Убито раздвоение мира на player/idle пути. `run_npc_pipeline` (legacy mutation shell) и `tick_decisions` (pure scorer) схлопнуты в единый `NpcTickPipeline.run()`. Введён `TickState` (deep immutable causal snapshot) и `TickMutation` (pure result). `TickOrchestrator._phase_5_decision` стал Assembler + Committer. `GameLoop` переведён на `InterventionEvent`. 
+  Taboo: ❌ Возврат `_phase_5_player_decision`. ❌ Прямая передача `DMContext` в пайплайн (только через `TickState`). ❌ Изменяемые дефолты в `TickState` (использовать `frozen()`).
+  Status: VERIFIED (15-tick DriftLaboratory run, rate 1.4/tick)
+  Files: domain/tick.py, services/npc/npc_tick_pipeline.py, services/tick_orchestrator.py, services/game_loop/__init__.py
+
 `ADR-TZ08-2` [ONTO] **Immutable Core Pipeline (_run_core_phases)** — Ветвление логики ядра убито. Введён единый метод `_run_core_phases`, вызываемый всегда. Фаза 1 разделена на 3 независимых подслоя: NPIC normalize, Intervention routing, WillpowerGate. `execute_player_finalize` стал no-op.
   Taboo: ❌ Возврат `TickPlayerResultDTO` из `execute()`. Ядро возвращает только `TickResultDTO`.
   Files: tick_orchestrator.py, domain/tick.py
@@ -243,8 +248,11 @@
 `ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py
 
 `ADR-TZ08-6` [ONTO] **Ontological Separation (observed_state)** — Разделение контрактов в момент генерации. Ядро генерирует `observed_state` (только name, description, narrative_cache) вместо `real_state` (сырой legacy dict с ментальными объектами). Эпистемический Барьер обеспечен онтологически, а не через runtime-фильтры. `WorldProjectionBuffer` зафиксирован как будущий слой оффскрин-симуляции, не влияющий на DM-контур.
-  Taboo: ❌ Генерация `real_state` или `distortion_bias` в `npc_tick_pipeline.py`. ❌ Восстановление ментальных полей через инференс в `observed_state`.
-  Files: npc/npc_tick_pipeline.py, scene/r3_direct_builder.py
+
+`ADR-TZ08-ADD-1` [ONTO] **Time Skip as Observation Policy** — Промотка времени реализована как observation layer поверх единого ядра. `TimeSkipExecutor` не содержит собственной симуляции, а вызывает `Kernel.execute()` в цикле, мутируя `scene_state["tick"]`. Остановка (Policy B) и сжатие (Policy C) определяются детекторами, читающими `TickResultDTO` и SSOT NPC через коллбек. 
+  Invariant: `TickOrchestrator.execute()` обязан завершать атомарный commit состояния (`StateApplicator.apply_batch` + `LifeEngine.update_cache`) ДО возврата управления. Нарушение этого инварианта приводит к потере причинной согласованности детекторами Time Skip, так как они читают SSOT сразу после возврата из `execute()`.
+  Taboo: ❌ Создание второго симулятора для Time Skip. ❌ Прямой импорт `LifeEngine` внутри `TimeSkipExecutor` (только через `get_npcs_callback`). ❌ Прямой доступ к `LifeEngine._npc_cache` снаружи (только через `get_npc_light_states`). ❌ Вызов `kernel.execute()` без инкремента `scene_state["tick"]` со стороны оркестратора.
+  Files: services/world/time_skip_executor.py, services/npc/life_engine.py, services/game_loop/__init__.py
 
 `ADR-TZ05-1` [ONTO] **LLM Context Exile** — Вынос LLM-логики из execution path ядра. Вызов `build_verbalization_context` удалён из `run_npc_pipeline`. Ядро больше не формирует промпты и не собирает ментальные объекты для LLM (physical_state, recalled_facts, suppressed_secrets) в потоке симуляции. Единственная передача темы диалога осуществляется через поле `topic`. Сама функция `build_verbalization_context` сохранена как EXPRESSION LAYER и маркирована TODO для переноса в verbalization слой и переписывания на `observed_state`.
   Taboo: ❌ Вызов `build_verbalization_context` внутри execution path (`run_npc_pipeline`). ❌ Импорт `VerbalizationContext` в execution path ядра.

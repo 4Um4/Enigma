@@ -1644,7 +1644,9 @@ class TickOrchestrator:
                     if _compressed != npc_state.narrative_cache:
                         npc_state.narrative_cache = _compressed
                         # Синхронизация обратно в dict
-                        npc_state.write_to_legacy(npc_dict)
+                        # ADR-117: write_to_legacy — staticmethod. Вызов через класс.
+                        from app.models.npc_state import NPCState
+                        NPCState.write_to_legacy(npc_state, npc_dict)
                 except Exception as e:
                     logger.warning(f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}")
 
@@ -2806,6 +2808,8 @@ class TickOrchestrator:
                         
                         # ТЗ EMBODIED UI: Генерация ProjectionFrame (T+0)
                         from app.domain.perception import ProjectionFrame
+                        if "_projection_frames" not in locals():
+                            _projection_frames = []
                         if projected_kernel.threat_gradient > 0.05 or projected_kernel.initiative_suppression > 0.2:
                             signal = "avoid_gaze" if projected_kernel.threat_gradient > 0.5 else ("freeze" if projected_kernel.initiative_suppression > 0.7 else "calm")
                             _projection_frames.append(ProjectionFrame(

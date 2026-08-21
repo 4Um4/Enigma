@@ -59,14 +59,16 @@ class AvatarStateDTO:
 
 @dataclass(frozen=True)
 class NPCPositionDTO:
-    """Позиция одного NPC в мире. Readonly для frontend."""
+    """Позиция одного NPC в мире. Readonly для frontend.
+    A2-FIX: Структура приведена в соответствие с контрактом frontend (вложенный local_position, activity, name).
+    Это устраняет необходимость в адаптере snapshot_npc_positions_to_dict.
+    """
     npc_id: str
-    x: float
-    y: float
+    local_position: Dict[str, float]  # Вложенный словарь {"x": float, "y": float}
     location_id: str
     facing: str          # 'north', 'south', 'east', 'west'
-    action: str          # 'idle', 'walking', 'talking', 'working'
-    display_name: str    # имя для UI
+    activity: str        # 'idle', 'walking', 'talking', 'working' (переименовано с action)
+    name: str            # имя для UI (переименовано с display_name)
     initiative_suppression: float = 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
     velocity: Tuple[float, float] = (0.0, 0.0) # ETKE-IK: Вектор скорости для непрерывного рендера
     exertion_level: float = 0.0       # ETKE-IK: Уровень усталости (0.0-1.0)
@@ -103,9 +105,13 @@ class ActivePerception:
 @dataclass(frozen=True)
 class PeripheralCueDTO:
     """Периферическое наблюдение за NPC (Слой 1: Наблюдение, не диагноз).
-    ЗАПРЕТ: Текст строго внешний ("Замер"), без телепатии ("Боится")."""
+    ЗАПРЕТ: Текст строго внешний ("Замер"), без телепатии ("Боится").
+
+    A3-FIX: поле переименовано cue_type → cue_key для согласования с frontend.
+    Раньше frontend читал cue_key, backend отдавал cue_type → пустые симптомы.
+    """
     npc_id: str
-    cue_type: str              # "FREEZE", "HURRY", "AVOID_GAZE"
+    cue_key: str              # "FREEZE", "HURRY", "AVOID_GAZE" (renamed from cue_type)
     hover_text: str            # "Замер на месте", "Отвел взгляд"
 
 
@@ -161,7 +167,11 @@ class WorldSnapshotDTO:
     version: int                 # инкремент SceneStateManager, защита от stale
     last_event_id: Optional[UUID]  # последнее обработанное событие
     player_position: Tuple[float, float]
-    npc_positions: List[NPCPositionDTO]
+    # A2-FIX: Dict[str, NPCPositionDTO] — canonical.
+    # Раньше List[NPCPositionDTO] + runtime adapter snapshot_npc_positions_to_dict.
+    # Adapter маскировал архитектурный разрыв между backend (List) и frontend (Dict).
+    # Теперь: Dict напрямую, frontend читает .items() без конвертации.
+    npc_positions: Dict[str, NPCPositionDTO]
     available_actions: List[str]
     location_id: str
     weather: str
@@ -176,27 +186,11 @@ class WorldSnapshotDTO:
     player_perception: Optional[PlayerPerceptionDTO] = None # ТЗ EMBODIED UI: Симметричная онтология восприятия
 
 
-def snapshot_npc_positions_to_dict(
-    positions: List[NPCPositionDTO],
-) -> dict:
-    """Конвертирует List[NPCPositionDTO] в dict для обратной совместимости фронтенда.
-
-    Фронтенд ожидает: {npc_id: {"local_position": {"x", "y"}, "activity", "name", ...}}
-    WorldSnapshotDTO содержит: List[NPCPositionDTO] с плоскими x, y, action, display_name.
-    """
-    result: dict = {}
-    for pos in positions:
-        result[pos.npc_id] = {
-            "npc_id": pos.npc_id,
-            "x": pos.x,
-            "y": pos.y,
-            "local_position": {"x": pos.x, "y": pos.y},
-            "activity": pos.action,
-            "facing": pos.facing,
-            "location_id": pos.location_id,
-            "display_name": pos.display_name,
-            "name": pos.display_name,
-            "velocity": pos.velocity,
-            "exertion_level": pos.exertion_level,
-        }
-    return result
+# A2-FIX: snapshot_npc_positions_to_dict УДАЛЕН.
+# Раньше конвертировал List[NPCPositionDTO] → dict для frontend.
+# Теперь WorldSnapshotDTO.npc_positions = Dict[str, NPCPositionDTO] напрямую.
+# Frontend читает .items() без конвертации.
+#
+# Если где-то ещё нужен dict-формат (для JSON serialization), использовать asdict():
+# from dataclasses import asdict
+# positions_dict = {nid: asdict(pos) for nid, pos in ws.npc_positions.items()}

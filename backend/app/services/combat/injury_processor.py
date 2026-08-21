@@ -240,10 +240,14 @@ class InjuryProcessor:
             if not npc_id:
                 continue
             
+            # FIX-5: Пропускать мёртвых NPC и не спамить лог, если нет ран.
+            _body = npc.get("body_state")
+            if isinstance(_body, dict) and _body.get("life_status") == "DEAD":
+                continue
+            
             injuries_by_zone = npc.get("injuries_by_zone", {})
             if not injuries_by_zone:
-                logger.warning(f"[INJURY_PROC] npc={npc_id} NO injuries_by_zone")
-                continue
+                continue  # Нормально — нет ран, нет обработки
             
             logger.warning(f"[INJURY_PROC] npc={npc_id} zones={list(injuries_by_zone.keys())} wounds={sum(len(v) for v in injuries_by_zone.values())}")
             

@@ -4,7 +4,7 @@ from typing import Literal, List
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from app.domain.snapshot import snapshot_npc_positions_to_dict
+# A2-FIX: snapshot_npc_positions_to_dict удалён (canonical Dict)
 from app.models.schemas import (
     CampaignLoadRequest,
     CampaignLoadResponse,
@@ -148,6 +148,19 @@ def load_campaign(request: CampaignLoadRequest, game_loop=Depends(get_game_loop)
     return game_loop.load_campaign(request.campaign_id, request.world_id)
 
 
+@router.post("/game/skip_time/{campaign_id}")
+def skip_time(campaign_id: str, ticks: int = 10, game_loop=Depends(get_game_loop)) -> dict:
+    """
+    Промотка времени (Time Skip) — вызывает TimeSkipExecutor.
+    Использует Policy B (остановка на значимом событии).
+    """
+    try:
+        return game_loop.skip_time(campaign_id, ticks)
+    except Exception as e:
+        import traceback
+        print(f"[SKIP_TIME_BE] ERROR: {e}\n{traceback.format_exc()}")
+        return {"status": "error", "error": str(e), "npc_positions": {}}
+
 @router.post("/game/idle_tick/{campaign_id}")
 def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """
@@ -162,15 +175,12 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         _ws = _result.get("world_snapshot") if isinstance(_result, dict) else getattr(_result, 'world_snapshot', None)
         if _ws is not None:
             _npc_pos = _ws.get("npc_positions") if isinstance(_ws, dict) else getattr(_ws, 'npc_positions', None)
-            # Защита от смены контракта: если пришел dict, а не список объектов
+            # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
             if isinstance(_npc_pos, dict):
                 _npc_pos_dict = _npc_pos
-            elif _npc_pos:
-                # ИСПРАВЛЕНО: убрана trailing comma. Раньше _npc_pos_dict становился
-                # 1-tuple (dict,), после JSON — list с одним dict. Frontend .items()
-                # на list падал. Сейчас ветка не срабатывает (game_loop.idle_tick
-                # уже конвертирует), но баг скрытый.
-                _npc_pos_dict = snapshot_npc_positions_to_dict(_npc_pos)
+            elif isinstance(_npc_pos, list):
+                # Fallback для legacy snapshots (если кто-то вернёт List)
+                _npc_pos_dict = {p.get("npc_id"): p for p in _npc_pos if isinstance(p, dict) and "npc_id" in p}
         
         _status = _result.get("status") if isinstance(_result, dict) else _result.status
         _events = _result.get("significant_events") if isinstance(_result, dict) else _result.significant_events
@@ -420,10 +430,12 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                 _ws_dict = ws
             
             if _ws_dict:
-                _raw_positions = _ws_dict.get("npc_positions", [])
+                _raw_positions = _ws_dict.get("npc_positions", {})
+                # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
                 if isinstance(_raw_positions, dict):
                     _npc_pos_dict = _raw_positions
                 elif isinstance(_raw_positions, list):
+                    # Fallback для legacy snapshots
                     _npc_pos_dict = {
                         p.get("npc_id", f"npc_{i}"): p 
                         for i, p in enumerate(_raw_positions) if isinstance(p, dict)
@@ -462,21 +474,18 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
     except HTTPException:
         raise  # пробрасываем дальше
     except Exception as e:
-        import logging
         import traceback
-        logger = logging.getLogger(__name__)
-
-        # ИСПРАВЛЕНО: Windows-путь заменён на относительный от BASE_DIR.
-        # Раньше на Linux open("C:/DDD/...") падал с FileNotFoundError ВНУТРИ except,
-        # оригинальная exception терялась, frontend видел 500 без тела.
-        from app.core.config import settings
+        # FIX-1: Убран локальный `from app.core.config import settings` —
+        # он вызывал UnboundLocalError на строке 325 (settings.llama_cpp_server_url).
+        # Глобального импорта (строка 43) достаточно.
+        # FIX-2: Используем os.path вместо Path (Path не импортирован, os — да).
         try:
-            error_log_dir = Path(settings.data_dir).parent / "logs"
-            error_log_dir.mkdir(exist_ok=True)
-            error_path = error_log_dir / "error.log"
-            with open(error_path, "w", encoding="utf-8") as f:
+            _error_log_dir = os.path.join(os.path.dirname(settings.data_dir), "logs")
+            os.makedirs(_error_log_dir, exist_ok=True)
+            _error_path = os.path.join(_error_log_dir, "error.log")
+            with open(_error_path, "w", encoding="utf-8") as f:
                 f.write(traceback.format_exc())
-            logger.error(f"[GAME_ACTION] error.log written to {error_path}")
+            logger.error(f"[GAME_ACTION] error.log written to {_error_path}")
         except Exception as log_err:
             logger.error(f"[GAME_ACTION] failed to write error.log: {log_err}")
 
