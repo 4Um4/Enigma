@@ -12,8 +12,10 @@
 """
 
 import logging
+import copy
 from typing import Any, Optional
 
+from app.domain.tick import TickState, TickMutation
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.npc.domain_phases import (
     HANDS_OCCUPIED_ACTIVITIES,
@@ -28,6 +30,276 @@ from app.services.npc.domain_phases import (
 
 logger = logging.getLogger(__name__)
 
+
+class NpcTickPipeline:
+    """
+    TZ-09: Execution Kernel as Pure Deterministic Reducer.
+    
+    Инварианты (TODO: полное внедрение на следующих шагах):
+    - НИКАКИХ вызовов MemoryManager, StateApplicator или SQLite внутри.
+    - НИКАКИХ скрытых мутаций состояния.
+    - Принимает TickState, возвращает TickMutation.
+    """
+    
+    @staticmethod
+    def run(
+        state: TickState,
+        svc: Any = None,  # Временный костыль для миграции
+        drf_ctx: Optional[Any] = None
+    ) -> TickMutation:
+        from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
+        from app.services.npc.decision_hub import DecisionHub
+        from app.services.npc.interpretation_engine import InterpretationEngine
+        from app.models.npc_state import NPCIdentityL1, NPCState, compute_drive_modifiers
+        from app.services.npc.state_applicator import StateApplicator
+        from app.services.npc.npc_tick_contracts import _INTENT_TO_ACTIVITY
+        from app.services.events.event_types import EventType
+        from app.services.npc.decision_hub import EventContext
+
+        _attack_target = state.player_target_id if state.action_type in ("player_attacks", "PLAYER_ATTACKED", "combat") else None
+        
+        _is_player_turn = state.hub_event is not None
+        _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
+        
+        communication_intents: list = []
+        movement_intents: list = []
+        npc_deltas: list = []
+
+        for npc in _npcs_to_process:
+            npc_id = npc.get("npc_id") or npc.get("id")
+            _los = state.line_of_sight.get(npc_id, False) if state.line_of_sight else False
+            _is_attack_target = (npc_id == _attack_target)
+            
+            if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
+                continue
+
+            _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None
+            
+            _npc_profile = None
+            for _n in state.all_npcs_raw:
+                if _n.get("id") == npc_id or _n.get("npc_id") == npc_id:
+                    _npc_profile = _n
+                    break
+                    
+            if not _npc_profile:
+                continue
+
+            # Deep copy замороженного снимка для безопасной мутации легаси-кодом
+            _npc_dict_for_write = copy.deepcopy(dict(_npc_profile))
+            profile_l0 = load_profile_from_legacy_json(_npc_dict_for_write)
+            state_l2 = load_l2_state_from_runtime_dict(_npc_dict_for_write)
+
+            if svc and svc.memory_manager:
+                _sqlite_cache = svc.memory_manager.load_narrative_from_sqlite(state.campaign_id, npc_id)
+                if _sqlite_cache is not None:
+                    state_l2.narrative_cache = _sqlite_cache
+
+            age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
+
+            state_l2, _reflex_constraints = resolve_physical_attack(
+                npc_id=npc_id, npc_profile=_npc_dict_for_write, npc_dict_for_write=_npc_dict_for_write,
+                state_l2=state_l2, action_type=state.action_type, target_id=state.player_target_id,
+                current_tick=state.tick_id, scene_continuity=state.scene_continuity,
+                scene_state=dict(state.scene_state), relationship_store=svc.relationship_store if svc else None,
+            )
+
+            state_l2 = tick_conditions(state_l2, _npc_dict_for_write, state.tick_id, state.scene_continuity)
+            reset_session_state(state_l2, npc_id, state.is_session_start)
+
+            if svc and svc.memory_manager:
+                try:
+                    mem_weights = svc.memory_manager.get_weights_for_decision(campaign_id=state.campaign_id, npc_id=npc_id, target_id="player")
+                    state_l2.relationship_cache.setdefault("player", {}).update(mem_weights)
+                    for _nearby_npc in state.nearby_npcs:
+                        _nearby_id = _nearby_npc.get("npc_id") or _nearby_npc.get("id")
+                        if _nearby_id and _nearby_id != npc_id:
+                            _npc_weights = svc.memory_manager.get_weights_for_decision(campaign_id=state.campaign_id, npc_id=npc_id, target_id=_nearby_id)
+                            state_l2.relationship_cache.setdefault(_nearby_id, {}).update(_npc_weights)
+                except Exception as _mem_e:
+                    logger.error(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}", exc_info=True)
+
+            if svc and svc.memory_manager and state.hub_event:
+                try:
+                    state_l2 = apply_perception_memory(
+                        svc.memory_manager, state_l2, state.hub_event, npc_id,
+                        state.player_target_id, state.raw_input, state.campaign_id,
+                        spatial_query=svc.spatial_query if svc else None,
+                    )
+                except Exception as _perc_mem_err:
+                    logger.warning(f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}")
+
+            try:
+                from app.services.npc.belief_transition_engine import BeliefTransitionEngine
+                _event_for_belief = state.hub_event if state.hub_event else EventContext(
+                    event_type=EventType.WORLD_TICK, actor_id=npc_id, success=True, intensity=0.2,
+                    distance=0.0, witness_count=0, location=state.scene_state.get("location_id", ""),
+                    scene_flags=set(state.scene_state.get("active_flags", [])), scene_facts=[]
+                )
+                BeliefTransitionEngine().integrate(state_l2, _event_for_belief, state.tick_id)
+            except Exception as _belief_err:
+                logger.warning(f"[BELIEF] belief update failed for {npc_id}: {_belief_err}")
+
+            _drives_for_interp = getattr(state_l2, 'drives_runtime', None) or profile_l0.drives_base
+            _event_for_interp = state.hub_event if state.hub_event else EventContext(
+                event_type=EventType.WORLD_TICK, actor_id=npc_id, success=True, intensity=0.2,
+                distance=0.0, witness_count=0, location=state.scene_state.get("location_id", ""),
+                scene_flags=set(state.scene_state.get("active_flags", [])), scene_facts=[]
+            )
+            interpretation = InterpretationEngine().compute(state=state_l2, event=_event_for_interp, drives_base=_drives_for_interp)
+
+            _identity_traits = svc.memory_manager.get_identity_traits(campaign_id=state.campaign_id, npc_id=npc_id) if svc and svc.memory_manager else {}
+            _identity = NPCIdentityL1(npc_id=npc_id, active_traits=_identity_traits)
+
+            _social_mods = {}
+            if svc and svc.social_engine:
+                try:
+                    _spatial_query = svc.spatial_query
+                    _player_dists_snap = _spatial_query.player_distances(list(svc.social_engine.all_npc_ids)) if _spatial_query else {}
+                    _extra_evt_types = [sp.event_type for sp in state.spatial_events] if state.spatial_events else None
+                    _social_mods = svc.social_engine.compute_social_modifiers(
+                        npc_id=npc_id, player_distances=_player_dists_snap,
+                        event_type=_event_for_interp.event_type, event_target=state.player_target_id,
+                        extra_event_types=_extra_evt_types,
+                    )
+                except Exception as e:
+                    logger.warning(f"[GAME_LOOP] Ошибка social_engine.compute: {e}")
+
+            _eco_profile = svc.economic_profiles.get(npc_id) if svc and hasattr(svc, 'economic_profiles') else None
+            _eco_result = compute_economy(npc_id, _eco_profile, state_l2)
+            _all_modifiers = {**interpretation.score_modifiers}
+            if _eco_modifiers := _eco_result["modifiers"]:
+                for _intent, _mod in _eco_modifiers.items():
+                    _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
+
+            _rep_modifiers_for_hub = None
+            if svc and svc.reputation_engine:
+                _rep_mod = svc.reputation_engine.compute_reputation_modifier(npc_id)
+                if _rep_mod: _rep_modifiers_for_hub = _rep_mod
+
+            _drive_modifiers_for_hub = None
+            _drives = getattr(state_l2, "temporary_drives", [])
+            if _drives:
+                _drive_mods = compute_drive_modifiers(_drives)
+                if _drive_mods: _drive_modifiers_for_hub = _drive_mods
+
+            from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
+            _belief_mods = BeliefModifierResolver().resolve(state_l2.beliefs)
+            if _belief_mods:
+                if _drive_modifiers_for_hub:
+                    for _bk, _bv in _belief_mods.items():
+                        _drive_modifiers_for_hub[_bk] = round(_drive_modifiers_for_hub.get(_bk, 0.0) + _bv, 4)
+                else:
+                    _drive_modifiers_for_hub = _belief_mods
+
+            _crystallized_store = getattr(svc, 'crystallized_belief_store', None) if svc else None
+            if _crystallized_store:
+                from app.services.npc.crystallized_belief_modifier_resolver import CrystallizedBeliefModifierResolver
+                _crystallized_beliefs = _crystallized_store.get_beliefs(npc_id)
+                _crystallized_mods = CrystallizedBeliefModifierResolver().resolve(_crystallized_beliefs)
+                if _crystallized_mods:
+                    if _drive_modifiers_for_hub:
+                        for _ck, _cv in _crystallized_mods.items():
+                            _drive_modifiers_for_hub[_ck] = round(_drive_modifiers_for_hub.get(_ck, 0.0) + _cv, 4)
+                        else:
+                            _drive_modifiers_for_hub = _crystallized_mods
+
+            from app.services.npc.topic_extractor import extract_topic
+            _topic = extract_topic(
+                event_type=_event_for_interp.event_type.value if hasattr(_event_for_interp.event_type, "value") else str(_event_for_interp.event_type),
+                scene_facts=_event_for_interp.scene_facts, raw_input=state.raw_input,
+            )
+            
+            _dir = getattr(getattr(state_l2, 'perceptual_kernel', None), 'recent_directive', None) \
+                or (isinstance(_npc_dict_for_write, dict) and _npc_dict_for_write.get("perceptual_kernel", {}).get("recent_directive"))
+            if _dir: _topic = "разговор" if _dir.get("is_obedience") else "угроза"
+
+            from app.domain.decision_context import DecisionContext
+            from app.services.cfrm.pressure_translator import translate_kernel_to_context
+            _body = getattr(state_l2, 'body_state', None)
+            _kernel = getattr(state_l2, 'perceptual_kernel', None)
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
+
+            _effective_drives = state.effective_drives_map.get(npc_id)
+            if _effective_drives is None: continue
+
+            decision = DecisionHub().compute(
+                state=state_l2, personality=profile_l0, effective_drives=_effective_drives,
+                event=_event_for_interp, identity=_identity, eco_modifiers=_all_modifiers or None,
+                social_modifiers=_social_mods or None, reputation_modifiers=_rep_modifiers_for_hub,
+                drive_modifiers=_drive_modifiers_for_hub, reflex_constraints=_reflex_constraints,
+                topic=_topic, decision_ctx=_decision_ctx,
+            )
+
+            _is_move_command = False
+            if state.hub_event:
+                _payload = getattr(state.hub_event, 'payload', {})
+                if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
+                    _target_ref = _payload.get("target_reference", "").lower()
+                    npc_name = _npc_dict_for_write.get("name", "").lower()
+                    npc_id_lower = npc_id.lower()
+                    _name_words = [w for w in npc_name.split() if len(w) >= 3]
+                    if _target_ref in ("player", ""): _is_move_command = True
+                    elif _target_ref in npc_name or _target_ref in npc_id_lower or any(_target_ref in w or w in _target_ref for w in _name_words): _is_move_command = True
+
+            if _is_move_command and decision.intent.value != "approach":
+                from app.models.npc_state import Intent
+                import dataclasses
+                new_result = dataclasses.replace(decision.decision, intent=Intent.APPROACH, intent_target="player")
+                decision = dataclasses.replace(decision, decision=new_result)
+
+            if decision.communication is not None:
+                communication_intents.append(decision.communication)
+
+            _intent_value = decision.intent.value if decision.intent else ""
+            
+            if _intent_value not in {"approach", "flee"}:
+                if _is_move_command:
+                    _intent_value = "approach"
+                    decision.intent_target = "player"
+
+            _MOVE_INTENTS = {"approach", "flee"}
+            if _intent_value in _MOVE_INTENTS:
+                _movement = _resolve_reactive_movement(
+                    npc_id=npc_id, intent=_intent_value,
+                    intent_target=decision.intent_target or "player",
+                    scene_state=dict(state.scene_state), location_id=state.scene_state.get("location_id", ""),
+                    spatial_service=svc.spatial_service if svc else None, drf_ctx=_npc_drf_ctx,
+                    spatial_query=svc.spatial_query if svc else None,
+                )
+                if _movement: movement_intents.append(_movement)
+                    
+            elif _intent_value == "attack":
+                from app.domain.communication import CommunicationIntent, ExposureLevel
+                _emotion_raw = getattr(state_l2, 'emotion', 'angry')
+                _attack_emotion = _emotion_raw.value if hasattr(_emotion_raw, 'value') else _emotion_raw
+                _attack_intent = CommunicationIntent(
+                    speaker=npc_id, audience=decision.intent_target or "player", topic="attack", intent_type="attack",
+                    emotional_state=_attack_emotion, exposure_level=ExposureLevel(semantic="shout", physical_radius=15.0),
+                    semantic_action="ATTACK", target_id=decision.intent_target or "player",
+                )
+                communication_intents.append(_attack_intent)
+
+            if svc and svc.relationship_store:
+                try:
+                    applicator = StateApplicator(relationship_store=svc.relationship_store)
+                    _new_state = applicator.apply(state=state_l2, result=decision, campaign_id=state.campaign_id)
+                    if hasattr(_new_state, 'deltas') and _new_state.deltas:
+                        npc_deltas.extend(_new_state.deltas)
+                        
+                    if svc.memory_manager:
+                        _ = create_memory_event(
+                            svc.memory_manager, state_l2=_new_state, decision=decision, npc_id=npc_id,
+                            hub_event=_event_for_interp, player_target_id=state.player_target_id, player_text=state.raw_input,
+                            scene_state=dict(state.scene_state), campaign_id=state.campaign_id,
+                        )
+                except Exception as e:
+                    logger.warning(f"[STATE_APPLICATOR] failed for {npc_id}: {e}")
+
+        return TickMutation(
+            npc_deltas=npc_deltas,
+            communication_intents=communication_intents,
+            movement_intents=movement_intents
+        )
 # ── Константы ──────────────────────────────────────────────────────────────────
 
 BASE_IMPORTANCE: dict[str, float] = {
@@ -268,12 +540,7 @@ def build_verbalization_context(
 # ОСНОВНОЙ ЦИКЛ NPC (Вариант C: Input/Buffer/Services)
 # ────────────────────────────────────────────────────────────────────────────
 
-def run_npc_pipeline(
-    inp: "NpcTickInput",
-    buf: "NpcTickBuffer",
-    svc: "NpcTickServices",
-    drf_ctx: Optional[Any] = None,  # DRF: scoped causal execution context (DRFExecutionContext)
-) -> "NpcTickBuffer":
+# TZ-09: Legacy run_npc_pipeline удалён. Используйте NpcTickPipeline.run(state).
     # DIAG: Проверяем, доходит ли шина до пайплайна
     _drf_tick = drf_ctx.tick_id if drf_ctx else -1
     print(f"[DRF_PIPE_ENTRY] tick={_drf_tick} frame_npc={drf_ctx.npc_id if drf_ctx else '?'} drf_ctx={drf_ctx is not None} bus_type={type(drf_ctx.bus).__name__ if drf_ctx else 'N/A'}")

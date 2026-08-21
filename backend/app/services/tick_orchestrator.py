@@ -204,6 +204,8 @@ class _TickContext:
     max_npc_stress: float = 0.0
     # Фаза 10: данные для атомарного коммита
     npc_states: list[dict] = field(default_factory=list)
+    # TZ-09: significant_events для аудита/персиста (маппится из TickMutation.npc_deltas)
+    significant_events: list = field(default_factory=list)
     # STEP B: L3 проекция (EffectiveDrives). Вычисляется один раз за тик, доступна обоим путям.
     effective_drives_map: Dict[str, "EffectiveDrives"] = field(default_factory=dict)
     # TSHL: Обновления для StateApplicator (пока в безопасном режиме)
@@ -276,6 +278,10 @@ class TickOrchestrator:
         self._snapshot_builder = None
         self._transit_tracker = None
         self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
+        # S91: Персистентные стигмергические слои (DynamicAffordanceField + Provider)
+        from app.services.spatial.world_topology_provider import WorldTopologyProvider, DynamicAffordanceField
+        self._dynamic_field = DynamicAffordanceField()
+        self._topology_provider = WorldTopologyProvider(dynamic_field=self._dynamic_field)
         # P1.1f: Social propagation — состояние тика переносим с GameLoop
         self._social_engine_factory: Any = None  # callable(campaign_id) → SocialEngine
         # §5.1 подписчики EventBus
@@ -337,6 +343,7 @@ class TickOrchestrator:
         # 1. Авторитетный источник: передан через NpcTickServices из npc_orchestration
         if ctx.npc_services and hasattr(ctx.npc_services, 'spatial_service') and ctx.npc_services.spatial_service:
             self._spatial_service = ctx.npc_services.spatial_service
+            self._topology_provider.set_spatial_service(self._spatial_service)
             return self._spatial_service
 
         # 1.5. Кэш текущего тика: tick_player_turn уже резолвил сервис,
@@ -355,6 +362,7 @@ class TickOrchestrator:
                     location_id=_loc_id,
                     scene_state=ctx.scene_state,
                 )
+                self._topology_provider.set_spatial_service(self._spatial_service)
                 return self._spatial_service
             except Exception as e:
                 logger.error(f"[SPATIAL_AUTHORITY] Crash during emergency build: {type(e).__name__}: {e}")
@@ -614,10 +622,7 @@ class TickOrchestrator:
         self._phase_2_event_bus_primary(ctx)
         self._phase_3_memory(ctx)
         self._phase_4_pre_decision(ctx)
-        if ctx.interventions and any(i.source == "player" for i in ctx.interventions):
-            self._phase_5_player_decision(ctx)
-        else:
-            self._phase_5_decision(ctx)
+        self._phase_5_decision(ctx)
         self._phase_6_post_decision(ctx)
         self._phase_8_drain_secondary(ctx)
         self._phase_9_integration(ctx)
@@ -715,54 +720,6 @@ class TickOrchestrator:
         pass # TODO: implement for CK successor directives
 
     # ── Player Turn: decision через legacy pipeline ───────────────────
-
-    def _phase_5_player_decision(self, ctx: _TickContext) -> None:
-        """Player turn: делегирует в run_npc_pipeline (topic, DecisionHub, StateApplicator).
-
-        Фазы 0-2 уже выполнены в _run_pipeline (DM, EventBus, CharacterFilter).
-        Фазы 8-10 выполнит _run_pipeline (finalize, commit).
-        Здесь — только decision + state mutation + IntentEventAdapter.
-        """
-        dm = ctx.dm_ctx
-        _dm_npcs = len(dm.all_npcs_raw) if dm and dm.all_npcs_raw else 0
-        logger.warning(f"[PHASE_5_PLAYER] ENTER: nearby_npcs={len(dm.nearby_npcs) if dm and dm.nearby_npcs else 0}, dm.all_npcs_raw={_dm_npcs}")
-        from app.services.npc.npc_tick_contracts import NpcTickInput, NpcTickBuffer
-        from app.services.npc.npc_tick_pipeline import run_npc_pipeline
-
-        # STEP B + TSHL: L3 для player path.
-        ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = self._compute_effective_drives(dm.all_npcs_raw or [], ctx.tick_number)
-
-        # DRF: Создаём frame context с привязкой к tick (npc_id привяжется в loop)
-        _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
-        _pl = getattr(dm.hub_event, 'payload', '<NO_PAYLOAD>') if dm.hub_event else '<NO_HUB_EVENT>'
-        logger.debug(f"[ARCHAE-TICK] hub_event id={id(dm.hub_event) if dm.hub_event else 0} payload={_pl} event_type={getattr(dm.hub_event, 'event_type', 'NO_TYPE')}")
-        npc_input = NpcTickInput(
-            campaign_id=ctx.campaign_id,
-            location=ctx.scene_state.get("location_id", ""),
-            scene_state=ctx.scene_state,
-            player_target_id=dm.player_target_id,
-            hub_event=dm.hub_event,
-            is_session_start=dm.is_session_start,
-            action_type=dm.action_type,
-            raw_input=dm.raw_input,
-            current_tick=dm.current_tick,
-            all_npcs_raw=dm.all_npcs_raw,
-            nearby_npcs=dm.nearby_npcs,
-            scene_continuity=dm.scene_continuity,
-            spatial_events=dm.spatial_events,
-            line_of_sight=dm.line_of_sight,
-            effective_drives_map=ctx.effective_drives_map,  # STEP B: L3 SSOT
-        )
-
-        npc_buffer = NpcTickBuffer()
-        npc_buffer = run_npc_pipeline(npc_input, npc_buffer, ctx.npc_services, drf_ctx=_drf_ctx)
-
-        # CommunicationIntents из pipeline → Фаза 6 (Устав §5.1)
-        if npc_buffer.communication_intents:
-            ctx.communication_intents = npc_buffer.communication_intents
-
-        logger.info(f"[TICK_PLAYER_INTENT] npc_buffer.movement_intents={npc_buffer.movement_intents} count={len(npc_buffer.movement_intents)}")
-        ctx.npc_contexts = npc_buffer.npc_contexts
         ctx.player_result = TickPlayerResultDTO(
             npc_contexts=npc_buffer.npc_contexts,
             dirty_npcs=npc_buffer.dirty_npcs,
@@ -981,21 +938,8 @@ class TickOrchestrator:
         # Perception pipeline для action tick (тот же что idle tick)
         # Без этого action response не содержит player_perception → cues_received=0
         # ADR-092: Perception pipeline для action tick
-        if ctx.scene_state and ctx.all_npcs_raw:
-            if not hasattr(self, '_manifest_svc'):
-                from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
-                from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
-                self._manifest_svc = BehaviorManifestationService()
-                self._project_svc = PhenomenologyProjectionService()
-            
-            # Rule X: Моторные следы строятся строго из физиологии и PerceptualKernel
-            _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=ctx.all_npcs_raw)
-            _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
-            
-            # Сохраняем для __init__.py snapshot builder
-            if ctx.shared_context:
-                ctx.shared_context.player_perception = _player_perception
-                ctx.shared_context.all_npcs_raw_snapshot = ctx.all_npcs_raw
+        # TZ-08 v0.2 (C2): Perception pipeline вынесен из ядра в PerceptionProjector (game_loop).
+        # Ядро больше не формирует player_perception.
 
         # Возвращаем обновлённый результат (с finalize_result)
         # SCENE_IDENTITY: проверяем, что scene_state не потерян между фазами
@@ -1087,14 +1031,14 @@ class TickOrchestrator:
         """
         from app.services.motion.motion_pipeline import SteeringResolver, MotionIntegrator, CollisionAvoidance
         from app.domain.motion_core import BodySchema, DriveVector, MotionPrimitive
-        from app.services.spatial.world_topology_provider import WorldTopologyProvider
         
         npc_positions = ctx.scene_state.get("npc_positions", {})
         active_traversals = ctx.scene_state.get("active_traversals", {})
         continuous_changes = []
         
-        # Провайдер поля возможностей
-        wtp = WorldTopologyProvider(_spatial_svc)
+        # S91: Используем персистентный провайдер уровня экземпляра (стигмергия)
+        wtp = self._topology_provider
+        wtp.set_spatial_service(_spatial_svc)
         
         # TODO: В будущем LifeEngine будет класть DriveVector в npc_state.
         # Пока читаем заглушку (если её нет — пропускаем).
@@ -1130,7 +1074,11 @@ class TickOrchestrator:
             # ETKE-IK v2: Реактивная коррекция направления перед вычислением скорости
             _pos_tuple = (current_pos.get("x", 0.0), current_pos.get("y", 0.0))
             _loc_id = ctx.scene_state.get("location_id", "")
-            drive = CollisionAvoidance.apply(drive=drive, pos=_pos_tuple, topology=wtp, region=_loc_id)
+            # S91: Передаём позиции всех NPC для избегания столкновений
+            drive = CollisionAvoidance.apply(
+                drive=drive, pos=_pos_tuple, topology=wtp, region=_loc_id,
+                npc_positions=npc_positions, current_npc_id=npc_id
+            )
             
             new_vel = SteeringResolver.resolve(
                 drive=drive, body=body, affordance=affordance,
@@ -1146,6 +1094,21 @@ class TickOrchestrator:
                 velocity=new_vel, body=body,
                 current_exertion=current_exertion, dt=0.1
             )
+
+            # S91: Эмит стигмергического следа (movement_density)
+            _zone_id = _spatial_svc.get_zone_id(new_pos[0], new_pos[1]) if _spatial_svc else None
+            if _zone_id:
+                from app.domain.motion_core import TracePayload
+                _trace = TracePayload(
+                    region=_loc_id,
+                    zone_id=_zone_id,
+                    trace_type="movement_density", # Толпа создает сопротивление
+                    magnitude=0.1, # Небольшая величина, накапливается со временем
+                    created_tick=ctx.tick_number,
+                    ttl=50, # След остывает за 50 тиков
+                    source_id=npc_id
+                )
+                self._dynamic_field.apply_trace(_trace)
             
             continuous_changes.append(SceneChange(
                 type=ChangeType.NPC_POSITION, target=npc_id, field="local_position",
@@ -1836,16 +1799,22 @@ class TickOrchestrator:
         return effective_drives_map, drives_updates, strain_updates
 
     def _phase_5_decision(self, ctx: _TickContext) -> None:
-        """DecisionHub: создаёт CommunicationIntent для каждого NPC.
+        """TZ-09: Unified Execution Kernel.
         
-        Idle path теперь использует тот же набор параметров что player path:
-        identity, drive_modifiers, cognitive_distortion, topic (Устав §3.1).
-        CommunicationIntents передаются в Фазу 6 для публикации (Устав §3.3).
+        Собирает TickState (causal snapshot), вызывает NpcTickPipeline.run() (pure reducer),
+        применяет TickMutation к контексту. Никаких ветвлений на player/idle.
         """
-        logger.warning(f"[PHASE_5] ENTER: is_player={ctx.is_player_turn if hasattr(ctx, 'is_player_turn') else '?'}, npc_states={len(ctx.npc_states) if hasattr(ctx, 'npc_states') else '?'}")
-        engine = self._get_life_engine()
-        
-        # Собираем identity L1 для каждого NPC — кристаллизованные черты личности
+        from app.domain.tick import create_tick_state, TickMutation
+        from app.services.npc.npc_tick_pipeline import NpcTickPipeline
+        from app.services.npc.break_progress_engine import BreakProgressEngine
+        from app.models.npc_state import NPCStateAdapter
+        from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
+        from app.models.will import WillState
+        from app.domain.identity_events import TraitDriftEvent
+
+        logger.info(f"[PHASE_5_UNIFIED] ENTER: tick={ctx.tick_number}, interventions={len(ctx.interventions)}")
+
+        # 1. Assembler: Подготовка данных (BreakProgress, BehaviorMask, L3 Drives)
         mm = self._get_memory_manager()
         identities: dict[str, dict[str, float]] = {}
         for npc_dict in ctx.npc_states:
@@ -1853,146 +1822,116 @@ class TickOrchestrator:
                 if traits := mm.get_identity_traits(ctx.campaign_id, npc_id):
                     identities[npc_id] = traits
 
-        # ADR-051 (de-godification LifeEngine): BreakProgressEngine применяется
-        # ДО DecisionHub, чтобы решение принималось на основе актуального
-        # состояния воли (resistance/cracks/.../deformation/BROKEN).
-        from app.models.npc_state import NPCState
-        from app.services.npc.break_progress_engine import BreakProgressEngine
-        
         for npc_dict in ctx.npc_states:
             npc_id = npc_dict.get("id")
-            if not npc_id:
-                continue
-                
+            if not npc_id: continue
             try:
-                from app.models.npc_state import NPCStateAdapter
                 _npc_state = NPCStateAdapter.from_legacy(npc_dict)
                 _willpower = getattr(_npc_state.psyche, "willpower", 50.0) if hasattr(_npc_state, "psyche") else 50.0
                 _break_deltas = BreakProgressEngine.calculate(
-                    state=_npc_state,
-                    willpower=_willpower,
+                    state=_npc_state, willpower=_willpower,
                     recent_failures=getattr(_npc_state, "recent_failures", 0),
-                    support_present=getattr(_npc_state, "support_present", False),
+                    support_present=getattr(_npc_state, "support_present", False)
                 )
-                # Применение дельт
-                _npc_state.identity_integrity = max(
-                    0.0, min(1.0, _npc_state.identity_integrity + _break_deltas.identity_integrity_delta)
-                )
-                _npc_state.pressure_resistance = max(
-                    0.0, min(1.0, _npc_state.pressure_resistance + _break_deltas.pressure_resistance_delta)
-                )
+                _npc_state.identity_integrity = max(0.0, min(1.0, _npc_state.identity_integrity + _break_deltas.identity_integrity_delta))
+                _npc_state.pressure_resistance = max(0.0, min(1.0, _npc_state.pressure_resistance + _break_deltas.pressure_resistance_delta))
                 if _break_deltas.will_state_override is not None:
                     _npc_state.will_state = _break_deltas.will_state_override
-                    logger.info(
-                        f"[BREAK_PROGRESS] npc={npc_id} reached WILL_STATE_OVERRIDE: "
-                        f"{_break_deltas.will_state_override} (stage={_break_deltas.stage})"
-                    )
-                    # Записать в L1Chronicle
                     if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
-                        from app.domain.identity_events import TraitDriftEvent
                         self.l1_chronicle.commit_tick_buffer([
-                            TraitDriftEvent(
-                                tick_id=ctx.tick_number,
-                                target_id=npc_id,
-                                source_id=f"break_progress:{_break_deltas.stage}",
-                                effect_value=-0.1,
-                                observation_weight=1.0,
-                                event_type="will_state"
-                            )
+                            TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
+                                           source_id=f"break_progress:{_break_deltas.stage}",
+                                           effect_value=-0.1, observation_weight=1.0, event_type="will_state")
                         ], ctx.tick_number)
-                        
-                # R8: BehaviorMask назначается на основе state.
-                # COLLAPSE — при WillState.BROKEN.
-                # FAKE_SUBMISSION — при высоком fear + низком trust + willpower > 40.
-                # BETRAYAL — при низком trust + низком fear + has hidden motive.
-                from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
-                from app.models.will import WillState
-                
+
                 _rel_cache = getattr(_npc_state, "relationship_cache", {})
                 _player_rel = _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
                 _trust = _player_rel.get("trust", 0.0)
-                _fear = _player_rel.get("fear", 0.0) * 100  # нормализуем 0-100
-                _willpower = getattr(_npc_state.psyche, "willpower", 50) if hasattr(_npc_state, "psyche") else 50
+                _fear = _player_rel.get("fear", 0.0) * 100
                 _has_hidden = bool(getattr(_npc_state, "hidden_truth", None))
 
-                _new_mask = BehaviorMask.NONE
-                _mask_intensity = 0.0
-
+                _new_mask, _mask_intensity = BehaviorMask.NONE, 0.0
                 if _npc_state.will_state == WillState.BROKEN:
-                    _new_mask = BehaviorMask.COLLAPSE
-                    _mask_intensity = 0.8
+                    _new_mask, _mask_intensity = BehaviorMask.COLLAPSE, 0.8
                 elif _fear > 60 and _trust < 0 and _willpower > 40:
-                    _new_mask = BehaviorMask.FAKE_SUBMISSION
-                    _mask_intensity = min(0.7, _fear / 100)
+                    _new_mask, _mask_intensity = BehaviorMask.FAKE_SUBMISSION, min(0.7, _fear / 100)
                 elif _trust < -50 and _fear < 30 and _has_hidden:
-                    _new_mask = BehaviorMask.BETRAYAL
-                    _mask_intensity = min(0.6, abs(_trust) / 100)
+                    _new_mask, _mask_intensity = BehaviorMask.BETRAYAL, min(0.6, abs(_trust) / 100)
 
                 if _new_mask != _npc_state.behavior_mask.mask:
-                    _npc_state.behavior_mask = BehaviorMaskState(
-                        mask=_new_mask,
-                        intensity=_mask_intensity,
-                        applied_at_day=getattr(ctx, "game_day", 0),
-                    )
-                    logger.info(
-                        f"[BEHAVIOR_MASK] npc={npc_id} mask={_new_mask.value} "
-                        f"intensity={_mask_intensity:.2f}"
-                    )
+                    _npc_state.behavior_mask = BehaviorMaskState(mask=_new_mask, intensity=_mask_intensity, applied_at_day=getattr(ctx, "game_day", 0))
 
-                # Синхронизация обратно в словарь (npc_dict)
                 npc_dict["identity_integrity"] = _npc_state.identity_integrity
                 npc_dict["pressure_resistance"] = _npc_state.pressure_resistance
                 npc_dict["will_state"] = _npc_state.will_state.value if hasattr(_npc_state.will_state, "value") else _npc_state.will_state
                 npc_dict["behavior_mask"] = _npc_state.behavior_mask.mask.value
                 npc_dict["behavior_mask_intensity"] = _npc_state.behavior_mask.intensity
-            except Exception as _break_err:
-                # Fail-fast principle: если BreakProgressEngine падает — это баг,
-                # не fallback-ситуация. Логируем и пробрасываем.
-                logger.error(
-                    f"[BREAK_PROGRESS] CRITICAL: BreakProgressEngine.calculate failed "
-                    f"for npc={npc_id}: {_break_err}", exc_info=True
-                )
+            except Exception as e:
+                logger.error(f"[BREAK_PROGRESS] failed for {npc_id}: {e}")
                 raise
 
-        # STEP B + TSHL: L3 карта, обновления драйвов и strain.
         ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = self._compute_effective_drives(ctx.npc_states, ctx.tick_number)
 
-        decision_dicts, communication_intents, movement_intents = engine.tick_decisions(
-            ctx.campaign_id, ctx.scene_state,
-            topics=ctx.npc_topics, identities=identities,
-            effective_drives_map=ctx.effective_drives_map,
-        )
-        ctx.decision_events = decision_dicts or []
-        ctx.communication_intents = communication_intents or []
-        if decision_dicts:
-            logger.debug(f"[TICK_ORCH] Фаза 5: {len(decision_dicts)} decisions, {len(communication_intents)} intents")
+        # 2. Извлечение данных игрока (если есть)
+        _dm_ctx = None
+        for interv in ctx.interventions:
+            if interv.source == "player" and "dm_ctx" in interv.payload:
+                _dm_ctx = interv.payload["dm_ctx"]
+                break
 
+        # 3. Execute: Сборка TickState и вызов Pure Reducer
+        _tick_state = create_tick_state(
+            tick_id=ctx.tick_number,
+            campaign_id=ctx.campaign_id,
+            scene_state=ctx.scene_state,
+            all_npcs_raw=ctx.all_npcs_raw or ctx.npc_states,
+            effective_drives_map=ctx.effective_drives_map,
+            interventions=ctx.interventions,
+            hub_event=_dm_ctx.hub_event if _dm_ctx else None,
+            player_target_id=_dm_ctx.player_target_id if _dm_ctx else None,
+            action_type=_dm_ctx.action_type if _dm_ctx else "idle",
+            raw_input=_dm_ctx.raw_input if _dm_ctx else "",
+            is_session_start=_dm_ctx.is_session_start if _dm_ctx else False,
+            nearby_npcs=_dm_ctx.nearby_npcs if _dm_ctx else ctx.all_npcs_raw,
+            line_of_sight=_dm_ctx.line_of_sight if _dm_ctx else {n.get("id", n.get("npc_id")): True for n in ctx.all_npcs_raw},
+            scene_continuity=_dm_ctx.scene_continuity if _dm_ctx else None,
+            spatial_events=_dm_ctx.spatial_events if _dm_ctx else [],
+            drf_tick_id=ctx.tick_number
+        )
+
+        _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
+        _mutation: TickMutation = NpcTickPipeline.run(
+            state=_tick_state,
+            svc=ctx.npc_services,
+            drf_ctx=_drf_ctx
+        )
+
+        # 4. Committer: Применение мутаций к контексту
+        ctx.communication_intents = _mutation.communication_intents or []
+        ctx.movement_intents = _mutation.movement_intents or []
+        ctx.significant_events = _mutation.npc_deltas or []  # Маппинг для Phase 10
+        # TODO: Полная обработка npc_deltas через StateApplicator将在 Phase 4
+        
         # Каузальный мост: когнитивные решения → пространственное движение
-        if movement_intents:
+        if ctx.movement_intents:
             from app.services.spatial.movement_engine import MovementEngine
             from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
             
-            # ADR-060.1: Арбитраж LOD0/LOD1 ДО исполнения. 
-            # Гарантирует, что LOD0 (уклонение) не убивает LOD1 (маршрут).
-            # Порядок: LOD1 (Macro) выполняется первым, LOD0 (Micro) корректирует позицию.
             _merged_intents = []
             _per_npc = {}
-            for i in movement_intents:
+            for i in ctx.movement_intents:
                 _nid = getattr(i, 'npc_id', None)
                 if _nid: _per_npc.setdefault(_nid, []).append(i)
-                else: _merged_intents.append(i) # Без npc_id — сразу на исполнение
+                else: _merged_intents.append(i)
                 
             for _nid, _intents in _per_npc.items():
                 if len(_intents) > 1:
-                    # Сортируем: Macro (LOD1) идет первым, Micro (LOD0) корректирует
                     _intents.sort(key=lambda x: isinstance(x, LocalSteeringGoal))
                 _merged_intents.extend(_intents)
             
             _spatial_svc = self._resolve_spatial_service(ctx)
             if _spatial_svc:
-                # ДОЛГ 4.2: Causal Scoring Overlay — аддитивный скоринг давления
                 self._apply_drf_scoring_overlay(_merged_intents, ctx)
-                
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
                 spatial_changes = me.process_intents(
@@ -2002,10 +1941,8 @@ class TickOrchestrator:
                 )
                 if spatial_changes and self._scene_manager:
                     self._apply_with_shadow_observation(ctx, spatial_changes, phase_label="CAUSAL_BRIDGE")
-                if spatial_changes:
-                    logger.info(f"[CAUSAL_BRIDGE] Фаза 5: {len(spatial_changes)} spatial changes from {len(movement_intents)} cognitive intents")
             else:
-                logger.error("[SPATIAL_AUTHORITY] SpatialService отсутствует, движение решений заблокировано.")
+                logger.error("[SPATIAL_AUTHORITY] SpatialService missing in Phase 5")
 
     def _phase_6_post_decision(self, ctx: _TickContext) -> None:
         """IntentEventAdapter: CommunicationIntent → EventDTO (Устав §3.3).
@@ -2145,20 +2082,20 @@ class TickOrchestrator:
 
     def _phase_0_5_idle_services(self, ctx: _TickContext) -> None:
         """Time-driven decay: social drift, reputation drift, affective decay.
-
         Выполняется КАЖДЫЙ тик (idle + player path).
         Время идёт непрерывно — эксплойты через движение исключены.
         Дельты собираются в ctx.delta_buffer → apply_batch() в Фазе 10.
         """
         # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
-        self._advance_idle_time(ctx)
-        
+        self._advance_idle_time(ctx)      
+        # S91: Очистка истекших деформаций среды (Temporalization Layer)
+        self._dynamic_field.purge_hard_overrides(current_tick=ctx.tick_number)
+        self._dynamic_field.step_decay()   
         # ADR-036: Affective Decay (Leaky Integrator для памяти)
         # Травмы затухают со временем, если не подкрепляются.
         from app.services.affect import decay_affective_imprints
         from app.models.affect import AffectiveImprint
         from dataclasses import asdict
-        
         _current_time = ctx.scene_state.get("game_time_seconds", 0)
         for npc_dict in ctx.all_npcs_raw:
             imp_dicts = npc_dict.get("affective_imprints", [])
@@ -2661,6 +2598,30 @@ class TickOrchestrator:
                 f"[PHASE_8] {handler_name}: {len(result.deltas)} deltas "
                 f"routed to delta_buffer"
             )
+
+            # S91: Эмит стигмергического следа (safety_confidence) при акте насилия
+            if handler_name == "combat":
+                from app.domain.motion_core import TracePayload
+                _loc_id = ctx.scene_state.get("location_id", "")
+                _svc = self._resolve_spatial_service(ctx)
+                for delta in result.deltas:
+                    if delta.domain == DeltaDomain.PHYSIOLOGY:
+                        _target_id = getattr(delta, 'npc_id', None)
+                        if _target_id and _svc:
+                            _pos_data = ctx.scene_state.get("npc_positions", {}).get(_target_id, {})
+                            _pos = _pos_data.get("local_position", {})
+                            _zone_id = _svc.get_zone_id(_pos.get("x", 0.0), _pos.get("y", 0.0))
+                            if _zone_id:
+                                _trace = TracePayload(
+                                    region=_loc_id,
+                                    zone_id=_zone_id,
+                                    trace_type="safety_confidence", # Насилие снижает безопасность
+                                    magnitude=-0.2, # Отрицательное значение (снижает уверенность)
+                                    created_tick=ctx.tick_number,
+                                    ttl=100, # След насилия остывает дольше
+                                    source_id="combat"
+                                )
+                                self._dynamic_field.apply_trace(_trace)
 
         # Legacy: prop_dirty от старых обработчиков (совместимость)
         if result.prop_dirty:
@@ -3189,6 +3150,7 @@ class TickOrchestrator:
 
         Единственная точка сохранения за тик (Устав §4.2.1).
         Делегирует в SceneStateManager.commit(), который вызывает PersistencePort.atomic_commit().
+        В конце вызывает WorldProjectionBuffer для генерации вторичных эффектов (ADR-O-309).
         """
         # DRF Observer: Схлопываем поле причинных напряжений ПЕРЕД коммитом
         print(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
@@ -3246,6 +3208,7 @@ class TickOrchestrator:
             campaign_id=ctx.campaign_id,
             scene_state=ctx.scene_state,
             npc_dicts=ctx.npc_states,
+            significant_events=ctx.significant_events or [],
         )
 
         if saved > 0:

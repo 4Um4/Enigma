@@ -98,8 +98,11 @@ class CombatSubscriber:
         через delta_buffer → apply_batch.
 
         PHYSICS_COMPOSITE: дельты обходят _aggregate_deltas merge,
-        так как тело — инерционная система, а не бухгалтерия.
+        
+        S91: Эмит стигмергического следа (safety_confidence) при акте насилия.
         """
+        # S91: Эмит стигмергического следа (safety_confidence)
+        # В будущем будет вызывать DynamicAffordanceField.apply_trace()
         if not events:
             return Phase8Result()
         

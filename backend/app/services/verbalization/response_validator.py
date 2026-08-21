@@ -80,7 +80,7 @@ class ResponseValidator:
         
         # 5. can_move=False но есть движение
         if not can_move and self._contains_movement(text):
-            text = self._force_static(text)
+            # B5-FIX: Вызов _force_static удалён, так как метод deprecated (no-op).
             if not text:
                 return self._fallback("cannot_move")
         
@@ -97,18 +97,21 @@ class ResponseValidator:
     _CJK_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]')
     
     def _contains_non_russian(self, text: str) -> bool:
-        """Китайские иероглифы или доминирующий не-русский текст."""
+        """A6-FIX: Отклоняет CJK, Mock-утечки и некириллический мусор."""
         if self._CJK_PATTERN.search(text):
             return True
-        # Если >40% букв — не кириллица/латиница → мусор
+        if "[Mock]" in text or "[mock]" in text:
+            return True
+            
         alpha_total = sum(1 for c in text if c.isalpha())
-        if alpha_total > 10:
-            russian_like = sum(
-                1 for c in text
-                if c.isalpha() and (c.isascii() or '\u0400' <= c <= '\u04ff')
-            )
-            if russian_like / alpha_total < 0.6:
-                return True
+        if alpha_total <= 10:
+            return False
+            
+        cyrillic_chars = sum(1 for c in text if '\u0400' <= c <= '\u04ff')
+        # Если кириллицы меньше 50% — текст не русский (отсеивает англ. мусор, пропуская термины)
+        if cyrillic_chars / alpha_total < 0.5:
+            return True
+            
         return False
     
     def _is_repeat(self, text: str, recent: str) -> bool:
@@ -125,8 +128,8 @@ class ResponseValidator:
         return truncated + '.' if not truncated.endswith('.') else truncated
     
     def _contains_dialog(self, text: str) -> bool:
-        """Проверяет наличие диалога."""
-        return '"' in text or '«' in text or '—' in text[:10]
+        """A5-FIX: убрано ложное срабатывание на тире (DM-нарратив)."""
+        return '"' in text or '«' in text
     
     def _force_action(self, text: str) -> str:
         """Убирает диалог, превращает в действие."""
@@ -153,22 +156,16 @@ class ResponseValidator:
         return any(w in lower for w in movement_words)
     
     def _force_static(self, text: str) -> str:
-        """Заменяет движение на статичную реакцию."""
-        replacements = {
-            "подходит": "смотрит на",
-            "отходит": "отворачивается",
-            "бегает": "мечется взглядом",
-            "убегает": "жмётся к месту",
-            "идёт": "стоит",
-            "идет": "стоит",
-            "встаёт": "сидит/лежит",
-            "встает": "сидит/лежит",
-            "побежал": "дернулся",
-        }
-        result = text
-        for old, new in replacements.items():
-            result = result.replace(old, new)
-        return result
+        """B5-FIX: DEPRECATED. Убраны replacements — они ломают Инвариант 2.
+        
+        Раньше: заменял 'подходит' → 'смотрит на', если can_move=False.
+        Проблема: DM-контракт содержит РЕАЛЬНЫЕ перемещения NPC (через SceneChange).
+        Замена маскировала реальное движение.
+        
+        Теперь: no-op. Если NPC не может двигаться, SceneChange не создаётся,
+        и DM-контракт не содержит информации о движении.
+        """
+        return text
     
     def _check_forbidden(self, text: str) -> Optional[str]:
         """Проверяет forbidden actions из контракта."""

@@ -65,12 +65,27 @@ nodes:
     type: service
     layer: Application
     label: "World Topology Provider (ETKE-IK Gateway)"
-    description: "S90: Формирует non-uniform AffordanceVector. Внутри полигона → can_stand=1.0, снаружи → 0.0."
+    description: "S91: Чистый фасад. Мержит базовую геометрию (SpatialService) с динамическими деформациями (DynamicAffordanceField)."
+  DynamicAffordanceField:
+    type: service
+    layer: Application
+    label: "Dynamic Affordance Field (Dual-Layer Stigmergy)"
+    description: "S91: State-object с двумя независимыми слоями. 1. Hard Override Layer (структурные деформации, Absolute Override, TTL). 2. Soft Trace Layer (поведенческие следы, накопление, экспоненциальный decay)."
+  DeformationRecord:
+    type: dto
+    layer: Domain
+    label: "Deformation Record (Hard Stigmergy DTO)"
+    description: "S91: Запись о структурной деформации среды. Хранит причину, силу (Absolute Override), время жизни (TTL) и источник. Используется Hard Override Layer."
+  TracePayload:
+    type: dto
+    layer: Domain
+    label: "Trace Payload (Soft Stigmergy DTO)"
+    description: "S91: Эмиттер поведенческого следа. Генерируется при движении или насилии. Накапливается в Soft Trace Layer (accumulated float)."
   MotionPrimitive:
     type: domain
     layer: Domain
     label: "Motion Primitive (Enum)"
-    description: "S90: Семантический примитив движения (APPROACH, FLEE, RETREAT, PATROL). Сохраняется в DriveVector."
+    description: "S91: Семантический примитив движения (APPROACH, FLEE, RETREAT, SOCIAL_DRIFT). SOCIAL_DRIFT заменяет PATROL для социально оправданного микро-перемещения. Сохраняется в DriveVector."
   CollisionAvoidance:
     type: service
     layer: Application
@@ -165,12 +180,42 @@ edges:
     label: "updates position & exertion"
   - from: SpatialService
     to: WorldTopologyProvider
-    label: "provides discrete geometry"
-    condition: "WorldTopologyProvider wraps SpatialService to compute continuous affordance"
+    label: "get_zone_id(x, y) & geometry"
+    condition: "S91: Возвращает zone_id для кэширования деформаций и базовую геометрию."
   - from: WorldTopologyProvider
     to: AffordanceVector
     label: "query_affordance_field(region, pos)"
-    condition: "Returns field capabilities for any (x,y)"
+    condition: "S91: Мержит базовую геометрию, Hard Overrides и Soft Traces."
+  - from: TickOrchestrator
+    to: DynamicAffordanceField
+    label: "owns instance (S91)"
+    condition: "Персистентный стигмергический слой. Переживает тики."
+    edge_type: dotted
+  - from: DynamicAffordanceField
+    to: WorldTopologyProvider
+    label: "injected via constructor"
+    condition: "S91: Провайдер мержит деформации и следы с базовой геометрией."
+    edge_type: dotted
+  - from: TickOrchestrator
+    to: DynamicAffordanceField
+    label: "purge_hard_overrides(current_tick)"
+    condition: "S91: Очистка истекших структурных деформаций в Фазе 0.5."
+  - from: TickOrchestrator
+    to: DynamicAffordanceField
+    label: "step_decay()"
+    condition: "S91: Экспоненциальный decay поведенческих следов в Фазе 0.5."
+  - from: DynamicAffordanceField
+    to: DeformationRecord
+    label: "stores & queries (Hard Layer)"
+    condition: "S91: Хранит DeformationRecord по ключу (region, zone_id, deformation_type)."
+  - from: DynamicAffordanceField
+    to: TracePayload
+    label: "accumulates (Soft Layer)"
+    condition: "S91: Накапливает TracePayload.magnitude по ключу (region, zone_id, trace_type)."
+  - from: TickOrchestrator
+    to: DynamicAffordanceField
+    label: "apply_trace(TracePayload)"
+    condition: "S91: Эмит стигмергических следов (movement_density, safety_confidence)."
   - from: EditorJSON
     to: GraphCompiler
     label: "load_editor_json"
@@ -209,8 +254,30 @@ edges:
     code_ref: "spatial_service.py"
   - from: SpatialService
     to: WorldTopologyProvider
-    label: "is_point_in_bounds(x, y)"
-    condition: "S90: Ray-casting проверка внутри полигона для вычисления AffordanceVector."
+    label: "get_zone_id(x, y) & is_point_in_bounds(x, y)"
+    condition: "S91: Возвращает zone_id для кэширования деформаций и bool для базовой проверки."
+  - from: TickOrchestrator
+    to: DynamicAffordanceField
+    label: "owns instance (S91)"
+    condition: "Персистентный стигмергический слой. Переживает тики."
+    edge_type: dotted
+  - from: DynamicAffordanceField
+    to: WorldTopologyProvider
+    label: "injected via constructor"
+    condition: "S91: Провайдер мержит деформации с базовой геометрией."
+    edge_type: dotted
+  - from: WorldTopologyProvider
+    to: DynamicAffordanceField
+    label: "apply_deformation(region, zone_id, record)"
+    condition: "S91: Делегирует применение деформации в State-object."
+  - from: TickOrchestrator
+    to: DynamicAffordanceField
+    label: "purge_expired(current_tick)"
+    condition: "S91: Очистка истекших деформаций в Фазе 0.5 (Temporalization Layer)."
+  - from: DynamicAffordanceField
+    to: DeformationRecord
+    label: "stores & queries"
+    condition: "S91: Хранит DeformationRecord по ключу (region, zone_id, deformation_type)."
   - from: LifeEngine
     to: DriveVector
     label: "generates with MotionPrimitive"

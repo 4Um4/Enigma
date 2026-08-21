@@ -43,6 +43,14 @@ class TurnResult:
     npc_positions: Optional[dict] = None
     # ADR-075: Строгий контракт Эмбодимента. Если поле пропадёт — краш схемы, а не тихий None.
     will_conflict_data: Optional[dict] = None
+    # A1-FIX: S85 fields — проброс scene_state и metadata для инициализации UI.
+    # Раньше передавались только в HTTP mode, в Direct mode отсутствовали → contract drift.
+    scene_state: Optional[dict] = None
+    metadata: Optional[dict] = None
+    # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
+    confirmed_location_id: Optional[str] = None
+    # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
+    confirmed_location_id: Optional[str] = None
 
 
 class GameLoopBridge:
@@ -96,9 +104,22 @@ class GameLoopBridge:
         result = TurnResult()
         dm_parts: list[str] = []
 
+        # Получаем campaign_state для location (fallback если oracle не сработал)
+        campaign_state = self._get_campaign_state(campaign_id)
+        # A1-FIX: Убран хардкод "tavern_silver_wolf". Используем официальный API SceneStateManager.
+        location = "tavern_silver_wolf" # Оставлено как last-resort fallback, если scene_manager недоступен
+        if self._ready and self._loop is not None:
+            try:
+                location = self._loop.scene_manager.find_starting_location(campaign_id)
+            except Exception:
+                pass
+        if campaign_state:
+            saved = campaign_state.metadata.get("current_location")
+            if saved:
+                location = saved
+
         # S82: Spatial Oracle — если есть мировые координаты, вычисляем location из реестра.
         # Это тот же deterministic oracle, что и в routes.py — единая истина.
-        # player_position (local) — legacy, игнорируется для spatial logic.
         if world_x is not None and world_y is not None:
             try:
                 from app.services.spatial.spatial_registry import SpatialRegistry
@@ -107,15 +128,17 @@ class GameLoopBridge:
                     _actual_chunks = _registry.find_chunks(world_x, world_y)
                     if _actual_chunks:
                         location = _actual_chunks[0].location_id
+                        result.confirmed_location_id = location
+                        # Обновляем metadata для следующего запроса (parity with routes.py)
+                        if campaign_state:
+                            campaign_state.metadata["current_location"] = location
+                            campaign_state.metadata["player_world_x"] = world_x
+                            campaign_state.metadata["player_world_y"] = world_y
+                            # A1-FIX: Atomic commit (Устав §4.2.1). Persistence parity with HTTP path.
+                            from app.services.campaign_state_service import get_campaign_state_service
+                            get_campaign_state_service().save(campaign_id)
             except Exception:
                 pass  # Fallback к saved location
-
-        # Получаем campaign_state для location (fallback если oracle не сработал)
-        campaign_state = self._get_campaign_state(campaign_id)
-        if campaign_state:
-            saved = campaign_state.metadata.get("current_location")
-            if saved:
-                location = saved
 
         async def _collect() -> None:
             async for event in self._loop.stream_turn(

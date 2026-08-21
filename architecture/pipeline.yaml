@@ -163,6 +163,21 @@ nodes:
     label: "Calibration Engine (Pass-through / Deprecated)"
     status: DEPRECATED
     description: "ADR-O-211 (S86): Pass-through ONLY. Applying ctx.drives_updates to state.drives_runtime is FORBIDDEN to prevent noise accumulation."
+  SceneStateManager:
+    type: service
+    layer: Application
+    label: "Scene State Manager (Commit Boundary)"
+    description: "ADR-O-309: Единственная точка синхронизации времени. Хранит state_t-1 как deep immutable snapshot. Вызывает WorldProjectionBuffer внутри commit()."
+  WorldProjectionBuffer:
+    type: service
+    layer: Application
+    label: "World Projection Buffer (Shadow Causality)"
+    description: "ADR-O-309: Stateless causal projection engine. Pure function project(state_t, state_t-1) -> WorldProjectionEvent[]."
+  WorldProjectionEvent:
+    type: dto
+    layer: Domain
+    label: "World Projection Event (Derived Narrative)"
+    description: "Наблюдаемый вторичный эффект (слух, репутация, ambient). Поля: event_id, tick, projection_type, source_id, location_id, description, salience, target_id."
   PatternDetector:
     type: service
     layer: Application
@@ -313,6 +328,13 @@ edges:
   - from: CrystallizedBeliefModifierResolver
     to: DecisionHub
     label: "resolve() → drive_modifiers (Dict[str, float])"
+  - from: SceneStateManager
+    to: WorldProjectionBuffer
+    label: "calls project(state_t, state_t-1) inside commit()"
+    edge_type: dotted
+  - from: WorldProjectionBuffer
+    to: WorldProjectionEvent
+    label: "generates derived events"
 constraints:
   - source: LifeEngine
     target: NPC_Position
@@ -457,6 +479,22 @@ constraints:
     target: CrystallizedBelief
     rule: "REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"
     severity: CRITICAL
+  - source: TickOrchestrator
+    target: WorldProjectionBuffer
+    rule: "FORBIDDEN: Direct call. Projection MUST be called inside SceneStateManager.commit() (ADR-O-309)"
+    severity: CRITICAL
+  - source: WorldProjectionBuffer
+    target: State
+    rule: "FORBIDDEN: Mutation of world state. Pure function only (ADR-O-309)"
+    severity: CRITICAL
+  - source: WorldProjectionBuffer
+    target: Cache
+    rule: "FORBIDDEN: Internal state/cache. Stateless projection only (ADR-O-309)"
+    severity: CRITICAL
+  - source: SceneStateManager
+    target: State_t_minus_1
+    rule: "REQUIRED: Deep immutable snapshot (copy.deepcopy) of state_t to prevent temporal cross-contamination (ADR-O-309)"
+    severity: CRITICAL
 ownership:
   DeltaBuffer:
     owner: "TickOrchestrator"
@@ -503,6 +541,9 @@ ownership:
   TraversalLifecycle:
     owner: "SceneStateManager (apply_changes)"
     constraint: "CRITICAL: SSM is the SOLE owner of traversal status transitions (MOVING->COMPLETED etc.) via transition_traversal() FSM. ProjectionEngine is read-only. (ADR-TRAV-FSM)"
+  WorldProjectionBuffer_Ownership:
+    owner: "SceneStateManager (commit)"
+    constraint: "CRITICAL: Projection is encapsulated inside commit boundary. state_t-1 is updated ONLY after successful commit. (ADR-O-309)"
 sequences:
   - title: "Pipeline Tick Execution Flow"
     participants: [TickOrchestrator, LifeEngine, DeltaBuffer, StateApplicator, SQLiteDB]

@@ -250,6 +250,14 @@
   Taboo: ❌ Вызов `build_verbalization_context` внутри execution path (`run_npc_pipeline`). ❌ Импорт `VerbalizationContext` в execution path ядра.
   Files: npc/npc_tick_pipeline.py, scene/r3_direct_builder.py
 
+`ADR-TZ08-7` [ONTO] **Symbolic Interpretation Layer (Verbalization v1)** — DM-контур переведён из numeric threshold model в symbolic interpretation layer. `stance_from_decision` и `_project_psychology` вычисляют психологию исключительно из наблюдаемых действий (`intent` + `emotion`), а не сырых ментальных полей (`stress`, `fear`, `trust`).
+  Taboo: ❌ Чтение `psyche` или `social_stats` в слое вербализации. ❌ Восстановление ментальных полей через инференс из `observed_state`.
+  Files: verbalization/verbal_stance.py, verbalization/scene_outcome_builder.py
+
+`ADR-O-309` [ONTO] **WorldProjectionBuffer (Shadow Causality Layer)** — Stateless causal projection engine. Читает committed world state и генерирует `WorldProjectionEvent` (слухи, вторичные эффекты) как производный слой. Вызывается строго внутри `SceneStateManager.commit()` как pure function `project(state_t, state_t-1)`. НЕ является оффскрин-симулятором и НЕ выполняет автономное обновление мира.
+  Taboo: ❌ Изменение состояния мира (scene_state, npc_states). ❌ Запуск симуляции NPC (LifeEngine.tick). ❌ Использование reconcile_state как механизма движения. ❌ Хранение внутреннего состояния (stateless pure function only). ❌ Вызов проекции вне `SceneStateManager.commit()`.
+  Files: services/offscreen/world_projection_buffer.py, domain/world_projection.py, services/scene_state_manager.py
+
 ---
 
 ## DOM-03: PERCEPTION & PHENOMENOLOGY (CFRM)
@@ -431,6 +439,10 @@
 `ADR-S90.4` [STD] **MotionRenderRouter (Hybrid Frontend)** — Фронтенд реализует диспетчеризацию рендера: если есть `velocity` (ETKE-IK) — интерполяция по инерции; если есть `active_traversals` (FSM) — интерполяция по `path_waypoints`. `NPCPositionDTO` расширен полями `velocity` и `exertion_level`.
   Taboo: ❌ Прямое чтение `local_position` без проверки `velocity` и `active_traversals`.
   Files: game_screen.py, snapshot.py, world_snapshot_builder.py
+
+`ADR-S91` [ONTO] **DynamicAffordanceField, Dual-Layer Stigmergy & Social Drift** — Введён state-object `DynamicAffordanceField` с двумя независимыми слоями: 1. Hard Override Layer (структурные деформации, `DeformationRecord`, Absolute Override, TTL). 2. Soft Trace Layer (поведенческие следы, `TracePayload`, накопление, экспоненциальный decay). `WorldTopologyProvider` стал чистым фасадом, мержащим базовую геометрию с обоими слоями. `TickOrchestrator` владеет персистентным инстансом поля и вызывает `purge_hard_overrides` и `step_decay` в Фазе 0.5. Внедрено NPC-to-NPC Collision Avoidance с Velocity Awareness. `PATROL` примитив заменён на `SOCIAL_DRIFT` (социально замаскированное микро-перемещение в idle-режиме).
+  Taboo: ❌ Хранение состояния внутри `WorldTopologyProvider` (нарушение SRP). ❌ Очистка региона при смене локации (стигмергия должна жить). ❌ Смешивание Hard Overrides и Soft Traces в одном слое. ❌ Использование `Dict[str, float]` вместо `DeformationRecord` для структурных деформаций. ❌ Создание `WorldTopologyProvider` локально внутри методов тика. ❌ Использование рандомного `PATROL` (убивает социальную глубину).
+  Files: world_topology_provider.py, motion_core.py, tick_orchestrator.py, motion_pipeline.py, life_engine.py
 
 ## DOM-05: PHYSIOLOGY & COMBAT
 
@@ -622,6 +634,10 @@
 
 `ADR-TZ08-4` [ONTO] Epistemic Boundary (DM as Observer) — DM-агент переведён в режим строго локальной эпистемики. Нарратив рождается исключительно из player_perception и rules_result. Доступ к внутренним состояниям NPC (stress_delta, trust_delta, real_state, recalled_facts, suppressed_secrets) заблокирован на уровне r3_direct_builder и dm_agent. Taboo: ❌ Чтение ментальных объектов NPC в слое интерпретации. ❌ Возврат dm_frame из ядра симуляции. Files: scene/r3_direct_builder.py, agents/dm_agent.py, tick_orchestrator.py, game_loop/init.py
 
+`ADR-TZ05-1` [ONTO] DM Output Contract Layer — Изоляция логики восстановления текста из ответов LLM в DMResponseNormalizer. DM-агент перестал быть парсером, став чистым оркестратором. Taboo: ❌ Парсинг JSON-схем внутри dm_agent.py. ❌ Возврат дефолтного EmotionalVector (aggression=0.0) для ATTACK. Files: services/verbalization/dm_response_normalizer.py, agents/dm_agent.py
+
+`ADR-TZ05-2` [ONTO] Prompt Governance & Mock Exclusion — Синхронизация промпта LLM с валидатором. Forbidden-список генерируется динамически из контракта. MockProvider недоступен в production. Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production". Files: prompts/dm_system.txt, services/verbalization/dm_contract_builder.py, services/llm/factory.py, core/config.py
+
 ---
 
 ## DOM-08: OBSERVABILITY (CDS & Sandbox)
@@ -750,3 +766,5 @@
 `ADR-O-305A` [ONTO] **Evidence Semantics (L1 → L1.5 Contract)** — Строгий математический мост между L1 Chronicle и PatternDetector. `TraitDriftEvent` содержит направленный вектор `effect_value` (-1.0 до 1.0) и `observation_weight`. PatternDetector агрегирует данные в `EvidenceOfPersistence` (cumulative_effect, frequency_per_tick, behavior_variance). `event_type` существует исключительно как provenance и запрещён в формулах
   Taboo: ❌ Использование `event_type` в математических формулах PatternDetector. ❌ Выход `effect_value` за пределы [-1.0, 1.0]. ❌ Зависимость `NOISE_THRESHOLD` от размера окна (только абсолютный `MIN_EVENTS`)
   Files: pattern_detector.py, domain/identity_events.py
+
+`ADR-O-309` [ONTO] **WorldProjectionBuffer (Shadow Causality Layer)** — Stateless causal projection engine. Читает committed world state и генерирует WorldProjectionEvent (слухи, вторичные эффекты) как производный слой. НЕ является оффскрин-симулятором и НЕ выполняет автономное обновление мира. Taboo: ❌ Изменение состояния мира (scene_state, npc_states). ❌ Запуск симуляции NPC (LifeEngine.tick). ❌ Использование reconcile_state как механизма движения. ❌ Хранение внутреннего состояния (stateless pure function only). Files: services/offscreen/world_projection_buffer.py, domain/world_projection.py

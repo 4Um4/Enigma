@@ -1680,6 +1680,7 @@ class SceneStateManager:
         scene_state: dict,
         npc_dicts: list[dict] | None = None,
         events: list[dict] | None = None,
+        significant_events: list[dict] | None = None,
     ) -> int:
         """Единственная точка коммита состояния мира (Устав 4.2.1).
 
@@ -1691,6 +1692,7 @@ class SceneStateManager:
             scene_state: финальное состояние сцены
             npc_dicts: runtime-стейты NPC (опционально)
             events: события тика для аудита (опционально)
+            significant_events: значимые события тика для WorldProjectionBuffer
 
         Returns:
             2 если коммит успешен, 0 если ошибка или нет PersistencePort.
@@ -1707,13 +1709,46 @@ class SceneStateManager:
         import time as _time
         scene_state["last_save_real_time"] = _time.time()
 
+        # ADR-O-309: WorldProjectionBuffer (Shadow Causality).
+        # Запускается внутри atomic commit boundary ДО persistence и обновления state_t-1.
+        # Порядок: state_t финализирован → projection → persistence → update state_t-1.
+        if not hasattr(self, '_world_proj_buffer'):
+            from app.services.offscreen.world_projection_buffer import WorldProjectionBuffer
+            self._world_proj_buffer = WorldProjectionBuffer()
+            
+        _loc_id = scene_state.get("location_id", "")
+        _tick = scene_state.get("tick", 0)
+        # Запрашиваем state_t-1 (temporally sealed artifact от предыдущего тика)
+        _prev_state = self.get_last_committed_npcs()
+        
+        _projections = self._world_proj_buffer.project(
+            tick=_tick,
+            campaign_id=campaign_id,
+            location_id=_loc_id,
+            all_npcs_raw=npc_dicts or [],
+            significant_events=significant_events or [],
+            previous_npcs_raw=_prev_state,
+        )
+        if _projections:
+            # TODO: В будущей фазе пробросить в shared_context для DM-агента
+            logger.debug(f"[WORLD_PROJ] Сгенерировано вторичных эффектов: {len(_projections)}")
+
         ok = self._persistence.atomic_commit(
             campaign_id=campaign_id,
             scene_state=scene_state,
             npc_states=npc_dicts,
             events=events,
         )
+        if ok:
+            # ADR-O-309: SceneStateManager — единственный источник state_t-1.
+            # Deep immutable snapshot: защищает от мутаций живых объектов мира в Фазе 10.
+            import copy
+            self._last_committed_npcs = copy.deepcopy(npc_dicts or [])
         return 2 if ok else 0
+
+    def get_last_committed_npcs(self) -> list[dict]:
+        """Возвращает state_t-1 (committed snapshot) для WorldProjectionBuffer."""
+        return getattr(self, '_last_committed_npcs', [])
 
 
     # ─────────────────────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ L = {
     "act:market_trading": "торгует на рынке",
     "act:cleaning_tables": "убирает столы",
     "act:idle": "без дела",
-    "act:patrolling": "патрулирует",
+    "act:social_drift": "осматривается",
     "act:eating": "ест",
     "act:drinking": "пьёт",
     "act:resting": "отдыхает",

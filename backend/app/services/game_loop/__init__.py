@@ -369,8 +369,24 @@ class GameLoop:
 
 
     def _get_life_engine(self):
-        """Делегирует к TickOrchestrator (единственный владелец LifeEngine)."""
+        """Возвращает LifeEngine из TickOrchestrator."""
         return self._tick_orch._get_life_engine()
+
+    def _resolve_npcs_snapshot(self, campaign_id: str) -> list:
+        """ADR-TZ08-8: Explicit snapshot step. 
+        Гарантированно извлекает committed NPC states для PerceptionProjector.
+        """
+        engine = self._get_life_engine()
+        if engine:
+            return engine.get_npc_states(campaign_id) or []
+        return []
+
+    def _project_perception(self, campaign_id: str, scene_state: dict, all_npcs_raw: list):
+        """ADR-TZ08-8: Вызов PerceptionProjector вне ядра."""
+        from app.services.perception.perception_projector import PerceptionProjector
+        _projector = PerceptionProjector()
+        _tick = self.get_current_tick(campaign_id)
+        return _projector.project(scene_state, all_npcs_raw, _tick)
 
     def _load_npcs_with_runtime(self, campaign_id: str) -> list:
         """Загружает NPC с наложением runtime (стресс, HP и т.д.).
@@ -529,6 +545,17 @@ class GameLoop:
             spatial_service=_spatial_svc, # ИНЪЕКЦИЯ
         )
 
+        # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
+        _all_npcs_raw = self._resolve_npcs_snapshot(campaign_id)
+        if result.world_snapshot:
+            _perception = self._project_perception(campaign_id, _scene, _all_npcs_raw)
+            if _perception:
+                import dataclasses
+                result.world_snapshot = dataclasses.replace(
+                    result.world_snapshot, 
+                    player_perception=_perception
+                )
+
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
         _auth_scene = self.scene_manager._tick_scene if self.scene_manager else None
@@ -581,6 +608,17 @@ class GameLoop:
         from app.models.schemas import ChatTurnResponse as _CTR
         if isinstance(state, _CTR):
             return state
+
+        # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
+        state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
+        if state.shared_context and state.shared_context.scene_state:
+            _perception = self._project_perception(
+                req.campaign_id, 
+                state.shared_context.scene_state, 
+                state.shared_context.all_npcs_raw
+            )
+            if _perception:
+                state.shared_context.player_perception = _perception
 
         dm_result = await run_agent_safe(
             "dm", self.dm_agent,

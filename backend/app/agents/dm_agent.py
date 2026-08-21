@@ -611,29 +611,21 @@ class DmAgent:
             agent_name="dm",
             prompt=contract.user_prompt,
             system_prompt=contract.system_prompt,
-            params=GenerationParams(max_tokens=220),
+            params=GenerationParams(max_tokens=settings.dm_max_tokens),
         )
 
-        # 1. Парсим JSON → dict (до валидации!)
-        if isinstance(raw, str):
-            try:
-                result = json.loads(raw)
-                # json.loads может вернуть str/int/list — оборачиваем в dict
-                if not isinstance(result, dict):
-                    result = {"dm_response": str(result).strip()}
-            except Exception:
-                # LLM вернул чистый текст вместо JSON — оборачиваем как dm_response
-                # Это нормальное поведение для 7B моделей, не умеющих JSON-формат
-                jsonl_log({"level": "INFO", "agent": "dm_agent", "note": "plain text response (no JSON)", "raw_preview": raw[:200]})
-                result = {"dm_response": raw.strip()}
-        else:
-            result = raw if isinstance(raw, dict) else {"dm_response": str(raw)}
+        # A3-FIX: Вынесено в DMResponseNormalizer (DM Output Contract Layer).
+        from app.services.verbalization.dm_response_normalizer import DMResponseNormalizer
+        dm_output = DMResponseNormalizer.normalize(raw)
+        dm_text = dm_output.dm_text
 
         # 2. Валидация — только текст dm_response, не сырой JSON
         dm_text = result.get("dm_response", "")
         from app.services.verbalization.response_validator import ResponseValidator
         validator = ResponseValidator(contract)
-        validation = validator.validate(dm_text)
+        # A4-FIX: передаём recent_text для проверки повторов.
+        _recent = self._get_last_dm_response()
+        validation = validator.validate(dm_text, recent_text=_recent)
 
         if validation.is_fallback and validation.violation == "non_russian":
             # ADR-O-147: CJK Retry — модель сгенерировала китайский.
@@ -650,7 +642,7 @@ class DmAgent:
                 agent_name="dm",
                 prompt=contract.user_prompt,
                 system_prompt=_reinforced_system,
-                params=GenerationParams(max_tokens=220),
+                params=GenerationParams(max_tokens=settings.dm_max_tokens),
             )
             if isinstance(raw_retry, str):
                 try:
@@ -664,13 +656,28 @@ class DmAgent:
                 result = raw_retry if isinstance(raw_retry, dict) else {"dm_response": str(raw_retry)}
 
             dm_text = result.get("dm_response", "")
-            validation = validator.validate(dm_text)
+            # A4-FIX: передаём recent_text для проверки повторов.
+        _recent = self._get_last_dm_response()
+        validation = validator.validate(dm_text, recent_text=_recent)
 
         if validation.is_fallback:
             jsonl_log({"level": "WARN", "agent": "dm_agent", "violation": validation.violation, "fallback_text": validation.text})
             result["dm_response"] = validation.text
 
         return result
+
+    def _get_last_dm_response(self) -> Optional[str]:
+        """Возвращает последний DM-ответ из истории (safe access)."""
+        mem_mgr = getattr(self, "_memory_manager", None)
+        if not mem_mgr:
+            return None
+        try:
+            journal = mem_mgr.get_recent_dm_responses(limit=1)
+            if journal:
+                return journal[0]
+        except Exception as e:
+            logger.warning(f"[DM_AGENT] could not get recent DM response: {e}")
+        return None
 
     async def stream_narrate(self, location, actions, rules_result, npc_result,
                              world_result, world_canon_exists, context=None,
@@ -712,7 +719,7 @@ class DmAgent:
                 capability="narrative",
                 prompt=prompt,
                 system_prompt=system_prompt,
-                params=GenerationParams(max_tokens=220),
+                params=GenerationParams(max_tokens=settings.dm_max_tokens),
             )
             if isinstance(result, dict):
                 yield result.get("dm_response", "")
@@ -734,7 +741,7 @@ class DmAgent:
             try:
                 for token in provider.stream_tokens(
                     prompt=prompt,
-                    params=GenerationParams(max_tokens=220),
+                    params=GenerationParams(max_tokens=settings.dm_max_tokens),
                     system_prompt=system_prompt,
                 ):
                     if not token:
