@@ -27,15 +27,39 @@ from app.models.npc_state import EmotionTag, WillState
 
 
 class DeltaDomain(Enum):
-    """Домены мутаций для StateDeltas v2."""
     SOCIAL = "social"
     EMOTION = "emotion"
     REPUTATION = "reputation"
     IDENTITY = "identity"
-    # Фундамент физического состояния (Устав Тай: Body LOD)
     PHYSIOLOGY = "physiology"
-    # БУДУЩЕЕ
-    SPATIAL = "spatial"
+    SPATIAL = "spatial"  # FUTURE
+
+
+class ReductionPolicy(Enum):
+    """Закон композиции мира (Мастер Тай): как дельты агрегируются во времени.
+    
+    ADDITIVE — линейная физика (Σ). Социальные изменения, репутация.
+    BOUNDED_ADDITIVE — накопление с насыщением (Σ + clamp). Эмоции, стресс.
+    OVERWRITE — дискретная реальность (last-write-wins). Идентичность, флаги.
+    PHYSICS_COMPOSITE — эволюция состояния (S_t = F(S_{t-1}, impacts)). 
+        Тело не складывается, оно интегрирует историю воздействий. 
+        В _aggregate_deltas пропускается без merge, направляется в StateApplicator/ImpactEngine.
+    """
+    ADDITIVE = "additive"
+    BOUNDED_ADDITIVE = "bounded_additive"
+    OVERWRITE = "overwrite"
+    PHYSICS_COMPOSITE = "physics_composite"
+
+
+# Конституция мира: каждый домен знает свой закон редукции
+DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
+    DeltaDomain.SOCIAL: ReductionPolicy.ADDITIVE,
+    DeltaDomain.EMOTION: ReductionPolicy.BOUNDED_ADDITIVE,
+    DeltaDomain.REPUTATION: ReductionPolicy.ADDITIVE,
+    DeltaDomain.IDENTITY: ReductionPolicy.OVERWRITE,
+    DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
+    DeltaDomain.SPATIAL: ReductionPolicy.OVERWRITE,  # Позиция = факт
+}
 
 
 # Union тип — IDE знает все варианты, autocomplete работает

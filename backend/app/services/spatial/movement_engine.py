@@ -59,6 +59,12 @@ class MovementEngine:
         # Группируем по location_id для загрузки графа один раз
         by_location: dict[str, List[MovementIntent]] = {}
         for intent in intents:
+            print(
+                f"[TRACE][ENGINE_RECEIVED] "
+                f"npc={intent.npc_id} "
+                f"reason={intent.reason} "
+                f"local_xy={getattr(intent, 'local_target_xy', 'N/A')}"
+            )
             # Извлекаем location_id из reason или из npc dict — 
             # для MVP берём из графа по первому попавшемуся intent
             loc = self._extract_location(intent)
@@ -96,9 +102,41 @@ class MovementEngine:
                     )
                     continue
 
+                # ADR-0012: Микро-телепорт (LOD0). Если есть локальные координаты — прыгаем сразу.
+                if intent.local_target_xy:
+                    tx, ty = intent.local_target_xy
+                    # Добавляем небольшой разброс, чтобы NPC не встали точно друг в друга
+                    import random
+                    tx += random.uniform(-0.5, 0.5)
+                    ty += random.uniform(-0.5, 0.5)
+                    print(
+                        f"[TRACE][SCENE_CHANGE_CREATED] "
+                        f"npc={intent.npc_id} "
+                        f"x={tx:.1f} y={ty:.1f}"
+                    )
+                    changes.append(SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=intent.npc_id,
+                        field="local_position",
+                        value={"x": tx, "y": ty},
+                        cause=f"micro_snap:{intent.reason}",
+                        tick=tick,
+                    ))
+                    logger.info(f"[PIPELINE][MOVEMENT][MICRO_SNAP] npc={intent.npc_id} → xy=({tx:.1f}, {ty:.1f})")
+                    continue
+
                 # ADR-0010: Semantic Relocation. Макро-движение всегда атомарно.
                 # DecisionHub решает ЧТО (approach), эта функция решает КУДА (целевой узел).
                 # SceneStateManager атомарно резолвит узел в local_position (x,y).
+                
+                # Защита micro-position: если NPC уже в целевом узле — пропускаем,
+                # иначе перезапишем micro-position на center node (ADR-0014)
+                if intent.from_node_id and intent.from_node_id == intent.target_node_id:
+                    logger.debug(
+                        f"[MOVEMENT_ENGINE] Skip macro: {intent.npc_id} "
+                        f"уже в {intent.target_node_id} (micro-position сохранена)"
+                    )
+                    continue
                 
                 # Резолвим целевой узел для фоллбэка и валидации
                 target_ref = svc.get_node(intent.target_node_id)

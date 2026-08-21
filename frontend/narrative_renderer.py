@@ -138,8 +138,8 @@ class NarrativeRenderer:
         # Сдвиг для тряски (SHOUT)
         offset_x, offset_y = 0, 0
         if beat.delivery == DeliveryType.SHOUT and beat.is_active:
-            offset_x = random.randint(-2, 2)
-            offset_y = random.randint(-2, 2)
+            offset_x = random.randint(-1, 1)
+            offset_y = random.randint(-1, 1)
 
         # Пузырь
         bubble_rect = pygame.Rect(x + offset_x, y + name_height + offset_y, max_width, bubble_height)
@@ -152,7 +152,16 @@ class NarrativeRenderer:
 
         # Текст внутри пузыря
         for i, line in enumerate(lines):
-            line_surf = font.render(line, True, text_color)
+            # Приоритет 3: Визуальные стили для DeliveryType
+            if beat.delivery == DeliveryType.WHISPER:
+                # Легкий серый ореол (тень)
+                shadow_surf = font.render(line, True, (80, 80, 80))
+                bubble_surf.blit(shadow_surf, (pad + 1, pad + i * line_height + 1))
+                # Полупрозрачный текст (alpha = 200)
+                line_surf = font.render(line, True, text_color)
+                line_surf.set_alpha(200)
+            else:
+                line_surf = font.render(line, True, text_color)
             bubble_surf.blit(line_surf, (pad, pad + i * line_height))
 
         surface.blit(bubble_surf, bubble_rect.topleft)
@@ -170,6 +179,12 @@ class NarrativeRenderer:
         if beat.recognition in (RecognitionLevel.UNKNOWN_MALE, RecognitionLevel.UNKNOWN_FEMALE, RecognitionLevel.STRANGE_FACE):
             # Накладываем маску шума на имя
             name_bg_surf.blit(self._dither_mask, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+
+        # Применяем альфа-канал к плашке имени (растворение)
+        if beat.alpha < 255.0:
+            fade_overlay = pygame.Surface(name_bg_surf.get_size(), pygame.SRCALPHA)
+            fade_overlay.fill((255, 255, 255, int(beat.alpha)))
+            name_bg_surf.blit(fade_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
         surface.blit(name_bg_surf, name_bg_rect.topleft)
 
@@ -256,5 +271,6 @@ class NarrativeRenderer:
             if is_cursor_visible:
                 pygame.draw.rect(bubble_surf, (200, 200, 255), (cx, cy, 2, line_height))
 
+        # Ввод игрока всегда непрозрачен (нет объекта beat для fade)
         surface.blit(bubble_surf, bubble_rect.topleft)
         return total_height

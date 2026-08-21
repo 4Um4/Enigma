@@ -36,7 +36,8 @@ from typing import Any, Dict, List, Optional, Set
 from app.domain.constants import ACTION_INTENSITY
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
-from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload, StateDeltas
+from app.models.state_delta import DeltaDomain, StateDeltas
+from app.models.delta_payloads import EmotionPayload, PhysiologyPayload, SocialPayload
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 
@@ -176,6 +177,14 @@ class ReactionSubscriber:
         if not events:
             return Phase8Result()
 
+        # Извлекаем физический шок из материализованного Physical Layer (t)
+        shock_by_npc: dict[str, float] = {}
+        for delta in ctx.physical_deltas_materialized:
+            if delta.npc_id and delta.domain == DeltaDomain.PHYSIOLOGY and isinstance(delta.payload, PhysiologyPayload):
+                imp = delta.payload.shock_impulse
+                if imp > 0:
+                    shock_by_npc[delta.npc_id] = max(shock_by_npc.get(delta.npc_id, 0.0), imp)
+
         # Определяем реагирующих NPC
         perceiving_ids = self._get_perceiving_ids(ctx)
         if not perceiving_ids:
@@ -216,10 +225,25 @@ class ReactionSubscriber:
 
                 modifier = _compute_reaction_modifier(npc_dict)
 
-                # Вычисляем дельты
+                # Вычисляем дельты (базовая реакция на событие)
                 stress_delta = round(stress_base * modifier * intensity, 2)
                 fear_delta = round(fear_base * modifier * intensity, 2)
                 trust_delta = round(trust_actor_base * modifier * intensity, 2)
+
+                # Каскад Force → Pain → Shock → Emotion (Приоритет 1)
+                # Свой шок (цель) или эмпатический ужас от шока цели (свидетель)
+                shock = shock_by_npc.get(npc_id, 0.0)
+                if shock == 0.0:
+                    target_id = event.payload.get("target_id")
+                    if target_id and target_id != npc_id:
+                        shock = shock_by_npc.get(target_id, 0.0)
+
+                emotion_tag = None
+                if shock > 0.0:
+                    stress_delta += round(shock * 30.0 * modifier, 2)
+                    fear_delta += round(shock * 15.0 * modifier, 2)
+                    if shock > 0.5:
+                        emotion_tag = "panic"
 
                 # Пропускаем нулевые дельты
                 if stress_delta == 0.0 and fear_delta == 0.0 and trust_delta == 0.0:
@@ -227,7 +251,7 @@ class ReactionSubscriber:
 
                 # v2: Разделяем на EMOTION (stress) и SOCIAL (trust, fear)
                 try:
-                    # 1. Эмоциональная реакция (стресс)
+                    # 1. Эмоциональная реакция (стресс + шок)
                     if stress_delta != 0.0:
                         deltas.append(StateDeltas(
                             npc_id=npc_id,
@@ -235,7 +259,7 @@ class ReactionSubscriber:
                             stress_delta=stress_delta,
                             # v2 domain-tagged payload
                             domain=DeltaDomain.EMOTION,
-                            payload=EmotionPayload(stress_delta=stress_delta),
+                            payload=EmotionPayload(stress_delta=stress_delta, emotion_tag=emotion_tag),
                             source="reaction",
                         ))
 

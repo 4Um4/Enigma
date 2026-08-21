@@ -83,6 +83,9 @@ def advance_game_time(
     if shared_context is not None:
         shared_context.game_time_seconds = _new_total
 
+    # Сохраняем абсолютное время в scene_state для персистенции (Фаза 10)
+    scene_state["game_time_seconds"] = _new_total
+
     # Обновляем time_of_day в scene_state для совместимости
     # (scene_state_manager._select_time_variant читает строку)
     _old_hhmm = Calendar.format_time(_current_total)

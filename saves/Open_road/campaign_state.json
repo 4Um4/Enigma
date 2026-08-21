@@ -7,7 +7,6 @@
   "metadata": {},
   "scene_state": {
     "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 1,
     "objects": {
       "obj_0": {
         "name": "Барная стойка #1",
@@ -519,123 +518,108 @@
         },
         "interactable": true
       },
-      "spear_owned_by_guard_borko": {
-        "name": "spear",
-        "state": "present",
+      "candles_main": {
+        "name": "свечи",
+        "state": "lit",
+        "count": 13,
         "interactable": true,
-        "owner": "guard_borko",
-        "count": 1
-      },
-      "city_guard_armor_owned_by_guard_borko": {
-        "name": "city_guard_armor",
-        "state": "present",
-        "interactable": true,
-        "owner": "guard_borko",
-        "count": 1
-      },
-      "city_emblem_owned_by_guard_borko": {
-        "name": "city_emblem",
-        "state": "present",
-        "interactable": true,
-        "owner": "guard_borko",
-        "count": 1
-      },
-      "apron_owned_by_tavern_keeper_tornin": {
-        "name": "фартук",
-        "state": "present",
-        "interactable": true,
-        "owner": "tavern_keeper_tornin",
-        "count": 1
-      },
-      "keys_owned_by_tavern_keeper_tornin": {
-        "name": "ключи",
-        "state": "present",
-        "interactable": true,
-        "owner": "tavern_keeper_tornin",
-        "count": 1
-      },
-      "coin_pouch_owned_by_tavern_keeper_tornin": {
-        "name": "кошелёк",
-        "state": "present",
-        "interactable": true,
-        "owner": "tavern_keeper_tornin",
-        "count": 1
+        "owner": null
       }
     },
     "npc_positions": {
       "maid_lusya": {
         "location_id": "tavern_silver_wolf",
-        "position": "bar_area",
-        "activity": "",
+        "position": "corner_table",
+        "activity": "eating",
         "visible": true,
         "local_position": {
-          "x": 4.5,
-          "y": 5.0
+          "x": 12.0,
+          "y": 10.0
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "psyche_state": "alert",
+        "location": "tavern_silver_wolf",
+        "stress_delta": 10,
+        "name": "Люся"
       },
       "guard_borko": {
         "location_id": "tavern_silver_wolf",
-        "position": "corner_table",
-        "activity": "",
+        "position": "entrance",
+        "activity": "guarding_gate",
         "visible": true,
         "local_position": {
           "x": 12.0,
           "y": 9.0
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "location": "city_gate",
+        "stress_delta": 10,
+        "psyche_state": "alert",
+        "name": "Стражник Борко"
       },
       "blacksmith_orm": {
         "location_id": "tavern_silver_wolf",
-        "position": "kitchen",
+        "position": "bar_area",
         "activity": "",
-        "visible": true,
+        "visible": false,
         "local_position": {
           "x": 16.4,
           "y": 5.55
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "psyche_state": "alert",
+        "stress_delta": 10,
+        "name": "Кузнец Орм"
       },
       "tavern_keeper_tornin": {
         "location_id": "tavern_silver_wolf",
-        "position": "behind_bar",
-        "activity": "",
+        "position": "corner_table",
+        "activity": "eating",
         "visible": true,
         "local_position": {
-          "x": 4.5,
-          "y": 2.5
+          "x": 12.0,
+          "y": 10.0
         },
         "editor_room_id": "room_0",
-        "psyche_state": "alert"
+        "stress_delta": 10,
+        "location": "tavern_silver_wolf",
+        "psyche_state": "alert",
+        "name": "Торнин Серебряная Луна"
       },
       "thief_shadow": {
         "location_id": "tavern_silver_wolf",
-        "position": "entrance",
-        "activity": "",
-        "visible": true,
+        "position": "bar_area",
+        "activity": "sleeping",
+        "visible": false,
         "local_position": {
-          "x": 3.5,
-          "y": 9.5
+          "x": 4.0,
+          "y": 4.0
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "location": "inn_rooms",
+        "name": "Тень"
       },
       "merchant_goran": {
         "location_id": "tavern_silver_wolf",
-        "position": "kitchen",
-        "activity": "",
+        "position": "bar_area",
+        "activity": "haggling",
         "visible": true,
         "local_position": {
           "x": 14.5,
           "y": 5.5
         },
-        "editor_room_id": "room_1"
+        "editor_room_id": "room_1",
+        "location": "market_square",
+        "psyche_state": "alert",
+        "stress_delta": 10,
+        "name": "Купец Горан"
       }
     },
     "environment": {
-      "light_level": "dim",
-      "noise_level": "low",
-      "time_of_day": "07:00",
-      "weather_inside": "neutral"
+      "light_level": "bright",
+      "noise_level": "moderate",
+      "time_of_day": "12:00",
+      "weather_inside": "warm_busy"
     },
     "player_inventory_snapshot": {},
     "active_effects": [],
@@ -644,26 +628,26 @@
       "location_id": "tavern_silver_wolf",
       "position": "entrance",
       "local_position": {
-        "x": 2.7573593128807126,
-        "y": 2.318019484660539
+        "x": 4.414213562373092,
+        "y": 6.439339828220183
       }
     },
-    "player_target_npc": null,
-    "player_target_npc_name": null,
+    "player_target_npc": "maid_lusya",
+    "player_target_npc_name": "Люся",
     "player_target_object": null,
     "player_distances": {
-      "blacksmith_orm": 19.02,
-      "guard_borko": 19.24,
-      "merchant_goran": 17.17,
-      "maid_lusya": 7.92,
-      "thief_shadow": 7.22,
-      "tavern_keeper_tornin": 7.41
+      "blacksmith_orm": 12.02,
+      "guard_borko": 8.01,
+      "merchant_goran": 10.13,
+      "maid_lusya": 8.38,
+      "thief_shadow": 3.63,
+      "tavern_keeper_tornin": 8.38
     },
     "environment_modifiers": {
-      "light": 0.4,
-      "noise": 0.2,
-      "density": 0.0,
-      "danger": 0.0
+      "light": 1.0,
+      "noise": 0.5,
+      "density": 0.3,
+      "danger": 0.1
     },
     "spatial_walls": [
       {
@@ -1173,7 +1157,7 @@
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
-        "summary": "Люся, у паука 8 ног, у старика три ноги, а у ребенка четыре ноги. Знаешь почему?",
+        "summary": "Люся?",
         "damage": 0,
         "damage_type": "",
         "emotion_tag": "",
@@ -1187,7 +1171,35 @@
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
-        "summary": "Люся, Сколько ног у старика? Помнишь я говорил",
+        "summary": "Девушка, не могли бы вы подойти ко мне? Я стою далеко от вас",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Подойдите",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся?",
         "damage": 0,
         "damage_type": "",
         "emotion_tag": "",
@@ -1201,7 +1213,7 @@
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
-        "summary": "А про паука ты помнишь, Люся?",
+        "summary": "Люся, запомни два яблока да три яблока будет пять апельсинов. Хорошо?",
         "damage": 0,
         "damage_type": "",
         "emotion_tag": "",
@@ -1210,12 +1222,348 @@
       {
         "event_type": "verbal",
         "actor_id": "player",
-        "target_id": "thief_shadow",
+        "target_id": "maid_lusya",
         "location_id": "tavern_silver_wolf",
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
-        "summary": "Про паука, помнишь?",
+        "summary": "Люся, два яблока да три яблока - сколько будет?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Ты забыла что я говорил в прошлый раз?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Что запомнишь?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, не могли бы вы подойти ко мне? Я стою далеко от вас",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Подойдите... Люся",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "длвыфтплоывтполжтфыжлптжлцодфутпджлуфктплждтвкфажлдпрджлватфрплджкфуртыпдлуфкощлпотуфщклрпщлуцфоапзщ",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, Привет!",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, не могла бы ты подойти ко мне?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, вы могли бы подойти ко мне?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Подойдите, девушка",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Я хотел бы заказать пиво, а вы девушка должны принять мой заказ",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, сначала подойдите",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, не могли бы вы подойти ко мне?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Так идите же сюда, девушка. Я здесь в центре таверны",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся. Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся. Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся. Девушка, не могли бы вы подойти сюда?",
         "damage": 0,
         "damage_type": "",
         "emotion_tag": "",
@@ -1224,11 +1572,15 @@
     ],
     "line_of_sight": {
       "maid_lusya": true,
-      "guard_borko": false,
-      "blacksmith_orm": false,
+      "guard_borko": true,
+      "blacksmith_orm": true,
       "tavern_keeper_tornin": true,
       "thief_shadow": true,
-      "merchant_goran": false
-    }
+      "merchant_goran": true
+    },
+    "_salience_event_type": "player_interacts",
+    "_salience_max_stress": 0.21999999999999997,
+    "_salience_target_object": null,
+    "_version": 73
   }
 }

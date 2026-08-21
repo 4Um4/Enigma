@@ -1104,6 +1104,7 @@ class SceneStateManager:
 
                 # ADR-0008: Мгновенный резолв x,y при смене узла, чтобы NPC двигались на экране
                 if change.field == "position":
+                    print(f"[TRACE][APPLY_LOCAL_POSITION] npc={change.target} value={change.value}")
                     location_id = scene_state.get("location_id", "")
                     if location_id and change.value:
                         try:
@@ -1122,6 +1123,17 @@ class SceneStateManager:
                                 logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_FAILED] npc={change.target} node={change.value} NOT FOUND in SpatialService!")
                         except Exception as exc:
                             logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
+
+                # ADR-0014: Micro-space movement (LOD0). MovementEngine генерирует local_position напрямую.
+                elif change.field == "local_position" and isinstance(change.value, dict):
+                    pos = scene_state.setdefault("npc_positions", {})
+                    entry = pos.setdefault(change.target, {})
+                    entry["local_position"] = change.value
+                    print(
+                        f"[TRACE][APPLY_LOCAL_POSITION] "
+                        f"npc={change.target} "
+                        f"value={change.value}"
+                    )
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1603,7 +1615,7 @@ class SceneStateManager:
                 "bar_area":     "у стойки",
                 "main_hall":    "в центре зала",
                 "fireplace":    "у камина",
-                "corner_table": "в тёмном углу",
+                # ADR-0010: corner_table удалена. Микро-зоны не существуют в макро-графе.
                 "entrance":     "у входа",
                 "kitchen":      "на кухне",
                 "gate_post":    "у ворот",

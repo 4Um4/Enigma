@@ -6,6 +6,11 @@
 
 """
 TODO:
+- [ ] Кэширование путей с учётом overlay (инвалидируется при изменении overlay)
+- [ ] Методы для получения всех узлов с ролью (для массовых действий NPC)
+- [ ] Методы для получения ближайшего/дальнего узла (для FLEE и SEEK)
+- [ ] Интеграция с CFRM Layer 1: ClusterGraph (каждый макро-узел = кластер, границы = связи)
+- [ ] Расширение скоринга: учитывать не только расстояние, но и риск, освещённость, плотность толпы и резервации
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ import logging
 import math
 from typing import Dict, List, Optional, Set, Tuple
 
+from app.models.cfrm import ClusterDef, ClusterGraph
 from app.models.spatial_contracts import (
     NodeRef,
     NodeRole,
@@ -413,6 +419,30 @@ class SpatialService:
     ) -> float:
         """Евклидова дистанция в мировых координатах. 1 unit = 1 meter."""
         return math.dist(xy1, xy2)
+
+    # ── Поиск по роли ─────────────────────────────────────────────────
+
+    # ── CFRM Layer 1: Cluster Graph ───────────────────────────────────
+
+    def build_cluster_graph(self) -> ClusterGraph:
+        """Строит ClusterGraph (CFRM Layer 1) из текущего макро-графа.
+        
+        1 макро-узел = 1 причинный кластер.
+        Границы кластера (boundary_cells) = его связи с другими макро-узлами.
+        Вызывается при загрузке локации и при изменении топологии.
+        """
+        clusters: Dict[str, ClusterDef] = {}
+        for node_id, node_ref in self._graph.items():
+            connections = self._connections.get(node_id, set())
+            # Границы — это те связи, которые ведут в другие существующие узлы (кластеры)
+            boundaries = frozenset(
+                conn_id for conn_id in connections if conn_id in self._graph
+            )
+            clusters[node_id] = ClusterDef(
+                cluster_id=node_id,
+                boundary_cells=boundaries,
+            )
+        return ClusterGraph(clusters=clusters)
 
     # ── Поиск по роли ─────────────────────────────────────────────────
 
