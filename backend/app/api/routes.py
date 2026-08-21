@@ -2,7 +2,7 @@ import contextlib
 from datetime import datetime
 from typing import Literal, List
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 
 # A2-FIX: snapshot_npc_positions_to_dict удалён (canonical Dict)
 from app.models.schemas import (
@@ -643,6 +643,12 @@ def new_game(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """ADR-O-146: Сброс runtime мира к чистому static. Оставляет персонажей."""
     result = game_loop.new_game(campaign_id)
     return result
+
+@router.post("/game/{campaign_id}/scene_state")
+def update_scene_state(campaign_id: str, scene_state: dict = Body(...), game_loop=Depends(get_game_loop)) -> dict:
+    """B1.4-FIX: receive scene_state updates from frontend (player position)."""
+    game_loop.scene_manager.save_scene_state(campaign_id, scene_state)
+    return {"status": "ok"}
 
 
 @router.post("/player/session/{campaign_id}", response_model=PlayerSessionResponse)

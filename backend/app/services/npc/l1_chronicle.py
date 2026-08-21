@@ -41,6 +41,10 @@ class L1Chronicle:
             # Сбрасываем кэш, чтобы загрузить данные для новой кампании
             self._events = {}
             self._loaded = False
+        
+        # ADR-L1-PERSIST: Гарантируем загрузку из SQLite при привязке.
+        # Без этого новый инстанс L1Chronicle остаётся пустым (in-memory).
+        self._ensure_loaded()
 
     def _ensure_loaded(self) -> None:
         """Lazy load из SQLite при первом обращении."""

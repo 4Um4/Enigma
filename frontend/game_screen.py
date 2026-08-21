@@ -850,11 +850,13 @@ class GameScreen:
             if (_now - _last_idle_tick >= _tick_interval
                     and not _idle_tick_running[0]
                     and action_queue.pending_count() == 0):
-                # Фаза 4 — сохраняем позицию на бэкенд перед idle_tick
-                with contextlib.suppress(Exception):
-                    _bridge = _gateway._bridge
-                    if _bridge.ready:
-                        _bridge.save_scene_state(campaign_folder, scene_state)
+                # B1.4-FIX: убран contextlib.suppress(Exception), который маскировал
+                # AttributeError в HttpGameGateway (нет _bridge атрибута).
+                # Теперь: явная проверка типа gateway и вызов через интерфейс.
+                try:
+                    _gateway.save_scene_state(campaign_folder, scene_state)
+                except Exception as e:
+                    logger.warning(f"[GAME_SCREEN] save_scene_state failed: {e}")
                 _idle_tick_running[0] = True
                 _last_idle_tick = _now
                 logger.info(f"[IDLE_TICK] fired at {_now}ms")

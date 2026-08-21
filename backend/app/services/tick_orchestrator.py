@@ -30,7 +30,9 @@ logger = logging.getLogger(__name__)
 import time
 from dataclasses import dataclass, field, replace
 from app.contracts.interventions import InterventionEvent
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
+
+from app.services.npc.kernel_rng import KernelRNG
 
 from pathlib import Path
 from enum import Enum
@@ -174,6 +176,32 @@ class _TickContext:
     communication_intents: list = field(default_factory=list)
     # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.
     npc_contexts: list = field(default_factory=list)
+    
+    # KERNEL-ISOLATION: per-tick RNG factory.
+    # Создаёт KernelRNG для каждого NPC по запросу (lazy).
+    # НЕ хранит RNG state напрямую — хранит factory, чтобы каждый NPC
+    # получил независимый deterministic stream.
+    rng_factory: Optional[Callable[[str], "KernelRNG"]] = None
+
+    def rng_for(self, npc_id: str) -> KernelRNG:
+        """Возвращает deterministic KernelRNG для данного NPC на текущем тике.
+
+        Использование:
+            rng = ctx.rng_for("maid_lusya")
+            if rng.random() < 0.4:
+                ...
+        """
+        if self.rng_factory is None:
+            # Fallback для legacy тестов, где factory не задан.
+            # В production этого быть не должно.
+            import logging
+            logging.getLogger(__name__).warning(
+                f"[TICK_CONTEXT] rng_factory is None, creating ad-hoc KernelRNG "
+                f"for npc={npc_id} tick={self.tick_number}. "
+                f"This indicates incomplete initialization."
+            )
+            return KernelRNG(tick=self.tick_number, npc_id=npc_id)
+        return self.rng_factory(npc_id)
     # Фаза 5: решения DecisionHub
     decision_events: list = field(default_factory=list)
     # SIL: S-слой (интерпретация). Визуализация читает отсюда (T+0), DecisionHub из M-слоя (T-1)
@@ -499,6 +527,11 @@ class TickOrchestrator:
         # DRF: Сброс шины на начало тика (один bus на весь lifecycle: execute + finalize)
         self._drf_bus.stream.clear()
         logger.info(f"[DRF_BUS_RESET] bus_id={id(self._drf_bus)} tick={tick_number}")
+        # KERNEL-ISOLATION: factory для per-NPC deterministic RNG.
+        # Каждый NPC получает свой RNG, seeded by (tick, npc_id).
+        _tick_for_rng = tick_number
+        _rng_factory = lambda npc_id: KernelRNG(tick=_tick_for_rng, npc_id=npc_id)
+
         ctx = _TickContext(
             campaign_id=campaign_id,
             scene_state=input_snapshot,
@@ -506,6 +539,7 @@ class TickOrchestrator:
             interventions=interventions,
             npc_services=npc_services,
             drf_bus=self._drf_bus,  # Instance-level bus — не создаём новый!
+            rng_factory=_rng_factory,
         )
 
         # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
@@ -1839,7 +1873,23 @@ class TickOrchestrator:
                 _npc_state.pressure_resistance = max(0.0, min(1.0, _npc_state.pressure_resistance + _break_deltas.pressure_resistance_delta))
                 if _break_deltas.will_state_override is not None:
                     _npc_state.will_state = _break_deltas.will_state_override
-                    if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
+
+                # ADR-O-208: Сохраняем вычисленные дельты обратно в npc_dict.
+                # Без этого BreakProgressEngine остаётся "воздушным замком" —
+                # _npc_state исчезает, а npc_dict не обновляется.
+                from app.models.npc_state import NPCState
+                NPCState.write_to_legacy(_npc_state, npc_dict)
+
+                # L1Chronicle: Фиксируем давление, даже если воля не сломана.
+                if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
+                    _affect = _npc_state.affective_load * 100
+                    if _affect > 10.0:
+                         self.l1_chronicle.commit_tick_buffer([
+                            TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
+                                           source_id=f"break_progress:{_break_deltas.stage}",
+                                           effect_value=-0.01, observation_weight=1.0, event_type="pressure")
+                        ], ctx.tick_number)
+                    if _break_deltas.will_state_override is not None:
                         self.l1_chronicle.commit_tick_buffer([
                             TraitDriftEvent(tick_id=ctx.tick_number, target_id=npc_id,
                                            source_id=f"break_progress:{_break_deltas.stage}",
@@ -1905,7 +1955,8 @@ class TickOrchestrator:
         _mutation: TickMutation = NpcTickPipeline.run(
             state=_tick_state,
             svc=ctx.npc_services,
-            drf_ctx=_drf_ctx
+            drf_ctx=_drf_ctx,
+            rng_factory=ctx.rng_factory
         )
 
         # 4. Committer: Применение мутаций к контексту
@@ -1951,6 +2002,7 @@ class TickOrchestrator:
         
         Единственная легальная точка CommunicationIntent → EventDTO.
         Когда Phase 5 начнёт производить CommunicationIntent — провода уже готовы.
+        ADR-O-310: WindupWriteGate — перехват ATTACK для создания ActionWindup.
         """
         if not ctx.communication_intents:
             return
@@ -1958,13 +2010,41 @@ class TickOrchestrator:
         bus = get_event_bus()
         adapter = IntentEventAdapter()
         converted = 0
+        windups_created = 0
 
         for intent in ctx.communication_intents:
             event = adapter.to_event(intent)
+            
+            # ADR-O-310: Windup Write Gate
+            if getattr(intent, 'intent_type', '') == "attack":
+                from app.domain.action_windup import ActionWindup, WindupStatus
+                _actor_id = getattr(intent, 'speaker', '')
+                _target_id = getattr(intent, 'target_id', '')
+                
+                if _actor_id and _target_id:
+                    # Создаём окно подготовки (пока статичная длительность = 2 тика для тестов)
+                    windup = ActionWindup(
+                        actor_id=_actor_id,
+                        target_id=_target_id,
+                        action_type="attack",
+                        started_tick=ctx.tick_number,
+                        duration_ticks=2,
+                        status=WindupStatus.PENDING
+                    )
+                    # Добавляем в стек подготовок актёра
+                    if _actor_id not in ctx.windup_registry:
+                        ctx.windup_registry[_actor_id] = []
+                    ctx.windup_registry[_actor_id].append(windup)
+                    windups_created += 1
+                    
+                    # Помечаем EventDTO флагом is_windup (для будущего CombatSubscriber)
+                    event.payload["is_windup"] = True
+                    event.payload["windup_duration"] = 2
+            
             bus.publish(event)
             converted += 1
 
-        logger.debug(f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO")
+        logger.debug(f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created")
 
     # ── Player Turn: фазы 8-10 (Устав §3 — единая последовательность) ──
 

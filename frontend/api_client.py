@@ -128,6 +128,10 @@ class GameGateway(Protocol):
         Неблокирующий — вызывать из worker thread.
         """
         ...
+    
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        """Push updated scene_state to backend."""
+        ...
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         """Загрузить кампанию (скопировать исходники в saves при первом запуске)."""
@@ -245,6 +249,14 @@ class BackendContract:
     def idle_tick(self, campaign_id: str) -> dict:
         return self._t.post(f"/api/game/idle_tick/{campaign_id}", {})
 
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        """B1.4-FIX: push scene_state to backend via HTTP."""
+        try:
+            self._t.post(f"/api/game/{campaign_id}/scene_state", scene_state)
+        except Exception as e:
+            logger.warning(f"[HTTP_GATEWAY] save_scene_state failed: {e}")
+            raise
+
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         return self._t.post(
             f"/api/campaign/load",
@@ -322,6 +334,9 @@ class HttpGameGateway:
     
     def idle_tick(self, campaign_id: str) -> dict:
         return self._contract.idle_tick(campaign_id)
+
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        return self._contract.save_scene_state(campaign_id, scene_state)
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         return self._contract.load_campaign(campaign_id, world_id)
@@ -452,6 +467,14 @@ class DirectGameGateway:
             import traceback
             print(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e), "npc_positions": {}}
+
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        """B1.4-FIX: push scene_state to backend via Direct bridge."""
+        from game_loop_bridge import get_game_loop_bridge
+        _bridge = get_game_loop_bridge()
+        if not _bridge.ready:
+            _bridge.initialize()
+        _bridge.save_scene_state(campaign_id, scene_state)
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         # Direct mode: GameLoop загружает лор при первом turn()
@@ -584,6 +607,15 @@ class FallbackGateway:
             return self._fallback.idle_tick(campaign_id)
         except Exception:
             return {"status": "error"}
+
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        try:
+            if self._primary_healthy is not False:
+                self._primary.save_scene_state(campaign_id, scene_state)
+            else:
+                self._fallback.save_scene_state(campaign_id, scene_state)
+        except Exception as e:
+            logger.debug(f"[RETRY_GATEWAY] save_scene_state failed: {e}")
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         if self._primary_healthy is False:
