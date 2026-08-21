@@ -1124,7 +1124,7 @@ class DecisionHub:
         if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
             return None
         if intent == Intent.FLEE.value:
-            return None
+            return event.actor_id  # Источник угрозы — от кого бежим
         # Фаза 3.4: Проактивные интенты при world_tick не имеют явной цели
         # (actor_id = сам NPC). DM определит цель из контекста сцены.
         from app.services.events.event_types import EventType

@@ -17,7 +17,7 @@ path: backend/app/services/tick_orchestrator.py
 ФАЗА 4: Pre-Decision (TopicExtractor → тема для каждого NPC)
 ФАЗА 5: Decision (DecisionHub → CommunicationIntent)
 ФАЗА 6: Post-Decision (IntentEventAdapter → EventDTO)
-ФАЗА 8: Handlers (TODO: явные подписчики)
+ФАЗА 8: Handlers (детерминированный drain: drain_events + handle → Phase8Result)
 ФАЗА 9: Integration (WorldSnapshotBuilder → WorldSnapshotDTO)
 ФАЗА 10: Persistence (atomic commit через PersistencePort)
 """
@@ -34,6 +34,7 @@ from app.services.npc.life_engine import get_life_engine
 from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 from app.services.npc.topic_extractor import extract_topic
 from app.services.events.event_bus import get_event_bus
+from app.models.phase8 import Phase8Context, Phase8Result
 from app.services.events.perception_subscriber import PerceptionSubscriber
 from app.services.events.social_subscriber import SocialSubscriber
 from app.services.events.intent_event_adapter import IntentEventAdapter
@@ -155,6 +156,13 @@ class TickOrchestrator:
             self._life_engine = get_life_engine()
         return self._life_engine
 
+    def get_current_tick(self, campaign_id: str) -> int:
+        """Единый источник тика — TemporalEngine (Устав §3).
+        
+        Публичный фасад для GameLoop и API routes.
+        """
+        return self._get_life_engine().get_current_tick(campaign_id)
+
     def _get_memory_manager(self):
         if self._memory_manager is None:
             raise RuntimeError("MemoryManager не внедрён — передайте через конструктор")
@@ -209,7 +217,9 @@ class TickOrchestrator:
 
         try:
             if dm_ctx is not None:
-                # Player turn: фазы 0-2 уже выполнены в _run_pipeline
+                # Player turn: фазы 5-6 (decision + post-decision)
+                # Фазы 8-10 выполняются через execute_player_finalize() ПОСЛЕ Rules agent,
+                # потому что Rules — асинхронный и требует npc_contexts (Устав §3)
                 self._phase_5_player_decision(ctx)
                 self._phase_6_post_decision(ctx)
             else:
@@ -222,7 +232,7 @@ class TickOrchestrator:
                 self._phase_4_pre_decision(ctx)
                 self._phase_5_decision(ctx)
                 self._phase_6_post_decision(ctx)
-                self._phase_8_handlers(ctx)
+                self._phase_8_drain_secondary(ctx)
                 self._phase_9_integration(ctx)
                 self._phase_10_persistence(ctx)
 
@@ -305,38 +315,51 @@ class TickOrchestrator:
             movement_intents=npc_buffer.movement_intents,
         )
 
-    # ── Player Turn: perception + social ──────────────────────────────
+    # ── Player Turn: фазы 8-10 (после Rules agent) ──────────────────
 
-    def apply_perception(
+    def execute_player_finalize(
         self,
-        all_npc_contexts: list[dict],
+        player_result: TickPlayerResultDTO,
+        tick_buffer: Any,
         shared_context: Any,
+        actions: list,
         campaign_id: str,
-    ) -> None:
-        """ФАЗА 5: PerceptionFilter — фильтрация NPC контекстов.
+        rules_result: Dict[str, Any],
+        r3_direct_mode: bool = True,
+    ) -> TickPlayerResultDTO:
+        """Фазы 8-10 для player turn — вызывается ПОСЛЕ Rules agent.
 
-        Делегирует PerceptionSubscriber.apply() (Устав §5.1 — подписка на EventBus).
-        Мутирует shared_context.npc_contexts и shared_context.perceiving_npcs.
+        Rules agent асинхронный и требует npc_contexts, поэтому
+        выполняется между tick_player_turn (фазы 5-6) и этим методом.
+        Устав §3: одна последовательность, один коммит.
         """
-        # Гарантируем инициализацию подписчиков
-        self._get_event_bus()
-        self._perception_sub.apply(all_npc_contexts, shared_context, campaign_id)
+        # Создаём внутренний контекст с данными из GameLoop
+        ctx = _TickContext(
+            campaign_id=campaign_id,
+            scene_state=shared_context.scene_state or {},
+            tick_number=shared_context.current_tick or 0,
+            dm_ctx=None,  # уже обработан в tick_player_turn
+            shared_context=shared_context,
+            actions=actions,
+            rules_result=rules_result,
+            r3_direct_mode=r3_direct_mode,
+            # Мостируем данные из GameLoop TickBuffer
+            all_npcs_raw=tick_buffer.all_npcs_raw if tick_buffer else [],
+            dirty_npcs=tick_buffer.dirty_npcs if tick_buffer else set(),
+            wt_dirty=getattr(tick_buffer, 'wt_dirty', False),
+            prop_dirty=getattr(tick_buffer, 'prop_dirty', False),
+            max_npc_stress=getattr(tick_buffer, 'max_npc_stress', 0.0),
+            # Результат фаз 5-6
+            player_result=player_result,
+        )
 
-    def propagate_social(
-        self,
-        shared_context: Any,
-        all_npcs_raw: list[dict],
-        tick_ctx: Any,
-        campaign_id: str,
-    ) -> None:
-        """ШАГ D: Social Propagation — слухи доходят до непрямо воспринимающих NPC.
+        # Фазы 8→9→10 — единая последовательность (Устав §3)
+        self._phase_8_player_handlers(ctx)
+        self._phase_9_player_integration(ctx)
+        self._phase_10_player_persistence(ctx)
 
-        Делегирует SocialSubscriber.apply() (Устав §5.1 — подписка на EventBus).
-        Мутирует all_npcs_raw (trust/stress) и tick_ctx.prop_dirty.
-        """
-        # Гарантируем инициализацию подписчиков
-        self._get_event_bus()
-        self._social_sub.apply(shared_context, all_npcs_raw, tick_ctx, campaign_id)
+        # Возвращаем обновлённый результат (с finalize_result)
+        return ctx.player_result
 
     # ── Player Turn: finalize + commit ─────────────────────────────────
 
@@ -402,9 +425,10 @@ class TickOrchestrator:
         rules_result: Dict[str, Any],
         r3_direct_mode: bool = True,
     ) -> dict:
-        """ФАЗА 7-8 + ФАЗА 10: finalize + atomic commit.
+        """DEPRECATED: используйте execute_player_finalize().
 
-        Заменяет run_finalize_phase + commit_tick в game_loop.
+        Сохранено для обратной совместимости — будет удалено после миграции.
+        ФАЗА 7-8 + ФАЗА 10: finalize + atomic commit.
         TickOrchestrator владеет полным циклом finalize → commit (Устав §4.2.1).
         Гарантирует что dirty-флаги проверяются до коммита.
         """
@@ -650,20 +674,11 @@ class TickOrchestrator:
     # ── Player Turn: фазы 8-10 (Устав §3 — единая последовательность) ──
 
     def _phase_8_player_handlers(self, ctx: _TickContext) -> None:
-        """Player turn: Perception + Social (Устав §8 — Handlers).
+        """Player turn: Фаза 8 — делегирует в _phase_8_drain_secondary().
 
-        PerceptionSubscriber фильтрует NPC по восприятию,
-        SocialSubscriber применяет пропагацию слухов.
+        Единая точка обработки для обоих путей (idle + player).
         """
-        if ctx.player_result is None or ctx.shared_context is None:
-            return
-
-        # Perception — фильтрация NPC контекстов
-        _all_npc_contexts = ctx.player_result.npc_contexts
-        self._perception_sub.apply(_all_npc_contexts, ctx.shared_context, ctx.campaign_id)
-
-        # Social — пропагация слухов (мутирует all_npcs_raw и prop_dirty)
-        self._social_sub.apply(ctx.shared_context, ctx.all_npcs_raw, ctx, ctx.campaign_id)
+        self._phase_8_drain_secondary(ctx)
 
     def _phase_9_player_integration(self, ctx: _TickContext) -> None:
         """Player turn: R3 frame + NPC state + memory + decay (Устав §9 — Integration).
@@ -705,19 +720,104 @@ class TickOrchestrator:
                 _sources.append("social")
             logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")
 
-    def _phase_8_handlers(self, ctx: _TickContext) -> None:
-        """Явно подписанные обработчики: memory, social, scene, reaction.
-        
-        TODO: C6 — подписка через EventBus на конкретные EventType.
+    def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
+        """ФАЗА 8: детерминированный drain накопленных событий.
+
+        Шина для фактов (Фазы 2/7), Фаза 8 для обработки.
+        Фиксированный порядок: perception → social.
+        Каждый обработчик: drain_events() → handle(events, ctx) → Phase8Result.
+        Оркестратор применяет результаты к _TickContext.
         """
-        pass
+        # Фиксированный порядок обработчиков
+        _handlers = [self._perception_sub, self._social_sub]
+
+        for handler in _handlers:
+            events = handler.drain_events()
+
+            if not events:
+                continue
+
+            if ctx.shared_context is None:
+                # idle path: нет shared_context → нечего обрабатывать
+                # буфер уже очищен через drain_events()
+                logger.debug(
+                    f"[PHASE_8] {handler.name}: {len(events)} events drained, "
+                    f"no shared_context — skip"
+                )
+                continue
+
+            # Формируем READ-ONLY контекст (frozen=True в Phase8Context)
+            _npc_contexts = (
+                ctx.player_result.npc_contexts
+                if ctx.player_result is not None
+                else []
+            )
+            phase8_ctx = Phase8Context(
+                all_npcs_raw=ctx.all_npcs_raw,
+                all_npc_contexts=_npc_contexts,
+                shared_context=ctx.shared_context,
+                campaign_id=ctx.campaign_id,
+                tick_ctx=ctx,
+            )
+
+            try:
+                result = handler.handle(events, phase8_ctx)
+            except Exception as e:
+                # Safeguard: потеря событий в одном тике допустима, крах — нет
+                logger.error(
+                    f"[PHASE_8] {handler.name} handle() failed: {e}. "
+                    f"Events lost this tick."
+                )
+                continue
+
+            # Применяем Phase8Result к _TickContext
+            self._apply_phase8_result(ctx, result, handler.name)
+
+    def _apply_phase8_result(
+        self,
+        ctx: _TickContext,
+        result: Phase8Result,
+        handler_name: str,
+    ) -> None:
+        """Применяет Phase8Result к _TickContext.
+
+        perception → фильтр npc_contexts + perceiving_npcs
+        social → prop_dirty флаг (legacy-мост, TODO: StateDeltas)
+        deltas → StateApplicator (пока пусто для обоих, зарезервировано)
+        """
+        # Perception: фильтруем NPC контексты
+        if result.perceiving_npc_ids is not None and ctx.shared_context is not None:
+            _all_ctxs = (
+                ctx.player_result.npc_contexts
+                if ctx.player_result is not None
+                else []
+            )
+            _filtered = [
+                c for c in _all_ctxs
+                if c.get("npc_id") in result.perceiving_npc_ids
+            ]
+            ctx.shared_context.npc_contexts = _filtered
+            ctx.shared_context.perceiving_npcs = list(result.perceiving_npc_ids)
+
+        # Social: legacy-мост — propagate_social_rumors мутирует all_npcs_raw
+        if result.prop_dirty:
+            ctx.prop_dirty = True
+            logger.debug(
+                f"[PHASE_8] {handler_name}: prop_dirty=True "
+                f"[TODO: migrate to StateDeltas]"
+            )
+
+        # Deltas: зарезервировано для будущих обработчиков
+        # if result.deltas:
+        #     for delta in result.deltas:
+        #         ...  # StateApplicator.apply_deltas_only()
 
     def _phase_9_integration(self, ctx: _TickContext) -> None:
         """WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state."""
         builder = self._get_snapshot_builder()
         ctx.world_snapshot = builder.build(
             scene_state=ctx.scene_state,
-            tick=ctx.scene_state.get("snapshot_tick", ctx.tick_number),
+            tick=ctx.tick_number,
         )
 
     def _phase_10_persistence(self, ctx: _TickContext) -> None:

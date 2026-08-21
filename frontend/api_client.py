@@ -358,7 +358,12 @@ class DirectGameGateway:
             return []
     
     def idle_tick(self, campaign_id: str) -> dict:
-        """Прямой вызов life_engine + DecisionHub — без LLM, без action."""
+        """Idle tick через TickOrchestrator (10 фаз, Устав §3).
+
+        Делегирует в GameLoopBridge.idle_tick() → GameLoop → TickOrchestrator.
+        Все фазы (0-10) выполняются внутри orchestrator, включая
+        LifeEngine, DecisionHub, EventBus, Memory, WorldSnapshotBuilder.
+        """
         try:
             from game_loop_bridge import get_game_loop_bridge
             _bridge = get_game_loop_bridge()
@@ -366,48 +371,11 @@ class DirectGameGateway:
                 print("[IDLE_TICK_CLIENT] bridge not ready, skipping")
                 return {"status": "not_ready"}
 
-            _engine = _bridge.get_life_engine()
-            _runtime_path = _bridge.get_npc_runtime_path(campaign_id)
-            _scene = _bridge.get_scene_state(campaign_id, "")
-
-            # LifeEngine: расписание, стресс, случайные события
-            changes = _engine.tick(campaign_id, _scene, runtime_path=_runtime_path)
-            if changes:
-                _bridge.apply_changes(campaign_id, changes, _scene)
-
-            # DecisionHub: NPC думают, давление накапливается
-            decision_events = _engine.tick_decisions(campaign_id, _scene, runtime_path=_runtime_path)
-            significant_events = list(decision_events)
-
-            # Фильтруем life_engine события по расстоянию до игрока
-            if _scene:
-                _player_pos = _scene.get("player_spatial", {}).get("local_position", {})
-                _px, _py = _player_pos.get("x", 0), _player_pos.get("y", 0)
-                for _ch in changes:
-                    if not _ch.cause or not _ch.cause.startswith("life_engine"):
-                        continue
-                    _npc_pos = _scene.get("npc_positions", {}).get(_ch.target, {})
-                    _nx, _ny = _npc_pos.get("x", 0), _npc_pos.get("y", 0)
-                    _dist = ((_nx - _px)**2 + (_ny - _py)**2) ** 0.5
-                    if _dist < 20:
-                        significant_events.append({
-                            "cause": _ch.cause,
-                            "type": _ch.type.value,
-                            "target": _ch.target,
-                            "field": _ch.field,
-                            "value": str(_ch.value),
-                        })
-
-            return {
-                "status": "ok",
-                "changes": len(changes),
-                "npc_positions": _scene.get("npc_positions", {}) if _scene else {},
-                "events": significant_events,
-            }
+            return _bridge.idle_tick(campaign_id)
         except Exception as e:
             import traceback
             print(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
-            return {"status": "error", "error": str(e)}
+            return {"status": "error", "error": str(e), "npc_positions": {}}
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         # Direct mode: GameLoop загружает лор при первом turn()

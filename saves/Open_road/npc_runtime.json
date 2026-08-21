@@ -543,12 +543,12 @@
     "activity_map": {
       "serving_tables": {
         "location": "tavern_silver_wolf",
-        "position": "serving_table_3",
+        "position": "bar_area",
         "display": "serving_tables"
       },
       "working": {
         "location": "tavern_silver_wolf",
-        "position": "serving_table_3",
+        "position": "bar_area",
         "display": "serving_tables"
       },
       "sleeping": {

@@ -266,6 +266,9 @@ class SceneStateManager:
             return None
         # Гарантируем актуальные local_position при каждой загрузке
         self._enrich_local_positions(campaign_id, scene)
+        # Миграция: удаляем legacy snapshot_tick (Устав §3 — тик через TemporalEngine)
+        if "snapshot_tick" in scene:
+            del scene["snapshot_tick"]
         return scene
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -274,6 +277,8 @@ class SceneStateManager:
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         """Сохраняет SceneState через PersistencePort (Устав 4.2.1)."""
+        # Гарантированно не пишем legacy-поле (Устав §3 — тик через TemporalEngine)
+        scene_state.pop("snapshot_tick", None)
         if self._persistence:
             self._persistence.save_scene(campaign_id, scene_state)
         else:
@@ -378,11 +383,15 @@ class SceneStateManager:
         act_text = own_pos.get("activity", "")
 
         _position_map = {
-            "behind_bar":      "за стойкой",
-            "serving_table_3": "у третьего стола",
-            "corner_table":    "в тёмном углу",
-            "gate_post":       "у ворот",
-            "stall_3":         "у третьего прилавка",
+            "behind_bar":   "за стойкой",
+            "bar_area":     "у стойки",
+            "main_hall":    "в центре зала",
+            "fireplace":    "у камина",
+            "corner_table": "в тёмном углу",
+            "entrance":     "у входа",
+            "kitchen":      "на кухне",
+            "gate_post":    "у ворот",
+            "stall_3":      "у третьего прилавка",
         }
         _activity_map = {
             "cleaning_tables": "убираешься",
@@ -697,7 +706,7 @@ class SceneStateManager:
                         "position": "behind_bar", "activity": "cleaning_tables", "visible": True
                     },
                     "maid_lusya": {
-                        "position": "serving_table_3", "activity": "serving_tables", "visible": True
+                        "position": "bar_area", "activity": "serving_tables", "visible": True
                     },
                     "thief_shadow": {
                         "position": "corner_table", "activity": "observing", "visible": False
@@ -956,7 +965,6 @@ class SceneStateManager:
 
         scene_state = {
             "location_id":              location_id,
-            "snapshot_tick":            0,
             "objects":                  objects,
             "npc_positions":            npc_positions,
             "environment":              environment,
@@ -1158,7 +1166,6 @@ class SceneStateManager:
                self.apply_change(campaign_id, ch, scene_state)
         )
         if applied_count:
-            scene_state["snapshot_tick"] = scene_state.get("snapshot_tick", 0) + 1
             self.save_scene_state(campaign_id, scene_state)
             logger.info(f"[SCENE] Применено {applied_count}/{len(changes)} изменений")
         return applied_count
@@ -1264,6 +1271,10 @@ class SceneStateManager:
         if self._persistence is None:
             logger.warning("[SCENE] commit() вызван без PersistencePort — пропуск")
             return 0
+
+        # Версия состояния — инкрементируется только при commit(), не при apply_changes()
+        # Отдельно от тика: время — ось, состояние — срез (Устав §3)
+        scene_state["_version"] = scene_state.get("_version", 0) + 1
 
         ok = self._persistence.atomic_commit(
             campaign_id=campaign_id,
@@ -1553,11 +1564,15 @@ class SceneStateManager:
         if npc_positions:
             lines.append("")
             position_map = {
-                "behind_bar":      "за стойкой",
-                "serving_table_3": "у третьего стола",
-                "corner_table":    "в тёмном углу",
-                "gate_post":       "у ворот",
-                "stall_3":         "у третьего прилавка",
+                "behind_bar":   "за стойкой",
+                "bar_area":     "у стойки",
+                "main_hall":    "в центре зала",
+                "fireplace":    "у камина",
+                "corner_table": "в тёмном углу",
+                "entrance":     "у входа",
+                "kitchen":      "на кухне",
+                "gate_post":    "у ворот",
+                "stall_3":      "у третьего прилавка",
             }
             for npc_id, pos in npc_positions.items():
                 if pos.get("state") == "dead":

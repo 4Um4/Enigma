@@ -65,7 +65,10 @@ class TestSceneStateManagerCommit:
         assert result == 0
     
     def test_commit_calls_both_saves(self, tmp_path):
-        """commit() с портом делегирует в atomic_commit."""
+        """commit() с портом делегирует в atomic_commit.
+        
+        _version инкрементируется при commit() — версионность состояния.
+        """
         mock_port = MagicMock(spec=PersistencePort)
         mock_port.atomic_commit.return_value = True
         manager = SceneStateManager(tmp_path, persistence=mock_port)
@@ -78,13 +81,17 @@ class TestSceneStateManagerCommit:
         assert result == 2
         mock_port.atomic_commit.assert_called_once_with(
             campaign_id="camp-1",
-            scene_state=scene,
+            scene_state={"location_id": "tavern", "_version": 1},
             npc_states=npcs,
             events=None,
         )
     
     def test_commit_scene_only(self, tmp_path):
-        """commit() без npc_dicts делегирует в atomic_commit с None."""
+        """commit() без npc_dicts делегирует в atomic_commit с None.
+        
+        _version инкрементируется при commit() — версионность состояния,
+        отдельно от тика (время = ось, состояние = срез).
+        """
         mock_port = MagicMock(spec=PersistencePort)
         mock_port.atomic_commit.return_value = True
         manager = SceneStateManager(tmp_path, persistence=mock_port)
@@ -94,7 +101,7 @@ class TestSceneStateManagerCommit:
         assert result == 2
         mock_port.atomic_commit.assert_called_once_with(
             campaign_id="camp-1",
-            scene_state={"location": "tavern"},
+            scene_state={"location": "tavern", "_version": 1},
             npc_states=None,
             events=None,
         )

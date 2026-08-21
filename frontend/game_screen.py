@@ -426,7 +426,13 @@ class GameScreen:
             _new_positions = {}
             if _idle_tick_result:
                 _tick_data = _idle_tick_result.pop()
-                _new_positions = _tick_data.get("npc_positions", {})
+                # Канонический источник: world_snapshot.npc_positions (Устав §3, фаза 9)
+                _ws = _tick_data.get("world_snapshot")
+                if _ws and "npc_positions" in _ws:
+                    _new_positions = _ws["npc_positions"]
+                else:
+                    # Fallback на deprecated поле для совместимости
+                    _new_positions = _tick_data.get("npc_positions", {})
             if _new_positions:
                 for npc_id, new_data in _new_positions.items():
                     if npc_id in scene_state.get("npc_positions", {}):
@@ -434,10 +440,23 @@ class GameScreen:
                         for k, v in new_data.items():
                             existing[k] = v
                     else:
-                        scene_state.setdefault("npc_id", {})[npc_id] = new_data
+                        scene_state.setdefault("npc_positions", {})[npc_id] = new_data
 
             if _new_positions:
                 print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+
+            # Синхронизация player_position и environment из world_snapshot
+            if _ws:
+                _pp = _ws.get("player_position")
+                if _pp and len(_pp) == 2:
+                    _set_player_xy(scene_state, float(_pp[0]), float(_pp[1]))
+                _ws_tod = _ws.get("time_of_day")
+                if _ws_tod:
+                    scene_state.setdefault("environment", {})["time_of_day"] = _ws_tod
+                    self.game_time_seconds = parse_hhmm(_ws_tod)
+                _ws_weather = _ws.get("weather")
+                if _ws_weather:
+                    scene_state.setdefault("environment", {})["weather"] = _ws_weather
 
             # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
             _events = _tick_data.get("events", [])

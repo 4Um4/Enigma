@@ -36,7 +36,13 @@ def get_world_state(
     if not scene_state:
         raise HTTPException(status_code=404, detail=f"Campaign '{campaign_id}' not found")
 
-    current_tick = scene_state.get("snapshot_tick", 0)
+    # Единый источник тика — TemporalEngine, не scene_state (Устав §3)
+    _game_loop = request.app.state.game_loop
+    if _game_loop:
+        current_tick = _game_loop.get_current_tick(campaign_id)
+    else:
+        from app.services.npc.life_engine import get_life_engine
+        current_tick = get_life_engine().get_current_tick(campaign_id)
 
     # 304 Not Modified: frontend уже на этом тике
     if after_tick is not None and current_tick <= after_tick:

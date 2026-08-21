@@ -18,9 +18,12 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 from typing import Any, Dict, List, Optional
+
+from app.domain.events import EventDTO
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +71,7 @@ class WorldTokenBudget:
     def build_context_slice(
         self,
         scene_state:    dict,
-        recent_events:  List[dict],
+        recent_events:  List[EventDTO],
         other_locations: Dict[str, dict],
         budget:         int = WORLD_TOKEN_BUDGET,
     ) -> dict:
@@ -124,14 +127,15 @@ class WorldTokenBudget:
                 result["player_inventory"] = inventory
                 remaining -= inv_tokens
 
-        # 4. Последние события
+        # 4. Последние события (Устав §2.1: EventDTO → dict для context slice)
         if recent_events and remaining > 100:
             # Берём с конца, пока влезают
             included = []
             for event in reversed(recent_events[-10:]):
-                t = _estimate_tokens(event)
+                event_dict = dataclasses.asdict(event)
+                t = _estimate_tokens(event_dict)
                 if t <= remaining:
-                    included.insert(0, event)
+                    included.insert(0, event_dict)
                     remaining -= t
                 else:
                     break
@@ -205,20 +209,20 @@ class WorldState:
 
     def __init__(self) -> None:
         self._wtb = WorldTokenBudget()
-        self._recent_events: List[dict] = []   # последние MAX_RECENT_EVENTS событий
+        self._recent_events: List[EventDTO] = []   # последние MAX_RECENT_EVENTS событий (Устав §2.1)
 
-    def record_event(self, event_dict: dict) -> None:
+    def record_event(self, event: EventDTO) -> None:
         """
         Точка A (roadmap): добавляет событие в буфер.
         При превышении MAX_RECENT_EVENTS — удаляет самые старые.
         Вызывается из game_loop.py после event_bus.publish().
         """
-        self._recent_events.append(event_dict)
+        self._recent_events.append(event)
         if len(self._recent_events) > MAX_RECENT_EVENTS:
             self._recent_events.pop(0)
 
-    def get_recent_events(self, limit: int = 5) -> List[dict]:
-        """Последние N событий для context_builder."""
+    def get_recent_events(self, limit: int = 5) -> List[EventDTO]:
+        """Последние N событий для context_builder (Устав §2.1)."""
         return self._recent_events[-limit:]
 
     def build_context_slice(
