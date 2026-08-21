@@ -247,7 +247,7 @@
 - **Очистка:** Удалён D&D реликты `sandbox_handler.py`. Легаси-бенчмарки перенесены в `tests/sandbox/legacy/`. Артефакты перенесены в `data/sandbox_artifacts/`. **[Рефакторинг]**
 - **Архитектура:** Приняты ADR-037 (Phenomenological Presentation), ADR-038 (Epistemic Classification) и ADR-039 (Will Conflict Data Pipeline).
 
-## Сессия 24: Intent Compression, Social Physics & Causal Sandbox
+## Сессия 27: Intent Compression, Social Physics & Causal Sandbox
 **Дата:** 12.05.2026  
 **Изменения:**
 - **`backend/app/domain/intent_profile.py` (Новый):** Создан доменный слой семантического поля намерения. Введены `ActionType` (расширен UNCERTAIN), `TargetZone`, `SemanticAmbiguity`, `EmotionalVector`, `ConfidenceVector`, `IntentSemanticField`. **[Контракт]**
@@ -259,3 +259,62 @@
 - **`backend/app/models/cfrm.py`:** В `PsychologicalPressure` добавлен вектор `directive_obedience`. **[Контракт]**
 - **`backend/tests/sandbox/` (Новый):** Создана Песочница Онтологии (test_causal_movement.py). 7 тестов верифицируют законы реальности: нет прямой мутации, давление — не команда, легитимность влияет на давление. **[Тестирование]**
 - **Архитектура:** Приняты ADR-035 (Intent Compression Layer), ADR-036 (Social Physics). Принят Каузальный Контракт v1.1.
+
+## Сессия 28: Выжигание Легаси и Консолидация Феноменологии
+**Дата:** 13.05.2026  
+**Изменения:**
+- **`backend/app/domain/snapshot.py`:** Удалены зомби-поля `visual_distortion`, `movement_instability`, `dominant_impulse` из `AvatarStateDTO`. В `WorldSnapshotDTO` добавлено поле `ambient_phenomenology`. **[Контракт]**
+- **`backend/app/services/presentation/avatar_presentation_assembler.py`:** Очистка от вычисления удаленных полей. Переведен на строгие скаляры. **[Рефакторинг]**
+- **`backend/app/models/will.py`:** Введены `OriginLayer` (источник давления) и `EmbodiedVector` (моторный импульс). `WillResponseDTO` расширена полями `origin_layer` и `embodied_vector`. **[Контракт]**
+- **`backend/app/services/will.py`:** Добавлена функция `_resolve_embodied_vector` для вычисления предрефлексивных импульсов и `get_embodied_impulse_text` для их трансляции в текст. Убран хардкод "Убежать". **[Архитектура]**
+- **`backend/app/services/tick_orchestrator.py`:** Обновлена генерация `will_conflict_data` с передачей `origin_layer`, `embodied_vector` и текста на основе вектора. В `builder.build()` добавлена передача `all_npcs_raw` для среды. **[Пайплайн]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** Реализован метод `_compute_ambient_phenomenology` для вычисления средового давления (`emotional_temperature`, `proximity_compression`) на основе психики NPC. **[Архитектура]**
+- **`frontend/presentation_firewall.py`:** Удалены хардкод-хаки проверки `mental_state`. Убрана поддержка легаси `visual_distortion`. **[Рефакторинг]**
+- **`frontend/scene_renderer.py`:** Добавлен буфер `_prev_npc_positions` для темпоральной задержки. Вычисление `ManifestationProfile` перенесено в начало `render()`. Добавлен сдвиг камеры (`Motion Bias`), темпоральная интерполяция позиций NPC (`Temporal Assembly Delay`) и пульсация контраста (`Contrast Instability`). **[UI/Архитектура]**
+- **`frontend/text_input.py`:** Метод `infect()` теперь принимает `origin_layer` для стилизации заражения ввода. **[Контракт]**
+- **`frontend/game_screen.py`:** В `renderer.render()` добавлена передача `avatar_state` и `ambient_state`. Обновлен парсинг `will_conflict_data`. **[Пайплайн]**
+- **`backend/tests/sandbox/sandbox_sprint_27.py` (Новый):** Песочница, верифицирующая очистку DTO, логику Embodied Vector, Ambient Phenomenology и Temporal Delay. **[Тестирование]**
+- **Архитектура:** Принят ADR-040 (Sprint 27 Consolidation).
+
+## Сессия 29: Каузальная Песочница, Физика Власти и Убийство Телепортации
+**Дата:** 13.05.2026  
+**Изменения:**
+- **`backend/tests/sandbox/runtime/deterministic_clock.py` (Новый):** Создан детерминированный источник времени для Песочницы. Изолирует симуляцию от реального времени.
+- **`backend/tests/sandbox/runtime/causal_trace.py` (Новый):** Создан регистратор причинности. Хранит `CausalFrame` с `causal_parent_id` для отслеживания генеалогии решений.
+- **`backend/tests/sandbox/probes/` (Новый):** Созданы пробники: `PressureProbe`, `UtilityProbe`, `TraversalProbe`. Наблюдают за фазовыми переходами, не мутируя мир.
+- **`backend/tests/sandbox/fixtures/tavern_world.py` (Новый):** Создана детерминированная фикстура Микрокосма Таверны (Игрок + Тень).
+- **`backend/tests/sandbox/scenarios/minimal_obedience_field.py` (Новый):** Создан вертикальный срез каузальной трубы: Семантика → Давление → Utility → Цель → Транзит. Тест успешно проходит, доказывая, что подчинение рождает легитимное движение (duration=5.59с).
+- **`backend/app/services/npc/decision_hub.py`:** Убит хардкод `base += 0.6` для APPROACH. Внедрена Физика Власти: страх перед авторитетом (`semantic_action=MOVE`) искривляет utility-space, мотивируя приближение. Обратная инверсия: `fear` теперь бустит `Intent.APPROACH`, а не подавляет его.
+- **`backend/app/services/social/directive_interpretation_subscriber.py`:** Обнаружено, что конвертирует давление в `fear_delta` и `stress_delta` (ObediencePressure=0.48).
+- **`backend/app/services/integration/world_snapshot_builder.py`:** В `_extract_active_traversals` добавлено поле `started_at` для фронтендного Lerp.
+- **`frontend/game_screen.py`:** Внедрен Каузальный Lerp (`_resolve_visual_xy`). Функция вычисляет визуальную позицию NPC на основе `active_traversals` и `game_time_seconds`. Исправлены отступы и дубликаты. Проброс `active_traversals` из `world_snapshot` во все три места обновления позиций.
+- **`backend/app/services/tick_orchestrator.py`:** Убит `DIRECT_REFLEX` (байпас Воли). Приказ игрока больше не генерирует `SceneChange` напрямую, а маршрутизируется через EventBus как социальное давление. Добавлен диагностический лог `[APPROACH_NAV]`.
+- **Продакшен-баги (Не починены, требуют Песочницы):** `TICK_CATCHUP` (delta=865с) убивает `TraversalState` в тот же тик. NPC идет к `entrance` вместо позиции игрока (отсутствует лог `[APPROACH_NAV]`, значит `MovementIntent` не создается или перехватывается `LifeEngine`).
+
+## Сессия 30: CFRM Phase 2 Completion & PerceptualKernel Integration
+**Дата:** 13.05.2026  
+**Изменения:**
+- **`backend/app/models/cfrm.py`:** В `FieldDisturbance` добавлен `semantic_seed` (геном нарратива). В `PerceivedPhenomenon` поля `inferred_cause` и `distortion_tag` заменены на `perceived_archetype`, `mutation_stage`, `distortion_nature`. **[Контракт]**
+- **`backend/app/services/cfrm/local_causal_solver.py`:** Политика `PhysicalProjection` переписана на закон потери энергии и формы (`muffled_impact`, `faint_vibration`). `CognitiveProjection` — на инференс и паранойю. `SocialProjection` — на драматизацию. Устранена галлюцинация нейтральных событий. Реализовано распространение каузального пузыря на соседние кластеры (P2.5 Membrane Propagation). **[Архитектура]**
+- **`backend/app/services/affect.py`:** Заменено чтение `inferred_cause` на `perceived_archetype` и `distortion_nature`. Внедрен инференс унижения из `WillState` (починка TODO `humiliation_signature=0.0`). **[Багфикс/Контракт]**
+- **`backend/app/models/state_delta.py`:** Добавлен `DeltaDomain.PERCEPTION`. **[Контракт]**
+- **`backend/app/models/delta_payloads.py`:** Создан `PerceptionPayload` (threat_gradient, uncertainty, anomaly_score, dominant_emotion_hint). **[Контракт]**
+- **`backend/app/services/tick_orchestrator.py`:** В `_phase_9_integration` генерация `EmotionPayload` заменена на `PerceptionPayload`. Реальность теперь обновляет восприятие, а не эмоции напрямую. **[Архитектура]**
+- **`backend/app/services/npc/state_applicator.py`:** Добавлена обработка `DeltaDomain.PERCEPTION` — мутация `NPCState.perceptual_kernel`. **[Пайплайн]**
+- **`backend/app/services/combat/combat_subscriber.py`:** Добавлен fuzzy-matching `target_reference` для восстановления `target_id` при опечатках игрока (починка мёртвого боевого пайплайна). **[Багфикс]**
+- **`backend/tests/sandbox/sandbox_cfrm_vertical.py`:** Осциллограф переписан на использование настоящих `ProjectionPolicy` вместо фальшивой математики. **[Тестирование]**
+- **`backend/tests/sandbox/sandbox_combat_vertical.py`:** Создан Осциллограф Боевой Физики (Удар → Боль → Шок → Страх). **[Тестирование]**
+- **`backend/tests/test_physiology_flow.py`:** Созданы автотесты каскада `Force → Pain → Shock → Emotion`. **[Тестирование]**
+
+
+## Сессия 31: Спринт 28 — Замыкание Каузального Контура (Pressure → Decision)
+**Дата:** 14.05.2026  
+**Изменения:**
+- **Домен Решения (ADR-043):** Создан `backend/app/domain/decision_context.py`. Введены `UtilityFieldDeformation` (топология давления), `ActionSpaceCompression` (feasibility), `DecisionContext` (мост Ядро→Хаб). Реализован метод `from_kernel()` для прямой проекции без промежуточных DTO.
+- **Геометрия Восприятия:** В `PerceptualKernel` (`npc_state.py`) добавлены поля `aggression_inhibition`, `initiative_suppression`, `compliance_bias`.
+- **Payload Топологии:** В `IdentityPayload` (`delta_payloads.py`) добавлены дельты геометрии: `aggression_inhibition_delta`, `compliance_bias_delta`, `initiative_suppression_delta`.
+- **DecisionHub v2 (Feasibility Layer):** В `decision_hub.py` добавлен аргумент `decision_ctx`. Внедрено разделение: Фаза 1 (Feasibility Filtering — удаление невозможных действий, `del scores[intent]`), Фаза 2 (Utility Deformation — искривление ландшафта через множители). Убит хардкод `fear * 0.45` для APPROACH.
+- **DirectiveInterpretationSubscriber v2:** Добавлен локальный резолв имен (если `target_id` пуст, ищет по `target_reference` в `npc_states`). Добавлена генерация `IdentityPayload`.
+- **Замыкание пайплайна (TickOrchestrator):** В `execute_player_finalize` внедрен вызов `DirectiveInterpretationSubscriber` напрямую (через `SimpleNamespace`), если обнаружен `semantic_action="MOVE"`. Дельты давления направляются в `delta_buffer`.
+- **Песочница:** Создана `backend/tests/sandbox/micro/test_command_compliance.py`. Тест зелёный, доказывает математическое подавление ATTACK и усиление APPROACH под давлением.
+- **Багфиксы GameLoop:** Починен краш `shared_context.will_conflict_data` (добавлен безопасный доступ).

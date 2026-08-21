@@ -263,6 +263,7 @@ class DecisionHub:
         npc_memory_modifiers: Optional[Dict[str, float]] = None,
         reflex_constraints: Optional[Dict] = None,
         topic: Optional[str] = None,
+        decision_ctx:    Optional["DecisionContext"] = None, # S28: Каузальная деформация
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -338,6 +339,35 @@ class DecisionHub:
                     k: v for k, v in scores.items()
                     if k in allowed
                 }
+
+        # ── S28: Каузальная деформация пространства решений ──
+        if decision_ctx:
+            # ФАЗА 1: Feasibility Filtering (Удаление невозможных действий)
+            # Если feasibility = 0.0, действие вырезается из пула кандидатов
+            for intent_str, feasibility in decision_ctx.compression.constraints.items():
+                if intent_str in scores and feasibility <= 0.0:
+                    del scores[intent_str] # Жесткий пропуск (skip candidate)
+
+            # ФАЗА 2: Utility Deformation (Искривление доступного ландшафта)
+            deformation = decision_ctx.deformation
+            if deformation.aggression_suppression > 0:
+                attack_sup = 1.0 - deformation.aggression_suppression
+                if "ATTACK" in scores: scores["ATTACK"] = round(scores["ATTACK"] * attack_sup, 4)
+                if "INTIMIDATE" in scores: scores["INTIMIDATE"] = round(scores["INTIMIDATE"] * attack_sup, 4)
+            
+            if deformation.initiative_suppression > 0:
+                init_sup = 1.0 - deformation.initiative_suppression
+                # Подавление инициативы бьет по всем активным действиям, кроме пассивных (OBSERVE, FLEE)
+                for active_intent in ["ATTACK", "INTIMIDATE", "APPROACH", "TALK"]:
+                    if active_intent in scores: scores[active_intent] = round(scores[active_intent] * init_sup, 4)
+
+            if deformation.escape_salience > 0:
+                escape_amp = 1.0 + deformation.escape_salience
+                if "FLEE" in scores: scores["FLEE"] = round(scores["FLEE"] * escape_amp, 4)
+
+            if deformation.compliance_bias > 0:
+                comply_amp = 1.0 + deformation.compliance_bias
+                if "APPROACH" in scores: scores["APPROACH"] = round(scores["APPROACH"] * comply_amp, 4)
 
         # ── Причинный слой: Physical state (чтение изменённого мира) ──
         # DecisionHub ВИДИТ: hp, conditions, wounds, threats — не "пытались атаковать"
@@ -708,10 +738,10 @@ class DecisionHub:
             # Страх делает наблюдение более вероятным
             mod += fear * 0.40
         elif intent == Intent.APPROACH.value:
-            # ADR-036: Физика Власти. Страх перед авторитетом (directive_obedience)
-            # превращается в мотиватор приближения (подчинения), а не избегания.
             mod += trust * 0.30
-            mod += fear * 0.45           # страх заставляет подчиняться
+            # S28: Хардкод страха убит. Подчинение теперь — результат каузальной деформации (DecisionContext)
+            # Если DecisionContext не передан (legacy fallback), страх работает как базовый модификатор
+            mod += fear * 0.10 # Базовый осторожный подход (снижен с 0.45)
         else:
             # Социальные действия (TALK, TRADE, HELP и т.д.)
             mod += trust * 0.30
@@ -856,18 +886,32 @@ class DecisionHub:
             if intent in (Intent.REPORT.value, Intent.WARN.value):
                 base += 0.2
 
+        # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
+        # Если приказ направлен на этого NPC, его страх и воля решают, подчинится ли он.
+        _payload = getattr(event, 'payload', {}) or {}
+        _semantic_action = _payload.get("semantic_action") if isinstance(_payload, dict) else None
+        _target_id = _payload.get("target_id") if isinstance(_payload, dict) else None
+        
+        if _semantic_action == "MOVE" and _target_id == state.npc_id:
+            if intent == Intent.APPROACH.value:
+                # Формула из Каузальной Песочницы: Obedience = fear * (1 - willpower)
+                _fear = state.relationship_cache.get("player", {}).get("fear", 0.0) / 100.0
+                _willpower = personality.drives_base.get("control", 0.5) # control как proxy воли
+                _obedience_pressure = _fear * (1.0 - _willpower) + 0.25 # +0.25 базовый авторитет приказа
+                
+                base += _obedience_pressure * 2.0 # Масштабируем давление для победы над FLEE/IDLE
+                logger.debug(f"[PHYSICS_OF_POWER] Obedience pressure for {state.npc_id}: {_obedience_pressure * 2.0}")
+
         # Диалог активирует разговорные интенты, подавляет нелогичные
         if event.event_type == "player_interacts":
             if intent in (Intent.TALK.value, Intent.OBSERVE.value):
                 base += 0.5
-            # NPC обращаются напрямую к этому NPC — логично подойти
-            if intent == Intent.APPROACH.value:
-                base += 0.6
+            # УБИТ ХАРДКОД: if intent == Intent.APPROACH.value: base += 0.6
+            # Теперь подчинение вычисляется через Физику Власти (semantic_action=MOVE)
             if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value):
                 base -= 0.4
             if intent == Intent.FLEE.value:
                 # Сильное подавление: нейтральный диалог не должен вызывать побег
-                # даже при низком доверии (rel_mod компенсируется контекстом)
                 base -= 0.7
 
         # Фаза 3.4: WorldTick — проактивные интенты получают базовый бонус

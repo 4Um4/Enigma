@@ -110,7 +110,7 @@ class PerceptionSubscriber:
                 ))
 
             # Адресат всегда воспринимает + свидетели по perception
-            _explicit_target = ctx.shared_context.player_target_id
+            _explicit_target = getattr(ctx.shared_context, 'player_target_id', '') if ctx.shared_context else ''
             if _explicit_target:
                 _perceiving_ids.add(_explicit_target)
 

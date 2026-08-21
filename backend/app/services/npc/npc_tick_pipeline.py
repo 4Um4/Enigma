@@ -404,6 +404,12 @@ def run_npc_pipeline(
                 raw_input=inp.raw_input,
             )
 
+            # S28: Замыкание каузального контура. Чтение геометрии восприятия
+            from app.domain.decision_context import DecisionContext
+            _decision_ctx = None
+            if hasattr(state_l2, 'perceptual_kernel') and state_l2.perceptual_kernel:
+                _decision_ctx = DecisionContext.from_kernel(state_l2.perceptual_kernel)
+
             decision = DecisionHub().compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -415,6 +421,7 @@ def run_npc_pipeline(
                 drive_modifiers=_drive_modifiers_for_hub,
                 reflex_constraints=_reflex_constraints,
                 topic=_topic,
+                decision_ctx=_decision_ctx, # Передаём геометрию давления
             )
 
             # ADR-035: Reactive Spatial Command Reflex.
@@ -632,54 +639,61 @@ def _resolve_reactive_movement(
     npc_entry = npc_positions.get(npc_id, {})
     current_node = npc_entry.get("position", "")
 
-    # Координаты цели — кого ищем
-    target_x: float | None = None
-    target_y: float | None = None
+    # ADR-045: Макро-зона цели берется НАПРЯМУЮ из position, без поиска по координатам.
+    target_node_id: Optional[str] = None
+    _target_id = intent_target or "player"
 
     if intent == "approach":
-        # Цель = игрок (по умолчанию) или другой NPC
-        if intent_target and intent_target in npc_positions:
-            # Подходим к другому NPC
-            target_entry = npc_positions[intent_target]
+        # Приоритет: npc_positions (истина симуляции) -> player_spatial (legacy/фронтенд)
+        if _target_id in npc_positions:
+            target_entry = npc_positions[_target_id]
+            # ИСТИНА: Текущий макро-узел цели (NPC или Avatar)
+            target_node_id = target_entry.get("position")
+            
+            if not target_node_id:
+                lp = target_entry.get("local_position", {})
+                target_x = lp.get("x")
+                target_y = lp.get("y")
+                if target_x is not None and target_y is not None and spatial_service:
+                    nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
+                    if nearest_ref:
+                        target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
+        elif _target_id == "player":
+            # Fallback: Игрок НЕ находится в npc_positions. Читаем из player_spatial.
+            target_entry = scene_state.get("player_spatial", {})
             lp = target_entry.get("local_position", {})
             target_x = lp.get("x")
             target_y = lp.get("y")
+            if target_x is not None and target_y is not None and spatial_service:
+                nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
+                if nearest_ref:
+                    target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
         else:
-            # Подходим к игроку
-            player_spatial = scene_state.get("player_spatial", {})
-            lp = player_spatial.get("local_position", {})
-            target_x = lp.get("x")
-            target_y = lp.get("y")
+            logger.warning(f"[APPROACH_NAV] target={_target_id} not found! Movement blocked.")
+            return None
 
     elif intent == "flee":
-        # Угроза = intent_target (источник страха) — от него бежим
-        if intent_target and intent_target in npc_positions:
-            # Бежим от другого NPC
-            target_entry = npc_positions[intent_target]
+        # Приоритет: npc_positions -> player_spatial
+        if _target_id in npc_positions:
+            target_entry = npc_positions[_target_id]
+            lp = target_entry.get("local_position", {})
+            threat_x = lp.get("x")
+            threat_y = lp.get("y")
+        elif _target_id == "player":
+            target_entry = scene_state.get("player_spatial", {})
             lp = target_entry.get("local_position", {})
             threat_x = lp.get("x")
             threat_y = lp.get("y")
         else:
-            # Бежим от игрока
-            player_spatial = scene_state.get("player_spatial", {})
-            lp = player_spatial.get("local_position", {})
-            threat_x = lp.get("x")
-            threat_y = lp.get("y")
+            logger.warning(f"[FLEE_NAV] threat={_target_id} not found! Flee blocked.")
+            return None
 
-        # Ищем самый дальний узел от угрозы
         if threat_x is not None and threat_y is not None:
-            target_node_id: Optional[str] = None
             if spatial_service:
-                # SpatialService v1.2 — канонический путь
-                furthest_ref = spatial_service.get_furthest(
-                    zone_id=location_id,
-                    origin_xy=(threat_x, threat_y),
-                )
+                furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y))
                 if furthest_ref:
-                    # Денормализуем для совместимости с MovementEngine
                     target_node_id = spatial_service.denormalize_id(furthest_ref.node_id)
             else:
-                # @deprecated: fallback на LocationGraph
                 try:
                     graph = load_graph(location_id)
                     target_node_id = graph.find_furthest_node(threat_x, threat_y)
@@ -687,84 +701,28 @@ def _resolve_reactive_movement(
                     pass
 
             if target_node_id and target_node_id != current_node:
-                print(
-                    f"[TRACE][INTENT_CREATED] "
-                    f"npc={npc_id} "
-                    f"intent=reactive:flee "
-                    f"target_node={target_node_id} "
-                    f"target_xy=(None,None)"
-                )
-                return MovementIntent(
-                    npc_id=npc_id,
-                    target_node_id=target_node_id,
-                    from_node_id=current_node,
-                    location_id=location_id,
-                    reason="reactive:flee",
-                    priority=PRIORITY_NEEDS,
-                )
-        return None  # Нельзя определить угрозу — остаёмся на месте
-
-    if target_x is None or target_y is None:
+                print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
+                return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
         return None
 
-    # Резолвим целевые координаты → ближайший узел графа (approach)
-    target_node_id: Optional[str] = None
-    if spatial_service:
-        # SpatialService v1.2 — канонический путь
-        nearest_ref = spatial_service.get_nearest(
-            zone_id=location_id,
-            origin_xy=(target_x, target_y),
-        )
-        if nearest_ref:
-            target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
-            # ADR-0010: Отсечение микро-зон. Semantic Relocation только по макро-зонам.
-            _MACRO_ZONES = {"main_hall", "bar_area", "kitchen", "entrance", "fireplace", "behind_bar", "inn_rooms", "stage"}
-            if target_node_id and target_node_id not in _MACRO_ZONES:
-                logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][MACRO_SNAP] npc={npc_id} micro={target_node_id} → main_hall")
-                target_node_id = "main_hall"
-    else:
-        # @deprecated: fallback на LocationGraph
-        try:
-            graph = load_graph(location_id)
-            target_node_id = graph.find_nearest_node(target_x, target_y)
-        except Exception:
-            return None
-
-    if not target_node_id or target_node_id == current_node:
-        # ADR-0012: Микро-телепорт (LOD0). Если решили подойти и уже в одной зоне — прыгаем к игроку.
+    # ADR-045: Проверка на нахождение в одной макро-зоне
+    if target_node_id == current_node:
+        # Микро-сближение (LOD0). Цель и NPC в одной зоне — идем к локальным координатам.
+        target_entry = npc_positions.get(_target_id, {})
+        lp = target_entry.get("local_position", {})
+        target_x = lp.get("x")
+        target_y = lp.get("y")
+        
         if intent == "approach" and target_x is not None and target_y is not None:
-            print(
-                f"[TRACE][INTENT_CREATED] "
-                f"npc={npc_id} "
-                f"intent=micro_snap:{intent} "
-                f"target_node={current_node} "
-                f"target_xy=({target_x},{target_y})"
-            )
-            return MovementIntent(
-                npc_id=npc_id,
-                target_node_id=current_node,
-                from_node_id=current_node,
-                location_id=location_id,
-                reason=f"micro_snap:{intent}",
-                priority=PRIORITY_NEEDS,
-                local_target_xy=(target_x, target_y),
-            )
-        logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} target={target_node_id} current={current_node}")
-        return None  # Уже на месте или граф не найден
+            print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
+            return MovementIntent(npc_id=npc_id, target_node_id=current_node, from_node_id=current_node, location_id=location_id, reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS, local_target_xy=(target_x, target_y))
+        logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} already at target macro-zone {current_node}")
+        return None
+
+    if not target_node_id:
+        logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} target_node_id is None")
+        return None
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
-    print(
-        f"[TRACE][INTENT_CREATED] "
-        f"npc={npc_id} "
-        f"intent=reactive:{intent} "
-        f"target_node={target_node_id} "
-        f"target_xy=({target_x},{target_y})"
-    )
-    return MovementIntent(
-        npc_id=npc_id,
-        target_node_id=target_node_id,
-        from_node_id=current_node,
-        location_id=location_id,
-        reason=f"reactive:{intent}",
-        priority=PRIORITY_NEEDS,
-    )
+    print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
+    return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS)
