@@ -1,3 +1,7 @@
+﻿# ADR-147 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-147` [STANDARD] **IMPACT**
 # ADR-147 Impact Audit
 > LLM Streaming Observability Gate — CDS видит ВСЕ LLM-вызовы
 

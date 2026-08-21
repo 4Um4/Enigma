@@ -1,3 +1,7 @@
+﻿# ADR-055 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-055` [STANDARD] **IMPACT**
 # ADR-055 Impact Audit: Affective Pressure Pipeline (Perception → Emotion Converter)
 
 ## Измененный АДР

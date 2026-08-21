@@ -16,13 +16,13 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger("EPISTEMIC_SCHEDULER_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
 from app.domain.events import EventDTO
-from app.domain.execution import QueuedTask, TaskState
+from app.domain.execution import QueuedTask, TaskState, TaskKind, TaskPriority
 from app.domain.communication import DialogueRequest, ExposureLevel
 from app.domain.epistemology import Predicate
 from app.services.events.event_types import EventType
@@ -56,6 +56,7 @@ def run_test():
     mock_positions = {
         "player": {"local_position": {"x": 0.0, "y": 0.0}},
         NPC_A: {"local_position": {"x": 1.0, "y": 1.0}},
+        NPC_B: {"local_position": {"x": 2.0, "y": 2.0}},
     }
     spatial_query = SpatialQueryService(npc_positions=mock_positions)
     
@@ -71,50 +72,77 @@ def run_test():
     bus.subscribe(EventType.NPC_SPOKE, subscriber.on_npc_spoke)
     bus.subscribe(EventType.COMMUNICATION_CLAIM, subscriber.on_claim_event)
 
-    # 3. Инициализация TaskScheduler с реальными Executor и Materializer
+    # 3. Инициализация TaskScheduler через конструктор (он сам создаст Executor и Materializer)
     # Передаём router=None, чтобы сработал детерминированный fallback без LLM
-    executor = DialogueExecutor(router=None)
-    materializer = DialogueMaterializer()
-    
     scheduler = TaskScheduler(
+        router=None, 
+        context_provider=None, 
+        economy_tracker=None, 
+        belief_store=None, 
         memory_manager=None, 
-        economy_tracker=None
+        confession_parser=None
     )
-    scheduler._executors = {"dialogue": executor}
-    scheduler._materializers = {"dialogue_line": materializer}
 
-    # 4. Создание QueuedTask с intent_type="accuse"
-    print("\n[1/1] Создание QueuedTask (intent=accuse) и запуск TaskScheduler...")
+    # 4. Создание QueuedTask с intent_type="intimidate" (входит в canonical list)
+    print("\n[1/1] Создание QueuedTask (intent=intimidate) и запуск TaskScheduler...")
     req = DialogueRequest(
         target_id=NPC_B,
-        topic="кража",
-        intent_type="accuse",
+        topic="угроза",
+        intent_type="intimidate",
         emotional_state="angry",
         exposure=ExposureLevel.from_semantic("normal")
     )
     task = QueuedTask(
         task_id="test_task_1",
-        kind="dialogue",
+        tick=1,
+        counter=1,
+        kind=TaskKind.DIALOGUE,
+        priority=TaskPriority.NORMAL,
+        state=TaskState.PENDING,
+        creator_system="NPC_AI",
         owner_id=NPC_A,
-        payload=req,
-        tick=1
+        target_ids=[NPC_B],
+        payload=req
     )
 
-    # Подготавливаем scene_state для TaskScheduler
+    # Подготавливаем scene_state для TaskScheduler.
+    # Структура словаря должна точно совпадать с post_decision.py (роутинг TaskScheduler._reconstruct_task).
+    _task_dict = {
+        "task_id": task.task_id,
+        "tick": task.tick,
+        "counter": task.counter,
+        "kind": task.kind.value,
+        "priority": task.priority.value,
+        "state": task.state.value,
+        "creator_system": "AI",
+        "owner_id": task.owner_id,
+        "target_ids": task.target_ids,
+        "payload": {
+            "topic": req.topic,
+            "target_id": req.target_id,
+            "exposure_semantic": req.exposure.semantic,
+            "intent_type": req.intent_type,
+            "emotional_state": req.emotional_state,
+            "thread_id": getattr(req, "thread_id", ""),
+            "prepared_prompt": getattr(req, "prepared_prompt", ""),
+            "proposition": getattr(req, "proposition", None)
+        }
+    }
+
     scene_state = {
         "campaign_id": CAMPAIGN_ID,
         "tick": 1,
-        "game_time_seconds": 10.0,
-        "pending_tasks": [task.__dict__], # TaskScheduler ожидает список словарей
+        "game_time_seconds": 100.0, # > 30.0 (COOLDOWN_PER_NPC_SEC)
+        "pending_tasks": [_task_dict],
         "npc_positions": mock_positions
     }
 
     # Вызываем execute_pending, который запустит асинхронную обработку
     scheduler.execute_pending(scene_state, CAMPAIGN_ID)
 
-    # Ждём завершения асинхронной задачи (pool.submit)
-    # В реальном рантайме это происходит за 1-2 тика
-    time.sleep(0.5)
+    # Ждём завершения асинхронной задачи (pool.submit) и SpeechScheduler pacing
+    # ADR-O-343: SpeechScheduler имеет pacing, требующий реального времени
+    time.sleep(2.0)
 
     # 5. Анализ результатов
     print("\n--- Анализ EpistemicStore ---")

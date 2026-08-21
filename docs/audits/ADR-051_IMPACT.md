@@ -1,3 +1,7 @@
+﻿# ADR-051 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-051` [STANDARD] **IMPACT**
 # ADR-051 Impact Audit
 
 ## Измененный АДР

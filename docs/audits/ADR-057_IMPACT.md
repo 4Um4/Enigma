@@ -1,4 +1,8 @@
-﻿# ADR-057 Impact Audit: Legitimacy Gate & Elastic Time Foundation
+﻿# ADR-057 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-057` [STANDARD] **IMPACT**
+# ADR-057 Impact Audit: Legitimacy Gate & Elastic Time Foundation
 
 ## Changed Domains
 - SOCIAL (DirectiveInterpretationSubscriber: Legitimacy Gate)

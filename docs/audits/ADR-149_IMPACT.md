@@ -1,4 +1,8 @@
-﻿# ADR-149 Impact Audit: Schedule Freeze — Need Override & Two-Layer Dispatch
+﻿# ADR-149 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-149` [STANDARD] **IMPACT**
+# ADR-149 Impact Audit: Schedule Freeze — Need Override & Two-Layer Dispatch
 
 ## Changed Domains
 - LifeEngine (need-driven dispatch, schedule generation, routine state)
@@ -26,3 +30,4 @@
 
 ## Key Files Changed
 - backend/app/services/npc/life_engine.py (3 fixes + 2 parameter changes)
+

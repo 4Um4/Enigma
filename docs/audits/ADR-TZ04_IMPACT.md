@@ -1,3 +1,7 @@
+﻿# ADR-TZ04 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-TZ04` [STANDARD] **IMPACT**
 # ADR-TZ04 Impact Audit
 > Этот файл — детальный аудит ТЗ-04 (Spatial Authority & Physics Repair). Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

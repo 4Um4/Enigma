@@ -10,6 +10,20 @@ path: backend/app/errors.py
 from typing import List
 
 
+class ArchitecturalViolationError(Exception):
+    """
+    Поднимается при попытке прямой мутации NPCState вне разрешённых писателей (StateApplicator).
+    Нарушение контракта L2: ONLY StateApplicator.
+    """
+    def __init__(self, field: str, writer_module: str):
+        self.field = field
+        self.writer_module = writer_module
+        super().__init__(
+            f"Direct write to NPCState.{field} from {writer_module} is forbidden. "
+            f"Use StateApplicator."
+        )
+
+
 class SimulationIntegrityError(Exception):
     """
     Поднимается когда инвариант симуляции нарушен в runtime.

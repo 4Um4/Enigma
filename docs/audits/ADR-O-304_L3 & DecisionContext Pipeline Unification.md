@@ -1,3 +1,7 @@
+﻿# ADR-O-304 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-304` [STANDARD] **L3 & DecisionContext Pipeline Unification**
 ### ADR-O-304: L3 & DecisionContext Pipeline Unification & Projection-Native Transition
 
 **Статус:** VERIFIED (Smoke Tests Passed) | **Этап:** 7.1 Complete → Переход к Этапу 8

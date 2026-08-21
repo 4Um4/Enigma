@@ -1,3 +1,7 @@
+﻿# ADR-O-341 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-341` [STANDARD] **Внедрено**
 ## ADR-O-341: Dual Rail Boundary Consistency [ONTO]
 > **Статус:** ACTIVE
 > **Домен:** DOM-04 (Spatial & Locomotion), DOM-08 (Observability)

@@ -1,3 +1,7 @@
+﻿# ADR-059 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-059` [STANDARD] **IMPACT**
 # ADR-059 Impact Audit
 
 ## Changed Domains

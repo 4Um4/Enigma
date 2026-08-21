@@ -1,3 +1,7 @@
+﻿# ADR-O-357 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-357` [STANDARD] **IMPACT**
 # ADR-O-357 Impact Audit: Trust-Anchored Belief Revision & Social Semantics Law
 > Этот файл — детальный аудит ADR-O-357. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S199 (Фаза 8.2)

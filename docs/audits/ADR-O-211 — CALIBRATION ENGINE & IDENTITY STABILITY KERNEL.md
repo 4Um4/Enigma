@@ -1,3 +1,12 @@
+# ADR-O-211 — CALIBRATION ENGINE & IDENTITY STABILITY KERNEL Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-211 — CALIBRATION ENGINE & IDENTITY STABILITY KERNEL` [STANDARD] **IMPACT**
+
+﻿# ADR-O-211 — CALIBRATION ENGINE & IDENTITY STABILITY KERNEL Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-211 — CALIBRATION ENGINE & IDENTITY STABILITY KERNEL` [STANDARD] ****
 # АРХИТЕКТУРНЫЙ КОНТРАКТ: ADR-O-211 — CALIBRATION ENGINE & IDENTITY STABILITY KERNEL
 # ADR-O-211
 

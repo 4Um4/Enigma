@@ -1,3 +1,7 @@
+﻿# ADR-O-325 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-325` [STANDARD] **IMPACT**
 # ADR-O-325 Impact Audit: Authoring Data Isolation
 > Этот файл — детальный аудит онтологического сдвига.
 

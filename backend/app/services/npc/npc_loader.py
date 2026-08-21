@@ -121,18 +121,21 @@ def reload_archetype_for(npc_dict: Dict[str, Any], new_archetype: str) -> Dict[s
     Эта функция перезагружает статические данные (schedule, activity_map) из нового архетипа,
     но сохраняет все runtime-поля (stress, relationship_cache, body_state и т.д.).
     """
-    _runtime_overlay = {}
-    for key in _RUNTIME_TOP_LEVEL_KEYS:
-        if key in npc_dict:
-            _runtime_overlay[key] = npc_dict[key]
+    # Stage 0: Упразднён whitelist _RUNTIME_TOP_LEVEL_KEYS. 
+    # Сохраняем ВЕСЬ текущий словарь как overlay, затем накладываем его поверх новой статики.
+    _runtime_overlay = npc_dict.copy()
+    
+    # Удаляем метаданные, чтобы они не затёрли новые
+    _runtime_overlay.pop("_archetype", None)
+    _runtime_overlay.pop("_mixins", None)
 
     npc_dict["_archetype"] = new_archetype
     _new_static = _load_archetype_chain(npc_dict)
 
-    # Возвращаем runtime поля поверх новой статики
-    _new_static.update(_runtime_overlay)
+    # Глубоко мержим runtime поверх новой статики
+    _merged = _deep_merge(_new_static, _runtime_overlay)
     logger.info(f"[NPC_LOADER] Reloaded archetype for {npc_dict.get('id')}: -> {new_archetype}")
-    return _new_static
+    return _merged
 
 
 def load_npc_profiles_from_config() -> Dict[str, NPCProfileL0]:
@@ -260,102 +263,28 @@ def _enrich_with_social_relations(
 
 # Поля, которые являются RUNTIME и перезаписываются из npc_runtime.json
 # Static поля (willpower, breakpoint, drives, description и т.д.) НЕ перезаписываются
-_RUNTIME_PSYCHE_KEYS = frozenset(
-    {
-        "stress",
-        "state",
-        "trauma_flags",
-        "identity_integrity",
-        "pressure_resistance",
-        "resentment",
-        "dependency",
-        "recent_failures", # V8-PSY-5 FIX
-        "life_project", # V8-PSY-5 FIX
-        "life_project_state", # V8-PSY-5 FIX
-        "behavior_mask", # V8-PSY-5 FIX
-        "behavior_mask_intensity", # V8-PSY-5 FIX
-        "behavior_mask_applied_at_day", # V8-PSY-5 FIX
-    }
-)
-_RUNTIME_TOP_LEVEL_KEYS = frozenset(
-    {
-        "social_stats",
-        "location",
-        "location_id",
-        "position",
-        "hp",
-        "max_hp",
-        "current_role",
-        "role_history",
-        "conditions",
-        "wounds",
-        "threat_accumulator",
-        "posture",
-        "temporary_drives",
-        "causal_ledger",
-        "affective_memory", # V8-PSY-5 FIX
-        "social_input_ema", # V8-PSY-5 FIX
-        # ADR-117: Вычисленные runtime-поля, которые должны переживать merge
-        # Без этого affective_load=0.0 и emotion=MISSING после каждого чтения с диска
-        "affective_load",
-        "emotion",
-        "emotion_delta",
-        # ADR-101, ADR-109: Физиология и восприятие — не должны сбрасываться при merge
-        "body_state",
-        "perceptual_kernel",
-        # L2 память — без этого narrative_cache теряется
-        "narrative_cache",
-        # ETKE-IK: Контур непрерывного движения — эфемерен, но переживает merge между тиками
-        "drive_vector",
-    }
-)
-_RUNTIME_FLAGS_KEYS = frozenset(
-    {"has_gold", "knows_secret", "is_enslaved", "planning_revenge", "is_dead"}
-)
-_RUNTIME_ROUTINE_KEYS = frozenset({"next_task"})
+# Stage 0: Упразднены whitelist'ы _RUNTIME_PSYCHE_KEYS, _RUNTIME_TOP_LEVEL_KEYS, 
+# _RUNTIME_FLAGS_KEYS, _RUNTIME_ROUTINE_KEYS (ADR-118 DOUBLE TRUTH fix).
+# Теперь мерж выполняется рекурсивно через _deep_merge, сохраняя все runtime-поля.
 
 
 def _apply_runtime_overlay(
     static_npc: Dict[str, Any], runtime_npc: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Накладывает runtime-поля из runtime_npc на static_npc
-    Static поля НЕ перезаписываются — сохраняют значения из config/.
+    Глубоко мержит runtime-поля из runtime_npc поверх static_npc.
+    Static поля НЕ перезаписываются на верхнем уровне, но runtime-данные 
+    внутри словарей (psyche, body_state и т.д.) обновляются рекурсивно.
+    Stage 0: Упразднён whitelist _RUNTIME_TOP_LEVEL_KEYS (DOUBLE TRUTH fix).
     """
-    result = static_npc.copy()
-
-    # Runtime поля внутри psyche
-    if "psyche" in runtime_npc:
-        if "psyche" not in result:
-            result["psyche"] = {}
-        result["psyche"] = result["psyche"].copy()
-        for key in _RUNTIME_PSYCHE_KEYS:
-            if key in runtime_npc["psyche"]:
-                result["psyche"][key] = runtime_npc["psyche"][key]
-
-    # Runtime поля верхнего уровня
-    for key in _RUNTIME_TOP_LEVEL_KEYS:
-        if key in runtime_npc:
-            result[key] = runtime_npc[key]
-
-    # Runtime флаги
-    if "flags" in runtime_npc:
-        if "flags" not in result:
-            result["flags"] = {}
-        result["flags"] = result["flags"].copy()
-        for key in _RUNTIME_FLAGS_KEYS:
-            if key in runtime_npc["flags"]:
-                result["flags"][key] = runtime_npc["flags"][key]
-
-    # Runtime в routine (next_task — текущая задача, schedule — static)
-    if "routine" in runtime_npc:
-        if "routine" not in result:
-            result["routine"] = {}
-        result["routine"] = result["routine"].copy()
-        for key in _RUNTIME_ROUTINE_KEYS:
-            if key in runtime_npc["routine"]:
-                result["routine"][key] = runtime_npc["routine"][key]
-
+    result = _deep_merge(static_npc, runtime_npc)
+    
+    # Возвращаем метаданные static, если они были затёрты runtime-дампом
+    if "_archetype" in static_npc:
+        result["_archetype"] = static_npc["_archetype"]
+    if "_mixins" in static_npc:
+        result["_mixins"] = static_npc["_mixins"]
+        
     return result
 
 

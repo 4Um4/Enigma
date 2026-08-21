@@ -1,3 +1,12 @@
+# ADR-SHI-IMPACT Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-SHI-IMPACT` [STANDARD] **IMPACT**
+
+﻿# ADR-SHI-IMPACT Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-SHI-IMPACT` [STANDARD] ****
 # ADR-SHI-IMPACT
 ## Changed Domains
 - DOM-08 (Observability): Восстановлена труба логирования DecisionHub

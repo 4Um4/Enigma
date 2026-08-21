@@ -1,3 +1,7 @@
+﻿# ADR-047 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-047` [STANDARD] **IMPACT**
 # ADR-047 Impact Audit: Temporal Reconciliation & TICK_CATCHUP Elimination
 
 ## Измененный АДР

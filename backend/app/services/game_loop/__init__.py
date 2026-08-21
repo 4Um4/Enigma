@@ -417,9 +417,14 @@ class GameLoop:
             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
             # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
-
+            
+            # S201: Регистрация SocialActionSubscriber для маршрутизации SOCIAL_ACTION
+            from app.services.events.social_action_subscriber import SocialActionSubscriber
+            _social_sub = SocialActionSubscriber(_bus)
+            _bus.subscribe(EventType.SOCIAL_ACTION, _social_sub.on_social_action)
+  
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
-            logger.info("[GAME_LOOP] Epistemic Core (ClaimEventSubscriber) registered")
+            logger.info("[GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered")
         except Exception as e:
             logger.exception(f"[GAME_LOOP] Failed to register Epistemic Core: {e}")
 
@@ -1850,6 +1855,43 @@ class GameLoop:
                 scene_context=scene_state,
                 dialogue_session=_dialogue_session
             )
+
+            # S201/S202: Публикуем SOCIAL_ACTION в EventBus для наблюдателей
+            _action_val = _semantic_field.action.value if _semantic_field.action else "UNCERTAIN"
+            if _action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE"):
+                from app.domain.events import EventDTO
+                from app.services.events.event_types import EventType
+                from app.services.events.event_bus import get_event_bus
+                
+                _prop = None
+                if _semantic_field.proposition:
+                    _prop = {
+                        "subject_id": _semantic_field.proposition.subject_id,
+                        "predicate": _semantic_field.proposition.predicate.value,
+                        "object_id": _semantic_field.proposition.object_id,
+                        "polarity": _semantic_field.proposition.polarity
+                    }
+                
+                _payload = {
+                    "action": _action_val,
+                    "actor": _semantic_field.actor or "player",
+                    "target": _semantic_field.target or shared_context.player_target_id or "",
+                    "speech_act": _semantic_field.speech_act.value if _semantic_field.speech_act else "assert",
+                    "proposition": _prop,
+                    "physical_force": _semantic_field.physical_force,
+                    "emotional_charge": _semantic_field.emotional_charge,
+                    "social_pressure": _semantic_field.social_pressure,
+                    "tick": shared_context.current_tick
+                }
+                
+                _event = EventDTO.create_social_action(
+                    source=_semantic_field.actor or "player",
+                    payload=_payload,
+                    visibility="public",
+                    radius=10.0
+                )
+                _bus = get_event_bus()
+                _bus.publish(_event)
 
             _resolution = resolve_player_intent(
                 raw_action=_raw_action,

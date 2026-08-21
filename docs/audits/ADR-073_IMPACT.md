@@ -1,3 +1,7 @@
+﻿# ADR-073 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-073` [STANDARD] **IMPACT**
 # ADR-073 Impact Audit: Каузальное Сшивание GAP8, GAP3, GAP12
 
 ## Changed Domains

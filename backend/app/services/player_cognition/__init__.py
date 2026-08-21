@@ -44,9 +44,11 @@ from app.services.player_cognition.types import (
     PerceivedEnvironment,
     PerceivedScene,
 )
+from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
 from app.services.player_cognition.uncertainty_layer import apply_uncertainty
 
 __all__ = [
+    "ActionSemanticResolver",
     "Inference",
     "PerceivedEntity",
     "AudioEvent",

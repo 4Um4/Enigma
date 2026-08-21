@@ -1,4 +1,8 @@
-﻿# ADR-302 Impact Audit: SIL, DSTC & SEL (Active Inference)
+﻿# ADR-302 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-302` [STANDARD] **IMPACT**
+# ADR-302 Impact Audit: SIL, DSTC & SEL (Active Inference)
 
 > Этот файл — детальный аудит эволюции ADR-302. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

@@ -1,3 +1,7 @@
+﻿# ADR-O-354 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-354` [STANDARD] **IMPACT**
 # ADR-O-354 Impact Audit: Epistemic Core Foundation
 
 > Этот файл — детальный аудит ADR-O-354. Единый атлас: `docs/ADR (Architecture Decision Records).md`

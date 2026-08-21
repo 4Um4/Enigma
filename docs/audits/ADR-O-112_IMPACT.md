@@ -1,3 +1,7 @@
+﻿# ADR-O-112 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-112` [STANDARD] **IMPACT**
 # ADR-O-112 Impact Audit: Actor-Agnostic Combat Pipeline (Universal Violence)
 
 **Тип АДР:** ONTOLOGY (ADR-O) — Введение новой фундаментальной абстракции

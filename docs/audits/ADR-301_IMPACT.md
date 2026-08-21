@@ -1,4 +1,8 @@
-﻿# ADR-301 Impact Audit: Semantic Index Layer (v2 — актуализировано после S81)
+﻿# ADR-301 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-301` [STANDARD] **IMPACT**
+# ADR-301 Impact Audit: Semantic Index Layer (v2 — актуализировано после S81)
 
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > **Актуализация:** S81 починил координатную истину и добавил passability — это меняет контекст внедрения ADR-301.

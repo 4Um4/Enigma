@@ -1,3 +1,7 @@
+﻿# ADR-050 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-050` [STANDARD] **IMPACT**
 # ADR-050 Impact Audit
 
 ## Измененный АДР
@@ -31,3 +35,4 @@ ONTOLOGY (ADR-O)
 ## Откат (Rollback)
 1. Удалить директории tests/sandbox/phenomenology/, tests/sandbox/system/, tests/sandbox/stress/.
 2. Удалить данный файл.
+

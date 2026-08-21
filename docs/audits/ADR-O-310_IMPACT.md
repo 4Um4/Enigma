@@ -1,4 +1,8 @@
 ﻿# ADR-O-310 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-310` [STANDARD] **IMPACT**
+# ADR-O-310 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains
@@ -25,3 +29,4 @@
 2. Удалить `_phase_7_windup_resolution` вызов из `_run_core_phases`
 3. Удалить WindupWriteGate блок из `_phase_6_intent_conversion` (строки ~1680-1730)
 4. ATTACK EventDTO будут публиковаться немедленно в Фазе 6 (старое поведение)
+

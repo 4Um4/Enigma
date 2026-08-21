@@ -1,3 +1,7 @@
+﻿# ADR-116 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-116` [STANDARD] **IMPACT**
 # ADR-116 Impact Audit: Emotion Pipeline Integrity (emotion: 0.0 Fix)
 
 ## Changed Domains

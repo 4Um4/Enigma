@@ -1,3 +1,7 @@
+﻿# ADR-O-342 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-342` [STANDARD] **Внедрено**
 ## ADR-O-342: Real-Time Causal Probes & PBT [ONTO]
 > **Статус:** ACTIVE
 > **Домен:** DOM-01 (Foundation), DOM-08 (Observability)

@@ -50,18 +50,11 @@ class BeliefRevisionEngine:
         current_tick = claim.tick
 
         if existing_record is None:
-            # S199: Second-Order ToM. Формируем вторичную пропозицию: A ASSERTS P.
-            # Слушатель B верит, что говорящий A утверждает P.
-            second_order_object = f"{claim.proposition.subject_id}_{claim.proposition.predicate.value}_{claim.proposition.object_id}"
-            second_order_prop = Proposition(
-                subject_id=claim.speaker_id,
-                predicate=Predicate.ASSERTS,
-                object_id=second_order_object,
-                polarity=True
-            )
+            # S199.6 FIX: Восстановлено first-order убеждение (claim.proposition) вместо преждевременного Second-Order ToM (ASSERTS).
+            # Second-Order ToM будет реализован позже, как отдельный слой (EPISTEMIC-005), после прохождения EPISTEMIC CORE GATE.
             new_record = EpistemicRecord(
                 agent_id=listener_id,
-                proposition=second_order_prop,
+                proposition=claim.proposition,  # First-order belief: P (e.g. "B stole X")
                 # S199 (Фаза 8.3): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
                 confidence=max(0.0, incoming_confidence),
                 source_id=claim.speaker_id,
@@ -69,7 +62,7 @@ class BeliefRevisionEngine:
                 first_observed_tick=current_tick,
                 last_updated_tick=current_tick
             )
-            logger.info(f"[BELIEF_REVISE] New 2nd-order belief: {listener_id} believes {claim.speaker_id} asserts {claim.proposition.subject_id} {claim.proposition.predicate.value} (conf={new_record.confidence:.2f})")
+            logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
         else:
             # Обновление существующего убеждения
             if existing_record.source_id == claim.speaker_id:

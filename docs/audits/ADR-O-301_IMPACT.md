@@ -1,3 +1,7 @@
+﻿# ADR-O-301 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-301` [STANDARD] **IMPACT**
 # ADR-O-301 Impact Audit: Kernel Isolation Repair v0.1
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
@@ -25,3 +29,4 @@
 ## Rollback
 - Откатить STEP 8 (state_applicator) → STEP 1 (kernel_rng.py).
 - Возврат к `random.Random(seed)` в `DecisionHub` и `random.*` в сервисах.
+

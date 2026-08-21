@@ -1,3 +1,7 @@
+﻿# ADR-131 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-131` [STANDARD] **IMPACT**
 # ADR-131 Impact Audit: Трёхосевая Модель Напряжения + NDA Engine
 
 **Дата:** 09.06.2026

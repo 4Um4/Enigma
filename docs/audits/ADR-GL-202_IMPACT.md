@@ -1,4 +1,8 @@
-﻿# ADR-GL-202 Impact Audit: Generative Constraint Execution Model (GCO)
+﻿# ADR-GL-202 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-GL-202` [STANDARD] **IMPACT**
+# ADR-GL-202 Impact Audit: Generative Constraint Execution Model (GCO)
 > Этот файл — детальный аудит онтологического сдвига ENIGMA. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Суть сдвига

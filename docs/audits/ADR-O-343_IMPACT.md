@@ -1,3 +1,7 @@
+﻿# ADR-O-343 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-343` [STANDARD] **IMPACT**
 # ADR-O-343: Narrative Arbitration Layer / SpeechScheduler v1
 
 > **Статус:** PROPOSED (Requires 2nd Audit before coding)
@@ -131,3 +135,4 @@ VISIBLE_SPEECH (1-3 NPC, LLM + UI)
 - ❌ Создание `QueuedTask` в обход `SpeechScheduler`.
 - ❌ Абсолютный приоритет продолжения разговора над кризисными событиями.
 - ❌ Использование `wall-clock cooldown` как архитектурного паттерна (только Resource Budget).
+

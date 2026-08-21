@@ -533,17 +533,15 @@ class SceneStateManager:
             f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}"
         )
         if self._persistence:
-            self._persistence.save_scene(campaign_id, scene_state)
+            # Stage 0 Task 0.3: JSON as runtime truth FORBIDDEN. 
+            # Делегируем в atomic_commit_all (Устав §4.2.1) — единственный write-path.
+            _loc_id = scene_state.get("location_id", "default")
+            self._persistence.atomic_commit_all(
+                campaign_id=campaign_id,
+                all_scenes={_loc_id: scene_state}
+            )
         else:
-            # Фоллбэк: прямая запись JSON (без порта)
-            data = self._read_campaign_json(campaign_id)
-            data["scene_state"] = scene_state
-            self._write_campaign_json(campaign_id, data)
-        # TODO-A1: JSON mirror — game_screen ещё читает файлы, не API. Удалить после A1.
-        data = self._read_campaign_json(campaign_id)
-        if "scene_state" not in data:
-            data["scene_state"] = scene_state
-            self._write_campaign_json(campaign_id, data)
+            logger.error("[SCENE] PersistencePort missing! Cannot save scene state.")
         logger.debug(f"[SCENE] Сохранён SceneState: {scene_state.get('location_id')}")
 
     # ─────────────────────────────────────────────────────────────────────────

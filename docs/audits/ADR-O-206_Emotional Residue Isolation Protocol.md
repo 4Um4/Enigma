@@ -1,3 +1,7 @@
+﻿# ADR-O-206 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-206` [STANDARD] **Emotional Residue Isolation Protocol**
 ### ADR-PRE-FLIGHT CHECKLIST: ADR-O-206
 # ADR-O-206
 
@@ -122,3 +126,4 @@
 2.  **Ошибка (`surprise`, `delta`)** — управляет памятью и вниманием.
 3.  **Физика (`threat`, `somatic`)** — управляет телом.
 4.  **`EmotionTag`** — просто строка для фронтенда, мерцающая тень без массы. Она может писатьcя в лог, но ни одна строка кода больше не спросит у неё совета.
+

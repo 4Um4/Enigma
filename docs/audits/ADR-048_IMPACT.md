@@ -1,3 +1,7 @@
+﻿# ADR-048 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-048` [STANDARD] **IMPACT**
 ### Итоги промежуточного фикса: "Проклятие Входной Двери"
 
 **ROOT CAUSE:** Нарушение ADR-048. `SpatialQueryService` читал `npc_positions["player"]["position"]`, который инициализировался как `"entrance"` при загрузке сцены и **никогда не обновлялся** при перемещении игрока. Все NPC, решившие подойти к игроку, получали целевой узел `entrance` и послушно шли ко входу.

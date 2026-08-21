@@ -1,4 +1,8 @@
-﻿# ADR-151 Impact Audit: Probe → Telemetry Transition
+﻿# ADR-151 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-151` [STANDARD] **IMPACT**
+# ADR-151 Impact Audit: Probe → Telemetry Transition
 
 ## Changed Domains
 - TickOrchestrator (47 print probes reclassified)
@@ -28,3 +32,4 @@
 - backend/app/services/tick_orchestrator.py (12 removed, 10 condensed, 2 pass additions)
 - backend/app/services/npc/life_engine.py (5 condensed)
 - backend/app/services/spatial/movement_engine.py (1 condensed)
+

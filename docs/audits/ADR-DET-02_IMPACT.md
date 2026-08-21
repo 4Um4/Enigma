@@ -1,3 +1,7 @@
+﻿# ADR-DET-02 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-DET-02` [STANDARD] **IMPACT**
 # ADR-DET-02_IMPACT
 ## Changed Domains
 - DOM-09 (Social & Affective Architecture): Устранена прямая мутация `trust_delta` из `EMOTION` домена.

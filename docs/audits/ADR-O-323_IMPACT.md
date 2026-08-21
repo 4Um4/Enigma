@@ -1,3 +1,7 @@
+﻿# ADR-O-323 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-323` [STANDARD] **IMPACT**
 # ADR-O-323 Impact Audit: Atomic Fact Extraction
 > Этот файл — детальный аудит онтологического сдвига.
 

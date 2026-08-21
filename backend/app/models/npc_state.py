@@ -567,16 +567,42 @@ class NPCState:
     Изменяется только через StateApplicator — не напрямую.
     """
 
+    # Stage 0 Task 0.4: Write Guard
+    # Разрешённые модули для прямой записи в поля NPCState.
+    _ALLOWED_WRITERS = {
+        "app.models.npc_state": {"*"},  # __init__ и внутренние методы
+        "app.services.npc.state_applicator": {"*"},  # Единственный L2 writer
+        "app.services.npc.belief_transition_engine": {"beliefs"},  # Epistemic SSOT
+        "app.services.memory.memory_manager": {"narrative_cache", "affective_imprints"},  # Memory SSOT
+        "app.services.npc.npc_loader": {"*"},  # TODO: Убрать после Task 0.9 (миграция на StateApplicator)
+        "app.services.phases.decision": {"*"},  # TODO: Убрать после Task 0.9
+        "app.services.phases.memory": {"*"},  # TODO: Убрать после Task 0.9
+        "app.services.npc.life_engine": {"*"},  # TODO: Убрать после Task 0.9
+    }
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        import sys
+        _caller = sys._getframe(1).f_globals.get("__name__", "")
+        
+        for mod, fields in self._ALLOWED_WRITERS.items():
+            if _caller == mod or _caller.startswith(mod + "."):
+                if "*" in fields or name in fields:
+                    object.__setattr__(self, name, value)
+                    return
+        
+        from app.errors import ArchitecturalViolationError
+        raise ArchitecturalViolationError(name, _caller)
+
     npc_id: str
     gender: str = "male"  # "male", "female", "other" — копируется из NPCProfileL0
 
     # ── Психика ──────────────────────────────────────────────
 
-    stress: float = 0.0
+    stress: float = 0.0  # WRITE: only StateApplicator.apply_tick_recovery
 
     # ADR-049: Интеграл аффективного давления среды (0.0 – 1.5+).
     # Накапливает threat/uncertainty с течением времени. Вызывает эмоциональный коллапс при превышении порога.
-    affective_load: float = 0.0
+    affective_load: float = 0.0  # WRITE: only StateApplicator._apply_affective_deltas
     # SEL Trace State: Ожидание угрозы (Baseline). Пишется только через sel_trace_commit.
     affective_memory: float = 0.0
 
@@ -612,7 +638,7 @@ class NPCState:
     trauma_markers: Set[str] = field(default_factory=set)
 
     # R7: Эпистемический слой — что NPC считает истиной о мире.
-    # WRITE: только BeliefTransitionEngine.
+    # WRITE: только BeliefTransitionEngine.commit -> StateApplicator.apply_belief_delta
     # READ: DecisionHub.compute() через beliefs.as_modifiers().
     beliefs: "BeliefState" = field(default_factory=BeliefState)
 
@@ -625,6 +651,7 @@ class NPCState:
     # ── Физиология (Physiology Domain / Body LOD Macro) ────────────────────
     # Мастер Тай: body_state — рантайм контейнер ВСЕЙ физиологии (HP, pain, fatigue, injuries, modifiers).
     # Инициализируется из body_profile при загрузке.
+    # WRITE: only StateApplicator.apply_physical
     body_state: Dict[str, Any] = field(default_factory=dict)
     # P2: Субъективная каузальная модель NPC (CFRM)
     perceptual_kernel: PerceptualKernel = field(default_factory=PerceptualKernel)

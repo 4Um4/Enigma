@@ -1,4 +1,8 @@
 ﻿# ADR-O-311 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-O-311` [STANDARD] **IMPACT**
+# ADR-O-311 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains
@@ -24,3 +28,4 @@
 1. Заменить `intent.exposure_level.physical_radius` на хардкод `radius=5.0` в `intent_event_adapter.py:52`
 2. Удалить `ExposureLevel` из `CommunicationIntent` (поле становится optional с дефолтом)
 3. Удалить `_EXPOSURE_DEFAULT_RADIUS` и `ExposureLevel` из `communication.py
+

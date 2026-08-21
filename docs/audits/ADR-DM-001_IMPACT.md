@@ -1,4 +1,8 @@
 ﻿# ADR-DM-001 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-DM-001` [STANDARD] **IMPACT**
+# ADR-DM-001 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains
@@ -15,3 +19,4 @@
 
 ## Rollback
 - [Как откатить]
+

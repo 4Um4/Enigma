@@ -1,4 +1,8 @@
-﻿# ADR-GL-203 Impact Audit: Error-Geometry System, Dynamic Ontology & Execution Order Semantics
+﻿# ADR-GL-203 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-GL-203` [STANDARD] **IMPACT**
+# ADR-GL-203 Impact Audit: Error-Geometry System, Dynamic Ontology & Execution Order Semantics
 > 🚨 **АРХИТЕКТУРНЫЙ ВЕРДИКТ: ДОКУМЕНТ ПОЛНОСТЬЮ ДЕКЛАССИРОВАН (VOID)**
 > Археология рантайма (Сессия S-XX) доказала, что диагноз "Скалярный Коллапс" был ложным. DecisionHub уже использует векторную логику (`redirect` + `drives`), игнорируя `EmotionTag`. 
 > Попытка внедрить Error-Geometry (тензоры, softmax) была бы лечением вылеченной болезни ценой разрушения работающей гидравлики Котла.

@@ -1,4 +1,8 @@
 ﻿# ADR-TZ08-8 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
+
+`ADR-TZ08-8` [STANDARD] **IMPACT**
+# ADR-TZ08-8 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains
@@ -15,3 +19,4 @@
 
 ## Rollback
 - [Как откатить]
+
