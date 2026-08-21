@@ -910,7 +910,7 @@ class EditorCore:
         while self._running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self._running = False
                     
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
@@ -1835,7 +1835,7 @@ class EditorCore:
         if line_len == 0:
             return math.hypot(px - x1, py - y1) < threshold
         
-        t = max(0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (py - y1)) / (line_len ** 2)))
+        t = max(0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / (line_len ** 2)))
         proj_x = x1 + t * (x2 - x1)
         proj_y = y1 + t * (y2 - y1)
         
@@ -2404,7 +2404,7 @@ class EditorCore:
             sx, sy = self.world_to_screen(passage["position"]["x"], passage["position"]["y"])
             # Цвет по типу: дверь — жёлтый, окно — голубой, пролом — серый
             ptype = passage.get("type", "door")
-            color = {"door": "#FFD700", "window": "#87CEEB", "gap": "#AAAAAA"}.get(ptype, "#FFD700")
+            color = {"door": (255, 215, 0), "window": (135, 206, 235), "gap": (170, 170, 170)}.get(ptype, (255, 215, 0))
             pygame.draw.circle(self.screen, color, (sx, sy), 6)
             pygame.draw.circle(self.screen, COLORS["border"], (sx, sy), 6, 1)
             label = self.font_small.render(passage["id"], True, COLORS["text_dim"])

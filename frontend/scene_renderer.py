@@ -603,7 +603,8 @@ class SceneRenderer:
             y += 18
 
         # Body state — нижний левый
-        y = sw - 10 - len(scene.player_body_state) * 18 - 20
+        sh = self.screen.get_height()
+        y = sh - 10 - len(scene.player_body_state) * 18 - 20
         for state in scene.player_body_state:
             surf = self.font_body.render(state, True, _COLORS["text_body"])
             self.screen.blit(surf, (10, y))
@@ -620,4 +621,4 @@ class SceneRenderer:
         if env_parts:
             env_text = " | ".join(env_parts)
             surf = self.font_small.render(env_text, True, _COLORS["text_environment"])
-            self.screen.blit(surf, (sw - surf.get_width() - 10, sw - 24))
+            self.screen.blit(surf, (sw - surf.get_width() - 10, sh - 24))

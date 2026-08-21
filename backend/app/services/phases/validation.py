@@ -93,6 +93,7 @@ def validate_shadow_vs_legacy(
         snapshot_id=snapshot.snapshot_id,
         tick=tick,
         npc_id=npc_id,
+        cause=thick.cause,
         legacy_traversal=_legacy_traversal,
         shadow_traversal=_shadow_traversal,
     )

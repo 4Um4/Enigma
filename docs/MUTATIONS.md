@@ -312,7 +312,19 @@
   - Добавлен эмиттер `[TICK_ORCH]` для питания CDS сводкой тика.
   - Обновлен `РЕЖИМ РАБОТЫ.md` (§3.7 заменен на IPT, добавлен §3.8, расширен §4).
   - Baseline IPT: 2 красных инварианта (INV-TIME-GROW, INV-NPC-MOVE).
-  Files: backend/tests/IPT.py, backend/app/errors.py, diagnostics/health_checkers/invariant_health.py, diagnostics/causal_observer.py, diagnostics/report_renderer.py, diagnostics/dna_metrics.py, diagnostics/pattern_registry.py, backend/app/services/phases/post_decision.py, backend/app/services/tick_orchestrator.py, backend/app/services/integration/world_snapshot_builder.py, docs/РЕЖИМ РАБОТЫ.md
+  Files: backend/tests/IPT.py, backend/app/errors.py, diagnostics/health_checkers/invariant_health.py, diagnostics/causal_observer.py, diagnostics/report_renderer.py, diagnostics/dna_metrics.py, diagnostics/pattern_registry.py, backend/a
+pp/services/phases/post_decision.py, backend/app/services/tick_orchestrator.py, backend/app/services/integration/world_snapshot_builder.py, docs/РЕЖИМ РАБОТЫ.md
+
+- 🟢 **S115** ТЗ-Преемник: Финализация Трубы Диалогов и Очистка Контекста (Валидация и Багфиксы).
+  - **Археология подтвердила:** Все 5 задач ТЗ (Память, Асинхронность, UI, Социум, CausalObserver) уже были реализованы предыдущим исполнителем. Тесты CDS (12 шт.) и инвариант CausalObserver — зелёные.
+  - **Bugfix 1 (SpatialTransitionMode импорт):** В `backend/app/services/event_compiler.py` отсутствовал импорт `SpatialTransitionMode`, что вызывало тихий краш Shadow Compilation (`NameError`) и потерю всех транзитов. Импорт восстановлен.
+  - **Bugfix 2 (TickResultDTO.final_scene_state — КРИТИЧНО):** В `backend/app/domain/tick.py`, `backend/app/services/tick_orchestrator.py` и `backend/app/services/game_loop/__init__.py` устранён критический разрыв трубы. Ядро работало с `deepcopy(scene_state)` (в `create_tick_context`), но `TickResultDTO` не возвращал мутированный снимок. `idle_tick` коммитил устаревший оригинал, теряя все изменения (время, транзиты, позиции). Добавлено поле `final_scene_state` в `TickResultDTO`, ядро возвращает `ctx.scene_state`, а `idle_tick` коммитит именно его.
+  - **Bugfix 3 (SyntaxError в game_loop):** В `backend/app/services/game_loop/__init__.py:1369` блок обновления кэша `LifeEngine` выпал из `try:` из-за неверного отступа, оставив `except` сиротой. Отступ исправлен.
+  - **Bugfix 4 (IPT.py campaign_id):** В `backend/tests/IPT.py` был захардкожен `tavern_silver_wolf` (location_id) вместо `Open_road` (campaign_id). `SpatialFactory` не мог найти editor JSON. Исправлено на `Open_road`.
+  - **Bugfix 5 (IPT.py npc_position):** В `backend/tests/IPT.py` тест ожидал `list` для `local_position`, но `NPCPositionDTO` отдаёт `dict` `{"x": float, "y": float}`. Из-за этого все позиции возвращали `(0, 0)`, и инвариант `INV-NPC-MOVE` падал. Логика извлечения координат переписана для поддержки `dict`.
+  - **Bugfix 6 (TraversalExecutionSystem закомментирован):** В `backend/app/services/tick_orchestrator.py` вызов `TraversalExecutionSystem.advance(ctx.scene_state, ctx.tick_number)` был закомментирован. Транзиты создавались, но никогда не завершались. Вызов раскомментирован.
+  - **Validation:** Все 5 инвариантов IPT теперь проходят (5 passed / 0 failed). `DriftLaboratory` отрабатывает без крашей.
+  Files: backend/app/services/event_compiler.py, backend/app/domain/tick.py, backend/app/services/tick_orchestrator.py, backend/app/services/game_loop/__init__.py, backend/tests/IPT.py
 
 ### DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
 

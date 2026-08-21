@@ -1,0 +1,785 @@
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 884, "vram_after_mb": 884}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 93, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 884, "vram_after_mb": 884}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 41, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 883, "vram_after_mb": 883}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 883, "vram_after_mb": 883}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 883, "vram_after_mb": 883}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 883, "vram_after_mb": 883}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 40, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 883, "vram_after_mb": 883}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 43, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 59, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 59, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 874, "vram_after_mb": 874}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 866, "vram_after_mb": 866}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 866, "vram_after_mb": 866}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 857, "vram_after_mb": 857}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 857, "vram_after_mb": 857}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 857, "vram_after_mb": 857}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 857, "vram_after_mb": 857}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 857, "vram_after_mb": 857}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 857, "vram_after_mb": 857}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 99, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 853, "vram_after_mb": 853}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 847, "vram_after_mb": 847}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 847, "vram_after_mb": 847}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 847, "vram_after_mb": 847}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 848, "vram_after_mb": 848}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 845, "vram_after_mb": 845}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 845, "vram_after_mb": 845}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 845, "vram_after_mb": 845}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 877, "vram_after_mb": 877}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 74, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 963, "vram_after_mb": 963}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 957, "vram_after_mb": 957}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 957, "vram_after_mb": 957}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 957, "vram_after_mb": 957}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 67, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 942, "vram_after_mb": 942}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 942, "vram_after_mb": 942}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 970, "vram_after_mb": 970}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 970, "vram_after_mb": 970}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 922, "vram_after_mb": 922}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 927, "vram_after_mb": 927}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 114, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 927, "vram_after_mb": 927}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 924, "vram_after_mb": 924}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 924, "vram_after_mb": 924}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 923, "vram_after_mb": 923}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 907, "vram_after_mb": 907}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 899, "vram_after_mb": 899}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 956, "vram_after_mb": 956}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 956, "vram_after_mb": 956}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 956, "vram_after_mb": 956}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 76, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 956, "vram_after_mb": 956}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 950, "vram_after_mb": 950}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 946, "vram_after_mb": 946}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 63, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 946, "vram_after_mb": 946}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 69, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 952, "vram_after_mb": 952}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 80, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 955, "vram_after_mb": 955}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 953, "vram_after_mb": 953}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 92, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1032, "vram_after_mb": 1032}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1032, "vram_after_mb": 1032}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1032, "vram_after_mb": 1032}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1032, "vram_after_mb": 1032}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 66, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 952, "vram_after_mb": 952}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 59, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 950, "vram_after_mb": 950}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 59, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 950, "vram_after_mb": 950}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 64, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 950, "vram_after_mb": 950}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 78, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 70, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 63, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 73, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 66, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 65, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 951, "vram_after_mb": 951}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 952, "vram_after_mb": 952}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 74, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 952, "vram_after_mb": 952}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 952, "vram_after_mb": 952}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 71, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 975, "vram_after_mb": 975}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 127, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 976, "vram_after_mb": 976}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 940, "vram_after_mb": 940}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 938, "vram_after_mb": 938}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 937, "vram_after_mb": 937}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 934, "vram_after_mb": 934}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 926, "vram_after_mb": 926}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1024, "vram_after_mb": 1024}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1024, "vram_after_mb": 1024}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1024, "vram_after_mb": 1024}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1024, "vram_after_mb": 1024}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1024, "vram_after_mb": 1024}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1023, "vram_after_mb": 1023}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1023, "vram_after_mb": 1023}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 959, "vram_after_mb": 959}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 959, "vram_after_mb": 959}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 957, "vram_after_mb": 957}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 957, "vram_after_mb": 957}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 956, "vram_after_mb": 956}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 64, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 944, "vram_after_mb": 944}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 944, "vram_after_mb": 944}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 941, "vram_after_mb": 941}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 941, "vram_after_mb": 941}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 916, "vram_after_mb": 916}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 59, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 916, "vram_after_mb": 916}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 903, "vram_after_mb": 903}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 66, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 895, "vram_after_mb": 895}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 64, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 895, "vram_after_mb": 895}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 895, "vram_after_mb": 895}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 895, "vram_after_mb": 895}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 896, "vram_after_mb": 896}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 896, "vram_after_mb": 896}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 911, "vram_after_mb": 911}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 77, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 897, "vram_after_mb": 897}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 67, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 922, "vram_after_mb": 922}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 59, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 929, "vram_after_mb": 929}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 69, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 929, "vram_after_mb": 929}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1027, "vram_after_mb": 1027}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1024, "vram_after_mb": 1024}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 63, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1032, "vram_after_mb": 1032}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 68, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1032, "vram_after_mb": 1032}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 962, "vram_after_mb": 962}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 80, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 949, "vram_after_mb": 949}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 949, "vram_after_mb": 949}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 949, "vram_after_mb": 949}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 62, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 941, "vram_after_mb": 941}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 941, "vram_after_mb": 941}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 975, "vram_after_mb": 975}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 84, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 968, "vram_after_mb": 968}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1076, "vram_after_mb": 1076}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1073, "vram_after_mb": 1073}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1067, "vram_after_mb": 1067}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1067, "vram_after_mb": 1067}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 1066, "vram_after_mb": 1066}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 979, "vram_after_mb": 979}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 979, "vram_after_mb": 979}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 65, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 979, "vram_after_mb": 979}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 982, "vram_after_mb": 982}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 981, "vram_after_mb": 981}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 66, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 971, "vram_after_mb": 971}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 971, "vram_after_mb": 971}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 971, "vram_after_mb": 971}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 971, "vram_after_mb": 971}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 987, "vram_after_mb": 987}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 983, "vram_after_mb": 983}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 983, "vram_after_mb": 983}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 983, "vram_after_mb": 983}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 63, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 980, "vram_after_mb": 980}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 969, "vram_after_mb": 969}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 72, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 969, "vram_after_mb": 969}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 84, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 970, "vram_after_mb": 970}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 978, "vram_after_mb": 978}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 978, "vram_after_mb": 978}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 978, "vram_after_mb": 978}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 978, "vram_after_mb": 978}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 980, "vram_after_mb": 980}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 980, "vram_after_mb": 980}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 972, "vram_after_mb": 972}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 972, "vram_after_mb": 972}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 77, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 963, "vram_after_mb": 963}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 963, "vram_after_mb": 963}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 965, "vram_after_mb": 965}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 965, "vram_after_mb": 965}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 965, "vram_after_mb": 965}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 964, "vram_after_mb": 964}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 960, "vram_after_mb": 960}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 984, "vram_after_mb": 984}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 983, "vram_after_mb": 983}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 71, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 982, "vram_after_mb": 982}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 977, "vram_after_mb": 977}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 977, "vram_after_mb": 977}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 977, "vram_after_mb": 977}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 974, "vram_after_mb": 974}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 70, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 978, "vram_after_mb": 978}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 65, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 978, "vram_after_mb": 978}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}

@@ -487,6 +487,8 @@ class GameScreen:
         _last_idle_tick = 0  # Немедленный первый idle_tick — мир стартует сразу
         _idle_tick_result: list = []   # потокобезопасный буфер результата
         _idle_tick_running = [False]   # флаг активного запроса
+        _skip_time_active = [False]    # Флаг активной промотки времени (блокирует idle_tick)
+        _time_scale_indicator = 0      # 0=выкл, 1=1x, 2=100x, 3=500x, 4=2000x
         _last_telegraph_ms = 0         # cooldown между телеграфами
         # S82: Мировые координаты для Spatial Oracle. Обновляются каждый кадр.
         # Backend использует как PRIMARY spatial input — вычисляет actual_chunk НЕЗАВИСИМО.
@@ -519,6 +521,7 @@ class GameScreen:
 
         def _do_skip_time(ticks: int):
             _idle_tick_running[0] = True
+            _skip_time_active[0] = True
             try:
                 result = _gateway.skip_time(campaign_folder, ticks)
                 _idle_tick_result.clear()
@@ -527,6 +530,8 @@ class GameScreen:
                 import traceback
                 print(f"[SKIP_TIME] ERROR: {e}\n{traceback.format_exc()}")
             _idle_tick_running[0] = False
+            _skip_time_active[0] = False
+            _time_scale_indicator = 0
 
         logger.debug(f"[PIPELINE][INPUT] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
         running = True
@@ -620,7 +625,11 @@ class GameScreen:
                     held_keys.discard(event.key)
                 elif event.type == pygame.TEXTINPUT:
                     # WASD при зажатии генерирует TEXTINPUT с буквой — фильтруем
-                    _WASD_KEY_TEXT = {pygame.K_w: 'w', pygame.K_a: 'a', pygame.K_s: 's', pygame.K_d: 'd'}
+                    # Фильтрация WASD в обеих раскладках (BUG-P1-11)
+                    _WASD_KEY_TEXT = {
+                        pygame.K_w: 'w', pygame.K_a: 'a', pygame.K_s: 's', pygame.K_d: 'd',
+                        pygame.K_w: 'ц', pygame.K_a: 'ф', pygame.K_s: 'ы', pygame.K_d: 'в'
+                    }
                     _skip = False
                     if held_keys and len(event.text) == 1:
                         for k in held_keys:
@@ -631,7 +640,7 @@ class GameScreen:
                         text_input.handle_event(event)
                 elif event.type == pygame.TEXTEDITING:
                     text_input.handle_event(event)
-                elif event.type == pygame.MOUSEBUTTONDOWN and False:  # Отключено перемещение кликом мыши
+                elif event.type == pygame.MOUSEBUTTONDOWN:
                     clicked_npc = self._handle_click(
                         event.pos, scene_state, focus, walls,
                     )
@@ -898,10 +907,11 @@ class GameScreen:
                     _gateway.save_scene_state(campaign_folder, scene_state)
                 except Exception as e:
                     logger.warning(f"[GAME_SCREEN] save_scene_state failed: {e}")
-                _idle_tick_running[0] = True
-                _last_idle_tick = _now
-                logger.info(f"[IDLE_TICK] fired at {_now}ms")
-                threading.Thread(target=_do_idle_tick, daemon=True).start()
+                if not _skip_time_active[0]:
+                    _idle_tick_running[0] = True
+                    _last_idle_tick = _now
+                    logger.info(f"[IDLE_TICK] fired at {_now}ms")
+                    threading.Thread(target=_do_idle_tick, daemon=True).start()
 
             # === Poll backend responses ===
             result = action_queue.poll()
@@ -1112,9 +1122,21 @@ class GameScreen:
                                 recognition = RecognitionLevel.KNOWN_NAME
                                 delivery = DeliveryType.NORMAL
 
-                                for name_lower, name_orig in known_names.items():
+                                # P1-07/P1-08: Сортируем по длине имени (убывание), чтобы ловить полные имена первыми
+                                sorted_names = sorted(known_names.items(), key=lambda x: len(x[0]), reverse=True)
+                                for name_lower, name_orig in sorted_names:
+                                    # 1. Полное совпадение имени
                                     if line_stripped.lower().startswith(name_lower):
                                         rest = line_stripped[len(name_orig):]
+                                        if rest and rest[0] in (':', ',', '-'):
+                                            speaker = name_orig
+                                            text = rest.lstrip(':, - ').strip()
+                                            break
+                                    # 2. Совпадение по первому слову (для составных имён)
+                                    name_words = name_lower.split()
+                                    if name_words and line_stripped.lower().startswith(name_words[0]):
+                                        first_word = name_words[0]
+                                        rest = line_stripped[len(first_word):]
                                         if rest and rest[0] in (':', ',', '-'):
                                             speaker = name_orig
                                             text = rest.lstrip(':, - ').strip()

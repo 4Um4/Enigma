@@ -627,7 +627,6 @@ class TickOrchestrator:
                     }
                     _mock_event = types.SimpleNamespace(payload=_directive_payload)
                     _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
-                    print(f"[DEBUG_S115_DIRECTIVE] deltas={len(_directive_deltas)} target={_target_id} action={_sem_action}")
                     if _directive_deltas:
                         ctx.delta_buffer.extend(_directive_deltas)
                         for delta in _directive_deltas:
