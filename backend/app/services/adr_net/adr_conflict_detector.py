@@ -39,14 +39,34 @@ class ADRConflictDetector:
         
         for file_id, adrs in file_implementers.items():
             if len(adrs) > 1:
-                # H-19 FIX: Если все ADR разделяют хотя бы один закон, это не конфликт (разные версии одного закона)
+                # IPT-CLEANUP: Уточнённая логика Double Truth detection.
+                # Конфликт = два ADR с противоречащими законами (CONFLICTS_WITH edge)
+                # реализуют один файл. Простое разделение разных законов — не конфликт.
                 _all_laws = [set(self.graph.nodes[adr].get("laws", [])) for adr in adrs]
                 _intersection = set.intersection(*_all_laws) if _all_laws else set()
-                if not _intersection:
+                _union = set.union(*_all_laws) if _all_laws else set()
+
+                # Пропускаем, если ADR разделяют хотя бы один закон (разные версии)
+                if _intersection:
+                    continue
+
+                # Пропускаем, если нет явных CONFLICTS_WITH между ADR
+                _has_conflict_edge = False
+                for i, adr_a in enumerate(adrs):
+                    for adr_b in adrs[i+1:]:
+                        if self.graph.has_edge(adr_a, adr_b):
+                            edge_data = self.graph.get_edge_data(adr_a, adr_b)
+                            if any(d.get("edge_type") == "CONFLICTS_WITH" for d in edge_data.values()):
+                                _has_conflict_edge = True
+                                break
+                    if _has_conflict_edge:
+                        break
+
+                if _has_conflict_edge:
                     conflicts.append({
                         "file": file_id,
                         "adrs": adrs,
-                        "conflict": "File IMPLEMENTS ADRs with disjoint laws (Double Truth risk)"
+                        "conflict": "File IMPLEMENTS ADRs with explicit CONFLICTS_WITH edge (Double Truth)"
                     })
         return conflicts
 

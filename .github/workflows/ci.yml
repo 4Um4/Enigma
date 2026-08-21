@@ -1,0 +1,100 @@
+name: ENIGMA CI Gates
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install ruff mypy hypothesis pydantic
+      - name: Ruff check
+        run: ruff check backend/ frontend/
+      - name: Mypy strict
+        run: mypy backend/app/ --config-file mypy.ini
+      - name: ENIGMA Domain purity lint
+        run: python scripts/lint_domain_purity.py
+      - name: ENIGMA Wall-clock lint
+        run: python scripts/lint_wall_clock.py
+      - name: ENIGMA Kernel RNG lint
+        run: python scripts/lint_kernel_rng.py
+      - name: ENIGMA Epistemic Boundary lint
+        run: python scripts/lint_epistemic_boundary.py
+      - name: ENIGMA AST Architecture Rules (§1)
+        run: python scripts/lint_enigma_ast.py
+
+  invariant-probes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install pydantic hypothesis
+      - name: Clear __pycache__
+        run: |
+          find backend/ -type d -name "__pycache__" -exec rm -rf {} +
+          find frontend/ -type d -name "__pycache__" -exec rm -rf {} +
+      - name: Run IPT
+        run: python backend/tests/IPT.py
+      - name: Run pytest (critical subset)
+        run: |
+          cd backend
+          python -m pytest tests/test_kernel_rng.py tests/test_npc_state_r6.py tests/test_tick_orchestrator_full_loop.py -v
+
+  e2e-canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install pydantic hypothesis
+      - name: Clear __pycache__
+        run: |
+          find backend/ -type d -name "__pycache__" -exec rm -rf {} +
+          find frontend/ -type d -name "__pycache__" -exec rm -rf {} +
+      - name: Run E2E Canary (180 ticks)
+        run: python scripts/test_full_playthrough_end_screen_non_empty.py
+
+  import-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run APS graph analysis
+        run: python scripts/APS.py
+      - name: Check for orphan nodes
+        run: |
+          python -c "
+          import json
+          import sys
+          try:
+              with open('backend/deps_compressed.json') as f:
+                  data = json.load(f)
+              orphans = [n for n in data.get('nodes', []) if n.get('bottleneck_score', 0) > 100]
+              if orphans:
+                  print(f'CRITICAL: {len(orphans)} orphan modules with high bottleneck score')
+                  for o in orphans:
+                      print(f'  {o[\"name\"]}: score={o[\"bottleneck_score\"]}')
+                  sys.exit(1)
+              print('No orphan modules detected with high bottleneck score.')
+          except Exception as e:
+              print(f'Error checking orphans: {e}')
+              sys.exit(0)
+          "

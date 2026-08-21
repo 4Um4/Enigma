@@ -76,7 +76,7 @@ class CoherenceBeliefAggregator:
             return []
 
         # Группируем по belief_type
-        # actor_id — для будущей адресации (R9+)
+        # actor_id сохраняется для контекста и аудита, но не используется для мутаций
         support_by: Dict[BeliefType, float] = defaultdict(float)
         contradiction_by: Dict[BeliefType, float] = defaultdict(float)
         actor_by: Dict[BeliefType, str] = {}

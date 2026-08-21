@@ -224,7 +224,7 @@ class NpcConversation:
         text = _rng.choice(_phrases)
 
         yield Artifact(
-            task_id=task.task_id,
+            task.task_id,
             success=True,
             result_type="dialogue_line",
             data={
@@ -232,6 +232,7 @@ class NpcConversation:
                 "target_id": req.target_id,
                 "text": text,
                 "exposure": req.exposure.semantic,
+                "proposition": req.proposition, # S197: Проброс Proposition в Artifact
                 "topic": req.topic,
                 "emotional_state": req.emotional_state,
             },

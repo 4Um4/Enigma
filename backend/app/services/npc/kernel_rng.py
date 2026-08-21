@@ -46,8 +46,8 @@ class KernelRNG:
             raise ValueError(f"npc_id must be non-empty str, got {npc_id!r}")
 
         seed_raw = f"{tick}:{npc_id}:{salt}".encode("utf-8")
-        # Используем первые 16 hex-символов (64 бита) для компактности seed
-        seed = int(hashlib.sha256(seed_raw).hexdigest()[:16], 16)
+        # Используем полное целочисленное представление sha256 (256 бит) для максимизации энтропии
+        seed = int(hashlib.sha256(seed_raw).hexdigest(), 16)
 
         self._rng = random.Random(seed)
         self.seed = seed

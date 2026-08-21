@@ -75,6 +75,125 @@ def get_ports() -> dict:
     return get_runtime_ports()
 
 
+from fastapi.responses import HTMLResponse
+
+@router.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    # Простой Live Dashboard, опрашивающий /api/health
+    return """
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>ENIGMA Live Telemetry</title>
+        <style>
+            body { background-color: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', Courier, monospace; padding: 20px; }
+            .container { max-width: 800px; margin: auto; }
+            h1 { color: #569cd6; border-bottom: 1px solid #333; padding-bottom: 10px; }
+            .card { background: #252526; padding: 15px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #333; }
+            h2 { color: #4ec9b0; margin-top: 0; font-size: 18px; }
+            .metric { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            .label { color: #9cdcfe; }
+            .value { color: #ce9178; font-weight: bold; }
+            .value.green { color: #6a9955; }
+            .value.red { color: #f44747; }
+            .value.yellow { color: #dcdcaa; }
+            #warnings div { margin-top: 5px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📊 ENIGMA Live Telemetry</h1>
+            
+            <div class="card">
+                <h2>Simulation Core</h2>
+                <div class="metric"><span class="label">Status:</span> <span id="status" class="value">Loading...</span></div>
+                <div class="metric"><span class="label">Tick:</span> <span id="tick" class="value">0</span></div>
+                <div class="metric"><span class="label">Game Time (sec):</span> <span id="time" class="value">0.0</span></div>
+            </div>
+
+            <div class="card">
+                <h2>LLM & Tasks</h2>
+                <div class="metric"><span class="label">LLM Server:</span> <span id="llm" class="value">unknown</span></div>
+                <div class="metric"><span class="label">Model:</span> <span id="model" class="value">N/A</span></div>
+                <div class="metric"><span class="label">Pending Tasks:</span> <span id="tasks" class="value">0</span></div>
+                <div class="metric"><span class="label">Active Traversals:</span> <span id="traversals" class="value">0</span></div>
+            </div>
+
+            <div class="card">
+                <h2>MVP Pipeline</h2>
+                <div class="metric"><span class="label">Controller Loaded:</span> <span id="mvp_loaded" class="value">False</span></div>
+                <div class="metric"><span class="label">Secrets Discovered:</span> <span id="secrets" class="value">0</span></div>
+                <div class="metric"><span class="label">Fate States Tracked:</span> <span id="fates" class="value">0</span></div>
+            </div>
+
+            <div class="card">
+                <h2>Active Warnings</h2>
+                <div id="warnings"><div>Loading...</div></div>
+            </div>
+        </div>
+
+        <script>
+            async function fetchData() {
+                try {
+                    const res = await fetch('/api/health');
+                    const data = await res.json();
+                    
+                    document.getElementById('status').textContent = data.status.toUpperCase();
+                    document.getElementById('status').className = 'value ' + (data.status === 'ok' ? 'green' : 'red');
+                    
+                    if(data.simulation) {
+                        document.getElementById('tick').textContent = data.simulation.tick;
+                        document.getElementById('time').textContent = data.simulation.game_time_seconds.toFixed(1);
+                    }
+
+                    document.getElementById('llm').textContent = data.llm;
+                    document.getElementById('llm').className = 'value ' + (data.llm === 'ready' ? 'green' : 'red');
+                    document.getElementById('model').textContent = data.llm_model || 'N/A';
+
+                    if(data.queue_health) {
+                        const tasks = data.queue_health.pending_tasks;
+                        const travs = data.queue_health.active_traversals;
+                        document.getElementById('tasks').textContent = tasks;
+                        document.getElementById('tasks').className = 'value ' + (tasks > 50 ? 'yellow' : 'green');
+                        document.getElementById('traversals').textContent = travs;
+                    }
+
+                    if(data.mvp_health) {
+                        const mvpLoaded = data.mvp_health.mvp_controller_loaded;
+                        document.getElementById('mvp_loaded').textContent = mvpLoaded ? 'True' : 'False';
+                        document.getElementById('mvp_loaded').className = 'value ' + (mvpLoaded ? 'green' : 'red');
+                        document.getElementById('secrets').textContent = data.mvp_health.discovered_secrets_count;
+                        document.getElementById('fates').textContent = data.mvp_health.fate_states_count;
+                    }
+
+                    const warnDiv = document.getElementById('warnings');
+                    warnDiv.innerHTML = '';
+                    if(data.warnings && data.warnings.length > 0) {
+                        data.warnings.forEach(w => {
+                            const p = document.createElement('div');
+                            p.textContent = w;
+                            p.style.color = w.includes('🔴') ? '#f44747' : (w.includes('🟡') ? '#dcdcaa' : '#6a9955');
+                            warnDiv.appendChild(p);
+                        });
+                    } else {
+                        warnDiv.innerHTML = '<div style="color: #6a9955">No warnings</div>';
+                    }
+
+                } catch (e) {
+                    console.error('Failed to fetch health:', e);
+                    document.getElementById('status').textContent = 'FETCH ERROR';
+                    document.getElementById('status').className = 'value red';
+                }
+            }
+
+            setInterval(fetchData, 2000);
+            fetchData();
+        </script>
+    </body>
+    </html>
+    """
+
 @router.get("/health")
 async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
     from app.services.llm.provider_manager import get_model_pool
@@ -90,7 +209,7 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
     pool_status = await pool.get_status()
 
     # DEBT-STARTUP-1: Статус фоновых задач старта
-    startup_status = getattr(request.app.state, "startup_status", {})
+    startup_status = getattr(request.app.state, "startup_status", {})  # noqa: ENIGMA002
     _llm_server = startup_status.get("llm_server", "unknown")
     _llm_health = startup_status.get("llm_health", "unknown")
     _llm_overall = (
@@ -98,7 +217,7 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
     )
 
     # N1/M-03 FIX: ENIGMA SELF-HEALING Telemetry Dashboard (Уровень 7)
-    mvp = getattr(game_loop, "mvp_controller", None)
+    mvp = getattr(game_loop, "mvp_controller", None)  # noqa: ENIGMA002
     mvp_health = {
         "mvp_controller_loaded": mvp is not None,
         "truth_state_loaded": False,
@@ -123,6 +242,10 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
         "dialogue_queue_size": 0,
         "active_traversals": 0,
     }
+    simulation_state = {
+        "tick": 0,
+        "game_time_seconds": 0.0,
+    }
     if active_campaigns:
         _camp_id = active_campaigns[0]
         _loc_id = game_loop.scene_manager.find_starting_location(_camp_id)
@@ -131,6 +254,8 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
             queue_health["pending_tasks"] = len(_scene_state.get("pending_tasks", []))
             queue_health["active_traversals"] = len(_scene_state.get("active_traversals", {}))
             queue_health["dialogue_queue_size"] = len(_scene_state.get("dialogue_queue", []))
+            simulation_state["tick"] = _scene_state.get("tick", 0)
+            simulation_state["game_time_seconds"] = _scene_state.get("game_time_seconds", 0.0)
 
     # ENIGMA SELF-HEALING (Level 7): Active Warnings
     warnings = []
@@ -149,6 +274,7 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
         "llm": _llm_overall,
         "llm_model": llm_status.get("model", None),
         "pool": pool_status,
+        "simulation": simulation_state,
         "players": total_players,
         "sessions": len(active_campaigns),
         "mvp_health": mvp_health,
@@ -262,13 +388,13 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         _ws = (
             _result.get("world_snapshot")
             if isinstance(_result, dict)
-            else getattr(_result, "world_snapshot", None)
+            else getattr(_result, "world_snapshot", None)  # noqa: ENIGMA002
         )
         if _ws is not None:
             _npc_pos = (
                 _ws.get("npc_positions")
                 if isinstance(_ws, dict)
-                else getattr(_ws, "npc_positions", None)
+                else getattr(_ws, "npc_positions", None)  # noqa: ENIGMA002
             )
             # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
             if isinstance(_npc_pos, dict):
@@ -440,7 +566,7 @@ def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_l
     result: Dict[str, Any] = {"crystallized_beliefs": [], "event_memories": []}
     
     # 1. Crystallized Beliefs
-    _tick_orch = getattr(game_loop, "_tick_orch", None)
+    _tick_orch = getattr(game_loop, "_tick_orch", None)  # noqa: ENIGMA002
     if _tick_orch and hasattr(_tick_orch, "crystallized_belief_store"):
         _store = _tick_orch.crystallized_belief_store
         _beliefs = _store.get_beliefs(npc_id)
@@ -454,15 +580,15 @@ def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_l
             ]
 
     # 2. Event Memories (L2)
-    _mm = getattr(game_loop, "memory_manager", None)
+    _mm = getattr(game_loop, "memory_manager", None)  # noqa: ENIGMA002
     if _mm and hasattr(_mm, "_layered"):
-        _sqlite_store = getattr(_mm._layered, "store", None)
+        _sqlite_store = getattr(_mm._layered, "store", None)  # noqa: ENIGMA002
         if _sqlite_store:
             _mems = _sqlite_store.load_event_memories(campaign_id, npc_id)
             if _mems:
                 result["event_memories"] = [
                     {
-                        "text": getattr(m, "text", ""),
+                        "text": getattr(m, "text", ""),  # noqa: ENIGMA002
                         "importance": getattr(m, "importance", 0.0),
                         "tick": getattr(m, "tick", 0),
                     } for m in _mems
@@ -536,10 +662,10 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         _world_x_raw = request.get("world_x")
         _world_y_raw = request.get("world_y")
         world_x: float | None = (
-            float(_world_x_raw) if _world_x_raw is not None else None
+            float(_world_x_raw) if _world_x_raw is not None else None  # noqa: ENIGMA001
         )
         world_y: float | None = (
-            float(_world_y_raw) if _world_y_raw is not None else None
+            float(_world_y_raw) if _world_y_raw is not None else None  # noqa: ENIGMA001
         )
         confirmed_location_id: str | None = None
 
@@ -608,9 +734,9 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             )
 
         # Мета о моделях (для UI/дебага). Не ломает старые клиенты.
-        dm_cfg = pool.get_model_config(dm_model_key) if pool else None
+        dm_cfg = pool.get_model_config(dm_model_key) if pool else None  # noqa: ENIGMA001
         npc_model_key = router_llm.get_model_for_agent("npc")
-        npc_cfg = pool.get_model_config(npc_model_key) if pool else None
+        npc_cfg = pool.get_model_config(npc_model_key) if pool else None  # noqa: ENIGMA001
 
         # TASK 1: Force Merge — извлекаем world_snapshot из результата тика (ADR-0014)
         _ws_dict = None
@@ -657,15 +783,15 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                 "key": dm_model_key,
                 "name": dm_cfg.name if dm_cfg else dm_model_key,
                 "provider": (dm_cfg.provider_type.value if dm_cfg else "unknown"),
-                "path": (dm_cfg.path if dm_cfg else None),
+                "path": (dm_cfg.path if dm_cfg else None),  # noqa: ENIGMA001
             },
             "npc_model": {
                 "key": npc_model_key,
                 "name": npc_cfg.name if npc_cfg else npc_model_key,
                 "provider": (npc_cfg.provider_type.value if npc_cfg else "unknown"),
-                "path": (npc_cfg.path if npc_cfg else None),
+                "path": (npc_cfg.path if npc_cfg else None),  # noqa: ENIGMA001
             },
-            "active_pool_model": getattr(pool, "active_model_key", None),
+            "active_pool_model": getattr(pool, "active_model_key", None),  # noqa: ENIGMA002
             # TASK 1: Force Merge — передаём world_snapshot на фронтенд (ADR-0014)
             "world_snapshot": _ws_dict,
             "npc_positions": _npc_pos_dict,

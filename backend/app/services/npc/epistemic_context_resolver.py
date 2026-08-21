@@ -30,6 +30,8 @@ class EpistemicContextResolver:
         allies = []
         violations = 0
         max_conf = 0.0
+        # S197: Сохраняем утверждение с максимальной уверенностью для Causal Provenance.
+        _trigger_prop = None
 
         for record in records:
             if record.confidence < CONFIDENCE_THRESHOLD:
@@ -37,7 +39,10 @@ class EpistemicContextResolver:
                 
             pred = record.proposition.predicate
             subj = record.proposition.subject_id
-            max_conf = max(max_conf, record.confidence)
+            
+            if record.confidence > max_conf:
+                max_conf = record.confidence
+                _trigger_prop = record.proposition
 
             if pred in [Predicate.STOLE, Predicate.ATTACKED]:
                 if subj not in threats:
@@ -52,7 +57,8 @@ class EpistemicContextResolver:
             perceived_threats=tuple(threats),
             perceived_allies=tuple(allies),
             perceived_violations=violations,
-            max_confidence=max_conf
+            max_confidence=max_conf,
+            trigger_proposition=_trigger_prop
         )
 
     @staticmethod

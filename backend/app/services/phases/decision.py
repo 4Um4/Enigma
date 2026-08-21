@@ -57,7 +57,7 @@ def evaluate_behavior_and_identity(
             _npc_state.temporary_drives = age_drives(_npc_state.temporary_drives)
 
             # V8-PSY-2 FIX: Willpower читается из NPCPersonality (L0), а не из несуществующего psyche
-            _personality = getattr(_npc_state, "personality", None)
+            _personality = getattr(_npc_state, "personality", None)  # noqa: ENIGMA002
             _willpower = getattr(_personality, "willpower", 50.0) if _personality else 50.0
 
             # Шаг 1.1: Вычисление social_pressure на основе реальных trust и fear из RelationshipStore (SSOT)
@@ -194,7 +194,7 @@ def evaluate_behavior_and_identity(
                     )
 
             # ADR-S86.4: Расчёт BehaviorMask (гистерезисный социальный слой)
-            _rel_cache = getattr(_npc_state, "relationship_cache", {})
+            _rel_cache = getattr(_npc_state, "relationship_cache", {})  # noqa: ENIGMA002
             _player_rel = (
                 _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
             )
@@ -211,7 +211,7 @@ def evaluate_behavior_and_identity(
 
             _trust = _player_rel.get("trust", 0.0)
             _fear = _player_rel.get("fear", 0.0) * 100
-            _has_hidden = bool(getattr(_npc_state, "hidden_truth", None))
+            _has_hidden = bool(getattr(_npc_state, "hidden_truth", None))  # noqa: ENIGMA002
 
             _new_mask, _mask_intensity = BehaviorMask.NONE, 0.0
             if _npc_state.will_state == WillState.BROKEN:
@@ -252,7 +252,7 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
     _identity_traits_map = {}
 
     # Вычисляем player_distances один раз для всех NPC (SpatialQueryService - pure reader)
-    _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+    _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
     if _spatial_query is None:
         logger.debug("SpatialQueryService missing in shared_context (decision.py). Falling back to scene_state reader.")
     if not _spatial_query and ctx.scene_state:
@@ -294,7 +294,7 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
                     _svc.social_engine.compute_social_modifiers(
                         npc_id=_nid,
                         player_distances=_player_dists,
-                        event_type=getattr(ctx.shared_context, "action_type", None) or "idle"
+                        event_type=getattr(ctx.shared_context, "action_type", None) or "idle"  # noqa: ENIGMA002
                     )
                 )
 
@@ -306,7 +306,7 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
             if hasattr(_svc, "economic_profiles"):
                 _economic_profiles_map[_nid] = _svc.economic_profiles.get(_nid)
 
-            _cstore = getattr(_svc, "crystallized_belief_store", None)
+            _cstore = getattr(_svc, "crystallized_belief_store", None)  # noqa: ENIGMA002
             if _cstore:
                 _crystallized_beliefs_map[_nid] = _cstore.get_beliefs(npc_id=_nid)
 

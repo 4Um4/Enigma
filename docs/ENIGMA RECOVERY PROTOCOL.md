@@ -499,13 +499,16 @@ SUPERBOX-EPISTEMIC-001 passes only if:
 
 [x] no LLM is required — доказано S002, S003 (детерминированная инъекция ClaimEvent)
 
-[ ] observations differ — НЕ ДОКАЗАНО (требует multi-agent наблюдаемости)
+[x] observations differ — ДОКАЗАНО S192 (SUPERBOX-007: пространственная фильтрация через SpatialQueryService в ClaimEventSubscriber)
+[x] perception membrane hardening — ДОКАЗАНО S192.1 (SUPERBOX-008: target_id не обходит пространственную мембрану)
 
-[ ] belief divergence is persistent — НЕ ДОКАЗАНО (требует save/load)
+[x] epistemic state serialization — ДОКАЗАНО S193 (SUPERBOX-009: адаптеры to_dict/from_dict)
+[ ] belief divergence survives real Save/Load — НЕ ДОКАЗАНО (требует production disk pipeline, S196)
 
-[ ] decisions produce different actions — ЧАСТИЧНО (доказано изменение score, но не intent)
+[x] decisions produce different actions — ДОКАЗАНО S194 (SUPERBOX-010: EpistemicContext меняет выбранный Intent)
 
-[ ] actions create new world events — НЕ ДОКАЗАНО (требует production-интеграции)
+[x] actions create new world tasks — ДОКАЗАНО S195 (SUPERBOX-011: belief → Intent → QueuedTask)
+[x] actions execute into observable world events — ДОКАЗАНО S196 (SUPERBOX-012: QueuedTask исполняется через NpcConversation и порождает NPC_SPOKE в EventBus)
 
 [ ] another NPC can observe those events — НЕ ДОКАЗАНО (требует multi-agent пайплайна)
 

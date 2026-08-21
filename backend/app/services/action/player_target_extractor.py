@@ -576,9 +576,9 @@ class PlayerTargetExtractor:
         lower = action_text.lower().strip()
 
         has_only_pronoun = any(p in lower for p in self._PRONOUNS)
-        prev_target_id = scene_state.get("player_target_npc") if scene_state else None
+        prev_target_id = scene_state.get("player_target_npc") if scene_state else None  # noqa: ENIGMA001
         prev_target_name = (
-            scene_state.get("player_target_npc_name") if scene_state else None
+            scene_state.get("player_target_npc_name") if scene_state else None  # noqa: ENIGMA001
         )
 
         target_npc_id = target_npc_name = None

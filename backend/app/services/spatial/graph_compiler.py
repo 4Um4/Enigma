@@ -337,8 +337,10 @@ def compile_graph(
                     )
     else:
         # Обратная совместимость: passages/connections из editor JSON
+        # IPT-CLEANUP FIX: Не автогенерировать рёбра между комнатами, если в карте уже есть явные node connections.
+        # Иначе появляются "призрачные" рёбра сквозь стены без дверей.
         passages = editor_data.get("passages", editor_data.get("connections", []))
-        if not passages and len(rooms) > 1:
+        if not passages and len(rooms) > 1 and not connections:
             passages = _infer_connections_from_adjacency(rooms)
 
         for passage in passages:
@@ -457,13 +459,15 @@ def _validate_navigation_geometry(
                     # BUG-TOPO-001 FIX: Временно логируем и удаляем ребро, не роняя SpatialService.
                     logger.warning(
                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
-                        f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph."
+                        f"crosses solid wall. Missing door wall_id? Blocker: {_blocker}. Edge removed from graph.\n"
+                        f"FIX: Добавьте door wall_id в стену ({_blocker}) в файле карты, либо удалите ребро {from_id} -> {to_id} из графа."
                     )
                 else:
                     logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
                     logger.warning(
                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
-                        f"is geometrically blocked! Edge removed from graph."
+                        f"is geometrically blocked! Edge removed from graph.\n"
+                        f"FIX: Проверьте координаты узлов или добавьте проход в карте."
                     )
                 _blocked_edges.add((from_id, to_id))
                 _blocked_edges.add((to_id, from_id))
@@ -803,7 +807,7 @@ def load_editor_json(
             try:
                 with open(loc_file, "r", encoding="utf-8-sig") as f:
                     _data = json.load(f)
-                    return _data if isinstance(_data, dict) else None
+                    return _data if isinstance(_data, dict) else None  # noqa: ENIGMA001
             except Exception as e:
                 logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {loc_file}: {e}")
 
@@ -949,23 +953,28 @@ def _create_boundary_nodes(
         alias_map[f"exit_{direction}"] = boundary_id
 
         # P4-01 FIX: Соединяем boundary node со всеми навигационными узлами в радиусе 3.0 м
-        _CONNECTION_RADIUS = 3.0
-        _connected_count = 0
-        for node in graph.values():
-            if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
-                continue
-            _dx = node.x - _bx
-            _dy = node.y - _by
-            if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
-                connections.setdefault(node.node_id, set()).add(boundary_id)
-                connections.setdefault(boundary_id, set()).add(node.node_id)
-                _connected_count += 1
+        # IPT-CLEANUP: Если узел уже явно прописан в JSON (_existing_node), он уже имеет связи.
+        # Автогенерация в этом случае создаёт "призрачные" рёбра сквозь стены.
+        if _existing_node is None:
+            _CONNECTION_RADIUS = 3.0
+            _connected_count = 0
+            for node in graph.values():
+                if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
+                    continue
+                _dx = node.x - _bx
+                _dy = node.y - _by
+                if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
+                    connections.setdefault(node.node_id, set()).add(boundary_id)
+                    connections.setdefault(boundary_id, set()).add(node.node_id)
+                    _connected_count += 1
 
-        if _connected_count == 0:
-            # Fallback: если в радиусе 3м никого нет, цепляем хотя бы за ближайший
-            connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
-            connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
-            _connected_count = 1
+            if _connected_count == 0:
+                # Fallback: если в радиусе 3м никого нет, цепляем хотя бы за ближайший
+                connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
+                connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
+                _connected_count = 1
+        else:
+            _connected_count = 0  # Связи уже добавлены из JSON на предыдущем шаге
 
         logger.info(f"[GRAPH_COMPILER] boundary={direction} connected_to={_connected_count} nodes")
 

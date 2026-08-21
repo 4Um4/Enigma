@@ -10,243 +10,384 @@
   "rooms": [
     {
       "id": "room_0",
-      "name": "Главный зал",
-      "x": 1.9999999999999987,
-      "y": 2.0359999999999996,
-      "width": 12.0,
-      "height": 10.0,
-      "area_sqm": 120.0,
+      "name": "Комната 0",
+      "x": 0.5,
+      "y": 0.5,
+      "width": 13.5,
+      "height": 12.5,
       "polygon": [
         [
-          1.9999999999999987,
-          2.0359999999999996
+          0.5,
+          0.5
         ],
         [
-          13.999999999999998,
-          2.0359999999999996
+          14.0,
+          0.5
         ],
         [
-          13.999999999999998,
-          12.036
+          14.0,
+          13.0
         ],
         [
-          1.9999999999999987,
-          12.036
+          0.5,
+          13.0
         ]
-      ]
+      ],
+      "area_sqm": 168.8
     },
     {
       "id": "room_1",
-      "name": "Кухня",
+      "name": "Комната 1",
       "x": 14.0,
-      "y": 2.0,
-      "width": 4.0,
-      "height": 5.0,
-      "area_sqm": 20.0,
+      "y": 0.5,
+      "width": 5.5,
+      "height": 7.5,
       "polygon": [
         [
           14.0,
-          2.0
+          0.5
         ],
         [
-          18.0,
-          2.0
+          19.5,
+          0.5
         ],
         [
-          18.0,
-          7.0
+          19.5,
+          8.0
         ],
         [
           14.0,
-          7.0
+          8.0
         ]
-      ]
+      ],
+      "area_sqm": 41.2
     }
   ],
   "walls": [
     {
-      "id": "wall_0",
+      "id": "wall_3",
       "type": "wall",
-      "x1": 2.0,
-      "y1": 1.975,
-      "x2": 14.0,
-      "y2": 1.975,
+      "x1": 0.5,
+      "y1": 13.0,
+      "x2": 0.5,
+      "y2": 0.5,
       "thickness": 0.2
     },
     {
       "id": "wall_2",
       "type": "wall",
-      "x1": 2.0,
-      "y1": 2.0,
-      "x2": 2.0,
-      "y2": 12.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_3",
-      "type": "wall",
-      "x1": 2.0,
-      "y1": 12.0,
-      "x2": 14.0,
-      "y2": 12.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_6",
-      "type": "wall",
       "x1": 14.0,
-      "y1": 2.0,
-      "x2": 18.0,
-      "y2": 2.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_5",
-      "type": "wall",
-      "x1": 18.0,
-      "y1": 2.0,
-      "x2": 18.0,
-      "y2": 7.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_4",
-      "type": "wall",
-      "x1": 14.0,
-      "y1": 7.0,
-      "x2": 18.0,
-      "y2": 7.0,
+      "y1": 13.0,
+      "x2": 0.5,
+      "y2": 13.0,
       "thickness": 0.2
     },
     {
       "id": "wall_1",
       "type": "wall",
       "x1": 14.0,
-      "y1": 2.0,
+      "y1": 0.5,
       "x2": 14.0,
-      "y2": 7.0,
+      "y2": 13.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_0",
+      "type": "wall",
+      "x1": 0.5,
+      "y1": 0.5,
+      "x2": 14.0,
+      "y2": 0.5,
       "thickness": 0.2
     },
     {
       "id": "wall_7",
       "type": "wall",
       "x1": 14.0,
-      "y1": 12.0,
+      "y1": 8.0,
       "x2": 14.0,
-      "y2": 7.0,
+      "y2": 0.5,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_6",
+      "type": "wall",
+      "x1": 19.5,
+      "y1": 8.0,
+      "x2": 14.0,
+      "y2": 8.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_5",
+      "type": "wall",
+      "x1": 19.5,
+      "y1": 0.5,
+      "x2": 19.5,
+      "y2": 8.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_4",
+      "type": "wall",
+      "x1": 14.0,
+      "y1": 0.5,
+      "x2": 19.5,
+      "y2": 0.5,
       "thickness": 0.2
     }
   ],
   "nodes": {
     "entrance": {
-      "x": 8.0,
-      "y": 12.0,
+      "x": 8.14382394547325,
+      "y": 13.0258487654321,
       "label": "Вход",
+      "role": "entrance",
       "connections": [
+        "main_hall_west",
+        "corner_table",
+        "exit_east"
+      ]
+    },
+    "main_hall_west": {
+      "x": 6.0,
+      "y": 8.0,
+      "label": "Западный проход",
+      "role": "default",
+      "connections": [
+        "entrance",
+        "main_hall_south",
+        "bar_area",
+        "right_table",
+        "corner_table"
+      ]
+    },
+    "main_hall_south": {
+      "x": 5.5,
+      "y": 6.0,
+      "label": "Юго-запад зала",
+      "role": "default",
+      "connections": [
+        "main_hall_west",
         "main_hall"
       ]
     },
     "main_hall": {
-      "x": 8.0,
-      "y": 7.0,
+      "x": 6.5,
+      "y": 5.5,
       "label": "Центр зала",
+      "role": "default",
       "connections": [
-        "entrance",
-        "bar_area",
-        "fireplace",
-        "corner_table"
+        "main_hall_south",
+        "right_table",
+        "bar_west",
+        "fireplace"
       ]
     },
     "bar_area": {
-      "x": 4.0,
-      "y": 4.0,
+      "x": 4.5,
+      "y": 6.5,
       "label": "У стойки",
+      "role": "bar",
       "connections": [
-        "main_hall",
+        "main_hall_west",
+        "bar_west",
+        "bar_pass_north"
+      ]
+    },
+    "bar_west": {
+      "x": 5.5,
+      "y": 4.5,
+      "label": "У южной стойки",
+      "role": "default",
+      "connections": [
+        "bar_area",
+        "bar_pass_north",
+        "main_hall"
+      ]
+    },
+    "bar_pass_north": {
+      "x": 2.2,
+      "y": 6.0,
+      "label": "Северный обход стойки",
+      "role": "default",
+      "connections": [
+        "bar_west",
+        "bar_side",
+        "bar_area"
+      ]
+    },
+    "bar_side": {
+      "x": 2.2,
+      "y": 3.1371200000000004,
+      "label": "Обход стойки",
+      "role": "default",
+      "connections": [
+        "bar_pass_north",
         "behind_bar"
       ]
     },
     "behind_bar": {
-      "x": 4.0,
-      "y": 2.5,
+      "x": 3.8617600000000003,
+      "y": 2.79264,
       "label": "За стойкой",
+      "role": "inn_desk",
+      "tags": [
+        "workplace:tavern_keeper",
+        "inn_desk"
+      ],
       "connections": [
-        "bar_area"
+        "bar_side",
+        "fireplace",
+        "node_17"
       ]
     },
     "fireplace": {
-      "x": 11.0,
-      "y": 4.0,
+      "x": 10.5,
+      "y": 3.0,
       "label": "У камина",
+      "role": "default",
       "connections": [
-        "main_hall"
+        "right_table",
+        "main_hall",
+        "behind_bar",
+        "node_16"
       ]
     },
     "corner_table": {
-      "x": 12.0,
+      "x": 11.0,
       "y": 10.0,
       "label": "В тёмном углу",
+      "role": "dark_corner",
+      "tags": [
+        "workplace:thief",
+        "dark_corner"
+      ],
       "connections": [
-        "main_hall"
+        "entrance",
+        "right_table",
+        "main_hall_west"
+      ]
+    },
+    "right_table": {
+      "x": 10.5,
+      "y": 6.5,
+      "label": "За правым столом",
+      "role": "table",
+      "connections": [
+        "main_hall",
+        "fireplace",
+        "corner_table",
+        "main_hall_west"
       ]
     },
     "kitchen": {
-      "x": 16.0,
-      "y": 4.0,
+      "x": 16.712863297325104,
+      "y": 2.3801183127572014,
       "label": "Кухня",
-      "connections": []
+      "role": "default",
+      "tags": [
+        "workplace:maid",
+        "serving_station"
+      ],
+      "connections": [
+        "kitchen_bed_1",
+        "kitchen_bed_2",
+        "node_16"
+      ]
+    },
+    "kitchen_bed_1": {
+      "x": 15.154274048353907,
+      "y": 6.357121270576132,
+      "label": "Кровать на кухне 1",
+      "role": "bed",
+      "connections": [
+        "kitchen",
+        "kitchen_bed_2"
+      ]
+    },
+    "kitchen_bed_2": {
+      "x": 18.442637602880655,
+      "y": 6.266120113168724,
+      "label": "Кровать на кухне 2",
+      "role": "bed",
+      "connections": [
+        "kitchen",
+        "kitchen_bed_1"
+      ],
+      "tags": [
+        "kitchen bed 2$; bed; bed 2"
+      ]
+    },
+    "node_16": {
+      "x": 13.5,
+      "y": 3.0,
+      "label": "Узел",
+      "connections": [
+        "fireplace",
+        "kitchen",
+        "exit_east",
+        "node_17"
+      ]
+    },
+    "exit_east": {
+      "x": 8.218993333333334,
+      "y": 12.451713333333332,
+      "label": "Выход в Город",
+      "role": "boundary",
+      "tags": [
+        "boundary:exit"
+      ],
+      "connections": [
+        "entrance"
+      ]
+    },
+    "node_17": {
+      "x": 10.0,
+      "y": 1.0,
+      "label": "Узел",
+      "connections": [
+        "behind_bar",
+        "node_16"
+      ],
+      "role": "default",
+      "tags": []
     }
   },
   "objects": [
     {
       "type": "bar",
       "position": {
-        "x": 4.6,
-        "y": 3.4250000000000003
+        "x": 4.778010666666667,
+        "y": 3.8218479999999992
       },
       "size": {
-        "w": 3.0,
-        "h": 1.0,
+        "w": 4.59,
+        "h": 1.49,
         "d": 1.2
       },
       "rotation": 0,
       "passability": {
         "walk": false,
-        "jump_over": true,
-        "crawl_under": false,
-        "climb_on": false,
+        "jump_over": false,
+        "crawl_under": true,
+        "climb_on": true,
         "walk_around": true
       },
       "cover": 0.8,
       "color": "#654321",
       "id": "obj_0",
       "name": "Барная стойка #1",
-      "show_name": true
-    },
-    {
-      "type": "table",
-      "position": {
-        "x": 8.0,
-        "y": 4.95
-      },
-      "size": {
-        "w": 1.6,
-        "h": 1.32,
-        "d": 0.8
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": false,
-        "jump_over": true,
-        "crawl_under": true,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.5,
-      "color": "#8B7355",
-      "id": "obj_1",
-      "name": "Стол #2",
-      "show_name": false
+      "show_name": true,
+      "sprite": [
+        "текстуры/Утварь трактира",
+        805,
+        177,
+        253,
+        150,
+        220,
+        2
+      ]
     },
     {
       "type": "table",
@@ -270,63 +411,24 @@
       "cover": 0.5,
       "color": "#8B7355",
       "id": "obj_2",
-      "name": "Стол #3"
-    },
-    {
-      "type": "chair",
-      "position": {
-        "x": 6.625,
-        "y": 4.875
-      },
-      "size": {
-        "w": 0.5,
-        "h": 0.5,
-        "d": 0.5
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": false,
-        "jump_over": true,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.3,
-      "color": "#A0522D",
-      "id": "obj_3",
-      "name": "Стул #4"
-    },
-    {
-      "type": "chair",
-      "position": {
-        "x": 9.0,
-        "y": 5.0
-      },
-      "size": {
-        "w": 0.5,
-        "h": 0.5,
-        "d": 0.5
-      },
-      "rotation": 0.0,
-      "passability": {
-        "walk": false,
-        "jump_over": true,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.3,
-      "color": "#A0522D",
-      "id": "obj_4",
-      "name": "Стул #5"
+      "name": "Стол #3",
+      "sprite": [
+        "текстуры/Утварь трактира",
+        6,
+        10,
+        284,
+        177,
+        220,
+        2
+      ]
     },
     {
       "id": "obj_5",
       "name": "Декорация №1",
       "type": "decoration",
       "position": {
-        "x": 7.0,
-        "y": 11.5
+        "x": 6.602141203703703,
+        "y": 12.597125771604938
       },
       "size": {
         "w": 0.5,
@@ -351,8 +453,8 @@
       "name": "Декорация №2",
       "type": "decoration",
       "position": {
-        "x": 9.0,
-        "y": 11.5
+        "x": 9.530478395061728,
+        "y": 12.657407407407408
       },
       "size": {
         "w": 0.5,
@@ -377,8 +479,8 @@
       "name": "Стол №3",
       "type": "table",
       "position": {
-        "x": 3.5,
-        "y": 5.125
+        "x": 5.325,
+        "y": 10.0
       },
       "size": {
         "w": 1.5,
@@ -395,7 +497,16 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        10,
+        6,
+        283,
+        185,
+        211,
+        2
+      ]
     },
     {
       "id": "obj_8",
@@ -420,7 +531,16 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        3,
+        13,
+        287,
+        178,
+        197,
+        2
+      ]
     },
     {
       "id": "obj_9",
@@ -445,7 +565,16 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        0,
+        10,
+        279,
+        174,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_10",
@@ -470,7 +599,16 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        13,
+        23,
+        263,
+        154,
+        220,
+        2
+      ]
     },
     {
       "id": "obj_11",
@@ -495,7 +633,16 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        13,
+        23,
+        280,
+        168,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_12",
@@ -520,7 +667,16 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        10,
+        10,
+        273,
+        181,
+        220,
+        2
+      ]
     },
     {
       "id": "obj_13",
@@ -570,7 +726,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        634,
+        30,
+        116,
+        150,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_15",
@@ -595,15 +760,24 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        761,
+        40,
+        95,
+        134,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_16",
       "name": "Стул №6",
       "type": "chair",
       "position": {
-        "x": 6.75,
-        "y": 9.0
+        "x": 6.95,
+        "y": 8.9
       },
       "size": {
         "w": 0.5,
@@ -620,19 +794,28 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        641,
+        47,
+        116,
+        120,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_17",
       "name": "Стул №7",
       "type": "chair",
       "position": {
-        "x": 12.0,
-        "y": 8.95
+        "x": 12.45,
+        "y": 8.549999999999999
       },
       "size": {
-        "w": 0.5,
-        "h": 0.5,
+        "w": 1.38,
+        "h": 1.12,
         "d": 0.5
       },
       "rotation": 0,
@@ -645,7 +828,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        453,
+        13,
+        198,
+        157,
+        190,
+        2
+      ]
     },
     {
       "id": "obj_18",
@@ -670,7 +862,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        641,
+        47,
+        123,
+        130,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_19",
@@ -695,7 +896,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        651,
+        44,
+        99,
+        123,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_20",
@@ -720,15 +930,24 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        1201,
+        34,
+        89,
+        140,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_21",
       "name": "Стул №11",
       "type": "chair",
       "position": {
-        "x": 2.45,
-        "y": 4.3
+        "x": 5.375,
+        "y": 9.2
       },
       "size": {
         "w": 0.5,
@@ -745,15 +964,24 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        1419,
+        30,
+        113,
+        147,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_22",
       "name": "Стул №12",
       "type": "chair",
       "position": {
-        "x": 4.8,
-        "y": 5.075
+        "x": 5.35,
+        "y": 10.775
       },
       "size": {
         "w": 0.5,
@@ -770,7 +998,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        658,
+        40,
+        103,
+        134,
+        239,
+        1
+      ]
     },
     {
       "id": "obj_23",
@@ -795,7 +1032,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        648,
+        37,
+        102,
+        140,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_24",
@@ -820,7 +1066,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        750,
+        27,
+        116,
+        140,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_25",
@@ -845,7 +1100,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        638,
+        34,
+        116,
+        133,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_26",
@@ -870,19 +1134,28 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        645,
+        37,
+        112,
+        126,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_27",
       "name": "Стол №9",
       "type": "table",
       "position": {
-        "x": 16.006944444444446,
-        "y": 2.5
+        "x": 16.736111111111114,
+        "y": 1.2166666666666668
       },
       "size": {
-        "w": 4.23,
-        "h": 1.49,
+        "w": 4.18,
+        "h": 1.19,
         "d": 0.8
       },
       "rotation": 0,
@@ -895,15 +1168,24 @@
       },
       "cover": 0.5,
       "color": "#8B7355",
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        798,
+        180,
+        256,
+        151,
+        239,
+        6
+      ]
     },
     {
       "id": "obj_29",
       "name": "Стул №17",
       "type": "chair",
       "position": {
-        "x": 15.28125,
-        "y": 3.3993055555555554
+        "x": 15.012916666666666,
+        "y": 1.7468055555555555
       },
       "size": {
         "w": 0.5,
@@ -920,73 +1202,16 @@
       },
       "cover": 0.3,
       "color": "#A0522D",
-      "properties": {}
-    },
-    {
-      "id": "obj_30",
-      "name": "Дверь переход №1",
-      "type": "door_transition",
-      "position": {
-        "x": 8.0,
-        "y": 12.0
-      },
-      "size": {
-        "w": 1.11,
-        "h": 0.2,
-        "d": 2.2
-      },
-      "rotation": "wall_3",
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#FF8C00",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 25,
-        "visibility_through": 0.0,
-        "target_file": "",
-        "target_portal": ""
-      },
-      "mirrored": true
-    },
-    {
-      "id": "obj_32",
-      "name": "Дверь №2",
-      "type": "door",
-      "position": {
-        "x": 14.0,
-        "y": 3.75
-      },
-      "size": {
-        "w": 0.3,
-        "h": 1.08,
-        "d": 2.2
-      },
-      "rotation": "wall_1",
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#D2691E",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 20,
-        "visibility_through": 0.1
-      },
-      "mirrored": false
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        1191,
+        37,
+        102,
+        137,
+        220,
+        2
+      ]
     },
     {
       "id": "obj_33",
@@ -1012,7 +1237,16 @@
       "cover": 0.2,
       "color": "#A0522D",
       "show_name": false,
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        641,
+        44,
+        120,
+        140,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_34",
@@ -1023,8 +1257,8 @@
         "y": 3.0
       },
       "size": {
-        "w": 0.8,
-        "h": 0.8,
+        "w": 2.05,
+        "h": 1.38,
         "d": 0.5
       },
       "rotation": "",
@@ -1041,15 +1275,24 @@
       "properties": {
         "light_radius": 5.0,
         "temperature": 800
-      }
+      },
+      "sprite": [
+        "текстуры/Утварь трактира",
+        1136,
+        467,
+        225,
+        103,
+        237,
+        4
+      ]
     },
     {
       "id": "obj_35",
       "name": "Стул №18",
       "type": "chair",
       "position": {
-        "x": 16.739583333333332,
-        "y": 3.4375
+        "x": 18.28125,
+        "y": 1.6875
       },
       "size": {
         "w": 0.5,
@@ -1067,22 +1310,31 @@
       "cover": 0.3,
       "color": "#A0522D",
       "show_name": false,
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        1409,
+        37,
+        123,
+        140,
+        220,
+        1
+      ]
     },
     {
       "id": "obj_36",
       "name": "Кровать №1",
       "type": "bed",
       "position": {
-        "x": 14.48611111111111,
-        "y": 6.118055555555555
+        "x": 15.406185699588475,
+        "y": 7.2321463477366255
       },
       "size": {
         "w": 2.0,
         "h": 1.0,
         "d": 0.6
       },
-      "rotation": 270.0,
+      "rotation": 0.0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1093,22 +1345,31 @@
       "cover": 0.2,
       "color": "#8B4513",
       "show_name": false,
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        6,
+        197,
+        277,
+        127,
+        220,
+        2
+      ]
     },
     {
       "id": "obj_37",
       "name": "Кровать №2",
       "type": "bed",
       "position": {
-        "x": 17.5,
-        "y": 6.048611111111112
+        "x": 18.396350951646088,
+        "y": 7.088165509259259
       },
       "size": {
         "w": 2.0,
         "h": 1.0,
         "d": 0.6
       },
-      "rotation": 270.0,
+      "rotation": 0.0,
       "passability": {
         "walk": false,
         "jump_over": false,
@@ -1119,7 +1380,84 @@
       "cover": 0.2,
       "color": "#8B4513",
       "show_name": false,
-      "properties": {}
+      "properties": {},
+      "sprite": [
+        "текстуры/Утварь трактира",
+        13,
+        191,
+        256,
+        136,
+        237,
+        3
+      ]
+    },
+    {
+      "id": "obj_38",
+      "name": "Дверь переход №1",
+      "type": "door_transition",
+      "position": {
+        "x": 8.075000000000003,
+        "y": 13.0
+      },
+      "size": {
+        "w": 3.55,
+        "h": 0.2,
+        "d": 2.2
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#FF8C00",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 25,
+        "visibility_through": 0.0,
+        "target_file": "",
+        "target_portal": "",
+        "wall_id": "wall_2"
+      },
+      "wall_id": "wall_2"
+    },
+    {
+      "id": "obj_41",
+      "name": "Дверь №3",
+      "type": "door",
+      "position": {
+        "x": 14.0,
+        "y": 3.125
+      },
+      "size": {
+        "w": 0.2,
+        "h": 2.94,
+        "d": 2.2
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 20,
+        "visibility_through": 0.1,
+        "wall_id": "wall_1"
+      },
+      "wall_id": "wall_1"
     }
   ],
   "portals": [
@@ -1189,7 +1527,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-07-25T17:42:17.890325",
+  "modified_at": "2026-08-15T14:17:18.943452",
   "origin": {
     "x": 0,
     "y": 0
@@ -1199,26 +1537,83 @@
     {
       "ref_id": "maid_lusya",
       "position": {
-        "x": 15.870833333333334,
-        "y": 6.002777777777778
+        "x": 7.98736111111111,
+        "y": 1.8263888888888888
       },
-      "room_id": "room_0"
-    },
-    {
-      "ref_id": "guard_borko",
-      "position": {
-        "x": 13.325,
-        "y": 9.375
-      },
-      "room_id": "room_0"
+      "room_id": "room_0",
+      "sprite": {
+        "N": [
+          "Pers/Люся",
+          221,
+          768,
+          140,
+          232,
+          220,
+          3
+        ],
+        "E": [
+          "Pers/Люся",
+          372,
+          781,
+          140,
+          212,
+          220,
+          3
+        ],
+        "W": [
+          "Pers/Люся",
+          372,
+          781,
+          140,
+          212,
+          220,
+          3
+        ],
+        "S": [
+          "Pers/Люся",
+          58,
+          778,
+          150,
+          222,
+          220,
+          3
+        ],
+        "SW": [
+          "Pers/Люся",
+          815,
+          768,
+          198,
+          228,
+          220,
+          3
+        ],
+        "SE": [
+          "Pers/Люся",
+          815,
+          768,
+          198,
+          228,
+          220,
+          3
+        ]
+      }
     },
     {
       "ref_id": "blacksmith_orm",
       "position": {
-        "x": 17.40763888888889,
-        "y": 4.423611111111111
+        "x": 10.5,
+        "y": 4.0
       },
-      "room_id": "room_0"
+      "room_id": "room_0",
+      "sprite": [
+        "Pers/Кузнец Орм",
+        6,
+        3,
+        256,
+        365,
+        220,
+        1
+      ]
     },
     {
       "ref_id": "tavern_keeper_tornin",
@@ -1226,31 +1621,184 @@
         "x": 4.5,
         "y": 2.5
       },
-      "room_id": "room_0"
-    },
-    {
-      "ref_id": "thief_shadow",
-      "position": {
-        "x": 2.625,
-        "y": 10.049999999999999
-      },
-      "room_id": "room_0"
+      "room_id": "room_0",
+      "sprite": {
+        "N": [
+          "Pers/traktir/Трактирщик",
+          215,
+          788,
+          170,
+          195,
+          220,
+          4
+        ],
+        "NE": [
+          "Pers/traktir/Трактирщик",
+          385,
+          788,
+          161,
+          188,
+          220,
+          4
+        ],
+        "E": [
+          "Pers/traktir/Трактирщик",
+          535,
+          788,
+          171,
+          191,
+          220,
+          4
+        ],
+        "SE": [
+          "Pers/traktir/Трактирщик",
+          706,
+          795,
+          167,
+          194,
+          220,
+          4
+        ],
+        "S": [
+          "Pers/traktir/Трактирщик",
+          40,
+          791,
+          175,
+          195,
+          220,
+          4
+        ]
+      }
     },
     {
       "ref_id": "merchant_goran",
       "position": {
-        "x": 10.151388888888889,
-        "y": 6.1409722222222225
+        "x": 10.1,
+        "y": 6.1
       },
       "room_id": "room_1"
+    },
+    {
+      "ref_id": "guard_borko",
+      "position": {
+        "x": 16.700000000000003,
+        "y": 3.7750000000000004
+      },
+      "room_id": "room_0",
+      "sprite": {
+        "N": [
+          "Pers/Борко",
+          515,
+          785,
+          157,
+          218,
+          220,
+          1
+        ],
+        "S": [
+          "Pers/Борко",
+          6,
+          774,
+          147,
+          236,
+          220,
+          2
+        ],
+        "SW": [
+          "Pers/Борко",
+          238,
+          785,
+          130,
+          228,
+          220,
+          2
+        ],
+        "SE": [
+          "Pers/Борко",
+          238,
+          785,
+          130,
+          228,
+          220,
+          2
+        ],
+        "W": [
+          "Pers/Борко",
+          925,
+          795,
+          119,
+          198,
+          220,
+          2
+        ],
+        "E": [
+          "Pers/Борко",
+          925,
+          795,
+          119,
+          198,
+          220,
+          2
+        ]
+      }
+    },
+    {
+      "ref_id": "thief_shadow",
+      "position": {
+        "x": 11.5,
+        "y": 11.0
+      },
+      "room_id": "room_0",
+      "sprite": {
+        "S": [
+          "Pers/Тень",
+          10,
+          754,
+          123,
+          252,
+          220,
+          2
+        ],
+        "N": [
+          "Pers/Тень",
+          474,
+          757,
+          147,
+          253,
+          220,
+          2
+        ],
+        "E": [
+          "Pers/Тень",
+          361,
+          757,
+          116,
+          253,
+          220,
+          2
+        ],
+        "W": [
+          "Pers/Тень",
+          361,
+          757,
+          116,
+          253,
+          220,
+          2
+        ]
+      }
     }
   ],
-  "player_spawn": {
-    "x": 8.0,
-    "y": 11.5,
-    "z": 0
-  },
   "global_coords": true,
   "labels": [],
-  "location_id": "tavern"
+  "location_id": "tavern",
+  "adjacency": {
+    "east": "city_gate",
+    "south": "market_square"
+  },
+  "player_spawn": {
+    "x": 8.204957561728396,
+    "y": 11.90991512345679,
+    "z": 0
+  }
 }

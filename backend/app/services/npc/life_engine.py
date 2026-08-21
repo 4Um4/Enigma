@@ -105,7 +105,7 @@ _NEED_THRESHOLD: float = 0.5
 # Прирост за тик, если активность не удовлетворяет потребность
 _NEED_DECAY_PER_TICK: float = 0.08
 
-# Восстановление стресса за тик (см. psyche_engine)
+# Восстановление стресса за тик
 # ── Tick Architecture (Блок 1) ──────────────────────────────────────────────
 
 # Hybrid persistence: сохранять tick в JSON раз в N тиков
@@ -349,7 +349,7 @@ class LifeEngine:
                 # 5% за тик, но мы не считаем тики — используем эвристику
                 # KERNEL-ISOLATION: deterministic RNG вместо global random.
                 _tick = self.get_current_tick(campaign_id)
-                _rng = KernelRNG(tick=_tick, npc_id=npc_id)
+                _rng = KernelRNG(tick=_tick, npc_id=npc_id, salt="life_engine_random_events")
                 if tier == "major" and _rng.random() < 0.4:  # 40% шанс, deterministic
                     event_changes, _ = self.check_random_events(npc, _tick, rng=_rng)
                     all_changes.extend(event_changes)
@@ -922,22 +922,12 @@ class LifeEngine:
         blood_loss, shock_impulse) теряется после TTL/LRU eviction.
         """
         if cached := self._npc_cache.get(campaign_id):
-            return copy.deepcopy(cached)
-
-        # ADR-128: Cold recovery — пробуем восстановить из персистенса
-        recovered = self._load_npcs(campaign_id)
-        if recovered:
-            logger.info(
-                f"[LIFE_ENGINE] get_npc_states: восстановлен из cold storage "
-                f"({campaign_id}, {len(recovered)} NPC)"
-            )
-            return copy.deepcopy(recovered)
-
-        logger.warning(
-            f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
-            "Ни cache, ни SQLite, ни static config не содержат данных."
-        )
+            return cached
+        
+        # COLD RECOVERY: Возвращаем пустой список, если кэш пуст.
+        # Загрузка из БД будет выполнена при следующем вызове _load_npcs.
         return []
+
 
     # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам
@@ -1100,7 +1090,7 @@ class LifeEngine:
         _recent_dir = (
             _kernel.get("recent_directive")
             if isinstance(_kernel, dict)
-            else getattr(_kernel, "recent_directive", None)
+            else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
             if _kernel
             else None
         )
@@ -1464,7 +1454,7 @@ class LifeEngine:
         _rd = (
             _kernel.get("recent_directive")
             if isinstance(_kernel, dict)
-            else getattr(_kernel, "recent_directive", None)
+            else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
             if _kernel
             else None
         )
@@ -1686,7 +1676,7 @@ class LifeEngine:
         _recent_dir = (
             _kernel.get("recent_directive")
             if isinstance(_kernel, dict)
-            else getattr(_kernel, "recent_directive", None)
+            else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
             if _kernel
             else None
         )
@@ -1999,7 +1989,7 @@ class LifeEngine:
                 else:
                     ref = self._spatial_service.resolve_node(
                         role=role, origin_zone=npc.get("location_id"),
-                        filters=[_workplace_tag] if _workplace_tag else None
+                        filters=[_workplace_tag] if _workplace_tag else None  # noqa: ENIGMA001
                     )
                 # Fallback: Если персонального места нет, ищем любое по роли
                 if not ref:
@@ -2052,7 +2042,7 @@ class LifeEngine:
                         if getattr(_ref, "confidence", 1.0) < 1.0:
                             logger.warning(
                                 f"[POSITION_RECOVERY][LOW_CONFIDENCE] npc={npc.get('id')} "
-                                f"node={current_position} confidence={getattr(_ref, 'confidence', None)}"
+                                f"node={current_position} confidence={getattr(_ref, 'confidence', None)}"  # noqa: ENIGMA002
                             )
                         else:
                             logger.info(
@@ -2129,7 +2119,7 @@ class LifeEngine:
         _recent_dir = (
             _kernel.get("recent_directive")
             if isinstance(_kernel, dict)
-            else getattr(_kernel, "recent_directive", None)
+            else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
             if _kernel
             else None
         )

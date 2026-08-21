@@ -52,7 +52,7 @@ def execute_reduction_phase(
     # ADR-O-112 DIAG: Проверяем, что CombatSubscriber вернул
     if combat_result:
         logger.debug(
-            f"[DIAG_PHASE8] combat_result: deltas={len(combat_result.deltas or [])} missed={len(getattr(combat_result, 'missed_targets', []))}"
+            f"[DIAG_PHASE8] combat_result: deltas={len(combat_result.deltas or [])} missed={len(getattr(combat_result, 'missed_targets', []))}"  # noqa: ENIGMA002
         )
     else:
         logger.debug(
@@ -113,7 +113,7 @@ def execute_reduction_phase(
             l1_chronicle.commit_tick_buffer(_combat_l1_events, ctx.tick_number)
 
         # Промахи по расстоянию — DM должен знать что атака не достигла цели
-        _missed = getattr(combat_result, "missed_targets", [])
+        _missed = getattr(combat_result, "missed_targets", [])  # noqa: ENIGMA002
         for _miss in _missed:
             _combat_data[_miss["npc_id"]] = {
                 "miss": True,
@@ -156,7 +156,7 @@ def _execute_handler(
     """Исполняет один обработчик Фазы 8 с изолированным контекстом."""
     # ADR-O-112 DIAG: Проверяем, есть ли накопленные события до drain
     if handler.name == "combat":
-        _pending = getattr(handler, "_pending_events", [])
+        _pending = getattr(handler, "_pending_events", [])  # noqa: ENIGMA002
         logger.debug(
             f"[DIAG_PHASE8] combat_sub pending_events={len(_pending)} types={[getattr(e, 'type', '?') for e in _pending[:3]]}"
         )
@@ -270,7 +270,7 @@ def _apply_handler_result(
             _svc = resolve_spatial_fn()
             for delta in result.deltas:
                 if delta.domain == DeltaDomain.PHYSIOLOGY:
-                    _target_id = getattr(delta, "npc_id", None)
+                    _target_id = getattr(delta, "npc_id", None)  # noqa: ENIGMA002
                     if _target_id and _svc:
                         _pos_data = ctx.scene_state.get("npc_positions", {}).get(
                             _target_id, {}

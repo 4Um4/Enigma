@@ -7,7 +7,7 @@ path: backend/app/services/npc/belief_crystallization_engine.py
 
 import logging
 import math
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from app.domain.identity_events import CrystallizedBelief, EvidenceOfPersistence
 
@@ -51,7 +51,8 @@ class BeliefCrystallizationEngine:
         Returns:
             Обновлённый список CrystallizedBelief.
         """
-        updated_beliefs: Dict[str, CrystallizedBelief] = {}
+        # C-17 FIX: Ключ по (source_id, trait), чтобы допускать множественные убеждения
+        updated_beliefs: Dict[Tuple[str, str], CrystallizedBelief] = {}
 
         # 1. Фаза Энтропии: Затухание старых убеждений
         for belief in existing_beliefs:
@@ -61,7 +62,7 @@ class BeliefCrystallizationEngine:
 
             # Если вес выше порога забывания — сохраняем убеждение
             if decayed_weight > BELIEF_FORGET_THRESHOLD:
-                updated_beliefs[belief.source_id] = CrystallizedBelief(
+                updated_beliefs[(belief.source_id, belief.trait)] = CrystallizedBelief(
                     source_id=belief.source_id,
                     trait=belief.trait,
                     weight=decayed_weight,
@@ -92,42 +93,54 @@ class BeliefCrystallizationEngine:
             # Делим на 10.0 как масштабный коэффициент (предполагаем, что cumulative_effect в диапазоне ~-10..10)
             base_weight = min(abs(evidence.cumulative_effect) / 10.0, 1.0) * sensitivity
 
-            # Поиск существующего убеждения к этому источнику
-            existing = updated_beliefs.get(evidence.source_id)
+            # C-17 FIX: Ищем существующее убеждение того же трейта (для подтверждения)
+            existing = updated_beliefs.get((evidence.source_id, target_trait))
+            # И противоположного трейта (для опровержения/асимметричной травмы)
+            opposite_trait = "trust" if target_trait == "fear" else "fear"
+            opposite_belief = updated_beliefs.get((evidence.source_id, opposite_trait))
 
             if existing:
-                # ADR-O-307: Асимметричная травма
-                if existing.trait == target_trait:
-                    # Подтверждение: линейный рост
-                    new_weight = min(existing.weight + base_weight, MAX_WEIGHT)
-                else:
-                    # Опровержение: вес старого убеждения падает в 6 раз быстрее
-                    # И если он падает до нуля, может сформироваться новое убеждение
-                    decayed_weight = existing.weight - (base_weight * TRAUMA_MULTIPLIER)
-
-                    if decayed_weight <= 0.0:
-                        # Старое убеждение разрушено, формируем новое
-                        # Остаточный вес переносится (опровергнуто, но не полностью)
-                        new_weight = min(base_weight, MAX_WEIGHT)
-                        target_trait = target_trait  # Трейт меняется на новый
-                    else:
-                        # Убеждение ещё держится, но ослабло
-                        new_weight = decayed_weight
-                        target_trait = (
-                            existing.trait
-                        )  # Трейт остаётся старым, пока вес > 0
-
-                updated_beliefs[evidence.source_id] = CrystallizedBelief(
+                # Подтверждение: линейный рост
+                new_weight = min(existing.weight + base_weight, MAX_WEIGHT)
+                updated_beliefs[(evidence.source_id, target_trait)] = CrystallizedBelief(
                     source_id=evidence.source_id,
                     trait=target_trait,
                     weight=new_weight,
                     last_updated_tick=current_tick,
                 )
                 logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
+            elif opposite_belief:
+                # Опровержение: вес старого убеждения падает в 6 раз быстрее
+                # И если он падает до нуля, может сформироваться новое
+                decayed_weight = opposite_belief.weight - (base_weight * TRAUMA_MULTIPLIER)
+
+                if decayed_weight <= 0.0:
+                    # Старое убеждение разрушено, формируем новое
+                    # Остаточный вес переносится (опровергнуто, но не полностью)
+                    new_weight = min(base_weight, MAX_WEIGHT)
+                    del updated_beliefs[(evidence.source_id, opposite_trait)]
+                    if new_weight > 0:
+                        updated_beliefs[(evidence.source_id, target_trait)] = CrystallizedBelief(
+                            source_id=evidence.source_id,
+                            trait=target_trait,
+                            weight=new_weight,
+                            last_updated_tick=current_tick,
+                        )
+                        logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
+                else:
+                    # Убеждение ещё держится, но ослабло
+                    new_weight = decayed_weight
+                    updated_beliefs[(evidence.source_id, opposite_trait)] = CrystallizedBelief(
+                        source_id=evidence.source_id,
+                        trait=opposite_trait,
+                        weight=new_weight,
+                        last_updated_tick=current_tick,
+                    )
+                    logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={opposite_trait} weight={new_weight:.2f} (weakened)")
             else:
                 # Формирование нового убеждения
                 if base_weight > 0.05:  # Порог кристаллизации
-                    updated_beliefs[evidence.source_id] = CrystallizedBelief(
+                    updated_beliefs[(evidence.source_id, target_trait)] = CrystallizedBelief(
                         source_id=evidence.source_id,
                         trait=target_trait,
                         weight=base_weight,

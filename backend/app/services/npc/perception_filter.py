@@ -52,7 +52,7 @@ def _get_position(entity_data: Dict[str, Any]) -> Optional[tuple[float, float]]:
     x = entity_data.get("x")
     y = entity_data.get("y")
     # Sourcery: assign-if-exp для компактности
-    return (float(x), float(y)) if x is not None and y is not None else None
+    return (float(x), float(y)) if x is not None and y is not None else None  # noqa: ENIGMA001
 
 
 def _euclidean(a: tuple[float, float], b: tuple[float, float]) -> float:

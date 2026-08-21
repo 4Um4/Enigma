@@ -64,7 +64,7 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
             nid = npc_dict.get("npc_id") or npc_dict.get("id")
             if nid in ctx.semantic_buffer:
                 frame = ctx.semantic_buffer[nid]
-                if frame.emotion_tag is not None:
+                if frame.emotion_tag is not None and frame.emotion_tag.strip():
                     npc_dict["emotion"] = frame.emotion_tag
                 if frame.affective_load is not None:
                     npc_dict["affective_load"] = frame.affective_load

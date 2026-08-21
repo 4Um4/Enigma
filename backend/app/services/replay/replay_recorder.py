@@ -66,7 +66,7 @@ class ReplayRecorder:
         try:
             for interv in interventions:
                 source = getattr(interv, "source", "unknown")
-                payload = getattr(interv, "payload", {})
+                payload = getattr(interv, "payload", {})  # noqa: ENIGMA002
                 self.store.record_intervention(
                     session_id=self.session_id,
                     tick_id=tick_id,

@@ -39,7 +39,7 @@ def propagate_social_rumors(
     Оркестратор применяет дельты в _apply_phase8_result().
     """
     _target_id = (
-        getattr(shared_context, "player_target_id", "") if shared_context else ""
+        getattr(shared_context, "player_target_id", "") if shared_context else ""  # noqa: ENIGMA002
     )
 
     # Канонический путь: intensity из EventDTO.payload (Устав §2.1)
@@ -62,7 +62,7 @@ def propagate_social_rumors(
     # Fallback: legacy путь через dm_result.event_context
     if _intensity == 0.0:
         _dm_res = (
-            shared_context.python_engines_result.get("dm_result")
+            shared_context.python_engines_result.get("dm_result")  # noqa: ENIGMA001
             if hasattr(shared_context, "python_engines_result")
             else None
         )

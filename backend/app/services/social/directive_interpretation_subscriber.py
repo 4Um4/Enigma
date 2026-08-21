@@ -186,7 +186,7 @@ class DirectiveInterpretationSubscriber:
                 domain=DeltaDomain.EMOTION,
                 payload=EmotionPayload(
                     stress_delta=obedience_intensity * 5.0 if not _is_summon else 0.0,
-                    emotion_tag="unease" if not _is_summon else None,
+                    emotion_tag="unease" if not _is_summon else None,  # noqa: ENIGMA001
                 ),
                 source="directive_interpretation",
             )

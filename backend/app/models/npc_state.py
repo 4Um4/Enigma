@@ -662,9 +662,7 @@ class NPCState:
     #
     # ADR-HP-UNIFICATION: hp/max_hp — deprecated. Canonical source = body_state["current_hp"]
     # и body_state["max_hp"]. Поля оставлены для обратной совместимости со старым
-    # combat code, но НЕ должны писаться напрямую. Используйте body_state.
-    hp: int = 0  # deprecated, читается из body_state через effective_hp
-    max_hp: int = 0  # deprecated
+    # N-23 FIX: Поля hp/max_hp удалены. Единственный источник истины — body_state.
     # ADR-O-333: Embodied Traversal Architecture. Контракт физического тела.
     body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
     conditions: Dict[str, "Condition"] = field(default_factory=dict)
@@ -679,14 +677,14 @@ class NPCState:
         """Canonical HP: читает из body_state. ADR-HP-UNIFICATION."""
         if self.body_state and "current_hp" in self.body_state:
             return float(self.body_state["current_hp"])
-        return float(self.hp)  # fallback на deprecated поле
+        return 0.0  # Fallback на 0.0, если body_state не инициализирован
 
     @property
     def effective_max_hp(self) -> float:
         """Canonical max HP: читает из body_state."""
         if self.body_state and "max_hp" in self.body_state:
             return float(self.body_state["max_hp"])
-        return float(self.max_hp)  # fallback
+        return 0.0  # Fallback на 0.0
 
     # ── Эмоция (накопительная) ────────────────────────────────────────────────
     emotion: EmotionTag = EmotionTag.NEUTRAL
@@ -785,7 +783,7 @@ class NPCState:
             "life_project": self.life_project,
             "life_project_state": self.life_project_state,
             "trauma_markers": list(self.trauma_markers),
-            "intent": self.intent.value if self.intent else None,
+            "intent": self.intent.value if self.intent else None,  # noqa: ENIGMA001
             "intent_target": self.intent_target,
             "intent_duration": self.intent_duration,
             "intent_progress_ticks": self.intent_progress_ticks,
@@ -817,11 +815,7 @@ class NPCState:
         if state.strain_memory:
             npc_dict["strain_memory"] = dict(state.strain_memory)
 
-        # Физическое состояние (сохраняется между тиками)
-        # ADR-HP-UNIFICATION: Пишем канонический HP из body_state.
-        npc_dict["hp"] = state.effective_hp
-        npc_dict["max_hp"] = state.effective_max_hp
-
+        # N-23 FIX: Прекращаем писать hp/max_hp в npc_dict. Внешний код должен читать только из body_state.
         # Психика
         psyche["stress"] = state.stress
         psyche["state"] = state.will_state.value

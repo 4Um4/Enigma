@@ -77,8 +77,10 @@ class EpistemicContext:
     DecisionHub читает этот контекст, а не EpistemicStore.
     """
     agent_id: str
-    perceived_threats: tuple[str, ...] = ()  # subject_id, воспринимаемые как угроза (STOLE, ATTACKED)
-    perceived_allies: tuple[str, ...] = ()   # subject_id, воспринимаемые как союзники (HELPED)
+    perceived_threats: tuple[str, ...] = ()
+    perceived_allies: tuple[str, ...] = ()
     perceived_violations: int = 0
-    max_confidence: float = 0.0  # S189: Максимальная уверенность среди perceived_threats/allies
-    perceived_violations: int = 0            # Количество нарушений социальных норм
+    max_confidence: float = 0.0
+    # S197: Causal Provenance. Утверждение, породившее max_confidence.
+    # DecisionHub пробрасывает его в CommunicationIntent, чтобы избежать угадывания (causal break) в post_decision.
+    trigger_proposition: Optional[Proposition] = None

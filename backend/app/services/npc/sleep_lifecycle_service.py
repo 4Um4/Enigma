@@ -115,7 +115,7 @@ class SleepLifecycleService:
         _rd = (
             _kernel.get("recent_directive")
             if isinstance(_kernel, dict)
-            else getattr(_kernel, "recent_directive", None)
+            else getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA001, ENIGMA002
             if _kernel
             else None
         )
@@ -263,7 +263,7 @@ class SleepLifecycleService:
             _threat = float(getattr(_kernel, "threat_gradient", 0.0))
             _uncertainty = float(getattr(_kernel, "uncertainty", 0.0))
             _anomaly = float(getattr(_kernel, "anomaly_score", 0.0))
-            _rd = getattr(_kernel, "recent_directive", None)
+            _rd = getattr(_kernel, "recent_directive", None)  # noqa: ENIGMA002
             if _rd and _rd.get("interrupts_routine"):
                 _directive_salience = 0.8
 

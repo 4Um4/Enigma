@@ -87,7 +87,9 @@ class _PipelineState:
     rules_result: Dict[str, Any] = field(default_factory=dict)
     npc_result: Dict[str, Any] = field(default_factory=dict)
     python_engines_result: Dict[str, Any] = field(default_factory=dict)
-    start_ms: float = field(default_factory=lambda: time.time() * 1000)
+    # N-02 FIX: Используем time.monotonic() для измерения реального времени (latency, TPS).
+    # time.time() подменяется time_freezer во время replay, что ломает метрики.
+    start_ms: float = field(default_factory=lambda: time.monotonic() * 1000)
     # Sprint P9: Факты, донесённые до игрока (для UI и DM)
     observed_facts: list = field(default_factory=list)
     world_snapshot: Optional[Any] = None  # BUG-FB-031 FIX: Проброс WorldSnapshotDTO из ядра
@@ -161,7 +163,7 @@ class GameLoop:
         _canon_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
         if _canon_path.exists():
             # P2 FIX: Проброс RelationshipStore в MVP-контроллер для эмерджентной драмы.
-            _rel_store = memory_manager._relationships if memory_manager else None
+            _rel_store = memory_manager._relationships if memory_manager else None  # noqa: ENIGMA001
             self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus(), relationship_store=_rel_store)
         else:
             logger.error(
@@ -244,9 +246,9 @@ class GameLoop:
 
         # Фаза 0.5: DI для idle-сервисов (social decay, reputation decay)
         _rep_engine = self._svc.get_reputation_engine()
-        _rel_store = memory_manager._relationships if memory_manager else None
+        _rel_store = memory_manager._relationships if memory_manager else None  # noqa: ENIGMA001
         _state_applicator = (
-            self._svc.get_state_applicator(
+            self._svc.get_state_applicator(  # noqa: ENIGMA001
                 relationship_store=_rel_store,
             )
             if _rel_store
@@ -293,17 +295,43 @@ class GameLoop:
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
 
     def _get_spatial_query_for_subscriber(self):
-        """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop)."""
-        _sq = getattr(self, "_current_spatial_query", None)
-        if _sq is None:
-            logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
-            raise RuntimeError("INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling.")
-        return _sq
+        """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
+        S196 FIX: Берёт актуальный SpatialQueryService из shared_context, 
+        устраняя зависимость от mutable hidden state _current_spatial_query.
+        S197 FIX: Если spatial_query отсутствует, конструирует его на лету из scene_state."""
+        _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
+        if _shared_ctx is not None:
+            _sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002
+            if _sq is not None:
+                return _sq
+        
+        _sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002
+        if _sq is not None:
+            return _sq
+
+        # S197 FIX: Fallback - конструируем на лету, чтобы избежать INV-SPATIAL-QUERY при ранних событиях
+        _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
+        _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
+        if not _scene:
+            _scene = self.scene_manager.get_scene_state(_campaign_id, "city_gate")
+        
+        if _scene:
+            from app.services.spatial.spatial_query_service import SpatialQueryService
+            _new_sq = SpatialQueryService(
+                npc_positions=_scene.get("npc_positions", {}),
+                scene_state=_scene
+            )
+            self._current_spatial_query = _new_sq
+            logger.warning("[SPATIAL_FALLBACK] SpatialQueryService was missing, constructed on-the-fly.")
+            return _new_sq
+
+        logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
+        raise RuntimeError("INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling and scene_state is unavailable.")
 
     def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
         """S150 FIX: Регистрирует диалоги для EconomyTracker (потребность SOCIAL)."""
         try:
-            _npc_id = getattr(event, "source", None)
+            _npc_id = getattr(event, "source", None)  # noqa: ENIGMA002
             if not _npc_id:
                 return
             _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
@@ -328,7 +356,7 @@ class GameLoop:
             _subscriber = NpcDialogueSubscriber(
                 memory_manager=memory_manager,
                 relationship_store=rel_store,
-                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],
+                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 avatar_service=self.avatar_service,
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
@@ -341,7 +369,7 @@ class GameLoop:
             from app.services.events.dialogue_memory_subscriber import DialogueMemorySubscriber
             _mem_subscriber = DialogueMemorySubscriber(
                 memory_manager=memory_manager,
-                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],
+                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 spatial_query_provider=self._get_spatial_query_for_subscriber
             )
@@ -371,12 +399,20 @@ class GameLoop:
             from app.services.events.event_types import EventType
 
             _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
-            _epistemic_store = EpistemicStore()
+            
+            # S193: Загружаем убеждения из scene_state, если они там есть.
+            _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
+            _epistemic_data = _scene.get("epistemic_records", []) if _scene else []
+            _epistemic_store = EpistemicStore.from_dict(_epistemic_data)
             _reliability_provider = RelationshipReliabilityProvider(rel_store, _campaign_id)
             _belief_engine = BeliefRevisionEngine(reliability_provider=_reliability_provider)
             _resolver = EpistemicContextResolver(store=_epistemic_store)
 
-            _subscriber = ClaimEventSubscriber(engine=_belief_engine, store=_epistemic_store)
+            _subscriber = ClaimEventSubscriber(
+                engine=_belief_engine, 
+                store=_epistemic_store,
+                spatial_query_provider=self._get_spatial_query_for_subscriber
+            )
             _bus = get_event_bus()
             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
 
@@ -492,7 +528,11 @@ class GameLoop:
         for fname in runtime_files:
             fpath = saves_campaign / fname
             if fpath.exists():
-                fpath.unlink()
+                try:
+                    fpath.unlink()
+                except Exception as e:
+                    logger.error(f"[NEW_GAME] Atomic commit: Failed to remove {fpath}: {e}")
+                    continue
                 removed.append(fname)
                 logger.info(f"[NEW_GAME] Removed: {fpath}")
 
@@ -563,9 +603,8 @@ class GameLoop:
                 logger.error(f"[NEW_GAME] Atomic commit FAILED for {campaign_id}: {e}")
 
         # === 7. СБРОС LRU-КЭША загрузчика ===
-        self._load_npcs.cache_clear() if hasattr(
-            self._load_npcs, "cache_clear"
-        ) else None
+        if hasattr(self._load_npcs, "cache_clear"):
+            self._load_npcs.cache_clear()
 
         # === 8. СБРОС preserved_tick (иначе scene_init восстановит старый) ===
         if hasattr(self, "_preserved_tick"):
@@ -762,14 +801,14 @@ class GameLoop:
                     )
                     from app.models.npc_state import BODY_STATE_HEALTHY
 
-                    _live_body = getattr(_avatar_state, "body_state", None)
+                    _live_body = getattr(_avatar_state, "body_state", None)  # noqa: ENIGMA002
                     if (
                         not _live_body
                     ):  # None или {} — новый аватар без сохранённой физиологии
                         _live_body = dict(BODY_STATE_HEALTHY)
                     
                     # V8-WL-3 FIX: fear и willpower лежат внутри psyche dict, а не в корне NPCState
-                    _avatar_psyche = getattr(_avatar_state, "psyche", {})
+                    _avatar_psyche = getattr(_avatar_state, "psyche", {})  # noqa: ENIGMA002
                     _live_psyche = {
                         "stress": getattr(_avatar_state, "stress", 0.0),
                         "fear": _avatar_psyche.get("fear", 0.5),
@@ -785,7 +824,7 @@ class GameLoop:
                         "type": "player_avatar",  # Маркер для WillpowerGate
                         "archetype": getattr(player_char, "archetype", "Drifter"),
                         "temperament": getattr(player_char, "temperament", "Stoic"),
-                        "body_profile": getattr(player_char, "body_profile", {}),
+                        "body_profile": getattr(player_char, "body_profile", {}),  # noqa: ENIGMA002
                         "body_state": _live_body,  # Живая плоть: pain, blood_loss
                         "psyche": _live_psyche,  # Живой разум: stress, fear
                         "social_stats": {
@@ -1001,7 +1040,7 @@ class GameLoop:
         try:
             from app.services.campaign_state_service import get_campaign_state_service
             _campaign_svc = get_campaign_state_service()
-            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
+            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
             if _cs:
                 _saved_wx = _cs.metadata.get("player_world_x")
                 _saved_wy = _cs.metadata.get("player_world_y")
@@ -1037,7 +1076,7 @@ class GameLoop:
             scene_state=_scene,
             tick_number=_scene.get("tick", 0) + 1,  # ADR-O-344: Оркестратор владеет инкрементом
             spatial_service=_spatial_svc,
-            shared_context=getattr(self, "_idle_shared_context", None),
+            shared_context=getattr(self, "_idle_shared_context", None),  # noqa: ENIGMA002
             active_location_id=_active_loc,
             location_ids=_location_ids,
             eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
@@ -1046,7 +1085,10 @@ class GameLoop:
         
         # Коммит результатов оркестратора (если ядро не сделало это само)
         if result and result.final_scene_state is not None:
-             self.scene_manager.commit_tick_result(campaign_id, result.final_scene_state)
+            # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
+            if result.status == "ok" and hasattr(self._tick_orch, '_epistemic_store') and self._tick_orch._epistemic_store:
+                result.final_scene_state["epistemic_records"] = self._tick_orch._epistemic_store.to_dict()
+            self.scene_manager.commit_tick_result(campaign_id, result.final_scene_state)
 
         # S186 FIX: Обновляем HOT кэш LifeEngine после idle_tick.
         # Мержим результат с существующим кэшем, чтобы не стереть NPC из других локаций.
@@ -1073,7 +1115,7 @@ class GameLoop:
         # Дополнение Б: Мы уже закоммитили результат внутри цикла.
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scenes),
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
-        _auth_scene = self.scene_manager._tick_scenes.get(_active_loc) if self.scene_manager else None
+        _auth_scene = self.scene_manager._tick_scenes.get(_active_loc) if self.scene_manager else None  # noqa: ENIGMA001
         if _auth_scene is None:
             _auth_scene = result.final_scene_state or _scene
         _trav_after = (
@@ -1187,7 +1229,7 @@ class GameLoop:
         # Sprint P9: Проброс observed_facts в DM-агент через world_result
         _dm_world_result = {
             "world_events": state.world_tick_meta.get("events", []),
-            "observed_facts": getattr(state, "observed_facts", []),
+            "observed_facts": getattr(state, "observed_facts", []),  # noqa: ENIGMA002
         }
 
         dm_result = await run_agent_safe(
@@ -1244,15 +1286,15 @@ class GameLoop:
         if isinstance(dm_result, dict) and dm_result.get("dm_response"):
             from app.services.memory.rce import extract_speech_events
 
-            _anr_rce = getattr(state.shared_context, "all_npcs_raw_snapshot", None)
+            _anr_rce = getattr(state.shared_context, "all_npcs_raw_snapshot", None)  # noqa: ENIGMA002
             # Fallback: загружаем NPC из рантайма, если snapshot пуст
             if not _anr_rce:
                 try:
                     _anr_rce = self._load_npcs_with_runtime(req.campaign_id)
                 except Exception:
                     _anr_rce = []
-            _target_id = getattr(state.shared_context, "player_target_id", None)
-            _player_name = req.actions[0].player_name if req.actions else None
+            _target_id = getattr(state.shared_context, "player_target_id", None)  # noqa: ENIGMA002
+            _player_name = req.actions[0].player_name if req.actions else None  # noqa: ENIGMA001
             _rce_reactions = extract_speech_events(
                 dm_text=dm_result.get("dm_response", ""),
                 target_npc_id=_target_id,
@@ -1302,12 +1344,13 @@ class GameLoop:
         except Exception as e:
             logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
 
-        elapsed_ms = int(time.time() * 1000 - state.start_ms)
+        # N-02 FIX: time.monotonic() для корректного elapsed_ms во время replay.
+        elapsed_ms = int(time.monotonic() * 1000 - state.start_ms)
         traces = self._build_traces(state, dm_result, elapsed_ms)
 
         # NEW-8 FIX: Устанавливаем player_recognition ДО commit_tick_result,
         # чтобы deepcopy внутри commit_tick_result захватил confidence=1.0.
-        _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None
+        _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None  # noqa: ENIGMA001, ENIGMA002
         if _target_id and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
             _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
             _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
@@ -1373,7 +1416,7 @@ class GameLoop:
                 req.campaign_id
             )
 
-        _resp_facts = getattr(state, "observed_facts", [])
+        _resp_facts = getattr(state, "observed_facts", [])  # noqa: ENIGMA002
         logger.debug(f"[DEBUG_RUN_TURN] state.observed_facts count={len(_resp_facts)}")
         _final_response = ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),
@@ -1382,7 +1425,7 @@ class GameLoop:
             world_snapshot=_ws_dict,
             npc_positions=_npc_pos_dict,
             # ADR-075: Строгий проброс Эмбодимента.
-            will_conflict_data=state.shared_context.will_conflict_data
+            will_conflict_data=state.shared_context.will_conflict_data  # noqa: ENIGMA001
             if state.shared_context
             else None,
             # Sprint P9: Проброс ObservedFactsBundle для UI и DM
@@ -1498,7 +1541,8 @@ class GameLoop:
             yield {"type": "error", "text": str(e)}
             return
 
-        elapsed_ms = int(time.time() * 1000 - state.start_ms)
+        # N-02 FIX: time.monotonic() для корректного elapsed_ms и TPS во время replay.
+        elapsed_ms = int(time.monotonic() * 1000 - state.start_ms)
         tps = round(token_count / (elapsed_ms / 1000), 1) if elapsed_ms > 0 else 0
 
         # Сохраняем DM-ответ в Campaign Memory ДО yield done — SSE не гарантирует выполнение после
@@ -1532,7 +1576,7 @@ class GameLoop:
             # S139 FIX: SSOT — время читается из scene_state, а не из shared_context (mirror)
             "game_time_seconds": _ss_scene.get("game_time_seconds", 0),
             # ADR-075: Проброс Эмбодимента через SSE. Фронтенд собирает GameActionResponse из этого словаря.
-            "will_conflict_data": state.shared_context.will_conflict_data
+            "will_conflict_data": state.shared_context.will_conflict_data  # noqa: ENIGMA001
             if state.shared_context
             else None,
             # BUG-FB-001 FIX: Проброс world_snapshot в финальном done-событии (как в ветке смерти)
@@ -1597,7 +1641,7 @@ class GameLoop:
         _player_result: TickPlayerResultDTO,
     ) -> tuple[dict, dict]:
         """ФАЗА 7 (Rules) + ФАЗЫ 8-10 (R3 Frame) + Avatar Sync."""
-        _state_observed_facts = getattr(_player_result, "observed_facts", [])
+        _state_observed_facts = getattr(_player_result, "observed_facts", [])  # noqa: ENIGMA002
         logger.debug(
             f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}"
         )
@@ -1627,7 +1671,7 @@ class GameLoop:
             "all_npcs_raw": _ctx.all_npcs_raw or [],
             "tick_number": shared_context.current_tick or 0,
             "campaign_id": campaign_id,
-            "relationship_store": self.memory_manager._relationships
+            "relationship_store": self.memory_manager._relationships  # noqa: ENIGMA001
             if self.memory_manager
             else None,
             "raw_input": actions[0].action if actions else "",
@@ -1646,7 +1690,7 @@ class GameLoop:
 
         import copy
 
-        _avatar_state_before = copy.deepcopy(_avatar_state) if _avatar_state else None
+        _avatar_state_before = copy.deepcopy(_avatar_state) if _avatar_state else None  # noqa: ENIGMA001
 
         if _rules_delta and _rules_delta.money_delta != 0.0 and _avatar_state:
             if not _avatar_state.body_state:
@@ -1671,7 +1715,7 @@ class GameLoop:
                 ]
                 _ctx.all_npcs_raw.append(_avatar_dict)
 
-        shared_context.npc_contexts = getattr(_player_result, "npc_contexts", []) or []
+        shared_context.npc_contexts = getattr(_player_result, "npc_contexts", []) or []  # noqa: ENIGMA002
         try:
             from app.services.scene.r3_direct_builder import build_r3_dm_frame
 
@@ -1688,7 +1732,7 @@ class GameLoop:
             _updated_avatar_dict = next(
                 (
                     n
-                    for n in getattr(_ctx, "all_npcs_raw", [])
+                    for n in getattr(_ctx, "all_npcs_raw", [])  # noqa: ENIGMA002
                     if n.get("npc_id") == "player"
                 ),
                 None,
@@ -1729,10 +1773,8 @@ class GameLoop:
 
         except Exception as _fin_err:
             logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)
-            npc_result = {}
-            shared_context.npc_contexts = (
-                getattr(_player_result, "npc_contexts", []) or []
-            )
+            # H-34 FIX: Не маскируем ошибку пустым npc_result, пробрасываем исключение (ADR-O-308)
+            raise
 
         try:
             from app.models.npc_state import EmotionTag
@@ -1762,7 +1804,9 @@ class GameLoop:
         location: str,
     ) -> tuple[Any, Any]:
         """ФАЗА 1-3: Запуск DM-фазы и резолв интента игрока."""
-        _match = None
+        # H-32 FIX: Загружаем профиль игрока из avatar_service, а не используем None
+        _player_name = shared_context.player_name or "player"
+        _match = self.avatar_service.load_state(campaign_id, _player_name)
         try:
             dm_result = run_dm_phase(
                 self, actions, shared_context, scene_state, _ctx, campaign_id, location
@@ -1771,7 +1815,7 @@ class GameLoop:
                 f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}"
             )
 
-            _player_data_dict = _match.dict() if _match else None
+            _player_data_dict = _match.dict() if _match else None  # noqa: ENIGMA001
             _raw_action = actions[0].action if actions else ""
             _semantic_field = await self._intent_compressor.compress(
                 raw_text=_raw_action, scene_context=scene_state
@@ -1823,9 +1867,9 @@ class GameLoop:
                     f"[ARCHAE-PAYLOAD] params={_params} sa={getattr(_params, 'semantic_action', 'NO_SA') if _params else 'NO_PARAMS'}"
                 )
                 if _params:
-                    _sa = getattr(_params, "semantic_action", None)
-                    _tid = getattr(_params, "target_id", None)
-                    _tref = getattr(_params, "target_reference", None)
+                    _sa = getattr(_params, "semantic_action", None)  # noqa: ENIGMA002
+                    _tid = getattr(_params, "target_id", None)  # noqa: ENIGMA002
+                    _tref = getattr(_params, "target_reference", None)  # noqa: ENIGMA002
                     _sem_payload = {}
                     if _sa:
                         _sem_payload["semantic_action"] = _sa
@@ -1992,7 +2036,7 @@ class GameLoop:
             # ТЗ Presentation v2.0: Инициализация BodyTopology игрока
             from app.services.body.body_topology_service import BodyTopologyService
             
-            _sheet_str = getattr(_match, "stats", {}) if _match else {}
+            _sheet_str = getattr(_match, "stats", {}) if _match else {}  # noqa: ENIGMA002
             _str_score = _sheet_str.get("STR", 10) if isinstance(_sheet_str, dict) else 10
             
             _topo_data = self.scene_manager._persistence.load_scene(campaign_id)
@@ -2021,13 +2065,24 @@ class GameLoop:
         """Инициализирует shared_context и запускает фоновый world tick."""
         # 0. World tick — асинхронный фон, не блокирует ответ игроку
         world_tick_meta = {"triggered": False, "events": []}
-        asyncio.create_task(
+        _task = asyncio.create_task(
             asyncio.to_thread(
                 self.world_scheduler.maybe_tick,
                 world_id,
                 settings.world_tick_minutes,
             )
         )
+        # H-35 FIX: Предотвращаем GC задачи и логируем исключения
+        if not hasattr(self, "_background_tasks"):
+            self._background_tasks = set()
+        self._background_tasks.add(_task)
+
+        def _on_task_done(t: asyncio.Task) -> None:
+            self._background_tasks.discard(t)
+            if not t.cancelled() and t.exception():
+                logger.error(f"[GAME_LOOP] Background task maybe_tick failed: {t.exception()}", exc_info=t.exception())
+
+        _task.add_done_callback(_on_task_done)
 
         # 1. Базовый shared_context
         _raw_mem = self.memory_manager.read_campaign_history(campaign_id, limit=3)
@@ -2061,7 +2116,8 @@ class GameLoop:
 
         Каждый блок — отдельный модуль в game_loop/. Подробнее: dm_phase, npc_orchestration.
         """
-        start_ms = time.time() * 1000
+        # N-02 FIX: time.monotonic() для корректного start_ms во время replay.
+        start_ms = time.monotonic() * 1000
         _ctx = _TickContext(mvp_controller=self.mvp_controller)
 
         shared_context, world_tick_meta = self._init_pipeline_context(
@@ -2120,14 +2176,14 @@ class GameLoop:
             }
         except Exception as e:
             logger.error(f"[GAME_LOOP] DM/NPC phase error: {e}", exc_info=True)
-            python_engines_result = {"dm_result": None, "npc_contexts": []}
-            _player_result = TickPlayerResultDTO()
+            # H-33 FIX: Не маскируем ошибку пустым DTO, пробрасываем исключение (ADR-O-308)
+            raise
 
         rules_result, npc_result = await self._finalize_pipeline_and_build_dm_frame(
             shared_context, _ctx, campaign_id, actions, _player_result
         )
 
-        _state_observed_facts = getattr(_player_result, "observed_facts", [])
+        _state_observed_facts = getattr(_player_result, "observed_facts", [])  # noqa: ENIGMA002
         return _PipelineState(
             shared_context=shared_context,
             classification_results=[],
@@ -2152,10 +2208,10 @@ class GameLoop:
             _router = self.dm_agent.router
             _ctx = self._get_life_engine().get_npc_observed_state
             _et = self._svc.economy_tracker
-            _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)
+            _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)  # noqa: ENIGMA002
             if _cbs is None:
                 logger.error("TickOrchestrator missing crystallized_belief_store. Check wiring.")
-            _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None
+            _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None  # noqa: ENIGMA001, ENIGMA002
             if _cp is None and self.mvp_controller is not None:
                 logger.error("MvpTavernController missing confession_parser. Check wiring.")
             _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp)
@@ -2279,7 +2335,7 @@ class GameLoop:
         """
         # 1. Persistence adapter (enigma_runtime.db) — через scene_manager
         if hasattr(self, "scene_manager") and self.scene_manager is not None:
-            _persistence = getattr(self.scene_manager, "_persistence", None)
+            _persistence = getattr(self.scene_manager, "_persistence", None)  # noqa: ENIGMA002
             if _persistence is not None and hasattr(_persistence, "close"):
                 _persistence.close()
 

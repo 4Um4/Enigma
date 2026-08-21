@@ -13,6 +13,7 @@ import random
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from app.core.clock import get_clock
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Логирование
@@ -25,7 +26,7 @@ _COMBAT_LOG = _LOG_DIR / "combat_log.jsonl"
 
 def _log_roll(description: str, rolls: Any, total: int, context: Dict = None) -> None:
     entry = {
-        "ts": datetime.now().isoformat(timespec="seconds"),
+        "ts": get_clock().now().isoformat(timespec="seconds"),
         "event": "roll",
         "desc": description,
         "rolls": rolls if isinstance(rolls, list) else [rolls],
@@ -37,7 +38,7 @@ def _log_roll(description: str, rolls: Any, total: int, context: Dict = None) ->
 
 
 def _log_event(event: str, data: Dict) -> None:
-    entry = {"ts": datetime.now().isoformat(timespec="seconds"), "event": event, **data}
+    entry = {"ts": get_clock().now().isoformat(timespec="seconds"), "event": event, **data}
     with open(_COMBAT_LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 

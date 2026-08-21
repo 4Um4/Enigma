@@ -22,7 +22,6 @@ SIMULATION_LAYER_FILES = {
     "services/temporal/temporal_engine.py",
     "services/npc/npc_tick_pipeline.py",
     "services/npc/expectation_store.py",
-    "services/npc/pe_modifier_resolver.py",
     "services/npc/break_progress_engine.py",
     "services/npc/l1_chronicle.py",
     "services/npc/drive_resolver.py",

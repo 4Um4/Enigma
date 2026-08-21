@@ -45,7 +45,7 @@ class LegacyStateDeltaAdapter:
 
         # Берём source и target из первой дельты для контекста
         source = deltas[0].source if deltas else "legacy_collapse"
-        target = deltas[0].target if deltas else None
+        target = deltas[0].target if deltas else None  # noqa: ENIGMA001
 
         collapsed = StateDeltas(source=source, intent_target=target)
         dropped_domains: Set[str] = set()

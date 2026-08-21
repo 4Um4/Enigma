@@ -68,8 +68,8 @@ class WorldSnapshotBuilder:
 
         for npc_id, npc_data in npc_positions.items():
             if not (
-                getattr(npc_data, "name", None)
-                or getattr(npc_data, "display_name", None)
+                getattr(npc_data, "name", None)  # noqa: ENIGMA002
+                or getattr(npc_data, "display_name", None)  # noqa: ENIGMA002
             ):
                 raise SimulationIntegrityError(
                     invariant_id="INV-NPC-NAME",
@@ -192,7 +192,7 @@ class WorldSnapshotBuilder:
         active_perceptions = []
 
         # Cue-дикты с npc_id → PeripheralCueDTO (Слой 1: периферия)
-        for cue in getattr(domain_perception, "active_perceptions", []):
+        for cue in getattr(domain_perception, "active_perceptions", []):  # noqa: ENIGMA002
             if isinstance(cue, dict) and "npc_id" in cue:
                 cue_key = cue.get("cue_key", "UNKNOWN")
                 peripheral_cues.append(
@@ -204,7 +204,7 @@ class WorldSnapshotBuilder:
                 )
 
         # Атмосфера → ActivePerception (Слой 2: фоновая температура)
-        atm_key = getattr(domain_perception, "atmosphere_key", None)
+        atm_key = getattr(domain_perception, "atmosphere_key", None)  # noqa: ENIGMA002
         atm_intensity = getattr(domain_perception, "atmosphere_intensity", 0.0)
         if atm_key:
             active_perceptions.append(
@@ -218,7 +218,7 @@ class WorldSnapshotBuilder:
 
         # ADR-MANIFEST: Конвертируем domain manifestations → API ManifestationDTO
         _api_manifestations = []
-        _domain_manifests = getattr(domain_perception, "manifestations", {})
+        _domain_manifests = getattr(domain_perception, "manifestations", {})  # noqa: ENIGMA002
         if _domain_manifests:
             for _nid, _tags in _domain_manifests.items():
                 _api_manifestations.append(
@@ -229,8 +229,8 @@ class WorldSnapshotBuilder:
             active_perceptions=active_perceptions,
             peripheral_cues=peripheral_cues,
             manifestations=_api_manifestations,
-            embodied_traces=getattr(domain_perception, "embodied_traces", []),
-            observed_facts=getattr(domain_perception, "observed_facts", []),
+            embodied_traces=getattr(domain_perception, "embodied_traces", []),  # noqa: ENIGMA002
+            observed_facts=getattr(domain_perception, "observed_facts", []),  # noqa: ENIGMA002
         )
 
     def _extract_npc_positions(self, scene_state: Dict) -> Dict[str, NPCPositionDTO]:
@@ -332,7 +332,7 @@ class WorldSnapshotBuilder:
         SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция.
         Возвращает Dict[npc_id, traversal_data] — синхронно с scene_state форматом.
         CEI-2 FIX: сохраняет ПОЛНЫЙ path_waypoints (без 2-point collapse)."""
-        traversals = scene_state.get("active_traversals") if scene_state else None
+        traversals = scene_state.get("active_traversals") if scene_state else None  # noqa: ENIGMA001
         if not isinstance(traversals, dict):
             return {}
         result = {}

@@ -8,7 +8,7 @@ path: backend/app/models/state_delta.py
 Любой мутатор возвращает StateDeltas. StateApplicator — единственный потребитель.
 Никаких dict-мутаций.
 
-NOTE: psyche_engine — DEPRECATED (мёртвый код). WorldTickEngine использует
+(WorldTickEngine использует StateDeltas)
 ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
 """
 

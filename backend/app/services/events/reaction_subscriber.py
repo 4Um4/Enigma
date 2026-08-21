@@ -371,7 +371,7 @@ class ReactionSubscriber:
         if deltas:
             # ADR-116: Диагностика — какие дельты и emotion_tag генерируются
             _emo_deltas = [d for d in deltas if d.domain == DeltaDomain.EMOTION]
-            _emo_tags = [getattr(d.payload, "emotion_tag", None) for d in _emo_deltas]
+            _emo_tags = [getattr(d.payload, "emotion_tag", None) for d in _emo_deltas]  # noqa: ENIGMA002
             logger.warning(
                 f"[REACTION_SUB] {len(events)} events, "
                 f"{len(perceiving_ids)} perceivers, "
@@ -395,7 +395,7 @@ class ReactionSubscriber:
         PerceptionSubscriber в этом же тике) или fallback на всех NPC.
         """
         if ctx.shared_context is not None:
-            perceiving_list = getattr(ctx.shared_context, "perceiving_npcs", None)
+            perceiving_list = getattr(ctx.shared_context, "perceiving_npcs", None)  # noqa: ENIGMA002
             # §ENIGMA-003: [] ≠ None. [] = валидная проекция "никто не увидел". None = сбой сбора.
             if perceiving_list is not None:
                 return set(perceiving_list)  # Пустой список вернёт пустой set()

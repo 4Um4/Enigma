@@ -69,9 +69,6 @@ class NpcTickBuffer:
     # MovementIntent — реактивное движение NPC (APPROACH, FLEE и др.)
     # Оркестратор передаёт в MovementEngine → SceneChange → apply_changes
     movement_intents: List[Any] = field(default_factory=list)
-    # DEPRECATED: published_events — нарушает §5.1 (публикация внутри pipeline).
-    # Удалить после миграции всех потребителей на communication_intents через Фазу 6.
-    published_events: List[Any] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

@@ -58,6 +58,18 @@ class OpenAICompatibleProvider(LlmProvider):
             "temperature": _temp,
             "max_tokens": _max_tok,
         }
+        # H-14 FIX: Передаём остальные параметры генерации, если они заданы
+        if params:
+            _top_p = getattr(params, "top_p", None)  # noqa: ENIGMA002
+            if _top_p is not None: payload["top_p"] = _top_p
+            _presence = getattr(params, "presence_penalty", None)  # noqa: ENIGMA002
+            if _presence is not None: payload["presence_penalty"] = _presence
+            _frequency = getattr(params, "frequency_penalty", None)  # noqa: ENIGMA002
+            if _frequency is not None: payload["frequency_penalty"] = _frequency
+            _stop = getattr(params, "stop", None)  # noqa: ENIGMA002
+            if _stop: payload["stop"] = _stop
+            _resp_fmt = getattr(params, "response_format", None)  # noqa: ENIGMA002
+            if _resp_fmt: payload["response_format"] = _resp_fmt
 
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
@@ -67,10 +79,24 @@ class OpenAICompatibleProvider(LlmProvider):
             method="POST",
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=60) as response:
-                resp_data = json.loads(response.read().decode("utf-8"))
-                return resp_data["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            logger.error(f"[OPENAI_PROVIDER] Request failed: {e}")
-            raise
+        # H-15 FIX: Bypass env proxies (согласованность с LlamaCppProvider)
+        _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        
+        # H-13 FIX: Retry с exponential backoff для 429/503
+        import time
+        for attempt in range(1, 4):
+            try:
+                with _opener.open(req, timeout=60) as response:
+                    resp_data = json.loads(response.read().decode("utf-8"))
+                    return resp_data["choices"][0]["message"]["content"].strip()
+            except urllib.error.HTTPError as e:
+                if e.code in (429, 503) and attempt < 3:
+                    wait_time = 2 ** attempt
+                    logger.warning(f"[OPENAI_PROVIDER] HTTP {e.code}, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                logger.error(f"[OPENAI_PROVIDER] Request failed: {e}")
+                raise
+            except Exception as e:
+                logger.error(f"[OPENAI_PROVIDER] Request failed: {e}")
+                raise

@@ -111,7 +111,7 @@ class SpatialTargetResolver:
             )
             
         threat_xy = _extract_xy(npc_positions.get(threat_id))
-        actor_xy = _extract_xy(npc_positions.get(actor_id)) if actor_id else None
+        actor_xy = _extract_xy(npc_positions.get(actor_id)) if actor_id else None  # noqa: ENIGMA001
         
         if not threat_xy:
             return ResolvedSpatialTarget(

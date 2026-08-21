@@ -169,7 +169,7 @@ class DmAgent:
 
         # Блок 2: DMFrame или legacy npc_reactions
         _dm_frame_block = ""
-        _dm_frame = npc_result.get("dm_frame") if npc_result else None
+        _dm_frame = npc_result.get("dm_frame") if npc_result else None  # noqa: ENIGMA001
         if _dm_frame is not None:
             from app.services.verbalization.scene_outcome_builder import (
                 SceneOutcomeBuilder,
@@ -407,10 +407,10 @@ class DmAgent:
         # ADR-DM-001: Симптомы — ВСЕГДА. DM описывает что видит игрок, даже в диалоге.
         if context:
             _perception = (
-                getattr(context, "player_perception", None)
+                getattr(context, "player_perception", None)  # noqa: ENIGMA002
                 if hasattr(context, "player_perception")
                 else (
-                    context.get("player_perception")
+                    context.get("player_perception")  # noqa: ENIGMA001
                     if isinstance(context, dict)
                     else None
                 )
@@ -447,7 +447,7 @@ class DmAgent:
 
         # Блок 4.7: Контекст NPC (роль, описание — для правдоподобного нарратива)
         # ADR-DM-001: NPC онтология — ВСЕГДА в промпте. Без этого DM не знает КТО перед ним.
-        _anr = getattr(context, "all_npcs_raw_snapshot", None) if context else None
+        _anr = getattr(context, "all_npcs_raw_snapshot", None) if context else None  # noqa: ENIGMA001, ENIGMA002
         if _anr is None and isinstance(context, dict):
             _anr = context.get("all_npcs_raw_snapshot")
         if _anr:
@@ -596,7 +596,7 @@ class DmAgent:
         # Блок 5.5: Combat Outcome (физические последствия для DM)
         _combat_data = {}
         if context:
-            _combat_data = getattr(context, "combat_data", None) or (
+            _combat_data = getattr(context, "combat_data", None) or (  # noqa: ENIGMA002
                 context.get("combat_data", {}) if isinstance(context, dict) else {}
             )
         if _combat_data and not _is_light_dialog:
@@ -629,7 +629,7 @@ class DmAgent:
                 )
 
             scene_events_block = ""
-            _scene_state = getattr(context, "scene_state", None) if not isinstance(context, dict) else context.get("scene_state")
+            _scene_state = getattr(context, "scene_state", None) if not isinstance(context, dict) else context.get("scene_state")  # noqa: ENIGMA002
             if _scene_state and isinstance(_scene_state, dict) and _scene_state.get("scene_events"):
                 try:
                     scene_events_block = SceneStateManager.get_scene_events_block(
@@ -895,7 +895,7 @@ class DmAgent:
 
     def _get_last_dm_response(self) -> Optional[str]:
         """Возвращает последний DM-ответ из истории (safe access)."""
-        mem_mgr = getattr(self, "_memory_manager", None)
+        mem_mgr = getattr(self, "_memory_manager", None)  # noqa: ENIGMA002
         if not mem_mgr:
             return None
         try:

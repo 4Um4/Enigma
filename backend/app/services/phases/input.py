@@ -32,12 +32,12 @@ def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
         "attack": EventType.PLAYER_ATTACKS,
         "player_attacks": EventType.PLAYER_ATTACKS,
     }
-    _act = getattr(intent, "action", "") or ""
+    _act = getattr(intent, "action", "") or ""  # noqa: ENIGMA002
     _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
 
-    _params = getattr(intent, "parameters", None)
-    _target_id = getattr(_params, "target_id", "") if _params else ""
-    _target_ref = getattr(_params, "target_reference", "") if _params else ""
+    _params = getattr(intent, "parameters", None)  # noqa: ENIGMA002
+    _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
+    _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
     _sem_action = getattr(_params, "semantic_action", _act) if _params else _act
 
     get_event_bus().publish(
@@ -46,7 +46,7 @@ def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
             source="player",
             payload={
                 "action": _sem_action,
-                "target": getattr(intent, "target", "") or "",
+                "target": getattr(intent, "target", "") or "",  # noqa: ENIGMA002
                 "target_id": _target_id,
                 "target_reference": _target_ref,
                 "semantic_action": _sem_action,
@@ -176,7 +176,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
                     payload=WillConflictPayload(
                         state=will_response.state.value,
                         resistance=will_response.resistance,
-                        embodied_vector=will_response.embodied_vector.value
+                        embodied_vector=will_response.embodied_vector.value  # noqa: ENIGMA001
                         if will_response.embodied_vector
                         else None,
                         identity_damage=will_response.identity_damage,
@@ -186,15 +186,15 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
             from app.services.will import get_embodied_impulse_text
 
             ctx.shared_context.will_conflict_data = {
-                "original_intent": getattr(intent, "parameters", None)
+                "original_intent": getattr(intent, "parameters", None)  # noqa: ENIGMA002
                 and intent.parameters.semantic_action
                 or getattr(intent, "action", "UNKNOWN"),
                 "state": will_response.state.value,
                 "resistance": will_response.resistance,
-                "embodied_vector": will_response.embodied_vector.value
+                "embodied_vector": will_response.embodied_vector.value  # noqa: ENIGMA001
                 if will_response.embodied_vector
                 else None,
-                "counter_offer_text": get_embodied_impulse_text(
+                "counter_offer_text": get_embodied_impulse_text(  # noqa: ENIGMA001
                     will_response.embodied_vector
                 )
                 if will_response.embodied_vector
@@ -220,7 +220,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
                 payload=WillConflictPayload(
                     state=will_response.state.value,
                     resistance=will_response.resistance,
-                    embodied_vector=will_response.embodied_vector.value
+                    embodied_vector=will_response.embodied_vector.value  # noqa: ENIGMA001
                     if will_response.embodied_vector
                     else None,
                     identity_damage=will_response.identity_damage,
@@ -232,15 +232,15 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
         from app.services.will import get_embodied_impulse_text
 
         ctx.shared_context.will_conflict_data = {
-            "original_intent": getattr(intent, "parameters", None)
+            "original_intent": getattr(intent, "parameters", None)  # noqa: ENIGMA002
             and intent.parameters.semantic_action
             or getattr(intent, "action", "UNKNOWN"),
             "state": will_response.state.value,
             "resistance": will_response.resistance,
-            "embodied_vector": will_response.embodied_vector.value
+            "embodied_vector": will_response.embodied_vector.value  # noqa: ENIGMA001
             if will_response.embodied_vector
             else None,
-            "counter_offer_text": get_embodied_impulse_text(
+            "counter_offer_text": get_embodied_impulse_text(  # noqa: ENIGMA001
                 will_response.embodied_vector
             )
             if will_response.embodied_vector

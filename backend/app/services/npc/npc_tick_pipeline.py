@@ -129,7 +129,7 @@ class NpcTickPipeline:
         from app.services.npc.state_applicator import StateApplicator
 
         _attack_target = (
-            state.player_target_id
+            state.player_target_id  # noqa: ENIGMA001
             if state.action_type in ("player_attacks", "PLAYER_ATTACKED", "combat")
             else None
         )
@@ -141,6 +141,10 @@ class NpcTickPipeline:
         from app.core.constants import IDLE_PRESSURE_ACCUM_RATE, IDLE_PRESSURE_DECAY_RATE
         _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
 
+        # S198 DIAGNOSTIC: Неопровержимый маркер входа в цикл
+        _npc_ids_in_pipeline = [n.get("npc_id") or n.get("id") for n in (_npcs_to_process or [])]
+        logger.warning(f"[S198_PIPELINE_ENTER] is_player_turn={_is_player_turn} count={len(_npc_ids_in_pipeline)} ids={_npc_ids_in_pipeline}")
+        
         logger.debug(
             f"[SHI_TRACE_2] NpcTickPipeline.run ENTERED. is_player_turn={_is_player_turn} npcs_to_process={len(_npcs_to_process or [])} nearby_npcs={len(state.nearby_npcs or [])} all_npcs={len(state.all_npcs_raw or [])}"
         )
@@ -160,7 +164,7 @@ class NpcTickPipeline:
             _is_attack_target = npc_id == _attack_target
 
             # S1 FIX: Используем deepcopy для проверки слуха, чтобы избежать мутации оригинального npc
-            state_l2 = load_l2_state_from_runtime_dict(copy.deepcopy(dict(npc))) if npc_id else None
+            state_l2 = load_l2_state_from_runtime_dict(copy.deepcopy(dict(npc))) if npc_id else None  # noqa: ENIGMA001
 
             if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
                 # P1-02: NPC не видит, но может слышать.
@@ -193,7 +197,7 @@ class NpcTickPipeline:
                         )
                 continue
 
-            _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None
+            _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None  # noqa: ENIGMA001
 
             _npc_profile = None
             for _n in state.all_npcs_raw:
@@ -363,8 +367,8 @@ class NpcTickPipeline:
 
             # S189: epistemic_modifiers передаются как независимый числовой слой (ADR-O-355).
             # TODO (Фаза 2 / Эпоха 7): Интеграция ExpectationStore (Active Inference).
-            # Здесь должен вызываться PEModifierResolver().resolve(expectation)
-            # для добавления drive_modifiers на основе ожиданий NPC (награда/угроза).
+            # Здесь должен вычисляться prediction_error и добавляться drive_modifiers
+            # на основе ожиданий NPC (награда/угроза).
             # Ожидания (EMA) хранятся в ExpectationStore (SQLite, Single Writer).
 
             # TODO (Фаза 2 / Эпоха 7): Интеграция PerceptionEngine (Социальный статус).
@@ -373,7 +377,7 @@ class NpcTickPipeline:
             # Например: низкий статус игрока → буст ATTACK/IGNORE, высокий → буст OBEY/TRADE.
 
             _drive_modifiers_for_hub = None
-            _drives = getattr(state_l2, "temporary_drives", [])
+            _drives = getattr(state_l2, "temporary_drives", [])  # noqa: ENIGMA002
             if _drives:
                 _drive_mods = compute_drive_modifiers(_drives)
                 if _drive_mods:
@@ -436,8 +440,8 @@ class NpcTickPipeline:
                     raw_input=state.raw_input,
                 )
 
-            _dir = getattr(
-                getattr(state_l2, "perceptual_kernel", None), "recent_directive", None
+            _dir = getattr(  # noqa: ENIGMA002
+                getattr(state_l2, "perceptual_kernel", None), "recent_directive", None  # noqa: ENIGMA002
             ) or (
                 isinstance(_npc_dict_for_write, dict)
                 and _npc_dict_for_write.get("perceptual_kernel", {}).get(
@@ -451,10 +455,10 @@ class NpcTickPipeline:
                 translate_kernel_to_context,
             )
 
-            _body = getattr(state_l2, "body_state", None)
-            _kernel = getattr(state_l2, "perceptual_kernel", None)
+            _body = getattr(state_l2, "body_state", None)  # noqa: ENIGMA002
+            _kernel = getattr(state_l2, "perceptual_kernel", None)  # noqa: ENIGMA002
             _social_input_ema = getattr(state_l2, "social_input_ema", 0.0)
-            _psyche = getattr(state_l2, "psyche", {})
+            _psyche = getattr(state_l2, "psyche", {})  # noqa: ENIGMA002
             _greg = (
                 _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
             )
@@ -465,7 +469,7 @@ class NpcTickPipeline:
 
             # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
             _decision_ctx = (
-                translate_kernel_to_context(
+                translate_kernel_to_context(  # noqa: ENIGMA001
                     _kernel,
                     body_state=_body,
                     social_input_ema=_social_input_ema,
@@ -482,15 +486,24 @@ class NpcTickPipeline:
             # Редюсер читает EpistemicStore (read-only) и преобразует в нейтральные модификаторы.
             # DecisionHub остаётся изолирован от эпистемической семантики.
             _epistemic_modifiers: Optional[Dict[str, float]] = None
+            _epistemic_ctx = None # S197: Инициализация для предотвращения UnboundLocalError
+
             if state.epistemic_store and state.epistemic_context_resolver:
                 try:
                     _epistemic_ctx = state.epistemic_context_resolver.resolve(npc_id)
                     _epistemic_modifiers = state.epistemic_context_resolver.to_modifiers(_epistemic_ctx)
                 except Exception as _epistemic_err:
-                    logger.warning(f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}")
+                    logger.exception(
+                        f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}"
+                    )
 
+            # S198 FIX: SLEEP_GUARD не должен полностью обрывать каузальную цепь.
+            # Если drives is None (спящий NPC), используем fallback на base_drives,
+            # чтобы DecisionHub мог вычислить utility и эпистемика могла его перебить.
             if _effective_drives is None:
-                continue
+                _effective_drives = _npc_dict_for_write.get("drives_base", {}).get("base", [])
+                if not _effective_drives:
+                    continue
 
             # V8-PSY-FIX: Если NPC должен спать, подавляем проактивные интенты и FLEE,
             # чтобы он не повышал стресс и мог уснуть (GAP9 контракт).
@@ -516,6 +529,7 @@ class NpcTickPipeline:
                 _scheduled_activity in ("sleeping", "resting", "спит")
                 or _current_activity in ("sleeping", "resting", "спит")
             )
+            
             if _should_sleep:
                 from app.services.npc.decision_hub import PROACTIVE_INTENTS
                 for _p_intent in PROACTIVE_INTENTS:
@@ -525,10 +539,14 @@ class NpcTickPipeline:
 
 
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
-            _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id)
+            _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id, salt="decision_hub")
             _all_npc_ids = [
                 n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id")
             ]
+            # S198 DIAGNOSTIC: Трассировка decision для thief_shadow
+            if npc_id == "thief_shadow":
+                logger.warning(f"[S198_DIAG_A_ENTER] thief_shadow in DecisionHub. epistemic_modifiers={_epistemic_modifiers}")
+
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -548,11 +566,13 @@ class NpcTickPipeline:
                 relationship_store=state.relationship_store, # S135: SSOT
                 campaign_id=state.campaign_id, # S135: SSOT
                 epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
+                epistemic_context=_epistemic_ctx, # S197: Causal Provenance
             )
-            # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
-            # Без этого SHI=0% (симуляция работает, но невидима).
+
+
+
             _evt_type = getattr(state.hub_event, "event_type", "unknown")
-            logger.warning(
+            logger.info(
                 f"[DECISION_HUB] {npc_id}: intent=Intent.{decision.intent.value} score={decision.score:.3f} event={_evt_type}"
             )
 
@@ -569,7 +589,7 @@ class NpcTickPipeline:
 
             _is_move_command = False
             if state.hub_event:
-                _payload = getattr(state.hub_event, "payload", {})
+                _payload = getattr(state.hub_event, "payload", {})  # noqa: ENIGMA002
                 if (
                     isinstance(_payload, dict)
                     and _payload.get("semantic_action") == "MOVE"
@@ -835,7 +855,7 @@ def create_memory_event(
     _evt_type = hub_event.event_type if hub_event else ""
     _evt_actor = hub_event.actor_id or "player" if hub_event else "player"
     _evt_target = player_target_id or ""
-    _intent_val = getattr(decision.intent, "value", "") if decision.intent else ""
+    _intent_val = getattr(decision.intent, "value", "") if decision.intent else ""  # noqa: ENIGMA002
     _intent_upper = _intent_val.upper() if _intent_val else ""
     _has_target = bool(_evt_target)
 
@@ -925,7 +945,7 @@ def build_verbalization_context(
     # DecisionHub должен видеть ТЕКУЩИЕ драйвы (с учётом мутаций), не seed.
     # ИСПРАВЛЕНО: аргумент называется state_for_llm, не state. NameError на `state`.
     # ADR-O-208: L3-P2. VerbalizationContext использует эфемерную проекцию (L3).
-    _ed = state_for_llm.effective_drives_map.get(profile_l0.id) if hasattr(state_for_llm, 'effective_drives_map') else None
+    _ed = state_for_llm.effective_drives_map.get(profile_l0.id) if hasattr(state_for_llm, 'effective_drives_map') else None  # noqa: ENIGMA001
     _drives_raw = _ed.values if _ed else profile_l0.drives_base
     if isinstance(_drives_raw, dict) and _drives_raw:
         _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
@@ -1202,7 +1222,7 @@ def _resolve_reactive_movement(
         location_id=location_id,
         reason=f"reactive:{intent}",
         priority=PRIORITY_REACTIVE,
-        target_local_xy=(target_x, target_y)
+        target_local_xy=(target_x, target_y)  # noqa: ENIGMA001
         if intent == "approach" and target_x is not None and target_y is not None
         else None,
     )

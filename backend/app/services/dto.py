@@ -148,7 +148,7 @@ class _TickContext:
                 f"for npc={npc_id} tick={self.tick_number}. "
                 f"This indicates incomplete initialization."
             )
-            _rng = KernelRNG(tick=self.tick_number, npc_id=npc_id)
+            _rng = KernelRNG(tick=self.tick_number, npc_id=npc_id, salt="dto_fallback_rng")
         else:
             _rng = self.rng_factory(npc_id)
         

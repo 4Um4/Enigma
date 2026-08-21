@@ -25,7 +25,9 @@ TODO: после миграции на delta_buffer удалить prop_dirty и
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, Set, Tuple, runtime_checkable
 
-from app.domain.events import EventDTO
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.domain.events import EventDTO
 from app.models.state_delta import StateDeltas
 
 

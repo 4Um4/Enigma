@@ -52,7 +52,7 @@ class IntentEventAdapter:
             "shout": "public",
         }
 
-        _intent_val = getattr(intent, "intent_type", "")
+        _intent_val = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
         # S4 FIX: Явный маппинг. Если интент неизвестен, падаем в npc_spoke,
         # но логируем warning для последующего аудита.
         _event_type = IntentEventAdapter._INTENT_EVENT_MAP.get(_intent_val, EventType.NPC_SPOKE).value
@@ -73,8 +73,8 @@ class IntentEventAdapter:
                 "emotional_state": intent.emotional_state,
                 "exposure_semantic": intent.exposure_level.semantic,
                 # GAP8 FIX: Сохраняем семантику директив, иначе DirectiveInterpretationSubscriber глух
-                "semantic_action": getattr(intent, "semantic_action", None),
-                "target_id": getattr(intent, "target_id", None),
+                "semantic_action": getattr(intent, "semantic_action", None),  # noqa: ENIGMA002
+                "target_id": getattr(intent, "target_id", None),  # noqa: ENIGMA002
             },
             visibility=_visibility_map.get(intent.exposure_level.semantic, "public"),
             radius=intent.exposure_level.physical_radius,

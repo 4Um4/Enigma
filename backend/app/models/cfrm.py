@@ -182,6 +182,8 @@ _EVENT_AXIS_MAP: Dict[str, CausalAxis] = {
     "world_tick": CausalAxis.PHYSICAL,
     "player_cast_spell": CausalAxis.PHYSICAL,
     "player_used_item": CausalAxis.PHYSICAL,
+    # IPT-CLEANUP: Явная классификация тика
+    "tick_completed": CausalAxis.COGNITIVE,
     # ── Cognitive: Информация, восприятие, эмоциональный стимул ──
     "PLAYER_SPOKE": CausalAxis.COGNITIVE,
     "player_talks": CausalAxis.COGNITIVE,

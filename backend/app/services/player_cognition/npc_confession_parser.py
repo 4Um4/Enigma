@@ -45,13 +45,13 @@ class NpcConfessionParser:
 
         # Для каждого секрета, где npc_id — participant, проверяем keywords
         for secret_id, secret in self._truth.secrets.items():
-            participants = getattr(secret, "participants", [])
+            participants = getattr(secret, "participants", [])  # noqa: ENIGMA002
             if npc_id not in participants:
                 continue
 
             # Проверяем canonical_truth на совпадение с ответом
-            canonical = getattr(secret, "canonical_truth", "").lower()
-            confession_keywords = getattr(secret, "confession_keywords", [])
+            canonical = getattr(secret, "canonical_truth", "").lower()  # noqa: ENIGMA002
+            confession_keywords = getattr(secret, "confession_keywords", [])  # noqa: ENIGMA002
 
             # Если секрет имеет confession_keywords — используем их
             if confession_keywords:

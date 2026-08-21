@@ -32,11 +32,11 @@ def validate_all_schemas(game_loop=None) -> None:
 
     # 2. TruthState & MVP Pipeline (if game_loop is available)
     if game_loop:
-        mvp = getattr(game_loop, "mvp_controller", None)
+        mvp = getattr(game_loop, "mvp_controller", None)  # noqa: ENIGMA002
         if mvp is None:
             logger.warning("[SCHEMA] mvp_controller is None — MVP features disabled (N1).")
         else:
-            ts = getattr(mvp, "truth_state", None)
+            ts = getattr(mvp, "truth_state", None)  # noqa: ENIGMA002
             if ts is None:
                 logger.warning("[SCHEMA] TruthState failed to load (is None) — MVP features disabled.")
             elif len(ts.secrets) == 0:

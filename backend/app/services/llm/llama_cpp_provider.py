@@ -307,7 +307,12 @@ class LlamaCppProvider(StreamingLlmProvider):
             stdout, stderr = self._cli_process.communicate(
                 timeout=settings.llama_cpp_timeout_sec
             )
-            return stdout.strip() or stderr.strip()
+            # C-13 FIX: Проверяем код возврата. Если процесс упал или stdout пуст — raise.
+            if self._cli_process.returncode != 0 or not stdout.strip():
+                raise RuntimeError(
+                    f"llama-cli crashed or returned empty output. Return code: {self._cli_process.returncode}. Stderr: {stderr.strip()}"
+                )
+            return stdout.strip()
         except subprocess.TimeoutExpired:
             self._kill_cli_process()
             raise RuntimeError(
@@ -516,7 +521,8 @@ class LlamaCppProvider(StreamingLlmProvider):
                         continue
 
         except urllib.error.URLError as e:
-            yield f"\n[Ошибка соединения: {e}]"
+            # C-14 FIX: Не инжектим ошибку в токены LLM, пробрасываем исключение.
+            raise RuntimeError(f"LLM stream connection error: {e}") from e
 
     # ──────────────────────────────────────────────────────────────────────────
     # Служебные методы

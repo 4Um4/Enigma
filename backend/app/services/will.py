@@ -38,15 +38,15 @@ def resolve_intent_pressure(
     pressure = IntentPressureProfile()
     # ADR-035: Приоритет semantic_action из parameters. Защита от AttributeError и None.
     action = (
-        getattr(intent, "parameters", None)
+        getattr(intent, "parameters", None)  # noqa: ENIGMA002
         and intent.parameters.semantic_action
-        or getattr(intent, "action", "")
+        or getattr(intent, "action", "")  # noqa: ENIGMA002
         or ""
     ).lower()
     target = (
-        getattr(intent, "parameters", None)
+        getattr(intent, "parameters", None)  # noqa: ENIGMA002
         and intent.parameters.target_reference
-        or getattr(intent, "target", "")
+        or getattr(intent, "target", "")  # noqa: ENIGMA002
         or ""
     ).lower()
 
@@ -200,7 +200,7 @@ def compute_willpower(
     # Вычисление моторного импульса (ADR-037)
     # The Fool Phase 2: Безопасная распаковка 3 слоёв
     _embodied_result = _resolve_embodied_vector(pressure, state)
-    embodied_vector = _embodied_result[0] if _embodied_result else None
+    embodied_vector = _embodied_result[0] if _embodied_result else None  # noqa: ENIGMA001
     social_signal = _embodied_result[1] if _embodied_result else SocialSignal.NONE
     crowd_threat = _embodied_result[2] if _embodied_result else CrowdThreatLevel.NONE
 

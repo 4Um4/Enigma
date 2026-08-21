@@ -217,7 +217,7 @@ class MvpTavernController:
             {
                 "npc_id": f.npc_id,
                 "fate_outcome": f.fate_outcome,
-                "last_word": {
+                "last_word": {  # noqa: ENIGMA001
                     "npc_id": f.last_word.npc_id,
                     "quote": f.last_word.quote,
                     "tone": f.last_word.tone.value

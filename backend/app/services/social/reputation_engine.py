@@ -11,7 +11,7 @@ from __future__ import annotations
   - Фракции загружаются из config/world/factions.json.
 """
 
-
+import threading
 import json
 import logging
 from dataclasses import dataclass, field
@@ -97,6 +97,7 @@ class ReputationEngine:
         self._factions: Dict[str, Faction] = {}
         self._states: Dict[str, FactionState] = {}
         self._npc_to_faction: Dict[str, str] = {}
+        self._lock = threading.RLock() # H-25 FIX: Потокобезопасность apply_deltas
 
         if config_path:
             self._load_factions(config_path)
@@ -168,7 +169,7 @@ class ReputationEngine:
         Рассчитывает влияние события на репутацию фракций.
         Возвращает список дельт для применения.
         """
-        actor_faction = self.get_npc_faction(actor_npc_id) if actor_npc_id else None
+        actor_faction = self.get_npc_faction(actor_npc_id) if actor_npc_id else None  # noqa: ENIGMA001
         actor_nature = actor_faction.nature if actor_faction else "neutral"
 
         impact_rules = EVENT_REPUTATION_IMPACT.get(event_type.upper(), {})
@@ -204,6 +205,37 @@ class ReputationEngine:
                             "faction_id": ally_id,
                             "delta": round(ally_delta, 2),
                             "reason": f"ally of {actor_faction.id} affected by {event_type}",
+                        }
+                    )
+
+        # H-24 FIX: Влияние на фракцию цели
+        target_faction = self.get_npc_faction(target_npc_id) if target_npc_id else None  # noqa: ENIGMA001
+        if target_faction:
+            target_nature = target_faction.nature
+            target_delta = impact_rules.get(target_nature, 0.0) * 0.5
+            if abs(target_delta) > 0.1:
+                deltas.append(
+                    {
+                        "faction_id": target_faction.id,
+                        "delta": round(target_delta, 2),
+                        "reason": f"target of {event_type} by {actor_npc_id}",
+                    }
+                )
+
+            # H-23 FIX: Влияние на rivals цели (противоположный знак)
+            for rival_id in target_faction.rivals:
+                rival_nature = (
+                    self._factions[rival_id].nature
+                    if rival_id in self._factions
+                    else "neutral"
+                )
+                rival_delta = -impact_rules.get(rival_nature, 0.0) * 0.3
+                if abs(rival_delta) > 0.1:
+                    deltas.append(
+                        {
+                            "faction_id": rival_id,
+                            "delta": round(rival_delta, 2),
+                            "reason": f"rival of {target_faction.id} affected by {event_type}",
                         }
                     )
 
@@ -260,44 +292,45 @@ class ReputationEngine:
         """
         from app.models.state_delta import StateDeltas
 
-        for d in deltas:
-            if not isinstance(d, StateDeltas):
-                # Обратная совместимость: legacy dict-формат от apply_event_impact
-                fid = d.get("faction_id") if isinstance(d, dict) else None
-                delta_val = d.get("delta", 0.0) if isinstance(d, dict) else 0.0
-                reason = d.get("reason", "legacy") if isinstance(d, dict) else "legacy"
-                if fid is None:
+        with self._lock: # H-25 FIX: Потокобезопасная мутация состояния
+            for d in deltas:
+                if not isinstance(d, StateDeltas):
+                    # Обратная совместимость: legacy dict-формат от apply_event_impact
+                    fid = d.get("faction_id") if isinstance(d, dict) else None  # noqa: ENIGMA001
+                    delta_val = d.get("delta", 0.0) if isinstance(d, dict) else 0.0
+                    reason = d.get("reason", "legacy") if isinstance(d, dict) else "legacy"
+                    if fid is None:
+                        continue
+                    state = self._states.get(fid)
+                    if state is None:
+                        continue
+                    new_rep = max(-100.0, min(100.0, state.reputation + delta_val))
+                    state.reputation = round(new_rep, 2)
+                    state.recent_actions.append(d)
+                    if len(state.recent_actions) > 50:
+                        state.recent_actions = state.recent_actions[-50:]
+                    logger.debug(f"[REPUTATION] {fid}: {state.reputation:+.1f} ({reason})")
                     continue
-                state = self._states.get(fid)
-                if state is None:
+
+                if d.faction_id is None or d.reputation_delta == 0.0:
                     continue
-                new_rep = max(-100.0, min(100.0, state.reputation + delta_val))
+                state = self._states.get(d.faction_id)
+                if not state:
+                    continue
+                new_rep = max(-100.0, min(100.0, state.reputation + d.reputation_delta))
                 state.reputation = round(new_rep, 2)
-                state.recent_actions.append(d)
+                state.recent_actions.append(
+                    {
+                        "faction_id": d.faction_id,
+                        "delta": d.reputation_delta,
+                        "reason": d.source,
+                    }
+                )
                 if len(state.recent_actions) > 50:
                     state.recent_actions = state.recent_actions[-50:]
-                logger.debug(f"[REPUTATION] {fid}: {state.reputation:+.1f} ({reason})")
-                continue
-
-            if d.faction_id is None or d.reputation_delta == 0.0:
-                continue
-            state = self._states.get(d.faction_id)
-            if not state:
-                continue
-            new_rep = max(-100.0, min(100.0, state.reputation + d.reputation_delta))
-            state.reputation = round(new_rep, 2)
-            state.recent_actions.append(
-                {
-                    "faction_id": d.faction_id,
-                    "delta": d.reputation_delta,
-                    "reason": d.source,
-                }
-            )
-            if len(state.recent_actions) > 50:
-                state.recent_actions = state.recent_actions[-50:]
-            logger.debug(
-                f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})"
-            )
+                logger.debug(
+                    f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})"
+                )
 
     def compute_reputation_modifier(self, npc_id: str) -> Dict[str, float]:
         """

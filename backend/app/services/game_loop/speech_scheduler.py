@@ -39,8 +39,8 @@ class SpeechScheduler:
         Возвращает (False, "PACING") если отклонена из-за тайминга (нужно вернуть в очередь).
         Возвращает (False, "DEDUP") если отклонена как дубликат (нужно уничтожить).
         """
-        import time
-        now = time.time()
+        from app.core.clock import get_clock
+        now = get_clock().timestamp()
 
         speaker_id = task_dict.get("owner_id", "")
         payload = task_dict.get("payload", {})
@@ -73,6 +73,7 @@ class SpeechScheduler:
         self._pair_last_speech_ts[pair_key] = now
         self._admitted_contexts[pair_key] = (causal_context_version, now)
 
+        logger.warning(f"[S198_DIAG_B] SPEECH_ADMITTED speaker={speaker_id} target={target_id} intent={intent_type}")
         logger.info(f"[SPEECH_SCHED] Admitted {speaker_id} -> {target_id} ({intent_type})")
         return True, "ADMITTED"
 
@@ -89,8 +90,8 @@ class SpeechScheduler:
 
     def cleanup_stale_contexts(self) -> None:
         """Очистка устаревших контекстов (вызывать периодически)."""
-        import time
-        now = time.time()
+        from app.core.clock import get_clock
+        now = get_clock().timestamp()
         self._admitted_contexts = {
             k: v for k, v in self._admitted_contexts.items()
             if now - v[1] < self.DEDUP_CONTEXT_TTL_SEC

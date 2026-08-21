@@ -39,8 +39,7 @@ class BeliefType(str, Enum):
 
     DANGER = "danger"
     PLAYER_HOSTILE = "player_hostile"
-    ALLY_NEARBY = "ally_nearby"
-    # R8+: FOOD_SCARCE, GUARD_CORRUPT, RUMOR_BANDITS — добавлять сюда
+    # R8+: FOOD_SCARCE, GUARD_CORRUPT, RUMOR_BANDITS, ALLY_NEARBY — добавлять сюда при реализации
 
 
 class BeliefState:

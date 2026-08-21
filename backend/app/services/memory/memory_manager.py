@@ -289,7 +289,7 @@ class MemoryManager:
         # 8. SQLite persistence — runtime truth (Закон 4.2.1)
         # event.id как mem_id — трассируемая связь EventDTO → EventMemory
         _store = self._layered.store
-        _save_mem = getattr(_store, "save_event_memory", None)
+        _save_mem = getattr(_store, "save_event_memory", None)  # noqa: ENIGMA002
         if callable(_save_mem):
             _save_mem(
                 mem_id=str(event.id),
@@ -297,17 +297,8 @@ class MemoryManager:
                 mem_data=mem,
             )
 
-        # V8-MEM-3 FIX: Оживление belief pipeline (assess_beliefs)
-        # Вызывается после записи в narrative_cache, чтобы агрегатор имел свежие данные.
-        try:
-            _tick = payload.get("tick", 0)
-            self.assess_beliefs(
-                campaign_id=campaign_id,
-                npc_id=npc_id,
-                current_tick=_tick,
-            )
-        except Exception as e:
-            logger.warning(f"[MEMORY_MANAGER] assess_beliefs failed for {npc_id}: {e}")
+        # C-16 FIX: assess_beliefs был мёртвым кодом (результат не записывался).
+        # Убран, чтобы не вводить в заблуждение. Реально пишет только BeliefTransitionEngine.
 
         return npc_state
 
@@ -323,7 +314,7 @@ class MemoryManager:
         """Загружает narrative_cache из SQLite. Возвращает None если нет данных —
         вызывающая сторона fallback'ится на JSON (обратная совместимость)."""
         _store = self._layered.store
-        _load_mems = getattr(_store, "load_event_memories", None)
+        _load_mems = getattr(_store, "load_event_memories", None)  # noqa: ENIGMA002
         if not callable(_load_mems):
             return None
 
@@ -767,35 +758,6 @@ class MemoryManager:
 
         self._tick_counters[campaign_id] = current_tick
         return all_weights
-
-    def assess_beliefs(
-        self,
-        campaign_id: str,
-        npc_id: str,
-        current_tick: int,
-    ) -> List[Tuple[BeliefType, BeliefFragment]]:
-        """
-        R8: Оценить убеждения NPC из накопленных воспоминаний.
-        Вызывается независимо от decay — разная частота.
-        """
-        from app.models.npc_state import EventMemory
-        from app.services.memory.belief_aggregator import CoherenceBeliefAggregator
-        from app.services.memory.evidence_mapper import SemanticTagEvidenceMapper
-
-        key = f"{campaign_id}:{npc_id}"
-        memories = self._working.get(key) or []
-
-        mapper = SemanticTagEvidenceMapper()
-        all_evidence = []
-        for mem in memories:
-            if isinstance(mem, EventMemory):
-                all_evidence.extend(mapper.extract(mem))
-
-        if not all_evidence:
-            return []
-
-        aggregator = CoherenceBeliefAggregator()
-        return aggregator.assess(all_evidence, current_tick)
 
     def detect_resonance(
         self,

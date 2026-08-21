@@ -131,12 +131,6 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
             somatic_urgency=_somatic_urg,  # ADR-O-143: воспринимаемый телесный дистресс
         )
 
-        # S73-DIAG: Проверка очага аффекта. Видит ли пайплайн боль от удара?
-        if entity_id in ("thief_shadow", "guard_borko"):
-            logger.debug(
-                f"[AFF_SOURCE] npc={entity_id} pain_raw={_body.get('pain', 0.0)} shock_raw={_body.get('shock_impulse', 0.0)} somatic_urg={_somatic_urg:.3f} prev_aff={npc_raw.get('affective_load', 0.0)} emo={npc_raw.get('emotion', '?')}"
-            )
-
         # ADR-049: Единый интегратор аффективного давления
         current_load = float(npc_raw.get("affective_load", 0.0))
         current_memory = float(npc_raw.get("affective_memory", 0.0))
@@ -147,20 +141,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
             current_memory=current_memory,
         )
 
-        if entity_id in ("thief_shadow", "guard_borko", "merchant_goran"):
-            logger.debug(
-                f"[TIFL_PROBE] npc={entity_id} new_load={new_load:.3f} new_mem={new_memory:.3f}",
-                file=sys.stderr,
-                flush=True,
-            )
-
         emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
-
-        # S73-DIAG: Вычислен ли new_load и почему он теряется?
-        if entity_id in ("thief_shadow", "guard_borko"):
-            logger.debug(
-                f"[AFF_RESULT] npc={entity_id} current={current_load:.3f} new={new_load:.3f} has_transition={emotion_payload is not None}"
-            )
 
         # §ENIGMA-DUAL-CIRCUIT (S74-FIX): Разделение памяти и интерпретации.
         # Интеграл ОБЯЗАН сохраняться при каждом изменении, даже если эмоция
@@ -211,7 +192,6 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
         # S73-L0: Epistemic Trace (Log-only instrumentation).
         # Фиксируем субъективную проекцию реальности NPC для анализа RSI (Reality Split Index).
         # Не влияет на симуляцию. Позволяет CDS измерять расхождение интерпретаций.
-        # S73-DIAG: Отслеживание источника эмоции для диагностики конкуренции контуров
         _e_tag = (
             emotion_payload.emotion_tag
             if emotion_payload

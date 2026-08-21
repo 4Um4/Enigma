@@ -6,10 +6,11 @@ from app.core.config import settings
 
 LOG_DIR = Path(settings.data_dir) / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOG_FILE = LOG_DIR / f"enigma_{datetime.now().strftime('%Y%m%d')}.jsonl"
+# M-11 FIX: Единый append-only файл лога (provenance chain, без daily rotation)
+LOG_FILE = LOG_DIR / "enigma_audit.jsonl"
 
 
 def jsonl_log(entry: dict):
-    """Простейший логгер в JSONL"""
+    """Простейший логгер в JSONL. Append-only, без ротации."""
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")

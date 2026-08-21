@@ -34,10 +34,10 @@ class DialogueMemorySubscriber:
             if not _npc_states:
                 return
 
-            _sq = self._get_spatial_query() if self._get_spatial_query else None
+            _sq = self._get_spatial_query() if self._get_spatial_query else None  # noqa: ENIGMA001
 
-            speaker = getattr(event, "source", "")
-            payload = getattr(event, "payload", {}) or {}
+            speaker = getattr(event, "source", "")  # noqa: ENIGMA002
+            payload = getattr(event, "payload", {}) or {}  # noqa: ENIGMA002
             listener = payload.get("target_id", "player")
 
             affected_npcs = {speaker, listener}

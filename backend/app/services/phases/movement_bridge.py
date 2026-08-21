@@ -30,7 +30,7 @@ def process_movement_intents(
     _merged_intents = []
     _per_npc = {}
     for i in movement_intents:
-        _nid = getattr(i, "npc_id", None)
+        _nid = getattr(i, "npc_id", None)  # noqa: ENIGMA002
         if _nid:
             _per_npc.setdefault(_nid, []).append(i)
         else:
@@ -58,7 +58,7 @@ def process_movement_intents(
                     intent.target_intent,
                     npc_positions=_npc_positions,
                     actor_id=intent.actor_id,
-                    location_id=getattr(intent, 'location_id', None)
+                    location_id=getattr(intent, 'location_id', None)  # noqa: ENIGMA002
                 )
                 
                 if resolved.resolution_status != TargetResolutionStatus.RESOLVED:

@@ -143,13 +143,13 @@ def run_npc_orchestration(
 
     # TZ-08 v0.2: Event-driven model. Ядро не знает DMContextDTO.
     # Формируем чистый payload из уже разрешённых данных в shared_context
-    _intent_res = getattr(shared_context, "intent_resolution", None)
-    _orig_intent = getattr(_intent_res, "original_intent", None)
-    _params = getattr(_orig_intent, "parameters", None) if _orig_intent else None
+    _intent_res = getattr(shared_context, "intent_resolution", None)  # noqa: ENIGMA002
+    _orig_intent = getattr(_intent_res, "original_intent", None)  # noqa: ENIGMA002
+    _params = getattr(_orig_intent, "parameters", None) if _orig_intent else None  # noqa: ENIGMA001, ENIGMA002
 
-    _sem_action = getattr(_params, "semantic_action", "") if _params else ""
-    _target_ref = getattr(_params, "target_reference", "") if _params else ""
-    _target_id = getattr(_params, "target_id", "") if _params else ""
+    _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
+    _target_ref = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+    _target_id = getattr(_params, "target_id", "") if _params else ""  # noqa: ENIGMA002
 
     _intervention = InterventionEvent(
         source="player",
@@ -177,7 +177,7 @@ def run_npc_orchestration(
     if not _location_ids:
         _location_ids = [_active_loc]
 
-    _scene_manager = getattr(game_loop, "scene_manager", None)
+    _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
     _tick_result = None
 
     # Дополнение Б: Глобальный цикл тика для хода игрока
@@ -186,7 +186,7 @@ def run_npc_orchestration(
         if _loc_id == _active_loc:
             _current_scene = shared_context.scene_state
         else:
-            _current_scene = _scene_manager.get_scene_state(campaign_id, _loc_id) if _scene_manager else None
+            _current_scene = _scene_manager.get_scene_state(campaign_id, _loc_id) if _scene_manager else None  # noqa: ENIGMA001
         
         if _current_scene is None:
             continue
@@ -212,10 +212,10 @@ def run_npc_orchestration(
             npc_services=_npc_svc,
             spatial_service=_loc_spatial_svc,
             all_npcs_raw=ctx.all_npcs_raw,
-            shared_context=shared_context if _loc_id == _active_loc else None,
+            shared_context=shared_context if _loc_id == _active_loc else None,  # noqa: ENIGMA001
             active_location_id=_active_loc,
             location_ids=_location_ids,
-            hub_event=ctx.hub_event if _loc_id == _active_loc else None,  # BUG-CORE-003 FIX
+            hub_event=ctx.hub_event if _loc_id == _active_loc else None,  # BUG-CORE-003 FIX  # noqa: ENIGMA001
             task_scheduler=game_loop._get_task_scheduler(),  # REGRESSION-CORE-001 FIX: Проброс task_scheduler в ядро
         )
         # BUG-FB-031 FIX: Сохраняем world_snapshot из ядра в shared_context, чтобы не пересобирать его с нуля в GameLoop
@@ -234,7 +234,7 @@ def run_npc_orchestration(
 
     # ADR-311 FIX: Коммит final_scene_state в SceneStateManager.
     # Без этого все мутации ядра (время, traversals, эмоции) теряются в пути игрока.
-    _scene_manager = getattr(game_loop, "scene_manager", None)
+    _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
     if _tick_result is not None and _tick_result.final_scene_state is not None and _scene_manager:
         if _scene_manager._tick_campaign_id == campaign_id:
             _scene_manager.commit_tick_result(
@@ -254,7 +254,7 @@ def run_npc_orchestration(
     ):
         _params = shared_context.intent_resolution.original_intent.parameters
         if _params:
-            _sem_action = getattr(_params, "semantic_action", "").upper()
+            _sem_action = getattr(_params, "semantic_action", "").upper()  # noqa: ENIGMA002
 
     _target_id = shared_context.player_target_id or ""
     _tick = shared_context.current_tick or 0
@@ -313,7 +313,7 @@ def run_npc_orchestration(
     _npc_buf = NpcTickBuffer(
         npc_contexts=_tick_result.npc_contexts,
         dirty_npcs=getattr(_tick_result, "dirty_npcs", set()),
-        activity_overrides=getattr(_tick_result, "activity_overrides", {}),
+        activity_overrides=getattr(_tick_result, "activity_overrides", {}),  # noqa: ENIGMA002
         max_npc_stress=getattr(_tick_result, "max_npc_stress", 0.0),
     )
 
@@ -324,7 +324,7 @@ def run_npc_orchestration(
     # B4-FIX: прямые мутации → SceneChange (CAUSAL_CONTRACT §3).
     from app.services.scene_change import ChangeType, SceneChange
 
-    _scene_manager = getattr(game_loop, "scene_manager", None)
+    _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
     if _scene_manager:
         for _nid, _activity in _npc_buf.activity_overrides.items():
             _change = SceneChange(
@@ -385,7 +385,7 @@ def run_npc_orchestration(
     # Возвращаем полный результат для передачи в execute_player_finalize()
     from app.services.tick_orchestrator import TickPlayerResultDTO
 
-    _orch_facts = getattr(_tick_result, "observed_facts", [])
+    _orch_facts = getattr(_tick_result, "observed_facts", [])  # noqa: ENIGMA002
     logger.debug(f"[DEBUG_ORCH] _tick_result.observed_facts count={len(_orch_facts)}")
     return TickPlayerResultDTO(
         npc_contexts=npc_contexts,

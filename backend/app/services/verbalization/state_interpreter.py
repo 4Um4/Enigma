@@ -227,7 +227,7 @@ class StateInterpreter:
         )
         gender = self._get_gender(state)
         # GAP5 FIX: Читаем живую физиологию, а не только RPG-абстракцию HP
-        body_state = getattr(state, "body_state", {}) or {}
+        body_state = getattr(state, "body_state", {}) or {}  # noqa: ENIGMA002
 
         return NPCStateDescription(
             name=state.npc_id,

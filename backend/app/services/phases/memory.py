@@ -48,9 +48,11 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                     # ADR-117: write_to_legacy — staticmethod, вызов через класс
                     NPCState.write_to_legacy(npc_state, npc_dict)
             except Exception as e:
-                logger.warning(
-                    f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}"
+                logger.error(
+                    f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}. Пробрасываем исключение.",
+                    exc_info=True,
                 )
+                raise
 
     # ── GREEN GATE: Memory cannot generate identity without causal input ──
     # Запрет кристаллизации L2.5 в idle-тиках (ADR-S86.7, предотвращение фантомного дрейфа)
@@ -72,9 +74,11 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                         f"[PHASE_3_MEMORY] new identity traits for {npc_id}: {_new_traits}"
                     )
             except Exception as e:
-                logger.warning(
-                    f"[PHASE_3_MEMORY] check_identity_promotion failed for {npc_id}: {e}"
+                logger.error(
+                    f"[PHASE_3_MEMORY] check_identity_promotion failed for {npc_id}: {e}. Пробрасываем исключение.",
+                    exc_info=True,
                 )
+                raise
 
     # ── Блок 3: Применение событий памяти к затронутым NPC ──
     for event in ctx.phase_2_events:
@@ -92,7 +96,7 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
             new_event = replace(event, payload=new_payload)
 
             _sq = (
-                getattr(ctx.npc_services, "spatial_query", None)
+                getattr(ctx.npc_services, "spatial_query", None)  # noqa: ENIGMA001, ENIGMA002
                 if ctx.npc_services
                 else None
             )
@@ -118,7 +122,8 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                 for npc_id in _active_npc_ids:
                     memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
         except Exception as e:
-            logger.warning(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}")
+            logger.error(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}. Пробрасываем исключение.", exc_info=True)
+            raise
 
     logger.debug(f"[TICK_ORCH] Фаза 3: {processed} memory updates")
     return processed

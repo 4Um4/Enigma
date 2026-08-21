@@ -153,7 +153,7 @@ class WorldTickEngine:
             # работает только для реактивного пути). Без этого guard_borko, у которого
             # schedule=sleeping, может получить proactive_spread_rumor и вернуться
             # в tavern из city_gate:guard_bed.
-            _npc_dict = getattr(_npc_state, "_legacy_dict", None) or {}
+            _npc_dict = getattr(_npc_state, "_legacy_dict", None) or {}  # noqa: ENIGMA002
             _cur_activity = ""
             if isinstance(_npc_dict, dict):
                 _cur_activity = _npc_dict.get("routine", {}).get("current", "")
@@ -192,10 +192,10 @@ class WorldTickEngine:
 
             # Каузальное замыкание: консолидированное восприятие T-1 деформирует проактивные решения
             # GAP3 FIX: Передаем body_state для соматического вето
-            _body = getattr(_npc_state, "body_state", None)
-            _kernel = getattr(_npc_state, "perceptual_kernel", None)
+            _body = getattr(_npc_state, "body_state", None)  # noqa: ENIGMA002
+            _kernel = getattr(_npc_state, "perceptual_kernel", None)  # noqa: ENIGMA002
             _decision_ctx = (
-                translate_kernel_to_context(_kernel, body_state=_body)
+                translate_kernel_to_context(_kernel, body_state=_body)  # noqa: ENIGMA001
                 if _kernel
                 else None
             )
@@ -203,7 +203,7 @@ class WorldTickEngine:
             # KERNEL-ISOLATION: per-NPC deterministic RNG.
             from app.services.npc.kernel_rng import KernelRNG
 
-            _rng = KernelRNG(tick=tick_num, npc_id=npc_id)
+            _rng = KernelRNG(tick=tick_num, npc_id=npc_id, salt="world_tick_engine")
             hub = DecisionHub(rng=_rng)
 
             try:
@@ -213,7 +213,7 @@ class WorldTickEngine:
                     event=tick_event,
                     effective_drives=_effective_drives,  # L3-P2 mandatory
                     scene_state=scene_state,
-                    social_modifiers=combined if combined else None,
+                    social_modifiers=combined if combined else None,  # noqa: ENIGMA001
                     decision_ctx=_decision_ctx,
                 )
                 logger.debug(

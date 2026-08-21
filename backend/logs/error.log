@@ -1,0 +1,24 @@
+
+=== 2026-08-15 23:30:25 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 724, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1193, in run_turn
+    state = await self._run_pipeline(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 2140, in _run_pipeline
+    dm_result, _resolution = await self._execute_dm_and_intent_resolution(
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        actions, shared_context, scene_state, _ctx, campaign_id, location
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1808, in _execute_dm_and_intent_resolution
+    _player_name = shared_context.player_name or "player"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'PipelineContext' object has no attribute 'player_name'. Did you mean: 'player_state'?
+

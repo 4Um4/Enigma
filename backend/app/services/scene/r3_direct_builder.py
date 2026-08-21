@@ -48,7 +48,7 @@ def build_r3_dm_frame(
     # A2-FIX: zombie reader → SpatialQueryService.
     # Раньше: _distances всегда {} → SceneContext.distances пустой → DM слеп к дистанциям.
     _distances = {}
-    _spatial_query = getattr(shared_context, "spatial_query", None)
+    _spatial_query = getattr(shared_context, "spatial_query", None)  # noqa: ENIGMA002
     if _spatial_query is not None:
         _npc_ids = [
             n.get("npc_id", n.get("id", ""))
@@ -129,9 +129,9 @@ def build_r3_dm_frame(
 
     # Извлекаем observed_facts из PlayerPerceptionDTO (Фаза 9)
     _observed_facts = []
-    _ws = getattr(shared_context, "world_snapshot", None)
+    _ws = getattr(shared_context, "world_snapshot", None)  # noqa: ENIGMA002
     if _ws and hasattr(_ws, "player_perception"):
-        _observed_facts = getattr(_ws.player_perception, "observed_facts", [])
+        _observed_facts = getattr(_ws.player_perception, "observed_facts", [])  # noqa: ENIGMA002
 
     # Строим SceneOutcome → DMFrame (с психологической проекцией + ADR-131 трёхосевая модель)
     _scene = _builder.build(

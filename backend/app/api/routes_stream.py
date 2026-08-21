@@ -60,7 +60,7 @@ async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
     campaign_id = request.get("campaign")
     action_text = request.get("action")
     _pos_raw = request.get("player_position")  # [x, y] от фронтенда
-    _player_pos = tuple(_pos_raw) if _pos_raw and len(_pos_raw) == 2 else None
+    _player_pos = tuple(_pos_raw) if _pos_raw and len(_pos_raw) == 2 else None  # noqa: ENIGMA001
 
     if not player or not campaign_id or not action_text:
         raise HTTPException(
