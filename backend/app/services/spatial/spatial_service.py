@@ -43,7 +43,7 @@ class SpatialService:
         scene_state: dict,
     ) -> Optional["SpatialService"]:
         """Фабрика: компилирует граф и оверлей для текущей локации и сцены."""
-        from app.services.spatial.graph_compiler import compile_graph, load_editor_json, get_connections
+        from app.services.spatial.graph_compiler import compile_graph, load_editor_json
         from app.services.spatial.spatial_overlay import build_overlay_from_scene
 
         editor_data = load_editor_json(campaign_id, location_id)
@@ -51,8 +51,7 @@ class SpatialService:
             logger.warning(f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}")
             return None
 
-        graph, alias_map = compile_graph(editor_data, location_id)
-        connections = get_connections(location_id)
+        graph, connections, alias_map = compile_graph(editor_data, location_id)
         overlay = build_overlay_from_scene(scene_state)
 
         return SpatialService(graph, connections, alias_map, overlay)

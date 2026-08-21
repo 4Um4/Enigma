@@ -156,6 +156,25 @@ class GameLoop:
         # P1.1f: внедряем фабрику SocialEngine в TickOrchestrator
         self._tick_orch.set_social_engine_factory(self._svc.get_social_engine)
 
+        # Фаза 0.5: DI для idle-сервисов (social decay, reputation decay)
+        _rep_engine = self._svc.get_reputation_engine()
+        _rel_store = memory_manager._relationships if memory_manager else None
+        _state_applicator = self._svc.get_state_applicator(
+            relationship_store=_rel_store,
+        ) if _rel_store else None
+
+        if _state_applicator:
+            self._tick_orch.set_state_applicator(_state_applicator)
+        if _rep_engine:
+            self._tick_orch.set_reputation_engine(_rep_engine)
+            # ReputationDecayHandler — делегирует в ReputationEngine.compute_decay()
+            from app.services.social.reputation_decay_handler import ReputationDecayHandler
+            self._tick_orch.add_idle_handler(ReputationDecayHandler(_rep_engine))
+
+        # SocialDecayHandler — дрейф trust → base
+        from app.services.social.social_decay_handler import SocialDecayHandler
+        self._tick_orch.add_idle_handler(SocialDecayHandler())
+
     def get_current_tick(self, campaign_id: str) -> int:
         """Единый источник тика — через TemporalEngine (Устав §3)."""
         return self._tick_orch.get_current_tick(campaign_id)
@@ -184,23 +203,50 @@ class GameLoop:
         _runtime_path = self._get_npc_runtime_path(campaign_id)
         return load_npcs_merged(runtime_path=_runtime_path)
 
-    def idle_tick(self, campaign_id: str) -> TickResultDTO:
+    def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 
         Вызывается когда игрок бездействует (таймер pygame).
         Единая точка входа: GameLoopBridge и routes.py делегируют сюда.
         TickOrchestrator.execute(dm_ctx=None) — полный idle-цикл с
         WorldSnapshotBuilder на фазе 9.
+
+        Конвертация DTO→dict происходит ЗДЕСЬ, не в мосту (Устав §1.1).
+        Frontend не должен знать про backend-классы.
         """
         _scene = self.scene_manager.get_scene_state(campaign_id, "")
         if _scene is None:
-            return TickResultDTO(status="no_scene")
+            return {"status": "no_scene", "npc_positions": {}}
 
-        return self._tick_orch.execute(
+        result: TickResultDTO = self._tick_orch.execute(
             campaign_id=campaign_id,
             scene_state=_scene,
             tick_number=self.get_current_tick(campaign_id),
         )
+
+        # Конвертация WorldSnapshotDTO → dict для фронтенда
+        from dataclasses import asdict
+        from app.domain.snapshot import snapshot_npc_positions_to_dict
+
+        _ws: dict | None = None
+        _npc_pos_dict: dict = {}
+        if result.world_snapshot is not None:
+            _ws = asdict(result.world_snapshot)
+            _npc_pos_dict = snapshot_npc_positions_to_dict(
+                result.world_snapshot.npc_positions
+            )
+            _ws["npc_positions"] = _npc_pos_dict
+            # UUID → строка для JSON-совместимости
+            if _ws.get("last_event_id") is not None:
+                _ws["last_event_id"] = str(_ws["last_event_id"])
+
+        return {
+            "status": result.status,
+            "changes": result.changes_count,
+            "npc_positions": _npc_pos_dict,  # DEPRECATED: читать из world_snapshot
+            "events": result.significant_events,
+            "world_snapshot": _ws,
+        }
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""

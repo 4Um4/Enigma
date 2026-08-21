@@ -76,20 +76,7 @@ def publish_player_speech(
 
 
 # Интенсивность по типу действия — единый источник для EventDTO.payload
-# Дублирует DMRouter._BASE_INTENSITY чтобы не создавать зависимость layer→layer
-_INTENSITY_MAP: dict[str, float] = {
-    "player_attacks": 1.0,
-    "player_threatens": 0.7,
-    "player_threatens_indirect": 0.6,
-    "player_steals": 0.6,
-    "player_flees": 0.5,
-    "player_insults": 0.65,
-    "player_interacts": 0.2,
-    "dialogue": 0.2,
-    "attack": 1.0,
-    "move": 0.1,
-    "stealth": 0.1,
-}
+from app.domain.constants import ACTION_INTENSITY
 
 
 def publish_classified_player_event(
@@ -115,7 +102,7 @@ def publish_classified_player_event(
     _resolved_type = _evt_map.get(_raw_type, EventType.PLAYER_SPOKE)
     # Атака — звуковое событие с ограниченным радиусом слышимости
     _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
-    _intensity = _INTENSITY_MAP.get(_raw_type, 0.2)
+    _intensity = ACTION_INTENSITY.get(_raw_type, 0.2)
     _game_evt = EventDTO.create(
         event_type=_resolved_type.value,
         source="player",

@@ -352,8 +352,9 @@ class TestStateApplicator:
             score         = 0.9,
             scores_trace  = {},
             deltas        = StateDeltas(
-                stress_delta = 10.0,
-                trust_delta  = -5.0,  # это вызовет rel_store.update
+                npc_id        = fresh_npc_state.npc_id,
+                stress_delta  = 10.0,
+                trust_delta   = -5.0,  # это вызовет rel_store.update
             ),
         )
         returned = applicator.apply(

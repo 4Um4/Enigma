@@ -45,10 +45,13 @@ class Phase8Result:
     """Результат одного обработчика Фазы 8.
     
     Все выходы — только через этот DTO. Никакой мутации Phase8Context.
+    Оркестратор синхронизирует perception ∪ social (Задача 3).
     """
     deltas: List[StateDeltas] = field(default_factory=list)
-    perceiving_npc_ids: Optional[Set[str]] = None  # perception filter
-    prop_dirty: bool = False                        # social propagation flag
+    perceiving_npc_ids: Optional[Set[str]] = None
+    socially_affected_npc_ids: Optional[Set[str]] = None
+    events_processed: int = 0
+    prop_dirty: bool = False  # DEPRECATED после миграции на delta_buffer
 
 
 @runtime_checkable
