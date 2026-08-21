@@ -43,7 +43,7 @@ from app.services.spatial.spatial_event_detector import (
     _npc_positions_snapshot,
 )
 from app.services.spatial.transit_tracker import TransitTracker
-from app.services.spatial.location_graph import load_graph
+# SpatialService v1.2 заменяет location_graph. Прямой импорт запрещён контрактом.
 from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
 
 logger = logging.getLogger(__name__)
@@ -416,46 +416,6 @@ class TickOrchestrator:
 
         return npc_result
 
-    def finalize_and_commit(
-        self,
-        tick_ctx: Any,  # TickBuffer — lazy import чтобы избежать циклической зависимости
-        actions: list,
-        shared_context: Any,
-        campaign_id: str,
-        rules_result: Dict[str, Any],
-        r3_direct_mode: bool = True,
-    ) -> dict:
-        """DEPRECATED: используйте execute_player_finalize().
-
-        Сохранено для обратной совместимости — будет удалено после миграции.
-        ФАЗА 7-8 + ФАЗА 10: finalize + atomic commit.
-        TickOrchestrator владеет полным циклом finalize → commit (Устав §4.2.1).
-        Гарантирует что dirty-флаги проверяются до коммита.
-        """
-        npc_result = self._phase_finalize(
-            tick_ctx, actions, shared_context, campaign_id,
-            rules_result, r3_direct_mode,
-        )
-
-        # ФАЗА 10: Единственная точка коммита (Устав §4.2.1)
-        # Инлайн из phase_8_commit — логика коммита принадлежит TickOrchestrator
-        if tick_ctx.dirty_npcs or tick_ctx.wt_dirty or tick_ctx.prop_dirty:
-            self._scene_manager.commit(
-                campaign_id=campaign_id,
-                scene_state=shared_context.scene_state,
-                npc_dicts=tick_ctx.all_npcs_raw,
-            )
-            _sources: list[str] = []
-            if tick_ctx.dirty_npcs:
-                _sources.append(f"npc={len(tick_ctx.dirty_npcs)}")
-            if tick_ctx.wt_dirty:
-                _sources.append("world_tick")
-            if tick_ctx.prop_dirty:
-                _sources.append("social")
-            logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")
-
-        return npc_result
-
     # ── Слой 4: подготовка ────────────────────────────────────────────
 
     def _snapshot_positions_before(self, ctx: _TickContext) -> None:
@@ -468,12 +428,7 @@ class TickOrchestrator:
         tracker = self._get_transit_tracker()
         if tracker.active_count() > 0:
             location_id = ctx.scene_state.get("location_id", "")
-            graphs = {}
-            if location_id:
-                try:
-                    graphs[location_id] = load_graph(location_id)
-                except Exception:
-                    pass
+            graphs = {}  # TODO: Получить граф из SpatialService v1.2 (API черного ящика)
             transit_changes = tracker.advance_all(graphs, ctx.tick_number)
             if transit_changes and self._scene_manager:
                 self._scene_manager.apply_changes(ctx.campaign_id, transit_changes, ctx.scene_state)
@@ -491,6 +446,11 @@ class TickOrchestrator:
         runtime_path = self._get_npc_runtime_path(ctx.campaign_id)
         # Передаём transit_tracker чтобы MovementEngine мог регистрировать пути
         engine.set_transit_tracker(self._get_transit_tracker())
+        
+        # Инжекция SpatialService v1.2 для семантической навигации
+        if ctx.npc_services and hasattr(ctx.npc_services, "spatial_service"):
+            engine.set_spatial_service(ctx.npc_services.spatial_service)
+        
         changes = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
         ctx.scene_changes = changes or []
         # Заполняем полные стейты для фаз 3-6, 10 (Устав §3.1)
@@ -782,8 +742,8 @@ class TickOrchestrator:
         """Применяет Phase8Result к _TickContext.
 
         perception → фильтр npc_contexts + perceiving_npcs
-        social → prop_dirty флаг (legacy-мост, TODO: StateDeltas)
-        deltas → StateApplicator (пока пусто для обоих, зарезервировано)
+        social → deltas применяются к all_npcs_raw
+        deltas с npc_id → применение к конкретному NPC
         """
         # Perception: фильтруем NPC контексты
         if result.perceiving_npc_ids is not None and ctx.shared_context is not None:
@@ -799,18 +759,35 @@ class TickOrchestrator:
             ctx.shared_context.npc_contexts = _filtered
             ctx.shared_context.perceiving_npcs = list(result.perceiving_npc_ids)
 
-        # Social: legacy-мост — propagate_social_rumors мутирует all_npcs_raw
+        # Deltas: применяем к all_npcs_raw (social propagation, future handlers)
+        if result.deltas:
+            _applied = 0
+            for delta in result.deltas:
+                if not delta.npc_id:
+                    continue
+                for _npc_d in ctx.all_npcs_raw:
+                    if _npc_d.get("id") == delta.npc_id or _npc_d.get("npc_id") == delta.npc_id:
+                        # Stress — прямая мутация dict (0-100 шкала)
+                        if delta.stress_delta != 0.0:
+                            _cur = _npc_d.get("stress", 0.0)
+                            _npc_d["stress"] = max(0.0, min(100.0, _cur + delta.stress_delta))
+                        # Trust — в relationship_cache (0-100 шкала)
+                        # TODO: мигрировать на RelationshipStore когда target будет доступен
+                        if delta.trust_delta != 0.0:
+                            _rc = _npc_d.setdefault("relationship_cache", {})
+                            _rc["trust"] = max(-100.0, min(100.0, _rc.get("trust", 0.0) + delta.trust_delta))
+                        _applied += 1
+                        break
+            if _applied:
+                ctx.prop_dirty = True
+                logger.debug(
+                    f"[PHASE_8] {handler_name}: {_applied} deltas applied "
+                    f"to all_npcs_raw"
+                )
+
+        # Legacy: prop_dirty от старых обработчиков (совместимость)
         if result.prop_dirty:
             ctx.prop_dirty = True
-            logger.debug(
-                f"[PHASE_8] {handler_name}: prop_dirty=True "
-                f"[TODO: migrate to StateDeltas]"
-            )
-
-        # Deltas: зарезервировано для будущих обработчиков
-        # if result.deltas:
-        #     for delta in result.deltas:
-        #         ...  # StateApplicator.apply_deltas_only()
 
     def _phase_9_integration(self, ctx: _TickContext) -> None:
         """WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state."""

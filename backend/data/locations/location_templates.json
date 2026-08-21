@@ -81,51 +81,7 @@
       "city_gate",
       "market_square",
       "inn_rooms"
-    ],
-    "positions": {
-      "entrance": {
-        "x": 8.0,
-        "y": 12.0,
-        "connections": ["main_hall"],
-        "label": "Вход"
-      },
-      "main_hall": {
-        "x": 8.0,
-        "y": 7.0,
-        "connections": ["entrance", "bar_area", "fireplace", "corner_table"],
-        "label": "Центр зала"
-      },
-      "bar_area": {
-        "x": 4.0,
-        "y": 4.0,
-        "connections": ["main_hall", "behind_bar", "kitchen"],
-        "label": "У стойки"
-      },
-      "behind_bar": {
-        "x": 4.0,
-        "y": 2.5,
-        "connections": ["bar_area"],
-        "label": "За стойкой"
-      },
-      "fireplace": {
-        "x": 11.0,
-        "y": 4.0,
-        "connections": ["main_hall"],
-        "label": "У камина"
-      },
-      "corner_table": {
-        "x": 12.0,
-        "y": 10.0,
-        "connections": ["main_hall"],
-        "label": "В тёмном углу"
-      },
-      "kitchen": {
-        "x": 16.0,
-        "y": 4.0,
-        "connections": ["bar_area"],
-        "label": "Кухня"
-      }
-    }
+    ]
   },
   "city_gate": {
     "name": "Городские ворота",
@@ -196,41 +152,9 @@
     "npc_defaults": {},
     "connected_locations": [
       "tavern_silver_wolf",
-      "city_gate"
-    ],
-    "positions": {
-      "stall_3": {
-        "x": 2.0,
-        "y": 1.0,
-        "connections": ["fountain_center", "stall_2"],
-        "label": "у третьего прилавка"
+          "city_gate"
+        ]
       },
-      "stall_1": {
-        "x": -3.0,
-        "y": 1.0,
-        "connections": ["fountain_center"],
-        "label": "у первого прилавка"
-      },
-      "stall_2": {
-        "x": -1.0,
-        "y": -2.0,
-        "connections": ["fountain_center", "stall_3"],
-        "label": "у второго прилавка"
-      },
-      "fountain_center": {
-        "x": 0.0,
-        "y": 0.0,
-        "connections": ["stall_1", "stall_2", "stall_3", "road_to_tavern"],
-        "label": "у фонтана"
-      },
-      "road_to_tavern": {
-        "x": 3.0,
-        "y": -3.0,
-        "connections": ["fountain_center"],
-        "label": "дорога к таверне"
-      }
-    }
-  },
   "inn_rooms": {
     "name": "Комнаты постоялого двора",
     "type": "interior",
@@ -247,27 +171,7 @@
     },
     "npc_defaults": {},
     "connected_locations": [
-      "tavern_silver_wolf"
-    ],
-    "positions": {
-      "bed": {
-        "x": 0.0,
-        "y": 0.0,
-        "connections": ["hallway"],
-        "label": "у кровати"
-      },
-      "hallway": {
-        "x": 0.0,
-        "y": -3.0,
-        "connections": ["bed", "stairs_down"],
-        "label": "в коридоре"
-      },
-      "stairs_down": {
-        "x": 0.0,
-        "y": -5.0,
-        "connections": ["hallway"],
-        "label": "на лестнице вниз"
+          "tavern_silver_wolf"
+        ]
       }
-    }
-  }
 }

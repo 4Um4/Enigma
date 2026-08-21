@@ -28,6 +28,12 @@ class MovementEngine:
     def __init__(self, transit_tracker: TransitTracker | None = None) -> None:
         self._graphs: dict[str, LocationGraph] = {}
         self._transit_tracker = transit_tracker or TransitTracker()
+        # SpatialService v1.2 — инжекция извне (DI)
+        self._spatial_service: Optional[Any] = None
+
+    def set_spatial_service(self, svc: Any) -> None:
+        """Инжекция SpatialService для A* с учётом оверлея."""
+        self._spatial_service = svc
 
     def _get_graph(self, location_id: str) -> Optional[LocationGraph]:
         """Ленивая загрузка графа с кэшированием."""
@@ -78,17 +84,33 @@ class MovementEngine:
             by_location.setdefault(loc, []).append(intent)
 
         for location_id, loc_intents in by_location.items():
-            graph = self._get_graph(location_id)
-            if not graph:
+            # SpatialService v1.2 — канонический путь, иначе fallback на LocationGraph
+            svc = self._spatial_service
+            graph = self._get_graph(location_id) if not svc else None
+            
+            if not svc and not graph:
                 for intent in loc_intents:
                     logger.warning(
-                        f"[MOVEMENT_ENGINE] Нет графа для {intent.npc_id} → {intent.target_node_id}"
+                        f"[MOVEMENT_ENGINE] Нет графа/SpatialService для {intent.npc_id} → {intent.target_node_id}"
                     )
                 continue
 
             for intent in loc_intents:
-                node = graph.get_node(intent.target_node_id)
-                if not node:
+                # Резолвим целевой узел в координаты
+                target_x, target_y = None, None
+                target_ref = None  # NodeRef для SpatialService.find_path
+                
+                if svc:
+                    target_ref = svc.get_node(intent.target_node_id)
+                    if target_ref:
+                        target_x, target_y = target_ref.x, target_ref.y
+                else:
+                    # @deprecated: fallback на LocationGraph
+                    node = graph.get_node(intent.target_node_id)
+                    if node:
+                        target_x, target_y = node.x, node.y
+                        
+                if target_x is None:
                     logger.warning(
                         f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден "
                         f"для {intent.npc_id} в {location_id}"
@@ -118,7 +140,18 @@ class MovementEngine:
                         location_id, intent.npc_id
                     ) or intent.from_node_id
                     if from_node:
-                        path = graph.find_path(from_node, intent.target_node_id)
+                        path = []
+                        if svc and target_ref:
+                            # SpatialService v1.2: A* с учётом оверлея (риск, плотность)
+                            from_ref = svc.get_node(from_node)
+                            if from_ref:
+                                path_refs = svc.find_path(from_ref.xy, target_ref)
+                                # TransitTracker ожидает legacy-ID, денормализуем
+                                path = [svc.denormalize_id(n.node_id) for n in path_refs]
+                        else:
+                            # @deprecated: fallback на LocationGraph
+                            path = graph.find_path(from_node, intent.target_node_id)
+                            
                         if len(path) >= 2:
                             self._transit_tracker.register(
                                 npc_id=intent.npc_id,
@@ -144,7 +177,7 @@ class MovementEngine:
                                 type=ChangeType.NPC_POSITION,
                                 target=intent.npc_id,
                                 field="local_position",
-                                value={"x": node.x, "y": node.y},
+                                value={"x": target_x, "y": target_y},
                                 cause=f"movement_engine_fallback:{intent.reason}",
                                 tick=tick,
                             ))
@@ -154,7 +187,7 @@ class MovementEngine:
                             type=ChangeType.NPC_POSITION,
                             target=intent.npc_id,
                             field="local_position",
-                            value={"x": node.x, "y": node.y},
+                            value={"x": target_x, "y": target_y},
                             cause=f"movement_engine:{intent.reason}",
                             tick=tick,
                         ))
@@ -164,7 +197,7 @@ class MovementEngine:
                         type=ChangeType.NPC_POSITION,
                         target=intent.npc_id,
                         field="local_position",
-                        value={"x": node.x, "y": node.y},
+                        value={"x": target_x, "y": target_y},
                         cause=f"movement_engine:{intent.reason}",
                         tick=tick,
                     ))

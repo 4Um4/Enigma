@@ -199,20 +199,81 @@ class ReputationEngine:
 
         return deltas
 
-    def apply_deltas(self, deltas: List[dict]) -> None:
-        """Применяет рассчитанные дельты к состояниям фракций."""
-        for d in deltas:
-            fid = d["faction_id"]
-            delta = d["delta"]
+    def compute_decay(self, decay_rate: float = 0.005) -> List["StateDeltas"]:
+        """Чистый расчёт дрейфа reputation → base_reputation.
+
+        НЕ мутирует _states. Возвращает List[StateDeltas] с faction_id.
+        Closing drift: если |base - current| < EPSILON → drift = base - current.
+        """
+        from app.models.state_delta import StateDeltas
+
+        REPUTATION_DECAY_EPSILON: float = 0.001
+        results: List[StateDeltas] = []
+
+        for fid, faction in self._factions.items():
             state = self._states.get(fid)
-            if state is None:
+            if not state:
                 continue
-            new_rep = max(-100.0, min(100.0, state.reputation + delta))
+
+            drift = (faction.base_reputation - state.reputation) * decay_rate
+
+            if abs(drift) < 1e-9:
+                continue
+
+            # Closing drift: закрываем разрыв вместо forced epsilon
+            if abs(faction.base_reputation - state.reputation) < REPUTATION_DECAY_EPSILON:
+                drift = faction.base_reputation - state.reputation
+
+            results.append(StateDeltas(
+                faction_id=fid,
+                reputation_delta=round(drift, 6),
+                source="reputation_decay",
+            ))
+
+        return results
+
+    def apply_deltas(self, deltas: List["StateDeltas"]) -> None:
+        """Единственная точка мутации FactionState.
+        Вызывается ТОЛЬКО из StateApplicator._apply_faction_delta().
+
+        Принимает List[StateDeltas] с faction_id + reputation_delta.
+        """
+        from app.models.state_delta import StateDeltas
+
+        for d in deltas:
+            if not isinstance(d, StateDeltas):
+                # Обратная совместимость: legacy dict-формат от apply_event_impact
+                fid = d.get("faction_id") if isinstance(d, dict) else None
+                delta_val = d.get("delta", 0.0) if isinstance(d, dict) else 0.0
+                reason = d.get("reason", "legacy") if isinstance(d, dict) else "legacy"
+                if fid is None:
+                    continue
+                state = self._states.get(fid)
+                if state is None:
+                    continue
+                new_rep = max(-100.0, min(100.0, state.reputation + delta_val))
+                state.reputation = round(new_rep, 2)
+                state.recent_actions.append(d)
+                if len(state.recent_actions) > 50:
+                    state.recent_actions = state.recent_actions[-50:]
+                logger.debug(f"[REPUTATION] {fid}: {state.reputation:+.1f} ({reason})")
+                continue
+
+            if d.faction_id is None or d.reputation_delta == 0.0:
+                continue
+            state = self._states.get(d.faction_id)
+            if not state:
+                continue
+            new_rep = max(-100.0, min(100.0, state.reputation + d.reputation_delta))
             state.reputation = round(new_rep, 2)
-            state.recent_actions.append(d)
+            state.recent_actions.append({
+                "faction_id": d.faction_id,
+                "delta": d.reputation_delta,
+                "reason": d.source,
+            })
             if len(state.recent_actions) > 50:
                 state.recent_actions = state.recent_actions[-50:]
-            logger.debug(f"[REPUTATION] {fid}: {state.reputation:+.1f} ({d['reason']})")
+            logger.debug(f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})")
 
     def compute_reputation_modifier(self, npc_id: str) -> Dict[str, float]:
         """

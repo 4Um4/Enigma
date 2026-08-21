@@ -432,6 +432,7 @@ def run_npc_pipeline(
                     intent_target=decision.intent_target,
                     scene_state=inp.scene_state,
                     location_id=inp.location,
+                    spatial_service=svc.spatial_service if svc else None,
                 )
                 if _movement:
                     buf.movement_intents.append(_movement)
@@ -535,6 +536,7 @@ def _resolve_reactive_movement(
     intent_target: Optional[str],
     scene_state: dict,
     location_id: str,
+    spatial_service: Optional[Any] = None,
 ) -> Optional["MovementIntent"]:
     """Конвертирует пространственный intent в MovementIntent.
 
@@ -544,6 +546,8 @@ def _resolve_reactive_movement(
     Поддерживаемые интенты:
     - approach: идёт к intent_target (игрок/NPC) → ближайший к цели узел графа
     - flee: уходит от intent_target → find_furthest_node от позиции угрозы
+    
+    Если передан spatial_service (v1.2), использует его. Иначе fallback на load_graph.
     """
     from app.domain.movement import MovementIntent, PRIORITY_NEEDS
     from app.services.spatial.location_graph import load_graph
@@ -589,38 +593,64 @@ def _resolve_reactive_movement(
 
         # Ищем самый дальний узел от угрозы
         if threat_x is not None and threat_y is not None:
-            try:
-                graph = load_graph(location_id)
-                target_node = graph.find_furthest_node(threat_x, threat_y)
-                if target_node and target_node != current_node:
-                    return MovementIntent(
-                        npc_id=npc_id,
-                        target_node_id=target_node,
-                        from_node_id=current_node,
-                        location_id=location_id,
-                        reason=f"reactive:flee",
-                        priority=PRIORITY_NEEDS,
-                    )
-            except Exception:
-                pass
+            target_node_id: Optional[str] = None
+            if spatial_service:
+                # SpatialService v1.2 — канонический путь
+                furthest_ref = spatial_service.get_furthest(
+                    zone_id=location_id,
+                    origin_xy=(threat_x, threat_y),
+                )
+                if furthest_ref:
+                    # Денормализуем для совместимости с MovementEngine
+                    target_node_id = spatial_service.denormalize_id(furthest_ref.node_id)
+            else:
+                # @deprecated: fallback на LocationGraph
+                try:
+                    graph = load_graph(location_id)
+                    target_node_id = graph.find_furthest_node(threat_x, threat_y)
+                except Exception:
+                    pass
+
+            if target_node_id and target_node_id != current_node:
+                return MovementIntent(
+                    npc_id=npc_id,
+                    target_node_id=target_node_id,
+                    from_node_id=current_node,
+                    location_id=location_id,
+                    reason="reactive:flee",
+                    priority=PRIORITY_NEEDS,
+                )
         return None  # Нельзя определить угрозу — остаёмся на месте
 
     if target_x is None or target_y is None:
         return None
 
     # Резолвим целевые координаты → ближайший узел графа (approach)
-    try:
-        graph = load_graph(location_id)
-        target_node = graph.find_nearest_node(target_x, target_y)
-        if not target_node or target_node == current_node:
-            return None  # Уже на месте или граф не найден
-        return MovementIntent(
-            npc_id=npc_id,
-            target_node_id=target_node,
-            from_node_id=current_node,
-            location_id=location_id,
-            reason=f"reactive:{intent}",
-            priority=PRIORITY_NEEDS,
+    target_node_id: Optional[str] = None
+    if spatial_service:
+        # SpatialService v1.2 — канонический путь
+        nearest_ref = spatial_service.get_nearest(
+            zone_id=location_id,
+            origin_xy=(target_x, target_y),
         )
-    except Exception:
-        return None
+        if nearest_ref:
+            target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
+    else:
+        # @deprecated: fallback на LocationGraph
+        try:
+            graph = load_graph(location_id)
+            target_node_id = graph.find_nearest_node(target_x, target_y)
+        except Exception:
+            return None
+
+    if not target_node_id or target_node_id == current_node:
+        return None  # Уже на месте или граф не найден
+    
+    return MovementIntent(
+        npc_id=npc_id,
+        target_node_id=target_node_id,
+        from_node_id=current_node,
+        location_id=location_id,
+        reason=f"reactive:{intent}",
+        priority=PRIORITY_NEEDS,
+    )

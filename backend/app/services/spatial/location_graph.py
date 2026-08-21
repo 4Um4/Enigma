@@ -209,7 +209,7 @@ def invalidate_graph_cache(location_id: Optional[str] = None) -> None:
 # Путь к backend/data/ относительно этого файла — не зависит от CWD
 _DEFAULT_DATA_DIR: str = str(Path(__file__).resolve().parent.parent.parent.parent / "data")
 
-def load_graph(location_id: str, data_dir: str = _DEFAULT_DATA_DIR) -> LocationGraph:
+def load_graph(location_id: str, data_dir: str = _DEFAULT_DATA_DIR) -> LocationGraph:  # @deprecated: use SpatialService
     """
     Загружает граф локации.
     Результат кэшируется — повторные вызовы бесплатны.
@@ -238,24 +238,6 @@ def _load_graph_uncached(location_id: str, data_dir: str) -> LocationGraph:
         except (json.JSONDecodeError, OSError) as exc:
             logger.warning("[LocationGraph] ошибка чтения шаблона: %s", exc)
 
-    # Встроенный минимальный fallback — только если JSON недоступен
-    nodes = _parse_nodes(_BUILTIN_NODES.get(location_id, _BUILTIN_NODES["tavern_silver_wolf"]))
-    logger.warning("[LocationGraph] fallback-граф для '%s'", location_id)
-    return LocationGraph(location_id, nodes)
-
-
-# Минимальный встроенный граф — только tavern_silver_wolf.
-# Все остальные локации должны быть в location_templates.json.
-_BUILTIN_NODES: Dict[str, dict] = {
-    "tavern_silver_wolf": {
-        # Координаты из editor JSON (frontend/map_editor/campaigns/Open_road/locations/tavern.json)
-        # Глобальная система координат, 1 unit = 1 meter
-        "entrance":        {"x":  8.0, "y": 12.0, "connections": ["main_hall"],     "label": "Вход"},
-        "main_hall":       {"x":  8.0, "y":  7.0, "connections": ["entrance", "bar_area", "fireplace", "corner_table"], "label": "Центр зала"},
-        "bar_area":        {"x":  4.0, "y":  4.0, "connections": ["main_hall", "behind_bar"], "label": "У стойки"},
-        "behind_bar":      {"x":  4.0, "y":  2.5, "connections": ["bar_area"],     "label": "За стойкой"},
-        "fireplace":       {"x": 11.0, "y":  4.0, "connections": ["main_hall"],    "label": "У камина"},
-        "corner_table":    {"x": 12.0, "y": 10.0, "connections": ["main_hall"],    "label": "В тёмном углу"},
-        "kitchen":         {"x": 16.0, "y":  4.0, "connections": ["bar_area"],     "label": "Кухня"},
-    },
-}
+    # @deprecated: _BUILTIN_NODES удалён. Единственный источник истины — editor JSON через SpatialService.
+    logger.warning("[LocationGraph] fallback-граф удалён для '%s'. Используйте SpatialService.", location_id)
+    return LocationGraph(location_id, {})

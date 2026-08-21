@@ -77,3 +77,4 @@ class NpcTickServices:
     reputation_engine: Optional[Any]
     economic_profiles: Dict[str, Any]
     event_bus: Any = None  # Фаза 6-7: IntentEventAdapter → EventBus (§3.3)
+    spatial_service: Optional[Any] = None  # SpatialService v1.2 — навигация
