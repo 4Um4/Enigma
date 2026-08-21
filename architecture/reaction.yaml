@@ -1,0 +1,62 @@
+domain: REACTION
+description: "Микро-реакции NPC на события: Reflex-слой до эмоционального pipeline. Быстрый, автоматический."
+
+nodes:
+  MicroEvent:
+    type: dto
+    layer: Domain
+    label: "Micro Event"
+    description: "Микро-событие: MicroEventType (THREAT, SURPRISE, PAIN, SOCIAL). EventDTO → MicroEvent маппинг."
+    code_ref: "reaction/micro_event.py"
+  ReactionResolver:
+    type: service
+    layer: Domain
+    label: "Reaction Resolver"
+    description: "resolve(micro_events, npc_state) → immediate reactions. Быстрее DecisionHub."
+    code_ref: "reaction/reaction_resolver.py"
+  ReactionRules:
+    type: service
+    layer: Domain
+    label: "Reaction Rules"
+    description: "compute_reaction_events: EventDTO → List[MicroEvent]. _is_threat_event классификация."
+    code_ref: "reaction/reaction_rules.py"
+
+edges:
+  - from: EventBus
+    to: ReactionRules
+    label: "EventDTO → micro events classification"
+    condition: "Every published event. _is_threat_event check."
+    code_ref: "reaction/reaction_rules.py"
+  - from: ReactionRules
+    to: ReactionResolver
+    label: "List[MicroEvent] → resolve"
+    condition: "Filtered by type, distance, visibility"
+    code_ref: "reaction/reaction_resolver.py"
+  - from: ReactionResolver
+    to: DeltaBuffer
+    label: "immediate reaction → EmotionPayload"
+    condition: "Bypasses affective accumulator. Sets emotion directly (ADR-117)."
+    code_ref: "reaction/reaction_resolver.py"
+    adr_ref: "ADR-117"
+
+constraints:
+  - source: ReactionResolver
+    target: AffectivePipeline
+    rule: "REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117)"
+    condition: "ReactionSubscriber sets emotion without affective_load. Pipeline must bootstrap load from emotion level."
+    code_ref: "tick_orchestrator.py:_run_affective_pipeline"
+    adr_ref: "ADR-117"
+    severity: HIGH
+  - source: ReactionResolver
+    target: DecisionHub
+    rule: "FORBIDDEN: Reactions must NOT bypass DecisionHub for movement"
+    condition: "Reaction = emotion only. Movement still requires DecisionHub utility calculation."
+    severity: HIGH
+
+ownership:
+  MicroEvents:
+    owner: "ReactionRules"
+    creates: "compute_reaction_events from EventDTO"
+    modifies: "N/A (immutable)"
+    reads: "ReactionResolver"
+    constraint: "Stateless transformation. Pure function."

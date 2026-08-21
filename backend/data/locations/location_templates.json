@@ -62,34 +62,52 @@
     },
     "positions": {
       "entrance": {
-        "x": 0.0,
-        "y": 5.0,
+        "x": 8.0,
+        "y": 12.0,
         "connections": ["main_hall"],
         "label": "у входа"
       },
       "main_hall": {
-        "x": 0.0,
-        "y": 0.0,
-        "connections": ["entrance", "bar_area", "corner_table"],
+        "x": 8.0,
+        "y": 7.0,
+        "connections": ["entrance", "bar_area", "corner_table", "fireplace", "right_table", "kitchen"],
         "label": "в центре зала"
       },
       "bar_area": {
-        "x": -3.0,
-        "y": -2.0,
+        "x": 4.0,
+        "y": 4.0,
         "connections": ["main_hall", "behind_bar"],
         "label": "у стойки"
       },
       "behind_bar": {
-        "x": -4.0,
-        "y": -3.0,
+        "x": 4.0,
+        "y": 2.5,
         "connections": ["bar_area"],
         "label": "за стойкой"
       },
       "corner_table": {
-        "x": 3.0,
-        "y": -2.0,
+        "x": 12.0,
+        "y": 10.0,
         "connections": ["main_hall"],
         "label": "за угловым столом"
+      },
+      "fireplace": {
+        "x": 11.0,
+        "y": 4.0,
+        "connections": ["main_hall", "right_table"],
+        "label": "у камина"
+      },
+      "right_table": {
+        "x": 12.0,
+        "y": 7.0,
+        "connections": ["main_hall", "fireplace"],
+        "label": "за правым столом"
+      },
+      "kitchen": {
+        "x": 16.0,
+        "y": 4.0,
+        "connections": ["main_hall"],
+        "label": "на кухне"
       }
     },
     "npc_defaults": {
@@ -100,13 +118,28 @@
       },
       "maid_lusya": {
         "position": "bar_area",
-        "activity": "separving_tables",
+        "activity": "serving_tables",
         "visible": true
       },
       "thief_shadow": {
         "position": "corner_table",
         "activity": "observing",
         "visible": false
+      },
+      "guard_borko": {
+        "position": "corner_table",
+        "activity": "drinking",
+        "visible": true
+      },
+      "blacksmith_orm": {
+        "position": "fireplace",
+        "activity": "drinking",
+        "visible": true
+      },
+      "merchant_goran": {
+        "position": "right_table",
+        "activity": "haggling",
+        "visible": true
       }
     },
     "connected_locations": [

@@ -204,27 +204,39 @@ class WorldSnapshotBuilder:
         local = spatial.get("local_position", {})
         return (local.get("x", 0.0), local.get("y", 0.0))
 
-    def _extract_active_traversals(self, scene_state: Dict) -> list:
-        """Конвертирует TraversalState из scene_state в dict для фронтенда (ADR-019).
-        SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция."""
+    def _extract_active_traversals(self, scene_state: Dict) -> dict:
+        """Проецирует TraversalState из scene_state для фронтенда (ADR-019, CEI-2).
+        SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция.
+        Возвращает Dict[npc_id, traversal_data] — синхронно с scene_state форматом.
+        CEI-2 FIX: сохраняет ПОЛНЫЙ path_waypoints (без 2-point collapse)."""
         traversals = scene_state.get("active_traversals", {})
-        result = [] # Инициализация аккумулятора
+        result = {}
         
         for npc_id, trav in traversals.items():
             if trav.get("status") == "MOVING" and len(trav.get("path_waypoints", [])) >= 2:
-                from_xy = trav["path_waypoints"][0]
-                to_xy = trav["path_waypoints"][-1]
-
-                result.append({
-                    "npc_id": npc_id,
-                    "status": "MOVING",
-                    "path_waypoints": [[from_xy[0], from_xy[1]], [to_xy[0], to_xy[1]]],
-                    "current_waypoint_idx": 0,
-                    "started_tick": trav.get("started_tick", 0),
-                    "duration_ticks": trav.get("duration_ticks", 1),
-                    "speed": trav.get("speed", 2.0),
-                    "locomotion": trav.get("locomotion", "WALK")
-                })
+                # CEI-2: Сохраняем ПОЛНЫЙ маршрут (intermediate nodes не теряются)
+                wp = trav.get("path_waypoints", [])
+                # Нормализация: гарантируем [[x,y], [x,y], ...]
+                normalized_wp = []
+                for pt in wp:
+                    if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                        normalized_wp.append([float(pt[0]), float(pt[1])])
+                    elif isinstance(pt, dict):
+                        normalized_wp.append([float(pt.get("x", 0)), float(pt.get("y", 0))])
+                
+                if len(normalized_wp) >= 2:
+                    result[npc_id] = {
+                        "npc_id": npc_id,
+                        "status": "MOVING",
+                        "from_node": trav.get("from_node", ""),
+                        "target_node": trav.get("target_node", ""),
+                        "path_waypoints": normalized_wp,
+                        "current_waypoint_idx": 0,
+                        "started_tick": trav.get("started_tick", 0),
+                        "duration_ticks": trav.get("duration_ticks", 1),
+                        "speed": trav.get("speed", 2.0),
+                        "locomotion": trav.get("locomotion", "WALK")
+                    }
         return result
 
     def _compute_ambient_phenomenology(self, all_npcs_raw: Optional[List[Dict]]) -> Optional[Dict[str, float]]:

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 from app.models.npc_profile import NPCProfileL0
 from app.models.npc_state import NPCState
 from app.domain.communication import CommunicationIntent, ExposureLevel
+from app.domain.vital_state import evaluate_vital_state, is_conscious, LifeStatus
 
 # Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
 from app.models.npc_state import (
@@ -132,6 +133,23 @@ class AgentAction:
     def deltas(self) -> List[StateDeltas]:
         return self.decision.deltas
 
+    @staticmethod
+    def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
+        """Precedence Contract: Graph (SSOT) > Scalar (Legacy) > Vacuum (None).
+        Возвращает None, если отношение UNKNOWN (запись отсутствует).
+        Возвращает float, если отношение известно (даже если это 0.0 - нейтралитет).
+        """
+        # 1. Graph Model (ADR-121 SSOT)
+        _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
+        if _graph_val is not None:
+            return float(_graph_val)
+        # 2. Legacy Scalar Model (Pre-ADR-121)
+        _scalar_val = state.relationship_cache.get(attr)
+        if _scalar_val is not None:
+            return float(_scalar_val)
+        # 3. Vacuum (Нет знания об отношении)
+        return None
+
     @property
     def intent_target(self) -> Optional[str]:
         return self.decision.intent_target
@@ -178,6 +196,8 @@ class EventContext:
     # Факты сцены — NPC помнит что происходило в локации (не только текущее действие)
     scene_flags:             Set[str] = field(default_factory=set)
     scene_facts:             List[str] = field(default_factory=list)
+    # Payload от phase_1_input (semantic_action, target_id и т.д.)
+    payload:                 Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # Кап интенсивности — защита от баговых значений из EventBus
@@ -215,6 +235,22 @@ class DecisionHub:
         Intent.INTIMIDATE.value, Intent.EXPLAIN.value,
         Intent.APPROACH.value,
     }
+
+    @staticmethod
+    def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
+        """Precedence Contract: Graph (SSOT) > Scalar (Legacy) > Vacuum (None).
+        S69: Унифицированный accessor для чтения relationship_cache.
+        """
+        # 1. Graph Model (ADR-121 SSOT)
+        _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
+        if _graph_val is not None:
+            return float(_graph_val)
+        # 2. Legacy Scalar Model (Pre-ADR-121)
+        _scalar_val = state.relationship_cache.get(attr)
+        if _scalar_val is not None:
+            return float(_scalar_val)
+        # 3. Vacuum (Нет знания об отношении)
+        return None
 
     def _build_communication(
         self,
@@ -273,6 +309,24 @@ class DecisionHub:
         (game_loop вызывает apply_break через StateApplicator перед compute).
         Возвращает DecisionResult для StateApplicator.
         """
+        # ── Vital State Guard: мёртвые и без сознания не принимают решения ──
+        # ЕДИНСТВЕННАЯ точка блокировки DecisionHub.
+        # evaluate_vital_state — единственный владелец решения о жизни/смерти.
+        # is_conscious — единственный владелец решения о сознании.
+        _body = getattr(state, 'body_state', None) or {}
+        _life_status = evaluate_vital_state(_body)
+        if _life_status == LifeStatus.DEAD or not is_conscious(_body):
+            return AgentAction(
+                decision=DecisionResult(
+                    npc_id=state.npc_id,
+                    intent=Intent.IDLE,
+                    intent_target=None,
+                    score=0.0,
+                    scores_trace={"veto": _life_status.value},
+                    deltas=[],
+                ),
+            )
+
         # Игрок спросил "почему?" → специальный режим объяснения
         if event.event_type == "player_asks_why":
             return self._explain_mode(state, personality, event)
@@ -288,7 +342,37 @@ class DecisionHub:
         # L1 черты: только из NPCIdentityL1
         active_traits: Dict[str, float] = identity.active_traits if identity else {}
         possible = self._get_possible_intents(state, personality, event, opportunity)
-        scores   = self._score_all(state, personality, event, possible, opportunity, active_traits)
+        scores   = self._score_all(state, personality, event, possible, opportunity, active_traits, decision_ctx=decision_ctx)
+
+        # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
+        # Прямой boost к APPROACH score — без размывания через drive_weight.
+        _payload_pop = getattr(event, 'payload', {}) or {}
+        _sa_pop = _payload_pop.get("semantic_action") if isinstance(_payload_pop, dict) else None
+        _tid_pop = _payload_pop.get("target_id") if isinstance(_payload_pop, dict) else None
+        if _sa_pop == "MOVE" and _tid_pop == state.npc_id and Intent.APPROACH.value in scores:
+            _fear_raw = DecisionHub._get_rel_value(state, "player", "fear")
+            _will_pop = personality.drives_base.get("control", 0.5)
+            _kernel_pop = getattr(state, 'perceptual_kernel', None)
+            _threat_pop = _kernel_pop.threat_gradient if _kernel_pop else 0.0
+
+            # §ENIGMA-004: Epistemic Isolation. 
+            # Вакуум НЕ мутирует state (нет паранойи). Вакуум снижает легитимность приказа.
+            if _fear_raw is not None:
+                # ФАКТ: Известный страх генерирует социальную легитимность
+                _obedience_legitimacy = (_fear_raw / 100.0) * (1.0 - _will_pop)
+                _epistemic_mode = "FACT"
+            else:
+                # ВАКУУМ: Транзиентный inference pressure. 
+                # Незнакомец не имеет авторитета, но вызывает микрозамешательство (0.05).
+                _obedience_legitimacy = 0.05 * (1.0 - _will_pop)
+                _epistemic_mode = "VACUUM"
+
+            _obed_pop = _obedience_legitimacy + 0.1 + (_threat_pop * 0.5)
+            _boost_pop = _obed_pop * 2.0
+            scores[Intent.APPROACH.value] = round(scores[Intent.APPROACH.value] + _boost_pop, 4)
+            
+            # Epistemic Drift Monitor (Phase 4 diagnostic)
+            logger.debug(f"[PHYSICS_OF_POWER] npc={state.npc_id} mode={_epistemic_mode} boost={_boost_pop:.3f} legit={_obedience_legitimacy:.3f} will={_will_pop:.3f} threat={_threat_pop:.3f} approach={scores[Intent.APPROACH.value]:.3f}")
 
         # Фаза 2.4-ECO: экономические модификаторы (опционально)
         if eco_modifiers:
@@ -417,6 +501,26 @@ class DecisionHub:
             _wound_penalty = min(0.2, len(_wounds) * 0.05)
             for intent_key in scores:
                 scores[intent_key] = round(scores[intent_key] - _wound_penalty, 4)
+
+        # ADR-O-112: Пост-хок буст самообороны. Провокация насилием конвертирует
+        # страх в ярость — ATTACK должен быть конкурентоспособен с FLEE.
+        _et = event.event_type
+        _et_val = _et.value if hasattr(_et, 'value') else str(_et)
+        _is_violence = _et in ("player_attacks", "PLAYER_ATTACKED", "combat", "capture") or _et_val in ("player_attacks", "PLAYER_ATTACKED", "combat", "capture")
+        if _is_violence:
+            # GAP10 FIX: Самозащита — ТОЛЬКО для цели атаки.
+            # Свидетели должны бояться, а не нападать.
+            _is_target = (event.target_id is not None and event.target_id == state.npc_id)
+            if _is_target and Intent.ATTACK.value in scores:
+                _self_defense = 1.0 + event.intensity
+                scores[Intent.ATTACK.value] = round(scores.get(Intent.ATTACK.value, 0.0) * _self_defense, 4)
+                # Ослабляем FLEE при прямой атаке — инстинкт самосохранения сменяется боем
+                if Intent.FLEE.value in scores and scores.get(Intent.FLEE.value, 0.0) > 0:
+                    scores[Intent.FLEE.value] = round(scores.get(Intent.FLEE.value, 0.0) * 0.6, 4)
+            elif not _is_target:
+                # Свидетель насилия: бегство предпочтительнее атаки
+                if Intent.FLEE.value in scores:
+                    scores[Intent.FLEE.value] = round(scores.get(Intent.FLEE.value, 0.0) * (1.0 + event.intensity * 0.3), 4)
 
         if not scores:
             # Защита от ValueError: если все интенты отфильтрованы — IDLE
@@ -617,6 +721,7 @@ class DecisionHub:
         possible:     List[str],
         opportunity:  OpportunityResult,
         active_traits: Dict[str, float] = None,  # L1 черты, опционально
+        decision_ctx: Optional["DecisionContext"] = None,  # S74: Affective Field Propagation
     ) -> Dict[str, float]:
         """
         Считает score для каждого доступного intent.
@@ -626,6 +731,7 @@ class DecisionHub:
         inertia     = self._intent_inertia(state)
         fear_drive  = personality.drives_base.get("fear", 0.0)
         skip_aggro  = fear_drive > 0.6  # early exit для трусливых NPC
+        logger.debug(f"[DIAG_SCORE_ALL] npc={state.npc_id} fear_drive={fear_drive:.2f} skip_aggro={skip_aggro} possible={possible}")
 
         _AGGRO_INTENTS = {Intent.ATTACK.value, Intent.INTIMIDATE.value}
 
@@ -635,10 +741,13 @@ class DecisionHub:
             if skip_aggro and intent_str in _AGGRO_INTENTS:
                 if intent_str not in opportunity.unlocked_intents:
                     scores[intent_str] = -1.0
+                    logger.debug(f"[DIAG_AGGRO_SKIP] npc={state.npc_id} intent={intent_str} reason=fear_early_exit unlocked={opportunity.unlocked_intents}")
                     continue
 
-            components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {})
+            components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx)
             base = sum(components.values())
+            if intent_str in (Intent.ATTACK.value, Intent.FLEE.value):
+                logger.debug(f"[DIAG_COMPONENTS] npc={state.npc_id} intent={intent_str} base={base:.3f} comps={ {k:round(v,3) for k,v in components.items()} }")
             
             # R8: BehaviorMask модификатор — маска умножает score, не блокирует
             mask_mod = self._behavior_mask_modifier(intent_str, state)
@@ -761,46 +870,60 @@ class DecisionHub:
         event:         EventContext,
         opportunity:   OpportunityResult,
         active_traits: Dict[str, float] = None,  # L1 черты из NPCIdentityL1
+        decision_ctx:  Optional["DecisionContext"] = None,  # S74: Affective Field Propagation
     ) -> Dict[str, float]:
         """
         Возвращает словарь компонентов score — для полного trace в R4.2.
         Каждый компонент виден отдельно: что именно перевесило.
         """
         drives = personality.drives_base
-        rel    = state.relationship_cache
-        fear   = rel.get("fear", 0.0)
-        trust  = rel.get("trust", 0.0)
+        # ENIGMA-REL-001: Запрет прямого доступа к relationship_cache (DOUBLE TRUTH)
+        # Все чтения идут через унифицированный accessor _get_rel_value (§ENIGMA-003)
+        fear   = (DecisionHub._get_rel_value(state, "player", "fear") or 0.0) / 100.0
+        trust  = (DecisionHub._get_rel_value(state, "player", "trust") or 0.0) / 100.0
         risk   = self._compute_risk(event, state)
 
-        drive_score  = self._drive_relevance(intent, drives, event)
-        emotion_mod  = self._emotion_modifier(intent, state.emotion)
+        drive_score  = self._drive_relevance(intent, drives, event, state=state, personality=personality)
+        emotion_mod  = self._emotion_modifier(
+            intent, 
+            state.emotion, 
+            drives=drives, 
+            affective_load=decision_ctx.affective_load if decision_ctx else 0.0,
+            affective_velocity=decision_ctx.affective_velocity if decision_ctx else 0.0
+        )
         rel_mod      = self._relationship_modifier(intent, trust, fear)
         trait_mod    = self._trait_modifier(intent, active_traits or {})
 
         # Risk теперь intent-aware (Disco Elysium style)
         # Высокий fear + высокий risk = мощный FLEE, а не паралич
         if intent == Intent.FLEE.value:
-            # Для FLEE: fear используется дважды — как буст (rel_mod) и как множитель риска.
-            # Это намеренно: страх перед конкретным актором + опасность ситуации — разные сигналы.
-            # rel_mod = fear × 0.65 (отношение к актору)
-            # risk_penalty = (fear + threat_gradient) × risk × 0.9 (оценка угрозы ситуации + когнитивное давление)
+            # fear уже учтён в _relationship_modifier (fear × 0.65).
+            # risk_penalty использует только объективную угрозу (threat_gradient),
+            # иначе fear входит в формулу дважды и FLEE побеждает все интенты.
             _kernel = getattr(state, 'perceptual_kernel', None)
             _perceived_threat = _kernel.threat_gradient if _kernel else 0.0
-            risk_penalty = round((fear + _perceived_threat) * risk * 0.9, 4)
+            risk_penalty = round(_perceived_threat * risk * 0.9, 4)
         elif intent == Intent.OBSERVE.value:
             risk_penalty = round(fear * risk * 0.5, 4)      # осторожное наблюдение
         elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
             # Агрессия требует явной провокации — строковое сравнение (EventContext.event_type: str)
             # Без провокации штраф -0.54 делает ATTACK хуже чем TALK/WARN
-            _PROVOCATION_TYPES = {"player_attacks", "combat", "intimidation", "capture", "player_insults", "player_threatens"}
+            _PROVOCATION_TYPES = {"player_attacks", "PLAYER_ATTACKED", "combat", "intimidation", "capture", "player_insults", "player_threatens"}
             # Просто количество уникальных угроз × 0.1
             threat_level = len(set(event.visible_threat_markers)) * 0.1
+            _et = event.event_type
+            _et_val = _et.value if hasattr(_et, 'value') else str(_et)
             is_provoked = (
-                event.event_type in _PROVOCATION_TYPES
+                _et in _PROVOCATION_TYPES
+                or _et_val in _PROVOCATION_TYPES
                 or threat_level >= PROVOCATION_THREAT_THRESHOLD
             )
-            provocation_gate = 1.0 if is_provoked else 0.1
-            risk_penalty = round((-fear * risk * 1.25 - (1.0 - provocation_gate) * 0.6), 4)
+            logger.debug(f"[DIAG_RISK_ATK] npc={state.npc_id} et={_et} et_type={type(_et).__name__} et_val={_et_val} provoked={is_provoked} fear={fear:.3f} risk={risk:.3f} markers={event.visible_threat_markers}")
+            if is_provoked:
+                # ADR-O-112: Провокация конвертирует страх в ярость (fight > flight)
+                risk_penalty = round(fear * risk * 0.5, 4)
+            else:
+                risk_penalty = round((-fear * risk * 1.25 - 0.6), 4)
         else:
             risk_penalty = round(-fear * risk * 0.3, 4)     # лёгкий штраф для всего остального
 
@@ -827,13 +950,15 @@ class DecisionHub:
         opportunity: OpportunityResult,  # Добавлен недостающий параметр
     ) -> float:
         """Суммарный score без компонентов — для внутреннего использования."""
-        return sum(self._score_components(intent, state, personality, event, opportunity).values())
+        return sum(self._score_components(intent, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx).values())
 
     def _drive_relevance(
         self,
         intent:  str,
         drives:  Dict[str, float],
         event:   EventContext,
+        state:   Optional["NPCState"] = None,
+        personality: Optional["NPCPersonality"] = None,
     ) -> float:
         """drive_weight × context_relevance."""
         # Маппинг intent → доминирующий drive
@@ -863,67 +988,90 @@ class DecisionHub:
         drive_weight = drives.get(drive_key, 0.25)
 
         # context_relevance — насколько событие активирует этот drive
-        context_relevance = self._context_relevance(intent, event)
+        context_relevance = self._context_relevance(intent, event, state=state, personality=personality)
 
         return round(drive_weight * context_relevance, 4)
 
-    def _context_relevance(self, intent: str, event: EventContext) -> float:
-        """Насколько событие релевантно данному intent. 0.0–2.0."""
+    def _context_relevance(self, intent: str, event: EventContext, state: Optional["NPCState"] = None, personality: Optional["NPCPersonality"] = None) -> float:
+        """Насколько событие релевантно данному intent. 0.0–2.0.
+        
+        S72 / §ENIGMA-S72: Значимость события = функция личности, не функция движка.
+        Хардкод заменён на модуляцию через drives_base:
+          fear         → реакция на насилие/угрозу
+          control      → реакция на нарушение порядка (кража)
+          significance → реакция на социальное давление (свидетели)
+          desire       → готовность к социальному взаимодействию
+        """
+        # S72: Извлечение линзы реальности из личности
+        _drives = getattr(personality, 'drives_base', {}) if personality else {}
+        _fear = _drives.get("fear", 0.25)
+        _control = _drives.get("control", 0.25)
+        _significance = _drives.get("significance", 0.25)
+        _desire = _drives.get("desire", 0.25)
+        
         base = 0.5  # нейтральная релевантность
 
-        # Близкое насилие делает побег и предупреждение более релевантными
-        if event.event_type in ("player_attacks", "combat", "capture") and event.distance <= 3.0:
+        # Близкое насилие: страх определяет, насколько это угрожает (S72)
+        # ADR-O-112 FIX: Добавлен "PLAYER_ATTACKED" (legacy alias) для снятия слепоты DecisionHub
+        _et = event.event_type
+        _et_val = _et.value if hasattr(_et, 'value') else str(_et)
+        _is_violence = _et in ("player_attacks", "PLAYER_ATTACKED", "combat", "capture") or _et_val in ("player_attacks", "PLAYER_ATTACKED", "combat", "capture")
+        if _is_violence and event.distance <= 10.0:
+            # S72: Страх модулирует реакцию на насилие.
+            # fear=0.25 (нейтральный) → +0.5×intensity (как раньше)
+            # fear=0.6 (параноик) → +1.2×intensity
+            # fear=0.05 (храбрец) → +0.1×intensity
             if intent in (Intent.FLEE.value, Intent.WARN.value):
-                base += 0.8 * event.intensity
+                base += _fear * event.intensity * 2.0
             if intent == Intent.ATTACK.value:
-                base += 0.5 * event.intensity
+                # ADR-O-112: Самооборона. Меньше страха = больше готовность драться.
+                # Базовый порог 0.3 гарантирует минимальную самооборону даже параноику.
+                base += (0.3 + (1.0 - _fear) * 0.7) * event.intensity * 2.0
 
-        # Кража активирует донос и предупреждение
+        # Кража: контроль определяет реакцию на нарушение порядка (S72)
+        # control=0.25 → +0.7 (как раньше). control=0.6 → +1.68
         if event.event_type == "theft":
             if intent in (Intent.REPORT.value, Intent.WARN.value):
-                base += 0.7
+                base += _control * 2.8
 
         # Провальное действие всё равно наблюдаемо (решение EventBus)
         if not event.success:
             base *= 0.6  # провал снижает релевантность, но не до нуля
 
-        # Много свидетелей повышает социальное давление
+        # Свидетели: значимость определяет социальное давление (S72)
+        # significance=0.25 → +0.2 (как раньше). significance=0.6 → +0.48
         if event.witness_count >= 3:
             if intent in (Intent.REPORT.value, Intent.WARN.value):
-                base += 0.2
+                base += _significance * 0.8
 
-        # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
-        # Если приказ направлен на этого NPC, его страх и воля решают, подчинится ли он.
-        _payload = getattr(event, 'payload', {}) or {}
-        _semantic_action = _payload.get("semantic_action") if isinstance(_payload, dict) else None
-        _target_id = _payload.get("target_id") if isinstance(_payload, dict) else None
-        
-        if _semantic_action == "MOVE" and _target_id == state.npc_id:
-            if intent == Intent.APPROACH.value:
-                # Формула из Каузальной Песочницы: Obedience = fear * (1 - willpower)
-                _fear = state.relationship_cache.get("player", {}).get("fear", 0.0) / 100.0
-                _willpower = personality.drives_base.get("control", 0.5) # control как proxy воли
-                # ADR-049: Замыкание контура Восприятие→Решение. Страх перед авторитетом усиливается немедленной когнитивной угрозой.
-                _kernel = getattr(state, 'perceptual_kernel', None)
-                _perceived_threat = _kernel.threat_gradient if _kernel else 0.0
-                _obedience_pressure = _fear * (1.0 - _willpower) + 0.25 + (_perceived_threat * 0.5)
-                
-                base += _obedience_pressure * 2.0 # Масштабируем давление для победы над FLEE/IDLE
-                logger.debug(f"[PHYSICS_OF_POWER] Obedience pressure for {state.npc_id}: {_obedience_pressure * 2.0} (threat_gradient={_perceived_threat})")
+        # ADR-036: PHYSICS_OF_POWER перемещён в compute() — прямой boost к APPROACH score.
+        # В _context_relevance boost размывается через drive_weight (≈0.25),
+        # и APPROACH проигрывает OBSERVE/FLEE несмотря на obedience_pressure.
 
-        # Диалог активирует разговорные интенты, подавляет нелогичные
+        # Диалог: желание определяет готовность к взаимодействию (S72)
+        # desire=0.25 → как раньше. desire=0.6 → сильнее вовлечение.
         # GAP10 FIX: Бонус получают только целевые NPC, а не все в зоне слышимости.
-        is_targeted = (event.target_id is None or event.target_id == state.npc_id)
-        if event.event_type == "player_interacts" and is_targeted:
-            if intent in (Intent.TALK.value, Intent.OBSERVE.value):
-                base += 0.5
-            # УБИТ ХАРДКОД: if intent == Intent.APPROACH.value: base += 0.6
-            # Теперь подчинение вычисляется через Физику Власти (semantic_action=MOVE)
-            if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value):
-                base -= 0.4
-            if intent == Intent.FLEE.value:
-                # Сильное подавление: нейтральный диалог не должен вызывать побег
-                base -= 0.7
+        # ADR-130: Payload target_id fallback. При player_interacts команда
+        # адресуется конкретному NPC (target_id в payload от dm_phase.py),
+        # но EventContext.target_id может быть None (dm_scene_builder не пробрасывает).
+        # Без этого ВСЕ NPC в зоне получают бонус APPROACH/TALK/OBSERVE.
+        if event.event_type == "player_interacts":
+            _effective_tid = event.target_id
+            if _effective_tid is None:
+                _ptid = event.payload.get("target_id") if isinstance(event.payload, dict) else None
+                if _ptid:
+                    _effective_tid = _ptid
+            is_targeted = (_effective_tid is None or (state and _effective_tid == state.npc_id))
+            if is_targeted:
+                if intent in (Intent.TALK.value, Intent.OBSERVE.value):
+                    base += _desire * 2.0  # desire=0.25 → +0.5
+                # УБИТ ХАРДКОД: if intent == Intent.APPROACH.value: base += 0.6
+                # Теперь подчинение вычисляется через Физику Власти (semantic_action=MOVE)
+                if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value):
+                    base -= _desire * 1.6  # desire=0.25 → -0.4
+                if intent == Intent.FLEE.value:
+                    # Сильное подавление: нейтральный диалог не должен вызывать побег
+                    base -= _desire * 2.8  # desire=0.25 → -0.7
 
         # Фаза 3.4: WorldTick — проактивные интенты получают базовый бонус
         # Реактивные интенты при world_tick подавляются (нет стимула)
@@ -936,9 +1084,34 @@ class DecisionHub:
 
         return min(base, 2.0)
 
-    def _emotion_modifier(self, intent: str, emotion: EmotionTag) -> float:
-        """Эмоция смещает вероятность intent."""
-        _EMOTION_INTENT_MOD: Dict[str, Dict[str, float]] = {
+    def _emotion_modifier(self, intent: str, emotion: EmotionTag, drives: Optional[Dict[str, float]] = None, affective_load: float = 0.0, affective_velocity: float = 0.0) -> float:
+        """S74.5: Инверсия Причинности. Поле правит, тег резонирует.
+        
+        AffectField (load + velocity) — первичный драйвер деформации utility.
+        EmotionTag — вторичный резонатор: усиливает сигнал, если подтверждён полем,
+        или глушится, если оказался "призраком" (поле упало, а тег висит).
+        Устраняет POST-HOC AFFECT MODEL и "fearful lock-in".
+        """
+        # 1. Непрерывная деформация поля (ПЕРВИЧНЫЙ ДРАЙВЕР)
+        _field_mod = 0.0
+        if affective_load > 0.05:
+            # Ускорение угрозы (velocity > 0) усиливает реакцию (срочность)
+            _urgency = 1.0 + max(0.0, affective_velocity) * 2.0
+            _fear_drive = (drives or {}).get("fear", 0.25)
+            _control_drive = (drives or {}).get("control", 0.25)
+
+            # Нагрузка толкает к осторожности/бегству, если нет контроля
+            if intent in (Intent.OBSERVE.value, Intent.WARN.value):
+                _field_mod += affective_load * _fear_drive * 0.6 * _urgency
+            elif intent == Intent.FLEE.value:
+                _field_mod += affective_load * _fear_drive * 0.8 * _urgency
+            elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
+                # Контроль перенаправляет энергию страха в превентивную агрессию
+                _field_mod -= affective_load * _fear_drive * 0.3
+                _field_mod += affective_load * _control_drive * 0.5 * _urgency
+
+        # 2. Дискретный тег (ВТОРИЧНЫЙ РЕЗОНАТОР)
+        _BASE: Dict[str, Dict[str, float]] = {
             EmotionTag.ANGRY.value: {
                 Intent.ATTACK.value:     +0.30,
                 Intent.INTIMIDATE.value: +0.20,
@@ -963,8 +1136,51 @@ class DecisionHub:
                 Intent.HELP.value:       -0.15,
             },
         }
-        mods = _EMOTION_INTENT_MOD.get(emotion.value, {})
-        return mods.get(intent, 0.0)
+        
+        # S75: Collapse of Discrete Emotion Authority.
+        # EmotionTag больше не управляет utility. AffectField + Drives = единственный закон.
+        # Эмоция — лишь этикетка для UI/LLM, а не причина поведения.
+        
+        # 1. Энергия поля (непрерывная скалярная величина)
+        _energy = affective_load * (1.0 + max(0.0, affective_velocity) * 1.5)
+        
+        # Без энергии поля или личности — нет деформации
+        if _energy < 0.01 or not drives:
+            return _field_mod
+
+        # 2. Drives = вектор направления энергии
+        _fear_dev = drives.get("fear", 0.25) - 0.25
+        _control_dev = drives.get("control", 0.25) - 0.25
+        _significance_dev = drives.get("significance", 0.25) - 0.25
+        _desire_dev = drives.get("desire", 0.25) - 0.25
+        
+        redirect = 0.0
+        
+        # 3. Распределение энергии аффекта через структуру личности
+        # Энергия аффекта (нагрузка) по умолчанию = "энергия стресса/страх".
+        if intent == Intent.FLEE.value:
+            # Базовый инстинкт + страх; Контроль гасит бегство
+            redirect = _energy * (_fear_dev + 0.25) * 0.8 - _energy * _control_dev * 0.5
+        elif intent == Intent.ATTACK.value:
+            # Страх гасит агрессию; Контроль перенаправляет стресс в превентивный удар
+            redirect = _energy * _control_dev * 1.5 - _energy * _fear_dev * 0.3
+        elif intent == Intent.OBSERVE.value:
+            # Значимость и страх усиливают бдительность
+            redirect = _energy * (_significance_dev + 0.25) * 0.5 + _energy * _fear_dev * 0.2
+        elif intent == Intent.WARN.value:
+            # Значимость = социальное предупреждение об угрозе
+            redirect = _energy * _significance_dev * 0.7 + _energy * _fear_dev * 0.1
+        elif intent == Intent.TALK.value:
+            # Желание = поиск помощи/контакта при стрессе
+            redirect = _energy * _desire_dev * 0.6 + _energy * _significance_dev * 0.2
+        elif intent == Intent.TRADE.value:
+            # Желание + значимость = попытка обменять выгоду на безопасность
+            redirect = _energy * _desire_dev * 0.5 + _energy * _significance_dev * 0.3
+        elif intent == Intent.HELP.value:
+            # Желание + низкий страх = альтруистическая экспансия
+            redirect = _energy * _desire_dev * 0.7 - _energy * _fear_dev * 0.2
+
+        return _field_mod + redirect
 
     def _trait_modifier(
         self,
@@ -1009,10 +1225,17 @@ class DecisionHub:
         Risk из контекста — решение №7.
         Учитывает свидетелей, дистанцию и видимую силу актора.
         """
-        base_risk = 0.3
-        base_risk += min(event.witness_count * 0.08, 0.4)
-        if event.distance <= 2.0:
-            base_risk += 0.2
+        # Социальные взаимодействия — минимальный risk (разговор не угроза)
+        _et_val = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+        # ADR-091 override: "подойди" → event type "move", не "player_interacts"
+        # Оба должны считаться социальными (мирными) событиями
+        _social_events = {"player_interacts", "player_spoke", "npc_spoke", "help", "move", "player_moved"}
+        base_risk = 0.1 if _et_val in _social_events else 0.3
+        # Свидетели и дистанция усиливают угрозу только для агрессивных событий
+        if _et_val not in _social_events:
+            base_risk += min(event.witness_count * 0.08, 0.4)
+            if event.distance <= 2.0:
+                base_risk += 0.2
         if not event.success:
             base_risk *= 0.5
 
@@ -1031,22 +1254,22 @@ class DecisionHub:
 
         # Память: недавние важные события повышают риск
         # "Я видел как ты избил Люсю" — lingering effect через decay
-        _pressure = state.relationship_cache.get("recent_pressure", 0.0)
-        if _pressure > 0.01:
-            base_risk += min(_pressure * 0.5, 0.3)
+        # Память и давление — только для агрессивных событий.
+        # Мирный разговор не становится опаснее от того, что игрок вчера кого-то ударил.
+        if _et_val not in _social_events:
+            _pressure = state.relationship_cache.get("recent_pressure", 0.0)
+            if _pressure > 0.01:
+                base_risk += min(_pressure * 0.5, 0.3)
 
-        # R1: Смысловая память — EventMemory с decay importance
-        # Насилие 3 тика назад: importance=0.6 → risk+=0.09 (лёгкая настороженность)
-        # Насилие 1 тик назад: importance=0.95 → risk+=0.14 (заметное влияние)
-        _memory_penalty = 0.0
-        for _m in state.narrative_cache:
-            if not hasattr(_m, "importance") or _m.importance < 0.1:
-                continue
-            _type = getattr(_m, "event_type", "")
-            _weight = 0.15 if _type in ("player_attacks", "combat", "intimidation", "theft") else 0.05
-            _memory_penalty += _m.importance * _weight
-        if _memory_penalty > 0.01:
-            base_risk += min(_memory_penalty, 0.3)
+            _memory_penalty = 0.0
+            for _m in state.narrative_cache:
+                if not hasattr(_m, "importance") or _m.importance < 0.1:
+                    continue
+                _type = getattr(_m, "event_type", "")
+                _weight = 0.15 if _type in ("player_attacks", "combat", "intimidation", "theft") else 0.05
+                _memory_penalty += _m.importance * _weight
+            if _memory_penalty > 0.01:
+                base_risk += min(_memory_penalty, 0.3)
 
         return min(base_risk, 1.0)
 
@@ -1230,42 +1453,42 @@ class DecisionHub:
         if event.event_type == "player_insults":
             raw_trust = -8.0 * event.intensity
             _, s_trust = apply_saturation(
-                current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = -5.0 * event.intensity
             _, s_fear = apply_saturation(
-                current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # Отношения от прямых угроз
         elif event.event_type == "player_threatens":
             raw_trust = -5.0 * event.intensity
             _, s_trust = apply_saturation(
-                current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = 4.0 * event.intensity
             _, s_fear = apply_saturation(
-                current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
             
             raw_trust = -6.0 * event.intensity
             _, s_trust = apply_saturation(
-                current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = 2.5 * event.intensity
             _, s_fear = apply_saturation(
-                current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # Отношения от физического насилия (ADR-049 Phase 3: стресс/эмоции вынесены в AffectiveIntegrator)
         elif event.event_type == "player_attacks":
             raw_trust = -10.0 * event.intensity
             _, s_trust = apply_saturation(
-                current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = 8.0 * event.intensity
             _, s_fear = apply_saturation(
-                current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
+                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # ADR-049 Phase 3: Стресс от насилия рядом удален (генерируется через PerceptualKernel в Фазе 9)
@@ -1275,13 +1498,17 @@ class DecisionHub:
 
         # Отношения: доверие и страх (fallback маппинг)
         if event.event_type in ("combat", "intimidation"):
+            # §ENIGMA-003: Vacuum (None) резолвится в baseline 0.0 для создания новой причинной структуры
+            cur_trust = DecisionHub._get_rel_value(state, "player", "trust")
+            cur_fear = DecisionHub._get_rel_value(state, "player", "fear")
+
             raw_trust = -10.0 * event.intensity
             _, s_trust = apply_saturation(
-                current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
+                current=cur_trust if cur_trust is not None else 0.0, delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = +8.0 * event.intensity
             _, s_fear = apply_saturation(
-                current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
+                current=cur_fear if cur_fear is not None else 0.0, delta=raw_fear, min_val=-100.0, max_val=100.0
             )
         elif event.event_type == "help":
             s_trust = round(+12.0 * event.intensity, 2)

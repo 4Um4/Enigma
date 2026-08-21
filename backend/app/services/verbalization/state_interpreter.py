@@ -9,7 +9,7 @@
 Файл: backend/app/services/verbalization/state_interpreter.py
 Назначение: Единственный мост между числовым состоянием NPC и человекочитаемым описанием для LLM. LLM никогда не видит сырые цифры.
 Зависимости: typing, backend.app.models.npc_state (Intent, EmotionTag, WillState, NPCState), backend.app.models.physical (Condition)
-Основные сущности: UrgencyLevel, PhysicalState, NPCStateDescription, StateInterpreter
+Основные сущности: PhysicalState, NPCStateDescription, StateInterpreter
 """
 
 from dataclasses import dataclass
@@ -21,16 +21,6 @@ from app.models.physical import Condition
 
 
 # ── Уровни для описания ──────────────────────────────────────────────
-
-class UrgencyLevel(str, Enum):
-    """Эмоциональное напряжение — вывод из stress (0-100). Базовые формы (женский род)."""
-    CALM = "спокоен"
-    ALERTED = "напряжён"
-    SCARED = "напуган"
-    PANIC = "в панике"
-    BROKEN = "в шоке, не контролирует себя"
-
-
 class PhysicalState(str, Enum):
     """Физическое состояние — вывод из hp_ratio. Базовые формы (мужской род)."""
     UNHARMED = "не ранен"
@@ -43,12 +33,6 @@ class PhysicalState(str, Enum):
 # ── Маппинги ─────────────────────────────────────────────────────────
 
 # Пороги стресса адаптированы под шкалу 0-100
-_STRESS_THRESHOLDS: List[tuple[float, UrgencyLevel]] = [
-    (80.0, UrgencyLevel.BROKEN),
-    (60.0, UrgencyLevel.PANIC),
-    (40.0, UrgencyLevel.SCARED),
-    (20.0, UrgencyLevel.ALERTED),
-]
 
 # Описание всех 17 intent-ов на русском — публично для SceneOutcomeBuilder
 # Формы гендерно-нейтральны (глаголы/наречия) — НЕ применять _apply_gender
@@ -213,7 +197,6 @@ class NPCStateDescription:
     """
     name: str
     intent: str              # "пытается убежать"
-    emotional_state: str     # "в панике"
     physical_state: str      # "лёгкая рана"
     posture: str             # "стоит" / "шатается" / "лежит"
     conditions: List[str]    # ["кровоточит", "оглушена"]
@@ -238,7 +221,6 @@ class StateInterpreter:
         return NPCStateDescription(
             name=state.npc_id,
             intent=self._intent_to_word(state.intent),
-            emotional_state=_apply_gender(self._stress_to_word(state.stress), gender),
             physical_state=_apply_gender(self._physical_state_to_word(hp_ratio, body_state), gender),
             posture=self._posture_to_word(state.posture),
             conditions=self._conditions_to_list(state.conditions, gender),
@@ -246,13 +228,6 @@ class StateInterpreter:
             can_move=self.derive_can_move(state.posture, state.conditions, state.hp),
             gender=gender,
         )
-
-    def _stress_to_word(self, stress: float) -> str:
-        """Стресс 0-100 → человекочитаемое состояние."""
-        for threshold, level in _STRESS_THRESHOLDS:
-            if stress >= threshold:
-                return level.value
-        return UrgencyLevel.CALM.value
 
     def _hp_to_word(self, ratio: float) -> str:
         """HP ratio 0-1 → описание раны (legacy fallback)."""

@@ -33,6 +33,24 @@ from app.core.constants import PERCEPTION_FALLBACK_DISTANCE, PERCEPTION_RADIUS
 # ADR-102: load_graph и LocationGraph удалены — заменены на SpatialService
 
 
+def normalize_scene_state(scene_state) -> dict:
+    """Гарантирует что scene_state — dict.
+    P0 FIX (S71): SceneState Contract Enforcement.
+    Если тип некорректный (list, None, float) — возвращает пустой dict с предупреждением.
+    Defence-in-depth: источник проблемы должен быть починен отдельно,
+    но consumer не должен крашиться молча."""
+    if isinstance(scene_state, dict):
+        return scene_state
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
+    _log.warning(
+        f"[SCENE_CONTRACT] scene_state тип={type(scene_state).__name__}, "
+        f"ожидается dict. Возвращён пустой dict. "
+        f"Значение: {str(scene_state)[:200] if scene_state is not None else 'None'}"
+    )
+    return {}
+
+
 def _loc(entity: dict, fallback_location_id: str) -> str:
     """Возвращает location_id сущности или fallback."""
     return str(entity.get("location_id") or fallback_location_id)
@@ -124,6 +142,7 @@ def _point_to_segment_dist(px: float, py: float, x1: float, y1: float, x2: float
 
 def is_blocked_by_wall(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
     """Проверяет, пересекает ли линия AB любую стену из spatial_walls."""
+    scene_state = normalize_scene_state(scene_state)
     walls = scene_state.get("spatial_walls", [])
     if not walls:
         return False
@@ -135,6 +154,7 @@ def is_blocked_by_wall(ax: float, ay: float, bx: float, by: float, scene_state: 
 
 def is_blocked_by_obstacle(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
     """Проверяет, пересекает ли линия AB любой прямоугольный obstacle."""
+    scene_state = normalize_scene_state(scene_state)
     obstacles = scene_state.get("spatial_obstacles", [])
     if not obstacles:
         return False
@@ -149,6 +169,28 @@ def is_blocked_by_obstacle(ax: float, ay: float, bx: float, by: float, scene_sta
 def is_line_of_sight_clear(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
     """Полная проверка LOS: стены + непроходимые объекты."""
     return not is_blocked_by_wall(ax, ay, bx, by, scene_state) and not is_blocked_by_obstacle(ax, ay, bx, by, scene_state)
+
+
+def is_movement_blocked(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
+    """Проверяет, блокирует ли что-либо ДВИЖЕНИЕ (стены + непроходимые объекты).
+    Отличие от is_blocked_by_wall: учитывает мебель (passability.walk=False).
+    Отличие от is_line_of_sight_clear: блокировка движения ≠ блокировка обзора.
+    Стол блокирует движение, но не блокирует LOS.
+    """
+    scene_state = normalize_scene_state(scene_state)
+    if is_blocked_by_wall(ax, ay, bx, by, scene_state):
+        return True
+    obstacles = scene_state.get("spatial_obstacles", [])
+    if not obstacles:
+        return False
+    for obs in obstacles:
+        # Блокирует движение если walk=False (непроходимый) ИЛИ blocks_los=True
+        _pass = obs.get("passability", {})
+        _blocks_walk = not _pass.get("walk", True)
+        if _blocks_walk or obs.get("blocks_los", False):
+            if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
+                return True
+    return False
 
 
 def _segments_intersect(
@@ -195,6 +237,7 @@ def _effective_modifiers(scene_state: dict) -> dict:
     Чем больше NPC в сцене — тем выше density (толпа режет LOS и звук).
     Закрывает эксплойт фарма minor NPC: в толпе манипулировать сложнее.
     """
+    scene_state = normalize_scene_state(scene_state)
     modifiers   = dict(scene_state.get("environment_modifiers", {}))
     base_density = float(modifiers.get("density", 0.0))
     npc_count    = len(scene_state.get("npc_positions", {}))
@@ -208,6 +251,7 @@ def line_of_sight(distance: float, scene_state: dict, ax: float = 0.0, ay: float
     R4.3/R4.4: видимость с учётом освещения, модификаторов среды и стен.
     Если переданы координаты — проверяет физические коллизии.
     """
+    scene_state = normalize_scene_state(scene_state)
     # Физическая проверка: стена или непроходимый объект между точками
     if ax != 0.0 or ay != 0.0 or bx != 0.0 or by != 0.0:
         if not is_line_of_sight_clear(ax, ay, bx, by, scene_state):
@@ -236,6 +280,7 @@ def sound_reach(base_radius: float, scene_state: dict) -> float:
     R4.4: радиус распространения звука с динамической плотностью.
     Шум усиливает дальность, плотность (стены/толпа) гасит.
     """
+    scene_state = normalize_scene_state(scene_state)
     modifiers = _effective_modifiers(scene_state)
     noise   = float(modifiers.get("noise", 0.0))
     density = modifiers["density"]
@@ -260,6 +305,7 @@ def extract_scene_for_npc(
         PERCEPTION_RADIUS["major"] = 15.0м
     Граф загружается один раз для всех расчётов дистанций в цикле.
     """
+    scene_state = normalize_scene_state(scene_state)
     npc_positions = scene_state.get("npc_positions", {})
     me = npc_positions.get(npc_id, {})
     if not me:

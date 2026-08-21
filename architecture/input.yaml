@@ -1,0 +1,48 @@
+domain: INPUT
+description: "Ввод игрока: сырой текст → IntentSemanticField. Fast Path (pymorphy3) + Slow Path (LLM)."
+
+nodes:
+  IntentCompressor:
+    type: service
+    layer: Application
+    label: "Intent Compressor"
+    description: "compress(raw_text, scene_context) → IntentSemanticField. _fast_path_parse + _slow_path_parse."
+    code_ref: "input/intent_compressor.py"
+  LLMCompressorClient:
+    type: interface
+    layer: Infrastructure
+    label: "LLM Compressor Client (Protocol)"
+    description: "Протокол: compress_intent(raw_text, scene_context) → Optional[Dict]."
+    code_ref: "input/llm_compressor_client.py"
+  LlamaCppCompressorClient:
+    type: service
+    layer: Infrastructure
+    label: "LlamaCpp Compressor Client"
+    description: "Реализация: _build_prompt → llama-server /completions. Fallback на Fast Path при ошибке."
+    code_ref: "input/llm_compressor_client.py"
+
+edges:
+  - from: GameScreen
+    to: IntentCompressor
+    label: "raw text input"
+    condition: "Phase 1: player typed command"
+    code_ref: "input/intent_compressor.py"
+  - from: IntentCompressor
+    to: LLMCompressorClient
+    label: "Slow Path: complex intent → LLM"
+    condition: "Fast Path failed or ambiguous. 3 retries."
+    code_ref: "input/intent_compressor.py:_slow_path_parse"
+  - from: IntentCompressor
+    to: DecisionHub
+    label: "IntentSemanticField → pressure source"
+    condition: "ATTACK → aggression. THREATEN → aggression. 'сюда'/'мне' → target_ref='player'"
+    code_ref: "input/intent_compressor.py"
+    adr_ref: "ADR-088"
+
+constraints:
+  - source: IntentCompressor
+    target: EmotionalVector
+    rule: "FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"
+    condition: "ATTACK must inject aggression > 0. THREATEN must inject aggression > 0."
+    code_ref: "ADR-088"
+    severity: HIGH

@@ -64,30 +64,42 @@ class SocialDecayHandler:
                     continue
 
                 current_trust = float(rel_data.get("trust", 0.0))
+                current_fear = float(rel_data.get("fear", 0.0))
                 # Базовое значение: из base_vals, из rel_data, или текущее (нет дрейфа)
                 base_trust = float(
                     base_vals.get(target, rel_data.get("base_trust", current_trust))
                 )
+                # Fear drift к нулю — страх не должен застревать навсегда
+                base_fear = 0.0
 
-                drift = (base_trust - current_trust) * SOCIAL_DECAY_RATE
+                trust_drift = (base_trust - current_trust) * SOCIAL_DECAY_RATE
+                fear_drift = (base_fear - current_fear) * SOCIAL_DECAY_RATE
+
+                # Closing drift для trust
+                if abs(base_trust - current_trust) < SOCIAL_DECAY_EPSILON:
+                    trust_drift = base_trust - current_trust
+
+                # Closing drift для fear
+                if abs(current_fear) < SOCIAL_DECAY_EPSILON:
+                    fear_drift = -current_fear
 
                 # Нет разницы — нет дрейфа
-                if abs(drift) < 1e-9:
+                if abs(trust_drift) < 1e-9 and abs(fear_drift) < 1e-9:
                     continue
-
-                # Closing drift: закрываем разрыв вместо forced epsilon
-                if abs(base_trust - current_trust) < SOCIAL_DECAY_EPSILON:
-                    drift = base_trust - current_trust
 
                 results.append(StateDeltas(
                     npc_id=npc_id,
-                    # v1 backward compat (удаляется после миграции StateApplicator)
+                    # v1 backward compat
                     social_target=target,
-                    trust_delta=round(drift, 6),
+                    trust_delta=round(trust_drift, 6),
+                    fear_delta=round(fear_drift, 6),
                     # v2 domain-tagged payload
                     domain=DeltaDomain.SOCIAL,
                     target=target,
-                    payload=SocialPayload(trust_delta=round(drift, 6)),
+                    payload=SocialPayload(
+                        trust_delta=round(trust_drift, 6),
+                        fear_delta=round(fear_drift, 6),
+                    ),
                     source="social_decay",
                 ))
 

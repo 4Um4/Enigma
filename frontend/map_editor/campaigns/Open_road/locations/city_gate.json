@@ -1,0 +1,71 @@
+{
+  "filename": "city_gate.json",
+  "location_id": "city_gate",
+  "label": "Городские ворота",
+  "origin": {
+    "x": 19.91666666666666,
+    "y": 0.041666666666666664
+  },
+  "size": {
+    "w": 30,
+    "h": 20
+  },
+  "grid_cell_size": 1.0,
+  "is_outdoor": true,
+  "rooms": [],
+  "walls": [],
+  "obstacles": [],
+  "objects": [],
+  "passages": [],
+  "portals": [],
+  "npcs": [],
+  "labels": [],
+  "nodes": {
+    "gate_road": {
+      "x": 5.0,
+      "y": 10.0,
+      "label": "Тракт",
+      "connections": [
+        "gate_arch"
+      ]
+    },
+    "gate_arch": {
+      "x": 11.5,
+      "y": 10.0,
+      "label": "Арка ворот",
+      "connections": [
+        "gate_road",
+        "guard_post",
+        "gate_courtyard"
+      ]
+    },
+    "guard_post": {
+      "x": 16.0,
+      "y": 3.5,
+      "label": "Караульня",
+      "connections": [
+        "gate_arch"
+      ]
+    },
+    "gate_courtyard": {
+      "x": 21.5,
+      "y": 13.5,
+      "label": "Внутренний двор",
+      "connections": [
+        "gate_arch"
+      ]
+    }
+  },
+  "player_spawn": {
+    "x": 31.333333333333332,
+    "y": 7.666666666666667,
+    "z": 0
+  },
+  "global_coords": true,
+  "created_at": "2026-06-09T00:00:00",
+  "modified_at": "2026-06-09T00:00:00",
+  "adjacency": {
+    "west": "tavern_silver_wolf",
+    "south": "market_square"
+  }
+}

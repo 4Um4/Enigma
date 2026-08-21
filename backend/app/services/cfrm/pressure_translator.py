@@ -48,9 +48,15 @@ def translate_kernel_to_context(kernel: PerceptualKernel, body_state: Optional[D
     if kernel.aggression_inhibition > 0.9 and kernel.compliance_bias > 0.7:
         constraints["RESIST"] = 0.0
 
-    # GAP3 FIX: Соматическое Вето. Физиология vetoирует решения мозга.
-    if body_state:
-        pain = body_state.get("pain", 0.0)
+    # GAP3 FIX & NPIC: Соматическое Вето. Физиология vetoирует решения мозга.
+    # §ENIGMA-003: Если тело неизвестно, агент не может действовать (Unknown ≠ Neutral).
+    if not body_state:
+        # Нет физического субстрата = полная невозможность физических действий
+        logger.warning("[SOMATIC_VETO] body_state missing. Applying FULL VETO (NPIC).")
+        for action in ["FLEE", "ATTACK", "APPROACH", "MANIPULATE", "INTIMIDATE"]:
+            constraints[action] = 0.0
+    else:
+        pain = body_state.get("pain", 0.0) / 100.0  # ADR-094: Нормализация 0-100 → 0-1
         shock = body_state.get("shock_impulse", 0.0)
         blood_loss = body_state.get("blood_loss", 0.0)
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /backend/app/domain/intent.py
 Назначение: Намерение игрока. Пересекает границу frontend → backend.
 Зависимости: dataclasses, typing
@@ -18,7 +18,7 @@ class IntentParametersDTO:
     """
     semantic_action: Optional[str] = None
     target_reference: Optional[str] = None
-    target_id: Optional[str] = None # Слой 2: ID цели, найденной через fuzzy matching
+    target_id: Optional[str] = None  # DEPRECATED ADR-125: Factually dead. Truth goes via PlayerTargetExtractor + intent.target. Kept as archaeological divergence indicator during migration.
     physical_force: float = 0.1
     emotional_charge: float = 0.1
     social_pressure: float = 0.0

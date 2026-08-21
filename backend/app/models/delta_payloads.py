@@ -62,7 +62,7 @@ class PerceptionPayload:
     threat_gradient_delta: float = 0.0    # Рост ощущения угрозы
     uncertainty_delta: float = 0.0        # Рост неопределённости
     anomaly_score_delta: float = 0.0      # Рост ощущения аномальности
-    dominant_emotion_hint: Optional[str] = None  # Подсказка для DecisionHub (fear/panic)
+    dominant_emotion_hint: Optional[str] = None  # S72 DEPRECATED: движок не назначает эмоцию. Поле сохранено для совместимости сериализации, всегда None.
 
 
 @dataclass(frozen=True)

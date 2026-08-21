@@ -25,6 +25,12 @@ class TickHealthReport:
     llm_server_ok: bool = False
     player_campaign: str = ""
     player_name: str = ""
+    # Инвариант 3: Наблюдаемость пред-шинных отказов
+    pipeline_critical_count: int = 0     # [PIPELINE][CRITICAL] — каузальный разрыв
+    causality_crash_count: int = 0       # [CAUSALITY_CRASH] — краш подписчика
+    phase8_crash_count: int = 0          # [PHASE8_CRASH] — краш обработчика Phase 8
+    tick_orch_error_count: int = 0       # [TICK_ORCH] — фатальный краш тика
+    affect_decay_fail_count: int = 0     # [AFFECT_DECAY] — потеря аффективных следов
     warnings: List[str] = field(default_factory=list)
 
     def is_simulation_dead(self) -> bool:
@@ -103,6 +109,22 @@ class TickHealthChecker:
         self._report.player_campaign = campaign
         self._report.player_name = player
 
+    # Инвариант 3: Наблюдаемость пред-шинных отказов
+    def on_pipeline_critical(self) -> None:
+        self._report.pipeline_critical_count += 1
+
+    def on_causality_crash(self) -> None:
+        self._report.causality_crash_count += 1
+
+    def on_phase8_crash(self) -> None:
+        self._report.phase8_crash_count += 1
+
+    def on_tick_orch_error(self) -> None:
+        self._report.tick_orch_error_count += 1
+
+    def on_affect_decay_fail(self) -> None:
+        self._report.affect_decay_fail_count += 1
+
     # --- Финальный отчёт ---
 
     def build(self) -> TickHealthReport:
@@ -120,4 +142,20 @@ class TickHealthChecker:
             )
         if self._report.llm_calls > 0 and self._report.llm_responses == 0:
             self._report.warnings.append("LLM вызывалась но ни разу не ответила — проверь llm_server")
+        # Инвариант 3: Пред-шинные отказы — система должна быть шумной при смерти
+        _prebus_total = (self._report.pipeline_critical_count + self._report.causality_crash_count +
+                         self._report.phase8_crash_count + self._report.tick_orch_error_count)
+        if _prebus_total > 0:
+            self._report.warnings.append(
+                f"КРИТИЧНО: {_prebus_total} пред-шинных отказов "
+                f"(pipeline={self._report.pipeline_critical_count}, "
+                f"causality={self._report.causality_crash_count}, "
+                f"phase8={self._report.phase8_crash_count}, "
+                f"tick_orch={self._report.tick_orch_error_count}) — "
+                f"CDS слеп к этим багам без Инварианта 3"
+            )
+        if self._report.affect_decay_fail_count > 2:
+            self._report.warnings.append(
+                f"Аффективные отпечатки теряются: {self._report.affect_decay_fail_count} сбоев decay"
+            )
         return self._report

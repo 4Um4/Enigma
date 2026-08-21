@@ -222,6 +222,12 @@ def build_verbalization_context(
         state_for_llm.narrative_cache,
     )
 
+    # Инвариант 2: Намерение → Физика. LLM знает о движении только через этот флаг.
+    _movement_intents = {"APPROACH", "FLEE", "RETREAT", "FOLLOW", "PATROL"}
+    _is_moving = decision.intent.value in _movement_intents and _interpreter.derive_can_move(
+        state_for_llm.posture, state_for_llm.conditions, state_for_llm.hp
+    )
+
     return VerbalizationContext(
         npc_id=profile_l0.id,
         npc_name=profile_l0.name,
@@ -240,6 +246,9 @@ def build_verbalization_context(
         author_notes=profile_l0.author_notes,
         can_speak=_interpreter.derive_can_speak(state_for_llm.posture, state_for_llm.conditions),
         can_move=_interpreter.derive_can_move(state_for_llm.posture, state_for_llm.conditions, state_for_llm.hp),
+        # Инвариант 2: LLM не может галлюцинировать движение без TraversalState
+        is_moving=_is_moving,
+        movement_intent=decision.intent.value if _is_moving else "",
         gender=profile_l0.gender,
         narrative_hints=state_for_llm.narrative_cache,
         recalled_facts=tuple(_recalled),
@@ -255,7 +264,11 @@ def run_npc_pipeline(
     inp: "NpcTickInput",
     buf: "NpcTickBuffer",
     svc: "NpcTickServices",
+    drf_ctx: Optional[Any] = None,  # DRF: scoped causal execution context (DRFExecutionContext)
 ) -> "NpcTickBuffer":
+    # DIAG: Проверяем, доходит ли шина до пайплайна
+    _drf_tick = drf_ctx.tick_id if drf_ctx else -1
+    print(f"[DRF_PIPE_ENTRY] tick={_drf_tick} frame_npc={drf_ctx.npc_id if drf_ctx else '?'} drf_ctx={drf_ctx is not None} bus_type={type(drf_ctx.bus).__name__ if drf_ctx else 'N/A'}")
     """Основной цикл NPC: профиль → модификаторы → DecisionHub → StateApplicator → память.
 
     Читает из inp, мутирует buf, использует svc.
@@ -271,10 +284,18 @@ def run_npc_pipeline(
 
     hub_event = inp.hub_event
 
+    _attack_target = inp.player_target_id if inp.action_type in ("player_attacks", "PLAYER_ATTACKED", "combat") else None
+    logger.debug(f"[DIAG_NEARBY] count={len(inp.nearby_npcs)} ids={[n.get('npc_id') for n in inp.nearby_npcs]} attack_target={_attack_target}")
+    logger.debug(f"[DIAG_LOS] keys={list(inp.line_of_sight.keys())} vals={list(inp.line_of_sight.values())}")
     for npc in inp.nearby_npcs:
         npc_id = npc.get("npc_id")
-        if npc_id and inp.line_of_sight.get(npc_id, False):
+        _los = inp.line_of_sight.get(npc_id, False) if npc_id else False
+        # ADR-O-112: Цель атаки всегда "видит" атакующего — физический контакт отменяет LOS
+        _is_attack_target = (npc_id == _attack_target)
+        if npc_id and (_los or _is_attack_target):
 
+            # DRF: Scoped контекст для NPC — претензии наследуют npc_id и tick_id
+            _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None
             # 1. Ищем профиль NPC в уже загруженном списке
             _npc_profile = None
             for _n in inp.all_npcs_raw:
@@ -283,7 +304,9 @@ def run_npc_pipeline(
                     break
             if not _npc_profile:
                 logger.warning(f"[GAME_LOOP] Profile not found for {npc_id}")
+                logger.debug(f"[DIAG_NPC_DROP] npc={npc_id} reason=profile_not_found")
                 continue
+            logger.debug(f"[DIAG_NPC_PROFILE] npc={npc_id} profile_found=True")
             # Сохраняем ссылку на dict для записи после StateApplicator
             _npc_dict_for_write = _npc_profile
 
@@ -333,7 +356,22 @@ def run_npc_pipeline(
                     npc_id=npc_id,
                     target_id="player",
                 )
-                state_l2.relationship_cache.update(mem_weights)
+                # P1 ARCH: Заполнение read-cache из SSOT (RelationshipStore).
+                # Масштаб 0-100. Нормализация к 0-1 происходит в потребителях (DecisionHub).
+                state_l2.relationship_cache.setdefault("player", {}).update(mem_weights)
+
+                # S69 FIX: Observer Collapse Bug. Расширение проекции социального графа.
+                # Загрузка отношений к видимым NPC (NPC→NPC причинность).
+                for _nearby_npc in inp.nearby_npcs:
+                    _nearby_id = _nearby_npc.get("npc_id")
+                    if _nearby_id and _nearby_id != npc_id:
+                        _npc_weights = svc.memory_manager.get_weights_for_decision(
+                            campaign_id=inp.campaign_id,
+                            npc_id=npc_id,
+                            target_id=_nearby_id,
+                        )
+                        state_l2.relationship_cache.setdefault(_nearby_id, {}).update(_npc_weights)
+
             except Exception as _mem_e:
                 logger.error(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}", exc_info=True)
 
@@ -447,9 +485,23 @@ def run_npc_pipeline(
             # S28: Замыкание каузального контура. Чтение геометрии восприятия
             from app.domain.decision_context import DecisionContext
             _decision_ctx = None
+            # S74: Подготовка AffectField для инъекции в DecisionContext
+            _aff_load = getattr(state_l2, "affective_load", 0.0)
             if hasattr(state_l2, 'perceptual_kernel') and state_l2.perceptual_kernel:
                 _decision_ctx = DecisionContext.from_kernel(state_l2.perceptual_kernel)
+                # S74: Shadow Emotion Bleed injection.
+                # Заменяем контекст, внедряя непрерывное аффективное поле.
+                _decision_ctx = DecisionContext(
+                    deformation=_decision_ctx.deformation,
+                    compression=_decision_ctx.compression,
+                    source=_decision_ctx.source,
+                    affective_load=_aff_load,
+                    affective_velocity=0.0,  # TODO: вычислять из prev_load в S75
+                    affective_acceleration=0.0
+                )
 
+            _pl = getattr(hub_event, 'payload', '<NO_PAYLOAD>')
+            logger.debug(f"[DIAG_PRE_HUB] npc={npc_id} topic={_topic} event={hub_event.event_type} payload={_pl} reflex={_reflex_constraints} emotion={state_l2.emotion} affective_load={state_l2.affective_load}")
             decision = DecisionHub().compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -468,6 +520,7 @@ def run_npc_pipeline(
             # Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub, включая flee.
             # Ghost Position Paradox: если NPC в транзите, его решение может быть устаревшим.
             # Игрок — авторитетный источник причинности (ADR-061).
+            logger.debug(f"[DIAG_POST_HUB] npc={npc_id} intent={decision.intent.value} score={decision.score:.3f}")
             logger.warning(f"[REFLEX_DEBUG] npc={npc_id} name={_npc_dict_for_write.get('name','')} intent={decision.intent.value} raw_input={repr(inp.raw_input[:80]) if inp.raw_input else 'NONE'}")
             _is_move_command = False
             
@@ -552,10 +605,30 @@ def run_npc_pipeline(
                     scene_state=inp.scene_state,
                     location_id=inp.location,
                     spatial_service=svc.spatial_service if svc else None,
+                    drf_ctx=_npc_drf_ctx,
                     spatial_query=svc.spatial_query if svc else None,
                 )
                 if _movement:
                     buf.movement_intents.append(_movement)
+            elif _intent_value == "attack":
+                # ADR-O-112: Труба Агрессии. Intent.ATTACK → CommunicationIntent → EventDTO(ACTOR_ATTACKS)
+                from app.domain.communication import CommunicationIntent, ExposureLevel
+                from app.models.npc_state import EmotionTag
+                # Резолв эмоции: Enum.value или строка напрямую (Runtime может хранить оба типа)
+                _emotion_raw = getattr(state_l2, 'emotion', 'angry')
+                _attack_emotion = _emotion_raw.value if hasattr(_emotion_raw, 'value') else _emotion_raw
+                _attack_intent = CommunicationIntent(
+                    speaker=npc_id,
+                    audience=decision.intent_target or "player",
+                    topic="attack",
+                    intent_type="attack",
+                    emotional_state=_attack_emotion,
+                    exposure_level=ExposureLevel(semantic="shout", physical_radius=15.0),  # Бой — громкое публичное событие
+                    semantic_action="ATTACK",
+                    target_id=decision.intent_target or "player",
+                )
+                buf.communication_intents.append(_attack_intent)
+                logger.warning(f"[AGGRESSION_VALVE] npc={npc_id} attacks target={_attack_intent.audience}")
 
             # 3. StateApplicator: Вычисляем реальные последствия (Read -> Write)
             state_to_use_for_llm = state_l2
@@ -664,6 +737,7 @@ def _resolve_reactive_movement(
     location_id: str,
     spatial_service: Optional[Any] = None,
     spatial_query: Optional[Any] = None,  # ADR-048: Authoritative Spatial Spine
+    drf_ctx: Optional[Any] = None,  # DRF: scoped causal execution context (DRFExecutionContext)
 ) -> Optional["MovementIntent"]:
     """Конвертирует пространственный intent в MovementIntent.
 
@@ -677,7 +751,7 @@ def _resolve_reactive_movement(
     Если передан spatial_service (v1.2), использует его. Иначе fallback на load_graph.
     ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
-    from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, PRIORITY_NEEDS
+    from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, PRIORITY_REACTIVE
     from app.services.spatial.location_graph import load_graph
 
     # ADR-048: Spatial Authority. Единственный источник пространственной истины.
@@ -738,9 +812,16 @@ def _resolve_reactive_movement(
         if threat_x is not None and threat_y is not None:
             if spatial_service:
                 # ADR-102: Исключаем текущий узел NPC из FLEE-кандидатов (бегство из своей зоны бессмысленно)
-                _canonical_current = spatial_service.normalize_id(current_node) if current_node else ""
-                _exclude = {_canonical_current} if _canonical_current else set()
+                # BUG U FIX: Не исключаем текущий узел из FLEE-кандидатов.
+                # Если NPC уже в самом дальнем узле от угрозы — get_furthest() вернёт его,
+                # и проверка target_node_id != _norm_current (стр. ~760) отменит бессмысленный flee.
+                # Исключение текущего узла вызывало осцилляцию: с 2 узлами NPC
+                # всегда бежит в другой, а на следующем тике — обратно.
+                _exclude = set()
                 furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y), exclude_node_ids=_exclude)
+                _furthest_id = getattr(furthest_ref, 'node_id', None) if furthest_ref else None
+                _norm_cur_diag = spatial_service.normalize_id(current_node) if current_node else ""
+                logger.debug(f"[FLEE_RESOLVE] npc={npc_id} current={current_node} threat={_target_id} furthest={_furthest_id}")
                 if furthest_ref:
                     # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
                     target_node_id = getattr(furthest_ref, 'node_id', str(furthest_ref))
@@ -759,7 +840,65 @@ def _resolve_reactive_movement(
             _norm_current = spatial_service.normalize_id(current_node) if spatial_service and current_node else current_node
             if target_node_id and target_node_id != _norm_current:
                 print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
-                return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
+                return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_REACTIVE)
+            elif target_node_id and target_node_id == _norm_current:
+                # LOD0 Micro-FLEE: NPC уже в безопасной комнате — отходит от угрозы внутри комнаты
+                _room_ref = spatial_service.get_node(target_node_id) if spatial_service else None
+                if _room_ref:
+                    # Направление от угрозы через центроид комнаты — безопасная сторона
+                    rdx = _room_ref.x - threat_x
+                    rdy = _room_ref.y - threat_y
+                    rdist = (rdx*rdx + rdy*rdy) ** 0.5
+                    if rdist > 0.1:
+                        # Детерминированный джиттер по npc_id чтобы NPC не сходились
+                        _h = hash(npc_id)
+                        _jx = ((_h % 17) - 8) * 0.25
+                        _jy = (((_h // 17) % 17) - 8) * 0.25
+                        # Идём от центроида в направлении от угрозы на 2м + джиттер
+                        _flee_x = _room_ref.x + (rdx / rdist) * 2.0 + _jx
+                        _flee_y = _room_ref.y + (rdy / rdist) * 2.0 + _jy
+                        # Зажимаем к радиусу 3м от центроида — не выходим за пределы комнаты
+                        MAX_R = 3.0
+                        _fdx = _flee_x - _room_ref.x
+                        _fdy = _flee_y - _room_ref.y
+                        _fdist = (_fdx*_fdx + _fdy*_fdy) ** 0.5
+                        if _fdist > MAX_R:
+                            _flee_x = _room_ref.x + _fdx * MAX_R / _fdist
+                            _flee_y = _room_ref.y + _fdy * MAX_R / _fdist
+                        # CEI-1: Constraint Enforcement Injection — micro_flee не может пройти сквозь стены
+                        # ВАЖНО: проверяем только стены (is_blocked_by_wall), НЕ мебель.
+                        # Мебель — LOD0 obstacle, NPC обходит при микро-рулежке.
+                        # is_movement_blocked отвергает legit flee через стол.
+                        _cei1_orig = (_flee_x, _flee_y)
+                        try:
+                            from app.services.spatial.spatial_runtime import is_blocked_by_wall
+                            _npc_lp = _pos(npc_id).get("local_position", {})
+                            _npc_cx = _npc_lp.get("x") if isinstance(_npc_lp.get("x"), (int, float)) else _room_ref.x
+                            _npc_cy = _npc_lp.get("y") if isinstance(_npc_lp.get("y"), (int, float)) else _room_ref.y
+                            _blocked = is_blocked_by_wall(_npc_cx, _npc_cy, _flee_x, _flee_y, scene_state)
+                            if _blocked:
+                                # Бинарный поиск вдоль луча — ближайшая точка перед стеной
+                                _lo, _hi = 0.0, 1.0
+                                for _ in range(8):  # ~0.4м точность
+                                    _mid = (_lo + _hi) / 2
+                                    _mx = _npc_cx + (_flee_x - _npc_cx) * _mid
+                                    _my = _npc_cy + (_flee_y - _npc_cy) * _mid
+                                    if not is_blocked_by_wall(_npc_cx, _npc_cy, _mx, _my, scene_state):
+                                        _lo = _mid
+                                    else:
+                                        _hi = _mid
+                                if _lo > 0.01:
+                                    _flee_x = _npc_cx + (_flee_x - _npc_cx) * _lo
+                                    _flee_y = _npc_cy + (_flee_y - _npc_cy) * _lo
+                                else:
+                                    # Полностью заблокирован — остаёмся у центроида
+                                    _flee_x, _flee_y = _room_ref.x, _room_ref.y
+                        except Exception:
+                            pass  # spatial_walls может отсутствовать — безопасный пропуск
+                        if (_flee_x, _flee_y) != _cei1_orig:
+                            print(f"[CEI-1] npc={npc_id} flee adjusted from ({_cei1_orig[0]:.1f},{_cei1_orig[1]:.1f}) to ({_flee_x:.1f},{_flee_y:.1f})")
+                        print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_flee target_xy=({_flee_x:.1f},{_flee_y:.1f})")
+                        return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(_flee_x, _flee_y), reason="reactive:micro_flee", priority=PRIORITY_REACTIVE)
         return None
 
     # ADR-045: Проверка на нахождение в одной макро-зоне (нормализация префиксов)
@@ -777,7 +916,7 @@ def _resolve_reactive_movement(
         if intent == "approach" and target_x is not None and target_y is not None:
             print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
             # Возвращаем канонический current_node для трассировки, сравнение было по базе
-            return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(target_x, target_y), reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS)
+            return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(target_x, target_y), reason=f"micro_snap:{intent}", priority=PRIORITY_REACTIVE)
         
         if intent == "flee":
             # Для побега из той же зоны ищем другой узел
@@ -792,4 +931,28 @@ def _resolve_reactive_movement(
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
     print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
-    return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS, target_local_xy=(target_x, target_y) if intent == "approach" and target_x is not None and target_y is not None else None)
+    
+    # DRF: Испускаем претензию через scoped контекст (авто-привязка npc_id, tick_id)
+    _claim = {
+        "source": "reactive_cognition",
+        "pressure_type": "SURVIVAL" if intent == "flee" else "SOCIAL",
+        "vector": intent,
+        "energy": 0.9 if intent == "flee" else 0.6,
+        "target_node": target_node_id,
+        "half_life": 1.0
+    }
+    if drf_ctx is not None:
+        drf_ctx.emit(_claim)
+    print(f"[DRF_EMIT] source=reactive npc={npc_id} tick={drf_ctx.tick_id if drf_ctx else '?'} vector={intent} ctx_bound={drf_ctx is not None}")
+    # Передаём претензию вверх через интент (временный хак до внедрения ctx)
+    _goal = MacroMovementGoal(
+        npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, 
+        location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_REACTIVE, 
+        target_local_xy=(target_x, target_y) if intent == "approach" and target_x is not None and target_y is not None else None
+    )
+    # Используем легаси-поле для прокидывания тени, чтобы не ломать DTO
+    if not hasattr(_goal, 'causal_claims'):
+        _goal.causal_claims = []
+    _goal.causal_claims.append(_claim)
+    
+    return _goal

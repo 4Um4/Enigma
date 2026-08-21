@@ -20,10 +20,16 @@ class ActionSpaceCompression:
 
 @dataclass(frozen=True)
 class DecisionContext:
-    """Топология пространства решений, собранная из PerceptualKernel."""
+    """Топология пространства решений, собранная из PerceptualKernel и AffectField."""
     deformation: UtilityFieldDeformation = field(default_factory=UtilityFieldDeformation)
     compression: ActionSpaceCompression = field(default_factory=ActionSpaceCompression)
     source: Optional[str] = None
+    # S74: AffectField. Непрерывная кровоточащая мембрана.
+    # Интеграл аффекта и его производные пробиваются в когницию,
+    # даже если дискретный emotion_tag ещё NEUTRAL.
+    affective_load: float = 0.0
+    affective_velocity: float = 0.0
+    affective_acceleration: float = 0.0
 
     @classmethod
     def from_kernel(cls, kernel: "PerceptualKernel") -> "DecisionContext":

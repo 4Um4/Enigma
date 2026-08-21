@@ -62,6 +62,80 @@ nodes:
     type: dto
     layer: Application
     label: "Pipeline Context"
+  NPCStateAdapter:
+    type: service
+    layer: Application
+    label: "NPCState Adapter (Serialization Bridge)"
+    description: "from_legacy / write_to_legacy — единственная точка конвертации dict↔NPCState. Round-trip integrity = architectural law."
+    code_ref: "npc_state.py:635-800"
+  SqlitePersistenceAdapter:
+    type: service
+    layer: Infrastructure
+    label: "SQLite Persistence Adapter"
+    description: "Key-value JSON blob storage. json.dumps with default handler for set types."
+    code_ref: "state/sqlite_persistence_adapter.py"
+  JsonPersistenceAdapter:
+    type: service
+    layer: Infrastructure
+    label: "JSON Persistence Adapter (Legacy)"
+    description: "JSON file-based persistence. Used when SQLite not available."
+    code_ref: "state/json_persistence_adapter.py"
+  AffectivePipeline:
+    type: service
+    layer: Application
+    label: "Affective Pipeline (_run_affective_pipeline)"
+    description: "Runs in BOTH idle and player turn. Calculates target_load from PK+body_state, then applies Asymmetric Attractor (Hysteresis) to affective_load. Growth fast (0.30), decay slow (0.05+will*0.1). AFFECTIVE_BOOT KILLED."
+    code_ref: "tick_orchestrator.py:_run_affective_pipeline"
+    adr_ref: "ADR-138"
+  AffectiveDecayHandler:
+    type: service
+    layer: Application
+    label: "Affective Decay Handler (Phase 0.5)"
+    description: "Idle tick handler. Decrements affective_load by recovery rate. Triggers PerceptualKernel idle decay (threat/uncertainty/anomaly) to prevent Perpetual Fear Engine. Calls update_cache after deltas."
+    code_ref: "affective/affective_decay_handler.py, tick_orchestrator.py:_phase_0_5_idle_services"
+    adr_ref: "ADR-138"
+  AvatarPresentationAssembler:
+    type: service
+    layer: Application
+    label: "Avatar Presentation Assembler"
+    description: "Translates player_dict (body_state, psyche) into AvatarStateDTO (phenomenological projection). Reads life_status from body_state for death feedback. NORMALIZES pain/fatigue /100.0 (ADR-094 MSOC). DEAD override: all projections zeroed, posture=collapsed, breathing=none."
+    code_ref: "presentation/avatar_presentation_assembler.py"
+    adr_ref: "ADR-137, ADR-094"
+  AvatarStateDTO:
+    type: dto
+    layer: Domain
+    label: "Avatar State DTO (Phenomenological Projection)"
+    description: "Frontend projection of player state. Contains NO internal metrics (HP, fear). Only perceptual scalars, motor disruption, blood visibility, and life_status. Frontend renders death overlay when life_status=DEAD (ADR-137). PhysicalPresentationState enum includes DEAD state."
+    code_ref: "domain/snapshot.py"
+    adr_ref: "ADR-137"
+  PressureTranslator:
+    type: service
+    layer: Application
+    label: "Pressure Translator (Somatic Veto)"
+    description: "Translates PerceptualKernel + body_state into DecisionContext (feasibility constraints). NORMALIZES pain /100.0 (ADR-094 MSOC). Somatic Veto: pain>0.8 blocks FLEE, shock>0.7 blocks ATTACK, blood_loss>0.6 limits physical actions."
+    code_ref: "cfrm/pressure_translator.py"
+    adr_ref: "ADR-094, GAP3"
+  DRFBus:
+    type: queue
+    layer: Application
+    label: "DRF Bus (Causal Field Bus)"
+    description: "Instance-level bus for DRF claims. Owned by TickOrchestrator (self._drf_bus). FORBIDDEN: default_factory per _TickContext (split-brain, ADR-134). Cleared at start of execute()."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-134"
+  DRFExecutionContext:
+    type: dto
+    layer: Application
+    label: "DRF Execution Context (Scoped Causal Ledger)"
+    description: "Scoped causal ledger: tick_id + npc_id + bus. Created by TickOrchestrator, scoped per NPC via for_npc(). Replaces bare drf_bus parameter (ADR-136)."
+    code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
+    adr_ref: "ADR-136"
+  GameLoop:
+    type: service
+    layer: Application
+    label: "Game Loop (Pipeline Controller)"
+    description: "Orchestrates player turn, idle tick, DM phases. Owns _load_npcs_with_runtime and TickBuffer. Contains Action Eligibility Gate (ADR-131): checks player life_status BEFORE lock_for_tick — dead players cannot act or pollute scene_state."
+    code_ref: "game_loop/__init__.py"
+    adr_ref: "ADR-131"
 edges:
   - from: LifeEngine
     to: DeltaBuffer
@@ -97,10 +171,10 @@ edges:
     code_ref: "state_applicator.py"
   - from: StateApplicator
     to: BehaviorManifestationService
-    label: "reads npc_positions (stress_delta, psyche_state)"
-    condition: "Phase 8.5"
+    label: "reads npc_positions (body_state only: pain/blood_loss/shock)"
+    condition: "Phase 8.5. Rule X: motor traces ONLY from physiology. Reading stress_delta/psyche_state = Semantic Inflation (ADR-112)."
     code_ref: "behavior_manifestation_service.py"
-    adr_ref: "The Fool v2"
+    adr_ref: "The Fool v2, ADR-112"
   - from: BehaviorManifestationService
     to: PhenomenologyProjectionService
     label: "EmbodiedTraceDTO"
@@ -121,10 +195,11 @@ edges:
     adr_ref: "The Fool v2"
   - from: TickOrchestrator
     to: LlamaServer
-    label: "query LLM"
-    condition: "Action tick"
-    code_ref: "game_loop_bridge.py"
-    edge_type: dotted # Пунктир - внешний запрос
+    label: "query LLM (3 retries, backoff 1s/2s/2s, partial stream recovery)"
+    condition: "Action tick. ADR-113: retry on ConnectionReset/OSError/Timeout. Honest error on permanent failure — no fake narrative."
+    code_ref: "llama_cpp_provider.py, agent_runner.py, __init__.py"
+    adr_ref: "ADR-113"
+    edge_type: dotted
   - from: GameScreen
     to: APIRoutes
     label: "POST /action (IntentDTO)"
@@ -149,6 +224,90 @@ edges:
     condition: "The Fool: DM sees traces, not internal states"
     code_ref: "dm_agent.py:309-324"
     adr_ref: "ADR-093"
+  - from: DeltaBuffer
+    to: NPCStateAdapter
+    label: "dict → NPCState → _apply_deltas → write_to_legacy → dict"
+    condition: "Every apply_batch call. Round-trip MUST preserve all fields."
+    code_ref: "state_applicator.py:742-776"
+    adr_ref: "ADR-117"
+  - from: NPCStateAdapter
+    to: SqlitePersistenceAdapter
+    label: "npc_dict → json.dumps → state_kv table"
+    condition: "Commit via SceneStateManager.atomic_commit. default= handler for set types."
+    code_ref: "sqlite_persistence_adapter.py:71-77"
+    adr_ref: "ADR-117"
+  - from: TickOrchestrator
+    to: AffectivePipeline
+    label: "calls _run_affective_pipeline(ctx)"
+    condition: "Phase 9: target_load derived from PK+body. Integral relaxes via Hysteresis. NO leaky integrator."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-138"
+  - from: AffectiveDecayHandler
+    to: DeltaBuffer
+    label: "EmotionPayload (decay deltas for affective_load, emotion_tag)"
+    condition: "Idle tick. Phase 0.5. PK decay applied directly to all_npcs_raw."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-138"
+  - from: AffectivePipeline
+    to: DeltaBuffer
+    label: "EmotionPayload (affective_load, emotion_tag, stress_delta)"
+    condition: "On threshold crossing or sustaining"
+    code_ref: "tick_orchestrator.py:_run_affective_pipeline"
+    adr_ref: "ADR-117"
+  - from: StateApplicator
+    to: LifeEngine
+    label: "update_cache(campaign_id, npc_dicts)"
+    condition: "After apply_batch — persist mutated data between ticks"
+    code_ref: "life_engine.py:779-786, tick_orchestrator.py:1317-1319, 2003-2005"
+    adr_ref: "ADR-117"
+  - from: LifeEngine
+    to: SqlitePersistenceAdapter
+    label: "load_npc_runtime(campaign_id) — SQLite read-back on cache miss (ADR-128)"
+    condition: "ADR-128: При TTL/LRU eviction LifeEngine восстанавливает NPC state из SQLite (COLD-1), затем fallback на static config (COLD-2). Без этого injuries, blood_loss, affective_load теряются навсегда. Семантика: None = записи нет, [] = пустая кампания (не fallback)."
+    code_ref: "life_engine.py:_load_npcs, game_loop_builder.py"
+    adr_ref: "ADR-128"
+  - from: GameLoop
+    to: LifeEngine
+    label: "get_npc_states(campaign_id) — cache first, file fallback"
+    condition: "_load_npcs_with_runtime MUST check LifeEngine cache before load_npcs_merged. Without this, every player turn loads static config."
+    code_ref: "game_loop/__init__.py:214-218"
+    adr_ref: "ADR-117"
+  - from: StateApplicator
+    to: AvatarPresentationAssembler
+    label: "player_dict.body_state → AvatarStateDTO (phenomenological projection)"
+    condition: "Assembler reads life_status for death feedback. NORMALIZES pain/fatigue /100.0 (ADR-094 MSOC). DEAD override zeros all projections. Rule X: no psyche reads for motor traces."
+    code_ref: "avatar_presentation_assembler.py:21-126"
+    adr_ref: "ADR-137, ADR-094"
+  - from: AvatarPresentationAssembler
+    to: AvatarStateDTO
+    label: "assemble_avatar_presentation → AvatarStateDTO with life_status"
+    condition: "AvatarStateDTO includes life_status field. Frontend checks life_status=DEAD for death overlay."
+    code_ref: "snapshot.py:34-56"
+    adr_ref: "ADR-137"
+  - from: AvatarStateDTO
+    to: WorldSnapshotBuilder
+    label: "AvatarStateDTO embedded in WorldSnapshotDTO"
+    condition: "WorldSnapshotDTO.avatar_state carries phenomenological projection to frontend."
+    code_ref: "snapshot.py:157"
+    adr_ref: "ADR-035"
+  - from: PerceptualKernel
+    to: PressureTranslator
+    label: "kernel + body_state → DecisionContext (feasibility constraints)"
+    condition: "NORMALIZES pain /100.0 (ADR-094 MSOC). Somatic Veto: pain>0.8 blocks FLEE, shock>0.7 blocks ATTACK. Without normalization, pain=0.8% always blocks FLEE."
+    code_ref: "pressure_translator.py:51-64"
+    adr_ref: "ADR-094, GAP3"
+  - from: TickOrchestrator
+    to: DRFBus
+    label: "owns self._drf_bus (instance-level, not per _TickContext)"
+    condition: "ADR-134: DRFBus on TickOrchestrator instance, not default_factory in _TickContext. Both execute() and execute_player_finalize() pass drf_bus=self._drf_bus. Bus cleared at start of execute()."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-134"
+  - from: DRFBus
+    to: DRFExecutionContext
+    label: "drf_ctx = DRFExecutionContext(tick_id, npc_id, bus) — scoped per NPC"
+    condition: "ADR-136: Pipeline receives drf_ctx, not bare drf_bus. Claims auto-inherit npc_id and tick_id via drf_ctx.emit(). for_npc() creates scoped child context."
+    code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
+    adr_ref: "ADR-136"
 constraints:
   - source: LifeEngine
     target: NPC_Position
@@ -176,6 +335,153 @@ constraints:
     condition: "location_id is room, campaign_id is world"
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-089"
+  - source: DMAgent
+    target: FakeNarrative
+    rule: "FORBIDDEN: Fake narrative fallback on LLM failure (ADR-113)"
+    condition: "On permanent LLM failure, return honest system message. No 'Твоё сознание мутнеет...' — that's causal fraud."
+    code_ref: "agent_runner.py, __init__.py"
+    adr_ref: "ADR-113"
+    severity: HIGH
+  - source: NPCStateAdapter
+    target: NPCState
+    rule: "REQUIRED: Round-trip integrity — every field in NPCState must survive from_legacy→write_to_legacy cycle (ADR-117)"
+    condition: "Missing write in write_to_legacy = field resets to default next tick. Missing read in from_legacy = field always default. Both = DOUBLE TRUTH."
+    code_ref: "npc_state.py"
+    adr_ref: "ADR-117"
+    severity: CRITICAL
+  - source: _aggregate_deltas
+    target: EmotionPayload
+    rule: "REQUIRED: Merge MUST preserve all fields from both payloads (ADR-117)"
+    condition: "When ReactionSubscriber EmotionPayload(affective_load=None) merges with AffectivePipeline EmotionPayload(affective_load=0.6), result MUST have affective_load=0.6. Pattern: p2.field if p2.field is not None else p1.field."
+    code_ref: "tick_orchestrator.py:1534-1541"
+    adr_ref: "ADR-117"
+    severity: CRITICAL
+  - source: StateApplicator
+    target: relationship_cache
+    rule: "REQUIRED: Partial Social Graph Projection (S69)"
+    condition: "npc_tick_pipeline MUST load relationship_cache for player + nearby_npcs. Star Schema (player-only) = Observer Collapse Bug (ADR-126). Asymmetric perception is a feature (The Fool)."
+    code_ref: "npc_tick_pipeline.py:346-355"
+    adr_ref: "ADR-126"
+    severity: HIGH
+  - source: DecisionHub
+    target: relationship_cache
+    rule: "REQUIRED: Precedence Contract (Graph > Scalar > Vacuum) via _get_rel_value (S69)"
+    condition: "Direct reads of relationship_cache keys (e.g., get('fear', 0.0)) are FORBIDDEN. Vacuum = False Consistency risk. Must use _get_rel_value or Epistemic Layer (S70)."
+    code_ref: "decision_hub.py:_get_rel_value"
+    adr_ref: "ADR-126"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: IntentParametersDTO
+    rule: "DEPRECATED: target_id field (ADR-125)"
+    condition: "IntentParametersDTO.target_id is factually dead. Truth goes via PlayerTargetExtractor → shared_context → intent.target. ADR-124 remains as load-bearing cable for EventContext.target_id until native route is built."
+    code_ref: "intent.py:21"
+    adr_ref: "ADR-125"
+    severity: MEDIUM
+  - source: LifeEngine
+    target: LifeEngine
+    rule: "REQUIRED: update_cache() called after every apply_batch (ADR-117)"
+    condition: "Without this, LifeEngine._npc_cache holds stale pre-mutation data. Next tick: engine.tick() uses cache, overwrites all mutations."
+    code_ref: "life_engine.py:779-786"
+    adr_ref: "ADR-117"
+    severity: CRITICAL
+  - source: LifeEngine
+    target: SqlitePersistenceAdapter
+    rule: "REQUIRED: SQLite read-back on cache miss (ADR-128)"
+    condition: "LifeEngine._load_npcs() MUST try persistence.load_npc_runtime() before falling back to static config. Without this, runtime state (injuries, blood_loss, affective_load) is lost after TTL/LRU eviction. Three-tier hierarchy: RAM (HOT) → SQLite (COLD-1) → static JSON (COLD-2). Empty list [] ≠ None — empty campaign must not trigger static fallback."
+    code_ref: "life_engine.py:_load_npcs, game_loop_builder.py"
+    adr_ref: "ADR-128"
+    severity: CRITICAL
+  - source: PlayerAvatarService
+    target: body_state
+    rule: "REQUIRED: body_state/affective_load/perceptual_kernel serialization in _state_to_dict/_state_from_dict (ADR-128)"
+    condition: "PlayerAvatarService MUST serialize and deserialize body_state (injuries, blood_loss, pain, shock_impulse), affective_load, perceptual_kernel. Without this, player injuries and emotional state are lost on every save/load. wounds/conditions are legacy identity layer — body_state is runtime simulation truth (SSOT)."
+    code_ref: "player_avatar_service.py:_state_to_dict, _state_from_dict"
+    adr_ref: "ADR-128"
+    severity: CRITICAL
+  - source: GameLoop
+    target: PlayerAction
+    rule: "REQUIRED: Action Eligibility Gate — check player life_status BEFORE lock_for_tick (Rule 59, ADR-131)"
+    condition: "GameLoop.run_turn() MUST check _avatar_state.body_state['life_status'] after loading avatar and BEFORE lock_for_tick. If DEAD — early return ChatTurnResponse (GameOver). Without this, dead player can act, attack, and pollute scene_state — causal fraud."
+    code_ref: "game_loop/__init__.py:648-662"
+    adr_ref: "ADR-131"
+    severity: CRITICAL
+  - source: AvatarPresentationAssembler
+    target: pain_fatigue
+    rule: "REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (Rule 63, ADR-094 MSOC)"
+    condition: "body_state SSOT stores pain/fatigue in 0-100 scale. Assembler thresholds are 0-1. Without normalization: pain=60 → 60>0.8 = True → CRIPPLED for any scratch. pain=0.8% → FLEE blocked in pressure_translator. Contract: body_state=0-100, Decision/Presentation=0-1, Motor=0-100 (behavior_manifestation thresholds correct as-is)."
+    code_ref: "avatar_presentation_assembler.py:34-35, pressure_translator.py:53"
+    adr_ref: "ADR-094"
+    severity: CRITICAL
+  - source: PressureTranslator
+    target: pain
+    rule: "REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (Rule 64, ADR-094 MSOC)"
+    condition: "CRITICAL BUG (S75): pain > 0.8 with raw pain (0-100) means FLEE is blocked at 0.8% pain — effectively ALWAYS blocked for any injured NPC. Fix: pain = body_state.get('pain', 0.0) / 100.0. After fix: FLEE blocked only when pain > 80/100 = severe injury."
+    code_ref: "pressure_translator.py:53"
+    adr_ref: "ADR-094"
+    severity: CRITICAL
+  - source: AvatarStateDTO
+    target: life_status
+    rule: "REQUIRED: AvatarStateDTO MUST contain life_status field (Rule 81, ADR-137)"
+    condition: "Without life_status in AvatarStateDTO, frontend cannot detect player death. Assembler reads body_state['life_status'] and passes through. Frontend renders death overlay when life_status='DEAD'."
+    code_ref: "snapshot.py:34-56"
+    adr_ref: "ADR-137"
+    severity: HIGH
+  - source: GameLoop
+    target: WorldSnapshotDTO
+    rule: "REQUIRED: Death Guard MUST include npc_positions in world_snapshot (Rule 82, ADR-137)"
+    condition: "When player is DEAD, early return ChatTurnResponse MUST contain world_snapshot with avatar_state (life_status=DEAD) AND npc_positions from LifeEngine cache. Without npc_positions, world freezes visually — NPCs stop moving on screen. World continues after death (ontology: death = loss of agency, not end of simulation)."
+    code_ref: "game_loop/__init__.py:653-690"
+    adr_ref: "ADR-137"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: DRFBus
+    rule: "FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (Rule 73, ADR-134)"
+    condition: "execute() and execute_player_finalize() created independent _TickContext with separate DRFBus via default_factory. Claims written to BUS_A, drain read from BUS_B. Fix: DRFBus on TickOrchestrator instance (self._drf_bus), passed as parameter."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-134"
+    severity: CRITICAL
+  - source: Any
+    target: DRFBus
+    rule: "FORBIDDEN: Monkey-patch function for bus injection (Rule 74, ADR-134)"
+    condition: "func.drf_bus = ... violates causal transparency. Use explicit parameter passing or DRFExecutionContext."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-134"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: DRFExecutionContext
+    rule: "REQUIRED: Pass drf_ctx (not bare drf_bus) to pipeline (Rule 76, ADR-136)"
+    condition: "Pipeline receives DRFExecutionContext (tick_id + npc_id + bus), not bare drf_bus. Claims auto-inherit npc_id and tick_id via drf_ctx.emit(). for_npc() creates scoped child context inside NPC loop."
+    code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
+    adr_ref: "ADR-136"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: MovementIntent
+    rule: "REQUIRED: DRF scoring overlay in BOTH idle and player paths (Rule 77, ADR-135)"
+    condition: "DRF claims influence intent priority via additive scoring: priority += energy × weight × alignment. Weights: SURVIVAL=0.15, SOCIAL=0.10, ROUTINE=0.02. Overlay MUST be applied in both idle and player turn paths via _apply_drf_scoring_overlay(). Player path bypass = arbitration gap."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-135"
+    severity: HIGH
+  - source: Any
+    target: priority_scale
+    rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (Rule 80, ADR-135)"
+    condition: "max(priority, 90) or max(priority, 70) at 0.0-1.0 scale destroys the scale — all priorities become 0.9+. Priority is float 0.0-1.0. Clamp values must be in same scale."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-135"
+    severity: HIGH
+  - source: AffectivePipeline
+    target: affective_load
+    rule: "REQUIRED: Asymmetric Attractor (Hysteresis). NO leaky integrator (Rule 84, ADR-138)"
+    condition: "FORBIDDEN: load + incoming - recovery. Target load derived from causes. affective_load relaxes towards target_load with rate 0.30 (up) / 0.05+will*0.1 (down). Bootstrapping load to emotion_tag = AFFECTIVE_BOOT (FORBIDDEN)."
+    code_ref: "affective/affective_integrator.py"
+    adr_ref: "ADR-138"
+    severity: CRITICAL
+  - source: AffectiveDecayHandler
+    target: PerceptualKernel
+    rule: "REQUIRED: PK Idle Decay (Rule 38/85, ADR-138)"
+    condition: "threat_gradient, uncertainty, anomaly_score MUST decay in Phase 0.5. Without this, Phase 9 reconstructs fear from phantom threats. Cache sync (update_cache) MUST be called after idle deltas."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-138"
+    severity: CRITICAL
 ownership:
   DeltaBuffer:
     owner: "TickOrchestrator"
@@ -210,6 +516,90 @@ ownership:
     creates: "PhenomenologyProjectionService"
     modifies: "N/A (immutable)"
     reads: "WorldSnapshotBuilder"
+  LLMResponse:
+    owner: "llama_cpp_provider"
+    creates: "llama_cpp_provider (_complete_via_server / stream_complete)"
+    modifies: "N/A"
+    reads: "agent_runner → __init__.py → DM Agent"
+    constraint: "3 retries with backoff. Partial stream recovery (>20 chars). On permanent failure: honest error dict, no fake narrative."
+    adr_ref: "ADR-113"
+  NPCStateAdapter_RoundTrip:
+    owner: "StateApplicator (calls from_legacy + write_to_legacy)"
+    creates: "from_legacy creates NPCState from dict"
+    modifies: "write_to_legacy writes NPCState back to dict"
+    reads: "All downstream consumers of npc_dict"
+    constraint: "CRITICAL: Core fields in NPCState MUST have both read (from_legacy) and write (write_to_legacy). Missing ANY = silent reset to default. Fields requiring round-trip: npc_id, body_state, perceptual_kernel (10 sub-fields), emotion, emotion_delta, affective_load (L0 integral, ADR-138), trauma_markers, stress, will_state, narrative_cache, causal_ledger, hp, max_hp. relationship_cache is NOT round-tripped (ADR-121)."
+    adr_ref: "ADR-115, ADR-116, ADR-117, ADR-138"
+  LifeEngine_Cache:
+    owner: "LifeEngine"
+    creates: "LifeEngine.tick() or load_npcs_merged() or persistence.load_npc_runtime()"
+    modifies: "update_cache() after apply_batch"
+    reads: "get_npc_states(), _load_npcs_with_runtime(), _load_npcs() with SQLite read-back"
+    constraint: "CRITICAL: After apply_batch mutates npc_dict, LifeEngine._npc_cache MUST be updated with same data. Otherwise next tick uses stale cache, overwriting all mutations. GameLoop._load_npcs_with_runtime MUST check cache before loading from file. ADR-128: On cache miss, _load_npcs() MUST try SQLite read-back (COLD-1) before static config (COLD-2). Three-tier: RAM → SQLite → static JSON."
+    adr_ref: "ADR-117, ADR-128"
+  AffectivePipeline_PlayerTurn:
+    owner: "TickOrchestrator (_phase_9_player_integration)"
+    creates: "_run_affective_pipeline(ctx)"
+    modifies: "DeltaBuffer (EmotionPayload)"
+    reads: "ctx.all_npcs_raw (npc_raw.affective_load, emotion, perceptual_kernel, drives, psyche)"
+    constraint: "MUST run in BOTH idle and player turn paths. Without player turn path, emotion freezes between player actions — affective_load decays to 0 but emotion stays stale."
+    adr_ref: "ADR-117"
+  MovementLock:
+    owner: "LifeEngine (update_routine)"
+    creates: "None (guard only)"
+    modifies: "None (prevents state mutation)"
+    reads: "scene_state.active_traversals[npc_id].status"
+    constraint: "CRITICAL: If NPC has active traversal with status=MOVING, update_routine MUST return early — no schedule intent, no routine mutation. Traversal = commitment, schedule = suggestion. Without this, schedule overwrites reactive movement every idle tick (G1). Three-tier priority: reactive (0.8) > schedule (0.6) > random (0.3). But priority arbitration is insufficient because update_routine mutates routine['current'] BEFORE intent comparison."
+    adr_ref: "ADR-130"
+  TargetResolution:
+    owner: "DecisionHub (_context_relevance)"
+    creates: "is_targeted bool for utility scoring"
+    modifies: "APPROACH/TALK/OBSERVE scores"
+    reads: "EventContext.target_id, EventContext.payload['target_id']"
+    constraint: "CRITICAL: _context_relevance MUST check EventContext.payload['target_id'] as fallback when EventContext.target_id is None. dm_scene_builder does not propagate target_id to EventContext.target_id, but dm_phase.py writes it to payload. Without fallback, ALL NPCs in zone receive APPROACH/TALK/OBSERVE bonus — uninvited NPCs approach player (G2)."
+    adr_ref: "ADR-130"
+  ActionEligibilityGate:
+    owner: "GameLoop (run_turn)"
+    creates: "Early return ChatTurnResponse if player DEAD"
+    modifies: "None (prevents pipeline execution)"
+    reads: "_avatar_state.body_state['life_status']"
+    constraint: "CRITICAL: Player action MUST NOT be processed if life_status='DEAD'. Guard placed after avatar load (line 648) and BEFORE lock_for_tick (line 662). Dead player acting = causal fraud and scene_state pollution. S75: Death Guard v2 includes npc_positions from LifeEngine cache — world continues after death."
+    adr_ref: "ADR-131, ADR-137"
+  AvatarStateDTO_Pipeline:
+    owner: "AvatarPresentationAssembler"
+    creates: "AvatarStateDTO from player_dict (body_state + psyche)"
+    modifies: "N/A (immutable frozen dataclass)"
+    reads: "WorldSnapshotBuilder → APIRoutes → Frontend (GameScreen)"
+    constraint: "Assembler is PROJECTION BOUNDARY (L0→Presentation). Reads body_state (0-100 SSOT), normalizes pain/fatigue /100.0, outputs 0-1 scalars. life_status passed through for death feedback. DEAD override zeros ALL projections. Rule X: no psyche reads for motor traces — only body_state."
+    adr_ref: "ADR-137, ADR-094"
+  PressureTranslator_Pipeline:
+    owner: "PressureTranslator"
+    creates: "DecisionContext (feasibility constraints) from PerceptualKernel + body_state"
+    modifies: "N/A (pure function)"
+    reads: "DecisionHub (translate_kernel_to_context)"
+    constraint: "CRITICAL: pain MUST be normalized /100.0 before threshold comparison. Without normalization, Somatic Veto (pain>0.8 blocks FLEE) fires at 0.8% pain — FLEE permanently blocked for any injured NPC. shock_impulse and blood_loss already in 0-1 scale — no normalization needed."
+    adr_ref: "ADR-094, GAP3"
+  DRFBus_Ownership:
+    owner: "TickOrchestrator (self._drf_bus)"
+    creates: "TickOrchestrator.__init__() — single instance per orchestrator"
+    modifies: "Claims written by pipeline phases, drained by persistence"
+    reads: "_apply_drf_scoring_overlay(), _phase_10_persistence()"
+    constraint: "CRITICAL: DRFBus MUST live on TickOrchestrator instance, NOT in _TickContext default_factory. Two _TickContext objects = two buses = split-brain (claims in A, drain from B). Bus cleared (stream.clear()) at start of execute(). Idle _phase_10_persistence MUST have drain — without it idle claims are lost."
+    adr_ref: "ADR-134"
+  DRFExecutionContext_Ownership:
+    owner: "TickOrchestrator (creates root drf_ctx)"
+    creates: "DRFExecutionContext(tick_id, bus) at start of tick"
+    modifies: "Scoped per NPC via for_npc(npc_id)"
+    reads: "npc_tick_pipeline (receives drf_ctx, emits claims via drf_ctx.emit())"
+    constraint: "Pipeline receives drf_ctx, not bare drf_bus. Claims auto-inherit npc_id and tick_id. Monkey-patching function.drf_bus = ... is FORBIDDEN (Rule 74)."
+    adr_ref: "ADR-136"
+  PhysiologyScaleContract:
+    owner: "StateApplicator (writes body_state as SSOT)"
+    creates: "body_state dict with pain/fatigue 0-100, blood_loss/shock_impulse 0-1"
+    modifies: "StateApplicator.apply_batch()"
+    reads: "ALL body_state consumers"
+    constraint: "CONTRACT: body_state['pain'] and body_state['fatigue'] stored in 0-100 scale (StateApplicator SSOT, L525/L529). blood_loss and shock_impulse stored in 0-1 scale. Consumers with 0-1 thresholds MUST normalize pain/fatigue /100.0. Verified normalizers: state_interpreter.py (L248), pressure_derivation.py (L24/L36), tick_orchestrator.py (L2235). Verified 0-100 consumers: behavior_manifestation_service.py (thresholds 10/20/50/80), vital_state.py (_PAIN_INCAPACITATED=70.0). FORBIDDEN: reading pain with 0-1 thresholds without /100.0 (ADR-094 MSOC)."
+    adr_ref: "ADR-094"
 sequences:
   - title: "Pipeline Tick Execution Flow"
     participants: [TickOrchestrator, LifeEngine, DeltaBuffer, StateApplicator, SQLiteDB]
@@ -231,3 +621,81 @@ sequences:
       - from: StateApplicator
         to: SQLiteDB
         message: "5. Atomic commit"
+  - title: "Player Death Feedback Flow (ADR-137)"
+    participants: [GameLoop, AvatarPresentationAssembler, AvatarStateDTO, WorldSnapshotBuilder, APIRoutes, GameScreen]
+    steps:
+      - from: GameLoop
+        to: GameLoop
+        message: "1. load_state() → check body_state['life_status']"
+      - from: GameLoop
+        to: AvatarPresentationAssembler
+        message: "2. If ALIVE: assemble_avatar_presentation(player_dict)"
+      - from: AvatarPresentationAssembler
+        to: AvatarStateDTO
+        message: "3. AvatarStateDTO(life_status='ALIVE', pain=pain/100.0, ...)"
+      - from: AvatarStateDTO
+        to: WorldSnapshotBuilder
+        message: "4. Embedded in WorldSnapshotDTO.avatar_state"
+      - from: WorldSnapshotBuilder
+        to: APIRoutes
+        message: "5. WorldSnapshotDTO → JSON response"
+      - from: APIRoutes
+        to: GameScreen
+        message: "6. scene_state['avatar_state'] → renderer"
+      - from: GameScreen
+        to: GameScreen
+        message: "7. If life_status='DEAD': render death overlay (ВАС МЕРТВЫ)"
+  - title: "Death Guard v2 — World Continues (ADR-137)"
+    participants: [GameLoop, LifeEngine, AvatarPresentationAssembler, APIRoutes]
+    steps:
+      - from: GameLoop
+        to: GameLoop
+        message: "1. _avatar_state.body_state['life_status'] == 'DEAD'"
+      - from: GameLoop
+        to: LifeEngine
+        message: "2. get_npc_states(campaign_id) — world still lives"
+      - from: LifeEngine
+        to: GameLoop
+        message: "3. Cached npc_dicts"
+      - from: GameLoop
+        to: AvatarPresentationAssembler
+        message: "4. Assemble death avatar (all projections zeroed, life_status=DEAD)"
+      - from: GameLoop
+        to: APIRoutes
+        message: "5. ChatTurnResponse(world_snapshot={avatar_state: death, npc_positions: cached})"
+  - title: "ADR-094 MSOC Normalization Flow"
+    participants: [StateApplicator, AvatarPresentationAssembler, PressureTranslator, BehaviorManifestationService]
+    steps:
+      - from: StateApplicator
+        to: StateApplicator
+        message: "1. Writes body_state: pain=0-100, fatigue=0-100, blood_loss=0-1, shock_impulse=0-1"
+      - from: AvatarPresentationAssembler
+        to: AvatarPresentationAssembler
+        message: "2. pain / 100.0 → 0-1 scale. Thresholds: 0.5=WOUNDED, 0.8=CRIPPLED"
+      - from: PressureTranslator
+        to: PressureTranslator
+        message: "3. pain / 100.0 → 0-1 scale. Somatic Veto: pain>0.8 blocks FLEE"
+      - from: BehaviorManifestationService
+        to: BehaviorManifestationService
+        message: "4. pain raw 0-100. Thresholds: 10=instability, 20=rigidity, 50=instability scale, 80=rigidity scale. NO normalization — motor layer works in 0-100"
+  - title: "DRF Causal Field Flow (ADR-134/136)"
+    participants: [TickOrchestrator, DRFBus, DRFExecutionContext, npc_tick_pipeline, MovementEngine]
+    steps:
+      - from: TickOrchestrator
+        to: DRFBus
+        message: "1. self._drf_bus.stream.clear() at start of execute()"
+      - from: TickOrchestrator
+        to: DRFExecutionContext
+        message: "2. DRFExecutionContext(tick_id, npc_id, bus)"
+      - from: DRFExecutionContext
+        to: npc_tick_pipeline
+        message: "3. drf_ctx.for_npc(npc_id) — scoped per NPC"
+      - from: npc_tick_pipeline
+        to: DRFBus
+        message: "4. drf_ctx.emit(reason, energy, vector) — claims auto-inherit npc_id"
+      - from: TickOrchestrator
+        to: TickOrchestrator
+        message: "5. _apply_drf_scoring_overlay() — both idle and player paths (ADR-135)"
+      - from: TickOrchestrator
+        to: MovementEngine
+        message: "6. Intents with DRF-adjusted priority → process_intents()"

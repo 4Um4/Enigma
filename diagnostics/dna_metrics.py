@@ -54,6 +54,9 @@ class DNASnapshot:
     todo_count: int
     adr_count: int
     llm_calls: int
+    # Инвариант 3: пред-шинные отказы
+    prebus_failures: int = 0  # pipeline_critical + causality_crash + phase8_crash + tick_orch_error
+    affect_decay_fails: int = 0  # affect_decay_fail count
 
 
 @dataclass
@@ -65,6 +68,7 @@ class DNADelta:
     SCF: Optional[float] = None
     ADR: Optional[float] = None
     CVS: Optional[float] = None
+    PFI: Optional[float] = None  # Инвариант 3: Pre-Bus Failure Index
 
     def format_field(self, name: str) -> str:
         """Форматирует одно поле дельты для LLM-отчёта."""
@@ -136,6 +140,10 @@ class DNAComputer:
         adr_val, todo_count, adr_count = self._compute_adr()
         cvs = self._compute_cvs(session_minutes)
 
+        # Инвариант 3: Подсчёт пред-шинных отказов
+        _prebus = (self._tick.pipeline_critical_count + self._tick.causality_crash_count +
+                   self._tick.phase8_crash_count + self._tick.tick_orch_error_count)
+
         return DNASnapshot(
             timestamp=datetime.now().isoformat(timespec="seconds"),
             session_minutes=round(session_minutes, 1),
@@ -154,6 +162,9 @@ class DNAComputer:
             todo_count=todo_count,
             adr_count=adr_count,
             llm_calls=self._tick.llm_calls,
+            # Инвариант 3: Наблюдаемость отказа
+            prebus_failures=_prebus,
+            affect_decay_fails=self._tick.affect_decay_fail_count,
         )
 
     def _compute_shi(self) -> float:
@@ -286,6 +297,10 @@ class DNAComputer:
         """Вычисляет разницу метрик между текущей и предыдущей сессией."""
         if previous is None:
             return DNADelta()
+        # Инвариант 3: PFI delta
+        _pfi_curr = current.prebus_failures / max(current.total_ticks, 1) * 100
+        _pfi_prev = previous.prebus_failures / max(previous.total_ticks, 1) * 100
+
         return DNADelta(
             SHI=round(current.SHI - previous.SHI, 1),
             NPI=round(current.NPI - previous.NPI, 1),
@@ -293,6 +308,7 @@ class DNAComputer:
             SCF=round(current.SCF - previous.SCF, 1),
             ADR=round(current.ADR - previous.ADR, 2),
             CVS=round(current.CVS - previous.CVS, 2),
+            PFI=round(_pfi_curr - _pfi_prev, 1),
         )
 
     # ------------------------------------------------------------------
@@ -363,6 +379,15 @@ class DNAComputer:
             f"{cvs_icon} {delta.format_field('CVS')} | {cvs_interpret} |"
         )
 
+        # Инвариант 3: PFI — Pre-Bus Failure Index
+        _pfi_val = snapshot.prebus_failures / max(snapshot.total_ticks, 1) * 100
+        pfi_icon = delta.trend_icon("PFI", higher_is_better=False)
+        pfi_interpret = self._interpret_pfi(_pfi_val, snapshot.prebus_failures, snapshot.affect_decay_fails)
+        lines.append(
+            f"| **PFI** (Pre-Bus Failure) | {_pfi_val:.0f}% | "
+            f"{pfi_icon} {delta.format_field('PFI')}% | {pfi_interpret} |"
+        )
+
         # Системные предупреждения для LLM
         warnings = self._generate_warnings(snapshot, delta)
         if warnings:
@@ -417,6 +442,16 @@ class DNAComputer:
         if v == 0.5:
             return "⚠️ ДЕГРАДАЦИЯ: location_templates fallback активен"
         return "✅ пространство целостно: граф загружен корректно"
+
+    def _interpret_pfi(self, v: float, prebus: int, decay_fails: int) -> str:
+        """Инвариант 3: Интерпретация Pre-Bus Failure Index."""
+        if prebus == 0 and decay_fails == 0:
+            return "✅ норма: пред-шинных отказов нет — CDS видит всё"
+        if prebus == 0:
+            return f"⚠️ {decay_fails} сбоев affective decay — эмоции могут застревать"
+        if v < 20:
+            return f"⚠️ {prebus} пред-шинных отказов — CDS слеп к части крахов"
+        return f"⛔ {prebus} пред-шинных отказов — pipeline молча умирает, CDS слеп"
 
     def _interpret_adr(self, v: float, todo: int, adr: int) -> str:
         if adr == 0:

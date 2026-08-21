@@ -63,6 +63,7 @@ class EventType(str, Enum):
     PLAYER_ASKS_WHY  = "player_asks_why"
     PLAYER_INTERACTS = "player_interacts"
     PLAYER_ATTACKS   = "player_attacks"
+    ACTOR_ATTACKS    = "actor_attacks"     # ADR-O-112: Универсальная атака (NPC→Player, NPC→NPC)
     WILL_CONFLICT    = "will_conflict"
     PLAYER_ATTACK    = "player_attack"
     PLAYER_INSULTS   = "player_insults"

@@ -70,6 +70,28 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
                 logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
         except Exception:
             pass
+        jsonl_log({
+            "level": "ERROR", "agent": agent_name,
+            "error_code": ERROR_CODES["AGENT_TIMEOUT"],
+            "duration_ms": duration, "status": "timeout",
+            "human_msg": msg,
+        })
+        logger.error(f"[GAME_LOOP] {msg}")
+        return {"error": True, "error_code": ERROR_CODES["AGENT_TIMEOUT"], "human_msg": msg}
+
+    except Exception as e:
+        duration = round((time.perf_counter() - start) * 1000)
+        human_msg, fix = error_interpreter.handle(
+            e, {"agent": agent_name}, agent_name, agent_name
+        )
+        jsonl_log({
+            "level": "ERROR", "agent": agent_name,
+            "error_code": ERROR_CODES["AGENT_MODEL_FAIL"],
+            "duration_ms": duration, "status": "failed",
+            "human_msg": human_msg, "fix": fix,
+        })
+        logger.error(f"[GAME_LOOP] {agent_name} failed: {human_msg}")
+        return {"error": True, "error_code": ERROR_CODES["AGENT_MODEL_FAIL"], "human_msg": human_msg}
 
 
 async def yield_model_info(state):
@@ -107,25 +129,3 @@ async def yield_model_info(state):
         }
     except Exception as e:
         logger.warning(f"[GAME_LOOP] Ошибка получения model info: {e}")
-        jsonl_log({
-            "level": "ERROR", "agent": agent_name,
-            "error_code": ERROR_CODES["AGENT_TIMEOUT"],
-            "duration_ms": duration, "status": "timeout",
-            "human_msg": msg,
-        })
-        logger.error(f"[GAME_LOOP] {msg}")
-        return
-
-    except Exception as e:
-        duration = round((time.perf_counter() - start) * 1000)
-        human_msg, fix = error_interpreter.handle(
-            e, {"agent": agent_name}, agent_name, agent_name
-        )
-        jsonl_log({
-            "level": "ERROR", "agent": agent_name,
-            "error_code": ERROR_CODES["AGENT_MODEL_FAIL"],
-            "duration_ms": duration, "status": "failed",
-            "human_msg": human_msg, "fix": fix,
-        })
-        logger.error(f"[GAME_LOOP] {agent_name} failed: {human_msg}")
-        return

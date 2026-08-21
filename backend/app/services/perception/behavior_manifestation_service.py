@@ -31,14 +31,11 @@ class BehaviorManifestationService:
     
     def produce_traces(self, scene_state, all_npcs_raw=None) -> list[EmbodiedTraceDTO]:
         traces = []
-        print(f"[MANIFEST_ENTRY] scene_state type={type(scene_state).__name__}, all_npcs_raw={'YES' if all_npcs_raw else 'NO'}")
         if not scene_state or not isinstance(scene_state, dict):
-            print(f"[MANIFEST_ENTRY] EARLY RETURN: scene_state invalid")
             return traces
             
         # Читаем из npc_positions (там лежат дельты и наблюдаемые состояния)
         npc_positions = scene_state.get("npc_positions", {})
-        print(f"[MANIFEST_ENTRY] npc_positions count={len(npc_positions)} keys={list(npc_positions.keys())[:5]}")
         
         # Правило X: строим маппинг npc_id → body_state из all_npcs_raw
         # StateApplicator пишет body_state в all_npcs_raw, НЕ в npc_positions
@@ -59,9 +56,8 @@ class BehaviorManifestationService:
         return traces
 
     def _manifest_npc(self, npc_id: str, data: dict, body_state: dict = None) -> EmbodiedTraceDTO:
-        # Читаем наблюдаемые моторные паттерны из npc_positions
-        stress_delta = float(data.get("stress_delta", 0))
-        psyche_state = str(data.get("psyche_state", "calm"))
+        # Rule X (ADR-101): Моторика определяется ТОЛЬКО физиологией и локомоцией
+        # ЗАПРЕЩЕНО: stress_delta, psyche_state — это эмоции, не моторика
         in_transit = bool(data.get("in_transit", False))
         
         # Правило X: Читаем физиологию из body_state (НЕ эмоции!)
@@ -71,23 +67,26 @@ class BehaviorManifestationService:
         fatigue = 0.0
         shock_impulse = 0.0
         if body_state:
+            # ADR-094: pain/fatigue ∈ 0-100 (StateApplicator SSOT).
+            # Пороги ниже — в шкале 0-100. НЕ нормализовать.
+            # blood_loss/shock_impulse ∈ 0-1. Пороги ниже — в шкале 0-1.
             pain = float(body_state.get("pain", 0.0))
             blood_loss = float(body_state.get("blood_loss", 0.0))
             fatigue = float(body_state.get("fatigue", 0.0))
             shock_impulse = float(body_state.get("shock_impulse", 0.0))
         
-        # Вычисляем моторные искажения
-        # 1. Замер/Напряжение: настороженность ИЛИ защитный рефлекс от боли
-        is_alert = psyche_state in ("alert", "fleeing", "shock")
-        posture_rigidity = 0.8 if is_alert else 0.0
+        # Вычисляем моторные искажения (Rule X: ТОЛЬКО физиология)
+        # 1. Замер/Напряжение: защитный рефлекс от боли + мышечный замок от шока
+        posture_rigidity = 0.0
         if pain > 20.0:
-            # Боль вызывает окаменелость — защитный рефлекс тела
-            posture_rigidity = max(posture_rigidity, min(1.0, pain / 80.0))
+            posture_rigidity = min(1.0, pain / 80.0)
+        if shock_impulse > 0.5:
+            posture_rigidity = max(posture_rigidity, min(1.0, shock_impulse * 0.8))
         
-        # 2. Дрожь/Пошатывание: от боли и шока (Правило X — не только стресс)
-        instability = min(1.0, stress_delta / 15.0)
+        # 2. Дрожь/Пошатывание: от боли и шока
+        instability = 0.0
         if pain > 10.0:
-            instability = max(instability, min(1.0, pain / 50.0))
+            instability = min(1.0, pain / 50.0)
         if shock_impulse > 0.3:
             instability = max(instability, min(1.0, shock_impulse))
         
@@ -102,7 +101,7 @@ class BehaviorManifestationService:
         action_interrupt = min(1.0, shock_impulse) if shock_impulse > 0.5 else 0.0
         
         # [DIAG S61] Снятие слепка причинных факторов (Правило X vs Semantic Inflation)
-        print(f"[MANIFEST_DIAG] npc={npc_id} psyche={psyche_state} stress_d={stress_delta:.2f} pain={pain:.2f} shock_imp={shock_impulse:.2f} → instab={instability:.2f} rigid={posture_rigidity:.2f}")
+        logger.debug(f"[MANIFEST_DIAG] npc={npc_id} pain={pain:.2f} shock_imp={shock_impulse:.2f} → instab={instability:.2f} rigid={posture_rigidity:.2f}")
         is_frozen = posture_rigidity > 0.7 and not in_transit
         is_shaking = instability > 0.3
         

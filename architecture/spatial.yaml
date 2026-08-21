@@ -42,7 +42,7 @@ nodes:
     type: service
     layer: Domain
     label: "Spatial Runtime (LOS, Sound, Scene Extraction)"
-    description: "ADR-102: Использует SpatialService вместо мёртвого load_graph(). Требует campaign_id в scene_state."
+    description: "ADR-102: Использует SpatialService вместо мёртвого load_graph(). Требует campaign_id в scene_state. ADR-129: normalize_scene_state() — firewall против type corruption. Все 8 consumer-функций защищены."
   LocationGraph:
     type: dto
     layer: Domain
@@ -155,6 +155,55 @@ constraints:
     condition: "Must preserve TraversalState interpolation"
     code_ref: "game_screen.py:794-799"
     adr_ref: "ADR-096"
+  - source: GraphCompiler
+    target: LegacyName
+    rule: "REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"
+    condition: "GraphCompiler MUST inject role-based aliases (bed→canonical, bar_area→canonical) and name-aliases (main_hall→canonical) so schedule/FLEE targets resolve. Without this, NPC get 'node not found' and freeze."
+    code_ref: "graph_compiler.py:134-153"
+    adr_ref: "ADR-114"
+    severity: HIGH
+  - source: SpatialQueryService
+    target: SpatialRuntime
+    rule: "FORBIDDEN: Wrong argument order in is_line_of_sight_clear call (ADR-129)"
+    condition: "Must call is_line_of_sight_clear(ax, ay, bx, by, scene_state), NOT is_line_of_sight_clear(dist, scene_state, ax, ay, bx, by)"
+    code_ref: "spatial_query_service.py:68"
+    adr_ref: "ADR-129"
+    severity: CRITICAL
+  - source: SceneStateManager
+    target: SpatialRuntime
+    rule: "FORBIDDEN: CEI-2 uses is_movement_blocked instead of is_blocked_by_wall (ADR-129)"
+    condition: "Furniture (walk=False) is LOD0 obstacle, NOT wall. CEI-2 macro-routing MUST use is_blocked_by_wall only. is_movement_blocked blocks legitimate 2-node paths through doorways."
+    code_ref: "scene_state_manager.py:1276, npc_tick_pipeline.py:870"
+    adr_ref: "ADR-129"
+    severity: HIGH
+  - source: SpatialRuntime
+    target: SceneState
+    rule: "REQUIRED: normalize_scene_state() on every consumer function (ADR-129)"
+    condition: "All 8 consumer functions in spatial_runtime.py MUST call normalize_scene_state() as first line. Prevents AttributeError on type corruption (list/float/None)."
+    code_ref: "spatial_runtime.py"
+    adr_ref: "ADR-129"
+    severity: HIGH
+  - source: SceneStateManager
+    target: SceneState
+    rule: "REQUIRED: isinstance(scene, dict) guard in get_scene_state and get_scene_state_uncached (ADR-129)"
+    condition: "Non-dict from persistence MUST be rejected with warning, not propagated to spatial pipeline."
+    code_ref: "scene_state_manager.py:255,319"
+    adr_ref: "ADR-129"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: MovementEngine
+    rule: "REQUIRED: DRF scoring overlay applied to movement intents in BOTH idle and player paths (ADR-135)"
+    condition: "priority += energy × weight × alignment. Weights: SURVIVAL=0.15, SOCIAL=0.10, ROUTINE=0.02. Without overlay in player path, schedule intents bypass arbitration. FORBIDDEN: viability veto via _drf_killed flag or priority=0 in MovementEngine — use scoring, not killing."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-135"
+    severity: HIGH
+  - source: MovementEngine
+    target: priority_scale
+    rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135)"
+    condition: "max(priority, 90) or max(priority, 70) at 0.0-1.0 scale destroys the scale — all priorities become 0.9+. Priority is float 0.0-1.0."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-135"
+    severity: HIGH
 sequences:
   - title: "Broken Traversal Flow (Node Not Found - BREAK-N)"
     participants: [DecisionHub, MovementEngine, SpatialService, SceneStateManager]

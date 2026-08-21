@@ -46,18 +46,28 @@ class DirectiveInterpretationSubscriber:
         if not target_id:
             return []
 
-        # 2. Находим цель в npc_states (если доступно)
+        # 2. Находим цель в npc_states
         target_dict = next((n for n in npc_states if (n.get("npc_id") or n.get("id")) == target_id), None)
+        
+        # NPIC (NPC Physical Integrity Contract): Бестелесный агент не может интерпретировать директивы.
+        # §ENIGMA-003: Отсутствие данных ≠ нейтральное значение. Unknown ≠ Neutral(0.0).
+        # Убит fallback {"social_stats": {"fear_of_player": 0.1}} — он создавал "логического призрака".
         if not target_dict:
-            # S28: В player turn npc_states пуст. Используем fallback, т.к. ID уже известен.
-            logger.info(f"[DIRECTIVE_NO_STATE] NPC {target_id} state not loaded, using base fear 0.1")
-            target_dict = {"social_stats": {"fear_of_player": 0.1}}
+            logger.warning(f"[DIRECTIVE_NO_STATE] NPC {target_id} state not loaded. Cannot interpret (NPIC).")
+            return []
 
-        # GAP4 FIX: Ингибирование Шоком. Бессознательное тело не подчиняется приказам.
-        _body = target_dict.get("body_state", {}) or {}
+        # SOMATIC INTERPRETATION GATE: Тело определяет доступность когнитивного парсинга.
+        # Порядок: Тело → Восприятие → Легитимность.
+        # NCC: Если body_state = BODY_STATE_DISABLED (sentinel), когнитивный парсинг невозможен.
+        _body = target_dict.get("body_state", {})
+        if not _body or _body.get("disabled"):
+            logger.info(f"[DIRECTIVE_DISABLED_BODY] Target {target_id} has disabled/missing body_state. Cannot interpret (NPIC).")
+            return []
+
+        # GAP4 FIX: Ингибирование Шоком. Бессознательное тело не может воспринимать приказы.
         _shock = _body.get("shock_impulse", 0.0)
         if _shock > 0.7:
-            logger.info(f"[DIRECTIVE_SHOCK_INHIBIT] Target {target_id} in shock ({_shock:.2f}), cannot obey")
+            logger.info(f"[DIRECTIVE_SHOCK_INHIBIT] Target {target_id} in shock ({_shock:.2f}), somatic gate closed")
             return []
 
         # 3. Вычисление Social Interpretation (MVP: берем напрямую из social_pressure в payload)
@@ -77,25 +87,30 @@ class DirectiveInterpretationSubscriber:
         source_id = getattr(event, 'source', event.payload.get("source", "player"))
         
         if source_id == "player":
-            target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.0)
+            # P1 ARCH: Чтение из relationship_cache (SSOT, масштаб 0-100)
+            target_fear = target_dict.get("relationship_cache", {}).get("player", {}).get("fear", 0.0)
             if target_fear == 0.0:
-                # Fallback на drives.fear — врождённая осторожность NPC
-                target_fear = target_dict.get("drives", {}).get("fear", 0.1)
-            target_trust = target_dict.get("social_stats", {}).get("trust", 0.0)
+                # fear_of_player приходит в масштабе 0-1, нормализуем к 0-100
+                target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.0) * 100.0
+            target_trust = target_dict.get("relationship_cache", {}).get("player", {}).get("trust", 0.0)
+            if target_trust == 0.0:
+                # trust в social_stats уже в масштабе 0-100, умножение на 100 даёт DOUBLE SCALING
+                target_trust = target_dict.get("social_stats", {}).get("trust", 0.0)
             if target_trust == 0.0:
                 # Fallback на psyche.loyalty_true — базовая лояльность
                 target_trust = float(target_dict.get("psyche", {}).get("loyalty_true", 0.0))
         else:
             # NPC-to-NPC Social Physics. Читаем страх/доверие к источнику из relationship_cache
             _rc = target_dict.get("relationship_cache", {})
-            target_fear = _rc.get(f"fear_{source_id}", 0.0)
-            target_trust = _rc.get(f"trust_{source_id}", 0.0)
+            _src_rc = _rc.get(source_id, {})
+            target_fear = _src_rc.get("fear", 0.0)
+            target_trust = _src_rc.get("trust", 0.0)
             # Фоллбэк: если отношений нет, базовая дистанция к другому взрослому NPC
             if target_fear == 0.0 and target_trust == 0.0:
-                target_fear = 0.2  # Базовая социальная дистанция
+                target_fear = 20.0  # Базовая социальная дистанция (масштаб 0-100)
         
-        # Легитимность: страх (принуждение) + доверие (авторитет)
-        legitimacy = max(target_fear, target_trust / 100.0) # trust 0-100, fear 0-1
+        # Легитимность: страх (принуждение) + доверие (авторитет). Оба 0-100, нормализуем к 0-1
+        legitimacy = max(target_fear / 100.0, target_trust / 100.0)
         
         # L1 BRIDGE: Professional Duty (MVP для compliance_bias).
         # Обслуживающий персонал обязан подчиняться запросам MOVE (подзыв).
@@ -107,11 +122,13 @@ class DirectiveInterpretationSubscriber:
         
         if legitimacy > 0.3:
             # Приказ или просьба от авторитета → Подчинение
-            obedience_intensity = base_social_force * (0.5 + legitimacy)
+            # ADR-O-112 FIX: Убран attractor collapse (0.5 + legitimacy).
+            # Легитимность не усиливает давление, она переключает режим.
+            obedience_intensity = base_social_force * legitimacy
         else:
             # Нет легитимности → Раздражение (Irritation). NPC не подчинится, а разозлится.
             obedience_intensity = 0.0
-            irritation_intensity = base_social_force * 0.5
+            irritation_intensity = base_social_force * (1.0 - legitimacy)
 
         # 5. Генерация PsychologicalPressure (искривление пространства полезности)
         pressure = PsychologicalPressure(
@@ -124,23 +141,26 @@ class DirectiveInterpretationSubscriber:
 
         # 6. Конвертация давления в StateDeltas (для StateApplicator)
         if obedience_intensity > 0:
-            # Эмоциональный отклик (страх, стресс) — только при легитимности
+            # MOVE (подзыв) — это не угроза. Страх и стресс НЕ генерируются.
+            # THREATEN/PERSUADE/GIVE — могут вызывать стресс, но не страх от подчинения.
+            _is_summon = semantic_action == "MOVE"
+            
             emotion_delta = StateDeltas(
                 npc_id=target_id,
                 domain=DeltaDomain.EMOTION,
                 payload=EmotionPayload(
-                    stress_delta=obedience_intensity * 20.0,
-                    emotion_tag="submissive_fear" if obedience_intensity > 0.6 else "unease"
+                    stress_delta=obedience_intensity * 5.0 if not _is_summon else 0.0,
+                    emotion_tag="unease" if not _is_summon else None
                 ),
                 source="directive_interpretation"
             )
             
-            # Социальный отклик (подчинение)
+            # Социальный отклик: fear только для угроз/убеждений, НЕ для подзыва
             social_delta = StateDeltas(
                 npc_id=target_id,
                 domain=DeltaDomain.SOCIAL,
                 payload=SocialPayload(
-                    fear_delta=obedience_intensity * 10.0 # Увеличиваем страх перед источником
+                    fear_delta=obedience_intensity * 5.0 if not _is_summon else 0.0
                 ),
                 source="directive_interpretation"
             )

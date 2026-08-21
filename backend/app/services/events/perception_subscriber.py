@@ -111,7 +111,8 @@ class PerceptionSubscriber:
                 ))
 
             # Адресат всегда воспринимает + свидетели по perception
-            _explicit_target = getattr(ctx.shared_context, 'player_target_id', '') if ctx.shared_context else ''
+            # P1 ARCH: Чтение цели ТОЛЬКО из EventContext (Referential Closure)
+            _explicit_target = getattr(ctx.event, 'target_id', '') if ctx.event else ''
             if _explicit_target:
                 _perceiving_ids.add(_explicit_target)
 

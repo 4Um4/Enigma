@@ -31,10 +31,13 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
     psyche = player_dict.get("psyche", {})
 
     # --- Извлечение сырых данных с безопасными дефолтами ---
-    pain = float(body.get("pain", 0.0))
-    fatigue = float(body.get("fatigue", 0.0))
+    # ADR-094: pain и fatigue хранятся в 0-100 (StateApplicator SSOT).
+    # Все пороги в этом ассемблере — 0-1. Нормализация обязательна.
+    pain = float(body.get("pain", 0.0)) / 100.0
+    fatigue = float(body.get("fatigue", 0.0)) / 100.0
     blood_loss = float(body.get("blood_loss", 0.0))
     consciousness = float(body.get("consciousness", 1.0))
+    life_status = str(body.get("life_status", "ALIVE"))  # ADR-127: feedback смерти
 
     fear = float(psyche.get("fear", 0.0))
     stress = float(psyche.get("stress", 0.0))
@@ -102,9 +105,18 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
         breathing_profile = "calm"
         posture_state = "upright"
 
-    # ADR-035 Trace: Диагностика эмбодимента (видит ли ассемблер боль?)
-    if pain > 0.01 or stress > 0.01 or fear > 0.01:
-        print(f"[ASSEMBLER_TRACE] pain={pain:.2f}, stress={stress:.2f}, fear={fear:.2f} -> stability={perceptual_stability:.2f}, coherence={cognitive_coherence:.2f}, noise={sensory_noise:.2f}")
+    # --- DEATH OVERRIDE (ADR-127) — смерть перекрывает ВСЕ проекции ---
+    if life_status == "DEAD":
+        phys_state = PhysicalPresentationState.DEAD
+        mental_state = MentalPresentationState.BROKEN
+        perceptual_stability = 0.0
+        cognitive_coherence = 0.0
+        sensory_noise = 1.0
+        motor_disruption = 1.0
+        perceptual_latency = 1.0
+        reality_reconciliation_rate = 0.0
+        breathing_profile = "none"
+        posture_state = "collapsed"
 
     # ADR-039: Извлечение конфликта воли (если StateApplicатор его записал)
     will_data = player_dict.get("will_conflict_data", {})
@@ -123,4 +135,5 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
         posture_state=posture_state,
         will_resistance=float(will_data.get("resistance", 0.0)),
         embodied_vector=will_data.get("embodied_vector"),
+        life_status=life_status,
     )

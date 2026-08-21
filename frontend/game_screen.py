@@ -296,18 +296,28 @@ def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
         wp = trav.get("path_waypoints", [])
         started_tick = int(trav.get("started_tick", 0))
         duration_ticks = max(1, int(trav.get("duration_ticks", 1)))
-        # Текущий тик из авторитетного источника (scene_state)
-        current_tick = int(scene_state.get("tick", scene_state.get("game_time_seconds", 0) // 60))
 
         if wp and len(wp) >= 2 and duration_ticks > 0:
-            # ADR-0XX: Тик читается напрямую из scene_state (авторитетный источник)
             current_tick = int(scene_state.get("tick", 0))
             progress = min(1.0, max(0.0, (current_tick - started_tick) / duration_ticks))
-            return _extracted_from__resolve_visual_xy_(0, wp, progress)
+            # CEI-3b: Multi-waypoint интерполяция — маршрут через промежуточные узлы графа
+            num_segments = len(wp) - 1
+            segment_progress = progress * num_segments
+            segment_idx = min(int(segment_progress), num_segments - 1)
+            segment_frac = segment_progress - segment_idx
+            return _extracted_from__resolve_visual_xy_(segment_idx, wp, segment_frac)
 
     # Транзит завершён или отсутствует. Рисуем по Каузальной Истине
     npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
-    return npc_data.get("local_position", {"x": 0, "y": 0})
+    lp = npc_data.get("local_position")
+    if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
+        return lp
+    # CEI-3b: Fallback — destination traversal вместо (0,0)
+    if trav:
+        wp = trav.get("path_waypoints", [])
+        if len(wp) >= 1:
+            return {"x": float(wp[-1][0]), "y": float(wp[-1][1])}
+    return {"x": 0, "y": 0}  # Абсолютный fallback — не должен достигаться при корректных данных
 
 
 # TODO Rename this here and in `_resolve_visual_xy`
@@ -684,6 +694,12 @@ class GameScreen:
                 if _ws_gts is not None and _ws_gts > 0:
                     scene_state["game_time_seconds"] = _ws_gts
                     self.game_time_seconds = _ws_gts
+                # ADR-019 FIX: Синхронизация tick для traversal интерполяции.
+                # Без этого _resolve_visual_xy всегда видит progress=0 → NPC стоят.
+                _ws_tick = _ws.get("tick")
+                print(f"[TICK_SYNC] idle_ws.tick={_ws_tick} scene_tick_before={scene_state.get('tick')}")
+                if _ws_tick is not None:
+                    scene_state["tick"] = _ws_tick
 
                 # ADR-035: Извлечение феноменологической проекции аватара (Визуальное искажение)
                 if "avatar_state" in _ws:
@@ -797,28 +813,53 @@ class GameScreen:
                         for npc_id, new_data in _action_ws["npc_positions"].items():
                             # ADR-092: Каузальная труба движения. Если NPC в транзите, 
                             # не перезаписываем local_position — рендерер интерполирует его через TraversalState.
-                            _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
+                            _old_entry = scene_state.get("npc_positions", {}).get(npc_id, {})
+                            _old_lp = _old_entry.get("local_position", {})
                             _travs = _action_ws.get("active_traversals", {})
                             _in_transit = npc_id in _travs and _travs[npc_id].get("status") == "MOVING"
-                            if _in_transit and "local_position" in new_data:
-                                new_data = copy.deepcopy(new_data)
-                                del new_data["local_position"]
-                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
-                            _new_lp = new_data.get("local_position", {})
+                            # CEI-3a SMART MERGE: Overlay вместо replace — partial DTO не убивает старые поля
+                            # Атомарность ADR-0014 сохраняется: новые поля перезаписывают старые
+                            # Но отсутствующие поля в new_data НЕ удаляют существующие
+                            _merged = copy.deepcopy(_old_entry)
+                            for _mk, _mv in new_data.items():
+                                if _mv is not None:
+                                    _merged[_mk] = copy.deepcopy(_mv) if isinstance(_mv, (dict, list)) else _mv
+                            # CEI-3a: При транзите или если local_position невалидна — сохраняем старую
+                            if not isinstance(_merged.get("local_position", {}).get("x"), (int, float)):
+                                if _old_lp and isinstance(_old_lp, dict) and isinstance(_old_lp.get("x"), (int, float)):
+                                    _merged["local_position"] = _old_lp
+                            scene_state.setdefault("npc_positions", {})[npc_id] = _merged
+                            _new_lp = _merged.get("local_position", {})
                             if _old_lp != _new_lp:
                                 print(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
                         # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
                         if "active_traversals" in _action_ws:
                             scene_state["active_traversals"] = _action_ws["active_traversals"]
-                            _trav_keys = list(_action_ws['active_traversals'].keys()) if isinstance(_action_ws['active_traversals'], dict) else []
-                            print(f"[PIPELINE][MOVEMENT] traversals_received: keys={_trav_keys} count={len(_trav_keys)}")
-                            for _tid, _tdata in (_action_ws['active_traversals'].items() if isinstance(_action_ws['active_traversals'], dict) else []):
-                                print(f"[PIPELINE][TRAVERSAL] npc={_tid} status={_tdata.get('status')} from={_tdata.get('from_node')} to={_tdata.get('target_node')} wp_count={len(_tdata.get('path_waypoints', []))}")
+                            # CEI-2 FIX: active_traversals теперь всегда Dict[npc_id, data]
+                            _trav_data = _action_ws['active_traversals']
+                            if isinstance(_trav_data, dict):
+                                _trav_keys = list(_trav_data.keys())
+                                print(f"[PIPELINE][MOVEMENT] traversals_received: keys={_trav_keys} count={len(_trav_keys)}")
+                                for _tid, _tdata in _trav_data.items():
+                                    print(f"[PIPELINE][TRAVERSAL] npc={_tid} status={_tdata.get('status')} from={_tdata.get('from_node')} to={_tdata.get('target_node')} wp_count={len(_tdata.get('path_waypoints', []))}")
+                            elif isinstance(_trav_data, list):
+                                # Legacy fallback: list → конвертируем в dict
+                                _trav_dict = {t.get("npc_id"): t for t in _trav_data if t.get("npc_id")}
+                                scene_state["active_traversals"] = _trav_dict
+                                print(f"[PIPELINE][MOVEMENT] traversals_received (list→dict): keys={list(_trav_dict.keys())} count={len(_trav_dict)}")
+                            else:
+                                print(f"[PIPELINE][MOVEMENT] active_traversals unexpected type: {type(_trav_data).__name__}")
                         else:
                             print(f"[PIPELINE][MOVEMENT] NO active_traversals in action_ws! keys={list(_action_ws.keys())[:10]}")
                         # ADR-035: Обновление феноменологической проекции аватара при действии
                         if "avatar_state" in _action_ws:
                             scene_state["avatar_state"] = _action_ws["avatar_state"]
+                        # ADR-019 FIX: Синхронизация tick для traversal интерполяции.
+                        # Без этого _resolve_visual_xy всегда видит progress=0 → NPC стоят.
+                        _ws_tick = _action_ws.get("tick")
+                        print(f"[TICK_SYNC] action_ws.tick={_ws_tick} scene_tick_before={scene_state.get('tick')}")
+                        if _ws_tick is not None:
+                            scene_state["tick"] = _ws_tick
                         # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
                         if "player_perception" in _action_ws:
                             scene_state["player_perception"] = _action_ws["player_perception"]
@@ -833,6 +874,10 @@ class GameScreen:
                         # ADR-035: Обновление феноменологической проекции аватара (fallback)
                         if "avatar_state" in result.response:
                             scene_state["avatar_state"] = result.response["avatar_state"]
+                        # ADR-019 FIX: Синхронизация tick для traversal интерполяции (fallback)
+                        _resp_tick = result.response.get("tick")
+                        if _resp_tick is not None:
+                            scene_state["tick"] = _resp_tick
                         # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока (fallback)
                         if "player_perception" in result.response:
                             scene_state["player_perception"] = result.response["player_perception"]
@@ -1112,6 +1157,21 @@ class GameScreen:
                 format_world_date(self.game_time_seconds), True, (140, 140, 140)
             )
             self.screen.blit(time_surf, (self.screen.get_width() - 380, 4))
+
+            # === ADR-127: DEATH OVERLAY (P2) — фронтенд видит смерть ===
+            _av = scene_state.get("avatar_state")
+            if _av and _av.get("life_status") == "DEAD":
+                _death_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+                _death_surf.fill((0, 0, 0, 180))
+                self.screen.blit(_death_surf, (0, 0))
+                _dfont = pygame.font.Font(None, 64)
+                _dtxt = _dfont.render("ВЫ МЕРТВЫ", True, (180, 0, 0))
+                _drect = _dtxt.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+                self.screen.blit(_dtxt, _drect)
+                _subfont = pygame.font.Font(None, 28)
+                _subtxt = _subfont.render("Смерть необратима. Мир продолжает жить без вас.", True, (140, 140, 140))
+                _subrect = _subtxt.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 50))
+                self.screen.blit(_subtxt, _subrect)
 
             pygame.display.flip()
             self.clock.tick(60)

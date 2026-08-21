@@ -94,6 +94,18 @@ PATTERNS: Dict[str, str] = {
     # [DELTA] thief_shadow: intent=idle stress_d=0.0 trust_d=0.0 fear_d=0.0
     "delta":                r"\[DELTA\] (\w+): intent=(\w+) stress_d=([\d.-]+) trust_d=([\d.-]+) fear_d=([\d.-]+)",
 
+    # --- Pipeline pre-bus failures (Инвариант 3: Наблюдаемость отказа) ---
+    # [PIPELINE][CRITICAL] phase=8 handler=AffectivePipeline error=AttributeError: ...
+    "pipeline_critical":    r"\[PIPELINE\]\[CRITICAL\] phase=(\w+) handler=(\w+) error=(\w+):",
+    # [CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: ...
+    "causality_crash":      r"\[CAUSALITY_CRASH\] (\w+) failed:",
+    # [PHASE8_CRASH] handler=ReactionSubscriber error=KeyError: ...
+    "phase8_crash":         r"\[PHASE8_CRASH\] handler=(\w+) error=(\w+):",
+    # [TICK_ORCH] Ошибка в тике ... — главный catch-all
+    "tick_orch_error":      r"\[TICK_ORCH\] Ошибка в тике (\w+):",
+    # [AFFECT_DECAY] Failed for ... — потеря аффективных отпечатков
+    "affect_decay_fail":    r"\[AFFECT_DECAY\] Failed for (\w+):",
+
     # --- Session / startup ---
     # [PLAYER_SELECT] Campaign: Open_road, Player: Демеург
     "player_select":        r"\[PLAYER_SELECT\] Campaign: (\w+), Player: (.+)",

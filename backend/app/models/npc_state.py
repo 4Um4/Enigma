@@ -37,6 +37,23 @@ from app.models.psychological import CausalEntry
 from app.models.physical import ThreatAccumulator
 from app.models.npc.beliefs import BeliefState, BeliefFragment
 
+import logging
+logger = logging.getLogger(__name__)
+
+
+# NPIC Sentinel: Отсутствие данных ≠ нейтральное состояние (§ENIGMA-003).
+# Если body_state утерян при холодном старте, NPC переходит в DISABLED состояние.
+# Это физический инвариант: агент существует как инертная материя, а не как логический призрак.
+BODY_STATE_DISABLED = {
+    "disabled": True,
+    "shock_impulse": 1.0,
+    "pain": 100.0,
+    "blood_loss": 1.0,
+    "consciousness": 0.0,
+    "current_hp": 0,
+    "fatigue": 100.0
+}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Enums
@@ -160,6 +177,9 @@ class EventMemory:
     is_compressed:       bool = False           # это сжатая абстракция
     compressed_from:     Tuple[str, ...] = ()   # ID исходных событий (immutable для frozen)
 
+    # R8: субъект действия — онтологическая полнота наблюдения (кто совершил)
+    actor_id:            str  = ""              # event.source при создании; "" если неизвестен
+
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
         object.__setattr__(self, "importance",  max(0.0, min(1.0, self.importance)))
@@ -204,6 +224,7 @@ class EventMemory:
             contract_ref   = self.contract_ref,
             is_compressed  = self.is_compressed,
             compressed_from = self.compressed_from,
+            actor_id        = self.actor_id,
         )
 
 
@@ -548,7 +569,7 @@ class NPCState:
     pressure_accumulator: Dict[Tuple[str, str], float] = field(default_factory=dict)  # (from, to) → накопленное давление
 
     # ── Кэш отношений ────────────────────────────────────────────────────────
-    relationship_cache: Dict[str, float] = field(default_factory=dict)
+    relationship_cache: Dict[str, Dict[str, float]] = field(default_factory=dict)
     cache_timestamp:    int              = 0
 
 # ── Narrative facts (max 2 для LLM) ──────────────────────────────────────
@@ -622,7 +643,8 @@ class NPCState:
             "intent_duration":      self.intent_duration,
             "intent_progress_ticks": self.intent_progress_ticks,
             "last_intent_change":   self.last_intent_change,
-            "relationship_cache": dict(self.relationship_cache),
+            # P1 ARCH: relationship_cache — эфемерный read-cache. НЕ сериализуется.
+            # SSOT = RelationshipStore. Персистенция кэша = DOUBLE TRUTH.
         }
 
 
@@ -637,6 +659,10 @@ class NPCState:
         psyche = npc_dict.setdefault("psyche", {})
         ss     = npc_dict.setdefault("social_stats", {})
 
+        # Идентичность — без этого from_legacy в следующем тике получит "unknown"
+        npc_dict["npc_id"] = state.npc_id
+        npc_dict["id"]     = state.npc_id
+
         # Физическое состояние (сохраняется между тиками)
         npc_dict["hp"]     = state.hp
         npc_dict["max_hp"] = state.max_hp
@@ -644,13 +670,18 @@ class NPCState:
         # Психика
         psyche["stress"]       = state.stress
         psyche["state"]        = state.will_state.value
-        psyche["trauma_flags"] = list(state.trauma_markers)
+        psyche["trauma_flags"] = list(state.trauma_markers) if isinstance(state.trauma_markers, (set, list, tuple)) else []
 
-        # Социальные статы (из relationship_cache)
+        # Социальные статы (из relationship_cache → player entry)
         rc = state.relationship_cache
-        ss["trust"]          = rc.get("trust", 0.0)
-        ss["fear_of_player"] = rc.get("fear", 0.0)
-        ss["debt"]           = rc.get("debt", 0.0)
+        _player_rc = rc.get("player", {})
+        ss["trust"]          = _player_rc.get("trust", 0.0)
+        ss["fear_of_player"] = _player_rc.get("fear", 0.0)
+        ss["debt"]           = _player_rc.get("debt", 0.0)
+
+        # P1 ARCH FIX: НЕ пишем relationship_cache в write_to_legacy.
+        # SSOT = RelationshipStore. Персистенция кэша = DOUBLE TRUTH.
+        # Социальные статы (trust/fear) сохраняются через StateApplicator → RelationshipStore.update()
 
         # narrative_cache — сериализация в список dict для JSON
         if state.narrative_cache:
@@ -672,14 +703,84 @@ class NPCState:
             npc_dict["causal_ledger"] = [entry.to_dict() for entry in state.causal_ledger]
 
         # body_state — ВСЯ физиология (pain, blood_loss, shock_impulse, injuries, statuses)
-        # Без этого body_state теряется при каждой сериализации → боль/кровь невидимы
-        if state.body_state:
+        # ADR-124 / Rule 44: Пишем ВСЕГДА когда body_state не None.
+        # Пустой dict {} = здоровое тело, не "нет тела".
+        # `if state.body_state:` убито — falsy check на dict = молчаливая потеря данных.
+        if state.body_state is not None:
             npc_dict["body_state"] = state.body_state
+
+        # perceptual_kernel — субъективная модель восприятия (ADR-O)
+        # Без этого threat_gradient/initiative_suppression теряются между тиками → DOUBLE TRUTH
+        if state.perceptual_kernel:
+            pk = state.perceptual_kernel
+            npc_dict["perceptual_kernel"] = {
+                "threat_gradient": pk.threat_gradient,
+                "trust_gradient": pk.trust_gradient,
+                "uncertainty": pk.uncertainty,
+                "anomaly_score": pk.anomaly_score,
+                "last_hostile_direction": pk.last_hostile_direction,
+                "dominant_emotion": pk.dominant_emotion,
+                "aggression_inhibition": pk.aggression_inhibition,
+                "initiative_suppression": pk.initiative_suppression,
+                "compliance_bias": pk.compliance_bias,
+                "recent_directive": pk.recent_directive,
+            }
+
+        # affective_load — интеграл давления (ADR-049)
+        # Без этого эмоциональный аккумулятор сбрасывается каждый тик
+        npc_dict["affective_load"] = state.affective_load
+
+        # emotion — текущая эмоция (ADR-116)
+        # Без этого emotion сбрасывается в NEUTRAL каждый тик → DOUBLE TRUTH → _emotion_modifier() = 0.0
+        npc_dict["emotion"] = state.emotion.value
+        npc_dict["emotion_delta"] = state.emotion_delta
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCStateAdapter — миграция без большого взрыва
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _pk_from_dict(pk_dict: dict) -> PerceptualKernel:
+    """Создаёт PerceptualKernel из сериализованного dict.
+    
+    Без этого from_legacy() создаёт ядро с нулями → DOUBLE TRUTH.
+    """
+    if not pk_dict:
+        return PerceptualKernel()
+    return PerceptualKernel(
+        threat_gradient=float(pk_dict.get("threat_gradient", 0.0)),
+        trust_gradient=float(pk_dict.get("trust_gradient", 0.0)),
+        uncertainty=float(pk_dict.get("uncertainty", 0.0)),
+        anomaly_score=float(pk_dict.get("anomaly_score", 0.0)),
+        last_hostile_direction=pk_dict.get("last_hostile_direction"),
+        dominant_emotion=pk_dict.get("dominant_emotion"),
+        aggression_inhibition=float(pk_dict.get("aggression_inhibition", 0.0)),
+        initiative_suppression=float(pk_dict.get("initiative_suppression", 0.0)),
+        compliance_bias=float(pk_dict.get("compliance_bias", 0.0)),
+        recent_directive=pk_dict.get("recent_directive"),
+    )
+
+
+def _emotion_from_str(tag_str: str) -> EmotionTag:
+    """Безопасная конвертация строки в EmotionTag.
+    
+    Маппит теги из affective pipeline ("fear", "panic", "rage", "anxious", "confusion")
+    в canonical EmotionTag values ("fearful", "angry", "suspicious").
+    Без этого строковые теги ломают _emotion_modifier() — str не имеет .value.
+    """
+    _PIPELINE_TO_CANONICAL = {
+        "fear":      "fearful",
+        "panic":     "fearful",
+        "anxious":   "suspicious",
+        "confusion": "suspicious",
+        "rage":      "angry",
+    }
+    canonical = _PIPELINE_TO_CANONICAL.get(tag_str, tag_str)
+    try:
+        return EmotionTag(canonical)
+    except ValueError:
+        return EmotionTag.NEUTRAL
+
 
 class NPCStateAdapter:
     """
@@ -694,7 +795,7 @@ class NPCStateAdapter:
         psyche = npc_dict.get("psyche", {})
         ss     = npc_dict.get("social_stats", {})
         return NPCState(
-            npc_id            = npc_dict.get("id", "unknown"),
+            npc_id            = npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
             stress            = float(psyche.get("stress", 0)),
 
             # R6.1/R6.4 — новые параметры личности (если отсутствуют — дефолты)
@@ -705,18 +806,32 @@ class NPCStateAdapter:
 
             will_state        = WillState(psyche.get("state", "free")),
             trauma_markers    = set(psyche.get("trauma_flags", [])),
-            relationship_cache = {
-                "trust": float(ss.get("trust", 0.0)),
-                "fear":  float(ss.get("fear_of_player", 0.0)),
-                "debt":  float(ss.get("debt", 0.0)),
-            },
+            # P1 ARCH FIX: relationship_cache — эфемерный read-cache.
+            # НЕ восстанавливаем из персистенса. SSOT = RelationshipStore.
+            # Заполняется на этапе обогащения в tick_orchestrator / npc_tick_pipeline.
+            relationship_cache = {},
             causal_ledger = [
                 CausalEntry.from_dict(e) for e in npc_dict.get("causal_ledger", [])
             ],
             # body_state — физиология (pain, blood_loss, shock_impulse, injuries, statuses)
             # Без этого state.body_state всегда пустой → StateApplicator пересоздаёт его каждый раз
             body_state = dict(npc_dict.get("body_state", {})),
+            # perceptual_kernel — восстановление из dict (ADR-O)
+            # Без этого threat_gradient/initiative_suppression = 0.0 каждый тик
+            perceptual_kernel = _pk_from_dict(npc_dict.get("perceptual_kernel", {})),
+            # affective_load — восстановление интеграла давления (ADR-049)
+            affective_load = float(npc_dict.get("affective_load", 0.0)),
+            # emotion — восстановление текущей эмоции (ADR-116)
+            # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
+            emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),
+            emotion_delta = float(npc_dict.get("emotion_delta", 0.0)),
         )
+        # ADR-128: Диагностика рассинхронизации injuries/blood_loss (понижена до DEBUG)
+        _bl = float(state.body_state.get("blood_loss", 0.0))
+        _inj_count = len(state.body_state.get("injuries", []))
+        if _inj_count == 0 and _bl > 0.01:
+            logger.debug(f"[LEGACY_READ_LOST] npc={state.npc_id} injuries=0 BUT blood_loss={_bl:.3f}")
+        return state
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCPersonality builder — из legacy dict
@@ -732,7 +847,7 @@ def personality_from_legacy(npc_dict: dict) -> NPCPersonality:
         tier = NPCTier.MAJOR
 
     return NPCPersonality(
-        npc_id        = npc_dict.get("id", "unknown"),
+        npc_id        = npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
         tier          = tier,
         drives_base   = dict(npc_dict.get("drives", {
             "control": 0.25, "significance": 0.25,

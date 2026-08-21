@@ -118,6 +118,17 @@ def system_status(game_loop=Depends(get_game_loop)) -> dict:
     }
 
 
+@router.post("/api/debug/llm/restart")
+async def restart_llm():
+    """Перезапуск llama-server при падении. Используется лаунчером и recovery-механизмом."""
+    try:
+        from app.main import _restart_llama_server
+        success = _restart_llama_server()
+        return {"restarted": success, "url": settings.llama_cpp_server_url}
+    except Exception as e:
+        return {"restarted": False, "error": str(e)}
+
+
 @router.get("/system/requirements")
 def system_requirements(game_loop=Depends(get_game_loop)) -> dict:
     report = game_loop.system_requirements.check()

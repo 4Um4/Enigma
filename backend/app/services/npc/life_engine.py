@@ -53,7 +53,7 @@ from app.services.scene_change import (
     SceneChange,
     ChangeType,
 )
-from app.domain.movement import MovementIntent, PRIORITY_RANDOM
+from app.domain.movement import MovementIntent, PRIORITY_RANDOM, IntentDomain
 from app.services.spatial.movement_engine import MovementEngine
 
 logger = logging.getLogger(__name__)
@@ -225,12 +225,33 @@ class LifeEngine:
         # Слой 3: SpatialService v1.2 — семантическая навигация (инжекция извне)
         self._spatial_service: Optional[Any] = None
 
+        # ADR-128: PersistencePort для read-back при cache miss.
+        # Без этого body_state (injuries, blood_loss, shock_impulse) теряется
+        # после TTL/LRU eviction — SQLite пишется, но никогда не читается.
+        self._persistence: Optional[Any] = None
+
+        self._claim_bus = None # DRF Causal Bus
+        
+    def set_claim_bus(self, bus: 'DRFBus'):
+        """DRF: Инъекция единой причинной шины из TickOrchestrator."""
+        self._claim_bus = bus
+
     def set_spatial_service(self, svc: Any) -> None:
         """Инжекция SpatialService для резолва NodeRole вместо хардкода."""
         self._spatial_service = svc
         # Пробрасываем в MovementEngine для A* с учётом оверлея
         if hasattr(self, '_movement_engine') and self._movement_engine:
             self._movement_engine.set_spatial_service(svc)
+
+    def set_persistence(self, persistence: Any) -> None:
+        """ADR-128: Инъекция PersistencePort для read-back при cache miss.
+        
+        Без этого SQLite runtime пишется (atomic_commit), но никогда не
+        читается обратно. После TTL/LRU eviction injuries, blood_loss,
+        affective_load и прочие runtime-поля теряются навсегда.
+        """
+        self._persistence = persistence
+        logger.info("[LIFE_ENGINE] PersistencePort инжектирован — SQLite read-back активен")
 
     # ADR-0010: set_transit_tracker удалён. TransitTracker ампутирован из макро-пайплайна.
 
@@ -453,7 +474,7 @@ class LifeEngine:
             try:
                 # ── MAJOR: полная симуляция каждый тик ──────────────────────
                 if tier == "major":
-                    changes, intents = self._simulate_major(npc, current_time, current_tick)
+                    changes, intents = self._simulate_major(npc, current_time, current_tick, scene_state)
                     all_changes.extend(changes)
                     all_intents.extend(intents)
                     npcs_updated = True
@@ -461,7 +482,7 @@ class LifeEngine:
                 elif tier == "minor":
                     last_minor = npc.get("routine", {}).get("_last_life_tick", 0)
                     if (current_tick - last_minor) >= MINOR_TICK_INTERVAL:
-                        changes, intents = self._simulate_minor(npc, current_time, current_tick)
+                        changes, intents = self._simulate_minor(npc, current_time, current_tick, scene_state)
                         all_changes.extend(changes)
                         all_intents.extend(intents)
                         npc.setdefault("routine", {})["_last_life_tick"] = current_tick
@@ -638,6 +659,7 @@ class LifeEngine:
                             npc_id=npc_id,
                             target_node_id=_target_node,
                             reason=f"decision:approach_target={_move_target}",
+                            domain=IntentDomain.SOCIAL,
                             priority=0.7,
                         ))
                         logger.warning(f"[CAUSAL_BRIDGE] APPROACH: npc={npc_id} → target={_move_target} node={_target_node}")
@@ -645,14 +667,15 @@ class LifeEngine:
                         # FLEE: ищем позицию NPC и узел, ближайший к нему, но не к угрозе
                         _npc_pos = scene_state.get("npc_positions", {}).get(npc_id, {})
                         _npc_node = _npc_pos.get("position", "")
+                        # ADR-114: FLEE резолвится через alias_map (main_hall → tavern_silver_wolf:room_0)
                         if _npc_node:
                             movement_intents.append(MovementIntent(
                                 npc_id=npc_id,
                                 target_node_id=_npc_node,
                                 reason=f"decision:flee_stay={_move_target}",
+                                domain=IntentDomain.SURVIVAL,
                                 priority=1.0,
                             ))
-                            logger.warning(f"[CAUSAL_BRIDGE] FLEE: npc={npc_id} stays at {_npc_node} (flee from {_move_target})")
                         else:
                             logger.warning(f"[CAUSAL_BRIDGE] FLEE BLOCKED: npc={npc_id} has no position node")
                     elif result.intent.value == "APPROACH" and not _target_node:
@@ -776,6 +799,15 @@ class LifeEngine:
         self._npc_cache.pop(campaign_id, None)
         self._temporal.invalidate_cache(campaign_id)
 
+    def update_cache(self, campaign_id: str, npc_dicts: list[dict]) -> None:
+        """Обновляет HOT кэш NPC мутированными данными после apply_batch.
+        
+        Без этого affective_load, emotion, body_state и другие runtime-поля
+        теряются между тиками — каждый player turn загружает свежий статический конфиг.
+        """
+        if npc_dicts:
+            self._npc_cache[campaign_id] = list(npc_dicts)
+
     # ─────────────────────────────────────────────────────────────────────────
     # Внутренние методы загрузки NPC
     # ─────────────────────────────────────────────────────────────────────────
@@ -793,7 +825,29 @@ class LifeEngine:
         if campaign_id in self._npc_cache:
             return self._npc_cache[campaign_id]
 
-        # COLD storage: campaign-specific файл
+        # ADR-128: COLD-1 — SQLite runtime (authoritative runtime truth).
+        # atomic_commit пишет полный npc_dict с body_state в SQLite.
+        # Без этого read-back'а injuries, blood_loss, affective_load
+        # теряются после TTL/LRU eviction.
+        if self._persistence is not None:
+            try:
+                runtime_npcs = self._persistence.load_npc_runtime(campaign_id)
+                if runtime_npcs is not None:
+                    self._npc_cache[campaign_id] = runtime_npcs
+                    self._last_access[campaign_id] = time.time()
+                    self._last_access.move_to_end(campaign_id)
+                    logger.info(
+                        f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} "
+                        f"({len(runtime_npcs)} NPC)"
+                    )
+                    return runtime_npcs
+            except Exception as e:
+                logger.warning(
+                    f"[LIFE_ENGINE] Ошибка чтения SQLite runtime для "
+                    f"'{campaign_id}': {e}"
+                )
+
+        # COLD-2: campaign-specific JSON файл (bootstrap для новых игр)
         campaign_file = self.sessions_dir / campaign_id / "major_npcs.json"
         if campaign_file.exists():
             try:
@@ -820,16 +874,27 @@ class LifeEngine:
     def get_npc_states(self, campaign_id: str) -> list[dict]:
         """Возвращает кэшированные NPC states после мутации в tick().
         
-        Вызывать ТОЛЬКО после tick() в рамках одного тика.
-        Если кэш пуст — значит tick() не была вызвана, возвращаем [].
+        ADR-128: При cache miss пытается восстановить из SQLite (COLD-1),
+        затем из static config (COLD-2). Без этого body_state (injuries,
+        blood_loss, shock_impulse) теряется после TTL/LRU eviction.
         """
         if cached := self._npc_cache.get(campaign_id):
             return list(cached)
+
+        # ADR-128: Cold recovery — пробуем восстановить из персистенса
+        recovered = self._load_npcs(campaign_id)
+        if recovered:
+            logger.info(
+                f"[LIFE_ENGINE] get_npc_states: восстановлен из cold storage "
+                f"({campaign_id}, {len(recovered)} NPC)"
+            )
+            return list(recovered)
+
         logger.warning(
             f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
-            "tick() не была вызвана перед этим?"
+            "Ни cache, ни SQLite, ни static config не содержат данных."
         )
-        return []  # БАГ G FIX: get_npc_states возвращает list[dict], не tuple  
+        return []  
 
     # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам
@@ -872,6 +937,7 @@ class LifeEngine:
                 from_node_id=npc.get("position", ""),
                 location_id=location,
                 reason="random:wanders_to_bar",
+                domain=IntentDomain.EXPLORATION,
                 priority=PRIORITY_RANDOM,
             )),
             # NPC становится более бдительным (заметил что-то)
@@ -918,19 +984,30 @@ class LifeEngine:
           npc: dict,
           current_time: str,
           tick: int,
+          scene_state: Optional[dict] = None,
       ) -> tuple[list[SceneChange], list["MovementIntent"]]:
         """
           Полная симуляция Major NPC за один тик.
           Порядок: need-driven → расписание → стресс → случайные события.
           Need-driven имеет приоритет: если потребность критична — schedule пропускается.
           ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
+          ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
           """
+        npc_id = npc.get("id", "unknown")
+
+        # ── ДОЛГ 4.3: Viability Pre-Generation Gate ──
+        # Вычисляем допустимые домены ДО генерации кандидатов.
+        # Viability — не предпочтение (priority), а физика возможностей.
+        # SURVIVAL давление (threat > 0.3) исключает ROUTINE из пространства генерации.
+        # NPC не может «выбрать» работу при угрозе — это не вопрос priority, а вопрос существования.
+        # Источник: PerceptualKernel (персистентен между тиками, доступен в Phase 0).
+        _viable = self._compute_viability_mask(npc)
+
         # ADR-052: Cognitive Override Guard. Паралич воли блокирует любую активность.
         _kernel = npc.get("perceptual_kernel")
         _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
         _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
         if _init_sup > 0.7:
-            npc_id = npc.get("id", "unknown")
             logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}")
             return [], []
 
@@ -940,25 +1017,35 @@ class LifeEngine:
         # ── D6: сбор всех intent-ов с приоритетами ──
         candidates: list[MovementIntent] = []
 
-        # 1. Need-driven: растём потребности, проверяем порог
-        self._tick_needs(npc)
-        if need_intent := self._check_need_driven_movement(npc):
-            candidates.append(need_intent)
+        # 1. Need-driven: только если ROUTINE жизнеспособен
+        if IntentDomain.ROUTINE in _viable:
+            self._tick_needs(npc)
+            if need_intent := self._check_need_driven_movement(npc):
+                need_intent.domain = IntentDomain.ROUTINE
+                candidates.append(need_intent)
 
-        # 2. Расписание (всегда генерирует, но может быть None)
-        routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
-        changes.extend(routine_changes)
-        if routine_intent:
-            candidates.append(routine_intent)
+        # 2. Расписание: только если ROUTINE жизнеспособен
+        if IntentDomain.ROUTINE in _viable:
+            routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
+            changes.extend(routine_changes)
+            if routine_intent:
+                routine_intent.domain = IntentDomain.ROUTINE
+                candidates.append(routine_intent)
 
-        # 3. Случайные события (5% шанс) — могут породить intent
-        event_changes, event_intent = self.check_random_events(npc, tick)
-        changes.extend(event_changes)
-        if event_intent:
-            candidates.append(event_intent)
+        # 3. Случайные события: только если EXPLORATION жизнеспособен
+        if IntentDomain.EXPLORATION in _viable:
+            event_changes, event_intent = self.check_random_events(npc, tick)
+            changes.extend(event_changes)
+            if event_intent:
+                event_intent.domain = IntentDomain.EXPLORATION
+                candidates.append(event_intent)
 
         # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
         self.recover_stress_tick(npc)
+
+        # ── Viability логирование ──
+        if IntentDomain.ROUTINE not in _viable:
+            logger.info(f"[VIABILITY] npc={npc_id}: ROUTINE pruned (threat) — viable={[d.value for d in _viable]}")
 
         # ── D6: выбираем лучший intent по priority ──
         if candidates:
@@ -967,6 +1054,23 @@ class LifeEngine:
             # ADR-049: LifeEngine больше не диктатор. Он не исполняет намерения сам.
             # Намерение передается в TickOrchestrator для прохождения каузального конвейера.
             logger.info(f"[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc={winner.npc_id} target={winner.target_node_id} reason={winner.reason}")
+            
+            # DRF Side-Channel Bus: Пишем давление напрямую в шину, минуя Intent DTO
+            # ДОЛГ 4.3: pressure_type из домена победителя, не хардкод
+            _winner_domain = getattr(winner, 'domain', IntentDomain.ROUTINE)
+            _claim = {
+                "source": "life_engine_intent",
+                "target_npc": winner.npc_id,
+                "pressure_type": _winner_domain.value,
+                "vector": winner.reason,
+                "energy": 0.5,
+                "target_node": winner.target_node_id,
+                "half_life": 5.0
+            }
+            if self._claim_bus is not None:
+                self._claim_bus.emit(_claim)
+                print(f"[DRF_EMIT] source=life_engine npc={winner.npc_id} vector={winner.reason} bus_id={id(self._claim_bus)} stream_size={len(self._claim_bus.stream)}")
+            
             intents.append(winner)
             # Обновляем activity в scene_state
             if winner.reason.startswith("need_driven:"):
@@ -1087,32 +1191,78 @@ class LifeEngine:
             from_node_id=npc.get("position", ""),
             location_id=target_location,
             reason=f"need_driven:{need_name}={need_value:.2f}",
+            domain=IntentDomain.ROUTINE,
             priority=PRIORITY_NEEDS,
         )
+
+    @staticmethod
+    def _compute_viability_mask(npc: dict) -> set[IntentDomain]:
+        """ДОЛГ 4.3: Viability Projection — какие домены действий допустимы для NPC.
+        
+        Viability — не предпочтение, а физика возможностей.
+        SURVIVAL давление (threat_gradient > 0.3) исключает ROUTINE из пространства генерации.
+        NPC не может «выбрать» работу при угрозе — это не вопрос priority, а вопрос существования.
+        
+        Источник: PerceptualKernel (персистентен между тиками, доступен в Phase 0).
+        НЕ использует DRF claims — viability локальна, claims для кросс-NPC давления.
+        
+        Returns:
+            Множество ДОПУСТИМЫХ доменов. Отсутствие домена = действие невозможно.
+        """
+        _kernel = npc.get("perceptual_kernel")
+        _threat = 0.0
+        _init_sup = 0.0
+        if isinstance(_kernel, dict):
+            _threat = _kernel.get("threat_gradient", 0.0)
+            _init_sup = _kernel.get("initiative_suppression", 0.0)
+        elif _kernel:
+            _threat = getattr(_kernel, "threat_gradient", 0.0)
+            _init_sup = getattr(_kernel, "initiative_suppression", 0.0)
+        
+        _viable: set[IntentDomain] = {IntentDomain.SURVIVAL, IntentDomain.SOCIAL, IntentDomain.ROUTINE, IntentDomain.EXPLORATION}
+        
+        # SURVIVAL ⟂ ROUTINE: угроза сжимает пространство — рутина невозможна
+        if _threat > 0.3:
+            _viable.discard(IntentDomain.ROUTINE)
+        
+        # Паралич воли: подавление инициативы сжимает всё до SURVIVAL
+        if _init_sup > 0.7:
+            _viable.discard(IntentDomain.ROUTINE)
+            _viable.discard(IntentDomain.EXPLORATION)
+            _viable.discard(IntentDomain.SOCIAL)
+        
+        return _viable
 
     def _simulate_minor(
           self,
           npc: dict,
           current_time: str,
           tick: int,
+          scene_state: Optional[dict] = None,
       ) -> tuple[list[SceneChange], list["MovementIntent"]]:
           """
           Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
           Только расписание + случайные события (без полного стресс-расчёта).
           ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
+          ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
           """
+          _viable = self._compute_viability_mask(npc)
           changes: list[SceneChange] = []
           intents: list[MovementIntent] = []
           
-          routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
-          changes.extend(routine_changes)
-          if routine_intent:
-              intents.append(routine_intent)
-              
-          event_changes, event_intent = self.check_random_events(npc, tick)
-          changes.extend(event_changes)
-          if event_intent:
-              intents.append(event_intent)
+          if IntentDomain.ROUTINE in _viable:
+              routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
+              changes.extend(routine_changes)
+              if routine_intent:
+                  routine_intent.domain = IntentDomain.ROUTINE
+                  intents.append(routine_intent)
+          
+          if IntentDomain.EXPLORATION in _viable:
+              event_changes, event_intent = self.check_random_events(npc, tick)
+              changes.extend(event_changes)
+              if event_intent:
+                  event_intent.domain = IntentDomain.EXPLORATION
+                  intents.append(event_intent)
               
           return changes, intents
 
@@ -1125,6 +1275,7 @@ class LifeEngine:
         npc: dict,
         current_time: str,
         tick: int = 0,
+        scene_state: Optional[dict] = None,
     ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Обновляет позицию NPC согласно расписанию и текущему времени.
@@ -1163,6 +1314,17 @@ class LifeEngine:
         if _threat > 0.7:
             logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to proximate physical threat ({_threat:.2f})")
             return [], None
+
+        # ADR-130: Movement Lock. Если NPC уже в активном транзите — расписание
+        # НЕ может перезаписать его движение. Schedule = suggestion, traversal = commitment.
+        # Без этого guard'а schedule создаёт новый traversal каждый idle tick,
+        # перезаписывая reactive:approach от DecisionHub (Phase 5).
+        if scene_state:
+            _active_travs = scene_state.get("active_traversals", {})
+            _my_trav = _active_travs.get(npc_id)
+            if _my_trav and _my_trav.get("status") == "MOVING":
+                logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed — active traversal (target={_my_trav.get('target_node', '?')})")
+                return [], None
 
         new_activity = self._get_current_activity(schedule, current_time)
         if not new_activity:
@@ -1233,6 +1395,7 @@ class LifeEngine:
             from_node_id=npc.get("position", ""),
             location_id=new_location,
             reason=f"schedule:{new_activity}",
+            domain=IntentDomain.ROUTINE,  # ДОЛГ 4.3: Расписание = рутина
             priority=PRIORITY_SCHEDULE,
         )
 

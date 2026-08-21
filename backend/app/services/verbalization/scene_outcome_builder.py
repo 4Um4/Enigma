@@ -62,11 +62,23 @@ class LatentSignal:
 
 @dataclass(frozen=True)
 class TensionOutcome:
-    level: float
+    """ADR-131: Векторное напряжение сцены — три оси + арбитраж.
+    
+    level = composite (для обратной совместимости потребителей).
+    Полный вектор (ST/ET/NE) сохранён для NDA Engine (Шаг 2).
+    """
+    level: float                         # composite после арбитража
     trend: TensionTrend
     focus: str
     sources: Dict[str, float]            # npc_id → вклад в напряжение
     raw_stress_sum: float                # для отладки
+    
+    # ADR-131: Трёхосевая модель (Шаг 1)
+    state_tension: float = 0.0           # ST: mean(affective_load) — интеграл
+    event_tension: float = 0.0           # ET: sum(deltas)/0.5 — производная
+    narrative_entropy: float = 0.0       # NE: 1.0 - coherence — шум восприятия
+    dominant_axis: str = "ST"            # какая реальность управляет сценой
+    suppression: Dict[str, float] = field(default_factory=dict)  # подавленные оси
 
 
 class PsychologicalRegime(str, Enum):
@@ -231,6 +243,9 @@ class SceneOutcomeBuilder:
         distortion_biases: Optional[Dict[str, "DistortionProfile"]] = None,
         npc_profiles: Optional[Dict[str, NPCProfileL0]] = None,
         topics: Optional[Dict[str, str]] = None,
+        # ADR-131: Трёхосевая модель — вызывающий код извлекает из доменов
+        npc_affective_loads: Optional[Dict[str, float]] = None,
+        avatar_coherence: float = 1.0,
     ) -> SceneOutcome:
         """
         Основной метод. Принимает решения + контекст, возвращает проживаемую реальность.
@@ -262,8 +277,12 @@ class SceneOutcomeBuilder:
         # 3. Собираем изменения сцены из narrative_facts
         scene_changes = self._extract_scene_changes(decisions)
         
-        # 4. Считаем tension
-        tension = self._compute_tension(decisions)
+        # 4. Считаем tension (ADR-131: трёхосевая модель)
+        tension = self._compute_tension(
+            decisions,
+            npc_affective_loads=npc_affective_loads,
+            avatar_coherence=avatar_coherence,
+        )
         
         # 5. Собираем latent сигналы
         latent = self._extract_latent(decisions)
@@ -324,6 +343,9 @@ class SceneOutcomeBuilder:
         Интерпретирует tension в человекочитаемую строку для DM.
         
         НЕ числа — это перцептивная модель, не аналитическая.
+        ADR-131: level теперь = composite из TensionSynthesizer (ST/ET/NE арбитраж),
+        а не чистый ET. Интерпретация остаётся скалярной — семантика осей
+        выносится в ScenePhenomenology (ADR-131 Шаг 2).
         """
         if tension.level < 0.1:
             return "Сцена спокойная"
@@ -431,7 +453,8 @@ class SceneOutcomeBuilder:
             blocks.append("Скрытое давление (для стиля, не для прямого описания):\n" + "\n".join(latent_lines))
         
         if not blocks:
-            return "NPC не предпринимают значимых действий"
+            # Фоллбэк: пустой мир ≠ отсутствие контекста. LLM должна знать, что сцена спокойна.
+            return "NPC не предпринимают активных действий."
         
         result = "\n\n".join(blocks)
         print(f"[DM_PROMPT_BLOCK]\n{result}\n[/DM_PROMPT_BLOCK]")
@@ -713,26 +736,42 @@ class SceneOutcomeBuilder:
     def _compute_tension(
         self,
         decisions: List[DecisionResult],
+        npc_affective_loads: Optional[Dict[str, float]] = None,
+        avatar_coherence: float = 1.0,
     ) -> TensionOutcome:
+        """ADR-131: Трёхосевая модель напряжения.
+        
+        Делегирует в TensionSynthesizer для вычисления ST/ET/NE.
+        Сохраняет trend/sources/focus из ET-оси для backward compatibility.
+        """
+        # ET-компоненты — для trend/sources/focus (legacy логика)
+        from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+        
         if not decisions:
+            _loads = npc_affective_loads or {}
+            _st = sum(_loads.values()) / len(_loads) if _loads else 0.0
+            _ne = max(0.0, min(1.0, 1.0 - avatar_coherence))
+            _composite = max(_st, _ne * 0.4) if (_st > 0.001 or _ne > 0.001) else 0.0
             return TensionOutcome(
-                level=0.0,
+                level=round(_composite, 3),
                 trend=TensionTrend.STABLE,
                 focus="environment",
                 sources={},
                 raw_stress_sum=0.0,
+                state_tension=round(_st, 4),
+                event_tension=0.0,
+                narrative_entropy=round(_ne, 4),
+                dominant_axis="ST" if _st >= _ne else "NE",
+                suppression={},
             )
         
-        # Суммируем стресс и страх
-        # ADR-013: Схлопываем v2->v1 для каждого решения в цикле
+        # Вычисляем ET-компоненты (legacy)
         raw_stress = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta) for d in decisions)
         raw_fear = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta) for d in decisions)
         raw_sum = raw_stress + raw_fear
+        ET = min(TENSION_CAP, raw_sum / 0.5)
         
-        # Нормализация (0.5 суммарной дельты = максимум напряжения)
-        level = min(TENSION_CAP, raw_sum / 0.5)
-        
-        # Определяем trend
+        # Trend (из ET — не зависит от ST/NE)
         has_trauma = any(LegacyStateDeltaAdapter.collapse(d.deltas).new_trauma for d in decisions)
         has_will_override = any(LegacyStateDeltaAdapter.collapse(d.deltas).will_state_override for d in decisions)
         
@@ -745,23 +784,36 @@ class SceneOutcomeBuilder:
         else:
             trend = TensionTrend.STABLE
         
-        # Фокус — кто генерирует больше всего напряжения
         focus = self._compute_tension_focus(decisions)
         
-        # Sources — вклад каждого NPC
         sources: Dict[str, float] = {}
         for d in decisions:
             _legacy_d = LegacyStateDeltaAdapter.collapse(d.deltas)
             contribution = abs(_legacy_d.stress_delta) + abs(_legacy_d.fear_delta)
-            if contribution > 0.01:  # фильтруем шум
+            if contribution > 0.01:
                 sources[d.npc_id] = round(contribution, 3)
         
+        # ADR-131: Трёхосевая модель через TensionSynthesizer
+        from app.services.verbalization.tension_synthesizer import TensionSynthesizer
+        _synth = TensionSynthesizer()
+        _three = _synth.compute(
+            npc_affective_loads=npc_affective_loads or {},
+            decisions=decisions,
+            avatar_coherence=avatar_coherence,
+        )
+        
         return TensionOutcome(
-            level=round(level, 3),
-            trend=trend,
-            focus=focus,
-            sources=sources,
+            level=_three.composite,      # composite после арбитража
+            trend=trend,                  # из ET (legacy)
+            focus=focus,                  # из ET (legacy)
+            sources=sources,              # из ET (legacy)
             raw_stress_sum=round(raw_sum, 3),
+            # ADR-131: векторная часть
+            state_tension=_three.state_tension,
+            event_tension=_three.event_tension,
+            narrative_entropy=_three.narrative_entropy,
+            dominant_axis=_three.dominant_axis,
+            suppression=_three.suppression,
         )
 
     def _compute_tension_focus(

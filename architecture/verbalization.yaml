@@ -1,0 +1,239 @@
+domain: VERBALIZATION
+description: "Вербализация NPC: от CommunicationIntent до текста реплики. LLM-мост между внутренним состоянием и нарративом."
+
+nodes:
+  StateInterpreter:
+    type: service
+    layer: Application
+    label: "State Interpreter (LLM Bridge)"
+    description: "Переводит body_state (pain, shock, blood_loss) в текст для LLM. ADR-076: читает физиологию, НЕ стресс."
+    code_ref: "verbalization/state_interpreter.py"
+  VerbalizationContext:
+    type: dto
+    layer: Domain
+    label: "Verbalization Context"
+    description: "Контекст вербализации: NPC state + memory + topic + audience + ContentProfile + movement status. Собирается перед LLM-вызовом. S65: is_moving и movement_intent — LLM не может галлюцинировать движение без подтверждения от MovementEngine (Invariant 2)."
+    code_ref: "verbalization/verbalization_context.py"
+  ContentProfile:
+    type: dto
+    layer: Domain
+    label: "Content Profile"
+    description: "Профиль содержания реплики: max_sentences, forbidden_actions, tone constraints."
+    code_ref: "verbalization/verbalization_context.py"
+  NarrativeContractProtocol:
+    type: interface
+    layer: Domain
+    label: "Narrative Contract Protocol"
+    description: "Интерфейс контракта: system_prompt, user_prompt, max_sentences, contract_id, forbidden_actions."
+    code_ref: "verbalization/contract_base.py"
+  DMContractBuilder:
+    type: service
+    layer: Application
+    label: "DM Contract Builder"
+    description: "Собирает промпт для DM-агента: player_action + dm_frame + scene + player_state + rules + world_changes."
+    code_ref: "verbalization/dm_contract_builder.py"
+  DMContract:
+    type: dto
+    layer: Domain
+    label: "DM Contract"
+    description: "Готовый контракт для DM-агента. Реализует NarrativeContractProtocol."
+    code_ref: "verbalization/dm_contract_builder.py"
+  ResponseValidator:
+    type: service
+    layer: Domain
+    label: "Response Validator"
+    description: "Валидирует LLM-ответ: язык, повтор, длина, диалог, принудительное действие, движение."
+    code_ref: "verbalization/response_validator.py"
+  NPCResponseValidator:
+    type: service
+    layer: Domain
+    label: "NPC Response Validator"
+    description: "Расширяет ResponseValidator для NPC: muted-режим, fallback-текст при невозможности говорить."
+    code_ref: "verbalization/npc_response_validator.py"
+  SceneContinuity:
+    type: service
+    layer: Domain
+    label: "Scene Continuity"
+    description: "Отслеживает непрерывность сцены: флаги, события, факты, tension, emotional_vector. Генерирует prompt_block."
+    code_ref: "verbalization/scene_continuity.py"
+  SceneOutcomeBuilder:
+    type: service
+    layer: Application
+    label: "Scene Outcome Builder"
+    description: "Строит описание исхода сцены: NpcOutcome, PlayerOutcome, SceneOutcome, LatentSignal, PsychologicalSignature."
+    code_ref: "verbalization/scene_outcome_builder.py"
+  VerbalStance:
+    type: dto
+    layer: Domain
+    label: "Verbal Stance"
+    description: "Поза речи NPC: urgency + emotional окраска → prompt_line для LLM. Создаётся из DecisionResult."
+    code_ref: "verbalization/verbal_stance.py"
+  PromptLoader:
+    type: service
+    layer: Infrastructure
+    label: "Prompt Loader"
+    description: "Загружает промпт-шаблоны из файлов. Кэширует."
+    code_ref: "verbalization/prompt_loader.py"
+
+edges:
+  - from: StateInterpreter
+    to: VerbalizationContext
+    label: "physical_state (pain/shock/blood_loss → words)"
+    condition: "interpret() called in npc_tick_pipeline. Pain normalized /100.0"
+    code_ref: "npc_tick_pipeline.py:208, state_interpreter.py:273"
+    adr_ref: "ADR-094"
+  - from: VerbalizationContext
+    to: DMContractBuilder
+    label: "context → contract assembly"
+    condition: "Phase 6: build DM prompt from NPC context"
+    code_ref: "verbalization/dm_contract_builder.py"
+  - from: DMContractBuilder
+    to: DMContract
+    label: "build() → contract"
+    condition: "Builder pattern: add_player_action, add_scene, add_player_state..."
+    code_ref: "verbalization/dm_contract_builder.py"
+  - from: DMContract
+    to: LlamaServer
+    label: "system_prompt + user_prompt → LLM"
+    condition: "Via agent_runner"
+    code_ref: "game_loop/agent_runner.py"
+  - from: LlamaServer
+    to: ResponseValidator
+    label: "raw LLM response → validate"
+    condition: "Check language, repeats, length, dialog, forced actions"
+    code_ref: "verbalization/response_validator.py"
+  - from: LlamaServer
+    to: NPCResponseValidator
+    label: "raw NPC response → validate"
+    condition: "Extended validation: muted mode, fallback text"
+    code_ref: "verbalization/npc_response_validator.py"
+  - from: SceneContinuity
+    to: DMContractBuilder
+    label: "continuity prompt block"
+    condition: "Flags, facts, tension, emotional_vector → context for LLM"
+    code_ref: "verbalization/scene_continuity.py:to_prompt_block"
+  - from: SceneOutcomeBuilder
+    to: VerbalizationContext
+    label: "scene outcome → context enrichment"
+    condition: "NpcOutcome + PlayerOutcome + latent signals → DM frame"
+    code_ref: "verbalization/scene_outcome_builder.py"
+  - from: DecisionHub
+    to: VerbalStance
+    label: "decision → verbal stance"
+    condition: "stance_from_decision() maps urgency + emotion to prompt_line"
+    code_ref: "verbalization/verbal_stance.py:stance_from_decision"
+  - from: VerbalStance
+    to: VerbalizationContext
+    label: "stance → prompt_line in context"
+    condition: "Urgency + emotional nuance shape LLM output"
+    code_ref: "verbalization/verbal_stance.py:to_prompt_line"
+  - from: PromptLoader
+    to: DMContractBuilder
+    label: "load system prompts"
+    condition: "Template files for DM/NPC contracts"
+    code_ref: "verbalization/prompt_loader.py"
+  - from: MemoryManager
+    to: VerbalizationContext
+    label: "memory entries → context"
+    condition: "STM + L2 provide conversation history and beliefs"
+    code_ref: "memory/memory_manager.py"
+
+constraints:
+  - source: StateInterpreter
+    target: EmotionTag
+    rule: "FORBIDDEN: Derive psychological state from stress (ADR-104)"
+    condition: "stress → UrgencyLevel.SCARED duplicates EmotionTag. StateInterpreter reads physiology only."
+    code_ref: "state_interpreter.py:46-50"
+    adr_ref: "ADR-104"
+    severity: CRITICAL
+  - source: StateInterpreter
+    target: HP_Ratio
+    rule: "FORBIDDEN: Ignore pain/shock"
+    condition: "Must translate body_state, not just HP ratio"
+    code_ref: "state_interpreter.py:273"
+    severity: HIGH
+  - source: StateInterpreter
+    target: Pain_Scale
+    rule: "FORBIDDEN: Read pain without /100.0 normalization"
+    condition: "Pain is 0-100 scale, must normalize to 0-1 for LLM"
+    code_ref: "state_interpreter.py:273, state_applicator.py:491"
+    severity: HIGH
+  - source: NPCResponseValidator
+    target: MutedNPC
+    rule: "REQUIRED: Muted NPC must return appropriate fallback"
+    condition: "When NPC cannot speak (shock, gagged) → validate_muted returns specific fallback"
+    code_ref: "verbalization/npc_response_validator.py:validate_muted"
+    severity: HIGH
+  - source: TopicExtractor
+    target: VerbalizationContext
+    rule: "REQUIRED: Topic must not be empty (Устав §3.2)"
+    condition: "Empty topic → LLM hallucinates. Topic extracted at Phase 4 before verbalization."
+    code_ref: "npc/topic_extractor.py"
+    adr_ref: "Устав §3.2"
+    severity: HIGH
+  - source: DMAgent
+    target: DMContractBuilder
+    rule: "REQUIRED: When npc_movement_summary is empty, inject explicit prohibition against describing NPC movement (Invariant 2, ADR-119)"
+    condition: "LLM must not hallucinate locomotion without TraversalState confirmation from MovementEngine"
+    code_ref: "agents/dm_agent.py"
+    adr_ref: "ADR-119"
+    severity: CRITICAL
+  - source: VerbalizationContext
+    target: DMAgent
+    rule: "REQUIRED: is_moving field must be set from DecisionHub intent (APPROACH/FLEE/RETREAT/FOLLOW/PATROL) + can_move (Invariant 2, ADR-119)"
+    condition: "NPC-specific LLM must know movement status to avoid narrative-physical split"
+    code_ref: "npc_tick_pipeline.py"
+    adr_ref: "ADR-119"
+    severity: HIGH
+
+ownership:
+  VerbalizationContext:
+    owner: "npc_tick_pipeline (assembles from state + memory + topic)"
+    creates: "npc_tick_pipeline"
+    modifies: "npc_tick_pipeline"
+    reads: "DMContractBuilder, SceneOutcomeBuilder"
+    constraint: "Aggregated DTO. Not mutated after creation."
+  DMContract:
+    owner: "DMContractBuilder"
+    creates: "DMContractBuilder.build()"
+    modifies: "N/A (immutable after build)"
+    reads: "agent_runner → LLM"
+    constraint: "Builder pattern. No direct construction."
+  ResponseValidation:
+    owner: "ResponseValidator / NPCResponseValidator"
+    creates: "ValidationResult"
+    modifies: "Truncation, force_action — mutate response text"
+    reads: "agent_runner, dm_agent"
+    constraint: "Validator CAN modify text (truncate, force). Must not reject valid NPC speech."
+  SceneContinuity:
+    owner: "SceneContinuity"
+    creates: "SceneContinuity (per scene)"
+    modifies: "add_flag, add_event, add_fact, update_tension, update_emotional_vector"
+    reads: "DMContractBuilder (to_prompt_block)"
+    constraint: "Stateful scene tracker. Must persist across ticks within same scene."
+
+sequences:
+  - title: "NPC Verbalization Flow (Phase 5-7)"
+    participants: [DecisionHub, TopicExtractor, VerbalStance, StateInterpreter, VerbalizationContext, DMContractBuilder, LlamaServer, NPCResponseValidator]
+    steps:
+      - from: DecisionHub
+        to: VerbalStance
+        message: "1. DecisionResult → stance_from_decision()"
+      - from: TopicExtractor
+        to: VerbalizationContext
+        message: "2. topic (non-empty, Устав §3.2)"
+      - from: StateInterpreter
+        to: VerbalizationContext
+        message: "3. body_state → physical_state text"
+      - from: VerbalStance
+        to: VerbalizationContext
+        message: "4. urgency + emotion → prompt_line"
+      - from: VerbalizationContext
+        to: DMContractBuilder
+        message: "5. Assemble DM contract"
+      - from: DMContractBuilder
+        to: LlamaServer
+        message: "6. system_prompt + user_prompt → LLM"
+      - from: LlamaServer
+        to: NPCResponseValidator
+        message: "7. Validate + truncate + force_action"

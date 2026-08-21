@@ -52,19 +52,23 @@ class PhenomenologyProjectionService:
             if _act_int > 0.6:
                 cues.append({"npc_id": trace.npc_id, "cue_key": "STAGGERED"})
         
-        # Атмосфера локации (из коллективного стресса)
+        # Атмосфера локации (Rule X: из наблюдаемых моторных следов, НЕ из эмоций)
+        # Считаем долю NPC с видимыми моторными симптомами
         npc_positions = scene_state.get("npc_positions", {})
-        total_stress = sum(float(d.get("stress_delta", 0)) for d in npc_positions.values() if isinstance(d, dict))
-        avg_stress = total_stress / max(1, len(npc_positions))
+        total_npcs = len([k for k in npc_positions.keys() if k != "player"])
+        tense_count = sum(1 for t in traces if t.posture_rigidity > 0.4 or t.is_frozen)
+        shake_count = sum(1 for t in traces if t.locomotion_instability > 0.3 or t.is_shaking)
         
         atm_key = None
         atm_intensity = 0.0
-        if avg_stress > 10.0:
-            atm_key = "ATMOSPHERE_THICK_TENSION"
-            atm_intensity = min(1.0, avg_stress / 20.0)
-        elif avg_stress > 4.0:
-            atm_key = "ATMOSPHERE_UNEASY"
-            atm_intensity = min(1.0, avg_stress / 10.0)
+        if total_npcs > 0:
+            tension_ratio = (tense_count + shake_count) / total_npcs
+            if tension_ratio > 0.6:
+                atm_key = "ATMOSPHERE_THICK_TENSION"
+                atm_intensity = min(1.0, tension_ratio)
+            elif tension_ratio > 0.3:
+                atm_key = "ATMOSPHERE_UNEASY"
+                atm_intensity = min(1.0, tension_ratio * 0.7)
         
         logger.info(f"[PERCEPTION_PROJECTOR] Traces={len(traces)} Cues={len(cues)}")
         

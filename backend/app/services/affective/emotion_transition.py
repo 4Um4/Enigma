@@ -28,9 +28,10 @@ def resolve_emotion_transition(
     fear_drive = psyche.get("fear", 0.5)
     willpower = psyche.get("willpower", 0.5)
     
-    # Динамические пороги личности
+    # Динамические пороги личности (S72: все три порога персонализированы)
     panic_threshold = THRESHOLD_PANIC - (fear_drive * 0.15) + (willpower * 0.05)
     fear_threshold = THRESHOLD_FEARFUL - (fear_drive * 0.1) + (willpower * 0.05)
+    anxious_threshold = THRESHOLD_ANXIOUS - (fear_drive * 0.05) + (willpower * 0.03)
     
     _stress_delta = 0.0
     _emotion_tag = None
@@ -46,8 +47,8 @@ def resolve_emotion_transition(
         _emotion_tag = "fear"
         _stress_delta = affective_load * 15.0
         _fear_delta = affective_load * 10.0
-    # Нарастание: Тревога
-    elif affective_load > THRESHOLD_ANXIOUS and prev_load <= THRESHOLD_ANXIOUS:
+    # Нарастание: Тревога (S72: порог персонализирован)
+    elif affective_load > anxious_threshold and prev_load <= anxious_threshold:
         _emotion_tag = "anxious"
         _stress_delta = affective_load * 8.0
         

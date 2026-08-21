@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.models.npc_profile import NPCProfileL0, PsycheBase
-from app.models.npc_state import NPCState, WillState
+from app.models.npc_state import NPCState, WillState, _emotion_from_str, _pk_from_dict
 
 # Путь к статичным конфигам NPC (read-only зона)
 _CONFIG_NPC_ROOT = Path(__file__).parent.parent.parent.parent.parent / "config" / "npc"
@@ -239,6 +239,13 @@ _RUNTIME_TOP_LEVEL_KEYS = frozenset({
     "current_role", "role_history",
     "conditions", "wounds", "threat_accumulator", "posture",
     "temporary_drives", "causal_ledger",
+    # ADR-117: Вычисленные runtime-поля, которые должны переживать merge
+    # Без этого affective_load=0.0 и emotion=MISSING после каждого чтения с диска
+    "affective_load", "emotion", "emotion_delta",
+    # ADR-101, ADR-109: Физиология и восприятие — не должны сбрасываться при merge
+    "body_state", "perceptual_kernel",
+    # L2 память — без этого narrative_cache теряется
+    "narrative_cache",
 })
 _RUNTIME_FLAGS_KEYS = frozenset({
     "has_gold", "knows_secret", "is_enslaved", "planning_revenge", "is_dead"
@@ -514,6 +521,14 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
         },
         # Роль из статического профиля — нужна для фильтрации интентов
         current_role=raw_data.get("status_profile", {}).get("title", ""),
+
+        # ADR-116: emotion/affective_load/body_state/perceptual_kernel —
+        # без этого DecisionHub видит emotion=NEUTRAL каждый тик → utility=0.0
+        emotion            = _emotion_from_str(raw_data.get("emotion", "neutral")),
+        emotion_delta      = float(raw_data.get("emotion_delta", 0.0)),
+        affective_load     = float(raw_data.get("affective_load", 0.0)),
+        body_state         = dict(raw_data.get("body_state", {})),
+        perceptual_kernel  = _pk_from_dict(raw_data.get("perceptual_kernel", {})),
     )
     
     # Восстановление narrative_cache: из runtime-дампа или из origin_events

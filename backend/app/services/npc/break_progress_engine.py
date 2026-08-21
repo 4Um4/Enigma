@@ -8,7 +8,7 @@ R6.4 — BreakProgressEngine: процесс давления → трещины
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Optional
 from app.models.npc_state import NPCState, WillState
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
 # не на конкретном событии. Вызов возможен в любой момент тика.
@@ -102,3 +102,72 @@ class BreakProgressEngine:
             will_state_override=will_override,
             stage=stage
         )
+# ─────────────────────────────────────────────────────────────────────────────
+# S71: Identity Mutation Kernel v0 (Scalar Deformation Layer)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Топология структурных мутаций личности.
+# S71: horizontal deformation (drives).
+# S72: vertical deformation (interpretation, thresholds) - заглушка.
+TRAUMA_TOPOLOGY = {
+    "will_broken": {
+        "drives": {"fear": +0.05, "control": -0.05}, # Трусливая покорность
+        # S72: "interpretation": {"threat_sensitivity": +0.2},
+    },
+    "humiliated": {
+        "drives": {"significance": -0.05, "fear": +0.05}, # Потеря лица
+        # S72: "interpretation": {"shame_amplifier": +0.3},
+    },
+    "betrayed": {
+        "drives": {"control": +0.05, "desire": -0.05}, # Параноидальный контроль
+        # S72: "interpretation": {"trust_decay_acceleration": +0.4},
+    },
+    "near_death": {
+        "drives": {"fear": +0.08, "significance": -0.08}, # Экзистенциальный шок
+    }
+}
+
+def compute_mutation(state: 'NPCState', trauma_type: str) -> Dict[str, float]:
+    """
+    Вычисляет дельты мутации drives_base на основе типа травмы 
+    и текущей пластичности личности (inverse rigidity).
+    """
+    topology = TRAUMA_TOPOLOGY.get(trauma_type, {})
+    drive_deltas = topology.get("drives", {})
+    
+    if not drive_deltas:
+        return {}
+        
+    # Безопасное чтение rigidity
+    rigidity = 0.5 
+    if hasattr(state, 'psyche'):
+        if isinstance(state.psyche, dict):
+            rigidity = state.psyche.get("identity_rigidity", 0.5)
+        elif hasattr(state.psyche, 'identity_rigidity'):
+            rigidity = state.psyche.identity_rigidity
+            
+    # Пластичность: чем ниже rigidity, тем сильнее деформация.
+    # Жёсткие личности сопротивляются изменениям структуры.
+    # Max(0.2) гарантирует, что слом всё равно меняет структуру.
+    plasticity = max(0.2, 1.0 - rigidity) 
+    
+    return {k: v * plasticity for k, v in drive_deltas.items()}
+
+
+def apply_drives_mutation(state: 'NPCState', mutations: Dict[str, float]) -> None:
+    """
+    Применяет мутацию к drives_base с Законом Сохранения Я (sum=1.0).
+    Защита от Renormalization Collapse: драйв не может упасть ниже 0.01.
+    """
+    if not mutations or not hasattr(state, 'drives_base') or not isinstance(state.drives_base, dict):
+        return
+        
+    # Применение дельт с энтропийным полом (0.01)
+    for drive, delta in mutations.items():
+        old_val = state.drives_base.get(drive, 0.25)
+        state.drives_base[drive] = max(0.01, old_val + delta)
+    
+    # Ренормализация (Закон Сохранения Я)
+    total = sum(state.drives_base.values())
+    if total > 0:
+        state.drives_base = {k: v / total for k, v in state.drives_base.items()}

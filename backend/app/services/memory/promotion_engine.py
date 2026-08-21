@@ -149,6 +149,7 @@ class MemoryPromotionEngine:
                 npc_id=batch[0].npc_id,
                 tags=batch[0].tags,
                 is_compressed=True,
+                actor_id=batch[0].actor_id,
                 compressed_from=tuple(
                     getattr(e, "id", f"seq_{e.sequence_id}") for e in batch
                 ),

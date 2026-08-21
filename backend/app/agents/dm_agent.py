@@ -173,6 +173,22 @@ class DmAgent:
             if npc_actions:
                 builder.add_custom_block("Физические действия NPC", "\n".join(f"- {a}" for a in npc_actions))
         
+        # Блок 2.3b: Физические перемещения NPC (из PipelineContext)
+        # Инвариант 2: Обязательная проекция намерения.
+        # LLM НЕ имеет права описывать движение NPC, которого нет в этом списке.
+        _npc_moves = npc_result.get("npc_movement_summary", []) if npc_result else []
+        if _npc_moves:
+            builder.add_custom_block(
+                "Действия NPC (факт — отражай в повествовании)",
+                "\n".join(f"- {m}" for m in _npc_moves)
+            )
+        else:
+            # Инвариант 2: Явный запрет галлюцинации движения
+            builder.add_custom_block(
+                "Действия NPC (факт — отражай в повествовании)",
+                "Никто из NPC не перемещается. ЗАПРЕЩЕНО описывать приближение, отход или любое изменение позиции NPC."
+            )
+        
         # Блок 2.4: STM — последние реплики диалога (из WorkingMemory через game_loop)
         _recent_speech = (context or {}).get("npc_recent_speech", [])
         print(f"[STM_INJECT] npc_recent_speech={_recent_speech}")
@@ -283,6 +299,9 @@ class DmAgent:
                 else:
                     _stress_word = "в напряжении" if _stress_val >= 0.6 else ("нервничает" if _stress_val >= 0.3 else "спокоен")
                 _lines.append(f"- {pname}: {_stress_word}, эмоция: {pdata.get('emotion', 'neutral')}")
+                # P3: DM видит смерть как факт из player_state, не вычисляет
+                if pdata.get("life_status") == "DEAD":
+                    _lines.append(f"  МЁРТВ — смерть необратима")
                 wounds = pdata.get("wounds")
                 if wounds and wounds != "нет":
                     wounds_str = ", ".join(wounds) if isinstance(wounds, list) else str(wounds)
@@ -306,6 +325,23 @@ class DmAgent:
                     player_state_block = "Состояние игрока (факт — отражай в повествовании):\n" + "\n".join(_lines)
         builder.add_player_state(player_state_block)
         
+        # P3: Death Scene — DM narrates смерть как проекция замороженного state
+        # DM НЕ вычисляет смерть — life_status читается из player_state (проекция S75)
+        _is_player_dead = False
+        if context and context.get("player_state"):
+            for _dp_name, _dp_data in context["player_state"].items():
+                if isinstance(_dp_data, dict) and _dp_data.get("life_status") == "DEAD":
+                    _is_player_dead = True
+                    break
+        if _is_player_dead:
+            builder.add_custom_block(
+                "СМЕРТЬ ИГРОКА",
+                "Игрок мёртв. Это необратимо. Опиши момент смерти — последний вздох, угасание сознания, "
+                "реакцию окружающего мира и свидетелей. Не предлагай вариантов воскрешения. "
+                "Мир продолжает жить — NPC реагируют на произошедшее. "
+                "Тон: трагический, финальный. Максимум 4 предложения."
+            )
+        
         # Блок 4.5: Наблюдаемые симптомы NPC (The Fool: только видимые следы, не внутренние состояния)
         # Читаем embodied_traces из доменного PlayerPerceptionDTO (не API-версию с peripheral_cues)
         if context and not _is_light_dialog:
@@ -322,14 +358,40 @@ class DmAgent:
                         _npc_name = _t.get('npc_name', _t.get('npc_id', '???'))
                         # Собираем наблюдаемые моторные симптомы (не эмоции!)
                         _symptoms = []
-                        if _t.get('is_shaking'): _symptoms.append("дрожит")
-                        if _t.get('is_frozen'): _symptoms.append("окаменел")
-                        if _t.get('locomotion_instability', 0) > 0.3: _symptoms.append("покачивается")
-                        if _t.get('posture_rigidity', 0) > 0.5: _symptoms.append("напряжённая поза")
+                        if _t.get('is_shaking'): _symptoms.append("явно дрожит")
+                        if _t.get('is_frozen'): _symptoms.append("замер на месте")
+                        if _t.get('locomotion_instability', 0) > 0.2: _symptoms.append("покачивается")
+                        if _t.get('posture_rigidity', 0) > 0.3: _symptoms.append("напряжённая поза")
+                        if _t.get('locomotion_instability', 0) > 0.7: _symptoms.append("шатается")
                         if _symptoms:
                             _obs_lines.append(f"- {_npc_name}: {', '.join(_symptoms)}")
                 if _obs_lines:
                     builder.add_custom_block("Наблюдаемые симптомы NPC (видимые — отражай в повествовании)", "\n".join(_obs_lines))
+        
+        # Блок 4.7: Контекст NPC (роль, описание — для правдоподобного нарратива)
+        # Получаем NPC данные — поддерживаем и dataclass (getattr) и dict (get)
+        _anr = getattr(context, 'all_npcs_raw_snapshot', None) if context else None
+        if _anr is None and isinstance(context, dict):
+            _anr = context.get('all_npcs_raw_snapshot')
+        if _anr and not _is_light_dialog:
+            _npc_ctx_lines = []
+            for _npc in _anr:
+                if not isinstance(_npc, dict):
+                    continue
+                _nid = _npc.get("npc_id") or _npc.get("id", "")
+                if _nid == "player":
+                    continue
+                _desc = _npc.get("description", "")
+                _title = ""
+                _sp = _npc.get("status_profile")
+                if isinstance(_sp, dict):
+                    _title = _sp.get("title", "")
+                _name = _npc.get("name", _nid)
+                if _desc or _title:
+                    _role_str = f"{_title}: " if _title else ""
+                    _npc_ctx_lines.append(f"- {_name}: {_role_str}{_desc}")
+            if _npc_ctx_lines:
+                builder.add_custom_block("Контекст NPC (кто они — используй для правдоподобия)", "\n".join(_npc_ctx_lines))
         
         # Блок 5: Проверки — для диалога пропускаем автоуспех
         if not _is_light_dialog:
@@ -426,6 +488,31 @@ class DmAgent:
                             python_engines_block += f"Игрок {player_name}:\n{_player_block}"
             if _has_engine_data and not _is_light_dialog:
                 builder.add_custom_block("Результаты проверок", python_engines_block)
+        
+        # Блок 5.5: Combat Outcome (физические последствия для DM)
+        _combat_data = {}
+        if context:
+            _combat_data = getattr(context, 'combat_data', None) or (context.get('combat_data', {}) if isinstance(context, dict) else {})
+        if _combat_data and not _is_light_dialog:
+            _combat_lines = []
+            for _npc_id, _cd in _combat_data.items():
+                # Промах по расстоянию
+                if _cd.get("miss"):
+                    _combat_lines.append(f"- {_npc_id}: НЕ ДОСТИГНУТ — слишком далеко ({_cd.get('distance', '?')}м, достать можно до {_cd.get('max_range', '?')}м)")
+                    continue
+                _hit_parts = []
+                if _cd.get("pain_delta", 0) > 0:
+                    _hit_parts.append(f"боль +{_cd['pain_delta']:.0f}")
+                if _cd.get("shock_impulse", 0) > 0:
+                    _hit_parts.append(f"шок {_cd['shock_impulse']:.2f}")
+                if _cd.get("blood_loss_delta", 0) > 0:
+                    _hit_parts.append(f"кровопотеря +{_cd['blood_loss_delta']:.2f}")
+                for _inj in _cd.get("injuries", []):
+                    _hit_parts.append(f"травма: {_inj.get('zone', '?')} ({_inj.get('severity', '?')}, {_inj.get('damage_type', '?')})")
+                if _hit_parts:
+                    _combat_lines.append(f"- {_npc_id}: {', '.join(_hit_parts)}")
+            if _combat_lines:
+                builder.add_custom_block("Последствия атаки (факт — отражай в повествовании)", "\n".join(_combat_lines))
             
             scene_events_block = ""
             if context.get("scene_state", {}).get("scene_events"):

@@ -305,8 +305,8 @@ class TestReactionTrustRouting:
             [_make_event("combat", source="npc_attacker")], ctx
         )
         # npc_attacker — источник, исключён. npc_observer — наблюдатель
-        # v2: 2 дельты (EMOTION + SOCIAL)
-        assert len(result.deltas) == 2
+        # v3: 3 дельты (PERCEPTION + EMOTION + SOCIAL)
+        assert len(result.deltas) == 3
         social_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "social"][0]
         assert social_d.npc_id == "npc_observer"
         assert social_d.social_target == "npc_attacker"
