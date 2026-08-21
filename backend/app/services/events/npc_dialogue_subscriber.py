@@ -201,8 +201,6 @@ class NpcDialogueSubscriber:
         except Exception as mem_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}/{speaker}: {mem_err}")
 
-        # P2-03: AffectiveIntegrator ghost removed. Emotions handled via CFRM P2 and social_pressure.
-
         # 3. RelationshipStore
         # NEW-2: Маппим tone на event_type из P2-05 (get_base_delta).
         # Если тон не замапплен (напр. NEUTRAL), дельты равны 0 (предотвращает Double Truth со старой шкалой).

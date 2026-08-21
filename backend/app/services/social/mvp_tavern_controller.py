@@ -141,18 +141,6 @@ class MvpTavernController:
                     description="NPC сломался под давлением критической угрозы и нестабильности."
                 )
             
-            # V8-MVP-17 FIX: Вызов trigger_fate при критической траектории
-            _fate_state = self.fate_tracker._states.get(npc_id)
-            if _fate_state and _fate_state.fate_trajectory.name == "CRITICAL" and not _fate_state.resolved_fate:
-                _tick_num = ctx.tick_number if hasattr(ctx, 'tick_number') else 0
-                self.fate_tracker.trigger_fate(
-                    npc_id=npc_id,
-                    outcome=FateOutcome.DEATH,
-                    tick=_tick_num,
-                    cause="critical_trajectory",
-                    description=f"{npc_id} достиг критической траектории судьбы."
-                )
-            
         # DilemmaEngine: проверяем триггеры
         if self.truth_state:
             discovered = list(getattr(self.truth_state, "discovered_secrets", set()))

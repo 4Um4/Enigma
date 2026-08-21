@@ -39,6 +39,14 @@ from app.models.schemas import CharacterSheet
 logger = logging.getLogger(__name__)
 
 
+def _will_state_from_str(s: str) -> WillState:
+    """V8-WL-7 FIX: Безопасное создание WillState из строки (защита от ValueError)."""
+    try:
+        return WillState(s)
+    except (ValueError, KeyError):
+        return WillState.FREE
+
+
 class PlayerAvatarService:
     """
     Загрузка, сохранение и управление живым состоянием аватара игрока.

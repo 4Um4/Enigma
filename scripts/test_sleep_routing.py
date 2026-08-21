@@ -61,14 +61,22 @@ def run_sleep_test():
     scene_state["game_time_seconds"] = 2 * 3600
     scene_manager.save_scene_state(campaign_id, scene_state)
 
-    logger.info("Прогон 40 тиков симуляции...")
+    logger.info("Прогон 40 тиков симуляции (Tavern + City Gate)...")
     for i in range(40):
-        loop.idle_tick(campaign_id)
+        # S-146 FIX: Тикаем обе локации, чтобы NPC могли дойти до кроватей в city_gate
+        loop.idle_tick(campaign_id, location_id="tavern")
+        loop.idle_tick(campaign_id, location_id="city_gate")
         # Сохраняем время 02:00, чтобы они точно уснули
         scene_state = scene_manager.get_scene_state(campaign_id, "tavern")
         env = scene_state.setdefault("environment", {})
         env["time_of_day"] = "02:00"
         scene_manager.save_scene_state(campaign_id, scene_state)
+        
+        scene_state_gate = scene_manager.get_scene_state(campaign_id, "city_gate")
+        if scene_state_gate:
+            env_gate = scene_state_gate.setdefault("environment", {})
+            env_gate["time_of_day"] = "02:00"
+            scene_manager.save_scene_state(campaign_id, scene_state_gate)
 
     logger.info("--- Проверка позиций NPC ---")
     

@@ -202,13 +202,12 @@ def evaluate_behavior_and_identity(
             # V8-PSY-6 FIX: Гидратация relationship_cache актуальными значениями из RelationshipStore
             if relationship_store and not _player_rel:
                 _rels = relationship_store.get_all_for_source(campaign_id, npc_id)
-                for _r in _rels:
-                    if _r.target_id == "player":
-                        _player_rel = {
-                            "trust": getattr(_r, "trust", 0.0),
-                            "fear": getattr(_r, "fear", 0.0)
-                        }
-                        break
+                _player_data = _rels.get("player", {}) if isinstance(_rels, dict) else {}
+                if _player_data:
+                    _player_rel = {
+                        "trust": _player_data.get("trust", 0.0),
+                        "fear": _player_data.get("fear", 0.0),
+                    }
 
             _trust = _player_rel.get("trust", 0.0)
             _fear = _player_rel.get("fear", 0.0) * 100

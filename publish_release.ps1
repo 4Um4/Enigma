@@ -3,11 +3,21 @@
 
 # --- КОНФИГУРАЦИЯ ---
  $RepoOwner = "4Um4"
- $RepoName = "Enigma" # Название репозитория можно оставить
+ $RepoName = "Enigma"
  $SetupScriptPath = "enigma_setup.iss"
+ $ModelsSetupScriptPath = "models_setup.iss"
  $VersionFile = "version.txt"
 
 Write-Host "🚀 Начинаем сборку и публикацию релиза Bloodloom..." -ForegroundColor Cyan
+
+# 0. Очистка папки build (оставляем только установщик моделей)
+Write-Host "🧹 Очистка папки build..." -ForegroundColor Cyan
+if (Test-Path "build") {
+    Get-ChildItem -Path "build" -File | Where-Object { $_.Name -notlike "Bloodloom_models_setup*" } | Remove-Item -Force
+    Get-ChildItem -Path "build" -Directory | Remove-Item -Recurse -Force
+} else {
+    New-Item -ItemType Directory -Path "build" | Out-Null
+}
 
 # 1. Читаем и инкрементируем версию
 if (Test-Path $VersionFile) {
@@ -30,53 +40,69 @@ if ($parts.Length -gt 0) {
 Set-Content -Path $VersionFile -Value $NewVersion -NoNewline
 Write-Host "Версия обновлена: v$NewVersion" -ForegroundColor Yellow
 
-# 2. Компиляция Bloodloom.exe (бывший updater) и Splash Screen через PyInstaller
+# 2. Компиляция Bloodloom.exe и Splash Screen
 Write-Host "🔨 Компиляция Bloodloom.exe и Splash Screen..." -ForegroundColor Cyan
-# Компилируем Splash Screen
 python -m PyInstaller --onefile --noconsole --name Bloodloom_splash --icon=Bloodloom.ico splash.py
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Ошибка компиляции splash.py!" -ForegroundColor Red
-    exit
-}
+if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка splash.py!" -ForegroundColor Red; exit }
 Move-Item -Path "dist\Bloodloom_splash.exe" -Destination "Bloodloom_splash.exe" -Force
 
-# Компилируем Обновлятор/Лаунчер
 python -m PyInstaller --onefile --noconsole --name Bloodloom --icon=Bloodloom.ico updater.py
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Ошибка компиляции updater.py!" -ForegroundColor Red
-    exit
-}
+if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка updater.py!" -ForegroundColor Red; exit }
 Move-Item -Path "dist\Bloodloom.exe" -Destination "Bloodloom.exe" -Force
 
-Remove-Item -Path "build" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "build\Bloodloom_splash" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "build\Bloodloom" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "Bloodloom.spec" -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "Bloodloom_splash.spec" -Force -ErrorAction SilentlyContinue
 Write-Host "✅ Bloodloom.exe и Splash Screen собраны" -ForegroundColor Green
 
-# 3. Компиляция установщика с помощью Inno Setup
-Write-Host "🔨 Компиляция установочника Inno Setup..." -ForegroundColor Cyan
+# 2.5 Подготовка защищенной копии кода (Staging)
+Write-Host "🔒 Подготовка кода (копирование и компиляция в .pyc)..." -ForegroundColor Cyan
+ $StagingDir = "build\staging"
+if (Test-Path $StagingDir) { Remove-Item -Recurse -Force $StagingDir }
+New-Item -ItemType Directory -Path $StagingDir | Out-Null
+
+robocopy . $StagingDir /E /XD .venv .git build logs reports __pycache__ /XF *.pyc *.log *.spec > $null
+
+Push-Location $StagingDir
+python -m compileall -b backend frontend
+if (Test-Path "game_launcher.py") { python -m compileall -b game_launcher.py }
+
+Get-ChildItem -Path "backend", "frontend" -Filter "*.py" -Recurse | Remove-Item -Force
+Remove-Item "game_launcher.py" -Force -ErrorAction SilentlyContinue
+Pop-Location
+Write-Host "✅ Код скомпилирован в .pyc во временной папке" -ForegroundColor Green
+
+# 3. Компиляция основного установщика
+Write-Host "🔨 Компиляция основного установочника..." -ForegroundColor Cyan
  $ISCCPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-if (-not (Test-Path $ISCCPath)) {
-    Write-Host "❌ Ошибка: Не найден Inno Setup (ISCC.exe)." -ForegroundColor Red
-    exit
-}
+if (-not (Test-Path $ISCCPath)) { Write-Host "❌ Ошибка: Не найден Inno Setup (ISCC.exe)." -ForegroundColor Red; exit }
 
 & $ISCCPath /DAppVersion=$NewVersion $SetupScriptPath /Qp
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Ошибка компиляции Inno Setup!" -ForegroundColor Red
-    exit
+if ($LASTEXITCODE -ne 0) { Write-Host "❌ Ошибка компиляции Inno Setup!" -ForegroundColor Red; exit }
+
+# 4. Сборка установщика моделей (если его нет)
+ $modelsExePath = "build\Bloodloom_models_setup.exe"
+if (-not (Test-Path $modelsExePath)) {
+    if (Test-Path $ModelsSetupScriptPath) {
+        Write-Host "🔨 Сборка установщика AI-моделей (это займет время)..." -ForegroundColor Yellow
+        & $ISCCPath $ModelsSetupScriptPath /Qp
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "⚠️ Ошибка компиляции models_setup.iss (возможно, нехватка места). Пропускаем..." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "⚠️ Файл models_setup.iss не найден. Пропускаем..." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "✅ Установщик AI-моделей уже собран, пропускаем..." -ForegroundColor Green
 }
 
- $SetupFiles = Get-ChildItem -Path "build" -File | Where-Object { $_.Name -like "Bloodloom_setup_v*" } | Select-Object -ExpandProperty FullName
-if (-not $SetupFiles) {
-    Write-Host "❌ Ошибка: Не найдены скомпилированные файлы в папке build!" -ForegroundColor Red
-    exit
-}
-Write-Host "✅ Установочник собран: $($SetupFiles -join ', ')" -ForegroundColor Green
+ $SetupFiles = Get-ChildItem -Path "build" -File | Where-Object { $_.Name -like "Bloodloom_setup_v*" -or $_.Name -like "Bloodloom_models_setup*" } | Select-Object -ExpandProperty FullName
+if (-not $SetupFiles) { Write-Host "❌ Ошибка: Не найдены скомпилированные файлы в папке build!" -ForegroundColor Red; exit }
+Write-Host "✅ Установочники собраны: $($SetupFiles -join ', ')" -ForegroundColor Green
 
-# 4. Публикуем на GitHub через gh CLI
+# 5. Публикация на GitHub
 Write-Host "☁️ Публикация релиза на GitHub..." -ForegroundColor Cyan
-
 try {
     gh auth status 2>&1 | Out-Null
 } catch {
@@ -88,7 +114,6 @@ try {
  $ReleaseTitle = "Bloodloom Update $TagName"
  $ReleaseNotes = "Ежедневное обновление MVP. Версия $TagName."
 
-# Очистка старых релизов
 Write-Host "🧹 Очистка старых релизов (оставляем 3 последние)..." -ForegroundColor Cyan
  $releasesJson = gh api repos/$RepoOwner/$RepoName/releases --paginate 2>$null | ConvertFrom-Json
 if ($releasesJson) {

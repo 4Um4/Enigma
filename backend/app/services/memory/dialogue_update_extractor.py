@@ -9,7 +9,6 @@ import json
 import logging
 from dataclasses import dataclass
 from typing import List, Optional
-from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class DialogueUpdateExtractor:
         self._router = router
     
     def extract(self, stm_before: str, new_turn: str, partner: str) -> DialogueUpdate:
-        """Cached by (stm_before, new_turn, partner) to avoid re-computation."""
+        """Извлекает structured update из реплики через LLM."""
         if self._router is None:
             return DialogueUpdate()
         

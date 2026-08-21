@@ -88,6 +88,7 @@ def run_npc_orchestration(
         logger.error(
             "[SCENE_IDENTITY] npc_orchestration: shared_context.scene_state is None! Traversals will be lost."
         )
+        from app.services.tick_orchestrator import TickPlayerResultDTO
         return TickPlayerResultDTO()
 
     # ADR-048: npc_positions.player — авторитетный источник позиции игрока.
@@ -210,7 +211,7 @@ def run_npc_orchestration(
         )
         
         # Коммитим результат тика для каждой локации
-        if _loc_result.final_scene_state is not None and _scene_manager:
+        if _loc_result is not None and _loc_result.final_scene_state is not None and _scene_manager:
             if _scene_manager._tick_campaign_id == campaign_id:
                 _scene_manager.commit_tick_result(campaign_id, _loc_result.final_scene_state)
         

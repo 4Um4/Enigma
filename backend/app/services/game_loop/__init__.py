@@ -842,7 +842,7 @@ class GameLoop:
         """E.2: Инкапсуляция character_service.list_characters"""
         return self.character_service.list_characters(campaign_id)
 
-    def idle_tick(self, campaign_id: str) -> dict:
+    def idle_tick(self, campaign_id: str, location_id: Optional[str] = None) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 
         Вызывается когда игрок бездействует (таймер pygame).
@@ -861,7 +861,8 @@ class GameLoop:
         from app.core.constants import DEFAULT_LOCATION_ID
 
         _prepped_scene = ensure_scene_initialized(self, campaign_id)
-        _active_loc = _prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID
+        # S-146 FIX: Поддержка принудительного тика для конкретной локации (для тестов)
+        _active_loc = location_id or (_prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID)
         if not _active_loc:
             _active_loc = DEFAULT_LOCATION_ID
 
