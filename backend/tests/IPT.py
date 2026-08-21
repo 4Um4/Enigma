@@ -91,11 +91,8 @@ def _bootstrap_minimal_world() -> TestWorld:
     temp_saves = tempfile.mkdtemp(prefix="ipt_saves_")
     settings.saves_dir = temp_saves
 
-    # data_dir — обычно корень проекта
-    project_root = _BACKEND.parent
-    data_dir = project_root / "data"
-    if not data_dir.exists():
-        data_dir = project_root
+    # data_dir — берём из настроек, чтобы путь всегда указывал на backend/data
+    data_dir = Path(settings.data_dir)
 
     game_loop = build_game_loop(data_dir)
 

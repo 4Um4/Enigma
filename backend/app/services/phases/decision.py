@@ -67,14 +67,24 @@ def evaluate_behavior_and_identity(
                     _min_trust = min((v.get("trust", 50.0) for v in _rels.values()), default=50.0)
                     _max_fear = max((v.get("fear", 0.0) for v in _rels.values()), default=0.0)
                     
-                    # Низкий trust (< 20) даёт +20 давления
-                    if _min_trust < 20.0:
-                        _social_pressure += 20.0
-                    # Высокий fear (> 50) даёт +20 давления
-                    if _max_fear > 50.0:
-                        _social_pressure += 20.0
+                    # Шкала RelationshipStore: -1.0..1.0, где 0.5 - нейтральное значение.
+                    # Давление растёт плавно при падении trust ниже 0.5.
+                    # trust=0.5 -> pressure=0, trust=0.0 -> pressure=10, trust=-1.0 -> pressure=20
+                    _trust_pressure = max(0.0, (0.5 - _min_trust)) * 20.0
+                    _social_pressure += min(20.0, _trust_pressure)
+                    
+                    # Давление растёт плавно при росте fear выше 0.5.
+                    # fear=0.5 -> pressure=0, fear=1.0 -> pressure=20
+                    _fear_pressure = max(0.0, (_max_fear - 0.5)) * 40.0
+                    _social_pressure += min(20.0, _fear_pressure)
                         
                     logger.info(f"[BREAK_PROGRESS] npc={npc_id} trust_min={_min_trust:.1f} fear_max={_max_fear:.1f} social_pressure={_social_pressure:.1f}")
+                    
+                    # Эмерджентные эмоции: высокое давление -> ANGRY/FEARFUL
+                    # Порог снижен до 5.0, чтобы даже moderate pressure (trust=0.3) вызывало раздражение
+                    if _social_pressure > 5.0:
+                        _npc_state.emotion = "fearful" if _max_fear > 0.5 else "angry"
+                        logger.info(f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion} (social_pressure={_social_pressure:.1f})")
 
             # ADR-S86.3: Расчёт слома воли
             _break_deltas = BreakProgressEngine.calculate(
@@ -110,7 +120,7 @@ def evaluate_behavior_and_identity(
             from app.services.npc.life_project_resolver import LifeProjectResolver
             _old_state = getattr(_npc_state, "life_project_state", "ACTIVE")
             
-            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_pressure)
+            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_pressure, tick=tick_number)
             if _old_state != _npc_state.life_project_state:
                 logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
 

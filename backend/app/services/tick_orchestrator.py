@@ -596,18 +596,6 @@ class TickOrchestrator:
                 if _intent_res.original_intent
                 else None
             )
-            _sem_action = getattr(_params, "semantic_action", None) if _params else None
-            _sem_target = (
-                getattr(_params, "target_reference", None) if _params else None
-            )
-            logger.warning(
-                f"[PDM_DEBUG] sem_action={_sem_action} sem_target={_sem_target}"
-            )
-
-            # Инициализация по умолчанию для предотвращения UnboundLocalError при UNCERTAIN
-            # ADR-O-315: TickOrchestrator больше не гадает, кто идёт.
-            # Слой Интерпретации (Фаза 1) отдаёт готовый контракт MovementRequest.
-            _movement_req = getattr(_intent_res, "movement_request", None)
             _fast_actor = None
             _fast_target_xy = None
             _target_id = getattr(_params, "target_id", None) if _params else None
@@ -1048,17 +1036,29 @@ class TickOrchestrator:
             from app.services.npc.topic_extractor import extract_topic
 
             topic = None
-            # 1. Проверяем spatial events затронувшие этого NPC
-            for event in ctx.phase_2_events:
-                from app.services.tick_utils import resolve_affected_npcs
+            
+            # 0. Приоритет: Проверяем недавние диалоги в scene_state (NPC_SPOKE)
+            # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".
+            _recent_dialogues = ctx.scene_state.get("recent_dialogues", [])
+            for dialogue in _recent_dialogues:
+                if dialogue.get("target_id") == npc_id:
+                    _speaker = dialogue.get("speaker_id", "кто-то")
+                    _text = dialogue.get("text", "")
+                    topic = f"ответить {_speaker}: {_text}"
+                    break
 
-                affected = resolve_affected_npcs(event)
-                if npc_id in affected:
-                    topic = extract_topic(
-                        event_type=event.type,
-                        raw_input=event.payload.get("to_node", ""),
-                    )
-                    break  # первый подошедший event достаточно
+            # 1. Проверяем spatial events затронувшие этого NPC
+            if not topic:
+                for event in ctx.phase_2_events:
+                    from app.services.tick_utils import resolve_affected_npcs
+
+                    affected = resolve_affected_npcs(event)
+                    if npc_id in affected:
+                        topic = extract_topic(
+                            event_type=event.type,
+                            raw_input=event.payload.get("to_node", ""),
+                        )
+                        break  # первый подошедший event достаточно
 
             # 2. Фоллбэк на STM
             if not topic:

@@ -204,11 +204,15 @@ class NpcTickPipeline:
                     )
                     import math
                     from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
-                    _npc_pos = state_l2.local_position if hasattr(state_l2, "local_position") else (0.0, 0.0)
+                    # ADR-O-331: Safe Position Extraction. local_position может быть dict {"x":, "y":} или tuple (x, y).
+                    _raw_pos = state_l2.local_position if hasattr(state_l2, "local_position") else (0.0, 0.0)
+                    _npc_pos = (_raw_pos.get("x", 0.0), _raw_pos.get("y", 0.0)) if isinstance(_raw_pos, dict) else tuple(_raw_pos)
+                    
                     for _nearby_npc in state.nearby_npcs:
                         _nearby_id = _nearby_npc.get("npc_id") or _nearby_npc.get("id")
                         if _nearby_id and _nearby_id != npc_id:
-                            _target_pos = _nearby_npc.get("local_position", _npc_pos)
+                            _raw_target = _nearby_npc.get("local_position", _npc_pos)
+                            _target_pos = (_raw_target.get("x", 0.0), _raw_target.get("y", 0.0)) if isinstance(_raw_target, dict) else tuple(_raw_target)
                             _dist = math.hypot(_npc_pos[0] - _target_pos[0], _npc_pos[1] - _target_pos[1])
                             _has_los = line_of_sight(_dist, state.scene_state, _npc_pos[0], _npc_pos[1], _target_pos[0], _target_pos[1])
                             _has_sound = sound_reach(15.0, state.scene_state) >= _dist

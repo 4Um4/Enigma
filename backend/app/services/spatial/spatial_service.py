@@ -75,10 +75,10 @@ class SpatialService:
             spatial_walls, spatial_obstacles, affordance_objects = [], [], []
         elif len(result) == 4:
             graph, connections, alias_map, boundary_map = result
-            rooms_geometry, spatial_walls, spatial_obstacles = {}, [], []
+            rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = {}, [], [], []
         else:
             graph, connections, alias_map = result
-            boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = {}, {}, [], []
+            boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = {}, {}, [], [], []
         overlay = build_overlay_from_scene(scene_state)
 
         return SpatialService(
@@ -91,6 +91,7 @@ class SpatialService:
             rooms_geometry=rooms_geometry,
             spatial_walls=spatial_walls,
             spatial_obstacles=spatial_obstacles,
+            affordance_objects=affordance_objects,
         )
 
     def __init__(

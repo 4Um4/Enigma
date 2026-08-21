@@ -24,9 +24,20 @@ class SocialTargetResolver:
         if not _candidates:
             return None
 
-        _target = spatial_query.get_nearest_npc(state.npc_id, _candidates)
-        if _target:
+        _best_target = None
+        _min_dist = float("inf")
+        _SPEAK_RADIUS = 5.0  # NPC говорят только с теми, кто в 5 метрах
+
+        for nid in _candidates:
+            _dist = spatial_query.distance(state.npc_id, nid)
+            if _dist <= _SPEAK_RADIUS and _dist < _min_dist:
+                # Проверка линии видимости (Line of Sight) — нет стен между ними
+                if spatial_query.visibility(state.npc_id, nid):
+                    _min_dist = _dist
+                    _best_target = nid
+
+        if _best_target:
             logger.warning(
-                f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_target} (nearest)"
+                f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_best_target} (dist={_min_dist:.1f}, LoS=True)"
             )
-        return _target
+        return _best_target

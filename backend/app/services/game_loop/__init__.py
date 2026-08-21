@@ -667,16 +667,16 @@ class GameLoop:
                     WorldSnapshotBuilder,
                 )
 
-                _builder = WorldSnapshotBuilder()
-                _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
-                logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                _ws = _builder.build(
-                    result.final_state,
-                    result.final_state.get("tick", 0),
-                    None,
-                    _all_npcs,
-                    recent_dialogues=_recent_d,
-                )
+            _builder = WorldSnapshotBuilder()
+            _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
+            logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+            _ws = _builder.build(
+                result.final_state,
+                result.final_state.get("tick", 0),
+                None,
+                _all_npcs,
+                recent_dialogues=_recent_d,
+            )
 
             return {
                 "status": "ok",
@@ -863,6 +863,9 @@ class GameLoop:
                 _ws["recent_dialogues"] = _recent_d
             except Exception as e:
                 logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
+
+            # S128 FIX: Инъекция dialog_journal (SSOT из AvatarService) для синхронизации UI в idle_tick
+            _ws["dialog_journal"] = self.avatar_service.get_journal(campaign_id)
 
         # S83.1: UNLOCK — единственная точка persist для idle_tick.
         # commit_tick_result() уже обновил _tick_scene результатом тика.
@@ -1054,6 +1057,17 @@ class GameLoop:
                 WorldSnapshotBuilder,
             )
 
+            # S127 FIX: RecognitionMemory Dialogue Trigger (Persistent Post-Commit)
+            # Если игрок обратился к NPC (target_id), NPC перестаёт быть "Незнакомцем" немедленно.
+            # Обновляем scene_state и ЯВНО сохраняем в SQLite, чтобы idle_tick не перезаписал его.
+            _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None
+            if _target_id:
+                _recog_map = _scene.setdefault("player_recognition", {})
+                _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
+                _recog_entry["confidence"] = 1.0
+                logger.info(f"[RECOG_MEMORY] Dialogue trigger (Post-Commit): NPC {_target_id} confidence=1.0")
+                self.save_scene_state(req.campaign_id, _scene)
+
             _builder = WorldSnapshotBuilder()
             # ADR-092: Проброс perception из TickOrchestrator для action tick
             _pp = (
@@ -1093,15 +1107,12 @@ class GameLoop:
                     campaign_id=req.campaign_id, speaker=_a.player_name, text=_a.action
                 )
 
-        # 2. Логируем ответ DM. (DM-ответ уже включает в себя реплики NPC,
-        # поэтому отдельный лог npc_reactions УБРАН во избежание дублирования "DM дважды отвечает")
-        if dm_result:
-            _dm_text = dm_result.get("dm_response", "")
-            if _dm_text:
-                # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
-                self.avatar_service.append_journal(
-                    campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text
-                )
+        _dm_text = dm_result.get("dm_response", "")
+        if _dm_text:
+            # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
+            self.avatar_service.append_journal(
+                campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text
+            )
 
         # Инжект журнала в WorldSnapshot (если снапшот собран)
         if _ws_dict is not None:

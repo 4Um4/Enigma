@@ -369,8 +369,8 @@ class ModelRouter:
                         latency_ms = (time.time() - start_time) * 1000
                         if hasattr(pool, "record_request"):
                             pool.record_request(model_key, latency_ms, 0, success=False)
-                        logger.debug(f"ModelRouter: Model {model_key} failed: {e}")
-                        logger.debug(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
+                        logger.error(f"ModelRouter: Model {model_key} failed: {e}")
+                        logger.error(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
                         continue
 
         # Fallback: try any available model from pool
@@ -383,7 +383,8 @@ class ModelRouter:
                         return model_provider.provider.complete(
                             prompt, params, system_prompt
                         )
-                    except Exception:
+                    except Exception as e:
+                        logger.warning(f"Fallback {model_key} failed: {e}")
                         continue
 
         # Все модели пула недоступны — не создаём новые провайдеры (это порождало

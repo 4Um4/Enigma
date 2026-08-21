@@ -118,7 +118,8 @@ class EventBus:
                     results.append(result)
             except Exception as e:
                 logger.error(
-                    f"[EVENT_BUS] Обработчик упал: {handler.__qualname__} → {e}"
+                    f"[EVENT_BUS] Обработчик упал: {handler.__qualname__} → {e}",
+                    exc_info=True
                 )
 
         # логируем для debug (последние 100)
