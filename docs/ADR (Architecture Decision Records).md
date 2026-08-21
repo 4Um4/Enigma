@@ -21,6 +21,7 @@
 **L1: State Mutation Law** (ADR-001, 013, 117)
 Единственный путь мутации: `Phase8Result → delta_buffer → StateApplicator.apply_batch()`. Сериализация Round-Trip (`from_legacy ↔ write_to_legacy`).
 - ❌ **Taboo:** Прямая мутация `all_npcs_raw`; Конструктор `NPCState(...)` в тестах.
+     Runtime-мутация аватара игрока — только `AvatarStateApplicator` (whitelist: body_state/stress/emotion, S208); GameLoop — оркестратор, не писатель.
 - 📁 `svc/state/delta_buffer.py`, `svc/state/state_applicator.py`, `mod/npc_state.py`
 
 **L2: Runtime Purity Law** (ADR-O-302, TZ09-1, S83.1)

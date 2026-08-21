@@ -131,7 +131,7 @@ def tick_conditions(
                 )
                 from app.models.npc_state import NPCState
 
-                NPCState.write_to_legacy(state_l2, npc_dict_for_write)
+                NPCState.to_persistence_dict(state_l2, npc_dict_for_write)
         if _cond_events and scene_continuity:
             for _me in _cond_events:
                 scene_continuity.add_event(f"{_me.event_type.value}_{_me.npc_id}")

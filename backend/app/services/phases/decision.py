@@ -134,7 +134,7 @@ def evaluate_behavior_and_identity(
                 logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
 
             # ADR-O-208: Сохраняем вычисленные дельты обратно в npc_dict
-            NPCState.write_to_legacy(_npc_state, npc_dict)
+            NPCState.to_persistence_dict(_npc_state, npc_dict)
 
             # L1Chronicle: Фиксация давления и идентичности
             if l1_chronicle is not None:
@@ -232,7 +232,7 @@ def evaluate_behavior_and_identity(
                     mask=_new_mask, intensity=_mask_intensity, applied_at_day=game_day
                 ))
 
-            # V8-PSY-18 FIX: Удалены root-level writes. write_to_legacy() уже корректно
+            # V8-PSY-18 FIX: Удалены root-level writes. to_persistence_dict() уже корректно
             # сохраняет эти поля в psyche sub-dict, который читает from_legacy.
 
         except Exception as e:

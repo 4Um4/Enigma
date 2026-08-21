@@ -138,7 +138,7 @@ def test_r6_life_project_round_trip():
     npc = dataclasses.replace(npc, life_project="isolation", life_project_state="COMMITTED")
 
     # 3. Сериализация обратно в legacy dict
-    NPCState.write_to_legacy(npc, legacy_data)
+    NPCState.to_persistence_dict(npc, legacy_data)
     # 4. Десериализация снова
     npc_restored = NPCStateAdapter.from_legacy(legacy_data)
 

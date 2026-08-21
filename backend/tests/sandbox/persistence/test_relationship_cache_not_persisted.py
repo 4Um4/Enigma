@@ -17,7 +17,7 @@ from app.models.npc_state import NPCState, NPCStateAdapter
 
 
 def test_relationship_cache_not_persisted_in_legacy():
-    """ДОКАЗЫВАЕТ: write_to_legacy НЕ записывает relationship_cache в словарь сохранения (Rule 36).
+    """ДОКАЗЫВАЕТ: to_persistence_dict НЕ записывает relationship_cache в словарь сохранения (Rule 36).
 
     ADR-121: relationship_cache — эфемерный read-кэш. SSOT = RelationshipStore.
     Персистенция кэша = DOUBLE TRUTH (расхождение с RelationshipStore при следующей загрузке).
@@ -37,7 +37,7 @@ def test_relationship_cache_not_persisted_in_legacy():
 
     # Сериализуем в legacy dict
     legacy_out = {}
-    NPCState.write_to_legacy(state, legacy_out)
+    NPCState.to_persistence_dict(state, legacy_out)
 
     # Проверяем, что кэш НЕ попал в сериализацию
     assert "relationship_cache" not in legacy_out, (

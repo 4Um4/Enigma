@@ -45,8 +45,8 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                 )
                 if _compressed != npc_state.narrative_cache:
                     npc_state.narrative_cache = _compressed
-                    # ADR-117: write_to_legacy — staticmethod, вызов через класс
-                    NPCState.write_to_legacy(npc_state, npc_dict)
+                    # ADR-117: to_persistence_dict — staticmethod, вызов через класс
+                    NPCState.to_persistence_dict(npc_state, npc_dict)
             except Exception as e:
                 logger.error(
                     f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}. Пробрасываем исключение.",
@@ -105,7 +105,7 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
             )
             # Мост обратно: apply() обновил narrative_cache на NPCState,
             # но Фаза 5 пересоздаёт NPCState из npc_dict (Устав §3.1)
-            NPCState.write_to_legacy(npc_state, npc_dict)
+            NPCState.to_persistence_dict(npc_state, npc_dict)
             processed += 1
 
     # ── Блок 4: V8-MEM-1 FIX — Decay & Resonance (L3 Identity cascade) ──

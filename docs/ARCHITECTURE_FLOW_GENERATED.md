@@ -31,6 +31,13 @@ flowchart TD
         WillpowerGate("WillpowerGate (Cumulative Strain)"):::application
         IntentEventAdapter("Intent Event Adapter"):::application
         SocialMemoryUpdater("Social Memory Updater"):::application
+        ConfigOverlay("Config Overlay (identity-патч констант)"):::application
+        PresetMaterializer("Preset Materializer (temp campaign copy)"):::application
+        ScenarioPlayer("Scenario Player (InterventionEvent timeline)"):::application
+        ExperimentRunner("Experiment Runner (headless session)"):::application
+        ObservabilityTap("Observability Tap (пассивный наблюдатель)"):::application
+        ProbeAdapter("Probe Adapter"):::application
+        SuperboxAdapter("Superbox Adapter"):::application
         CausalObserver("Causal Observer (CDS)"):::application
         TickHealthChecker("Tick Health Checker"):::application
         PatternRegistry("Pattern Registry (Compiled Regex)"):::application
@@ -113,6 +120,9 @@ flowchart TD
         InstitutionalInertia("Institutional Inertia"):::domain
         InstitutionLayer("Village Institution Layer"):::domain
         RiskPerceptionProfile("Risk Perception Profile"):::domain
+        CoreConstants("core.constants (SSOT калибруемых констант)"):::domain
+        CalibrationPreset["Calibration Preset (constants + npc_overrides + scenario + seed)"]:::domain
+        CalibrationMetrics("Calibration Metrics (M0: CharacterChange, DecisionDiversity, LoopRate, EventResponsiveness, CausalDepth)"):::domain
         DeterministicClock("Deterministic Clock"):::domain
         CausalTrace("Causal Trace"):::domain
         TickHealthReport["Tick Health Report"]:::domain
@@ -286,6 +296,15 @@ flowchart TD
     BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
     TickOrchestrator -->|"evaluates mask before DecisionHub"| BehaviorMaskEvaluator
     BehaviorMaskEvaluator -->|"applies social mask to utility scoring"| DecisionHub
+    ConfigOverlay ==>|"identity-патч значений + from-import биндингов sys.modules"| CoreConstants
+    CoreConstants -->|"from-import биндинги констант (27-43)"| DecisionHub
+    ExperimentRunner -->|"вводит overlay на время прогона (require_loaded)"| ConfigOverlay
+    PresetMaterializer -->|"load + materialize"| CalibrationPreset
+    ExperimentRunner -->|"материализует temp-кампанию"| PresetMaterializer
+    ScenarioPlayer -->|"execute(interventions=[InterventionEvent])"| TickOrchestrator
+    ExperimentRunner -->|"headless-сборка и тики на temp-копии (шаблон DriftLaboratory)"| GameLoop
+    EventBus -->|"sync-подписка на реальный реестр EventType"| ObservabilityTap
+    ObservabilityTap -->|"события + post-commit диффы сторов"| CalibrationMetrics
     GameStdout -->|"reads logs"| CausalObserver
     GitHistory -->|"reads git log & TODOs"| CausalObserver
     DeterministicClock -->|"provides tick context"| CausalTrace
@@ -570,6 +589,14 @@ flowchart TD
     CrystallizedBeliefModifierResolver -.->|"🚫 REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305)"| DecisionHub:::forbidden
     BreakProgressEngine -.->|"🚫 FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1)"| TraitDriftEvent:::forbidden
     BehaviorMaskEvaluator -.->|"🚫 REQUIRED: Mask must be quasi-stable (hysteresis). Prevent social role flickering (ADR-S86.4)"| BehaviorMask:::forbidden
+    Any -.->|"🚫 FORBIDDEN: ядро (TickOrchestrator, DecisionHub, stores) импортирует app.services.calibration — обратные зависимости"| CalibrationLab:::forbidden
+    ConfigOverlay -.->|"🚫 REQUIRED: verify на входе и verify_restored на выходе; вложенный overlay = RuntimeError"| CoreConstants:::forbidden
+    ConfigOverlay -.->|"🚫 FORBIDDEN: параллельные overlay в одном процессе (изоляция процессами, M3+)"| CoreConstants:::forbidden
+    ExperimentRunner -.->|"🚫 FORBIDDEN: мутация NPCState/психики в обход StateApplicator. Вмешательства — только InterventionEvent → TickOrchestrator"| NPCState:::forbidden
+    ExperimentRunner -.->|"🚫 REQUIRED: метрическое время = детерминированная проекция тиков (tick / ticks_per_real_minute); wall-clock — только метаданные эксперимента (§15.2)"| game_time:::forbidden
+    ObservabilityTap -.->|"🚫 REQUIRED: полный try/except вокруг обработчика; никакого I/O в обработчике; отказ наблюдателя не роняет каузальный поток"| EventBus:::forbidden
+    ExperimentRunner -.->|"🚫 REQUIRED: offline — MockProvider (environment != production, B4-FIX); реальный LLM в прогонах калибровки запрещён (детерминизм)"| LlmProvider:::forbidden
+    CalibrationPreset -.->|"🚫 FORBIDDEN: фейковая реализация [PLAN]-параметров; валидатор помечает их как no-op"| npc_overrides:::forbidden
     CausalObserver -.->|"🚫 FORBIDDEN: Feedback loop into simulation"| Runtime_State:::forbidden
     CDS -.->|"🚫 FORBIDDEN: Interrupt causal flow on crash"| Pipeline:::forbidden
     TickOrchestrator -.->|"🚫 REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120)"| CausalObserver:::forbidden
@@ -883,6 +910,27 @@ TickOrchestrator->>BreakProgressEngine: 1. _phase_5_decision: Calculate will_sta
 BreakProgressEngine-->>L1Chronicle: 2. Commit TraitDriftEvent (if broken)
 TickOrchestrator->>BehaviorMaskEvaluator: 3. Evaluate COLLAPSE/FAKE_SUBMISSION/BETRAYAL
 BehaviorMaskEvaluator->>DecisionHub: 4. Apply mask to utility scoring
+```
+
+### Calibration Experiment Flow (M0)
+
+```mermaid
+sequenceDiagram
+participant CalibrationPreset
+participant PresetMaterializer
+participant ExperimentRunner
+participant ConfigOverlay
+participant GameLoop
+participant TickOrchestrator
+participant ObservabilityTap
+participant CalibrationMetrics
+CalibrationPreset->>PresetMaterializer: 1. load: constants + npc_overrides + scenario + seed
+PresetMaterializer->>ExperimentRunner: 2. temp-копия кампании, патч NPC JSON
+ExperimentRunner->>ConfigOverlay: 3. overlay_constants(constants, require_loaded=потребители)
+ExperimentRunner->>GameLoop: 4. сборка offline (MockProvider), duration_ticks тиков
+TickOrchestrator->>ObservabilityTap: 5. события (sync) + post-commit диффы
+ObservabilityTap->>CalibrationMetrics: 6. compute() → ExperimentResult
+ExperimentRunner->>ConfigOverlay: 7. выход: restore + verify_restored
 ```
 
 ### Economy Tick Flow (Phase 2)
@@ -1268,6 +1316,15 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | - | `-` | ADR-O-208.1 |
 | TickOrchestrator | BehaviorMaskEvaluator | evaluates mask before DecisionHub | Based on WillState and relationship_cache | `-` | ADR-S86.4 |
 | BehaviorMaskEvaluator | DecisionHub | applies social mask to utility scoring | - | `-` | - |
+| ConfigOverlay | CoreConstants | identity-патч значений + from-import биндингов sys.modules | verify на входе и выходе; вложенность/параллельность = RuntimeError | `calibration/config_overlay.py` | ADR-O-361 |
+| CoreConstants | DecisionHub | from-import биндинги констант (27-43) | Патч только модуля констант НЕ действует на потребителей — причина identity-дизайна overlay | `decision_hub.py:27-43` | ADR-O-361 |
+| ExperimentRunner | ConfigOverlay | вводит overlay на время прогона (require_loaded) | - | `-` | - |
+| PresetMaterializer | CalibrationPreset | load + materialize | - | `-` | - |
+| ExperimentRunner | PresetMaterializer | материализует temp-кампанию | - | `-` | - |
+| ScenarioPlayer | TickOrchestrator | execute(interventions=[InterventionEvent]) | - | `-` | ADR-TZ08-1 |
+| ExperimentRunner | GameLoop | headless-сборка и тики на temp-копии (шаблон DriftLaboratory) | - | `-` | - |
+| EventBus | ObservabilityTap | sync-подписка на реальный реестр EventType | - | `-` | Закон 5.3 |
+| ObservabilityTap | CalibrationMetrics | события + post-commit диффы сторов | - | `-` | - |
 | GameStdout | CausalObserver | reads logs | Regex patterns, pipe/file read | `causal_observer.py` | - |
 | GitHistory | CausalObserver | reads git log & TODOs | Every session start | `causal_observer.py` | - |
 | DeterministicClock | CausalTrace | provides tick context | - | `-` | - |
@@ -1555,6 +1612,14 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | CrystallizedBeliefModifierResolver | DecisionHub | REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305) | `-` |
 | BreakProgressEngine | TraitDriftEvent | FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1) | `-` |
 | BehaviorMaskEvaluator | BehaviorMask | REQUIRED: Mask must be quasi-stable (hysteresis). Prevent social role flickering (ADR-S86.4) | `-` |
+| Any | CalibrationLab | FORBIDDEN: ядро (TickOrchestrator, DecisionHub, stores) импортирует app.services.calibration — обратные зависимости | `-` |
+| ConfigOverlay | CoreConstants | REQUIRED: verify на входе и verify_restored на выходе; вложенный overlay = RuntimeError | `-` |
+| ConfigOverlay | CoreConstants | FORBIDDEN: параллельные overlay в одном процессе (изоляция процессами, M3+) | `-` |
+| ExperimentRunner | NPCState | FORBIDDEN: мутация NPCState/психики в обход StateApplicator. Вмешательства — только InterventionEvent → TickOrchestrator | `-` |
+| ExperimentRunner | game_time | REQUIRED: метрическое время = детерминированная проекция тиков (tick / ticks_per_real_minute); wall-clock — только метаданные эксперимента (§15.2) | `-` |
+| ObservabilityTap | EventBus | REQUIRED: полный try/except вокруг обработчика; никакого I/O в обработчике; отказ наблюдателя не роняет каузальный поток | `-` |
+| ExperimentRunner | LlmProvider | REQUIRED: offline — MockProvider (environment != production, B4-FIX); реальный LLM в прогонах калибровки запрещён (детерминизм) | `-` |
+| CalibrationPreset | npc_overrides | FORBIDDEN: фейковая реализация [PLAN]-параметров; валидатор помечает их как no-op | `-` |
 | CausalObserver | Runtime_State | FORBIDDEN: Feedback loop into simulation | `Устав §11.1` |
 | CDS | Pipeline | FORBIDDEN: Interrupt causal flow on crash | `Устав §11.2` |
 | TickOrchestrator | CausalObserver | REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120) | `tick_orchestrator.py` |

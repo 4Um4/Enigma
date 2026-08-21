@@ -101,32 +101,44 @@ class PlayerAvatarService:
                 self._dialog_journals[campaign_id] = data["dialog_journal"]
             return data
         except Exception as e:
-            logger.error(f"[AVATAR] ошибка загрузки: {e}")
+            # P0-D (S208): violation обязан быть различим от игровой ошибки
+            # до деградации в None (диагностический след для CDS).
+            from app.errors import ArchitecturalViolationError
+            if isinstance(e, ArchitecturalViolationError):
+                logger.critical(f"[ARCH_VIOLATION][AVATAR_LOAD] {e}", exc_info=True)
+            else:
+                logger.error(f"[AVATAR] ошибка загрузки: {e}")
             return None
 
     def load_state(self, campaign_id: str, player_name: str) -> NPCState:
         avatar = self.load_avatar(campaign_id, player_name)
         if avatar and avatar.get("state"):
-            _state = self._state_from_dict(avatar["state"])
-            # SHI-FIX TRADE: гарантируем наличие денег
-            if not _state.body_state:
-                _state.body_state = {}
-            if "money" not in _state.body_state:
-                _state.body_state["money"] = 48
-            return _state
+            # P0 ownership (S208): дефолты аватара — ДО конструирования NPCState.
+            # Пост-конструкционная запись _state.body_state = ... —
+            # ArchitecturalViolationError (NPCState.__setattr__; avatar_service
+            # не в _ALLOWED_WRITERS). Инициализация = data-level контракт,
+            # мутация не нужна. Семантика SHI-FIX TRADE сохранена (setdefault).
+            _state_data = dict(avatar.get("state") or {})
+            _bs = dict(_state_data.get("body_state") or {})
+            _bs.setdefault("money", 48)
+            _state_data["body_state"] = _bs
+            return self._state_from_dict(_state_data)
 
-        _default = NPCState(npc_id=player_name)
-        if not _default.body_state:
-            _default.body_state = {}
-        _default.body_state["money"] = _default.body_state.get("money", 48)
-        # SHI-FIX AVATAR: базовая психика для WillpowerGate.
-        _default.drives = {
-            "control": 0.25,
-            "significance": 0.25,
-            "fear": 0.25,
-            "desire": 0.25,
-        }
-        _default.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+        # P0 ownership (S208): body_state — единственное реальное поле из
+        # дефолтов; задаётся construction-time (self-write легален в guard).
+        #
+        # Археологический вердикт (S208): SHI-FIX присвоения psyche/drives —
+        # МЁРТВЫЙ КОД, удалён окончательно. Доказано: (1) save-путь их не
+        # пишет; (2) _state_from_dict их не восстанавливает; (3) единственный
+        # потребитель (game_loop, инъекция аватара) читает через getattr-
+        # дефолты, ЗНАЧЕНИЯ КОТОРЫХ ИДЕНТИЧНЫ SHI-FIX (willpower=50.0 и т.д.).
+        # С Stage 0 Task 0.4 default-ветка падала на этих присвоениях —
+        # система всегда жила на fallback'ах потребителя.
+        # Аватарная психика как домен — DEBT-R10 (vertical slice).
+        _default = NPCState(
+            npc_id=player_name,
+            body_state={"money": 48},
+        )
 
         # S-93 AVATAR_RESISTANCE: аватар должен сопротивляться действиям, противоречащим его природе
         # (например, "оскорбить бога" для паладина). WillpowerGate вернёт RESIST и сгенерирует stress.

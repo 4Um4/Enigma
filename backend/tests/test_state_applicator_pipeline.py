@@ -2,7 +2,7 @@
 # python -m pytest backend/tests/test_state_applicator_pipeline.py -v --tb=short
 """
 Интеграционный тест: замкнутый цикл
-DecisionHub → StateApplicator → NPCState.write_to_legacy → dict обновлён
+DecisionHub → StateApplicator → NPCState.to_persistence_dict → dict обновлён
 """
 
 from unittest.mock import MagicMock
@@ -61,7 +61,7 @@ def test_pipeline_stress_increases_in_dict():
         "psyche": {"stress": 10, "state": "free", "trauma_flags": []},
         "social_stats": {"trust": 0.5, "fear_of_player": 0.0, "debt": 0},
     }
-    NPCState.write_to_legacy(new_state, legacy_dict)
+    NPCState.to_persistence_dict(new_state, legacy_dict)
 
     # 6. Проверяем что legacy dict обновлён
     assert legacy_dict["psyche"]["stress"] > 10.0

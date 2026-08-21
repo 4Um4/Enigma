@@ -578,6 +578,10 @@ class NPCState:
         "app.services.phases.decision": {"*"},  # TODO: Убрать после Task 0.9
         "app.services.phases.memory": {"*"},  # TODO: Убрать после Task 0.9
         "app.services.npc.life_engine": {"*"},  # TODO: Убрать после Task 0.9
+        # S208 (P0-B): канонический владелец runtime-мутаций аватара игрока.
+        # Узко, по полям; без "*" и без TODO — это постоянный контракт,
+        # а не временная поблажка (см. ADR-запись сессии).
+        "app.services.avatar_state_applicator": {"body_state", "stress", "emotion"},
     }
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -670,7 +674,7 @@ class NPCState:
     # ЕДИНСТВЕННЫЙ write-path для mutation engine.
     # Инициализируется из npc_dict["drives"] при from_legacy (Layer 2 → runtime).
     # NPCPersonality.drives_base = seed (Layer 1, read-only, used once at spawn).
-    # npc_dict["drives"] = serialization mirror (written by write_to_legacy).
+    # npc_dict["drives"] = serialization mirror (written by to_persistence_dict).
     # ADR-139 TABOO: drives_runtime НЕ читается из personality после spawn.
     drives_runtime: Dict[str, float] = field(default_factory=dict)
     # ADR-O-304: Накопленная энергия деформации для CalibrationEngine (физика фазового перехода)
@@ -820,9 +824,9 @@ class NPCState:
         }
 
     @staticmethod
-    def write_to_legacy(state: "NPCState", npc_dict: Dict[str, Any]) -> None:
+    def to_persistence_dict(state: "NPCState", npc_dict: Dict[str, Any]) -> None:
         """
-        Записывает NPCState обратно в runtime dict (npc_runtime.json).
+        Сериализует NPCState в runtime dict (npc_runtime.json / SQLite).
         Вызывается ПОСЛЕ StateApplicator.apply() — единственная точка записи.
         Мутирует npc_dict (вызывающий должен сохранить через _save_npcs).
         """
@@ -865,7 +869,7 @@ class NPCState:
         ss["fear_of_player"] = _player_rc.get("fear", 0.0)
         ss["debt"] = _player_rc.get("debt", 0.0)
 
-        # P1 ARCH FIX: НЕ пишем relationship_cache в write_to_legacy.
+        # P1 ARCH FIX: НЕ пишем relationship_cache в to_persistence_dict.
         # SSOT = RelationshipStore. Персистенция кэша = DOUBLE TRUTH.
         # Социальные статы (trust/fear) сохраняются через StateApplicator → RelationshipStore.update()
 
@@ -1124,6 +1128,10 @@ def personality_from_legacy(npc_dict: Dict[str, Any]) -> NPCPersonality:
         willpower=float(psyche.get("willpower", 50)),
         breakpoint=float(psyche.get("breakpoint", 80)),
         loyalty_base=float(psyche.get("loyalty_true", 50)),
+        # W-IR (S208): калибруемый параметр личности из psyche; default = default
+        # dataclass (0.5) — нулевой дифф для конфигов без ключа. Ранее поле было
+        # жёстко некалибруемым (всегда 0.5) — см. лабораторию калибровки (ADR-O-361).
+        identity_rigidity=float(psyche.get("identity_rigidity", 0.5)),
         can_awaken=bool(npc_dict.get("can_awaken", False)),
         voice_profile=npc_dict.get("voice_profile", ""),
         backstory=npc_dict.get("backstory", ""),

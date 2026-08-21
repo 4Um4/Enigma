@@ -1,6 +1,6 @@
 # backend/tests/pbt/properties/test_npc_state_roundtrip.py
 """
-Invariant 12.2 (WARA): write_to_legacy обязан записывать КАЖДОЕ поле,
+Invariant 12.2 (WARA): to_persistence_dict обязан записывать КАЖДОЕ поле,
 которое from_legacy читает.
 
 Запуск: cd backend; python -m pytest tests/pbt/properties/test_npc_state_roundtrip.py -v; cd ..
@@ -12,13 +12,13 @@ from app.models.npc_state import NPCState, NPCStateAdapter
 @given(npc_dict=npc_legacy_strategy)
 @settings(max_examples=100, suppress_health_check=[HealthCheck.too_slow])
 def test_npc_state_roundtrip_preserves_critical_fields(npc_dict: dict):
-    """Тест: from_legacy -> write_to_legacy -> from_legacy не теряет данные."""
+    """Тест: from_legacy -> to_persistence_dict -> from_legacy не теряет данные."""
     # 1. Создаём объект из сгенерированного dict
     original_state = NPCStateAdapter.from_legacy(npc_dict)
     
     # 2. Сериализуем обратно в dict
-    written_dict = dict(npc_dict)  # Копируем, чтобы write_to_legacy мог мутировать
-    NPCState.write_to_legacy(original_state, written_dict)
+    written_dict = dict(npc_dict)  # Копируем, чтобы to_persistence_dict мог мутировать
+    NPCState.to_persistence_dict(original_state, written_dict)
     
     # 3. Снова создаём объект из записанного dict
     final_state = NPCStateAdapter.from_legacy(written_dict)

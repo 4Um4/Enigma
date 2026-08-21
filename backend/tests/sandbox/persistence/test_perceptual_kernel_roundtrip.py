@@ -44,7 +44,7 @@ def test_perceptual_kernel_survives_legacy_roundtrip():
 
     # Сериализуем в legacy dict (write_to_legacy принадлежит NPCState)
     legacy_out = {}
-    NPCState.write_to_legacy(original_state, legacy_out)
+    NPCState.to_persistence_dict(original_state, legacy_out)
 
     # Десериализуем обратно (Round-trip)
     restored_state = NPCStateAdapter.from_legacy(legacy_out)

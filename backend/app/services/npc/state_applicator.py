@@ -1388,4 +1388,4 @@ class StateApplicator:
                 )
 
         # L4: Commit (проекция в транспортный формат)
-        NPCState.write_to_legacy(state, npc_dict)
+        NPCState.to_persistence_dict(state, npc_dict)

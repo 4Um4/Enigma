@@ -185,7 +185,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                     campaign_id=ctx.campaign_id,
                     spatial_query=_spatial_query,
                 )
-                NPCState.write_to_legacy(_npc_state, _npc_dict)
+                NPCState.to_persistence_dict(_npc_state, _npc_dict)
             except Exception as e:
                 logger.warning(f"[PIPELINE_RUNNER] Pending dialogue apply failed for {_npc_id}: {e}")
 
@@ -216,7 +216,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                     campaign_id=ctx.campaign_id,
                     spatial_query=_spatial_query,
                 )
-                NPCState.write_to_legacy(_npc_state, _npc_dict)
+                NPCState.to_persistence_dict(_npc_state, _npc_dict)
             except Exception as e:
                 logger.warning(f"[PIPELINE_RUNNER] Memory apply failed for {_npc_id}: {e}")
 

@@ -1,0 +1,205 @@
+domain: CALIBRATION
+description: "Лаборатория калибровки психики ENIGMA (ADR-O-361). Экспериментальная надстройка над ядром: подмена констант (identity-патч from-import биндингов), материализация пресетов во временной копии кампании, воспроизведение сценариев через InterventionEvent, пассивное наблюдение (ObservabilityTap) и игровые метрики. Ядро не модифицируется и не знает о лаборатории."
+nodes:
+  CoreConstants:
+    type: service
+    layer: Domain
+    label: "core.constants (SSOT калибруемых констант)"
+    description: "Все калибруемые глобальные константы (SCORE_NOISE_RANGE, THETA_UP/DOWN, INTENT_INERTIA_*, AFFECT_DECAY_BASE_RATE и др.). Потребители биндят имена напрямую from-import'ом (decision_hub.py:27-43) — патч только модуля констант на них не действует."
+    code_ref: "backend/app/core/constants.py"
+    adr_ref: "ADR-O-361"
+  ConfigOverlay:
+    type: service
+    layer: Application
+    label: "Config Overlay (identity-патч констант)"
+    description: "overlay_constants() подменяет значение в app.core.constants И во всех загруженных модулях, где имя связано from-import'ом (identity-матч). Verify на входе/выходе, полный откат, запрет вложенности. Параллельные эксперименты — только изоляция процессами."
+    code_ref: "calibration/config_overlay.py"
+    adr_ref: "ADR-O-361"
+  CalibrationPreset:
+    type: dto
+    layer: Domain
+    label: "Calibration Preset (constants + npc_overrides + scenario + seed)"
+    description: "Схема пресета: constants (глобальные), npc_overrides (per-NPC psyche/drives), scenario, seed, duration_ticks, time_profile. Каталог: config/calibration/. Параметры [PLAN] помечаются валидатором как no-op — фейковая реализация запрещена."
+    code_ref: "config/calibration/"
+    adr_ref: "ADR-O-361"
+  PresetMaterializer:
+    type: service
+    layer: Application
+    label: "Preset Materializer (temp campaign copy)"
+    description: "Материализует пресет: копия кампании во временный каталог (шаблон DriftLaboratory), патч NPC JSON npc_overrides по пути загрузчика. Мутация NPCState запрещена — только данные загрузки."
+    code_ref: "calibration/preset_materializer.py"
+    adr_ref: "ADR-O-361"
+  ScenarioPlayer:
+    type: service
+    layer: Application
+    label: "Scenario Player (InterventionEvent timeline)"
+    description: "Воспроизводит event-sequence сценария: на тике T создаёт InterventionEvent.from_player_action() и передаёт в TickOrchestrator.execute(interventions=[...]). Только production-pipeline."
+    code_ref: "calibration/scenario_player.py"
+    adr_ref: "ADR-O-361, ADR-TZ08-1"
+  ExperimentRunner:
+    type: service
+    layer: Application
+    label: "Experiment Runner (headless session)"
+    description: "Собирает реальный GameLoop на temp-копии кампании (offline LLM: MockProvider, environment != production — B4-FIX), вводит overlay, выполняет duration_ticks тиков, снимает post-commit снапшоты. Строго последовательный; replay = двойной прогон того же seed."
+    code_ref: "calibration/experiment_runner.py"
+    adr_ref: "ADR-O-361, ADR-O-351"
+  ObservabilityTap:
+    type: service
+    layer: Application
+    label: "Observability Tap (пассивный наблюдатель)"
+    description: "Единственный наблюдатель лаборатории: sync-подписчик EventBus на реальный реестр EventType + post-commit диффы сторов (RelationshipStore.get_all, L1Chronicle.query_raw, beliefs). Кольцевой буфер, O(1)/событие, полный try/except — отказ наблюдателя не роняет тик."
+    code_ref: "calibration/observability_tap.py"
+    adr_ref: "ADR-O-361, CDS §11"
+  CalibrationMetrics:
+    type: domain
+    layer: Domain
+    label: "Calibration Metrics (M0: CharacterChange, DecisionDiversity, LoopRate, EventResponsiveness, CausalDepth)"
+    description: "M0: 5 базовых метрик из post-commit снапшотов и Tap. Метрическое время — детерминированная проекция тиков, не wall-clock. M2: +5 метрик, WOW Density, ZoneClassifier."
+    code_ref: "calibration/metrics/"
+    adr_ref: "ADR-O-361"
+  ProbeAdapter:
+    type: service
+    layer: Application
+    label: "Probe Adapter"
+    description: "Обёртка ProbeRunner.run_all() — инвариантные зонды после прогона."
+    code_ref: "calibration/probe_adapter.py"
+    adr_ref: "ADR-O-361"
+  SuperboxAdapter:
+    type: service
+    layer: Application
+    label: "Superbox Adapter"
+    description: "Прогон SUPERBOX-сценариев под overlay (offline-subset; semantic_torture — LLM-зависим, skip с явным логом)."
+    code_ref: "calibration/superbox_adapter.py"
+    adr_ref: "ADR-O-361, DEBT-R6"
+edges:
+  - from: ConfigOverlay
+    to: CoreConstants
+    label: "identity-патч значений + from-import биндингов sys.modules"
+    condition: "verify на входе и выходе; вложенность/параллельность = RuntimeError"
+    code_ref: "calibration/config_overlay.py"
+    adr_ref: "ADR-O-361"
+    edge_type: thick
+  - from: CoreConstants
+    to: DecisionHub
+    label: "from-import биндинги констант (27-43)"
+    condition: "Патч только модуля констант НЕ действует на потребителей — причина identity-дизайна overlay"
+    code_ref: "decision_hub.py:27-43"
+    adr_ref: "ADR-O-361"
+  - from: ExperimentRunner
+    to: ConfigOverlay
+    label: "вводит overlay на время прогона (require_loaded)"
+  - from: PresetMaterializer
+    to: CalibrationPreset
+    label: "load + materialize"
+  - from: ExperimentRunner
+    to: PresetMaterializer
+    label: "материализует temp-кампанию"
+  - from: ScenarioPlayer
+    to: TickOrchestrator
+    label: "execute(interventions=[InterventionEvent])"
+    adr_ref: "ADR-TZ08-1"
+  - from: ExperimentRunner
+    to: GameLoop
+    label: "headless-сборка и тики на temp-копии (шаблон DriftLaboratory)"
+  - from: EventBus
+    to: ObservabilityTap
+    label: "sync-подписка на реальный реестр EventType"
+    adr_ref: "Закон 5.3"
+  - from: ObservabilityTap
+    to: CalibrationMetrics
+    label: "события + post-commit диффы сторов"
+constraints:
+  - source: Any
+    target: CalibrationLab
+    rule: "FORBIDDEN: ядро (TickOrchestrator, DecisionHub, stores) импортирует app.services.calibration — обратные зависимости"
+    severity: CRITICAL
+    adr_ref: "ADR-O-361"
+  - source: ConfigOverlay
+    target: CoreConstants
+    rule: "REQUIRED: verify на входе и verify_restored на выходе; вложенный overlay = RuntimeError"
+    severity: CRITICAL
+    adr_ref: "ADR-O-361"
+  - source: ConfigOverlay
+    target: CoreConstants
+    rule: "FORBIDDEN: параллельные overlay в одном процессе (изоляция процессами, M3+)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-361"
+  - source: ExperimentRunner
+    target: NPCState
+    rule: "FORBIDDEN: мутация NPCState/психики в обход StateApplicator. Вмешательства — только InterventionEvent → TickOrchestrator"
+    severity: CRITICAL
+    adr_ref: "ADR-TZ08-1, ADR-O-361"
+  - source: ExperimentRunner
+    target: game_time
+    rule: "REQUIRED: метрическое время = детерминированная проекция тиков (tick / ticks_per_real_minute); wall-clock — только метаданные эксперимента (§15.2)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-302, ADR-O-361"
+  - source: ObservabilityTap
+    target: EventBus
+    rule: "REQUIRED: полный try/except вокруг обработчика; никакого I/O в обработчике; отказ наблюдателя не роняет каузальный поток"
+    severity: CRITICAL
+    adr_ref: "CDS §11, ADR-O-361"
+  - source: ExperimentRunner
+    target: LlmProvider
+    rule: "REQUIRED: offline — MockProvider (environment != production, B4-FIX); реальный LLM в прогонах калибровки запрещён (детерминизм)"
+    severity: HIGH
+    adr_ref: "ADR-O-351, ADR-O-361"
+  - source: CalibrationPreset
+    target: npc_overrides
+    rule: "FORBIDDEN: фейковая реализация [PLAN]-параметров; валидатор помечает их как no-op"
+    severity: HIGH
+    adr_ref: "ТЗ 5.2, ADR-O-361"
+ownership:
+  CoreConstants_Ownership:
+    owner: "app.core.constants (модуль)"
+    creates: "Final-константы при import"
+    modifies: "ТОЛЬКО ConfigOverlay (identity-патч, временно, с откатом)"
+    reads: "DecisionHub и все потребители from-import"
+    constraint: "Единственный штатный путь runtime-изменения — overlay лаборатории с verify."
+    adr_ref: "ADR-O-361"
+  ConfigOverlay_Ownership:
+    owner: "Лаборатория калибровки"
+    creates: "patch_log биндингов"
+    modifies: "атрибуты загруженных модулей (временно)"
+    reads: "app.core.constants"
+    constraint: "Слепые зоны документированы: from-import алиасы, поздние импорты, import-time производные константы."
+    adr_ref: "ADR-O-361"
+  ExperimentRunner_Ownership:
+    owner: "Лаборатория калибровки"
+    creates: "ExperimentResult (final state, metrics, invariant_violations, nan_count, replay_deterministic)"
+    modifies: "temp-копия кампании, эфемерные хранилища"
+    reads: "GameLoop, TickOrchestrator (через контракт), stores (post-commit)"
+    constraint: "Ядро не знает о runner. Dispose обязателен (шаблон DriftLab: cleanup_all_campaigns + dispose)."
+    adr_ref: "ADR-O-361"
+  ObservabilityTap_Ownership:
+    owner: "Лаборатория калибровки"
+    creates: "кольцевой буфер наблюдений"
+    modifies: "N/A (пассивный)"
+    reads: "EventBus (подписка), RelationshipStore, L1Chronicle, belief-сторы (post-commit)"
+    constraint: "Наблюдение не создаёт причинность. Влияние на симуляцию запрещено."
+    adr_ref: "CDS §11, ADR-O-361"
+sequences:
+  - title: "Calibration Experiment Flow (M0)"
+    participants: [CalibrationPreset, PresetMaterializer, ExperimentRunner, ConfigOverlay, GameLoop, TickOrchestrator, ObservabilityTap, CalibrationMetrics]
+    steps:
+      - from: CalibrationPreset
+        to: PresetMaterializer
+        message: "1. load: constants + npc_overrides + scenario + seed"
+      - from: PresetMaterializer
+        to: ExperimentRunner
+        message: "2. temp-копия кампании, патч NPC JSON"
+      - from: ExperimentRunner
+        to: ConfigOverlay
+        message: "3. overlay_constants(constants, require_loaded=потребители)"
+      - from: ExperimentRunner
+        to: GameLoop
+        message: "4. сборка offline (MockProvider), duration_ticks тиков"
+      - from: TickOrchestrator
+        to: ObservabilityTap
+        message: "5. события (sync) + post-commit диффы"
+      - from: ObservabilityTap
+        to: CalibrationMetrics
+        message: "6. compute() → ExperimentResult"
+      - from: ExperimentRunner
+        to: ConfigOverlay
+        message: "7. выход: restore + verify_restored"

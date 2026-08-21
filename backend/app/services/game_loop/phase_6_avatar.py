@@ -12,6 +12,7 @@ NPC attack → stress + урон, intimidate → stress, help → stress reducti
 
 import logging
 from typing import Any
+from app.services.avatar_state_applicator import AvatarStateApplicator
 
 logger = logging.getLogger(__name__)
 
@@ -43,29 +44,32 @@ def update_avatar_from_npc_intents(
                 continue
 
             if _intent_val.value == "attack":
-                object.__setattr__(_avatar_state, "stress", min(100.0, _avatar_state.stress + 5.0))
-                if _avatar_state.emotion in (
-                    emotion_tag_cls.NEUTRAL,
-                    emotion_tag_cls.HAPPY,
-                ):
-                    object.__setattr__(_avatar_state, "emotion", emotion_tag_cls.FEARFUL)
+                _new_emotion = (
+                    emotion_tag_cls.FEARFUL
+                    if _avatar_state.emotion in (emotion_tag_cls.NEUTRAL, emotion_tag_cls.HAPPY)
+                    else None
+                )
+                AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+5.0, emotion=_new_emotion)
                 _avatar_changed = True
 
                 # ADR-0015, ADR-0021: Урон аватару от NPC теперь рассчитывается
                 # через CombatSubscriber → ImpactEngine в Фазе 8 (Layered Reduction).
                 # Прямая мутация HP аватара здесь запрещена.
             elif _intent_val.value == "intimidate":
-                object.__setattr__(_avatar_state, "stress", min(100.0, _avatar_state.stress + 2.0))
-                if _avatar_state.emotion == emotion_tag_cls.NEUTRAL:
-                    object.__setattr__(_avatar_state, "emotion", emotion_tag_cls.SUSPICIOUS)
+                _new_emotion = (
+                    emotion_tag_cls.SUSPICIOUS
+                    if _avatar_state.emotion == emotion_tag_cls.NEUTRAL
+                    else None
+                )
+                AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=+2.0, emotion=_new_emotion)
                 _avatar_changed = True
             elif _intent_val.value == "help":
-                object.__setattr__(_avatar_state, "stress", max(0.0, _avatar_state.stress - 3.0))
-                if _avatar_state.emotion in (
-                    emotion_tag_cls.FEARFUL,
-                    emotion_tag_cls.SAD,
-                ):
-                    object.__setattr__(_avatar_state, "emotion", emotion_tag_cls.NEUTRAL)
+                _new_emotion = (
+                    emotion_tag_cls.NEUTRAL
+                    if _avatar_state.emotion in (emotion_tag_cls.FEARFUL, emotion_tag_cls.SAD)
+                    else None
+                )
+                AvatarStateApplicator.apply_reaction(_avatar_state, stress_delta=-3.0, emotion=_new_emotion)
                 _avatar_changed = True
 
         if _avatar_changed:
@@ -74,7 +78,16 @@ def update_avatar_from_npc_intents(
                 f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value if hasattr(_avatar_state.emotion, 'value') else _avatar_state.emotion}"
             )
     except Exception as _av_err:
-        logger.warning(f"[AVATAR] update error: {_av_err}")
+        # P0-D (S208): архитектурный violation не должен маскироваться в
+        # обычное WARNING (ADR-INV-DEF). Диагностика обязательна до деградации.
+        from app.errors import ArchitecturalViolationError
+        if isinstance(_av_err, ArchitecturalViolationError):
+            logger.critical(
+                f"[ARCH_VIOLATION][AVATAR] { _av_err } — ownership нарушен, "
+                f"стек: ", exc_info=True,
+            )
+        else:
+            logger.warning(f"[AVATAR] update error: {_av_err}")
 
 
 def avatar_to_prompt(state) -> dict:

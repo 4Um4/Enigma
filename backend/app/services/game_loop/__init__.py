@@ -1772,20 +1772,15 @@ class GameLoop:
                 ),
                 None,
             )
-            if _updated_avatar_dict and _avatar_state:
-                if "body_state" in _updated_avatar_dict:
-                    _avatar_state.body_state = _updated_avatar_dict["body_state"]
-                if "hp" in _updated_avatar_dict:
-                    if _avatar_state.body_state:
-                        _avatar_state.body_state["current_hp"] = (
-                            _updated_avatar_dict.get(
-                                "hp", _updated_avatar_dict.get("current_hp", 0)
-                            )
-                        )
-                    else:
-                        from app.models.npc_state import BODY_STATE_DISABLED_DATA
-                        _avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
-                        _avatar_state.body_state["current_hp"] = _updated_avatar_dict["hp"]
+            from app.models.npc_state import NPCState
+            if _updated_avatar_dict and isinstance(_avatar_state, NPCState):
+                # S208 (P0-B): GameLoop — оркестратор, не писатель NPCState.
+                # Каноническая граница мутации — AvatarStateApplicator.
+                from app.services.avatar_state_applicator import AvatarStateApplicator
+                
+                AvatarStateApplicator.apply_pipeline_result(
+                    _avatar_state, _updated_avatar_dict
+                )
 
             if (
                 _avatar_state

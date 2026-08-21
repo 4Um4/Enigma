@@ -63,7 +63,7 @@ class DialogueMemorySubscriber:
                 self._memory.apply(
                     new_event, npc_state, campaign_id=_campaign_id, spatial_query=_sq
                 )
-                NPCState.write_to_legacy(npc_state, npc_dict)
+                NPCState.to_persistence_dict(npc_state, npc_dict)
 
         except Exception as e:
             logger.exception(f"[DIALOGUE_MEM_SUB] Failed: {e}")
