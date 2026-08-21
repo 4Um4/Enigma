@@ -44,6 +44,7 @@ from app.services.dto import DMContextDTO, TickPlayerResultDTO, _TickContext
 from app.services.equivalence_validator import EquivalenceValidator
 from app.services.event_compiler import EventCompiler
 from app.services.events.event_bus import get_event_bus
+from app.services.events.event_types import EventType
 from app.services.events.reaction_subscriber import ReactionSubscriber
 from app.services.events.social_input_projector import SocialInputProjector
 from app.services.events.social_subscriber import SocialSubscriber
@@ -533,9 +534,21 @@ class TickOrchestrator:
         self._phase_6_post_decision(ctx) #11
         self._phase_7_windup_resolution(ctx)  #12 ADR-O-310: Execution Gate
         self._phase_8_drain_secondary(ctx) #13
-        self._phase_9_integration(ctx) #15
-        self._run_affective_pipeline(ctx) #16
-        self._phase_10_persistence(ctx) #17
+        self._phase_9_integration(ctx) #14
+        self._run_affective_pipeline(ctx) #15
+        self._phase_10_persistence(ctx) #16
+
+        # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)
+        from app.domain.events import EventDTO
+        _tick_completed_event = EventDTO.create(
+            event_type=EventType.TICK_COMPLETED.value,
+            source="tick_orchestrator",
+            payload={
+                "tick_number": ctx.tick_number,
+                "snapshot": ctx,
+            }
+        )
+        self._get_event_bus().publish(_tick_completed_event)
 
     def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
         """Подслой 1.1: NPIC NORMALIZATION."""

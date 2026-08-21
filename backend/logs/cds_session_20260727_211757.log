@@ -1,0 +1,219 @@
+2026-07-27 21:17:57,197 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260727_211757.log
+2026-07-27 21:17:57,197 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-27 21:17:57,198 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-27 21:17:57,198 app.main ERROR: [STARTUP] Monitor init failed: 'VramMonitor' object has no attribute 'start_session'
+2026-07-27 21:17:57,233 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-27 21:17:57,240 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-27 21:17:57,260 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-27 21:17:57,274 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-07-27 21:17:57,274 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-07-27 21:17:57,276 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-07-27 21:17:57,277 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-27 21:17:57,280 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-27 21:18:02,056 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:02,056 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:07,460 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:07,460 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:08,481 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-27 21:18:08,499 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-27 21:18:09,191 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:09,191 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:10,528 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:10,528 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:10,806 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:10,806 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:11,388 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:11,388 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:12,857 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:12,857 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:13,788 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:13,788 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:14,170 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:14,170 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:14,785 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:14,785 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:15,149 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:15,150 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:17,044 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:17,044 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:20,012 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen'}
+2026-07-27 21:18:20,012 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:23,726 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 6 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:18:23,727 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:21:48,344 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7'}
+2026-07-27 21:21:48,344 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 8 nodes, 6 edges, 18 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:21:48,347 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:21:48,528 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7'}
+2026-07-27 21:21:48,529 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 8 nodes, 6 edges, 18 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:21:48,529 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:21:49,512 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_8'}
+2026-07-27 21:21:49,513 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 6 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:21:49,513 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:21:52,902 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_8'}
+2026-07-27 21:21:52,902 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 6 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:21:52,902 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:21:55,283 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_8'}
+2026-07-27 21:21:55,283 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 6 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:21:55,284 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:21:58,176 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_8'}
+2026-07-27 21:21:58,176 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 7 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:21:58,177 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:01,255 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_8'}
+2026-07-27 21:22:01,255 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 7 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:01,256 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:02,176 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 8 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:02,177 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:02,735 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 8 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:02,735 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:03,431 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 9 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:03,431 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:04,863 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 9 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:04,864 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:12,819 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 8 nodes, 7 edges, 18 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:12,819 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:22:13,983 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 6 edges, 16 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:15,405 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 6 nodes, 5 edges, 14 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:19,872 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6'}
+2026-07-27 21:22:19,872 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 7 nodes, 5 edges, 17 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:25,710 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6'}
+2026-07-27 21:22:25,710 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 8 nodes, 5 edges, 18 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:26,544 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:26,544 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 9 nodes, 5 edges, 19 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:29,529 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_9'}
+2026-07-27 21:22:29,529 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 5 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:32,599 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_9'}
+2026-07-27 21:22:32,599 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 5 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:33,520 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:33,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 6 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:37,537 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:37,537 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 6 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:38,424 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:38,424 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 7 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:38,958 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:38,958 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 7 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:39,909 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:39,910 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 8 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:40,278 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:40,278 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 8 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:41,023 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:41,024 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 9 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:48,929 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:22:48,929 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 10 nodes, 9 edges, 20 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:58,505 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_10'}
+2026-07-27 21:22:58,505 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 11 nodes, 9 edges, 21 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:22:59,711 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_8', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11'}
+2026-07-27 21:22:59,711 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 12 nodes, 9 edges, 22 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:03,380 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11'}
+2026-07-27 21:23:03,381 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 13 nodes, 9 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:05,131 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:05,132 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 9 edges, 24 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:06,396 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:06,396 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 9 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:12,223 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:behind_bar', 'tavern:node_8', 'tavern:node_12', 'tavern:fireplace', 'tavern:node_6', 'tavern:corner_table', 'tavern:node_10', 'tavern:node_13', 'tavern:node_11', 'tavern:bar_area', 'tavern:node_9'}
+2026-07-27 21:23:12,223 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 5 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:13,302 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:behind_bar', 'tavern:node_8', 'tavern:node_12', 'tavern:fireplace', 'tavern:node_6', 'tavern:corner_table', 'tavern:node_10', 'tavern:node_13', 'tavern:node_11', 'tavern:bar_area', 'tavern:node_9'}
+2026-07-27 21:23:13,302 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 5 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:14,075 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:behind_bar', 'tavern:node_8', 'tavern:node_12', 'tavern:fireplace', 'tavern:node_6', 'tavern:corner_table', 'tavern:node_10', 'tavern:node_13', 'tavern:node_11', 'tavern:bar_area', 'tavern:node_9'}
+2026-07-27 21:23:14,075 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 5 edges, 22 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:15,821 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:behind_bar', 'tavern:node_8', 'tavern:node_12', 'tavern:fireplace', 'tavern:node_6', 'tavern:corner_table', 'tavern:node_10', 'tavern:node_13', 'tavern:node_11', 'tavern:bar_area', 'tavern:node_9'}
+2026-07-27 21:23:15,821 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 5 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:16,121 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:behind_bar', 'tavern:node_8', 'tavern:node_12', 'tavern:fireplace', 'tavern:node_6', 'tavern:corner_table', 'tavern:node_10', 'tavern:node_13', 'tavern:node_11', 'tavern:bar_area', 'tavern:node_9'}
+2026-07-27 21:23:16,121 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 5 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:16,541 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:16,541 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 9 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:19,656 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:19,656 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 9 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:21,008 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:21,009 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 9 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:24,345 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:24,345 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 9 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:25,196 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:25,196 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 10 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:28,570 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:28,570 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 10 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:29,532 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:29,532 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 11 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:30,018 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:30,018 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 11 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:30,900 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:30,900 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 12 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:31,267 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:31,267 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 12 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:32,168 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:32,168 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 12 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:32,652 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:32,652 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 12 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:33,485 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_14', 'tavern:node_8', 'tavern:node_12', 'tavern:node_10', 'tavern:node_6', 'tavern:node_11', 'tavern:node_13'}
+2026-07-27 21:23:33,485 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 12 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:35,220 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_12'}
+2026-07-27 21:23:35,221 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 13 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:36,855 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_12'}
+2026-07-27 21:23:36,855 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 13 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:37,706 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:37,706 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 14 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:38,457 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:38,457 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 14 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:39,407 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:39,408 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 15 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:42,429 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:42,429 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 15 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:43,277 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:43,278 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 16 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:44,462 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:44,462 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 16 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:45,601 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:45,601 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 17 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:46,213 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:46,213 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 17 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:47,664 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:23:47,664 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 18 edges, 25 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:56,772 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_15'}
+2026-07-27 21:23:56,772 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 16 nodes, 18 edges, 26 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:58,440 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_15', 'tavern:node_8', 'tavern:node_6', 'tavern:node_16'}
+2026-07-27 21:23:58,441 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 18 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:23:59,843 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_15', 'tavern:node_8', 'tavern:node_6', 'tavern:node_16'}
+2026-07-27 21:23:59,843 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 18 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:00,797 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_15'}
+2026-07-27 21:24:00,797 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 19 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:01,760 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8', 'tavern:node_15'}
+2026-07-27 21:24:01,760 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 19 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:02,527 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:02,528 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 20 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:04,117 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:04,117 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 20 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:04,863 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:04,863 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 21 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:05,747 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:05,747 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 21 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:06,497 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:06,497 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 22 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:14,892 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_7', 'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:14,892 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 22 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:16,426 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 17 nodes, 23 edges, 27 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:16,427 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:24:22,411 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:22,411 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 16 nodes, 20 edges, 26 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:26,531 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:fireplace', 'tavern:node_6', 'tavern:node_8', 'tavern:node_9'}
+2026-07-27 21:24:26,531 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 16 edges, 24 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:29,468 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:29,468 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 16 nodes, 20 edges, 26 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:24:35,039 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:24:35,039 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 16 nodes, 20 edges, 26 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:01,618 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:fireplace', 'tavern:node_6', 'tavern:node_8', 'tavern:node_9'}
+2026-07-27 21:25:01,618 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 15 nodes, 16 edges, 24 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:01,619 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:25:07,192 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:fireplace', 'tavern:node_6', 'tavern:node_8', 'tavern:node_9'}
+2026-07-27 21:25:07,192 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 14 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:13,179 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:fireplace', 'tavern:node_6', 'tavern:node_8', 'tavern:node_9'}
+2026-07-27 21:25:13,179 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 14 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:14,072 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:25:14,072 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 15 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:16,287 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:25:16,287 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 15 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:17,017 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:25:17,017 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 16 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:20,421 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:node_6', 'tavern:node_8'}
+2026-07-27 21:25:20,421 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 14 nodes, 16 edges, 23 aliases, 0 boundaries (nav=True, rooms=True)
+2026-07-27 21:25:20,421 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:25:25,349 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:behind_bar', 'tavern:node_8', 'tavern:node_12', 'tavern:fireplace', 'tavern:node_6', 'tavern:node_10', 'tavern:node_16', 'tavern:node_9', 'tavern:bar_area', 'tavern:node_13'}
+2026-07-27 21:25:25,349 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 13 nodes, 12 edges, 22 aliases, 0 boundaries (nav=True, rooms=True)

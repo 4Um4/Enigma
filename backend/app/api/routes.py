@@ -77,7 +77,7 @@ def get_ports() -> dict:
 
 
 @router.get("/health")
-async def health(request: Request) -> dict:
+async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
     from app.services.llm.provider_manager import get_model_pool
 
     pool = get_model_pool()
@@ -98,6 +98,26 @@ async def health(request: Request) -> dict:
         "ready" if _llm_server == "ready" and _llm_health == "ready" else _llm_server
     )
 
+    # N1/M-03 FIX: ENIGMA SELF-HEALING Telemetry Dashboard (Уровень 7)
+    mvp = getattr(game_loop, "mvp_controller", None)
+    mvp_health = {
+        "mvp_controller_loaded": mvp is not None,
+        "truth_state_loaded": False,
+        "truth_state_secret_count": 0,
+        "discovered_secrets_count": 0,
+        "fate_states_count": 0,
+        "faction_alignments_count": 0,
+        "social_fabric_deltas_count": 0,
+    }
+    if mvp:
+        if mvp.truth_state:
+            mvp_health["truth_state_loaded"] = True
+            mvp_health["truth_state_secret_count"] = len(mvp.truth_state.secrets)
+            mvp_health["discovered_secrets_count"] = len(getattr(mvp.truth_state, "discovered_secrets", set()))
+        mvp_health["fate_states_count"] = len(mvp.fate_tracker.get_all_states())
+        mvp_health["faction_alignments_count"] = len(mvp.faction_tracker.get_all())
+        mvp_health["social_fabric_deltas_count"] = len(mvp.social_fabric.get_all_deltas())
+
     return {
         "status": "ok",
         "service": "local-ai-dm",
@@ -107,6 +127,7 @@ async def health(request: Request) -> dict:
         "players": total_players,
         "sessions": len(active_campaigns),
         "startup": startup_status,
+        "mvp_health": mvp_health,
     }
 
 

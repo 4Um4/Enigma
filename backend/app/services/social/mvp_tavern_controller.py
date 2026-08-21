@@ -5,7 +5,7 @@
 """
 
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from app.services.truth_state_loader import TruthStateLoader
 from app.models.truth_state import TruthState
 from app.services.player_cognition.observation_log import ObservationLog
@@ -25,8 +25,9 @@ from app.services.state.world_diff_builder import WorldDiffBuilder
 class MvpTavernController:
     """Фасад, объединяющий все системы миниигры для GameLoop."""
     
-    def __init__(self, canon_path: Path) -> None:
+    def __init__(self, canon_path: Path, event_bus: Optional[Any] = None) -> None:
         self._canon_path = canon_path
+        self._event_bus = event_bus
         
         # Инициализация базовых трекеров
         self.truth_state: Optional[TruthState] = None
@@ -46,11 +47,33 @@ class MvpTavernController:
         self.world_diff_builder = WorldDiffBuilder()
         
         # Компилятор последствий (связывает трекеры вместе)
+        # truth_state и faction_tracker передаются как None, они установятся в init_campaign
         self.action_compiler = ActionConsequenceCompiler(
             observation_log=self.observation_log,
             belief_model=self.belief_model,
-            social_fabric=self.social_fabric
+            social_fabric=self.social_fabric,
+            truth_state=None,
+            faction_tracker=self.faction_tracker
         )
+
+        # WIRING ASSERTIONS — ловит M-03..M-10, N2
+        assert self.observation_log is not None, "ObservationLog must init"
+        assert self.belief_model is not None, "PlayerBeliefModel must init"
+        assert self.social_fabric is not None, "SocialFabricTracker must init"
+        assert self.fate_tracker is not None, "FateTracker must init"
+        assert self.faction_tracker is not None, "FactionAlignmentTracker must init"
+        assert self.dilemma_engine is not None, "DilemmaEngine must init"
+
+        # Event subscription — ловит N2 (TICK_COMPLETED не существует)
+        if self._event_bus is not None:
+            try:
+                from app.services.events.event_types import EventType
+                self._event_bus.subscribe(EventType.TICK_COMPLETED, self.on_tick_completed)
+            except (KeyError, AttributeError) as e:
+                raise RuntimeError(
+                    f"Cannot subscribe to TICK_COMPLETED: {e}. "
+                    "Check event_types.py — EventType enum may be missing this value."
+                ) from e
 
     def init_campaign(self, campaign_id: str) -> None:
         """Загрузка канона и сброс состояния для новой кампании."""
@@ -58,9 +81,57 @@ class MvpTavernController:
         self.truth_state = TruthStateLoader.load(self._canon_path)
         TruthStateLoader.validate(self.truth_state)
         
-        # В реальной игре здесь будет загрузка baseline из village_relations.json
-        # Пока мокаем пустымиbaseline для тестов
-        # (SocialFabricTracker сам выбрасывает ошибку при повторной установке, так что это безопасно)
+        # M-02/M-12 FIX: Инжектируем загруженный truth_state в action_compiler
+        self.action_compiler._truth = self.truth_state
+        
+        # N11 FIX: Pre-seed фракций из factions.json
+        import json
+        from app.core.config import BASE_DIR
+        factions_path = BASE_DIR / "config" / "world" / "factions.json"
+        try:
+            with open(factions_path, "r", encoding="utf-8") as f:
+                factions_data = json.load(f)
+            for faction_id, faction_data in factions_data.get("factions", {}).items():
+                base_rep = float(faction_data.get("base_reputation", 0.0))
+                self.faction_tracker.set_initial(faction_id, alignment=base_rep, known=True)
+        except FileNotFoundError:
+            logger.error(f"Factions config not found at {factions_path}. Skipping pre-seeding.")
+
+    def on_tick_completed(self, event: Any) -> None:
+        """M-03 FIX: Обновление трекеров по событию TICK_COMPLETED."""
+        ctx = event.payload.get("snapshot")
+        if not ctx:
+            logger.warning("[MVP_TICK_SUBSCRIBER] TICK_COMPLETED event missing 'snapshot' in payload.")
+            return
+        # FateTracker: обновляем стабильность и угрозу
+        for npc in ctx.all_npcs_raw:
+            npc_id = npc.get("id", npc.get("npc_id"))
+            if not npc_id: continue
+            stability = 1.0 - (float(npc.get("stress", 0)) / 100.0)
+            threat = float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))
+            self.fate_tracker.update_state(npc_id, stability, threat)
+            
+        # DilemmaEngine: проверяем триггеры
+        if self.truth_state:
+            discovered = list(getattr(self.truth_state, "discovered_secrets", set()))
+            self.dilemma_engine.check_triggers(discovered)
+            
+        # SocialFabric: устанавливаем baseline на первом тике
+        if ctx.tick_number == 1:
+            self._set_social_fabric_baseline(ctx.all_npcs_raw)
+
+    def _set_social_fabric_baseline(self, all_npcs_raw: List[Dict[str, Any]]) -> None:
+        """Инициализация базовых отношений для SocialFabricTracker."""
+        from app.models.social_fabric import RelationshipSnapshot
+        for i, n1 in enumerate(all_npcs_raw):
+            for n2 in all_npcs_raw[i+1:]:
+                id1 = n1.get("id", n1.get("npc_id"))
+                id2 = n2.get("id", n2.get("npc_id"))
+                if not id1 or not id2: continue
+                # Мокаем baseline (0.0 trust, 0.0 fear)
+                snap = RelationshipSnapshot(source_id=id1, target_id=id2, trust=0.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0)
+                self.social_fabric.set_baseline(id1, id2, snap)
+                self.social_fabric.set_baseline(id2, id1, snap)
         
     def check_exit(self, scene_state: Dict[str, Any]) -> bool:
         """Проверяет, покинул ли игрок локацию."""

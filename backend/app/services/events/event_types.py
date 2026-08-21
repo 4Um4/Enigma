@@ -42,6 +42,7 @@ class EventType(str, Enum):
 
     # ── Мир ───────────────────────────────────────────────────────────────
     TIME_PASSED = "time_passed"
+    TICK_COMPLETED = "tick_completed"  # N2 FIX: Событие завершения тика для подписки трекеров (M-03)
     WEATHER_CHANGED = "weather_changed"
     FACTION_EVENT = "faction_event"
     WORLD_TICK = "world_tick"  # проактивный тик мира (Фаза 3.4)

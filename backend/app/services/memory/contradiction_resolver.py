@@ -12,7 +12,6 @@ from typing import Any, Dict
 # Какие типы событий подрывают какие beliefs
 CONTRADICTIONS: Dict[str, Dict[str, float]] = {
     "hero": {
-        "combat_ally": -0.25,
         "theft": -0.20,
         "vandalism": -0.15,
         "intimidation": -0.10,
@@ -37,6 +36,7 @@ CONTRADICTIONS: Dict[str, Dict[str, float]] = {
 # Какие события усиливают belief
 CONFIRMATIONS: Dict[str, Dict[str, float]] = {
     "hero": {
+        "combat_ally": +0.25,  # N15 FIX: Помощь в бою подтверждает героизм
         "quest": +0.15,
         "help": +0.20,
         "dialogue_key": +0.05,

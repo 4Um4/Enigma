@@ -31,6 +31,9 @@ from ui_components import (
     ToggleButton,
 )
 from undo_manager import (
+    AddWallCommand,
+    AddNodeCommand,
+    AddConnectionCommand,
     AddLabelCommand,
     AddNpcCommand,
     AddObjectCommand,
@@ -74,6 +77,7 @@ TOOL_LABEL = "label"  # Создание надписи
 TOOL_NPC = "npc"  # Размещение NPC
 TOOL_SPAWN = "spawn"  # Установка точки спавна игрока
 TOOL_DELETE = "delete"  # Удаление
+TOOL_NODE = "node"  # Создание и связывание навигационных узлов
 
 # Цвета объектов
 OBJECT_COLORS = {
@@ -153,6 +157,7 @@ class EditorCore:
         self.wall_start: Optional[Tuple[float, float]] = None
         self.room_drawing = False
         self.room_start: Optional[Tuple[float, float]] = None
+        self.node_link_start: Optional[str] = None  # S143: ID узла-источника для создания связи
 
         # UI
         self.menu_height = 30
@@ -308,6 +313,17 @@ class EditorCore:
             on_toggle=lambda s: self._set_tool(TOOL_DELETE) if s else None,
         )
         self.toolbar_buttons.append(self.btn_tool_delete)
+        x += 100
+
+        self.btn_tool_node = ToggleButton(
+            x,
+            toolbar_y,
+            80,
+            32,
+            "🔵 Узел",
+            on_toggle=lambda s: self._set_tool(TOOL_NODE) if s else None,
+        )
+        self.toolbar_buttons.append(self.btn_tool_node)
 
         # Группа: Observatory (ADR-O-330)
         x += 100
@@ -358,6 +374,7 @@ class EditorCore:
             TOOL_NPC: self.btn_tool_npc,
             TOOL_SPAWN: self.btn_tool_spawn,
             TOOL_DELETE: self.btn_tool_delete,
+            TOOL_NODE: self.btn_tool_node,
         }
         if tool in tool_buttons:
             tool_buttons[tool].state = True
@@ -372,6 +389,7 @@ class EditorCore:
             TOOL_NPC: "NPC: кликните для размещения на карте",
             TOOL_SPAWN: "Спавн: кликните для установки точки появления игрока",
             TOOL_DELETE: "Удаление: кликните по объекту для удаления",
+            TOOL_NODE: "Узлы: клик по пустому месту — создать, клик по узлу — выделить, клик по другому узлу — соединить",
         }
         if tool:
             self._show_toast(tool_names.get(tool, "Режим покоя — выделяйте объекты"))
@@ -1329,6 +1347,9 @@ class EditorCore:
                 elif self.room_drawing:
                     self.room_drawing = False
                     self.room_start = None
+                elif self.node_link_start is not None:
+                    self.node_link_start = None
+                    self._show_toast("Создание связи отменено")
                 elif self.selected_object is not None or self.tool is not None:
                     self.selected_object = None
                     self._set_tool(None)
@@ -1950,6 +1971,53 @@ class EditorCore:
             )
             self._show_toast(f"NPC размещён: {npc_name}")
 
+        elif self.tool == TOOL_NODE:
+            # S143: Создание узлов и связей между ними
+            loc = self.dm.locations[self.current_file]
+            clicked_node_id = None
+            # Ищем узел под кликом (радиус 0.5м)
+            for nid, ndata in loc.get("nodes", {}).items():
+                if math.hypot(ndata["x"] - gx, ndata["y"] - gy) <= 0.5:
+                    clicked_node_id = nid
+                    break
+
+            if clicked_node_id:
+                # Кликнули по существующему узлу
+                if self.node_link_start is None:
+                    # Первый клик — выделяем узел-источник
+                    self.node_link_start = clicked_node_id
+                    self._show_toast(f"Узел {clicked_node_id} выделен. Кликните по другому узлу для связи.")
+                elif self.node_link_start == clicked_node_id:
+                    # Клик по тому же узлу — снимаем выделение
+                    self.node_link_start = None
+                    self._show_toast("Выделение узла снято")
+                else:
+                    # Клик по другому узлу — создаём связь
+                    self.undo.push(
+                        AddConnectionCommand(
+                            self.dm,
+                            self.current_file,
+                            self.node_link_start,
+                            clicked_node_id,
+                        )
+                    )
+                    self._show_toast(f"Создана связь: {self.node_link_start} -> {clicked_node_id}")
+                    self.node_link_start = None
+            else:
+                # Клик по пустому месту — создаём новый узел
+                node_id = f"node_{len(loc.get('nodes', {}))}"
+                self.undo.push(
+                    AddNodeCommand(
+                        self.dm,
+                        self.current_file,
+                        node_id,
+                        gx,
+                        gy,
+                        "Новый узел",
+                    )
+                )
+                self._show_toast(f"Создан узел {node_id}")
+
         elif self.tool == TOOL_SPAWN:
             # Устанавливаем точку спавна игрока
             self.dm.set_player_spawn(self.current_file, gx, gy, self.current_z)
@@ -2152,6 +2220,21 @@ class EditorCore:
         if not self.current_file:
             return False
         loc = self.dm.locations[self.current_file]  # noqa: F841
+
+        # S143: Узлы — проверяем первыми, чтобы можно было их таскать и выделять
+        for nid, ndata in loc.get("nodes", {}).items():
+            sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
+            if abs(sx - mx) < 12 and abs(sy - my) < 12:
+                self.selected_object = ("node", nid)
+                if self.tool is None:
+                    self._dragging_entity = {
+                        "type": "node",
+                        "id": nid,
+                        "start_mx": mx,
+                        "start_my": my,
+                        "orig": {"x": ndata["x"], "y": ndata["y"]},
+                    }
+                return True
 
         # Объекты
         if self.show_objects:
@@ -2941,41 +3024,34 @@ class EditorCore:
             self._draw_observatory()
 
     def _draw_observatory(self):
-        """Рисует топологию и пути из ObservatoryDTO с каузальной диагностикой."""
+        """Финальная отрисовка Spatial Observatory."""
         if not self.observatory_data:
             return
 
-        # Визуальный дебаг Observatory
-        status_text = f"OBS REV: {self._observatory_revision} | DIRTY: {self._spatial_dirty}"
+        # Диагностика на экран
         font = pygame.font.SysFont("Arial", 16)
+        status_text = f"OBS REV: {self._observatory_revision} | DIRTY: {self._spatial_dirty}"
         text_surf = font.render(status_text, True, (255, 255, 0))
         self.screen.blit(text_surf, (10, self.menu_height + self.toolbar_height + 30))
 
-        # Диагностика содержимого DTO
         topo = self.observatory_data.get("topology", {})
         nodes = topo.get("nodes", [])
         edges = topo.get("edges", [])
         agents = self.observatory_data.get("agents", [])
-        
+
         diag_text = f"Nodes: {len(nodes)} | Edges: {len(edges)} | Agents: {len(agents)}"
         diag_surf = font.render(diag_text, True, (255, 255, 0))
         self.screen.blit(diag_surf, (10, self.menu_height + self.toolbar_height + 50))
-        
-        # Диагностика координат первого узла
-        if nodes:
-            n = nodes[0]
-            pos = n.get("position", [0, 0])
-            sx, sy = self.world_to_screen(pos[0], pos[1])
-            node_text = f"Node 0: ({pos[0]:.1f}, {pos[1]:.1f}) -> screen ({sx}, {sy})"
-            node_surf = font.render(node_text, True, (255, 255, 0))
-            self.screen.blit(node_surf, (10, self.menu_height + self.toolbar_height + 70))
-            
-            # Рисуем огромный фиолетовый круг в позиции первого узла
-            pygame.draw.circle(self.screen, (255, 0, 255), (sx, sy), 30)
-        nodes = topo.get("nodes", [])
-        edges = topo.get("edges", [])
 
-        # 1. Рисуем ребра (валидные и заблокированные)
+        # Вывод каузальной ошибки, если граф не собрался
+        diagnostics = self.observatory_data.get("diagnostics", [])
+        if diagnostics:
+            err = diagnostics[0]
+            err_text = f"ERROR: {err.get('code', '')} - {err.get('message', '')[:120]}"
+            err_surf = font.render(err_text, True, (255, 0, 0))
+            self.screen.blit(err_surf, (10, self.menu_height + self.toolbar_height + 70))
+
+        # 1. Рисуем рёбра
         for edge in edges:
             from_node = next((n for n in nodes if n["node_id"] == edge["from_node_id"]), None)
             to_node = next((n for n in nodes if n["node_id"] == edge["to_node_id"]), None)
@@ -2984,24 +3060,25 @@ class EditorCore:
                 p2 = self.world_to_screen(to_node["position"][0], to_node["position"][1])
                 
                 if edge.get("traversable", True):
-                    pygame.draw.line(self.screen, (100, 100, 100), p1, p2, 2)
+                    # Валидное ребро: толстая зелёная линия
+                    pygame.draw.line(self.screen, (0, 200, 0), p1, p2, 4)
                 else:
-                    # Заблокированное ребро: красная линия с белым крестиком
-                    pygame.draw.line(self.screen, (255, 50, 50), p1, p2, 2)
+                    # Заблокированное ребро: толстая красная линия с крестиком
+                    pygame.draw.line(self.screen, (255, 0, 0), p1, p2, 4)
                     mid_x = (p1[0] + p2[0]) // 2
                     mid_y = (p1[1] + p2[1]) // 2
-                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x - 5, mid_y - 5), (mid_x + 5, mid_y + 5), 3)
-                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x + 5, mid_y - 5), (mid_x - 5, mid_y + 5), 3)
+                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x - 8, mid_y - 8), (mid_x + 8, mid_y + 8), 4)
+                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x + 8, mid_y - 8), (mid_x - 8, mid_y + 8), 4)
 
-        # 2. Рисуем узлы графа
+        # 2. Рисуем узлы
         for node in nodes:
             sx, sy = self.world_to_screen(node["position"][0], node["position"][1])
-            color = (255, 215, 0) if node.get("role") == "ANCHOR" else (0, 255, 255)
-            pygame.draw.circle(self.screen, color, (int(sx), int(sy)), 8)
-            pygame.draw.circle(self.screen, (255, 255, 255), (int(sx), int(sy)), 3)
+            # Узлы — ярко-жёлтые круги радиусом 10
+            pygame.draw.circle(self.screen, (255, 255, 0), (int(sx), int(sy)), 10)
+            pygame.draw.circle(self.screen, (0, 0, 0), (int(sx), int(sy)), 4)
 
         # 3. Рисуем пути NPC
-        for agent in self.observatory_data.get("agents", []):
+        for agent in agents:
             path = agent.get("path")
             if not path or not path.get("points"):
                 continue
@@ -3012,8 +3089,9 @@ class EditorCore:
                 points.append((int(sx), int(sy)))
             
             if len(points) >= 2:
-                color = (50, 255, 50) if path.get("status") == "OK" else (255, 50, 50)
-                pygame.draw.lines(self.screen, color, False, points, 4)
+                # Пути NPC — ярко-синие линии
+                pygame.draw.lines(self.screen, (0, 100, 255), False, points, 5)
+                    # Заблокированное ребро: красная линия с белым крестиком
 
     def _draw_local_grid(self):
         """Отрисовывает локальную сетку"""
@@ -3419,6 +3497,9 @@ class EditorCore:
         for nid, ndata in loc.get("nodes", {}).items():
             sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
 
+            # S143: Подсветка выделенного узла для создания связи
+            if self.node_link_start == nid:
+                pygame.draw.circle(self.screen, COLORS["accent_yellow"], (sx, sy), 12)
             # Круг узла
             pygame.draw.circle(self.screen, COLORS["accent_blue"], (sx, sy), 8)
             pygame.draw.circle(self.screen, COLORS["text_highlight"], (sx, sy), 8, 2)

@@ -4,7 +4,7 @@
 Зависимости: typing, app.models.player_action, app.services.*
 """
 
-from typing import Set
+from typing import Set, Optional, Any
 
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.player_action import ActionType, PlayerAction
@@ -24,11 +24,15 @@ class ActionConsequenceCompiler:
         self,
         observation_log: ObservationLog,
         belief_model: PlayerBeliefModel,
-        social_fabric: SocialFabricTracker
+        social_fabric: SocialFabricTracker,
+        truth_state: Optional["TruthState"] = None,
+        faction_tracker: Optional[Any] = None
     ) -> None:
         self._log = observation_log
         self._beliefs = belief_model
         self._fabric = social_fabric
+        self._truth = truth_state
+        self._faction_tracker = faction_tracker
         self._processed_actions: Set[str] = set()
 
     def process_action(self, action: PlayerAction) -> None:
@@ -58,6 +62,10 @@ class ActionConsequenceCompiler:
             )
             self._beliefs.update_from_evidence(obs, ev)
 
+            # M-02 FIX: Отмечаем секрет как раскрытый
+            if self._truth:
+                self._truth.mark_discovered(action.secret_id)
+
             self._fabric.apply_delta(
                 tick=action.tick,
                 source_id=action.target_id,
@@ -67,6 +75,24 @@ class ActionConsequenceCompiler:
                 cause=f"action:{action.action_type.value}",
                 description=f"{action.target_id} боится {action.actor_id} после шантажа"
             )
+            
+            # M-12 FIX: BLACKMAIL применяет delta к фракциям
+            if self._faction_tracker:
+                _faction_id = self._resolve_faction_id(action.target_id)
+                if _faction_id:
+                    self._faction_tracker.apply_delta(_faction_id, delta=-10.0, known=True)
+
+        # M-07/M-08 FIX: DIALOGUE с secret_id тоже раскрывает секрет (без social_fabric delta)
+        elif action.action_type == ActionType.DIALOGUE and action.secret_id:
+            ev = self._log.add_evidence(
+                observation_id=obs.observation_id,
+                secret_id=action.secret_id,
+                evidence_strength=0.5,  # dialogue = weaker than blackmail
+                polarity=EvidencePolarity.SUPPORTS
+            )
+            self._beliefs.update_from_evidence(obs, ev)
+            if self._truth:
+                self._truth.mark_discovered(action.secret_id)
 
         elif action.action_type == ActionType.HELP:
             self._fabric.apply_delta(
@@ -78,3 +104,23 @@ class ActionConsequenceCompiler:
                 cause=f"action:{action.action_type.value}",
                 description=f"{action.target_id} благодарен {action.actor_id} за помощь"
             )
+            # M-12 FIX: HELP применяет delta к фракциям
+            if self._faction_tracker:
+                _faction_id = self._resolve_faction_id(action.target_id)
+                if _faction_id:
+                    self._faction_tracker.apply_delta(_faction_id, delta=5.0, known=True)
+
+    def _resolve_faction_id(self, target_id: str) -> Optional[str]:
+        """M-12 FIX: Маппинг target_id NPC на канонический ID фракции."""
+        _faction_map = {
+            "guard": "городская_стража",
+            "merchant": "торговая_гильдия",
+            "thief": "гильдия_воров",
+            "tavern_keeper": "таверна_серебряный_волк",
+            "maid": "таверна_серебряный_волк"
+        }
+        _parts = target_id.split("_")
+        if len(_parts) > 1:
+            _role = _parts[0]
+            return _faction_map.get(_role)
+        return None

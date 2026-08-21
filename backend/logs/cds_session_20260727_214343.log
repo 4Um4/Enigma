@@ -1,0 +1,510 @@
+2026-07-27 21:43:43,626 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260727_214343.log
+2026-07-27 21:43:43,626 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-27 21:43:43,626 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-27 21:43:43,626 app.main ERROR: [STARTUP] Monitor init failed: 'VramMonitor' object has no attribute 'start_session'
+2026-07-27 21:43:43,668 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-27 21:43:43,675 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-27 21:43:43,693 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-27 21:43:43,707 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-07-27 21:43:43,707 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-07-27 21:43:43,709 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-07-27 21:43:43,710 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-27 21:43:43,713 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-27 21:43:50,828 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-27 21:43:50,861 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-27 21:44:06,265 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:06,265 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:06,265 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:44:06,265 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 18 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:06,265 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:06,266 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:06,266 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:06,266 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:11,118 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:11,118 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:11,118 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:11,118 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 18 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:11,118 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:11,118 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:11,119 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:11,119 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:11,119 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:16,921 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:16,921 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:16,921 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:16,921 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 18 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:16,921 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:16,921 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:16,922 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:16,922 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:16,922 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:17,749 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:17,749 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:17,749 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:17,749 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 19 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:17,750 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:17,750 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:17,750 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:17,750 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:17,751 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:20,984 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:20,984 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:20,984 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:20,984 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 19 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:20,984 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:20,985 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:20,985 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:20,985 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:20,985 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:22,054 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:22,054 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:22,054 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:22,054 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 19 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:22,054 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:22,055 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:22,055 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:22,055 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:22,055 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:23,912 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:23,912 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:23,912 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:23,912 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 19 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:23,912 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:23,913 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:23,913 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:23,913 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:23,913 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:24,944 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:24,944 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:24,944 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:24,944 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 19 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:24,944 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:24,945 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:24,945 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:24,945 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:24,945 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_16 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:29,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:29,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:29,606 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:node_17', 'tavern:exit_east'}
+2026-07-27 21:44:29,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 19 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:29,606 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:29,607 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:29,607 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:29,607 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:29,607 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_17 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:31,169 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:31,169 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:31,169 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:node_17', 'tavern:exit_east'}
+2026-07-27 21:44:31,169 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 19 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:31,169 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:31,170 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:31,170 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:31,170 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:31,170 app.services.spatial.spatial_service WARNING: [SPATIAL] Путь не найден: tavern:node_17 → tavern:main_hall_west (urgency=normal)
+2026-07-27 21:44:32,045 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:32,045 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:32,045 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:32,045 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 20 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:32,046 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:32,046 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:32,046 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:32,046 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:43,504 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:43,504 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:43,504 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:43,505 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 20 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:43,505 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:43,505 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:43,505 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:43,506 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:44,555 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:44,555 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:44,555 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:44,555 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 21 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:44,556 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:44,556 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:44,556 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:44,556 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:45,490 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:45,490 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:45,490 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:45,490 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 21 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:45,490 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:45,491 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:45,491 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:45,491 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:46,706 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:46,706 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:46,706 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:46,706 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 22 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:46,706 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:46,707 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:46,707 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:46,707 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:47,478 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:47,478 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:47,478 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:47,478 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 22 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:47,478 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:47,479 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:47,479 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:47,479 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:48,409 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:48,409 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:48,409 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:48,409 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 23 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:48,409 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:48,410 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:48,410 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:48,410 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:50,979 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:50,979 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:50,979 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:node_18', 'tavern:exit_east'}
+2026-07-27 21:44:50,979 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 23 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:50,979 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:50,980 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:50,980 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:50,980 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:51,961 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:51,961 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:51,961 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:node_18', 'tavern:exit_east'}
+2026-07-27 21:44:51,961 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 23 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:51,962 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:51,962 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:51,962 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:51,963 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:52,980 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:52,980 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:52,980 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:52,980 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 24 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:52,980 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:52,981 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:52,981 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:52,981 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:54,617 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:54,617 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:54,617 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:54,618 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 24 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:54,618 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:54,618 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:54,618 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:54,619 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:55,464 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:44:55,464 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:44:55,464 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:44:55,464 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 25 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:44:55,464 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:55,465 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:55,465 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:44:55,465 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:03,036 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:03,036 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:03,036 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:45:03,036 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 25 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:03,037 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:03,037 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:03,038 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:03,038 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:07,623 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:07,623 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:07,623 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:07,623 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:07,624 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:07,624 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:07,624 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:11,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:11,607 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:11,607 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:11,607 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:11,608 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:11,608 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:11,608 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:12,992 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:12,992 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:12,992 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:12,993 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:12,993 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:12,993 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:12,993 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:13,754 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:13,754 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:13,754 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:13,754 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:13,755 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:13,755 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:13,755 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:14,272 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:14,272 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:14,272 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:14,273 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:14,273 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:14,273 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:14,273 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:15,291 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:15,291 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:15,291 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:15,292 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:15,292 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:15,292 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:15,293 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:15,818 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:15,818 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:15,818 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 21 nodes, 26 edges, 40 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:15,818 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:15,819 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:15,819 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:15,819 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:20,260 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:20,260 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:20,260 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:20,260 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 24 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:20,260 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:20,261 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:20,261 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:20,261 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:28,347 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:28,347 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:28,347 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:28,347 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 24 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:28,348 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:28,348 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:28,348 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:28,348 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:29,283 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:29,283 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:29,283 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:29,283 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 24 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:29,283 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:29,284 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:29,284 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:29,284 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:32,718 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:32,718 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:32,718 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:32,718 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 24 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:32,718 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:32,719 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:32,719 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:32,719 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:39,233 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:39,233 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:39,233 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:39,233 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 25 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:39,233 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:39,234 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:39,234 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:39,234 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:48,959 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:48,959 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:48,960 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:48,960 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 25 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:48,960 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:48,961 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:48,961 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:48,961 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:52,956 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:52,956 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:52,956 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:52,956 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 25 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:52,957 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:52,957 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:55,987 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:55,987 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:55,987 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:55,987 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 26 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:55,987 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:55,987 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:56,268 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:56,268 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:56,268 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:56,268 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 26 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:56,269 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:56,269 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:57,730 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:57,731 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:57,731 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:57,731 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 26 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:57,731 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:57,731 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:58,746 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:58,746 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:58,746 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:58,746 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 26 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:58,747 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:58,747 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:45:59,377 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:45:59,377 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:45:59,377 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:45:59,377 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 26 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:45:59,377 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:45:59,377 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:46:02,799 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:02,799 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:02,799 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:02,799 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 20 nodes, 26 edges, 39 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:02,799 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:02,800 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:46:07,313 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:07,313 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:07,313 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:07,313 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:07,313 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:07,314 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:07,314 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:07,314 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:12,052 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:12,052 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:12,053 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:12,053 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:12,053 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:12,054 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:12,054 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:12,054 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,098 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:13,098 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:13,098 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:13,098 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:13,099 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,099 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,099 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,099 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,828 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:13,829 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:13,829 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:13,829 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:13,829 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,830 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,830 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:13,830 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,378 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:14,379 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:14,379 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:14,379 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:14,379 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,380 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,380 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,380 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,975 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:14,975 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:14,975 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:14,975 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:14,975 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,976 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,976 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:14,976 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:18,893 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:18,894 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:18,894 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:node_15', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:exit_east'}
+2026-07-27 21:46:18,894 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:18,894 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:18,895 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:18,895 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:18,895 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:20,341 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:20,341 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:20,341 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 24 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:20,342 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:20,342 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:20,342 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:20,343 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:46:26,660 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:26,660 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:26,660 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 24 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:26,661 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:26,661 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:26,662 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:26,662 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:46:29,982 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:29,982 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:29,982 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:29,983 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:29,983 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:29,983 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:29,984 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:29,984 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:34,412 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:34,412 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:34,412 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:34,412 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:34,413 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:34,413 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:34,414 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:34,414 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:35,981 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:35,981 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:35,981 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:35,981 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:35,981 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:35,982 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:35,982 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:35,982 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:36,707 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:36,707 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:36,707 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:36,708 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:36,708 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:36,708 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:36,708 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:36,709 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:37,424 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:37,424 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:37,424 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:37,424 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:37,425 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:37,425 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:37,425 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:37,425 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,048 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:38,048 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:38,048 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:38,048 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:38,048 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,049 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,049 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,049 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,790 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:38,790 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:38,790 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:38,790 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:38,790 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,791 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,791 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:38,791 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,277 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:42,277 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:42,277 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:42,278 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 22 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:42,278 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,278 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,279 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,279 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,946 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:42,946 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:42,946 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:46:42,946 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 22 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:42,947 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,947 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,947 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:42,948 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:44,461 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:44,461 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:44,461 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_2', 'tavern:kitchen', 'tavern:kitchen_bed_1', 'tavern:node_16', 'tavern:exit_east'}
+2026-07-27 21:46:44,461 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 22 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:44,461 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:44,462 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:44,462 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:44,462 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:exit_east -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:45,217 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:45,217 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:45,218 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:45,218 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:45,218 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:45,218 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_1 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:45,218 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:kitchen -> tavern:kitchen_bed_2 is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:45,218 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 21:46:50,102 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=1 nodes
+2026-07-27 21:46:50,102 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 21:46:50,102 app.services.spatial.graph_compiler WARNING: [GRAPH_COMPILER] Изолированные узлы в tavern: {'tavern:kitchen_bed_1', 'tavern:kitchen_bed_2', 'tavern:exit_east', 'tavern:kitchen'}
+2026-07-27 21:46:50,102 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 23 edges, 38 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 21:46:50,103 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 21:46:50,103 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS

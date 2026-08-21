@@ -4,13 +4,6 @@
   "_inherits": "_base_humanoid",
   "visible_markers": ["dark_cloak", "hood", "daggers"],
   "carried_objects": [],
-  "routine": {
-    "schedule": {
-      "20:00-04:00": "active",
-      "04:00-14:00": "sleeping",
-      "14:00-20:00": "planning"
-    }
-  },
   "body_profile": {
     "max_hp": 90,
     "abilities": {

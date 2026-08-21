@@ -1,0 +1,34 @@
+2026-07-27 19:10:38,486 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260727_191038.log
+2026-07-27 19:10:38,486 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-27 19:10:38,486 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-27 19:10:38,486 app.main ERROR: [STARTUP] Monitor init failed: 'VramMonitor' object has no attribute 'start_session'
+2026-07-27 19:10:38,528 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-27 19:10:38,549 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-27 19:10:38,552 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-27 19:10:38,563 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-07-27 19:10:38,563 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-07-27 19:10:38,565 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-07-27 19:10:38,566 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-27 19:10:38,569 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-27 19:10:45,686 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-27 19:10:45,718 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-27 19:10:53,815 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=2 nodes
+2026-07-27 19:10:53,815 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 19:10:53,815 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 20 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 19:10:53,816 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 19:10:53,816 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 19:11:06,700 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=2 nodes
+2026-07-27 19:11:06,700 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 19:11:06,700 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 20 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 19:11:06,701 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 19:11:06,701 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 19:11:09,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=2 nodes
+2026-07-27 19:11:09,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 19:11:09,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 20 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 19:11:09,520 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 19:11:09,521 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS
+2026-07-27 19:14:39,101 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=2 nodes
+2026-07-27 19:14:39,101 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=1 nodes
+2026-07-27 19:14:39,101 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 18 nodes, 20 edges, 37 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-27 19:14:39,101 app.services.spatial.graph_compiler WARNING: [SPATIAL_VALIDATION] tavern: edge tavern:bar_area -> tavern:behind_bar is geometrically blocked! Edge removed from graph.
+2026-07-27 19:14:39,101 app.services.spatial.spatial_observatory_service ERROR: [OBSERVATORY] Map validation failed: INV-TOPOLOGY-WALL-CROSS

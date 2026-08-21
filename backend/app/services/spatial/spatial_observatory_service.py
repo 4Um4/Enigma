@@ -7,6 +7,7 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.errors import SimulationIntegrityError
 from app.domain.observatory import (
     ObservatoryAgentDTO, ObservatoryCausalDiagnosticDTO, ObservatoryEdgeDTO,
     ObservatoryNodeDTO, ObservatoryPathDTO, ObservatoryResolutionDTO,
@@ -42,12 +43,36 @@ class SpatialObservatoryService:
         """
         # 1. Собираем эфемерный SpatialService из черновика карты
         scene_state_stub = {"npc_positions": agents_data}
-        svc = SpatialService.build_for_location(
-            campaign_id=campaign_id,
-            location_id=location_id,
-            scene_state=scene_state_stub,
-            editor_data_override=editor_data
-        )
+        try:
+            svc = SpatialService.build_for_location(
+                campaign_id=campaign_id,
+                location_id=location_id,
+                scene_state=scene_state_stub,
+                editor_data_override=editor_data
+            )
+        except SimulationIntegrityError as e:
+            # S-OBS-06: Ловим критическую ошибку карты (например, стену без door_id)
+            # и возвращаем её как каузальную диагностику, не валив сервер.
+            logger.error(f"[OBSERVATORY] Map validation failed: {e.invariant_id}")
+            return SpatialObservatoryDTO(
+                topology=ObservatoryTopologyDTO(nodes=(), edges=()),
+                agents=(),
+                diagnostics=(ObservatoryCausalDiagnosticDTO(
+                    phase="TOPOLOGY", status="CRITICAL",
+                    code=e.invariant_id or "SIM_INTEGRITY_ERROR",
+                    message=str(e)
+                ),)
+            )
+        except Exception as e:
+            logger.error(f"[OBSERVATORY] Unexpected compilation error: {e}", exc_info=True)
+            return SpatialObservatoryDTO(
+                topology=ObservatoryTopologyDTO(nodes=(), edges=()),
+                agents=(),
+                diagnostics=(ObservatoryCausalDiagnosticDTO(
+                    phase="TOPOLOGY", status="CRITICAL", code="UNKNOWN_EXCEPTION",
+                    message=str(e)
+                ),)
+            )
         
         if not svc:
             return SpatialObservatoryDTO(

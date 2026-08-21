@@ -215,37 +215,6 @@
       "properties": {}
     },
     {
-      "id": "obj_2",
-      "name": "Дверь №1",
-      "type": "door",
-      "position": {
-        "x": 33.0,
-        "y": 5.0
-      },
-      "size": {
-        "w": 1.0,
-        "h": 0.2,
-        "d": 2.2
-      },
-      "rotation": "wall_2",
-      "passability": {
-        "walk": true,
-        "jump_over": false,
-        "crawl_under": false,
-        "climb_on": false,
-        "walk_around": true
-      },
-      "cover": 0.0,
-      "color": "#D2691E",
-      "show_name": false,
-      "properties": {
-        "open": true,
-        "locked": false,
-        "durability": 20,
-        "visibility_through": 0.1
-      }
-    },
-    {
       "id": "obj_3",
       "name": "Ель №1",
       "type": "spruce",
@@ -1969,6 +1938,63 @@
       "color": "#90EE90",
       "show_name": false,
       "properties": {}
+    },
+    {
+      "id": "obj_69",
+      "name": "Кровать №1",
+      "type": "bed",
+      "position": {
+        "x": 31.0,
+        "y": 0.6666666666666666
+      },
+      "size": {
+        "w": 2.5,
+        "h": 1.08,
+        "d": 0.6
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.2,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_70",
+      "name": "Дверь №1",
+      "type": "door",
+      "position": {
+        "x": 33.0,
+        "y": 5.0
+      },
+      "size": {
+        "w": 1.49,
+        "h": 0.2,
+        "d": 2.2
+      },
+      "rotation": "wall_2",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 20,
+        "visibility_through": 0.1
+      }
     }
   ],
   "passages": [],
@@ -1977,49 +2003,38 @@
   "labels": [],
   "nodes": {
     "gate_road": {
-      "x": 5.0,
-      "y": 10.0,
+      "x": 16.450000000000003,
+      "y": 9.25,
       "label": "Тракт",
       "connections": [
         "gate_arch"
       ]
     },
     "gate_arch": {
-      "x": 11.5,
-      "y": 10.0,
+      "x": 29.525666666666666,
+      "y": 9.391666666666666,
       "label": "Арка ворот",
       "connections": [
         "gate_road",
-        "guard_post",
         "gate_courtyard",
-        "entrance"
-      ]
-    },
-    "guard_post": {
-      "x": 16.0,
-      "y": 3.5,
-      "label": "Караульня",
-      "tags": [
-        "workplace:guard",
-        "guard_post"
-      ],
-      "connections": [
-        "gate_arch",
-        "guard_bed"
+        "entrance",
+        "tent_7",
+        "tent_1"
       ]
     },
     "guard_bed": {
-      "x": 17.0,
-      "y": 3.5,
+      "x": 31.07916666666667,
+      "y": 1.1124999999999998,
       "label": "Кровать в караульне",
       "role": "bed",
       "connections": [
-        "guard_post"
+        "node_14",
+        "node_15"
       ]
     },
     "gate_courtyard": {
-      "x": 21.5,
-      "y": 13.5,
+      "x": 44.725,
+      "y": 10.19,
       "label": "Внутренний двор",
       "connections": [
         "gate_arch",
@@ -2028,36 +2043,44 @@
       ]
     },
     "entrance": {
-      "x": 11.5,
-      "y": 16.0,
+      "x": 33.770833333333336,
+      "y": 9.524999999999999,
       "label": "Вход с площади",
       "connections": [
-        "gate_arch"
+        "gate_arch",
+        "node_15",
+        "tent_1",
+        "tent_4",
+        "tent_2",
+        "tent_5"
       ]
     },
     "tent_1": {
-      "x": 31.5,
-      "y": 7.0,
+      "x": 32.35358796296296,
+      "y": 7.925925925925926,
       "label": "Палатка №1",
       "role": "bed",
       "connections": [
         "gate_courtyard",
-        "tent_2"
+        "tent_2",
+        "entrance",
+        "gate_arch"
       ]
     },
     "tent_2": {
-      "x": 36.0,
-      "y": 7.5,
+      "x": 35.074074074074076,
+      "y": 8.368055555555555,
       "label": "Палатка №2",
       "role": "bed",
       "connections": [
         "tent_1",
-        "tent_3"
+        "tent_3",
+        "entrance"
       ]
     },
     "tent_3": {
-      "x": 41.0,
-      "y": 7.0,
+      "x": 40.05960648148148,
+      "y": 7.882523148148148,
       "label": "Палатка №3",
       "role": "bed",
       "connections": [
@@ -2066,78 +2089,104 @@
       ]
     },
     "tent_4": {
-      "x": 32.0,
-      "y": 11.5,
+      "x": 32.954861111111114,
+      "y": 11.413194444444445,
       "label": "Палатка №4",
       "role": "bed",
       "connections": [
         "gate_courtyard",
         "tent_5",
-        "tent_7"
+        "tent_7",
+        "entrance",
+        "tent_8"
       ]
     },
     "tent_5": {
-      "x": 36.5,
-      "y": 11.5,
+      "x": 36.45659722222222,
+      "y": 10.54513888888889,
       "label": "Палатка №5",
       "role": "bed",
       "connections": [
         "tent_4",
-        "tent_6"
+        "tent_6",
+        "entrance"
       ]
     },
     "tent_6": {
-      "x": 41.5,
-      "y": 12.0,
+      "x": 40.545138888888886,
+      "y": 11.10011574074074,
       "label": "Палатка №6",
       "role": "bed",
       "connections": [
         "tent_3",
         "tent_5",
-        "tent_9"
+        "tent_9",
+        "tent_8"
       ]
     },
     "tent_7": {
-      "x": 31.5,
-      "y": 15.5,
+      "x": 32.39699074074074,
+      "y": 14.54513888888889,
       "label": "Палатка №7",
       "role": "bed",
       "connections": [
         "tent_4",
-        "tent_8"
+        "tent_8",
+        "gate_arch"
       ]
     },
     "tent_8": {
       "x": 36.0,
-      "y": 15.5,
+      "y": 14.559606481481481,
       "label": "Палатка №8",
       "role": "bed",
       "connections": [
         "tent_7",
-        "tent_9"
+        "tent_9",
+        "tent_4",
+        "tent_6"
       ]
     },
     "tent_9": {
-      "x": 41.5,
-      "y": 15.5,
+      "x": 40.5306712962963,
+      "y": 14.54513888888889,
       "label": "Палатка №9",
       "role": "bed",
       "connections": [
         "tent_6",
         "tent_8"
       ]
+    },
+    "node_14": {
+      "x": 34.5,
+      "y": 2.0,
+      "label": "Узел",
+      "connections": [
+        "node_15",
+        "guard_bed"
+      ]
+    },
+    "node_15": {
+      "x": 33.0,
+      "y": 5.0,
+      "label": "Узел",
+      "connections": [
+        "node_14",
+        "guard_bed",
+        "entrance"
+      ]
     }
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-07-26T23:29:36.330541",
+  "modified_at": "2026-07-27T22:42:27.600477",
   "adjacency": {
-    "west": "tavern_silver_wolf",
+    "west": "tavern",
     "south": "market_square"
   },
   "player_spawn": {
-    "x": 20.91666666666666,
-    "y": 1.0416666666666667,
+    "x": 16.5,
+    "y": 9.0,
     "z": 0
   }
 }

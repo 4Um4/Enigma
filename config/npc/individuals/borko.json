@@ -109,14 +109,13 @@
       "summary": "Тебе нравится быть вуайеристом-обсервером - наблюдать за сексом кузнеца и Люси.",
       "importance": 0.95,
       "tags": [
-        "bribe",
-        "merchant_goran",
-        "corruption"
+        "voyeurism",
+        "intimacy",
+        "secret_observation"
       ],
       "is_secret": true,
       "known_by": [
-        "guard_borko",
-        "merchant_goran"
+        "guard_borko"
       ],
       "hidden_from": [
         "player",

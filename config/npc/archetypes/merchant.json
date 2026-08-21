@@ -4,13 +4,6 @@
   "_inherits": "_base_humanoid",
   "visible_markers": ["merchant_robes", "coin_purse", "ledger"],
   "carried_objects": [],
-  "routine": {
-    "schedule": {
-      "09:00-18:00": "market_trading",
-      "18:00-21:00": "counting_money",
-      "21:00-09:00": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 90,
     "abilities": {

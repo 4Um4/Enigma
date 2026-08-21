@@ -4,12 +4,6 @@
   "_inherits": "_base_humanoid",
   "visible_markers": ["apron", "keys"],
   "carried_objects": ["apron", "keys", "coin_pouch"],
-  "routine": {
-    "schedule": {
-      "06:00-22:00": "working",
-      "22:00-06:00": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 110,
     "abilities": {

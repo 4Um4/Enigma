@@ -1,5 +1,5 @@
 {
-  "tavern_silver_wolf": {
+  "tavern": {
     "name": "Таверна «Серебряный Волк»",
     "type": "tavern",
     "default_objects": {
@@ -164,7 +164,7 @@
     },
     "npc_defaults": {},
     "connected_locations": [
-      "tavern_silver_wolf",
+      "tavern",
       "market_square"
     ],
     "positions": {
@@ -216,7 +216,7 @@
     },
     "npc_defaults": {},
     "connected_locations": [
-      "tavern_silver_wolf",
+      "tavern",
           "city_gate"
         ]
       },
@@ -236,7 +236,7 @@
     },
     "npc_defaults": {},
     "connected_locations": [
-      "tavern_silver_wolf"
+      "tavern"
     ],
     "positions": {
       "bed": {

@@ -149,8 +149,18 @@ class GameLoop:
         # P7-MVP: Инициализация эпистемического фасада
         from pathlib import Path as PathLib
         from app.services.social.mvp_tavern_controller import MvpTavernController
-        _canon_path = PathLib(self.data_dir).parent / "config" / "canon" / "truth_state_tavern.json"
-        self.mvp_controller = MvpTavernController(_canon_path) if _canon_path.exists() else None
+        # N1 FIX (v7): Используем BASE_DIR напрямую, чтобы найти config/canon/ от корня проекта
+        from app.core.config import BASE_DIR
+        _canon_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
+        if _canon_path.exists():
+            self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus())
+        else:
+            logger.error(
+                f"TruthState canon file not found at {_canon_path}. "
+                f"DATA_DIR={self.data_dir}, BASE_DIR={BASE_DIR}. "
+                "MVP epistemic pipeline DISABLED. End-Screen will be empty."
+            )
+            self.mvp_controller = None
         
         # P7-13: Опциональная персистентность мира. GameLoop выступает хранилищем diff'ов между кампаниями.
         self._campaign_diffs: Dict[str, "WorldStateDiff"] = {}
