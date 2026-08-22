@@ -87,9 +87,6 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
             _sources: list[str] = []
             if ctx.dirty_npcs:
                 _sources.append(f"npc={len(ctx.dirty_npcs)}")
-            # Stage 0 Task 0.10: wt_dirty упразднён. Параллельный WorldTick-путь закрыт.
-            # if ctx.wt_dirty:
-                _sources.append("world_tick")
             if ctx.prop_dirty:
                 _sources.append("social")
             logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")

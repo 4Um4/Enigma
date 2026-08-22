@@ -62,21 +62,38 @@ class EpistemicContextResolver:
         )
 
     @staticmethod
-    def to_modifiers(context: EpistemicContext) -> dict[str, float]:
+    def to_modifiers(
+        context: EpistemicContext, archetype: str = ""
+    ) -> dict[str, float]:
         """
         S188: Преобразует EpistemicContext в нейтральные decision modifiers.
         DecisionHub получает только числа, не зная об эпистемической семантике.
+
+        S211 (слой 3, R7): архетип-дифференциация. Один и тот же belief
+        ведёт к разным действиям по натуре агента (disposition-веса поверх
+        epistemic_boost). archetype="" → прежнее поведение (обратная
+        совместимость: все существующие вызовы не тронуты).
         """
         modifiers = {}
         if context.perceived_threats:
-            # S189: Модификатор пропорционален max_confidence.
-            # S198 FIX: Увеличен множитель для warn/attack до 1.5, чтобы эпистемическая 
-            # необходимость перебивать сильные базовые drives (например, block_path=0.509).
-            # При confidence=1.0 даёт 1.5, что гарантирует победу WARN над BLOCK_PATH.
+            # S189/S198: базовый буст = confidence × 1.5.
             _epistemic_boost = round(context.max_confidence * 1.5, 4)
-            modifiers["warn"] = _epistemic_boost
-            modifiers["attack"] = _epistemic_boost
-            modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)
+            if archetype:
+                from app.domain.epistemic_dispositions import (
+                    get_epistemic_disposition,
+                )
+                _disp = get_epistemic_disposition(archetype)
+                for _intent, _weight in _disp.items():
+                    if _weight > 0.0:
+                        modifiers[_intent] = round(_epistemic_boost * _weight, 4)
+                # block_path — не диспозиция, а общий прессинг (все архетипы)
+                modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)
+            else:
+                # Легаси-ветка (S198): плоский warn=attack=boost — точка
+                # R7-монокультуры, сохранена для вызовов без архетипа.
+                modifiers["warn"] = _epistemic_boost
+                modifiers["attack"] = _epistemic_boost
+                modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)
             
         # Союзники могут слегка повышать trade/help/approach
         if context.perceived_allies:

@@ -493,7 +493,11 @@ class NpcTickPipeline:
             if state.epistemic_store and state.epistemic_context_resolver:
                 try:
                     _epistemic_ctx = state.epistemic_context_resolver.resolve(npc_id)
-                    _epistemic_modifiers = state.epistemic_context_resolver.to_modifiers(_epistemic_ctx)
+                    # S211 (слой 3): архетип-дифференциация — один belief,
+                    # разные действия по натуре (R7-монокультура WARN мертва).
+                    _epistemic_modifiers = state.epistemic_context_resolver.to_modifiers(
+                        _epistemic_ctx, archetype=profile_l0.archetype
+                    )
                 except Exception as _epistemic_err:
                     logger.exception(
                         f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}"

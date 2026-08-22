@@ -561,6 +561,23 @@ class PerceptualKernel:
         None  # {"source": str, "salience": float, "interrupts_routine": bool}
     )
 
+    @staticmethod
+    def can_observe(
+        event: Any, 
+        distance: float, 
+        observer_id: str, 
+        target_id: Optional[str] = None
+    ) -> bool:
+        """Stage 1 Task 1.5: Event Visibility filter.
+        Проверяет, может ли NPC воспринять событие.
+        """
+        if event.visibility == "private":
+            return observer_id == event.source
+        if event.visibility == "whisper":
+            return observer_id == event.source or observer_id == target_id
+        # public
+        return distance <= event.radius
+
 
 @dataclass
 class NPCState:

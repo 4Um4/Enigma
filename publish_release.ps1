@@ -18,26 +18,28 @@ if (Test-Path "build") {
     New-Item -ItemType Directory -Path "build" | Out-Null
 }
 
-# 1. Читаем и инкрементируем версию
-if (Test-Path $VersionFile) {
-    $Version = Get-Content $VersionFile -Raw
-} else {
-    $Version = "0.0.0.0"
+# 1. S210: версия. SSOT = frontend/constants.py (PROJECT_VERSION): первые
+# три сегмента. version.txt — ТОЛЬКО счётчик билдов (4-й сегмент); при смене
+# базы SSOT счётчик сбрасывается в 1. Фикс дрейфа «v0.5.3.7.15» при проекте 0.5.3.8.x.
+ $consts = Get-Content "frontend\constants.py" -Raw
+if ($consts -notmatch 'PROJECT_VERSION:\s*str\s*=\s*"v?(\d+)\.(\d+)\.(\d+)') {
+    Write-Host "❌ SSOT версии не найден в frontend\constants.py (PROJECT_VERSION)!" -ForegroundColor Red; exit
 }
- $Version = $Version.Trim().TrimStart('v').TrimStart('V')
+ $ssotBase = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
 
- $parts = $Version.Split('.')
-if ($parts.Length -gt 0) {
-    $lastPart = [int]$parts[-1]
-    $lastPart++
-    $parts[-1] = $lastPart.ToString()
-    $NewVersion = $parts -join '.'
-} else {
-    $NewVersion = "0.0.0.1"
+ $buildNum = 0
+if (Test-Path $VersionFile) {
+    $prev = (Get-Content $VersionFile -Raw).Trim().TrimStart('v').TrimStart('V')
+    $prevParts = $prev.Split('.')
+    if ($prevParts.Length -ge 4 -and (($prevParts[0..2] -join '.') -eq $ssotBase)) {
+        $buildNum = [int]$prevParts[3]
+    }
 }
+ $buildNum++
+ $NewVersion = "$ssotBase.$buildNum"
 
 Set-Content -Path $VersionFile -Value $NewVersion -NoNewline
-Write-Host "Версия обновлена: v$NewVersion" -ForegroundColor Yellow
+Write-Host "Версия обновлена: v$NewVersion (SSOT: $ssotBase, билд: $buildNum)" -ForegroundColor Yellow
 
 # 2. Компиляция Bloodloom.exe и Splash Screen
 Write-Host "🔨 Компиляция Bloodloom.exe и Splash Screen..." -ForegroundColor Cyan
@@ -64,6 +66,20 @@ New-Item -ItemType Directory -Path $StagingDir | Out-Null
 robocopy . $StagingDir /E /XD .venv .git build logs reports __pycache__ /XF *.pyc *.log *.spec > $null
 
 Write-Host "✅ Исходный код скопирован во временную папку" -ForegroundColor Green
+
+# 2.7 S210 (BUILD-P1): payload-звено — портативный Python для установщика.
+# enigma_setup.iss требует payload\python\*, но оркестратор его никогда не
+# создавал (prepare_python.ps1 существовал, но не вызывался). Кэшируется:
+# повторные сборки пропускают скачивание.
+if (-not (Test-Path "payload\python\python.exe")) {
+    Write-Host "🐍 Подготовка payload (портативный Python; первый запуск качает ~15 МБ + зависимости)..." -ForegroundColor Cyan
+    & powershell -ExecutionPolicy Bypass -File prepare_python.ps1
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path "payload\python\python.exe")) {
+        Write-Host "❌ prepare_python.ps1 не создал payload\python\python.exe — сборка прервана." -ForegroundColor Red; exit
+    }
+} else {
+    Write-Host "✅ payload/python найден (кэш прошлой сборки)" -ForegroundColor Green
+}
 
 # 3. Компиляция основного установщика
 Write-Host "🔨 Компиляция основного установочника..." -ForegroundColor Cyan

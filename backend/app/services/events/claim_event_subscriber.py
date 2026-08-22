@@ -126,12 +126,13 @@ class ClaimEventSubscriber:
                         if _primary_target:
                             _listeners.add(_primary_target)
                     else:
+                        from app.models.npc_state import PerceptualKernel
                         for _nid in _npc_positions.keys():
                             # S199 (Фаза 8.3): Игрок больше не исключается — он полноправный наблюдатель.
                             if _nid == _origin_id:
                                 continue
                             _dist = _sq.distance(_origin_id, _nid)
-                            if _dist <= HEARING_RADIUS:
+                            if PerceptualKernel.can_observe(event, _dist, _nid, payload.get("target_id")):
                                 _listeners.add(_nid)
                         # S198: Явно проверяем target_id, даже если он отсутствует в _npc_positions
                         _primary_target = payload.get("target_id")
@@ -140,7 +141,7 @@ class ClaimEventSubscriber:
                                 _listeners.add(_primary_target)
                             else:
                                 _dist = _sq.distance(_origin_id, _primary_target)
-                                if _dist <= HEARING_RADIUS:
+                                if PerceptualKernel.can_observe(event, _dist, _primary_target, _primary_target):
                                     _listeners.add(_primary_target)
                 else:
                     _primary_target = payload.get("target_id")

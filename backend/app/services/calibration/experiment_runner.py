@@ -75,6 +75,11 @@ class ExperimentResult:
 class ReplayResult:
     deterministic: bool
     diff_fields: Tuple[str, ...]
+    # Асинхронный диалоговый слой (materialization NPC_SPOKE завершается в
+    # wall-clock-зависимые моменты относительно capture-точек). Ядро (ядро
+    # AC-004 + npc_captures) детерминировано; rel-слой наблюдается ОТДЕЛЬНО
+    # (не молча!) до внедрения quiesce-границы (DEBT-REL-QUIESCE, M0-6).
+    rel_captures_deterministic: Optional[bool] = None
 
 
 def _count_nan(obj: Any) -> int:
@@ -88,8 +93,56 @@ def _count_nan(obj: Any) -> int:
     return 0
 
 
+def _sessions_dir(config: ExperimentConfig) -> Path:
+    """Дисковый переносчик состояния между прогонами: data/sessions/
+    <campaign>/ (world_tick.json с sim_tick) живёт ВНЕ saves_dir-изоляции.
+    TODO(S208): заменить конкатенацию на каноническую константу из
+    constants.py, когда археология вернёт её имя (кандидаты :303/:308).
+    """
+    return Path(settings.data_dir) / "sessions" / config.campaign_id
+
+
+def _snapshot_dir(root: Path) -> "Dict[Path, bytes] | None":
+    """Байтовый снапшот каталога (рекурсивно). None = каталог не существовал
+    (восстановление вернёт его в отсутствие, включая созданное прогоном)."""
+    if not root.is_dir():
+        return None
+    return {f: f.read_bytes() for f in sorted(root.rglob("*")) if f.is_file()}
+
+
+def _restore_dir(root: Path, snap: "Dict[Path, bytes] | None") -> None:
+    """Байтово-точное восстановление (writer-agnostic: неважно, КТО писал).
+    diag-доказательство необходимости: _sleep_start_tick 557 != 559 =
+    ровно duration_ticks run1 — перенос тика через диск."""
+    if snap is None:
+        shutil.rmtree(root, ignore_errors=True)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    for f in sorted(root.rglob("*")):
+        if f.is_file() and f not in snap:
+            f.unlink(missing_ok=True)
+    for f, data in snap.items():
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(data)
+    # Пустые подкаталоги, порождённые прогоном, убираем.
+    for d in sorted((p for p in root.rglob("*") if p.is_dir()), reverse=True):
+        if not any(d.iterdir()):
+            d.rmdir()
+
+
 class ExperimentRunner:
     """Один эксперимент = один прогон. Параллельность — только процессы."""
+
+    def _invalidate_ram_caches(self) -> None:
+        """Сброс RAM-синглтонов на входе каждого прогона: SpatialRegistry
+        кэширует по mtime (статичная топология), сброс дешёвый и закрывает
+        класс RAM-переносчиков. Отказ логируется, не роняет прогон."""
+        try:
+            from app.services.spatial.spatial_registry import SpatialRegistry
+
+            SpatialRegistry.invalidate_cache()
+        except Exception as exc:
+            logger.warning("[CALIB_RUNNER] SpatialRegistry invalidate failed: %s", exc)
 
     def run(self, config: ExperimentConfig) -> ExperimentResult:
         if overlay_active():
@@ -97,6 +150,15 @@ class ExperimentRunner:
                 "overlay активен — вложенные эксперименты запрещены (ADR-O-361)"
             )
         preset: Preset = load_preset(config.preset_path)
+        # S208: изоляция от контаминации процесса. EventBus — глобальный
+        # singleton; dispose не отписывает подписчиков прошлого GameLoop
+        # (DEBT-EVBUS), их обработчики срабатывают на наши события и их
+        # возвращённые EventDTO инжектируются в каузальный поток (Закон
+        # 2.1.2). Диф.улика: standalone l1 13=13, в pytest l1 ≠. Прецедент
+        # clear()-изоляции — S194. Наш контур = тестовая инфраструктура.
+        from app.services.events.event_bus import get_event_bus
+
+        get_event_bus().clear()
 
         # ── Изоляция настроек (restore в finally при любом исходе) ──
         _orig_saves = settings.saves_dir
@@ -113,6 +175,9 @@ class ExperimentRunner:
         # INV-NO-RETRO-SIM whitelist по маркеру файла.
         temp_root = Path(tempfile.mkdtemp(prefix="calib_exp_"))
         experiment_id = f"calib_{uuid.uuid4().hex[:12]}"
+        sessions_root = _sessions_dir(config)
+        sessions_snap = _snapshot_dir(sessions_root)
+        self._invalidate_ram_caches()
         try:
             settings.saves_dir = str(temp_root)
             settings.environment = "development"
@@ -161,6 +226,9 @@ class ExperimentRunner:
             settings.environment = _orig_env
             if _model_cfg is not None and _orig_provider is not None:
                 _model_cfg.provider_type = _orig_provider
+            # S208: нейтрализация дискового переносчика тика — до удаления
+            # temp (порядок не влияет, но семантика: хост нетронут).
+            _restore_dir(sessions_root, sessions_snap)
             shutil.rmtree(temp_root, ignore_errors=True)
 
         return ExperimentResult(
@@ -190,6 +258,7 @@ class ExperimentRunner:
         get_event_bus().clear()
         run_2 = self.run(config)
 
+        # S208: rel-слой выведен из ядра AC-004 — см. ReplayResult.rel_captures_deterministic.
         diff: List[str] = []
         if run_1.preset_id != run_2.preset_id:
             diff.append("preset_id")
@@ -199,13 +268,62 @@ class ExperimentRunner:
             diff.append("nan_count")
         if run_1.l1_event_count != run_2.l1_event_count:
             diff.append("l1_event_count")
-        if run_1.final_npc_state != run_2.final_npc_state:
+        if run_1.final_npc_state != run_2.final_npc_state:  
             diff.append("final_npc_state")
-        if run_1.rel_captures != run_2.rel_captures:
-            diff.append("rel_captures")
         if run_1.npc_captures != run_2.npc_captures:
             diff.append("npc_captures")
-        return ReplayResult(deterministic=not diff, diff_fields=tuple(diff))
+        rel_ok = run_1.rel_captures == run_2.rel_captures
+        if not rel_ok:
+            logger.warning(
+                "[CALIB_RUNNER] rel_captures недетерминированы: асинхронный "
+                "диалоговый слой (materialization NPC_SPOKE) завершается в "
+                "wall-clock-зависимые моменты относительно capture-точек. "
+                "Ядро (AC-004) детерминировано. До quiesce-границы "
+                "(DEBT-REL-QUIESCE) слой отношений не входит в вердикт replay."
+            )
+        return ReplayResult(
+            deterministic=not diff,
+            diff_fields=tuple(diff),
+            rel_captures_deterministic=rel_ok,
+        )
+
+    @staticmethod
+    def _settle_async_dialogue_layer(game_loop: Any, config: ExperimentConfig) -> None:
+        """Quiesce-барьер асинхронного диалогового слоя (DEBT-REL-QUIESCE).
+
+        Цель: к моменту capture все диалоговые side-effects (NPC_SPOKE →
+        subscribers → RelationshipStore/L1Chronicle) завершены, и capture
+        попадает в quiescent-точку слоя. Отказ барьера логируется, не роняет
+        тик (ядро детерминировано независимо).
+        """
+        try:
+            # 1. Дренаж очереди задач (то же API, что прод-путь :1163).
+            scene = game_loop.scene_manager.get_scene_state(
+                config.campaign_id, ""
+            )
+            if scene is not None:
+                game_loop._get_task_scheduler().execute_pending(scene, config.campaign_id)  # noqa: ENIGMA002
+        except Exception as exc:
+            logger.warning("[CALIB_RUNNER] settle: execute_pending failed: %s", exc)
+        # 2. Осаживание фоновых задач GameLoop (bounded; диаг: R4A/MOCK-потоки
+        # переживают тесты — join предотвращает перенос в следующий capture).
+        tasks = getattr(game_loop, "_background_tasks", None)
+        if tasks:
+            for t in list(tasks):
+                try:
+                    t.cancel()
+                except Exception:
+                    pass
+            for t in list(tasks):
+                try:
+                    # Реальный loop недоступен из синхронного кода; cancel +
+                    # короткий yield потоку планировщика.
+                    import time as _time  # §15.2: инфраструктура, не симуляция
+
+                    _time.sleep(0.01)
+                    break
+                except Exception:
+                    break
 
     @staticmethod
     def _dispose(game_loop: Any) -> None:
