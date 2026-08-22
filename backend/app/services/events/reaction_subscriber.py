@@ -400,7 +400,14 @@ class ReactionSubscriber:
             if perceiving_list is not None:
                 return set(perceiving_list)  # Пустой список вернёт пустой set()
 
-        # Fallback: все NPC из all_npcs_raw
+        # S210 (слой 2, DEBT-R2): fallback на всех NPC — телепатия. Легитимен
+        # ТОЛЬКО как страховка сбоя PerceptionSubscriber, поэтому наблюдаем:
+        # каждый срабатывания fallback'а — потенциальная утечка эпистемики.
+        logger.warning(
+            "[REACTION_SUB] perceiving_npcs=None (PerceptionSubscriber сбой?) — "
+            "fallback на ВСЕХ NPC: потенциальная телепатия. "
+            f"all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
+        )
         return {
             npc.get("id") or npc.get("npc_id")
             for npc in ctx.all_npcs_raw

@@ -33,6 +33,7 @@ _math = math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from uuid import UUID
 
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 
@@ -779,8 +780,48 @@ class NPCState:
                 Intent.EXPLAIN,
             ):
                 raise ValueError(
-                    f"NPCState '{self.npc_id}': intent={self.intent} требует intent_target"
+                    f"NPC {self.npc_id} has intent {self.intent.name} without target"
                 )
+
+    # ── Stage 1 Task 1.4: Causal Ledger API ────────────────────────────────
+    def query_ledger(
+        self, field: Optional[str] = None, tick_range: Optional[Tuple[int, int]] = None
+    ) -> List["CausalEntry"]:
+        """Возвращает отфильтрованные записи из causal_ledger."""
+        results = []
+        for entry in self.causal_ledger:
+            if field and entry.field != field:
+                continue
+            if tick_range:
+                t_start, t_end = tick_range
+                if not (t_start <= entry.tick <= t_end):
+                    continue
+            results.append(entry)
+        return results
+
+    def trace_causal_chain(self, state_delta_id: UUID) -> Optional["CausalChain"]:
+        """Строит полную причинную цепочку (8 шагов) для конкретной дельты.
+        В текущей реализации возвращает CausalChain только с state_delta.
+        Для полного замыкания (8 из 8) требуется интеграция с EventCompiler/MemoryManager.
+        """
+        from app.models.psychological import CausalChain
+        # Пока ищем только саму дельту. Остальные шаги будут добавлены в Stage 1.
+        _delta = None
+        for entry in self.causal_ledger:
+            if entry.cause and entry.cause.source_event_id == state_delta_id:
+                _delta = entry
+                break
+            # Фоллбэк: если cause нет, ищем по tick (упрощённая трассировка)
+            if entry.tick == int(state_delta_id.int & 0xFFFFFFFF):
+                _delta = entry
+                break
+
+        if not _delta:
+            return None
+
+        return CausalChain(
+            state_delta=_delta,
+        )
 
     # Удалено: _cached_distance_to (ADR-0015)
 

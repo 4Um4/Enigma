@@ -263,7 +263,7 @@ def publish_player_speech(
 
 
 # Интенсивность по типу действия — единый источник для EventDTO.payload
-from app.domain.constants import ACTION_INTENSITY
+from app.domain.constants import ACTION_INTENSITY, action_perception_radius
 
 
 def publish_classified_player_event(
@@ -310,7 +310,9 @@ def publish_classified_player_event(
     # ADR-082: Case-Insensitive Routing. NLP возвращает 'ATTACK', маппинг ждет 'attack'.
     # Без .lower() удар уходит в PLAYER_SPOKE, минуя CombatSubscriber и ImpactEngine.
     _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
-    _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
+    # S210 (слой 2): честная мембрана действия — из SSOT-таблицы (ADR-148:
+    # гигантский радиус пробивает слуховые мембраны). Кража игрока тиха, как кража NPC.
+    _evt_radius = action_perception_radius(_raw_type)
     _intensity = ACTION_INTENSITY.get(_raw_type, 0.2)
     # ADR-035: Извлекаем строгую семантику из IntentParametersDTO
     _semantic_action = None
@@ -361,7 +363,7 @@ def publish_classified_player_event(
             )
             _raw_type = _ic_override
             _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
-            _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
+            _evt_radius = action_perception_radius(_raw_type)
 
     _payload = {
         "location": location,

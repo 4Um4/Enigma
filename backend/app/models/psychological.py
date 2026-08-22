@@ -62,6 +62,19 @@ class Cause:
     trigger_chain: Tuple[UUID, ...] = ()
 
 
+@dataclass(frozen=True)
+class CausalChain:
+    """Stage 1 Task 1.4: Полная причинная цепочка (8 шагов)."""
+    source_event: Optional[Any] = None
+    observation: Optional[Any] = None
+    memory: Optional[Any] = None
+    belief: Optional[Any] = None
+    decision: Optional[Any] = None
+    action: Optional[Any] = None
+    state_delta: Optional[Any] = None
+    world_change: Optional[Any] = None
+
+
 @dataclass
 class CausalEntry:
     """

@@ -1330,7 +1330,7 @@ class StateApplicator:
             return
 
         # Делегирование в Commit Kernel
-        self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id)
+        self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id, cause=cause)
 
     def apply_belief_delta(self, state: NPCState, delta: "BeliefDelta") -> None:
         """Stage 1 Task 1.6: Единственный физический write-path в state.beliefs."""
@@ -1351,6 +1351,7 @@ class StateApplicator:
         npc_dict: Dict[str, Any],
         deltas: StateDeltas,
         campaign_id: str,
+        cause: Optional[Cause] = None,
     ) -> None:
         """Commit Kernel (L3/L4/L5): Чистый редьюсер, L5 пост-чек, строгий коммит.
 

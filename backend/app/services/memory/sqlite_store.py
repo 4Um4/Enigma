@@ -19,6 +19,7 @@ path: backend/app/services/memory/sqlite_store.py
 import json
 import logging
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
@@ -55,6 +56,10 @@ class SqliteMemoryStore:
     def __init__(self, db_path: str | Path = "data/enigma_memory.db") -> None:
         self._db_path = str(db_path)
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
+        # S210 (P0 L1): connection общий между потоками (check_same_thread=False)
+        # — доступ обязан сериализоваться. Без Lock: гонка in_transaction→commit
+        # ("cannot commit - no transaction is active", TOCTOU).
+        self._lock = threading.RLock()
         self._conn = self._connect()
         self._init_schema()
 
@@ -326,20 +331,24 @@ class SqliteMemoryStore:
         # FIX: Явный commit только если транзакция действительно активна.
         if self._conn is None:
             raise RuntimeError("SQLite connection is not initialized.")
-        cur = self._conn.cursor()
-        cur.execute(sql, params)
-        if self._conn.in_transaction:
-            self._conn.commit()
-        return cur.lastrowid or cur.rowcount
+        # S210 (P0 L1): проверка in_transaction и commit() — атомарная пара
+        # под Lock; иначе другой поток закрывает транзакцию в окне между ними.
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(sql, params)
+            if self._conn.in_transaction:
+                self._conn.commit()
+            return cur.lastrowid or cur.rowcount
 
     def query(self, sql: str, params: Tuple[Any, ...] = ()) -> List[Dict[str, Any]]:
         """
         PUBLIC API: Выполняет SELECT запрос и возвращает список словарей.
         row_factory уже настроен на sqlite3.Row в _connect().
         """
-        cur = self._conn.cursor()
-        cur.execute(sql, params)
-        return [dict(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(sql, params)
+            return [dict(row) for row in cur.fetchall()]
 
     def close(self) -> None:
         if self._conn:

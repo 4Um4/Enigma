@@ -24,9 +24,20 @@ from app.services.calibration.preset_materializer import (
     MaterializedNpcConfig,
     materialize_preset,
 )
+from app.services.calibration.experiment_runner import (
+    ExperimentConfig,
+    ExperimentError,
+    ExperimentResult,
+    ExperimentRunner,
+    ReplayResult,
+)
 
 __all__ = [
     "CalibrationOverlayError",
+    "ExperimentConfig",
+    "ExperimentError",
+    "ExperimentResult",
+    "ExperimentRunner",
     "CalibrationPresetError",
     "MaterializationError",
     "MaterializedNpcConfig",
@@ -35,6 +46,7 @@ __all__ = [
     "audit_constant_bindings",
     "load_preset",
     "materialize_preset",
+    "ReplayResult",
     "overlay_active",
     "overlay_constants",
 ]

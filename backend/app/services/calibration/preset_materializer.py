@@ -74,6 +74,30 @@ def _identity_bindings(target: object) -> List[Tuple[types.ModuleType, str]]:
     return found
 
 
+def _effective_override(
+    npc_id: Optional[str], preset: Preset
+) -> Optional[NpcOverride]:
+    """Единственный источник семантики приоритетов оверрайдов:
+    wildcard "*" применяется первым, точечный npc_id перекрывает
+    (psyche — по-ключевое слияние, drives — точечный целиком, иначе
+    wildcard). Используется И патчером, И верификатором — расхождение
+    их семантик невозможно by construction (S208: тест
+    test_specific_npc_overrides_wildcard поймал расхождение —
+    верификатор требовал wildcard-значение у точечно перекрытого NPC)."""
+    wildcard = preset.npc_overrides.get("*")
+    specific = preset.npc_overrides.get(npc_id) if npc_id else None
+    if wildcard is None and specific is None:
+        return None
+    if wildcard is None:
+        return specific
+    if specific is None:
+        return wildcard
+    return NpcOverride(
+        psyche={**wildcard.psyche, **specific.psyche},
+        drives=specific.drives if specific.drives is not None else wildcard.drives,
+    )
+
+
 def _patch_individuals(temp_root: Path, preset: Preset) -> Tuple[Set[str], int]:
     """Патчит individuals/*.json копии. Wildcard первым, точечный
     npc_id перекрывает (последний wins в dict.update)."""
@@ -83,26 +107,20 @@ def _patch_individuals(temp_root: Path, preset: Preset) -> Tuple[Set[str], int]:
     for json_file in sorted(individuals_dir.glob("*.json")):
         data = json.loads(json_file.read_text(encoding="utf-8"))
         npc_id = data.get("id")
-        overrides: List[NpcOverride] = []
-        wildcard = preset.npc_overrides.get("*")
-        if wildcard is not None:
-            overrides.append(wildcard)
-        if npc_id is not None and npc_id in preset.npc_overrides:
-            overrides.append(preset.npc_overrides[npc_id])
-        if not overrides:
+        override = _effective_override(npc_id, preset)
+        if override is None:
             continue
-        for override in overrides:
-            if override.psyche:
-                psyche = data.setdefault("psyche", {})
-                _verify(
-                    isinstance(psyche, dict),
-                    f"{json_file.name}: psyche не является отображением",
-                )
-                psyche.update(override.psyche)
-            if override.drives is not None:
-                # Замена ЦЕЛИКОМ: частичная сломала бы sum=1.0
-                # (полнота и сумма валидированы в preset_io).
-                data["drives"] = dict(override.drives)
+        if override.psyche:
+            psyche = data.setdefault("psyche", {})
+            _verify(
+                isinstance(psyche, dict),
+                f"{json_file.name}: psyche не является отображением",
+            )
+            psyche.update(override.psyche)
+        if override.drives is not None:
+            # Замена ЦЕЛИКОМ: частичная сломала бы sum=1.0
+            # (полнота и сумма валидированы в preset_io).
+            data["drives"] = dict(override.drives)
         json_file.write_text(
             json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
@@ -122,30 +140,34 @@ def _verify_through_loader(preset: Preset) -> None:
     npcs = npc_loader.load_npcs_merged(runtime_path=None)
     _verify(bool(npcs), "верификация: загрузчик вернул пустой список NPC")
     by_id = {n.get("id"): n for n in npcs}
-    for npc_key, override in preset.npc_overrides.items():
+    # 1) Точечные npc_overrides обязаны существовать в кампании.
+    for npc_key in preset.npc_overrides:
         if npc_key == "*":
-            targets = npcs
-        else:
+            continue
+        _verify(
+            by_id.get(npc_key) is not None,
+            f"npc_overrides: NPC {npc_key!r} не найден в кампании "
+            f"(доступные: {sorted(i for i in by_id if i)})",
+        )
+    # 2) Каждый NPC — против ЭФФЕКТИВНОГО оверрайда (тот же резолвер,
+    # что и у патчера: точечный перекрывает wildcard).
+    for npc in npcs:
+        override = _effective_override(npc.get("id"), preset)
+        if override is None:
+            continue
+        psyche = npc.get("psyche") or {}
+        for key, expected in override.psyche.items():
             _verify(
-                by_id.get(npc_key) is not None,
-                f"npc_overrides: NPC {npc_key!r} не найден в кампании "
-                f"(доступные: {sorted(i for i in by_id if i)})",
+                psyche.get(key) == expected,
+                f"верификация: {npc.get('id')}.psyche.{key}: ожидалось "
+                f"{expected!r}, получено {psyche.get(key)!r}",
             )
-            targets = [by_id[npc_key]]
-        for npc in targets:
-            psyche = npc.get("psyche") or {}
-            for key, expected in override.psyche.items():
-                _verify(
-                    psyche.get(key) == expected,
-                    f"верификация: {npc.get('id')}.psyche.{key}: ожидалось "
-                    f"{expected!r}, получено {psyche.get(key)!r}",
-                )
-            if override.drives is not None:
-                _verify(
-                    npc.get("drives") == override.drives,
-                    f"верификация: {npc.get('id')}.drives не совпадают "
-                    f"(ожидалось {override.drives!r}, получено {npc.get('drives')!r})",
-                )
+        if override.drives is not None:
+            _verify(
+                npc.get("drives") == override.drives,
+                f"верификация: {npc.get('id')}.drives не совпадают "
+                f"(ожидалось {override.drives!r}, получено {npc.get('drives')!r})",
+            )
 
 
 def _restore(original_root: Path, temp_root: Path) -> None:
