@@ -333,9 +333,40 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — FSM, упр
   Files: `backend/app/services/input/llm_compressor_client.py`, `backend/app/services/player_cognition/legacy_bridge.py`, `backend/tests/sandbox/SUPERBOX/scenarios/semantic_torture_test.py
 
 ### ADR-O-361: Calibration Laboratory Boundary [ONTO]
-Статус: ACTIVE | Сессия: S208Суть: Лаборатория калибровки психики — надстройка над ядром на двух границах. (1) overlay_constants() — identity-патч ссылок на константы (app.core.constants + все from-import биндинги загруженных модулей; decision_hub.py:27-43 биндит имена напрямую — патч только модуля констант = тихая ложь эксперимента). Verify на входе и выходе, полный откат, запрет вложенности. (2) ObservabilityTap — единственный пассивный наблюдатель (sync-подписчик EventBus + post-commit диффы сторов); отказ наблюдателя не роняет тик. Per-NPC параметры — НЕ константы: npc_overrides материализуются патчем NPC JSON во временной копии кампании. Вмешательства — только InterventionEvent → TickOrchestrator.execute (ADR-TZ08-1). LLM исключён из прогонов (MockProvider, environment != production). Метрическое время — детерминированная проекция тиков (tick / ticks_per_real_minute); wall-clock — только метаданные (§15.2). Параллельные эксперименты — только изоляция процессами. Зоны: MANNEQUIN / CHAOS / ENIGMA / WARNING / BROKEN (NaN|инварианты → BROKEN). Калибруемый параметр эпистемики ADR-O-360 (DIRECT_OBSERVATION_RELIABILITY < 1.0) регистрируется в схеме пресетов с его taboo.
+**Статус:** ACTIVE | **Сессия:** S213
+**Суть:** Лаборатория калибровки психики — надстройка над ядром на двух границах. (1) overlay_constants() — identity-патч ссылок на константы (app.core.constants + все from-import биндинги загруженных модулей; decision_hub.py:27-43 биндит имена напрямую — патч только модуля констант = тихая ложь эксперимента). Verify на входе и выходе, полный откат, запрет вложенности. (2) ObservabilityTap — единственный пассивный наблюдатель (sync-подписчик EventBus + post-commit диффы сторов); отказ наблюдателя не роняет тик. Per-NPC параметры — НЕ константы: npc_overrides материализуются патчем NPC JSON во временной копии кампании. Вмешательства — только InterventionEvent → TickOrchestrator.execute (ADR-TZ08-1). LLM исключён из прогонов (MockProvider, environment != production). Метрическое время — детерминированная проекция тиков (tick / ticks_per_real_minute); wall-clock — только метаданные (§15.2). Параллельные эксперименты — только изоляция процессами. Зоны: MANNEQUIN / CHAOS / ENIGMA / WARNING / BROKEN (NaN|инварианты → BROKEN). Калибруемый параметр эпистемики ADR-O-360 (DIRECT_OBSERVATION_RELIABILITY < 1.0) регистрируется в схеме пресетов с его taboo.
 ❌ Taboo: overlay без verify; вложенные overlay; параллельные overlay в одном процессе; фейковая реализация [PLAN]-параметров; I/O или проброс исключений из Tap в каузальный поток; мутация NPCState/констант в обход границ лаборатории; wall-clock/global random в симуляционном контуре runner'а; silent except в путях патча (урок S207 / DEBT-R5).
 📁 backend/app/services/calibration/config_overlay.py, backend/app/services/calibration/__init__.py, backend/tests/calibration_lab/test_m0_config_overlay.py, docs/audits/ADR-O-361_IMPACT.md, architecture/calibration.yaml (M0), config/calibration/ (M0)
+
+`ADR-FOUNDATION-FREEZE` [ONTO] **Foundation Freeze (Stage 0)** — Упразднена двойная истина состояния (State Double Truth). Whitelist `_RUNTIME_TOP_LEVEL_KEYS` удалён, мерж выполняется рекурсивно через `_deep_merge`. `JsonPersistenceAdapter` bypass закрыт, всё идёт через `atomic_commit_all`. Параллельный WorldTick-путь (`phase_2_world_tick.py`) упразднён (превращён в stub), флаг `wt_dirty` удалён. `write_to_legacy` переименован в `to_persistence_dict` (используется только в persistence layer).
+  Taboo: ❌ Расширение whitelist'ов для починки потери поля; Прямой вызов `save_scene` в обход `atomic_commit`; Использование `wt_dirty`; Вызов `write_to_legacy` в runtime.
+  Status: ACTIVE
+  Files: `svc/npc/npc_loader.py`, `svc/scene_state_manager.py`, `svc/game_loop/phase_2_world_tick.py`, `svc/npc/state_applicator.py`
+
+`ADR-WRITE-GUARD` [ONTO] **NPCState Write Guard** — Внедрён guard `__setattr__` в `NPCState`. Прямая мутация полей `NPCState` вне `StateApplicator` (и других авторизованных модулей SSOT) поднимает `ArchitecturalViolationError`. Прямые мутации в persistence layer (`npc_loader.py`, `memory_manager.py`) переведены на `object.__setattr__`.
+  Taboo: ❌ Прямое присваивание `state.field = value` вне `StateApplicator`; Обход guard через `object.__setattr__` в runtime-слое (только в persistence).
+  Status: ACTIVE
+  Files: `mod/npc_state.py`, `svc/npc/state_applicator.py`, `app/errors.py`
+
+`ADR-SSOT-EPISTEMIC` [ONTO] **Epistemic SSOT & Belief Delta** — `BeliefTransitionEngine` больше не мутирует `state.beliefs` напрямую. Метод `commit` генерирует `BeliefDelta` (frozen dataclass), который затем применяется через `StateApplicator.apply_belief_delta` — единственный физический write-path. Введена структура `Cause` для прокидки provenance.
+  Taboo: ❌ Вызов `state.beliefs.update()` вне `StateApplicator.apply_belief_delta`; Мутация убеждений без `Cause`.
+  Status: ACTIVE
+  Files: `svc/npc/belief_transition_engine.py`, `svc/npc/state_applicator.py`, `mod/npc/beliefs.py`, `mod/psychological.py`
+
+`ADR-SSOT-ECONOMIC` [ONTO] **Economic SSOT & Avatar Ownership** — Игрок обрабатывается как `avatar NPC` (id="player") в `StateApplicator.apply_batch`. Прямые мутации `_avatar.body_state["money"]` в `game_loop` и `phase_2_world_tick` устранены. Дельты экономики применяются через `StateDeltas(domain=ECONOMY)`. Введён `StateApplicator.update_relationships` как единый write-API для `RelationshipStore`.
+  Taboo: ❌ Прямая мутация `_avatar.body_state["money"]`; Обновление `RelationshipStore` в обход `StateApplicator`.
+  Status: ACTIVE
+  Files: `svc/npc/state_applicator.py`, `svc/game_loop/__init__.py`
+
+`ADR-CAUSAL-SPINE` [ONTO] **Causal Spine (Stage 1)** — Внедрена причинная цепочка и детерминированный реплей. `TickOrchestrator` создаёт замороженный `WorldSnapshot` (deep copy) в начале тика и передаёт его в `EventCompiler`. `StateApplicator.apply` требует `cause: Cause` и пишет `CausalEntry` в `causal_ledger`. Добавлены методы `NPCState.query_ledger` и `trace_causal_chain` для программного построения цепочки. `MissingProvenanceError` поднимается при отсутствии cause.
+  Taboo: ❌ `StateApplicator.apply` без `cause`; Мутация `WorldSnapshot` после создания; Прямая мутация `causal_ledger` в обход `StateApplicator`.
+  Status: ACTIVE
+  Files: `svc/tick_orchestrator.py`, `svc/npc/state_applicator.py`, `mod/npc_state.py`, `mod/psychological.py`
+
+`ADR-EVENT-VISIBILITY` [ONTO] **Event Visibility Filter** — Внедрён метод `PerceptualKernel.can_observe(event, distance, observer_id, target_id)`, который проверяет `event.radius` и `event.visibility` (public, private, whisper) для фильтрации телепатии. `ClaimEventSubscriber` использует этот метод вместо жестко заданного `HEARING_RADIUS`.
+  Taboo: ❌ Использование констант радиуса вместо `event.radius`; Игнорирование `event.visibility` при рассылке событий.
+  Status: ACTIVE
+  Files: `mod/npc_state.py`, `svc/events/claim_event_subscriber.py`
 
 ---
 

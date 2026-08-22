@@ -48,7 +48,7 @@ class TickBuffer:
     dirty_npcs: set[int] = field(default_factory=set)
 
     # ── Dirty flags для единого коммита ──
-    # Stage 0 Task 0.10: wt_dirty упразднён. Параллельный WorldTick-путь закрыт.
+    # Stage 0 Task 0.10: Параллельный WorldTick-путь закрыт.
     prop_dirty: bool = False
 
     # ── Event context (CharacterFilter может занулить) ──

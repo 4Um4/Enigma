@@ -34,7 +34,11 @@ class ActionSemanticResolver:
         text_lower = raw_text.lower()
         
         # 1. Определение ActionType
-        if "шантаж" in text_lower or "знаю про" in text_lower or "угрожаю" in text_lower:
+        # S211: ACCUSE — ПЕРВЫМ (специфичнее шантажа: «обвиняю» не должно
+        # проваливаться в blackmail-эвристику «угрожаю»).
+        if "обвиняю" in text_lower or "обвин" in text_lower or "accuse" in text_lower:
+            _action_type = ActionType.ACCUSE
+        elif "шантаж" in text_lower or "знаю про" in text_lower or "угрожаю" in text_lower:
             _action_type = ActionType.BLACKMAIL
         elif "помочь" in text_lower or "помогу" in text_lower:
             _action_type = ActionType.HELP

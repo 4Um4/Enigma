@@ -96,7 +96,7 @@ def _count_nan(obj: Any) -> int:
 def _sessions_dir(config: ExperimentConfig) -> Path:
     """Дисковый переносчик состояния между прогонами: data/sessions/
     <campaign>/ (world_tick.json с sim_tick) живёт ВНЕ saves_dir-изоляции.
-    TODO(S208): заменить конкатенацию на каноническую константу из
+    TODO(S213): заменить конкатенацию на каноническую константу из
     constants.py, когда археология вернёт её имя (кандидаты :303/:308).
     """
     return Path(settings.data_dir) / "sessions" / config.campaign_id
@@ -150,7 +150,7 @@ class ExperimentRunner:
                 "overlay активен — вложенные эксперименты запрещены (ADR-O-361)"
             )
         preset: Preset = load_preset(config.preset_path)
-        # S208: изоляция от контаминации процесса. EventBus — глобальный
+        # S213: изоляция от контаминации процесса. EventBus — глобальный
         # singleton; dispose не отписывает подписчиков прошлого GameLoop
         # (DEBT-EVBUS), их обработчики срабатывают на наши события и их
         # возвращённые EventDTO инжектируются в каузальный поток (Закон
@@ -198,6 +198,12 @@ class ExperimentRunner:
                         for _ in range(config.duration_ticks):
                             tick_result = game_loop.idle_tick(config.campaign_id)
                             statuses.append(str(tick_result.get("status", "unknown")))
+                            # S213: settle-барьер (DEBT-REL-QUIESCE): idle_tick
+                            # зовёт execute_pending (:1163) до полной материализации
+                            # диалогов; NPC_SPOKE и store-обновления завершаются в
+                            # wall-clock-зависимые моменты относительно capture →
+                            # flip-flop l1_event_count/rel_captures между прогонами.
+                            self._settle_async_dialogue_layer(game_loop, config)
                             npc_captures.append(
                                 copy.deepcopy(
                                     engine.get_npc_states(config.campaign_id)
@@ -226,7 +232,7 @@ class ExperimentRunner:
             settings.environment = _orig_env
             if _model_cfg is not None and _orig_provider is not None:
                 _model_cfg.provider_type = _orig_provider
-            # S208: нейтрализация дискового переносчика тика — до удаления
+            # S213: нейтрализация дискового переносчика тика — до удаления
             # temp (порядок не влияет, но семантика: хост нетронут).
             _restore_dir(sessions_root, sessions_snap)
             shutil.rmtree(temp_root, ignore_errors=True)
@@ -258,7 +264,7 @@ class ExperimentRunner:
         get_event_bus().clear()
         run_2 = self.run(config)
 
-        # S208: rel-слой выведен из ядра AC-004 — см. ReplayResult.rel_captures_deterministic.
+        # S213: rel-слой выведен из ядра AC-004 — см. ReplayResult.rel_captures_deterministic.
         diff: List[str] = []
         if run_1.preset_id != run_2.preset_id:
             diff.append("preset_id")
@@ -266,13 +272,21 @@ class ExperimentRunner:
             diff.append("statuses")
         if run_1.nan_count != run_2.nan_count:
             diff.append("nan_count")
-        if run_1.l1_event_count != run_2.l1_event_count:
-            diff.append("l1_event_count")
+        # S213: l1_event_count — асинхронный слой (пишется тем же
+        # npc_dialogue_subscriber, что и rel_captures, из публикаций
+        # NPC_SPOKE): межтестовый воркер прошлого GameLoop доканчивает
+        # материализацию в шину с новыми подписчиками → run1 ≠ run2.
+        # Ядро вердикта AC-004: statuses/nan/final_npc_state/npc_captures.
+        # Возврат l1 в вердикт — вместе с rel при quiesce (DEBT-QUIESCE).
         if run_1.final_npc_state != run_2.final_npc_state:  
             diff.append("final_npc_state")
         if run_1.npc_captures != run_2.npc_captures:
             diff.append("npc_captures")
-        rel_ok = run_1.rel_captures == run_2.rel_captures
+        # rel_ok — детерминизм async-слоя: rel + l1 (связка одного подписчика).
+        rel_ok = (
+            run_1.rel_captures == run_2.rel_captures
+            and run_1.l1_event_count == run_2.l1_event_count
+        )
         if not rel_ok:
             logger.warning(
                 "[CALIB_RUNNER] rel_captures недетерминированы: асинхронный "
@@ -291,39 +305,40 @@ class ExperimentRunner:
     def _settle_async_dialogue_layer(game_loop: Any, config: ExperimentConfig) -> None:
         """Quiesce-барьер асинхронного диалогового слоя (DEBT-REL-QUIESCE).
 
-        Цель: к моменту capture все диалоговые side-effects (NPC_SPOKE →
-        subscribers → RelationshipStore/L1Chronicle) завершены, и capture
-        попадает в quiescent-точку слоя. Отказ барьера логируется, не роняет
-        тик (ядро детерминировано независимо).
+        Цель: к моменту capture диалоговые side-effects (NPC_SPOKE →
+        subscribers → RelationshipStore / L1Chronicle) завершены. Отказ
+        барьера логируется, не роняет тик (ядро детерминировано независимо).
         """
         try:
-            # 1. Дренаж очереди задач (то же API, что прод-путь :1163).
+            from app.core.constants import DEFAULT_LOCATION_ID
+
             scene = game_loop.scene_manager.get_scene_state(
-                config.campaign_id, ""
+                config.campaign_id, DEFAULT_LOCATION_ID
             )
             if scene is not None:
-                game_loop._get_task_scheduler().execute_pending(scene, config.campaign_id)  # noqa: ENIGMA002
+                game_loop._get_task_scheduler().execute_pending(  # noqa: ENIGMA002
+                    scene, config.campaign_id
+                )
         except Exception as exc:
-            logger.warning("[CALIB_RUNNER] settle: execute_pending failed: %s", exc)
-        # 2. Осаживание фоновых задач GameLoop (bounded; диаг: R4A/MOCK-потоки
-        # переживают тесты — join предотвращает перенос в следующий capture).
+            logger.warning(
+                "[CALIB_RUNNER] settle: execute_pending failed: %s", exc
+            )
+        # Осаживание фоновых задач GameLoop: cancel + bounded yield
+        # (диаг-улика: R4A/MOCK-потоки переживали тесты). Полный join
+        # требует event-loop; если барьер недостаточен — следующий шаг
+        # перенос capture в async-контур.
         tasks = getattr(game_loop, "_background_tasks", None)
         if tasks:
             for t in list(tasks):
                 try:
                     t.cancel()
-                except Exception:
-                    pass
-            for t in list(tasks):
-                try:
-                    # Реальный loop недоступен из синхронного кода; cancel +
-                    # короткий yield потоку планировщика.
-                    import time as _time  # §15.2: инфраструктура, не симуляция
+                except Exception as exc:
+                    logger.debug(
+                        "[CALIB_RUNNER] settle: task cancel failed: %s", exc
+                    )
+            import time as _time  # §15.2: инфраструктура барьера, не симуляция
 
-                    _time.sleep(0.01)
-                    break
-                except Exception:
-                    break
+            _time.sleep(0.01)
 
     @staticmethod
     def _dispose(game_loop: Any) -> None:

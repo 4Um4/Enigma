@@ -23,6 +23,23 @@ class EpistemicContextResolver:
     def __init__(self, store: EpistemicStore):
         self._store = store
 
+    def get_confidence_for_subject(self, agent_id: str, subject_id: str) -> float:
+        """S211 (§18): проекция убеждения агента о КОНКРЕТНОМ субъекте.
+
+        Возвращает максимальную confidence по пропозициям с данным subject_id
+        (polarity=True; опровержения считаются отдельными записями и в
+        максимум не смешиваются). 0.0 = агент ничего не считает о субъекте.
+        Гейт игровых возможностей (ACCUSE/BLACKMAIL-future) читает ТОЛЬКО
+        этот API — никакой прямой доступ к Store вне резолвера (S208).
+        """
+        best = 0.0
+        for r in self._store.get_all_for_agent(agent_id):
+            if (r.proposition.subject_id == subject_id
+                    and r.proposition.polarity
+                    and r.confidence > best):
+                best = r.confidence
+        return best
+
     def resolve(self, agent_id: str) -> EpistemicContext:
         records = self._store.get_all_for_agent(agent_id)
         

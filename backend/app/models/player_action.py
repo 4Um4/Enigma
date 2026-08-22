@@ -18,6 +18,7 @@ class ActionType(str, Enum):
     BRIBE = "bribe"
     ATTACK = "attack"
     HELP = "help"
+    ACCUSE = "accuse"  # S211 (слой 4): публичное обвинение. Гейт — EpistemicStore[player] (§18)
 
 @dataclass(frozen=True)
 class PlayerAction:

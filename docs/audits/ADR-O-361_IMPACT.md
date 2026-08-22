@@ -1,6 +1,6 @@
 # ADR-O-361 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
-> Статус: ACTIVE | Сессия: S208 (номер сверен по хвосту MUTATIONS.md)
+> Статус: ACTIVE | Сессия: S213 (номер сверен по хвосту MUTATIONS.md)
 
 ## Changed Domains
 Прямых изменений доменов нет (ядро не трогается). Калибруются значениями:

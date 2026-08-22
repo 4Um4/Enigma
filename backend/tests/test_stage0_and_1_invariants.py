@@ -26,10 +26,10 @@ def _grep(pattern: str, path: str = BACKEND_DIR) -> int:
 
 class TestStage0Invariants:
     def test_I0_2_no_runtime_top_level_keys(self):
-        assert _grep("_RUNTIME_TOP_LEVEL_KEYS\s*=") == 0
+        assert _grep(r"_RUNTIME_TOP_LEVEL_KEYS\s*=") == 0
 
     def test_I0_3_no_write_to_legacy_in_services(self):
-        assert _grep("write_to_legacy", os.path.join(BACKEND_DIR, "services")) == 0
+        assert _grep(r"write_to_legacy", os.path.join(BACKEND_DIR, "services")) == 0
 
     def test_I0_4_no_belief_writers_outside_engine(self):
         # Stage 0 Task 0.6: state_applicator.apply_belief_delta — легальный writer

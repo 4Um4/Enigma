@@ -46,18 +46,14 @@ class TestExperimentRunnerSmoke:
         lusya = result.final_npc_state["maid_lusya"]
         assert lusya.get("psyche", {}).get("identity_rigidity") == 0.42
 
-    def test_reasync_deterministic_short(self) -> None:
-        # S208: flip-flop l1/rel (до settle-барьера: standalone rel≠ при l1=,
-        # pytest l1≠ при rel=) — одно wall-clock-явление с двумя симптомами.
-        # До полного quiesce: максимум из 2 попыток, расхождение логируется.
-        from app.services.calibration.experiment_runner import ReplayResult
-
-        verdict: "ReplayResult | None" = None
-        for _ in range(2):
-            verdict = ExperimentRunner().replay_determinism(_config(ticks=2))
-            if verdict.deterministic:
-                break
-        assert verdict is not None
+    def test_replay_deterministic_short(self) -> None:
+        # Ядро AC-004 детерминировано: settle-барьер стабилизировал l1
+        # (standalone 13=13 в двух сериях), npc_captures идентичны.
+        # rel-слой — стабильная систематика, не флап (одна и та же пара
+        # orm→goran в обеих сериях): DEBT-REL-QUIESCE, кандидат —
+        # непересоздаваемые синглтоны run1→run2. До quiesce слой
+        # наблюдается отдельно (rel_captures_deterministic).
+        verdict = ExperimentRunner().replay_determinism(_config(ticks=2))
         assert verdict.deterministic, f"diff_fields={verdict.diff_fields}"
         assert verdict.rel_captures_deterministic is not None
 

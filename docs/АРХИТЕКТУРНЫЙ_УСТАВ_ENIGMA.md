@@ -745,3 +745,14 @@ Hypothesis → Fix
 Составные выводы (например, `hand_on_weapon`) запрещены на уровне извлечения фактов и должны вычисляться в слое `Inference`.
 
 ---
+
+### §18. LAW OF SINGULAR EPISTEMIC AUTHORITY (Закон Единой Эпистемической Власти)
+Статус: Генеральный закон (S211, vertical slice). Рождён из обнаруженнойдвойной системы убеждений игрока (EpistemicStore vs PlayerBeliefModel).
+
+В ENIGMA может существовать много ПРЕДСТАВЛЕНИЙ знания (projections),но не может существовать много ИСТОЧНИКОВ истины о том, что агент считает.
+
+EpistemicStore (per-agent) — единственный belief substrate для всех агентов(NPC и player). Доменные системы (секреты, квесты, шантаж, расследования,social fabric) читают эпистемическое состояние через проекции(resolver → context → domain mapping) и НЕ хранят собственные belief-копии.
+
+Нарушение = DOUBLE TRUTH эпистемического уровня (класс S206).
+
+DEBT-E1 (пост-slice): Player Epistemic Authority Consolidation —PlayerBeliefModel понижается из authority в projection (6 шагов:read-only → SecretKnowledgeResolver → перенос BLACKMAIL → перенос ACCUSE →перевод consumers → удаление писателей).

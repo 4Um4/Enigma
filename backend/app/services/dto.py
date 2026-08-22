@@ -187,7 +187,7 @@ class _TickContext:
     # Фаза 10: данные для коммита (мостируются из TickBuffer GameLoop)
     all_npcs_raw: list = field(default_factory=list)
     dirty_npcs: set = field(default_factory=set)
-    wt_dirty: bool = False
+    observed_facts: list = field(default_factory=list)
     prop_dirty: bool = False
     max_npc_stress: float = 0.0
     # Фаза 10: данные для атомарного коммита

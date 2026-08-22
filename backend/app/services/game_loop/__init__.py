@@ -440,6 +440,15 @@ class GameLoop:
             _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
   
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
+
+            # S211 (§18): инъекция резолвера в ACCUSE-гейт компилятора
+            # последствий (late binding: контроллер собирается раньше ядра).
+            _mvp = getattr(self, "mvp_controller", None)
+            _compiler = getattr(_mvp, "action_compiler", None) if _mvp else None
+            if _compiler is not None and hasattr(_compiler, "set_epistemic_resolver"):
+                _compiler.set_epistemic_resolver(_resolver)
+                logger.info("[GAME_LOOP] EpistemicResolver injected into ActionConsequenceCompiler (ACCUSE gate)")
+
             logger.info("[GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered")
         except Exception as e:
             logger.exception(f"[GAME_LOOP] Failed to register Epistemic Core: {e}")

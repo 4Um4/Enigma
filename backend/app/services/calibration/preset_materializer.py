@@ -7,7 +7,7 @@ path: backend/app/services/calibration/preset_materializer.py
     РЕАЛЬНЫМ загрузчиком. Мутация NPCState запрещена — только данные
     загрузки (per-NPC параметры — не константы).
     Редирект — ПРЯМОЕ присваивание единственного канонического биндинга
-    (S208, фикс двух красных прогонов: entry-side identity-скан по
+    (S213, фикс двух красных прогонов: entry-side identity-скан по
     Path-объектам хрупок и не нужен — A4-археология показала отсутствие
     внешних from-import биндингов _CONFIG_NPC_ROOT; потребитель читает
     module-global в момент вызова). Обратный скан по temp-корню сохранён
@@ -81,7 +81,7 @@ def _effective_override(
     wildcard "*" применяется первым, точечный npc_id перекрывает
     (psyche — по-ключевое слияние, drives — точечный целиком, иначе
     wildcard). Используется И патчером, И верификатором — расхождение
-    их семантик невозможно by construction (S208: тест
+    их семантик невозможно by construction (S213: тест
     test_specific_npc_overrides_wildcard поймал расхождение —
     верификатор требовал wildcard-значение у точечно перекрытого NPC)."""
     wildcard = preset.npc_overrides.get("*")
@@ -204,7 +204,7 @@ def materialize_preset(
             "только изоляция процессами."
         )
     # БЕЗ Path()-обёртки: не строим корректность на identity-семантике
-    # Path (S208, два красных прогона).
+    # Path (S213, два красных прогона).
     original_root = npc_loader._CONFIG_NPC_ROOT
     base_root = Path(base_npc_root) if base_npc_root is not None else original_root
     _verify(base_root.is_dir(), f"config/npc не найден: {base_root}")
