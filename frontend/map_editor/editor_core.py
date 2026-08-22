@@ -2720,6 +2720,27 @@ class EditorCore:
                 obj["show_name"] = not obj.get("show_name", False)
             return
 
+        if action == "edit_psyche" and obj_type == "npc":
+            from data_manager import load_npc_calibration, save_npc_calibration
+            from calibration_panel import CalibrationPanel
+            
+            npc = next((n for n in loc.get("npcs", []) if n["ref_id"] == obj_key), None)
+            if not npc:
+                return
+            
+            psyche, drives = load_npc_calibration(npc["ref_id"])
+            
+            def on_save_psyche(new_psyche, new_drives):
+                save_npc_calibration(npc["ref_id"], new_psyche, new_drives)
+                self._show_toast(f"Психика откалибрована для {npc['ref_id']}")
+                self.calibration_panel = None
+
+            self.calibration_panel = CalibrationPanel(
+                self.screen, npc["ref_id"], npc.get("name", npc["ref_id"]), psyche, drives
+            )
+            self.calibration_panel.on_save = on_save_psyche
+            return
+
         if action == "edit_portraits" and obj_type == "npc":
             from data_manager import load_npc_visual_casting, save_npc_visual_casting
             from visual_casting_editor import VisualCastingEditor

@@ -25,11 +25,13 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 from app.services.calibration.config_overlay import overlay_active, overlay_constants
 from app.services.calibration.preset_io import Preset, load_preset
+from app.services.calibration.metrics import build_metrics_bundle
+from app.services.calibration.observability_tap import ObservabilityTap
 from app.services.calibration.preset_materializer import materialize_preset
 from app.services.game_loop_builder import build_game_loop
 from app.services.llm.provider import ProviderType
@@ -69,6 +71,11 @@ class ExperimentResult:
     final_npc_state: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     nan_count: int = 0
     l1_event_count: int = 0
+    # M0-6 (S213): события/тик (ObservabilityTap) и метрики M0.
+    # event_responsiveness наследует недетерминизм async-слоя
+    # (DEBT-QUIESCE): в replay-вердикт метрики не входят.
+    events_per_tick: List[int] = field(default_factory=list)
+    metrics: Dict[str, Optional[float]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -186,6 +193,12 @@ class ExperimentRunner:
 
             with materialize_preset(preset):
                 game_loop = build_game_loop(data_dir=_orig_data_dir)
+                tap = ObservabilityTap()
+                metrics_bundle = build_metrics_bundle()
+                # M0-6: локальные аккумуляторы — обязаны существовать и при
+                # исключении до цикла (return ниже ссылается на них).
+                events_per_tick: List[int] = []
+                metrics: Dict[str, Optional[float]] = {}
                 try:
                     with overlay_constants(
                         preset.constants, require_loaded=_REQUIRE_LOADED
@@ -195,6 +208,7 @@ class ExperimentRunner:
                         rel_captures: List[Dict[str, Any]] = []
                         # DriftLab-паттерн доступа (публичного API нет)
                         engine = game_loop._get_life_engine()  # noqa: ENIGMA002
+                        tap.attach()
                         for _ in range(config.duration_ticks):
                             tick_result = game_loop.idle_tick(config.campaign_id)
                             statuses.append(str(tick_result.get("status", "unknown")))
@@ -214,6 +228,27 @@ class ExperimentRunner:
                                     config.campaign_id
                                 )
                             )
+                            # M0-6: пассивное наблюдение + стриминг метрик
+                            # (snapshot поверх свежего capture тика).
+                            tick_records = tap.take_tick_records()
+                            events_per_tick.append(len(tick_records))
+                            metrics_bundle.update(
+                                tick=len(npc_captures) - 1,
+                                state_snapshot={
+                                    n.get("id", n.get("npc_id", "?")): n
+                                    for n in npc_captures[-1]
+                                },
+                                event={
+                                    "count": len(tick_records),
+                                    "records": tick_records,
+                                },
+                            )
+                        # S213: финальный quiesce ДО dispose: страгглеры
+                        # асинхронного слоя иначе пишут в закрытые сторы
+                        # ("SQLite connection is not initialized" — канал B:
+                        # внутри прогона сторы работают, ошибки post-dispose).
+                        self._final_quiesce(game_loop, tap)
+                        metrics = metrics_bundle.compute_all()
                         final_raw = npc_captures[-1] if npc_captures else []
                         final_by_id = {
                             n.get("id", n.get("npc_id", "unknown")): n
@@ -226,6 +261,10 @@ class ExperimentRunner:
                             for npc_id in final_by_id:
                                 l1_event_count += len(chron.query_raw(npc_id))
                 finally:
+                    try:
+                        tap.detach()
+                    except Exception as exc:
+                        logger.warning("[CALIB_RUNNER] tap detach: %s", exc)
                     self._dispose(game_loop)
         finally:
             settings.saves_dir = _orig_saves
@@ -248,6 +287,8 @@ class ExperimentRunner:
             final_npc_state=final_by_id,
             nan_count=nan_count,
             l1_event_count=l1_event_count,
+            events_per_tick=events_per_tick,
+            metrics=metrics,
         )
 
     def replay_determinism(self, config: ExperimentConfig) -> ReplayResult:
@@ -339,6 +380,28 @@ class ExperimentRunner:
             import time as _time  # §15.2: инфраструктура барьера, не симуляция
 
             _time.sleep(0.01)
+
+    @staticmethod
+    def _final_quiesce(game_loop: Any, tap: ObservabilityTap) -> None:
+        """Bounded-ожидание штиля async-слоя перед dispose (S213).
+
+        Ждём до 2с, пока поток событий шины и фоновые задачи GameLoop
+        стабилизируются; хвостовые записи дренируем (в метрики не входят —
+        они за пределами тикового окна). Снижает post-dispose шум;
+        данные прогона не меняет.
+        """
+        import time as _time  # §15.2: инфраструктура, не симуляция
+
+        waited = 0.0
+        while waited < 2.0:
+            prev_count = tap.count
+            tasks = getattr(game_loop, "_background_tasks", None)
+            n_tasks = len(tasks) if tasks else 0
+            _time.sleep(0.05)
+            waited += 0.05
+            if tap.count == prev_count and n_tasks == 0:
+                break
+        tap.take_tick_records()
 
     @staticmethod
     def _dispose(game_loop: Any) -> None:

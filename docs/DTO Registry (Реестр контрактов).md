@@ -72,6 +72,12 @@
 - **S204:** Промпт LLM усилен 26 Few-Shot Examples (ADR-O-359).
 - 🚫 **ЗАПРЕТ:** LLM внутри `phase_1_input.py`; `IntentCompressor(llm_client=None)`. Хардкод keyword-matching для social_intent.
 
+### 📦 `ActionSemanticResolver`
+- 📁 `svc/player_cognition/action_semantic_resolver.py`
+- **Stage 0 Task 0.1:** Эвристический резолвер текстового ввода игрока в `PlayerAction`.
+- Разбирает `raw_text` (найти `ActionType`, `secret_id` через `TruthState`) для `MvpTavernController`.
+- 🚫 **ЗАПРЕТ:** Использование LLM внутри резолвера; Прямая мутация `TruthState`.
+
 ### 📦 `EventContext`
 - 📁 `svc/npc/decision_hub.py`
 - **Чистая проекция Intent** для DecisionHub. `intent`, `target_id`, `event`. Immutable после создания (§ENIGMA-005).
@@ -291,6 +297,14 @@
 - **`IdentityPayload`:** `compliance_bias_delta`, `initiative_suppression_delta`.
 - **`ReputationPayload`:** Дельта репутации (VillageMemoryField).
 
+### 📦 `Cause` / `CausalEntry` / `CausalChain`
+- 📁 `mod/psychological.py`
+- **Stage 1 Task 1.2 / 1.4:** Provenance и Causal Ledger API.
+- **`Cause` (frozen):** `source_event_id`, `source_action_id`. Обязателен для `StateApplicator.apply`.
+- **`CausalEntry`:** Паспорт изменения состояния. Пишется только в `StateApplicator` (в `causal_ledger`).
+- **`CausalChain` (frozen):** 8-шаговая причинная цепочка. Возвращается `NPCState.trace_causal_chain()`.
+- 🚫 **ЗАПРЕТ:** `StateApplicator.apply` без `cause`; Прямая мутация `causal_ledger`.
+
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Секция 6):**
 - ❌ Обход `AffectiveIntegrator` (§2.1, §3.9).
 - ❌ `TICK_CATCHUP` (Rule 16).
@@ -332,6 +346,12 @@
 - **Pure function ревизии.** Принимает `ClaimEvent` → обновляет `EpistemicRecord`.
 - **Trust-Based Reliability (S199):** При `trust < -30` → обратный эффект (confidence падает).
 - 🚫 **ЗАПРЕТ:** `max(0.0)` guard только для update (S201 fix: применять и для create).
+
+### 📦 `BeliefDelta`
+- 📁 `mod/npc/beliefs.py`
+- **Stage 0 Task 0.6:** Frozen dataclass дельты для `BeliefState`.
+- Генерируется `BeliefTransitionEngine.commit()` (единственный write-path). Применяется `StateApplicator.apply_belief_delta()`.
+- 🚫 **ЗАПРЕТ:** Прямая мутация `state.beliefs.update()` вне `StateApplicator`.
 
 ### 📦 `COMMUNICATION_CLAIM`
 - 📁 `svc/events/event_types.py`
@@ -468,6 +488,13 @@
 - 📁 `dom/tick.py` / `svc/game_loop/__init__.py`
 - **Ядро:** `status`, `world_snapshot`, `npc_contexts`, `final_scene_state`.
 - **GameLoop:** `dm_response`, `world_snapshot`, `will_conflict_data`. Возвращается как `dict` (ADR-161).
+
+### 📦 `WorldSnapshot`
+- 📁 `mod/world_snapshot.py`
+- **Stage 1 Task 1.3:** Замороженный срез реальности (deep copy).
+- **Producer:** `TickOrchestrator` (в начале тика). **Consumer:** `EventCompiler`.
+- Содержит: `tick`, `campaign_id`, `spatial_service`, `npc_positions`, `active_traversals`, `rng_seed`.
+- 🚫 **ЗАПРЕТ:** Мутация `WorldSnapshot` после создания; Создание локальных снапшотов в фазах.
 
 ### 📦 `DRFBus` / `DRFExecutionContext` / `TickContext`
 - 📁 `svc/drf_bus.py` / `svc/dto.py`

@@ -671,6 +671,67 @@ class Toolbar:
         return False
 
 
+class Slider:
+    """Слайдер для калибровки психики NPC (M0)"""
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        min_val: float,
+        max_val: float,
+        value: float,
+        label: str,
+        is_float: bool = True,
+    ):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.min_val = min_val
+        self.max_val = max_val
+        self.value = value
+        self.label = label
+        self.is_float = is_float
+        self.dragging = False
+
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.dragging = True
+                self._update_value_from_mouse(event.pos[0])
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.dragging = False
+        elif event.type == pygame.MOUSEMOTION:
+            if self.dragging:
+                self._update_value_from_mouse(event.pos[0])
+
+    def _update_value_from_mouse(self, mouse_x: int) -> None:
+        rel_x = max(0, min(mouse_x - self.rect.x, self.rect.width))
+        ratio = rel_x / self.rect.width if self.rect.width > 0 else 0
+        new_val = self.min_val + (self.max_val - self.min_val) * ratio
+        self.value = round(new_val, 2) if self.is_float else int(round(new_val))
+
+    def draw(self, screen: pygame.Surface, font: pygame.font.Font) -> None:
+        # Фон
+        pygame.draw.rect(screen, COLORS["bg_panel"], self.rect, border_radius=4)
+        # Заполнение
+        val_range = self.max_val - self.min_val
+        ratio = (self.value - self.min_val) / val_range if val_range != 0 else 0
+        fill_w = int(self.rect.width * ratio)
+        fill_rect = pygame.Rect(self.rect.x, self.rect.y, fill_w, self.rect.height)
+        pygame.draw.rect(
+            screen, COLORS.get("btn_info", COLORS["btn_primary"]), fill_rect, border_radius=4
+        )
+        # Рамка
+        pygame.draw.rect(screen, COLORS["border"], self.rect, 2, border_radius=4)
+        # Текст
+        val_str = f"{self.value:.2f}" if self.is_float else str(self.value)
+        label_surf = font.render(
+            f"{self.label}: {val_str}", True, COLORS.get("text_default", COLORS["text_highlight"])
+        )
+        screen.blit(label_surf, (self.rect.x, self.rect.y - 22))
+
+
 class PropertyPanel:
     """Панель свойств выбранного объекта"""
 

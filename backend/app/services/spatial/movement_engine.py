@@ -331,6 +331,14 @@ class MovementEngine:
                                     else:
                                         _active_traversals.remove(_entry)
                                     logger.debug(f"Cleared traversal for {intent.actor_id} after materialize")
+                                    # S203.1 (Stage 2A): обход Н-46a легализован в реестре —
+                                    # traversal исчез при cross-loc материализации.
+                                    # INTERRUPTED(CROSS_LOCATION_TRANSFER): возобновление
+                                    # в новой локации = НОВОЕ обязательство (терминальность №3).
+                                    from app.services.action.commitment_registry import CommitmentRegistry
+                                    CommitmentRegistry.mirror_traversal_interrupted(
+                                        scene_state, intent.actor_id, tick, "CROSS_LOCATION_TRANSFER"
+                                    )
 
                                 changes.extend([
                                     SceneChange(

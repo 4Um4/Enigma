@@ -478,7 +478,7 @@ obj = dataclasses.replace(obj, npc_id="test_override")
 | Адаптер | Файл | Round-trip тест | Последняя проверка |
 |---------|------|-----------------|-------------------|
 | NPCState | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-HP-UNIFICATION) |
-| NPCPersonality | `npc_state.py` | `test_personality_roundtrip` | S86 |
+| NPCPersonality | `npc_state.py` | `test_personality_rigidity` (roundtrip-тест S86 в репо отсутствует — doc drift; psyche-поля личности W-IR/S213) | S213 |
 | PerceptualKernel | `npc_state.py` | `_pk_from_dict` | S86 (ADR-115) |
 | BodyState | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-100/127) |
 | AffectiveLoad | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-121) |

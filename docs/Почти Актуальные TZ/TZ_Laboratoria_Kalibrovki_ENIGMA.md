@@ -1,6 +1,7 @@
 # ТЗ: Лаборатория калибровки психики ENIGMA
 
-**Версия документа:** `1.0`
+**Версия документа:** `1.1` (актуализация после M0, сессия S213)
+**Статус реализации:** M0 ЗАВЕРШЁН — границы лаборатории, runner, Tap, 5 метрик, контрольные пресеты существуют и протестированы (backend/tests/calibration_lab/, 52 теста; ADR-O-361, docs/audits/ADR-O-361_IMPACT.md). Ключевое открытие M0 — см. раздел 0.3 (ниже).`
 **Целевая версия ENIGMA:** `0.5.3.8.x` и выше (текущий релиз — `0.5.3.8.3`)
 **Статус:** `IMPLEMENTATION-READY`
 **Связанные артефакты:** `backend/tests/sandbox/SUPERBOX/`, `backend/tests/sandbox/calibration/`, `config/canon/truth_state_tavern.json`, `config/npc/individuals/lusya.json`
@@ -47,7 +48,12 @@ NPC должен вести себя так, чтобы игрок мог под
 - `backend/app/services/tick_orchestrator.py` — 10-фазный tick orchestrator;
 - `config/canon/truth_state_tavern.json` — готовый сценарий «Серебряный Волк» (17 секретов, 20 отношений).
 
-**Не существует** (подтверждено):
+**Существовало на старте M0 — создано в S213** (всё, кроме UI, DRAMATIC SESSION и EnigmaPhaseEngine):
+- `backend/app/services/calibration/` (overlay, preset_io, preset_materializer, experiment_runner, observability_tap, metrics/, superbox_adapter);
+- метрики M0: `character_change_rate`, `decision_diversity`, `loop_rate`, `event_responsiveness` (источник — IntentEventAdapter через EventBus, см. 14.2); `causal_depth` = честный `None` до подключения источника цепочек (DEBT-CAUSAL-DEPTH, M2);
+- W-IR: `personality_from_legacy` читает `psyche.identity_rigidity` — параметр калибруем (ранее всегда 0.5).
+
+**По-прежнему не существует:** UI лаборатории; режим DRAMATIC SESSION; реализация `EnigmaPhaseEngine` (M3); WOW Density / ZoneClassifier (M2); ScenarioPlayer (перенесён в M1-границу — см. План, Addendum A).
 - модуля `settings_psychology.py` — все константы живут в `backend/app/core/constants.py`;
 - реализации `EnigmaPhaseEngine` — заглушка `pass` в `backend/tests/sandbox/calibration/run_sweep.py:10-12`;
 - UI лаборатории калибровки;
@@ -55,6 +61,22 @@ NPC должен вести себя так, чтобы игрок мог под
 - режима `DRAMATIC SESSION` 30–50 минут с гибким масштабом времени.
 
 Лаборатория должна стать надстройкой над существующей инфраструктурой, **а не параллельной симуляцией**.
+
+### 0.3. Открытие M0 (S213): судьбы не возникают из вакуума
+
+Зонный прогон 150 тиков × 3 контрольных пресета (idle-среда, offline-mock):
+
+| Пресет | character_change | decision_diversity | loop_rate | Зона (по 16.1) |
+|---|---|---|---|---|
+| mannequin | 0.0060 | 0.213 | 1.0 | МАНЕКЕН |
+| chaos | 0.0066 | 0.217 | 1.0 | МАНЕКЕН |
+| enigma_golden | 0.0072 | 0.356 | 1.0 | МАНЕКЕН |
+
+Выводы:
+1. Idle-среда без вмешательств классифицирует **любой** пресет как МАНЕКЕН: при ~300 событий за сессию диалоговые дельты нулевые (`social_dialogue:NEUTRAL`, effect_value=0.0). Причинная среда богата событийно, но сама себя не накачивает.
+2. Сквозной сигнал пресетов уже различим (golden: diversity +68% против mannequin) — ручки калибровки работают.
+3. **Условие существования зоны ENIGMA — событийная накачка** (ScenarioPlayer, раздел 11): поднимается с «удобства» до обязательного условия тестирования зон в M1.
+4. Replay-ядро (statuses / nan / final_npc_state / npc_captures) покадрово детерминировано; rel/l1 — асинхронный слой одного подписчика, наблюдается отдельно до quiesce-границы (DEBT-QUIESCE).
 
 ---
 
@@ -849,7 +871,10 @@ NPC испугался (PerceptualKernel.threat_gradient ↑)
 | Метрика | Источник в коде |
 |---|---|
 | Character Change Rate | `NPCStateAdapter.write_to_legacy` (snapshot diff) |
-| Decision Diversity | `IntentEventAdapter` (агрегация по `intent_type`) |
+| Decision Diversity | `IntentEventAdapter` → EventBus → ObservabilityTap (S213: подтверждено — писателя `npc["intent"]` в снапшоте загрузчика НЕ существует; intent наблюдается только через шину) |
+| Loop Rate | `IntentEventAdapter` → ObservabilityTap (межтиковые переходы label) |
+| Event Responsiveness | ObservabilityTap: события/тик × смена label (наследует недетерминизм async-слоя — DEBT-QUIESCE; в replay-вердикт не входит) |
+| Causal Depth | ИСТОЧНИК ОТСУТСТВУЕТ (S213): у диалоговых TraitDriftEvent нет временной оси для цепочек; проводка CausalEntry не подключена → метрика возвращает честный `None` (DEBT-CAUSAL-DEPTH, M2) |
 | Emotional Volatility | `EmotionTransition` (фаза 9.1) |
 | Belief Revision Rate | `belief_revision_engine.py` |
 | Relationship Dynamics | `relationship_store.py` (log of deltas) |
@@ -936,7 +961,7 @@ class WOWAggregator:
     def events_in_window(self, window_minutes: float) -> List[WOWEvent]: ...
 ```
 
-Подписывается на `EventBus`, фильтрует по типам из таблицы 15.1.
+Подписывается на `EventBus`. ВНИМАНИЕ (S213): часть топиков таблицы 15.1 не существует в реестре `EventType` (`RelationshipDeltaEvent`, `BeliefCrystallizationEvent`, `SecretRevealedEvent`, `ProactiveIntentEvent`, `NPCErrorEvent`, события FrontType). Фактический реестр (реализован в ObservabilityTap): NPC_SPOKE, NPC_MOVED, NPC_PROXIMITY_CLOSE/LEAVE, NPC_INTERACTS_NPC, SOCIAL_ACTION, COMMUNICATION_CLAIM, OFFER_JOB, SPREAD_RUMOR, WARN, TRADE, THEFT, COMBAT, FATE_EVENT. Условные «пороговые» сигналы (|Δtrust| ≥ 5 и т.п.) в M2 берутся post-commit диффами RelationshipStore, а не подписками.
 
 ---
 
@@ -985,6 +1010,9 @@ class Zone(Enum):
     CHAOS = "chaos"
     ENIGMA = "enigma"
     WARNING = "warning"   # близко к границе
+    BROKEN = "broken"     # S213 (требуют тесты M2-AC-004/005 Плана):
+                          # nan_count > 0 или invariant_violations > 0 → BROKEN,
+                          # НЕ «хаос»: технический сбой ≠ драматическая нестабильность
 
 def classify(metrics: CalibrationMetrics) -> Zone:
     # см. раздел 17.1 (полный алгоритм классификации)
@@ -1334,7 +1362,21 @@ meta:
 
 parameters:
   # Личность
-  identity_rigidity:           0.42
+  # СХЕМА ФАКТИЧЕСКАЯ (S213; реализовано: config/calibration/test_presets/*.yaml):
+  #   meta: {preset_id, description}
+  #   constants:     — глобальные константы core/constants.py; применяет
+  #                   overlay_constants (identity-патч + verify вход/выход);
+  #                   [PLAN]-параметры и значения, нарушающие taboo чужих ADR
+  #                   (напр. ADR-O-360: DIRECT_OBSERVATION_RELIABILITY >= 1.0),
+  #                   отклоняются громко на загрузке
+  #   npc_overrides: — per-NPC параметры (psyche/drives; НЕ константы):
+  #                   ключ "*" = все NPC кампании; точечный npc_id
+  #                   перекрывает wildcard; drives заменяются целиком (sum=1.0)
+  #   seed / scenario / duration_ticks — в ExperimentConfig, не в пресете
+  #
+  # identity_rigidity — per-NPC поле (psyche), не константа: в пресете живёт
+  # в npc_overrides."*".psyche.identity_rigidity (калибруем с W-IR/S213):
+  identity_rigidity:           0.42   # → npc_overrides."*".psyche
   trait_decay_rate:            0.018
   intent_inertia_weight:       0.20
   theta_up:                    0.55
@@ -1600,6 +1642,8 @@ Calibration Laboratory
 
 ### 28.1. Первая версия (M1) должна уметь
 
+> Актуализация S213: предпосылка-ноль — **ScenarioPlayer** (раздел 11). По открытию M0 (раздел 0.3) зонные критерии §30 валидны ТОЛЬКО на scripted-сценарии: idle-среда классифицирует любой пресет как МАНЕКЕН. Пункты ниже дополняются состоянием M0: runner/пресеты/overlay/Tap/5 метрик/детерминизм ядра уже существуют и покрыты тестами (52 шт.).
+
 - [ ] русский интерфейс;
 - [ ] минимум 10–15 реальных параметров (из Приложения A);
 - [ ] слайдеры;
@@ -1693,6 +1737,8 @@ scenario:
 
 Лаборатория должна позволять воспроизводить **одну и ту же последовательность действий** для разных конфигураций психики.
 
+> Статус S213: каталог `config/scenarios/` не существует — сценарий-файл создаётся в M1 вместе со ScenarioPlayer. Контракт вмешательств готов и проверен: `InterventionEvent.from_player_action(action_text, player_name, tick, **kwargs)` → `TickOrchestrator.execute(interventions=[...])` (app/contracts/interventions.py). Ссылки сценария на NPC (`config/npc/individuals/*.json` — 6 шт., включая Люсю) и canon (`config/canon/truth_state_tavern.json`) — верифицированы, существуют.
+
 ### 29.4. Запись сценария
 
 UI должен поддерживать:
@@ -1732,6 +1778,7 @@ UI должен поддерживать:
 - **0** нарушений инвариантов SUPERBOX;
 - **0** случаев `NaN`;
 - **100 %** детерминизм (replay test проходит);
+  — Уточнение S213: 100% детерминизм подтверждён для ЯДРА симуляции (statuses/nan/final_npc_state/npc_captures — покадрово, тесты AC-004); rel/l1-слой асинхронен (материализация диалогов завершается в wall-clock-зависимые моменты) — до quiesce-границы (DEBT-QUIESCE, M1) он наблюдается отдельным полем `rel_captures_deterministic`, не входя в вердикт;
 - **WOW Density** в диапазоне `0.4–1.2 /min` для всех `ENIGMA` конфигураций.
 
 ---

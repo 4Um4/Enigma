@@ -1067,6 +1067,13 @@ class SceneStateManager:
             "spatial_obstacles": spatial_obstacles,
             # ── ADR-019: Traversal Registry (процесс во времени, а не стейт) ──
             "active_traversals": {},  # dict[npc_id, traversal_dict]
+            # ── S203.1 (Stage 2A): Behavioral Ownership Registry (shadow) ──
+            # Только НОВЫЕ сцены. Загруженные из persistence самовосстанавливаются
+            # через setdefault в CommitmentRegistry (ключи едут в atomic_commit,
+            # Foundation Freeze: scene_state round-trip без whitelist).
+            "active_commitments": {},  # dict[npc_id, commitment_dict] — только активные
+            "commitment_history": {},  # dict[npc_id, list] — bounded terminal (cap 10)
+            "commitment_ordinals": {},  # dict[npc_id, int] — монотонные счётчики идентичностей
             # ── ADR-O-146: Новая игра начинается с tick=0, время 12:00 ──
             "tick": 0,
             # ── S139 FIX: SSOT времени — всегда инициализируем game_time_seconds ──
@@ -1277,6 +1284,20 @@ class SceneStateManager:
                                                 )
                                             else:
                                                 _active_travs[change.target] = _traversal_dict
+                                                # S203.1 (Stage 2A): shadow-зеркало материализации.
+                                                # cause — VERBATIM от upstream SceneChange.cause
+                                                # (№7: SSM не классифицирует behavioral-семантику;
+                                                # пустой cause -> UNKNOWN_LEGACY_SOURCE в реестре).
+                                                # Перезапись живого traversal (Н-46b) отражается
+                                                # внутри commit(): INTERRUPTED(SUPERSEDED) + parent.
+                                                from app.services.action.commitment_registry import CommitmentRegistry
+                                                CommitmentRegistry.mirror_traversal_materialized(
+                                                    scene_state=scene_state,
+                                                    tick=change.tick,
+                                                    npc_id=change.target,
+                                                    cause=getattr(change, "cause", ""),
+                                                    target_node=_traversal_dict.get("target_node"),
+                                                )
                                     elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
                                         # Контракт: macro relocation (field="position") обязан иметь proposal.
                                         # Исключение: traversal_complete и cross_loc_materialize (snap позиции, proposal не нужен).

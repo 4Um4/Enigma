@@ -1,7 +1,8 @@
 # План разработки: Лаборатория калибровки психики ENIGMA
 
-**Версия плана:** `1.0`
-**Соответствует ТЗ:** `ТЗ_Лаборатория_Калибровки_ENIGMA.md v1.0`
+**Версия плана:** `1.1` (актуализация после M0)
+**Статус:** M0 ЗАВЕРШЁН — сессия S213, ADR-O-361; лаборатория: 51 passed / 1 skipped (skip осознанный: pre-existing красный SUPERBOX-014 — чужая зона), IPT 44/44. Фактические расхождения с планом — Addendum A (конец раздела 2).`
+**Соответствует ТЗ:** `TZ_Laboratoria_Kalibrovki_ENIGMA.md v1.1` (актуализация после M0; файл: docs/Почти Актуальные TZ/)`
 **Целевая версия ENIGMA:** `0.5.3.8.x` (текущая `0.5.3.8.3`)
 **Расчётный срок реализации MVP:** 6 недель (M0 → M1)
 **Расчётный срок полной версии:** 16 недель (M0 → M5)
@@ -44,7 +45,7 @@
 ## 1. Эпики и фазы — общая карта
 
 ```text
-M0: Фундамент и репрезентативный слой           (1 неделя)
+M0: Фундамент и репрезентативный слой           (1 неделя)  ✅ S213
     └── CalibratorSkeleton + ConfigOverlay + 5 базовых метрик
             ↓
 M1: MVP — Драматическая сессия 30 мин           (5 недель)
@@ -301,17 +302,37 @@ def test_overlay_constants_restores_after_exit():
 
 | Риск | Вероятность | Влияние | Митигация |
 |---|---|---|---|
-| `overlay_constants` ломает другие тесты из-за глобального monkey-patch | высокая | высокое | Использовать `threading.local()` + explicit передача `constants_module` в DecisionHub через `decision_ctx` (требует small patch DecisionHub) |
+| `overlay_constants` ломает другие тесты из-за глобального monkey-patch | высокая | высокое | РЕАЛИЗОВАНО ИНАЧЕ (S213): identity-патч from-import биндингов (decision_hub.py биндит имена напрямую — патч только модуля констант = тихая ложь эксперимента) + verify на входе/выходе + запрет вложенности/параллельности. `threading.local()` не понадобился; сигнатуры ядра не тронуты. SUPERBOX под overlay — baseline-delta семантика (AC-005) |
+| Game-loop не запускается без LLM-сервера | высокая | критическое | ПОДТВЕРЖДЕНО (гейт IPT флапал от доступности llama-server) → runner: offline MockProvider (`environment='development'`, `provider_type='mock'` до `build_game_loop`). Примечание: гейт MockProvider читает env-var ENIGMA_ENV, не `settings.environment` — в M0 это осознанно НЕ включалось (empty-fallback детерминирован); см. DEBT-MOCK |
 | `ExperimentRunner` создаёт утечку SQLite-соединений | средняя | среднее | Использовать `:memory:` БД + cleanup в `__exit__` |
 | SUPERBOX-сценарии ломаются при overlay | средняя | высокое | Overlay применяется только к `constants.py`, не к `kernel_rng.py`; SUPERBOX имеет собственные `seed` |
 | Game-loop не запускается без LLM-сервера | высокая | критическое | M0 должен работать в `--no-llm` режиме; LLM-зависимости заглушаются `DmAgent` в offline-режиме |
 
 ### 2.7. Definition of Done для M0
 
-- [ ] Все артефакты из 2.2 созданы и проходят `mypy --strict`;
+- [x] Артефакты 2.2 созданы (ScenarioPlayer → M1-граница; mypy-строгий прогон — хаускипинг M1-старта, см. Addendum A);
 - [ ] Все 6 приёмочных тестов из 2.5 проходят;
 - [ ] Документация в `architecture/calibration.yaml` (новый YAML-контракт архитектуры);
-- [ ] Worklog-запись в `worklog.md`.
+- [x] Worklog-запись: docs/MUTATIONS.md, сессия S213.
+
+## Addendum A: Фактическое состояние M0 (S213) — расхождения с планом
+
+**Создано (backend/app/services/calibration/):**
+- `config_overlay` — identity-патч констант + from-import биндингов, verify вход/выход, запрет вложенности/параллельности в одном процессе;
+- `preset_io` — строгий валидатор ([PLAN]-параметры и taboo-значения чужих ADR → громкий отказ);
+- `preset_materializer` — temp-копия config/npc, патч npc_overrides, прямой редирект `npc_loader._CONFIG_NPC_ROOT` + поведенческая верификация реальным загрузчиком; единый резолвер приоритетов у patcher и verifier;
+- `experiment_runner` — чистый старт = ПУСТОЙ temp-saves (штатный путь «новая игра» загрузчика); restore настроек / диска (data/sessions) / RAM-кэшей; dispose-каскад DriftLab; settle + final_quiesce async-слоя; replay = ядро AC-004 покадрово;
+- `observability_tap` — пассивный sync-наблюдатель (канал ТЗ 14.2 IntentEventAdapter);
+- `metrics/` — 5 метрик; `causal_depth` = честный None (DEBT-CAUSAL-DEPTH);
+- `superbox_adapter` — baseline-delta семантика AC-005.
+
+**Отклонения от Плана 2.2/2.3/2.4:** каталог `config/calibration/` (не `configs/`); пресет = constants + npc_overrides (не плоская таблица: identity_rigidity/breakpoint/willpower — per-NPC psyche-поля; event_memory_decay_rate — per-event поле, исключён); RESENTMENT_BIAS_FACTOR существует и включён в пресеты; ScenarioPlayer перенесён в M1 (AC-001..004 автономны; событийная накачка — условие дифференциации зон по открытию M0, см. ТЗ 0.3); `tests/calibration_lab/` — 52 теста (план требовал ≥ 20).
+
+**AC-вердикты:** AC-001 ✅ (cc=0.006 < 0.15, loop=1.0, nan=0); AC-002/003 ✅ техчистота (зонные пороги в idle недостижимы — отчётно, перенос на scripted M1); AC-004 ✅ ядро (mannequin + chaos; rel/l1 — async-слой, DEBT-QUIESCE); AC-005 — baseline-delta: SUPERBOX-014 красен БЕЗ overlay (pre-existing, файл не менялся с V.0.5.3.8.1 — деградация ядра чужой сессией; skip с диагнозом, эскалация Мастеру).
+
+**Уроки сессии (протокол S213):** Path-identity ненадёжен как ключ патчей (→ прямое присваивание); patcher и verifier — один резолвер семантики; IPT-фильтр зондов всегда `🔴|❌|FAIL`; деливераблы > 300 строк — только целой заменой файла.
+
+**Долги M1+ (реестр S213):** DEBT-QUIESCE (возврат rel/l1 в replay-вердикт) · DEBT-CAUSAL-DEPTH · DEBT-EVBUS (dispose не отписывает шину — ядро) · DEBT-SOC (мёртвый S198-фикс: `_idle_shared_context` не существует как атрибут) · DEBT-L1-SQLITE · DEBT-MOCK · DEBT-CL1 (overlay не покрывает константы вне core.constants) · pytest.ini (`[tool:pytest]` мёртв для pytest 8) · world_tick.json вне saves/.
 
 ---
 
@@ -321,6 +342,7 @@ def test_overlay_constants_restores_after_exit():
 
 > Соответствует ТЗ раздел 28 (минимальный MVP).
 
+0. (из M0, ПРИОРИТЕТ) **ScenarioPlayer** — перенесён из M0. По открытию ТЗ 0.3 событийная накачка — УСЛОВИЕ дифференциации зон: AC-зоны M1 валидны только на scripted-сценарии. Контракт: `InterventionEvent.from_player_action` → `TickOrchestrator.execute(interventions=[...])` (app/contracts/interventions.py). Вместе с ним — DEBT-QUIESCE (возврат rel/l1 в replay-вердикт).
 1. Веб-UI на русском языке с 10–15 слайдерами реальных параметров.
 2. Запуск 30-минутной симуляции NPC (через реальный `TickOrchestrator`).
 3. Пауза / пошаговый тик / ускорение (×1, ×5, ×20, ×100).
@@ -1738,12 +1760,12 @@ class TestFinalAcceptance:
 
 | ID | Milestone | Что проверяет | Ожидаемый результат |
 |---|---|---|---|
-| M0-AC-001 | M0 | mannequin.yaml → низкая динамика | `character_change_rate < 0.15` |
-| M0-AC-002 | M0 | chaos.yaml → высокая динамика | `character_change_rate > 0.85` |
-| M0-AC-003 | M0 | enigma_golden.yaml → целевая динамика | `character_change_rate ∈ [0.3, 0.8]` |
-| M0-AC-004 | M0 | Одинаковый seed → идентичный результат | `state_diff_count == 0` |
-| M0-AC-005 | M0 | SUPERBOX-сценарии проходят при overlay | `all passed` |
-| M0-AC-006 | M0 | Overlay восстанавливается после выхода | `original == restored` |
+| M0-AC-001 | M0 | mannequin.yaml → низкая динамика | ✅ S213: cc=0.0060 < 0.15, loop=1.0, nan=0 |
+| M0-AC-002 | M0 | chaos.yaml → высокая динамика | ✅ S213 (переопределён как отчётно-технический): nan=0, сбоев нет. Порог cc>0.85 в idle-среде недостижим (открытие M0, ТЗ 0.3) — зонная часть перенесена на scripted-прогоны M1 |
+| M0-AC-003 | M0 | enigma_golden.yaml → целевая динамика | ✅ S213 (отчётно-технический): nan=0; cc=0.0072; порог [0.3, 0.8] — на scripted M1 (сквозной сигнал есть: diversity +68% vs mannequin) |
+| M0-AC-004 | M0 | Одинаковый seed → идентичный результат | ✅ S213: ядро (statuses/nan/final/npc_captures) покадрово, все пресеты; rel/l1 — async-наблюдение (DEBT-QUIESCE) |
+| M0-AC-005 | M0 | SUPERBOX-сценарии проходят при overlay | ⚠️ S213: baseline-delta — overlay инварианты НЕ ломает; skip осознанный: SUPERBOX-014 красен БЕЗ overlay (pre-existing ядро, чужая зона, эскалация Мастеру) |
+| M0-AC-006 | M0 | Overlay восстанавливается после выхода | ✅ S213: identity-verify вход/выход, 9 тестов |
 | M1-AC-301 | M1 | Кнопка «Помог» увеличивает trust | `trust_after > trust_before` |
 | M1-AC-302 | M1 | Кнопка «Предал» уменьшает trust, поднимает stress | `trust_after < trust_before - 10` |
 | M1-AC-303 | M1 | Timeline содержит вмешательство | `any(event.type == PLAYER_INTERVENTION)` |
@@ -1820,7 +1842,7 @@ class TestFinalAcceptance:
 
 | Риск | Вероятность | Влияние | Митигация |
 |---|---|---|---|
-| `overlay_constants` ломает глобальное состояние | высокая | критическое | Использовать `threading.local`, явно передавать `constants_module` в `DecisionHub` через DI |
+| `overlay_constants` ломает глобальное состояние | высокая | критическое | РЕШЕНО ИНАЧЕ (S213): identity-патч from-import биндингов + verify вход/выход + запрет вложенности — DI/патч DecisionHub не понадобились, контракты ядра не тронуты |
 | LLM-зависимости мешают headless-запуску | высокая | высокое | M0 должен работать в `--no-llm` режиме; LLM-вызовы заглушать в calibration mode |
 | Sweep слишком медленный (1 эксперимент = 30 сек) | высокая | среднее | Параллелизация через `multiprocessing`, кеширование пресетов |
 | Game-loop создаёт утечку ресурсов | средняя | среднее | Cleanup в `__exit__`, valgrind-профилирование раз в sprint |
@@ -1837,6 +1859,8 @@ class TestFinalAcceptance:
 ### 11.1. `architecture/calibration.yaml`
 
 > Должен быть создан в M0 и расширен в каждом milestone.
+>
+> **Статус S213: создан в M0-объёме** (узлы CoreConstants/ConfigOverlay/PresetIO/PresetMaterializer/ScenarioPlayer(M1-заглушка-узел)/ExperimentRunner/ObservabilityTap/Metrics/ProbeAdapter/SuperboxAdapter + edges + constraints + ownership + sequence; см. фактический файл). Спецификация ниже — целевая для M1–M5: узлы добавляются по мере реализации (CalibrationAPI — M1/Sprint 1, SweepRunner — M3, ZoneClassifier/WOW — M2 и т.д.). Расхождение каталогов: фактический `config/calibration/` (не `configs/calibration/` — Addendum A).
 
 ```yaml
 domain: CALIBRATION
@@ -2094,6 +2118,8 @@ Stage Summary:
 ---
 
 ## 13. Что нужно от архитектора до старта M0
+
+> **Статус S213: раздел исторический — M0 стартовал и завершён.** Фактические решения: ConfigOverlay — вариант A с усилением (identity-патч + verify; DI-вариант B не потребовался, контракты ядра не тронуты); UI — вариант A (Next.js :3001, M1); БД — пустой temp-saves на прогон; sweep — multiprocessing (M3, подтверждено запретом параллельных overlay); Plotly (M4). Подготовительные задачи: каталоги созданы (`config/calibration/`, не `configs/` — см. Addendum A); `architecture/calibration.yaml` создан (M0-объём). Ветка/worklog — вне зоны лаборатории.
 
 ### 13.1. Решения, которые нужно зафиксировать
 

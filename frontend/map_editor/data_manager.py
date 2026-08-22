@@ -634,6 +634,41 @@ def load_npc_visual_casting(npc_id: str) -> Dict:
     return {}
 
 
+def load_npc_calibration(npc_id: str) -> Tuple[Dict, Dict]:
+    """Загружает psyche и drives NPC для калибровки."""
+    if not _NPC_INDIVIDUALS_DIR.exists():
+        return {}, {}
+    for json_file in _NPC_INDIVIDUALS_DIR.glob("*.json"):
+        try:
+            with open(json_file, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+            if data.get("id") == npc_id:
+                return data.get("psyche", {}), data.get("drives", {})
+        except (json.JSONDecodeError, OSError):
+            continue
+    return {}, {}
+
+
+def save_npc_calibration(npc_id: str, psyche: Dict, drives: Dict) -> bool:
+    """Сохраняет psyche и drives в JSON NPC."""
+    if not _NPC_INDIVIDUALS_DIR.exists():
+        return False
+    for json_file in _NPC_INDIVIDUALS_DIR.glob("*.json"):
+        try:
+            with open(json_file, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+            if data.get("id") == npc_id:
+                data["psyche"] = psyche
+                data["drives"] = drives
+                with open(json_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                return True
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[CALIB_SAVE] Error saving {npc_id}: {e}")
+            continue
+    return False
+
+
 def save_npc_visual_casting(npc_id: str, casting: Dict) -> bool:
     """S176: Сохраняет visual_casting конфиг в JSON индивида. Поддерживает чтение UTF-8 BOM."""
     if not _NPC_INDIVIDUALS_DIR.exists():

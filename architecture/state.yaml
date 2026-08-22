@@ -18,7 +18,7 @@ nodes:
     type: service
     layer: Infrastructure
     label: "JSON Persistence Adapter (Legacy)"
-    description: "Файловая персистентность. Fallback когда SQLite недоступен."
+    description: "Файловая персистентность. Fallback когда SQLite недоступен. Stage 0 Task 0.3: Bypass закрыт, используется только как fallback в PersistencePort."
     code_ref: "state/json_persistence_adapter.py"
   ContextBuilder:
     type: service
@@ -41,7 +41,7 @@ edges:
   - from: StateApplicator
     to: PersistencePort
     label: "atomic_commit(campaign_id, scene_state, npc_dicts)"
-    condition: "End of tick. All or nothing (Устав §4.2.1)."
+    condition: "End of tick. All or nothing (Устав §4.2.1). Stage 0: Сериализация через to_persistence_dict (write_to_legacy переименован)."
     code_ref: "npc/state_applicator.py"
   - from: ContextBuilder
     to: TickOrchestrator
@@ -56,12 +56,6 @@ constraints:
     condition: "JSON = fallback/snapshot. No transactions = data corruption. SQLite is primary."
     code_ref: "Устав §4.2.2"
     severity: CRITICAL
-  - source: StateApplicator
-    target: PersistencePort
-    rule: "REQUIRED: atomic_commit for all saves (Устав §4.2.1)"
-    condition: "Three separate JSON files = desync bug. Must commit atomically."
-    code_ref: "Устав §4.2.1"
-    severity: CRITICAL
   - source: SqlitePersistenceAdapter
     target: JSON
     rule: "REQUIRED: json.dumps with default handler for set (ADR-117)"
@@ -71,17 +65,31 @@ constraints:
     severity: HIGH
   - source: NPCLoader
     target: NPCState
-    rule: "REQUIRED: _apply_runtime_overlay must include affective_load, emotion, emotion_delta, body_state, perceptual_kernel, narrative_cache in whitelist (Invariant 1, ADR-118)"
-    condition: "Without these keys in _RUNTIME_TOP_LEVEL_KEYS, computed state is overwritten by static config on every disk read → DOUBLE TRUTH"
-    code_ref: "npc/npc_loader.py:_RUNTIME_TOP_LEVEL_KEYS"
-    adr_ref: "ADR-118"
+    rule: "FORBIDDEN: Использование whitelist `_RUNTIME_TOP_LEVEL_KEYS` (ADR-FOUNDATION-FREEZE)"
+    condition: "Stage 0: Упразднён whitelist. Мерж выполняется рекурсивно через `_deep_merge`, сохраняя все runtime-поля. `write_to_legacy` переименован в `to_persistence_dict` и используется только в persistence layer."
+    code_ref: "npc/npc_loader.py:_apply_runtime_overlay"
+    adr_ref: "ADR-FOUNDATION-FREEZE"
     severity: CRITICAL
-  - source: GameLoop
-    target: LifeEngine
-    rule: "REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118)"
-    condition: "Without cache priming, every player turn reads static YAML from disk and overwrites computed affective_load/emotion/body_state"
-    code_ref: "game_loop/__init__.py:_load_npcs_with_runtime"
-    adr_ref: "ADR-118"
+  - source: StateApplicator
+    target: NPCState
+    rule: "REQUIRED: apply(..., cause: Cause) must populate causal_ledger (ADR-CAUSAL-SPINE)"
+    condition: "Stage 1 Task 1.2: Provenance обязателен. StateApplicator — единственный writer в NPCState (guard __setattr__)."
+    code_ref: "npc/state_applicator.py:apply"
+    adr_ref: "ADR-CAUSAL-SPINE, ADR-WRITE-GUARD"
+    severity: CRITICAL
+  - source: TickOrchestrator
+    target: WorldSnapshot
+    rule: "REQUIRED: TickOrchestrator creates frozen WorldSnapshot per tick (ADR-CAUSAL-SPINE)"
+    condition: "Stage 1 Task 1.3: TickOrchestrator — единственный producer снапшота. EventCompiler — consumer."
+    code_ref: "tick_orchestrator.py:_run_core_phases"
+    adr_ref: "ADR-CAUSAL-SPINE"
+    severity: CRITICAL
+  - source: StateApplicator
+    target: RelationshipStore
+    rule: "REQUIRED: update_relationships is the sole write-path to RelationshipStore (ADR-SSOT-ECONOMIC)"
+    condition: "Stage 0 Task 0.7: SSOT Social. Прямые мутации relationship_cache запрещены."
+    code_ref: "npc/state_applicator.py:update_relationships"
+    adr_ref: "ADR-SSOT-ECONOMIC"
     severity: CRITICAL
   - source: ProjectionEngine
     target: Simulation
@@ -127,8 +135,8 @@ ownership:
     creates: "WorldSnapshot per tick from scene_state + spatial_graph"
     modifies: "N/A (immutable)"
     reads: "EventCompiler (sole consumer)"
-    constraint: "ADR-O-201: Frozen copy of all state needed for event compilation. Must include boundary_map, spatial_graph, rng_seed. No references to live objects — deep copy required. Violation of immutability = non-deterministic replay."
-    adr_ref: "ADR-O-201"
+    constraint: "ADR-O-201 / ADR-CAUSAL-SPINE: Frozen copy of all state needed for event compilation. Must include boundary_map, spatial_graph, rng_seed. No references to live objects — deep copy required. Violation of immutability = non-deterministic replay. Stage 1 Task 1.3: Создание снапшота внедрено в начало тика."
+    adr_ref: "ADR-O-201, ADR-CAUSAL-SPINE"
   ProjectionState:
     owner: "SceneStateManager (apply_change refactored to ProjectionEngine)"
     creates: "State mutations via dict assignment only"

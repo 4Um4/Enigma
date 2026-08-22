@@ -904,9 +904,13 @@ class StateApplicator:
                     or state.intent_target
                     or "player"
                 )
+                # S212 FIX: вызов согласован с сигнатурой update_relationships
+                # (state: NPCState — первый аргумент; source_id убран чужой
+                # миграцией контракта, вызов не был переведён — TICK_CRASH
+                # на каждом THEFT-реакшене. npc_id метод берёт из state).
                 self.update_relationships(
-                    campaign_id=campaign_id,
-                    source_id=state.npc_id,
+                    state,
+                    campaign_id,
                     target_id=_target,
                     trust_delta=trust_delta,
                     fear_delta=fear_delta,

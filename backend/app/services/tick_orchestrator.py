@@ -789,6 +789,15 @@ class TickOrchestrator:
         
         self._phase_0_5_idle_services(ctx) # 0.5
         self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
+
+        # S203.1 (Stage 2A): консистентность shadow-реестра обязательств.
+        # Активный traversal-commitment без живого traversal -> INTERRUPTED
+        # (TRAVERSAL_VANISHED). Ловит незеркалированные обходы (Н-46-класс).
+        # Точка ДО LOD-ветки: покрывает Фазы 0–0.5 в обеих ветках тика.
+        # Известный лаг: vanish после Фазы 5 (death-cleanup pop, ~956)
+        # ловится sweep'ом следующего тика (явное зеркало — S203.3).
+        from app.services.action.commitment_registry import CommitmentRegistry
+        CommitmentRegistry.sweep(ctx.scene_state, ctx.tick_number)
         
         # Подсистема 2: Replay Recorder (Этап 2.2)
         _recorder = getattr(self, "_replay_recorder", None)  # noqa: ENIGMA002

@@ -189,5 +189,13 @@ def build_traversal_dict(proposal: "TraversalProposal") -> Dict[str, Any]:
         "segment_modes": list(proposal.segment_modes),  # S132.1: Сохраняем семантику сегментов
         "segment_arc_heights": list(proposal.segment_arc_heights),  # S132.1: Сохраняем высоту дуги
     }
-    transition_traversal(_traversal_dict, "MOVING")
+    # S203.1 (Н-49): fail-fast против silent-PENDING. Игнорирование отказа
+    # порождает мёртвую запись: TES не двигает не-MOVING, zombie-GC не чистит
+    # не-terminal, SSM-suppression блокирует новые traversal к той же цели.
+    # Ловится здесь, а не превращается в "иногда NPC перестаёт двигаться".
+    if not transition_traversal(_traversal_dict, "MOVING"):
+        raise ValueError(
+            "build_traversal_dict: FSM rejected PENDING->MOVING — "
+            "silent PENDING traversal is forbidden (S203.1, Stage 2A)"
+        )
     return _traversal_dict

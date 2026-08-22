@@ -61,12 +61,16 @@ class MvpTavernController:
         self.world_diff_builder = WorldDiffBuilder()
         
         # Компилятор последствий (связывает трекеры вместе)
+        # S212: relationship_store инъектируется (контроллер получает его из
+        # GameLoop) — без него ACCUSE/HELP/BLACKMAIL-дельты уходили только в
+        # SocialFabricTracker, RelationshipStore (SSOT) не обновлялся.
         self.action_compiler = ActionConsequenceCompiler(
             observation_log=self.observation_log,
             belief_model=self.belief_model,
             social_fabric=self.social_fabric,
             truth_state=self.truth_state,
-            faction_tracker=self.faction_tracker
+            faction_tracker=self.faction_tracker,
+            relationship_store=relationship_store
         )
         
         # V8-MVP-12 FIX: Парсер признаний NPC

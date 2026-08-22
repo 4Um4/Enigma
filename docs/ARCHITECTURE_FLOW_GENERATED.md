@@ -791,10 +791,11 @@ flowchart TD
     EventCompiler -.->|"🚫 FORBIDDEN: Creating TraversalContract with status=COMPLETED. EventCompiler MUST return traversal=None for cause=traversal_complete and boundary snap. SSM owns lifecycle (ADR-O-201.4, ADR-TRAV-FSM)."| TraversalContract:::forbidden
     EquivalenceValidator -.->|"🚫 FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"| CrossLocationTopology:::forbidden
     JsonPersistenceAdapter -.->|"🚫 FORBIDDEN: JSON as runtime truth (Устав §4.2.2)"| RuntimeTruth:::forbidden
-    StateApplicator -.->|"🚫 REQUIRED: atomic_commit for all saves (Устав §4.2.1)"| PersistencePort:::forbidden
     SqlitePersistenceAdapter -.->|"🚫 REQUIRED: json.dumps with default handler for set (ADR-117)"| JSON:::forbidden
-    NPCLoader -.->|"🚫 REQUIRED: _apply_runtime_overlay must include affective_load, emotion, emotion_delta, body_state, perceptual_kernel, narrative_cache in whitelist (Invariant 1, ADR-118)"| NPCState:::forbidden
-    GameLoop -.->|"🚫 REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118)"| LifeEngine:::forbidden
+    NPCLoader -.->|"🚫 FORBIDDEN: Использование whitelist `_RUNTIME_TOP_LEVEL_KEYS` (ADR-FOUNDATION-FREEZE)"| NPCState:::forbidden
+    StateApplicator -.->|"🚫 REQUIRED: apply(..., cause: Cause) must populate causal_ledger (ADR-CAUSAL-SPINE)"| NPCState:::forbidden
+    TickOrchestrator -.->|"🚫 REQUIRED: TickOrchestrator creates frozen WorldSnapshot per tick (ADR-CAUSAL-SPINE)"| WorldSnapshot:::forbidden
+    StateApplicator -.->|"🚫 REQUIRED: update_relationships is the sole write-path to RelationshipStore (ADR-SSOT-ECONOMIC)"| RelationshipStore:::forbidden
     ProjectionEngine -.->|"🚫 REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201, ADR-TZ04-2)"| Simulation:::forbidden
     NpcOrchestration -.->|"🚫 FORBIDDEN: Direct mutation of scene_state['npc_positions'][nid]['activity']. MUST use SceneChange(NPC_METADATA) (ADR-TZ04-5)"| SceneState:::forbidden
     DMPhase -.->|"🚫 FORBIDDEN: Direct mutation of scene_state['line_of_sight']. MUST use SceneChange(SCENE_METADATA) (ADR-TZ04-5)"| SceneState:::forbidden
@@ -1544,7 +1545,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | EventCompiler | BoundaryNode | resolves boundary transitions at compile time | Uses frozen snapshot, NOT live SpatialService. ADR-O-201 | `event_compiler.py` | - |
 | PersistencePort | SqlitePersistenceAdapter | primary implementation | Default. Atomic commit. Runtime truth (Устав §4.2.1). | `state/sqlite_persistence_adapter.py` | - |
 | PersistencePort | JsonPersistenceAdapter | fallback implementation | Legacy. No transactions = data corruption risk (Устав §4.2.3). | `state/json_persistence_adapter.py` | - |
-| StateApplicator | PersistencePort | atomic_commit(campaign_id, scene_state, npc_dicts) | End of tick. All or nothing (Устав §4.2.1). | `npc/state_applicator.py` | - |
+| StateApplicator | PersistencePort | atomic_commit(campaign_id, scene_state, npc_dicts) | End of tick. All or nothing (Устав §4.2.1). Stage 0: Сериализация через to_persistence_dict (write_to_legacy переименован). | `npc/state_applicator.py` | - |
 | ContextBuilder | TickOrchestrator | build_context → TickContext | Every tick start | `state/context_builder.py` | - |
 | TemporalEngine | TickOrchestrator | temporal context + tick counter | Every tick start. campaign_id scoped. | `temporal/temporal_engine.py` | - |
 | TemporalEngine | DecayHandler | mark_decay_executed → skip double decay | Prevents decay running twice per tick | `temporal/temporal_engine.py` | - |
@@ -1814,10 +1815,11 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | EventCompiler | TraversalContract | FORBIDDEN: Creating TraversalContract with status=COMPLETED. EventCompiler MUST return traversal=None for cause=traversal_complete and boundary snap. SSM owns lifecycle (ADR-O-201.4, ADR-TRAV-FSM). | `-` |
 | EquivalenceValidator | CrossLocationTopology | FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2) | `-` |
 | JsonPersistenceAdapter | RuntimeTruth | FORBIDDEN: JSON as runtime truth (Устав §4.2.2) | `Устав §4.2.2` |
-| StateApplicator | PersistencePort | REQUIRED: atomic_commit for all saves (Устав §4.2.1) | `Устав §4.2.1` |
 | SqlitePersistenceAdapter | JSON | REQUIRED: json.dumps with default handler for set (ADR-117) | `sqlite_persistence_adapter.py:76` |
-| NPCLoader | NPCState | REQUIRED: _apply_runtime_overlay must include affective_load, emotion, emotion_delta, body_state, perceptual_kernel, narrative_cache in whitelist (Invariant 1, ADR-118) | `npc/npc_loader.py:_RUNTIME_TOP_LEVEL_KEYS` |
-| GameLoop | LifeEngine | REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118) | `game_loop/__init__.py:_load_npcs_with_runtime` |
+| NPCLoader | NPCState | FORBIDDEN: Использование whitelist `_RUNTIME_TOP_LEVEL_KEYS` (ADR-FOUNDATION-FREEZE) | `npc/npc_loader.py:_apply_runtime_overlay` |
+| StateApplicator | NPCState | REQUIRED: apply(..., cause: Cause) must populate causal_ledger (ADR-CAUSAL-SPINE) | `npc/state_applicator.py:apply` |
+| TickOrchestrator | WorldSnapshot | REQUIRED: TickOrchestrator creates frozen WorldSnapshot per tick (ADR-CAUSAL-SPINE) | `tick_orchestrator.py:_run_core_phases` |
+| StateApplicator | RelationshipStore | REQUIRED: update_relationships is the sole write-path to RelationshipStore (ADR-SSOT-ECONOMIC) | `npc/state_applicator.py:update_relationships` |
 | ProjectionEngine | Simulation | REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201, ADR-TZ04-2) | `scene_state_manager.py:1153-1446` |
 | NpcOrchestration | SceneState | FORBIDDEN: Direct mutation of scene_state['npc_positions'][nid]['activity']. MUST use SceneChange(NPC_METADATA) (ADR-TZ04-5) | `-` |
 | DMPhase | SceneState | FORBIDDEN: Direct mutation of scene_state['line_of_sight']. MUST use SceneChange(SCENE_METADATA) (ADR-TZ04-5) | `-` |

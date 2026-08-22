@@ -151,13 +151,16 @@ class OpportunityEngine:
         Главный метод. Вызывается DecisionHub и StateApplicator.
         will_state передаётся как строка — без импорта WillState enum.
         """
-        # Только сломленный NPC получает opportunity
-        if will_state != "broken":
+        # R6.3 + S212: скрытые действия — привилегия сломленной ИЛИ скрытной
+        # воли. BROKEN: отчаяние толкает на риск (R6.3-модель). DECEPTIVE:
+        # обман — профессия/натура (вор; S209 thief-архетип). FREE/LOYAL/COERCED
+        # opportunity не получают: воля не допускает скрытности.
+        if will_state not in ("broken", "deceptive"):
             return OpportunityResult(
                 score=0.0,
                 hidden_action_allowed=False,
                 unlocked_intents=frozenset(),
-                score_trace={"reason": "will_state_not_broken"},
+                score_trace={"reason": "will_state_blocks_opportunity"},
             )
 
         # ── Формула из Слом.md ────────────────────────────────────────────────

@@ -16,8 +16,8 @@ from __future__ import annotations
 import copy
 import logging
 import time
-from dataclasses import dataclass
-from typing import Any, Dict
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 import hashlib
 
@@ -56,15 +56,26 @@ class WorldSnapshot:
     # Frozen copy: {"npc_id": {"status": "MOVING", "path_waypoints": [...], ...}}
     active_traversals: Dict[str, Dict[str, Any]]
 
-    # ── Геометрия мира ────────────────────────────────────────────
-    # Стены для is_blocked_by_wall (EventCompiler читает вместо live scene_state)
-    spatial_walls: Any
-    # Мебель / препятствия (LOD0)
-    spatial_obstacles: Any
+    # (S203.1: поле перемещено в конец dataclass — см. behavioral ownership ниже)
 
     # ── Детерминизм ───────────────────────────────────────────────
     # RNG seed для воспроизведения jitter и других случайных выборов
     rng_seed: int
+
+    # ── Поведенческое владение (S203.1 / Stage 2A, shadow) ────────
+    # Frozen copy: {"npc_id": {"commitment_id": ..., "status": ..., ...}}
+    # Только АКТИВНЫЕ обязательства. History/ordinals — audit-трейл,
+    # не состояние мира в момент t: в снапшот не замораживаются.
+    # Optional без дефолта: совместимость с прямыми конструкторами тестов.
+    active_commitments: Optional[Dict[str, Dict[str, Any]]] = None
+
+    # ── Геометрия мира ────────────────────────────────────────────
+    # S212 FIX (чужая коллизия): блок в конце класса (поля без дефолта не могут
+    # стоять после дефолтных — TypeError на импорте). Дефолты: сцена без
+    # заявленной геометрии валидна. Стены для is_blocked_by_wall (EventCompiler).
+    spatial_walls: Any = None
+    # Мебель / препятствия (LOD0)
+    spatial_obstacles: Any = None
 
 
 def build_snapshot(
@@ -84,6 +95,8 @@ def build_snapshot(
     # Deep copy — гарантия что мутация scene_state не повлияет на снимок
     _npc_pos = copy.deepcopy(scene_state.get("npc_positions", {}))
     _active_travs = copy.deepcopy(scene_state.get("active_traversals", {}))
+    # S203.1 (Stage 2A): заморозка поведенческого владения (shadow-реестр).
+    _active_commitments = copy.deepcopy(scene_state.get("active_commitments", {}))
 
     # BUG-FB-029 FIX: Детерминированный snapshot_id и created_at (вместо wall-clock и uuid4).
     _seed_str = f"{tick}:{campaign_id}:{location_id}".encode("utf-8")
@@ -98,6 +111,7 @@ def build_snapshot(
         spatial_service=spatial_service,
         npc_positions=_npc_pos,
         active_traversals=_active_travs,
+        active_commitments=_active_commitments,
         spatial_walls=scene_state.get("spatial_walls"),
         spatial_obstacles=scene_state.get("spatial_obstacles"),
         rng_seed=rng_seed,

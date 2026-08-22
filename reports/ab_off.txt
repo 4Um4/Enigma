@@ -1,0 +1,98 @@
+[LLM_MANAGER] llama-server уже запущен.
+
+🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA
+   Режим: quick_debug
+   ADR-O-201 ФАЗА 2.5 — наблюдение за дрейфом в runtime
+
+
+============================================================
+DRIFT LABORATORY — Mode: quick_debug
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_bzw8utf7
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_bzw8utf7\saves
+
+--- MODE 0: Quick Debug (3 ticks) ---
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_bzw8utf7
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: quick_debug
+======================================================================
+
+  Всего сравнений (comparisons): 16
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 0.3 сек
+  Скорость: 56 сравнений/сек, 10.5 тиков/сек
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='blacksmith_orm', source_id='merchant_goran', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='soliloquy', source_id='thief_shadow', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='maid_lusya', source_id='tavern_keeper_tornin', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+
+  Сохранение отчётов в: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports
+  📊 CSV сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug.csv
+  📝 Markdown-отчёт сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug.md
+  📈 Графики сохранены: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug_*.png (3 файла)
+  📄 Лог работы сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug_2026-08-23_02-32-34.log
+
+============================================================
+📁 REPLAY SESSION RECORDED
+   Session ID: 4fd2eaeb-98ba-4908-946a-c41179f0b908
+   Команда для сравнения:
+   python -m tests.sandbox.SUPERBOX.run drift replay_compare 4fd2eaeb-98ba-4908-946a-c41179f0b908
+============================================================
+
+
+  ⏳ Недостаточно данных — нужно ещё ~99,984 сравнений
+     Текущий прогресс: 16 / 100 000

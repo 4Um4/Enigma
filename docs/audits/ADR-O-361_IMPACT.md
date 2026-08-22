@@ -20,10 +20,20 @@ trust, fear, memory, belief, decision, identity.
 - Ядро: ноль накладных расходов вне эксперимента.
 
 ## Sandbox Tests
-- `backend/tests/calibration_lab/test_m0_config_overlay.py` — M0-AC-006,
-  регрессия A1 (биндинги decision_hub), вложенность, неизвестная константа,
-  require_loaded, отсутствие cross-patch интернированных 0.15, dict-константа.
-- Далее: M0-AC-001…005 (пресеты, runner, SUPERBOX под overlay).
+- `test_m0_config_overlay.py` (9) — граница overlay; `test_m0_presets.py` (16) —
+  валидатор + контрольные пресеты; `test_m0_materializer.py` (9) — redirect/
+  patch/restore на реальном config/npc; `test_m0_runner.py` (3) — smoke
+  конвейера + replay-ядро + restore настроек; `test_m0_metrics.py` (8) — метрики;
+  `test_m0_acceptance.py` (5) — AC-001…004 + зонный отчёт; `test_m0_superbox.py`
+  (1) — AC-005 baseline-delta (pre-existing красный SUPERBOX-014 → skip
+  с диагнозом, чужая зона). Итог: 51 passed / 1 skipped / IPT 44/44.
+
+## Session S213 Closeout
+- RESOLVED в M0: DEBT-INTENT-SOURCE (датчики diversity/loop/responsiveness
+  переведены на канал ТЗ 14.2 IntentEventAdapter через ObservabilityTap;
+  писателя npc["intent"] в снапшоте загрузчика не существует); канал
+  «SQLite not initialized» (post-dispose страгглеры — final_quiesce).
+- Зонное открытие: idle → MANNEQUIN ∀ пресетов; условие ENIGMA = события.
 
 ## Rollback
 Удалить `backend/app/services/calibration/`, `backend/tests/calibration_lab/`,
