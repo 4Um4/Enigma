@@ -361,7 +361,10 @@ IPT: ✅ 44/44 (гейт-прогон). КРАСНЫЕ ИНВАРИАНТЫ: б�
 ### ⚛️ V0.5.3.8.3 — FOUNDATION FREEZE (после S208)
 Epistemic Core production path стабилизирован (S206: canonical testimonyreliability; S207: Observation Channel, два источника знания); Avatarownership восстановлен (S208); runtime mutation discipline доказана.Дальнейшее развитие переносится из архитектурного доказательства вGAMEPLAY VERTICAL SLICE.
 
-Запрещено до первого vertical slice: second-order ToM, новые epistemicабстракции, новые belief engines, ProphecyEngine, BeliefMerger,Semantic Cache, «универсальные» personality layers, расширение perception.R5 (41 blanket-except): P1 infrastructure checkpoint — открываетсяТОЛЬКО после первого полноценного игрового сценария с gameplay evidence.
+### S209: Vertical Slice, звено 1 — NPC Agency: Steal (ADR-O-361) | ✅ IPT 44/44
+🎯 Первое эмерджентное действие NPC: Shadow может решить украсть сам. Цепь мотив→кража→свидетельство→вера работает без единой инъекции.
+⚙️ Intent.STEAL (PROACTIVE) + unlock-ветка _is_intent_available (R6.3 — движок ждал первого потребителя) + _steal_affinity (archetype=thief→0.8 × desire; commoner→0.08; без npc_id-хардкодов). Маршрутизатор Фазы 6: windowed=(attack|steal) — steal не утекает в диалоговый слой. Windup 2 тика (STEAL_WINDUP_DURATION_TICKS; окно обнаружения). Фаза 7: object-action цель (кража целит в объект). Маппинг steal→THEFT (source=вор, whisper-radius честный). SUPERBOX-AGENCY-STEAL 6/6 (opportunity-гейт, контроль натуры, маршрутизация, материализация, эмерджентное Goran-замыкание belief=0.9, no-telepathy). DEBT-R3 закрыт. Инциденты: двойной патч, фантомная _intent_val, placeholder-скоринг, 3× ExposureLevel-угадывание, маршрутизатор-пожиратель — все пойманы (Pylance/сквозной тест), уроки в ADR-O-361_IMPACT.
+📁 models/npc_state (Intent.STEAL), svc/npc/decision_hub (affinity, unlock), svc/phases/post_decision (маршрутизатор, gate, Фаза 7 object-action), svc/events/intent_event_adapter (маппинг), dom/intent_profiles, core/constants, tests/sandbox/SUPERBOX/scenarios/agency_steal_test
 
 ---
 

@@ -164,6 +164,8 @@ class _TickContext:
     interpretation_snapshot: Optional[list] = None
     # Фаза 9: финальный снимок
     world_snapshot: Optional[Any] = None
+    # Stage 1 Task 1.3: Frozen WorldSnapshot per tick (producer = TickOrchestrator)
+    tick_snapshot: Optional[Any] = None
     # TZ-08 v0.2: interventions replace dm_ctx. Kernel не знает "player".
     interventions: list = field(default_factory=list)
     # BUG-CORE-003 FIX: Контекст игрока (HubEventContext) из GameLoop

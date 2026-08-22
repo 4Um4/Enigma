@@ -52,6 +52,16 @@ class DistortionProfile:
         }
 
 
+@dataclass(frozen=True)
+class Cause:
+    """Stage 1 Task 1.2: Provenance for state changes."""
+    source_event_id: Optional[UUID] = None
+    source_action_id: Optional[UUID] = None
+    source_belief_id: Optional[UUID] = None
+    source_memory_id: Optional[UUID] = None
+    trigger_chain: Tuple[UUID, ...] = ()
+
+
 @dataclass
 class CausalEntry:
     """
@@ -71,6 +81,7 @@ class CausalEntry:
     emotional_impact: float = (
         0.0  # сила эмоционального удара [0..1], для генерации drives
     )
+    cause: Optional[Cause] = None  # Stage 1 Task 1.2
 
     def to_dict(self) -> Dict[str, Any]:
         """Сериализация для JSON persistence и API."""
@@ -82,11 +93,22 @@ class CausalEntry:
             "tick": self.tick,
             "persistence_time": self.persistence_time,
             "emotional_impact": self.emotional_impact,
+            "cause": {
+                "source_event_id": str(self.cause.source_event_id) if self.cause and self.cause.source_event_id else None,
+                "source_action_id": str(self.cause.source_action_id) if self.cause and self.cause.source_action_id else None,
+            } if self.cause else None,
         }
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "CausalEntry":
         """Десериализация из JSON persistence."""
+        _cause_dict = d.get("cause")
+        _cause = None
+        if _cause_dict and isinstance(_cause_dict, dict):
+            _cause = Cause(
+                source_event_id=UUID(_cause_dict["source_event_id"]) if _cause_dict.get("source_event_id") else None,
+                source_action_id=UUID(_cause_dict["source_action_id"]) if _cause_dict.get("source_action_id") else None,
+            )
         return cls(
             npc_id=d.get("npc_id", ""),
             field=d.get("field", ""),
@@ -95,4 +117,5 @@ class CausalEntry:
             tick=int(d.get("tick", 0)),
             persistence_time=int(d.get("persistence_time", 0)),
             emotional_impact=float(d.get("emotional_impact", 0.0)),
+            cause=_cause,
         )

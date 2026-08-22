@@ -764,6 +764,23 @@ class TickOrchestrator:
                 and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
             ]
 
+        # Stage 1 Task 1.3: Создаём замороженный снапшот в начале тика.
+        # TickOrchestrator — единственный producer. EventCompiler — consumer.
+        try:
+            from app.models.world_snapshot import build_snapshot
+            _spatial_svc = self._resolve_spatial_service(ctx)
+            ctx.tick_snapshot = build_snapshot(
+                tick=ctx.tick_number,
+                campaign_id=ctx.campaign_id,
+                location_id=ctx.scene_state.get("location_id", ""),
+                spatial_service=_spatial_svc,
+                scene_state=ctx.scene_state,
+                rng_seed=ctx.tick_number,
+            )
+        except Exception as e:
+            logger.warning(f"[STAGE_1] Failed to build tick snapshot: {e}")
+            ctx.tick_snapshot = None
+
         self._snapshot_positions_before(ctx) # PRE-TICK
         self._phase_0_simulation(ctx) # 0
         

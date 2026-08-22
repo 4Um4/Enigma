@@ -13,10 +13,28 @@ from app.services.calibration.config_overlay import (
     overlay_active,
     overlay_constants,
 )
+from app.services.calibration.preset_io import (
+    CalibrationPresetError,
+    NpcOverride,
+    Preset,
+    load_preset,
+)
+from app.services.calibration.preset_materializer import (
+    MaterializationError,
+    MaterializedNpcConfig,
+    materialize_preset,
+)
 
 __all__ = [
     "CalibrationOverlayError",
+    "CalibrationPresetError",
+    "MaterializationError",
+    "MaterializedNpcConfig",
+    "NpcOverride",
+    "Preset",
     "audit_constant_bindings",
+    "load_preset",
+    "materialize_preset",
     "overlay_active",
     "overlay_constants",
 ]

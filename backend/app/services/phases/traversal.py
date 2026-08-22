@@ -178,14 +178,18 @@ def apply_with_shadow_observation(
 
     if _spatial_changes and orchestrator._spatial_service:
         try:
-            _snapshot = build_snapshot(
-                tick=ctx.tick_number,
-                campaign_id=ctx.campaign_id,
-                location_id=ctx.scene_state.get("location_id", ""),
-                spatial_service=orchestrator._spatial_service,
-                scene_state=ctx.scene_state,
-                rng_seed=ctx.tick_number,
-            )
+            # Stage 1 Task 1.3: Используем снапшот из TickOrchestrator (единственный producer)
+            _snapshot = getattr(ctx, "tick_snapshot", None)
+            if not _snapshot:
+                # Fallback для обратной совместимости (если ctx.tick_snapshot не задан)
+                _snapshot = build_snapshot(
+                    tick=ctx.tick_number,
+                    campaign_id=ctx.campaign_id,
+                    location_id=ctx.scene_state.get("location_id", ""),
+                    spatial_service=orchestrator._spatial_service,
+                    scene_state=ctx.scene_state,
+                    rng_seed=ctx.tick_number,
+                )
             logger.debug(
                 f"[GATE_D1] phase={phase_label} snapshot_created={_snapshot is not None}"
             )

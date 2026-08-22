@@ -121,6 +121,7 @@ class Intent(str, Enum):
     SPREAD_RUMOR = "spread_rumor"  # распространить слух (Social Graph)
     CALL_FOR_HELP = "call_for_help"  # позвать на помощь
     CHANGE_ROLE = "change_role"  # сменить роль (Role Transition)
+    STEAL = "steal"  # скрытое действие: кража (unlockable, OpportunityEngine, S209)
 
 
 class WillState(str, Enum):

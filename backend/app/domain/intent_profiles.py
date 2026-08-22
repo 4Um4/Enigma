@@ -14,6 +14,9 @@ INTENT_PROFILES: Dict[str, Dict[str, Any]] = {
     "threaten": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": True},
     "report": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": True},
     "spread_rumor": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": True},
+    # S209: кража не говорит и не создаёт Claim — эпистемика идёт через
+    # ObservationSubscriber (THEFT, ADR-O-360). LLM не нужна: действие немое.
+    "steal": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": False},
 }
 
 def requires_dialogue_context(intent_type: str) -> bool:

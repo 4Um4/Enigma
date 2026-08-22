@@ -32,6 +32,7 @@ class IntentEventAdapter:
         "spread_rumor": EventType.SPREAD_RUMOR,
         "call_for_help": EventType.CALL_FOR_HELP,
         "change_role": EventType.CHANGE_ROLE,
+        "steal": EventType.THEFT,  # S209: материализация кражи NPC (источник = вор)
     }
 
     @staticmethod

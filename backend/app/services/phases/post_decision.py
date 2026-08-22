@@ -36,8 +36,9 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     for intent in ctx.communication_intents:
         # ADR-O-313: Перехват разговорных интентов в Universal Task Layer.
         # Разговор больше не является немедленным событием. Это задача (QueuedTask).
-        # Всё, что не атака (уходит в Windup), считается диалогом/социальным действием.
-        if getattr(intent, "intent_type", "") != "attack":  # noqa: ENIGMA002
+        # Windowed-действия (attack, steal) уходят в Windup (S209), всё остальное —
+        # диалог/социальное действие.
+        if getattr(intent, "intent_type", "") not in ("attack", "steal"):  # noqa: ENIGMA002
             from app.domain.communication import DialogueRequest
             from app.domain.execution import QueuedTask, TaskKind, TaskPriority
 
@@ -206,8 +207,9 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
 
         event = adapter.to_event(intent)
 
-        # ADR-O-310: Windup Write Gate
-        if getattr(intent, "intent_type", "") == "attack":  # noqa: ENIGMA002
+        # ADR-O-310: Windup Write Gate (S209: параметризован attack|steal)
+        _gate_intent_type = getattr(intent, "intent_type", "")  # noqa: ENIGMA002
+        if _gate_intent_type in ("attack", "steal"):
             from app.domain.action_windup import ActionWindup, WindupStatus
 
             _actor_id = getattr(intent, "speaker", "")  # noqa: ENIGMA002
@@ -222,7 +224,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 # B1.5-FIX: Защита от накопления (Deduplication).
                 _has_active = any(
                     w.target_id == _target_id
-                    and w.action_type == "attack"
+                    and w.action_type == _gate_intent_type
                     and w.status == WindupStatus.PENDING
                     for w in orchestrator._windup_registry[_reg_key]
                 )
@@ -233,15 +235,24 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     _intent_id = uuid.uuid4().hex
                     orchestrator._pending_intents[_intent_id] = intent
 
-                    from app.core.constants import ATTACK_WINDUP_DURATION_TICKS
+                    from app.core.constants import (
+                        ATTACK_WINDUP_DURATION_TICKS,
+                        STEAL_WINDUP_DURATION_TICKS,
+                    )
 
-                    # Создаём окно подготовки (BUG-P3-07: длительность вынесена в константу)
+                    # S209: steal — windowed action: 2 тика подкрадывания =
+                    # окно, где свидетель может заметить подготовку (драматургия slice).
+                    _is_steal = _gate_intent_type == "steal"
                     windup = ActionWindup(
                         actor_id=_actor_id,
                         target_id=_target_id,
-                        action_type="attack",
+                        action_type=_gate_intent_type,
                         started_tick=ctx.tick_number,
-                        duration_ticks=ATTACK_WINDUP_DURATION_TICKS,
+                        duration_ticks=(
+                            STEAL_WINDUP_DURATION_TICKS
+                            if _is_steal
+                            else ATTACK_WINDUP_DURATION_TICKS
+                        ),
                         status=WindupStatus.PENDING,
                         held_intent_id=_intent_id,  # DEBT-310.1: Pure temporal gate
                     )
@@ -258,6 +269,12 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     logger.info(
         f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created"
     )
+
+
+def _gate_type_is_object_action(action_type: str) -> bool:
+    """S209: действия, чья цель — объект мира, а не сущность (кража).
+    Расширение списка — с мини-ADR на каждое новое действие."""
+    return action_type in ("steal",)
 
 
 def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
@@ -325,6 +342,13 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                             True,
                                             "target_player_missing",
                                         )
+                                elif _gate_type_is_object_action(windup.action_type):
+                                    # S209: кража целит в ОБЪЕКТ мира (сундук, золото),
+                                    # не в сущность. Валидация существования живой цели
+                                    # неприменима: объект не обязан быть в npc_positions.
+                                    # Наличие цели — ответственность DecisionHub
+                                    # (target resolve на этапе выбора интента).
+                                    pass
                                 else:
                                     _target_dict = next(
                                         (

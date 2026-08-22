@@ -56,7 +56,7 @@ from app.models.physical import (
     Wound,
     WoundSeverity,
 )
-from app.models.psychological import CausalEntry
+from app.models.psychological import CausalEntry, Cause
 from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.decision_hub import DecisionResult
@@ -131,6 +131,7 @@ class StateApplicator:
         campaign_id: str,
         current_tick: int = 0,
         resolution_outcome: Optional["ResolutionOutcome"] = None,
+        cause: Optional[Cause] = None,
     ) -> NPCState:
         """
         Применяет DecisionResult атомарно.
@@ -139,6 +140,7 @@ class StateApplicator:
         
         resolution_outcome: Спящее поле для ResolutionEngine (Фаза 2). 
         None = детерминированный путь (Фаза 0/1).
+        cause: Stage 1 Task 1.2 — provenance для CausalLedger.
         """
         # Глубокая копия — атомарность через замену целиком
         new_state = copy.deepcopy(state)
@@ -169,7 +171,7 @@ class StateApplicator:
             self._apply_progress(
                 new_state, _legacy_deltas
             )  # счётчик реального прогресса
-            self._apply_deltas(new_state, _legacy_deltas, campaign_id)
+            self._apply_deltas(new_state, _legacy_deltas, campaign_id, cause=cause)
 
             # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
             d = _legacy_deltas
@@ -412,6 +414,7 @@ class StateApplicator:
                     delta=-outcome.damage,
                     source=f"{outcome.damage_type.value}_from_{outcome.attacker_id}",
                     tick=current_tick,
+                    cause=cause,
                 )
             )
             if len(new_state.causal_ledger) > 20:
@@ -523,7 +526,7 @@ class StateApplicator:
         """
         new_state = copy.deepcopy(state)
         try:
-            self._apply_deltas(new_state, deltas, campaign_id)
+            self._apply_deltas(new_state, deltas, campaign_id, cause=cause)
             return new_state
         except Exception as e:
             # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
@@ -586,6 +589,7 @@ class StateApplicator:
         state: NPCState,
         deltas: StateDeltas,
         campaign_id: str,
+        cause: Optional[Cause] = None,
     ) -> None:
         """Применяет числовые дельты к state и RelationshipStore."""
         # --- v2 payload extraction (с фолбэком на v1 поля) ---
@@ -809,6 +813,7 @@ class StateApplicator:
                     delta=deltas.stress_delta_effective,
                     source=_source,
                     tick=_tick,
+                    cause=cause,
                     emotional_impact=round(_impact, 4),
                 )
             )
@@ -823,6 +828,7 @@ class StateApplicator:
                     delta=trust_delta,
                     source=_source,
                     tick=_tick,
+                    cause=cause,
                     emotional_impact=round(_impact, 4),
                 )
             )
@@ -836,6 +842,7 @@ class StateApplicator:
                     source=_source,
                     tick=_tick,
                     emotional_impact=round(_impact, 4),
+                    cause=cause,
                 )
             )
 
@@ -1226,6 +1233,7 @@ class StateApplicator:
         deltas: List[StateDeltas],
         all_npcs_raw: List[dict[str, Any]],
         campaign_id: str,
+        cause: Optional[Cause] = None,
     ) -> None:
         """Единая точка применения всех накопленных дельт.
 
@@ -1290,13 +1298,14 @@ class StateApplicator:
                 key=lambda d: _DOMAIN_APPLICATION_ORDER.get(d.domain if d.domain else DeltaDomain.PERCEPTION, _DEFAULT_ORDER),
             )
             for delta in sorted_deltas:
-                self._apply_delta_to_raw(npc_dict, delta, campaign_id)
+                self._apply_delta_to_raw(npc_dict, delta, campaign_id, cause=cause)
 
     def _apply_delta_to_raw(
         self,
         npc_dict: Dict[str, Any],
         deltas: StateDeltas,
         campaign_id: str,
+        cause: Optional[Cause] = None,
     ) -> None:
         """Временный мост (до L1 Materialization в Orchestrator).
         Конвертирует dict → NPCState и передаёт в чистый Commit Kernel.
@@ -1354,7 +1363,7 @@ class StateApplicator:
 
         # L3: Pure fold (мутация state)
         # try/except УНИЧТОЖЕН. Если _apply_deltas падает — падает весь тик.
-        self._apply_deltas(state, deltas, campaign_id)
+        self._apply_deltas(state, deltas, campaign_id, cause=cause)
 
         # L5: Post-Commit Validation Gate (No Repair Principle)
         # L5A: Structural Existence — ADR-139 Single Write Authority.

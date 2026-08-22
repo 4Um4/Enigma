@@ -80,6 +80,7 @@ PROACTIVE_INTENTS: frozenset[str] = frozenset(
         Intent.SPREAD_RUMOR,
         Intent.CALL_FOR_HELP,
         Intent.CHANGE_ROLE,
+        Intent.STEAL,  # S209: кража — проактивна (WORLD_TICK only); окно windup даёт шанс обнаружения
         Intent.TALK,  # S118 FIX: Диалоги теперь проактивны (TZ §4.1)
     }
 )
@@ -852,6 +853,20 @@ class DecisionHub:
     # Action Space — enum + фильтр доступности (решение №4)
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _steal_affinity(self, state: NPCState, personality: NPCProfileL0) -> float:
+        """S209: предрасположенность NPC к краже в разблокированный момент.
+
+        Архетип (NPCProfileL0.archetype, L0 — не меняется за кампанию) даёт базу:
+        thief → 1.0, прочие → 0.1. desire-драйв усиливает (0.5 + desire ∈ [0.5, 1.5]).
+        Никаких npc_id-хардкодов: «Shadow вор», потому что его архетип — thief.
+        """
+        _archetype = getattr(personality, "archetype", "") or ""
+        _base = 1.0 if _archetype == "thief" else 0.1
+        _desire = float(
+            (getattr(personality, "drives_base", None) or {}).get("desire", 0.25)
+        )
+        return round(_base * (0.5 + _desire), 3)
+
     def _get_possible_intents(
         self,
         state: NPCState,
@@ -904,6 +919,13 @@ class DecisionHub:
             if intent in (Intent.FLEE.value, Intent.OBSERVE.value, Intent.TALK.value):
                 return True
             # Скрытые интенты: разблокируются только через OpportunityEngine
+            return intent in opportunity.unlocked_intents
+
+        # S209 (Vertical Slice): скрытые интенты (STEAL) доступны любому NPC,
+        # если момент разблокирован OpportunityEngine. Willingness определяется
+        # скорингом (opportunity_mod + archetype-weight), не фильтром —
+        # эмерджентность: красть МОЖЕТ каждый, РЕШАЕТ — расчёт момента и натура.
+        if intent == Intent.STEAL.value:
             return intent in opportunity.unlocked_intents
 
         if state.will_state == WillState.LOYAL:
@@ -1272,12 +1294,19 @@ class DecisionHub:
                 -fear * risk * 0.3, 4
             )  # лёгкий штраф для всего остального
 
-        # R6.3 — буст разблокированных интентов пропорционален opportunity_score.
         # Делает скрытое действие конкурентоспособным без ломания баланса формулы.
-        # Буст даётся только если интент разблокирован сломленным NPC
+        # Буст даётся только если интент разблокирован (R6.3).
         opportunity_mod = (
             opportunity.score if intent in opportunity.unlocked_intents else 0.0
         )
+
+        # S209 (Vertical Slice): вес STEAL — archetype-weighted, не npc_id-хардкод.
+        # Эмерджентная затравка: красть МОЖЕТ каждый разблокированный моментом,
+        # РЕШАЕТ — натура. Вор использует весь opportunity-буст; прочие — почти нет.
+        if intent == Intent.STEAL.value and opportunity_mod > 0.0:
+            opportunity_mod = round(
+                opportunity_mod * self._steal_affinity(state, personality), 4
+            )
 
         # Social battery modifier (предшественник Homeostasis)
         social_mod = 0.0  # ADR-O-312: social_satiation deprecated, EMA handles this via behavior_modifiers

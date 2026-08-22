@@ -10,6 +10,17 @@ path: backend/app/errors.py
 from typing import List
 
 
+class MissingProvenanceError(Exception):
+    """
+    Поднимается при попытке применить state changes без указания cause (Task 1.2).
+    """
+    def __init__(self, method_name: str):
+        super().__init__(
+            f"Missing provenance in {method_name}. "
+            f"Cause is required for state mutation (Stage 1 Task 1.2)."
+        )
+
+
 class ArchitecturalViolationError(Exception):
     """
     Поднимается при попытке прямой мутации NPCState вне разрешённых писателей (StateApplicator).

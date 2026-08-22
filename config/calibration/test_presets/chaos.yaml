@@ -1,0 +1,26 @@
+# Контрольный пресет ХАОС (M0, План 2.4): крайний случай — NPC меняется
+# хаотично, теряя идентичность, но БЕЗ технических сбоев (NaN/инварианты
+# = зона BROKEN, не ХАОС). Ожидание (M0-AC-002): character_change_rate
+# > 0.85, loop_rate < 0.05.
+meta:
+  preset_id: chaos
+  description: "ХАОС: потеря идентичности без технических сбоев"
+constants:
+  # Черты активируются от любого дуновения, модификаторы сгорают мгновенно.
+  TRAIT_DECAY_RATE: 0.20
+  THETA_UP: 0.05
+  THETA_DOWN: 0.95
+  # Решения скачут: инерции нет, шум огромный, паника переключает легко.
+  INTENT_INERTIA_WEIGHT: 0.05
+  INTENT_INERTIA_MAX_TICKS: 1
+  REACTIVE_URGENCY_THRESHOLD: 0.50
+  SCORE_NOISE_RANGE: 0.40
+  # Эмоции не затухают, угроза раздувается.
+  AFFECT_DECAY_BASE_RATE: 0.50
+  THREAT_AMPLIFICATION_FACTOR: 0.80
+  # Обида раздувается: старые раны окрашивают новые события.
+  RESENTMENT_BIAS_FACTOR: 0.80
+npc_overrides:
+  "*":
+    psyche:
+      identity_rigidity: 0.05

@@ -189,6 +189,11 @@ NPC формирует `SpatialTargetIntent`. `SpatialTargetResolver` разре
 - ❌ **Taboo:** `event.radius` как контракт наблюдения (DEBT-R1); наблюдение без LOS/дистанции; `DIRECT_OBSERVATION_RELIABILITY >= 1.0`; расширение `_OBSERVABLE_EVENT_PREDICATES` без детерминированного маппинга на Predicate.
 - 📁 `svc/events/observation_subscriber.py`, `svc/npc/trust_based_reliability_provider.py`
 
+**L19.1: NPC Action Materialization: Steal** (ADR-O-362, S209)Первое эмерджентное действие NPC: Intent.STEAL — windowed (2 тика), unlockable (OpportunityEngine R6.3: score ≥ порога), archetype-weighted (_steal_affinity: thief→0.8, прочие→0.08 × desire; ЗАПРЕЩЁН npc_id-хардкод). Материализация: _INTENT_EVENT_MAP["steal"] → EventType.THEFT (source=вор, radius из ExposureLevel.from_semantic("whisper") — честная мембрана). Windup-релиз: объектная цель (_gate_type_is_object_action) минует сущностную валидацию. Эпистемика — только через ObservationSubscriber (produces_claim=False).
+
+❌ Taboo: npc_id-хардкоды affinity; steal в диалоговом слое (TaskScheduler); THEFT-payload без target_id; расширение object-action списка без mini-ADR.
+📁 svc/npc/decision_hub (_steal_affinity, unlock-ветка), svc/phases/post_decision (маршрутизатор, gate, Фаза 7), svc/events/intent_event_adapter, models/npc_state (Intent.STEAL), `dom/intent_profiles
+
 ---
 
 ## DOM-07: FRONTEND, PRESENTATION & INPUT

@@ -1,0 +1,29 @@
+# Контрольный пресет ЗОЛОТАЯ ОБЛАСТЬ (M0, План 2.4): целевая зона ENIGMA
+# — динамика при сохранении идентичности. Ожидание (M0-AC-003):
+# character_change_rate ∈ [0.3, 0.8], loop_rate < 0.15.
+# Отклонения от Плана 2.4: event_memory_decay_rate исключён (per-event
+# поле данных); resentment_bias_factor исключён (имя не верифицировано).
+meta:
+  preset_id: enigma_golden
+  description: "ЗОЛОТАЯ ОБЛАСТЬ: целевая трагикомическая динамика"
+constants:
+  # Личность пластична, но с гистерезисом.
+  TRAIT_DECAY_RATE: 0.018
+  THETA_UP: 0.55
+  THETA_DOWN: 0.20
+  # Решения имеют характер: инерция есть, шум умеренный, паника редка.
+  INTENT_INERTIA_WEIGHT: 0.20
+  INTENT_INERTIA_MAX_TICKS: 10
+  REACTIVE_URGENCY_THRESHOLD: 0.78
+  SCORE_NOISE_RANGE: 0.08
+  # Эмоции живут достаточно долго, чтобы строить цепочки.
+  AFFECT_DECAY_BASE_RATE: 0.06
+  # Предательство больно, угроза ощущается — но не парализует.
+  THREAT_AMPLIFICATION_FACTOR: 0.18
+  DISTRUST_STRESS_BOOST: 9.0
+  # Обида живёт, но не доминирует (равно дефолту — пиннинг для явности).
+  RESENTMENT_BIAS_FACTOR: 0.20
+npc_overrides:
+  "*":
+    psyche:
+      identity_rigidity: 0.42

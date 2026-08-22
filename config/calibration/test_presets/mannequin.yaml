@@ -1,0 +1,24 @@
+# Контрольный пресет МАНЕКЕН (M0, План 2.4): крайний случай — NPC почти
+# не меняется. Ожидание по метрикам (M0-AC-001): character_change_rate
+# < 0.15, loop_rate > 0.5. Пресет = гипотеза; реальные значения дадут
+# метрики лаборатории (ADR-O-361).
+meta:
+  preset_id: mannequin
+  description: "МАНЕКЕН: минимальная динамика личности (фиксированная точка)"
+constants:
+  # Черты почти не активируются и быстро гаснут.
+  TRAIT_DECAY_RATE: 0.001
+  THETA_UP: 0.95
+  THETA_DOWN: 0.05
+  # Решения прилипают: инерция почти абсолютная, шум минимален.
+  INTENT_INERTIA_WEIGHT: 0.85
+  INTENT_INERTIA_MAX_TICKS: 30
+  REACTIVE_URGENCY_THRESHOLD: 0.99
+  SCORE_NOISE_RANGE: 0.01
+  # Эмоции затухают мгновенно.
+  AFFECT_DECAY_BASE_RATE: 0.01
+npc_overrides:
+  # Жёсткость личности на максимум для ВСЕХ NPC кампании.
+  "*":
+    psyche:
+      identity_rigidity: 0.95
