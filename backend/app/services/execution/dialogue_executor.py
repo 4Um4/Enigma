@@ -94,7 +94,15 @@ class DialogueExecutor:
             # S199.2: Детерминированная материализация для claim-producing интентов без LLM
             text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
         else:
+            # ENIGMA-ARCH-022: LLM Execution Timeout.
+            # Использует существующий cancellation boundary (router._abort_generation).
+            # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
+            import threading
+            _L_TIMEOUT_SEC = 30.0
+            _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+            
             try:
+                _timer.start()
                 text = self._generate_with_router(task, req)
             except DialogueContractViolation as e:
                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
@@ -107,6 +115,18 @@ class DialogueExecutor:
                     error_message=str(e)
                 )
                 return
+            except Exception as e:
+                logger.error(f"[DIALOGUE_EXEC] LLM call failed (timeout or error) for {task.owner_id}: {e}")
+                yield Artifact(
+                    task_id=task.task_id,
+                    success=False,
+                    result_type="error",
+                    data={},
+                    error_message=f"LLM execution failed: {e}"
+                )
+                return
+            finally:
+                _timer.cancel()
 
         if not text:
             yield Artifact(

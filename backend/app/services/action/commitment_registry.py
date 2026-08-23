@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from app.domain.action_commitment import (
+    ACTIVE_COMMITMENT_STATUSES,
     CAUSE_UNKNOWN_LEGACY_SOURCE,
     COMMITMENT_HISTORY_CAP_PER_NPC,
     build_commitment_dict,
@@ -59,9 +60,28 @@ class CommitmentRegistry:
         """Проекция владения: 'есть ли у NPC поведенческий владелец'.
 
         Stage 2A §7: замена сниффинга traversal==MOVING (Н-35).
-        Потребители (npc_tick_pipeline) переподключаются в S203.2 — не раньше.
+        S203.2 (Мастер): status ∈ ACTIVE_COMMITMENT_STATUSES — COMMITTED
+        считается занятым, commitment race исключён.
         """
-        return npc_id in (scene_state.get(_KEY_ACTIVE) or {})
+        entry = (scene_state.get(_KEY_ACTIVE) or {}).get(npc_id)
+        return entry is not None and entry.get("status") in ACTIVE_COMMITMENT_STATUSES
+
+    @staticmethod
+    def has_behavioral_owner(scene_state: Dict[str, Any], npc_id: str) -> bool:
+        """S203.2: registry-first проекция с legacy-fallback (миграция
+        npc_tick_pipeline, Мастер: сейчас, как рефактор).
+
+        Нет записи в реестре → старая формула traversal==MOVING (Н-35).
+        Гарантии: traversal-only реестр → NEW == OLD (зеркало покрывает все
+        материализации); FLAG=OFF (реестр пуст) → fallback → байтовая
+        нейтральность no-op-контракта сохранена. Чтение флагом не гейтится:
+        проекция над пустым реестром безопасна.
+        """
+        entry = (scene_state.get(_KEY_ACTIVE) or {}).get(npc_id)
+        if entry is not None:
+            return entry.get("status") in ACTIVE_COMMITMENT_STATUSES
+        trav = (scene_state.get("active_traversals") or {}).get(npc_id, {})
+        return trav.get("status") == "MOVING"
 
     @staticmethod
     def get_active(

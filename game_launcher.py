@@ -47,109 +47,196 @@ _BACKEND_URL = "http://localhost:8000"
 _BACKEND_STARTUP_TIMEOUT = 120  # секунд ожидания (LLM грузится долго)
 
 
-def _ensure_backend_running() -> subprocess.Popen:
-    """
-    Запускает FastAPI, рисует экран загрузки и ждёт готовности.
-    Возвращает Popen для управления жизненным циклом.
-    """
+def _ensure_llm_running() -> subprocess.Popen:
+    """Запускает llama-server.exe локально, если он ещё не запущен."""
     import urllib.request
-    import time
-    import pygame
     
-    # Локальный импорт конфига (после настройки sys.path в main)
+    # Локальный импорт конфига
     from app.core.config import settings as _enigma_settings  # type: ignore
-    _api_host = _enigma_settings.api_host
-    _api_port = _enigma_settings.api_port
-    global _BACKEND_URL
-    _BACKEND_URL = f"http://localhost:{_api_port}"
-
+    _llm_port = getattr(_enigma_settings, "llama_cpp_port", 8181)
+    _llm_url = f"http://localhost:{_llm_port}/health"
+    
     # Проверяем — уже запущен?
     try:
-        with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
+        with urllib.request.urlopen(_llm_url, timeout=2) as resp:
             if resp.status == 200:
-                print("  ✓ Backend уже запущен")
+                print("  ✓ LLM сервер уже запущен")
                 return None
     except Exception:
-        pass  # backend не запущен — это норма при первичном запуске
-
-    _cds_log_for_subprocess = Path(_BACKEND_DIR) / "logs" / "cds_backend.log"
-    _cds_log_for_subprocess.parent.mkdir(parents=True, exist_ok=True)
-    _subprocess_log = open(str(_cds_log_for_subprocess), "a", encoding="utf-8")
-    
+        pass # LLM не запущен, это норма
+        
+    # Ищем исполняемый файл llama-server
+    _llm_exe = os.path.join(_ROOT, "Models LLM", "llama", "llama-server.exe")
+    if not os.path.exists(_llm_exe):
+        _llm_exe = os.path.join(_ROOT, "Models LLM", "llama", "main.exe")
+        if not os.path.exists(_llm_exe):
+            print("  ✗ llama-server.exe не найден. LLM не будет запущен.")
+            return None
+            
+    # Берем путь к модели из настроек бэкенда
+    _model_path = getattr(_enigma_settings, "llama_cpp_model_path", os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"))
+    if not os.path.exists(_model_path):
+        print(f"  ✗ Файл модели не найден: {_model_path}. LLM не будет запущен.")
+        return None
+        
     _creation_flags = 0
     if sys.platform == 'win32':
         _creation_flags = 0x08000000  # CREATE_NO_WINDOW
         
-    _env = os.environ.copy()
-    _env["PYTHONIOENCODING"] = "utf-8"
-    _env["PYTHONUTF8"] = "1"
+    # Лог для LLM
+    _llm_log_path = Path(_ROOT) / "backend" / "logs" / "llama_server.log"
+    _llm_log_path.parent.mkdir(parents=True, exist_ok=True)
+    _llm_log = open(str(_llm_log_path), "a", encoding="utf-8")
+    
+    try:
+        _gpu_layers = getattr(_enigma_settings, "gpu_layers", 35)
+    except Exception:
+        _gpu_layers = 35
         
     proc = subprocess.Popen(
         [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "app.main:app",
-            "--host",
-            _api_host,
-            "--port",
-            str(_api_port),
+            _llm_exe,
+            "--host", "127.0.0.1",
+            "--port", str(_llm_port),
+            "-m", _model_path,
+            "-c", "8192",
+            "-ngl", str(_gpu_layers),
+            "--metrics"
         ],
-        cwd=_BACKEND_DIR,
-        stdout=_subprocess_log,
-        stderr=_subprocess_log,
-        creationflags=_creation_flags,
-        env=_env,
+        cwd=os.path.dirname(_llm_exe),
+        stdout=_llm_log,
+        stderr=_llm_log,
+        creationflags=_creation_flags
     )
+    print(f"  ○ Запуск LLM сервера (PID {proc.pid})...")
+    return proc
 
-    print(f"  ○ Запуск backend ({_BACKEND_URL})... (ожидание готовности)")
-    
-    # Инициализируем экран загрузки
+
+def _ensure_servers_running() -> tuple:
+    """Запускает LLM и FastAPI, рисует экран загрузки и ждёт готовности обоих."""
+    import urllib.request
+    import time
+    import pygame
+
+    from app.core.config import settings as _enigma_settings  # type: ignore
+    _api_host = _enigma_settings.api_host
+    _api_port = _enigma_settings.api_port
+    _llm_port = getattr(_enigma_settings, "llama_cpp_port", 8181)
+    global _BACKEND_URL
+    _BACKEND_URL = f"http://localhost:{_api_port}"
+
+    # 1. Запускаем LLM в фоне (Popen не блокирует поток)
+    llm_proc = _ensure_llm_running()
+
+    # 2. Проверяем — уже запущен ли Backend?
+    backend_proc = None
+    try:
+        with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
+            if resp.status == 200:
+                print("  ✓ Backend уже запущен")
+                backend_proc = None
+    except Exception:
+        # Backend не запущен — запускаем
+        _cds_log_for_subprocess = Path(_BACKEND_DIR) / "logs" / "cds_backend.log"
+        _cds_log_for_subprocess.parent.mkdir(parents=True, exist_ok=True)
+        _subprocess_log = open(str(_cds_log_for_subprocess), "a", encoding="utf-8")
+
+        _creation_flags = 0
+        if sys.platform == 'win32':
+            _creation_flags = 0x08000000  # CREATE_NO_WINDOW
+
+        _env = os.environ.copy()
+        _env["PYTHONIOENCODING"] = "utf-8"
+        _env["PYTHONUTF8"] = "1"
+
+        backend_proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "app.main:app",
+                "--host",
+                _api_host,
+                "--port",
+                str(_api_port),
+            ],
+            cwd=_BACKEND_DIR,
+            stdout=_subprocess_log,
+            stderr=_subprocess_log,
+            creationflags=_creation_flags,
+            env=_env,
+        )
+        print(f"  ○ Запуск backend ({_BACKEND_URL})...")
+
+    # 3. Инициализируем экран загрузки
     screen = pygame.display.get_surface()
     if not screen:
         screen = pygame.display.set_mode((800, 600))
-        pygame.display.set_caption("Загрузка Enigma...")
-    
+        pygame.display.set_caption("Загрузка Bloodloom...")
+
     font = pygame.font.SysFont("Arial", 24)
     clock = pygame.time.Clock()
-    
+
+    _backend_ok = False
+    _llm_ok = (llm_proc is None)  # Если LLM не запущен нами (уже шел или ошибка), не ждем его
+
     for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
-        # Обработка событий Pygame, чтобы окно не зависало (Not Responding)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                proc.terminate()
+                if backend_proc: backend_proc.terminate()
+                if llm_proc: llm_proc.terminate()
                 pygame.quit()
                 sys.exit(0)
-                
-        # Рисуем экран загрузки
+
         screen.fill((20, 20, 20))
         loading_text = font.render("Идёт загрузка мира...", True, (200, 200, 200))
         screen.blit(loading_text, (50, 50))
-        
-        # Прогресс-бар
+
         progress = _attempt / _BACKEND_STARTUP_TIMEOUT
         pygame.draw.rect(screen, (50, 50, 50), (50, 100, 700, 20))
         pygame.draw.rect(screen, (0, 120, 200), (50, 100, int(700 * progress), 20))
-        
-        sec_text = font.render("Идёт загрузка мира...", True, (150, 150, 150))
+
+        status_text = "Ожидание AI-модели..." if not _llm_ok else "Ожидание Backend..."
+        sec_text = font.render(status_text, True, (150, 150, 150))
         screen.blit(sec_text, (50, 130))
         pygame.display.flip()
         clock.tick(30)
-        
-        if proc.poll() is not None:
-            print(f"\n  ✗ Backend процесс упал с кодом {proc.returncode}. Проверьте лог: {_cds_log_for_subprocess}")
-            return None
-            
-        try:
-            with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
-                if resp.status == 200:
-                    print("\n  ✓ Backend готов к работе")
-                    return proc
-        except Exception:
-            pass
-            
-    print(f"\n  ⚠ Backend не ответил за {_BACKEND_STARTUP_TIMEOUT}с")
-    return proc
+
+        if backend_proc is not None and backend_proc.poll() is not None:
+            print(f"\n  ✗ Backend процесс упал с кодом {backend_proc.returncode}.")
+            backend_proc = None
+
+        if llm_proc is not None and llm_proc.poll() is not None:
+            print(f"\n  ✗ LLM процесс упал с кодом {llm_proc.returncode}.")
+            llm_proc = None
+
+        if not _backend_ok and backend_proc is not None:
+            try:
+                with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
+                    if resp.status == 200:
+                        _backend_ok = True
+                        print("\n  ✓ Backend готов к работе")
+            except Exception:
+                pass
+        elif backend_proc is None and not _backend_ok:
+            _backend_ok = True
+
+        if not _llm_ok and llm_proc is not None:
+            try:
+                with urllib.request.urlopen(f"http://localhost:{_llm_port}/health", timeout=2) as resp:
+                    if resp.status == 200:
+                        _llm_ok = True
+                        print("\n  ✓ LLM готов к работе")
+            except Exception:
+                pass
+
+        if _backend_ok and _llm_ok:
+            break
+
+    if not (_backend_ok and _llm_ok):
+        print(f"\n  ⚠ Не все сервисы готовы за {_BACKEND_STARTUP_TIMEOUT}с")
+
+    return backend_proc, llm_proc
 
 
 def _launch_editor() -> None:
@@ -172,12 +259,13 @@ def _init_menu_display():
 
 
 def _kill_zombies():
-    """Убивает зомби-процессы python (uvicorn) на порту API перед стартом."""
+    """Убивает зомби-процессы (uvicorn, llama-server) перед стартом."""
     import subprocess
     from app.core.config import settings as _enigma_settings  # type: ignore
 
+    # 1. Убиваем по портам (самый надежный способ найти висящие сокеты)
     try:
-        for port in [_enigma_settings.api_port]:
+        for port in [_enigma_settings.api_port, getattr(_enigma_settings, "llama_cpp_port", 8181)]:
             res = subprocess.run(
                 f"netstat -ano | findstr :{port}",
                 shell=True,
@@ -189,8 +277,15 @@ def _kill_zombies():
                 if len(parts) > 4 and parts[-2] == "LISTENING":
                     pid = parts[-1]
                     subprocess.run(
-                        f"taskkill /F /PID {pid}", shell=True, capture_output=True
+                        f"taskkill /F /T /PID {pid}", shell=True, capture_output=True
                     )
+    except Exception:
+        pass
+        
+    # 2. Убиваем все экземпляры llama-server.exe (фоллбэк)
+    try:
+        subprocess.run("taskkill /F /IM llama-server.exe", shell=True, capture_output=True)
+        subprocess.run("taskkill /F /IM llama-server.exe", shell=True, capture_output=True)
     except Exception:
         pass
 
@@ -198,21 +293,13 @@ def _kill_zombies():
 def main() -> None:
     """Главная функция — запускает backend, инициализирует pygame, запускает цикл меню"""
     print("\n=== Enigma Startup ===")
+    _kill_zombies()
     
     # Инициализируем pygame до запуска бэкенда, чтобы отрисовать экран загрузки
     print("=== Pygame Init ===")
     pygame.init()
     
-    # Дополнение А (п. А.4): Запуск GPU профайлера перед стартом бэкенда
-    try:
-        from app.core.gpu_probe import run_probe
-        _config_dir = Path(_ROOT) / "config"
-        _ngl = run_probe(_config_dir)
-        print(f"  [GPU_PROBE] Calculated GPU layers: {_ngl}")
-    except Exception as _gpu_err:
-        print(f"  [GPU_PROBE] Failed: {_gpu_err}")
-
-    backend_proc = _ensure_backend_running()
+    backend_proc, llm_proc = _ensure_servers_running()
     
     screen, clock, menu = _init_menu_display()
 
@@ -389,14 +476,16 @@ def main() -> None:
     print("\n[CLEANUP] Завершение процессов backend и LLM...")
     if sys.platform == "win32":
         from app.core.config import settings as _enigma_settings  # type: ignore
-        # 1. Убиваем дерево процессов uvicorn, если оно ещё живо
-        if backend_proc is not None and backend_proc.poll() is None:
-            try:
-                subprocess.run(["taskkill", "/T", "/F", "/PID", str(backend_proc.pid)], capture_output=True, timeout=5)
-            except Exception:
-                pass
+        
+        # 1. Убиваем деревья процессов uvicorn и LLM напрямую по их PID
+        for _proc in [backend_proc, llm_proc]:
+            if _proc is not None and _proc.poll() is None:
+                try:
+                    subprocess.run(["taskkill", "/T", "/F", "/PID", str(_proc.pid)], capture_output=True, timeout=5)
+                except Exception:
+                    pass
             
-        # 2. Убиваем всё, что слушает порты бэкенда и LLM (на случай зомби)
+        # 2. Убиваем всё, что слушает порты (фоллбэк для зомби без Popen-ссылки)
         for _port in [_enigma_settings.api_port, _enigma_settings.llama_cpp_port]:
             try:
                 _find = subprocess.run(

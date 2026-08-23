@@ -219,3 +219,8 @@
 {"ts": "2026-08-13T20:41:27", "event": "roll", "desc": "attack d20", "rolls": [16], "total": 16}
 {"ts": "2026-08-13T20:41:27", "event": "roll", "desc": "1d6", "rolls": [4], "total": 4}
 {"ts": "2026-08-13T20:41:27", "event": "attack", "d20": 16, "attack_total": 21, "hit": true, "critical": false, "fumble": false, "damage": 7, "breakdown": "d20=16 + strength(+3) + prof(+2) + env(+0) = 21 vs AC10.0 → попадание | урон: 1d6=[4] + mod(+3) + bonus(+0) = 7", "target_ac": 10.0}
+{"ts": "2026-08-23T13:23:09", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
+{"ts": "2026-08-23T13:23:09", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": false, "critical": false, "fumble": false, "damage": 0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC50.0 → промах | урон: промах", "target_ac": 50.0}
+{"ts": "2026-08-23T13:23:09", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
+{"ts": "2026-08-23T13:23:09", "event": "roll", "desc": "1d6", "rolls": [1], "total": 1}
+{"ts": "2026-08-23T13:23:09", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": true, "critical": false, "fumble": false, "damage": 1.0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC6.0 → попадание | урон: 1d6=[1] + mod(+0.0) + bonus(+0) = 1.0", "target_ac": 6.0}

@@ -1,0 +1,7 @@
+ticks=200 crashed=197
+terminals=0 actives=0
+switch_rate=0.0000
+superseded=0 vanished=0 cross_loc=0
+statuses={}
+reasons={}
+causes={}

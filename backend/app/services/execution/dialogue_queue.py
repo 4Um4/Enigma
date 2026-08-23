@@ -41,6 +41,9 @@ class DialogueQueue:
 
     MAX_RATE_PER_MINUTE = 20  # 20 LLM-вызовов в минуту максимум
     COOLDOWN_PER_NPC_SEC = 30 # Один NPC говорит раз в 30 сек
+    # ENIGMA-ARCH-027: Базовый эксплуатационный лимит размера очереди.
+    # В будущем выносится в CalibrationProfile.
+    MAX_PENDING_TASKS = 20
 
     def __init__(self) -> None:
         self._heap: list[QueuedDialogue] = []
@@ -49,7 +52,13 @@ class DialogueQueue:
         self._recent_npc_speak: dict[str, float] = {}  # npc_id -> last_speak_game_time
 
     def enqueue(self, task_type: str, payload: dict, priority: int, game_time_seconds: float) -> str:
-        """Добавить задачу в очередь."""
+        """Добавить задачу в очередь с учётом BackpressurePolicy (ENIGMA-ARCH-027).
+        
+        Правила:
+        - Ambient overflow: DROP (фоновая болтовня уничтожается).
+        - Canonical overflow: PRESERVE (вытесняет ambient, если队列 полна).
+        - Никакой деградации canonical -> ambient.
+        """
         task_id = f"dlg-{uuid.uuid4().hex[:8]}"
         task = QueuedDialogue(
             priority=-priority,  # heapq = min-heap, инвертируем
@@ -58,6 +67,42 @@ class DialogueQueue:
             payload=payload,
             task_id=task_id,
         )
+
+        is_canonical = (task_type == "canonical")
+        current_size = len(self._heap)
+
+        if current_size >= self.MAX_PENDING_TASKS:
+            if not is_canonical:
+                # Ambient overflow → DROP
+                logger.warning(
+                    f"[DLG_QUEUE] OVERFLOW: Dropped ambient task {task_id}. "
+                    f"Queue is full ({current_size}/{self.MAX_PENDING_TASKS})."
+                )
+                return task_id  # Возвращаем ID, чтобы caller не падал, но в очередь не кладём
+            
+            # Canonical overflow → PRESERVE
+            # Ищем ambient задачу для вытеснения
+            evicted_idx = -1
+            for i, item in enumerate(self._heap):
+                if item.task_type == "ambient":
+                    evicted_idx = i
+                    break
+            
+            if evicted_idx != -1:
+                evicted_task = self._heap.pop(evicted_idx)
+                heapq.heapify(self._heap)  # Восстанавливаем инвариант кучи
+                logger.warning(
+                    f"[DLG_QUEUE] OVERFLOW: Evicted ambient task {evicted_task.task_id} "
+                    f"to make room for canonical {task_id}."
+                )
+            else:
+                # Очередь полна canonical задачами. Критическое насыщение.
+                logger.error(
+                    f"[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks "
+                    f"({current_size}/{self.MAX_PENDING_TASKS}). Enqueueing {task_id} anyway, "
+                    f"but system is lagging behind causal events."
+                )
+
         heapq.heappush(self._heap, task)
         logger.info(
             f"[DLG_QUEUE] enqueued task_id={task_id} type={task_type} priority={priority}"

@@ -1,0 +1,1159 @@
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-df93b681. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1f52985e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b85b9af2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cc893b27. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9a8b5480. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f0407ed5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-40e02110. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e2d7d595. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0ccf2fd4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dbbd35e2. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-58f85df8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bccaed7a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-15a974dc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-37053490. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0f0551a3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f059a40b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b1219b95. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1f408b1f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3c7050d4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a6286bbd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a377e702. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52637211. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-db047130. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e01e7054. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f4a826b6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: merchant_goran=COMPLETED at tick 14
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-697eafc7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1421c122. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-df1c5e41. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-31207a43. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-42f57725. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7d46d56b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-091ecfc5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3024f112. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4eca8843. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3b2ef0ba. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7f22d60b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-efc62d2b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7e0e141c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b1e6a975. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e60e9efc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8d5f7efb. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-018ae8a3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6ea12e69. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-64fb78f3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-34484347. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5f0c8662. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-56142b79. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b2881e9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-333af250. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-56d8a7fc. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ce73275a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-183c8a3c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5623af83. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7605a81b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5bc62ea7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cbd5924d. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7dbc39f1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eb533785. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-511c703a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8e694fad. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b43ed4d8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-274a0390. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eb719afc. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-26ad16f4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5f246145. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7390cc54. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-96b6e539. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8c4fb825. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-451b2aea. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b097ebc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-659c0b1f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c174085b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-243f3cf8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2b12bc62. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3e0a8d21. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5baafba4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6c4783c5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f8e8fb71. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dc89f2c6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4e943ecb. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-94e2937c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-068dc1d6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9f3cca79. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4e46f2ba. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-944321fd. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f0823db2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-60a21dbc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d3a0169a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2fc3c6a3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e5dfe65d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8f565944. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-01ee045a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3c51fec3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52d0753e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ad011943. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9dd748d5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-22ea4d31. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-98802d8f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5d368f5f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4309ce60. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d8931be7. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dd04add4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3594c464. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-222b80f5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1187022e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-da494ae7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ed54bf82. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cc54389e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f34555b1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b20aa80b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f8137419. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f3f34d5a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-23f43d91. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-285c0340. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-85fd9d54. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-552ffeb8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c03bb930. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4fb4f822. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-90952004. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dca9618e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-60fdfd7c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-59159618. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b4f9666f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b65eb4b8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-837f4360. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-68e351b5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-21a3e982. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-abf97bcc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8f54eb36. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3efd5521. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3690d133. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-44dc49f7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3f862215. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ee381d06. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cb1a1beb. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1f5f7416. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a4004ca1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c56f0822. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-04d71982. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-de51643b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-918a59d1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bd7a276c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c8d17995. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b0b0fb10. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bd0f86a0. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: maid_lusya=COMPLETED, merchant_goran=COMPLETED at tick 48
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-93ee048b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7f91a166. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fd592fdd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-22ae92ea. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f0c9bacd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bf4aa52d. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9400a98f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-62a86883. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8feae553. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: tavern_keeper_tornin=COMPLETED at tick 51
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b1b50c1d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0addf9b8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-60bed848. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e5a9d334. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f73cecda. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f652a57d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c26ff17d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-50994019. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bd7817b6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6e3931f7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2df2c0d4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-de736f71. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ec82ac8f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6014d90c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-525f1b82. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-162318c7. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-75bb2962. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6951b9c2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d431f042. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a323b5c1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a310455c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8299cc75. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7182679d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dc86df6e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a012449a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0714e9e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-13aaed60. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fb5f9a1c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d2cb307b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-95baef8c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0d51824. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fa62ae3b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6e9978ec. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7c2c5913. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cfa944df. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fa77a897. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-65c1d2fd. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ed997e93. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eefc9bd7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3adb024f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c96afd8c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-321db1bf. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-805ceedc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a9d94461. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-83654985. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-45539cd1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cf9b552f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b752f03. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1e7705ca. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bd0de43c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-81959535. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-75c9c10a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b8f6b91. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-752874ff. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-19aaa775. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-98486ad7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-888e929a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-25d7c125. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b9fad80c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-251cdeb6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18c85671. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e10e553b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-859a04d9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18b42aff. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3dfa05ad. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f4f9283c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: maid_lusya=COMPLETED at tick 69
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52659f69. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-08a28b38. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ac5ba37d. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a23dcab9. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8478c3d8. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ff48e352. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9f8ce6e3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-504d5501. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-26a327cf. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b337426. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0f4680b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a66a8767. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-164618fa. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-441f7c5c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d655bb8c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c2ec6d4c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0df7e78f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2c1d9c22. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e954e233. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-482ddd55. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a98809d3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8a458a89. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-14e4836d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0cb371f1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-58cf8b9b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9a60302d. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0a3feee3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4ccf992a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-de89e0f5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4aca6c39. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dec24e97. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5aa619f7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-20af8ea9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d9492b4a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3dcb6518. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-edd558c6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9764c88f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ba6c75c7. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a46dac83. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7dde73c8. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-92c21750. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4b2a488a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f507fc9e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f6c9db62. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dff4adda. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-70d6d96b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3dc03e2c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-50874790. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bbe7248f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-57c5443a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: blacksmith_orm=COMPLETED at tick 88
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3be51f4e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b70075da. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: tavern_keeper_tornin=COMPLETED at tick 89
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fcbbd5cf. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-29ae3c3e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-95720353. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-156bc1be. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c1a9e30e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-35845b94. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e5832ac6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b58133bf. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-af0acb42. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-586c1632. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3552edfd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-376a7e2b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ba664dca. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-facd0fa9. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-062f6f75. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-92be2c09. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-66193ec9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bb299694. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d7303f3e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-02cef755. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-99cdc3f6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fde07770. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-699578c5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0b733fb. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-281bc851. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fac3287e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-28e49527. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-229324b9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eafc7ca5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-66eb178a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-01348d73. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9140de00. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-45f777c4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9cc550dc. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6d9a9951. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-aa4ab807. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ee9c05d5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e58ed705. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0e8c2413. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a3d9d24c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-628534b1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2ae9a9ac. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-24b3756f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5bb622af. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74e8140e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1b70780f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-07ff2f24. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d9084654. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a1318a36. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52b4ba3d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a5b223ad. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b1f29653. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2d0ba232. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c00e4d25. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dcb193d3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2e6ddfbe. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-40790400. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a2181b93. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1b2ae4ee. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-031063ff. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b8ad4c11. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fa4441a5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-220bdecb. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2b5a20dd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9d134c04. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b731fcaf. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9c115ffa. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6838840b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b0da9f89. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0d7b1edf. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1930caf9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4294fcba. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7b7bdc14. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-28b08810. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2ade2741. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7e2e6f31. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-51a296e0. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-89262e86. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d8ef058b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cae3af52. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f8a0efdf. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4ee4ccb6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74771a4b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2a3a52b1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-34ba46ee. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a7ace2ef. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-46a59e59. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e97ce4aa. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7681d50e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7ccc6672. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a3e84c16. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-49b61b58. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-03012bdc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-09165c10. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: maid_lusya=COMPLETED at tick 122
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7de3350a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-253294b2. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fa28166f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4e5147ad. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0c4f5369. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-82e1a892. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cb0b2d42. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9f38df1e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-39deb8db. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b2747708. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cd9b9a86. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-26421938. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-83555f1d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f279535c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2b8f1582. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8ad6706c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b849a349. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-57a28b09. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9b9f7d32. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4d7a597e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-71342bd0. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a298c471. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e8405c99. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3aea20b2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8f236c3f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4fc44a23. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0b50e98. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f0707e87. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-de8470cd. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18364eac. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9bbaa05a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3b6d7cb8. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[PROBE_FAIL] INV-TRAV-ZOMBIE: Zombie traversals detected: maid_lusya=COMPLETED, tavern_keeper_tornin=COMPLETED at tick 134
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c410b049. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f891a40f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-962cec74. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-df232fa7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-58f17c08. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-79115ded. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-638d4509. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f6799060. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-be0ab6b1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cc7c54e5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a78281ff. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74567f67. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d7a00474. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-276b1563. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52bba23d. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-866faf89. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7fa9b2b6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-51e5a19a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-580d5dc8. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fa5de5c7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ac32e9a1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ec19d6a7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e67a8658. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9b42f502. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7d003ad9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d59705cc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3e7529d9. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a4cce957. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cec6dc11. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1877837a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7df95522. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f9605380. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d68a34cc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-64b0ba81. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8e8473f1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1f6f9033. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5a9591dd. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18e1c5c1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-98528842. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-04b3552f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b6e93b47. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18337433. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-75847aff. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d4524fa5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5454affd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ba93d2e2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5746c44d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-224421f7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e10e5e3c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1f65790d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5c263d94. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-21d200b8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-600c130e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-437b028a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-759b4eac. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-40c479b6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a0848f20. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f8b6b22d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-79ae1e39. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9246abff. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-70c751d2. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c4ad4b50. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d3979c9c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e4470192. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a1696ca3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-de31a0b3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b7bf09b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bb238abe. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6708bd15. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5225b3c2. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fb33e743. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-28c12306. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-731c0175. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-42fbbc55. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3dc559dc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cb3be70b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5cfafb2f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6e9ebb45. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d2c38aee. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0002218a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e2581235. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-487c3c28. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18baca5f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-64202123. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f8416bc1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d47c5b62. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-802038ac. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4057cb0e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bc643494. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fb6a3f79. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-98e6344a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ec4f8703. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-65d78550. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f801edf6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b2fce62e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6d5a7af1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f7c079d8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-71d5daf3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bb33a82a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3f80efce. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e351a9a3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0c231bc5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f7aafda6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-928bcad0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-246adcc7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-430c2ce3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e944f4dc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a232858d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ee9eccbe. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dd98956f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-abeb5731. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f0050814. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0e7693ea. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5402c7f0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-39b29434. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bea5a832. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a6a87c70. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-556adb9f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-81c1d931. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-706ce9a1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b8e7c733. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-96e2a5d6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fcf7fb38. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-59cb7b2c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6d0cc082. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dbf701bf. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c130bfbc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-291a822b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-58268b90. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ccb086f8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-99492e80. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ca7a4ce4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7e235574. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-00102ab8. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-08e3d63f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7d71c6bf. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bfedd02e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6c344a26. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f677aa15. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0787c9d9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dbac722f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e14cc85f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-35a5941f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7ee17b60. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ad7a405e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-01b93d19. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-341b67b8. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74efbd16. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-92d13ab0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-72e5d6e0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-05acc5f9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-101a3f17. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1cb504ec. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f7a0f06e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-20da36a4. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d565a665. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-66f7009b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-006619c4. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-81fdf62d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1f79eac6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-98a090dd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6c4855f2. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-617e44ea. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3afb0c93. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8eae7efc. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-de9ccf97. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-54faf299. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-581ffd01. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-86506419. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f458220a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ef14e2dd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e09634b5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7a1b9217. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-512a4011. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-73e4409f. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-75925cfe. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4df74498. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5d019e17. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-075ce738. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2dad99eb. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d3052e75. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-09cb7165. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fe9f8aac. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5de8fc70. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5b38a783. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1cec8c13. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d4be50ad. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-807e703b. Queue is full (20/20).
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='tavern_keeper_tornin', source_id='maid_lusya', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[COMMITMENT_BASELINE] setup (production-стек, изолированный temp-dir)
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_yxsh2ykg
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_yxsh2ykg\saves
+[COMMITMENT_BASELINE] running 200 idle ticks...
+
+============================================================
+[BASELINE] N=200 | real_errors=0
+[BASELINE] ДВИЖЕНИЕ: moved=нет | ticks_with_traversals=199 | max_concurrent=6
+[BASELINE] VERDICT: TRAVERSAL_FLOW: материализации были, реестр отражает их
+============================================================
+terminals=42 actives=3 switch_rate=0.0350
+superseded=16 vanished=0 cross_loc=0
+statuses={'INTERRUPTED': 16, 'COMPLETED': 26}
+reasons={'SUPERSEDED_BY_NEW_MATERIALIZATION': 16}
+causes={'semantic_relocation:need_driven:social_urge=0.56': 4, 'semantic_relocation:proactive_request_service': 6, 'semantic_relocation:proactive_change_role': 4, 'semantic_relocation:proactive_offer_job': 10, 'semantic_relocation:need_driven:shelter_urge=0.56': 4, 'semantic_relocation:proactive_call_for_help': 4, 'semantic_relocation:schedule:eating': 2, 'semantic_relocation:proactive_spread_rumor': 3, 'semantic_relocation:schedule:guarding_gate': 1, 'semantic_relocation:schedule:sleeping': 1, 'semantic_relocation:schedule:resting': 2, 'semantic_relocation:need_driven:hunger=0.56': 1}
+
+████████████████████████████████████████████████████████████
+📄 ОТЧЁТ СОХРАНЁН: C:\DDD\Codex\VSC_Enigma\Enigma\reports\commitment_baseline.txt
+   Открыть в PowerShell: Invoke-Item "C:\DDD\Codex\VSC_Enigma\Enigma\reports\commitment_baseline.txt"
+████████████████████████████████████████████████████████████
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_yxsh2ykg
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

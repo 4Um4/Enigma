@@ -1,0 +1,1352 @@
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f2361a76. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4e1474d2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-24077dd3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-b30c127f to make room for canonical dlg-7fb7a883.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74f8ecfa. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-2b3a2de6 to make room for canonical dlg-ce717851.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-8930ff6a to make room for canonical dlg-145898ac.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a3c821f2. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-8ac7c55c to make room for canonical dlg-852fbb6c.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f47cc170. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-fff69ce2 to make room for canonical dlg-3b626dde.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-220b5ec4 to make room for canonical dlg-7cd3a2b0.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e8d31dc6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-7145824e to make room for canonical dlg-444a3ed3.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3b7d48b2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ee3ec371. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-f881e66b to make room for canonical dlg-42e50ee7.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-2e75ef66 to make room for canonical dlg-ba0a999d.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f55f87a0. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-1f4960bf to make room for canonical dlg-b3bba9c9.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-7961b12f to make room for canonical dlg-4942872b.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-984bfa99. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1cc9dafe. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1250b517. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-bc0a27db to make room for canonical dlg-2c0c7695.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1b58c9b4. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ab853765. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-11b86b39. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-ea4a0a31 to make room for canonical dlg-482bebc4.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-be631e6e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-06c24b03 to make room for canonical dlg-710f7129.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-48178808. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-f9228431 to make room for canonical dlg-0203186f.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0fc90b5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-67afaf6a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-f5fed888 to make room for canonical dlg-2446480c.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f6ffa4f0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bf007ccc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0d92bff4. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-07120a3e to make room for canonical dlg-c4122846.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3c9319c1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-9944844f to make room for canonical dlg-31179a41.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-62ad9e87. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Evicted ambient task dlg-b4f6c947 to make room for canonical dlg-8ae030a1.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4eeec939. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-37cd3eb9. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-885e44d6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-81b4d116. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-455026e3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (20/20). Enqueueing dlg-2f260445 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-80636f54. Queue is full (21/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (20/20). Enqueueing dlg-92eda918 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (21/20). Enqueueing dlg-45eff466 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b99f0227. Queue is full (22/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (21/20). Enqueueing dlg-c0f24e4d anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (22/20). Enqueueing dlg-4cf76571 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-310f5ed6. Queue is full (23/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-13660fd1. Queue is full (23/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (22/20). Enqueueing dlg-841c11b6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (23/20). Enqueueing dlg-8058d62a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (24/20). Enqueueing dlg-afe5b5f2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cdf33305. Queue is full (25/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (24/20). Enqueueing dlg-92b8054e anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (25/20). Enqueueing dlg-f6ec59c9 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8c904d64. Queue is full (26/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (26/20). Enqueueing dlg-fa92a432 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-32e6bf51. Queue is full (27/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (26/20). Enqueueing dlg-612c6698 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6dca0811. Queue is full (27/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (27/20). Enqueueing dlg-208b56d2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f427dfdc. Queue is full (28/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (28/20). Enqueueing dlg-ff693a02 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-84165cd2. Queue is full (29/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-188047a8. Queue is full (28/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (28/20). Enqueueing dlg-6c88f3c1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6a7a2c80. Queue is full (29/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (28/20). Enqueueing dlg-dc76a207 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2f3d4ac7. Queue is full (29/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (29/20). Enqueueing dlg-f80aadf2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-524bf1ee. Queue is full (30/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (29/20). Enqueueing dlg-b76dde33 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (30/20). Enqueueing dlg-c814c5b8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (31/20). Enqueueing dlg-7a74267f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-10d1a54c. Queue is full (32/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (31/20). Enqueueing dlg-97aa642e anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (32/20). Enqueueing dlg-06a99221 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (33/20). Enqueueing dlg-097f72de anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-29b8767e. Queue is full (34/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-474b23cf. Queue is full (34/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (33/20). Enqueueing dlg-9f6abc62 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (34/20). Enqueueing dlg-c8dadaa1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-43045ef3. Queue is full (35/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (35/20). Enqueueing dlg-df064f21 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cf9369f9. Queue is full (36/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (35/20). Enqueueing dlg-341740b2 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c3fbd448. Queue is full (36/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3ec150c2. Queue is full (36/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-948cfb79. Queue is full (36/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (36/20). Enqueueing dlg-4e68aa2c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3355df0d. Queue is full (37/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-07f262d7. Queue is full (37/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (36/20). Enqueueing dlg-c00c5c92 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-21317dc4. Queue is full (37/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d68e0dc1. Queue is full (37/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (37/20). Enqueueing dlg-240b7a74 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (37/20). Enqueueing dlg-5a2dd77b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (38/20). Enqueueing dlg-0d0fc1cd anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (39/20). Enqueueing dlg-7b8da4a5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (39/20). Enqueueing dlg-375e8610 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (40/20). Enqueueing dlg-09f23abd anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5fcbfa7b. Queue is full (41/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (41/20). Enqueueing dlg-ace14b70 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (42/20). Enqueueing dlg-d67b1f0a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (42/20). Enqueueing dlg-3e7dec9b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (43/20). Enqueueing dlg-1e7f729a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (44/20). Enqueueing dlg-ab2b23fa anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ddec0e4e. Queue is full (45/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (44/20). Enqueueing dlg-d0377a7f anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (45/20). Enqueueing dlg-a23fef2c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1443f5f8. Queue is full (46/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (46/20). Enqueueing dlg-740267ff anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1e92e924. Queue is full (47/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dc2d894d. Queue is full (47/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (46/20). Enqueueing dlg-1ede598b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (47/20). Enqueueing dlg-18b69b34 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eb52e0e7. Queue is full (48/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (48/20). Enqueueing dlg-b57d9a5a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7a1d6461. Queue is full (49/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (48/20). Enqueueing dlg-c8bba24e anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (49/20). Enqueueing dlg-08628bfb anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-71ad6342. Queue is full (50/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (50/20). Enqueueing dlg-03032739 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (51/20). Enqueueing dlg-b3d5f1c8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9cab3ef4. Queue is full (52/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (51/20). Enqueueing dlg-78115922 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-963288dc. Queue is full (52/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (52/20). Enqueueing dlg-a9dd367f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-64b62fa4. Queue is full (53/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (52/20). Enqueueing dlg-8c4d877c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7dc811a1. Queue is full (53/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (53/20). Enqueueing dlg-c59f1f0b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-da23c20d. Queue is full (54/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (53/20). Enqueueing dlg-4f1cf1de anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9a400882. Queue is full (54/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (54/20). Enqueueing dlg-bac3d099 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eb194a96. Queue is full (55/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (54/20). Enqueueing dlg-bd9bd30d anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (55/20). Enqueueing dlg-1c5fa4b6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-84127134. Queue is full (56/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (56/20). Enqueueing dlg-58dcf8d9 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d82d4c47. Queue is full (57/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b87090e4. Queue is full (57/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c1338ffb. Queue is full (56/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (55/20). Enqueueing dlg-a718d96f anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (56/20). Enqueueing dlg-dd7025ed anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-002550cf. Queue is full (57/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9b9b306d. Queue is full (56/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (56/20). Enqueueing dlg-3ebb0f1a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (57/20). Enqueueing dlg-5724250d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d6f2a65b. Queue is full (58/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fe0e550b. Queue is full (58/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d80e2bd7. Queue is full (58/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (57/20). Enqueueing dlg-94877ea5 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (58/20). Enqueueing dlg-cbcb34dd anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-737d4eb9. Queue is full (59/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (59/20). Enqueueing dlg-a42ea515 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2e44b8fe. Queue is full (60/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (59/20). Enqueueing dlg-64bb8086 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8227b186. Queue is full (60/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d0dd1e1f. Queue is full (60/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52c78eeb. Queue is full (60/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (59/20). Enqueueing dlg-615d1ac9 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-680e58a8. Queue is full (60/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (60/20). Enqueueing dlg-e2feac05 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-163f38c9. Queue is full (61/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (60/20). Enqueueing dlg-6f8dbc8b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (61/20). Enqueueing dlg-1979936e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (62/20). Enqueueing dlg-008a9481 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a6c1b5f5. Queue is full (63/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (62/20). Enqueueing dlg-04e6c7ed anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (63/20). Enqueueing dlg-1581ec08 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (64/20). Enqueueing dlg-046163af anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (65/20). Enqueueing dlg-ebbdabe8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cbb9e690. Queue is full (66/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (65/20). Enqueueing dlg-0a3672e7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (66/20). Enqueueing dlg-783a412b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (67/20). Enqueueing dlg-f519462c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (68/20). Enqueueing dlg-8e959856 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (68/20). Enqueueing dlg-7f526fd6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (69/20). Enqueueing dlg-b601ab6b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (70/20). Enqueueing dlg-0d1ecb9d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (71/20). Enqueueing dlg-18d151d8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-26965944. Queue is full (72/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (72/20). Enqueueing dlg-b7e7f550 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (72/20). Enqueueing dlg-c0b88a07 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (73/20). Enqueueing dlg-e05c9221 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (74/20). Enqueueing dlg-7b957522 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (75/20). Enqueueing dlg-30a2d6e4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (76/20). Enqueueing dlg-7774c366 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (76/20). Enqueueing dlg-f3512395 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (77/20). Enqueueing dlg-a89c0cab anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (78/20). Enqueueing dlg-499487ae anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c2945336. Queue is full (79/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (79/20). Enqueueing dlg-7d91a331 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (79/20). Enqueueing dlg-9085ea6d anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (80/20). Enqueueing dlg-fc52da26 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e83ff052. Queue is full (81/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9d094ac1. Queue is full (81/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (80/20). Enqueueing dlg-37b99b1c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a5348b08. Queue is full (81/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (80/20). Enqueueing dlg-dc1ab839 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (81/20). Enqueueing dlg-79c1526b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (82/20). Enqueueing dlg-e7ea84e5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-70f1bda1. Queue is full (83/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ba272b99. Queue is full (83/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b448900e. Queue is full (83/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (82/20). Enqueueing dlg-10ad6726 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (83/20). Enqueueing dlg-83a94cf1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (84/20). Enqueueing dlg-9309f5fc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7bd0f73b. Queue is full (85/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9d42da5a. Queue is full (85/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (84/20). Enqueueing dlg-885fd61f anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-add6e8c2. Queue is full (85/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (85/20). Enqueueing dlg-dae28e39 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (86/20). Enqueueing dlg-d550b357 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-34606884. Queue is full (87/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (86/20). Enqueueing dlg-1467d8fc anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (87/20). Enqueueing dlg-cc6c93d6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-aff8f285. Queue is full (88/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (88/20). Enqueueing dlg-bd3958c5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d95ee352. Queue is full (89/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (88/20). Enqueueing dlg-45852379 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (89/20). Enqueueing dlg-4f48adaa anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fc060f96. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-71f2ad82. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8d3c6d72. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4cc4e5aa. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (89/20). Enqueueing dlg-299a388f anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9739e9a1. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dd53f264. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e66b2b7c. Queue is full (90/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (90/20). Enqueueing dlg-f2e1432e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8633f8e5. Queue is full (91/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (90/20). Enqueueing dlg-9046b760 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (91/20). Enqueueing dlg-9018b67e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-179606e3. Queue is full (92/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (92/20). Enqueueing dlg-196fee07 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f3d4f042. Queue is full (93/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (92/20). Enqueueing dlg-fbd39b05 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-91353e2b. Queue is full (93/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7983e182. Queue is full (93/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ffa66623. Queue is full (93/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (92/20). Enqueueing dlg-482edcb1 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c656e1a3. Queue is full (93/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b881c2a0. Queue is full (93/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (93/20). Enqueueing dlg-7c395094 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-54d02bc5. Queue is full (94/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-482781af. Queue is full (94/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (93/20). Enqueueing dlg-20f5b6b4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (94/20). Enqueueing dlg-1781cf2a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-95cb9abc. Queue is full (95/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (94/20). Enqueueing dlg-717c7f61 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-04edae63. Queue is full (95/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fd2205fd. Queue is full (95/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (95/20). Enqueueing dlg-055ec401 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8a024677. Queue is full (96/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (94/20). Enqueueing dlg-453f706b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (95/20). Enqueueing dlg-eb817af0 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (96/20). Enqueueing dlg-c28a2a5f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (96/20). Enqueueing dlg-58557a1b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (97/20). Enqueueing dlg-6db71a14 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (98/20). Enqueueing dlg-2a18805d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (98/20). Enqueueing dlg-ae9b0ccd anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c1d3f8f1. Queue is full (99/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (99/20). Enqueueing dlg-169ef613 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-86f908cf. Queue is full (99/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (99/20). Enqueueing dlg-4502848b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-18f76493. Queue is full (99/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (99/20). Enqueueing dlg-482072f1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (99/20). Enqueueing dlg-4e12e847 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (100/20). Enqueueing dlg-54d63714 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (100/20). Enqueueing dlg-a31ee203 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (101/20). Enqueueing dlg-dbfad4a5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (102/20). Enqueueing dlg-029b7782 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (103/20). Enqueueing dlg-752a207f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (103/20). Enqueueing dlg-9b4e9d07 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (104/20). Enqueueing dlg-8d1b712a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (105/20). Enqueueing dlg-f77d62f2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (105/20). Enqueueing dlg-b1fcdcfe anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (106/20). Enqueueing dlg-195ed155 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (107/20). Enqueueing dlg-57cf258d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (108/20). Enqueueing dlg-e1e74783 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (108/20). Enqueueing dlg-3af6fb22 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (109/20). Enqueueing dlg-11de072c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (110/20). Enqueueing dlg-eadd5691 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (111/20). Enqueueing dlg-82fd61b8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8b40ef25. Queue is full (112/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-83ee9fff. Queue is full (112/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (111/20). Enqueueing dlg-44535bbc anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (112/20). Enqueueing dlg-62ca1882 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (113/20). Enqueueing dlg-3ce05457 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (114/20). Enqueueing dlg-ac355df8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (114/20). Enqueueing dlg-5de6bdc3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c822526c. Queue is full (115/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ef363156. Queue is full (115/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (115/20). Enqueueing dlg-ff51e7b7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-369fbc92. Queue is full (116/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (115/20). Enqueueing dlg-2444601b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c732787c. Queue is full (116/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8d28bfe8. Queue is full (116/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (116/20). Enqueueing dlg-5b577841 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7de9657c. Queue is full (117/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2e8fbed1. Queue is full (117/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (116/20). Enqueueing dlg-8bd9a706 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-530bf747. Queue is full (117/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e0816de7. Queue is full (117/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (117/20). Enqueueing dlg-3436c03f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1aa981b7. Queue is full (118/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2abd8305. Queue is full (117/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (117/20). Enqueueing dlg-0c986b70 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0651a803. Queue is full (118/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (117/20). Enqueueing dlg-dfc90c22 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-01202410. Queue is full (118/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-29038321. Queue is full (118/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1b5d10e1. Queue is full (118/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (118/20). Enqueueing dlg-3fe2fd8d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (118/20). Enqueueing dlg-b8c02d03 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3ba53d38. Queue is full (119/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7643b6eb. Queue is full (119/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (119/20). Enqueueing dlg-53358567 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (119/20). Enqueueing dlg-58009ff8 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-55778e44. Queue is full (120/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f82a0810. Queue is full (120/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-73fe2815. Queue is full (120/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (119/20). Enqueueing dlg-367de3bb anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-89c5f7a1. Queue is full (120/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2c89e964. Queue is full (120/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (119/20). Enqueueing dlg-d4f6a03b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0dd628d2. Queue is full (120/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (120/20). Enqueueing dlg-64cc646e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b2b46444. Queue is full (121/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (120/20). Enqueueing dlg-1aad15bb anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (121/20). Enqueueing dlg-e50e502d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-2abc527b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e9fd9e58. Queue is full (123/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (121/20). Enqueueing dlg-fb5aacc7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (121/20). Enqueueing dlg-370af08a anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-08506933 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-21e5c1cf anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2f10ad38. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d9442767. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-24c0eb3c. Queue is full (123/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-19390d63. Queue is full (122/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2bec99d7. Queue is full (122/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2818126e. Queue is full (122/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-75cd8f72. Queue is full (121/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (121/20). Enqueueing dlg-36127834 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4442df48. Queue is full (122/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (121/20). Enqueueing dlg-47c904de anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-45699182. Queue is full (122/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-2057da37 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-38169a38. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-174b84e1 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-70c93372. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-764e76df. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74825511. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-1a8148e6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6aa30c87. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-20138ec9. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2b12970f. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e2e2b134. Queue is full (123/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (122/20). Enqueueing dlg-7f5fed58 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (123/20). Enqueueing dlg-b0019a20 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d6dab68f. Queue is full (124/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (124/20). Enqueueing dlg-74da470e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (124/20). Enqueueing dlg-d2278f9c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (125/20). Enqueueing dlg-ac412986 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9d35698f. Queue is full (126/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (126/20). Enqueueing dlg-92bde447 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (126/20). Enqueueing dlg-a1ec92b5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (127/20). Enqueueing dlg-efafcdb2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (128/20). Enqueueing dlg-33bb9230 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (128/20). Enqueueing dlg-edfd3384 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (129/20). Enqueueing dlg-808e2b61 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-abfdd304. Queue is full (130/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (129/20). Enqueueing dlg-b2378b62 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (130/20). Enqueueing dlg-e92ea3fc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5c045a3d. Queue is full (131/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (131/20). Enqueueing dlg-c74bc28e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (131/20). Enqueueing dlg-060521c6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (132/20). Enqueueing dlg-1a9b248a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-afc34328. Queue is full (133/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-38b85ded. Queue is full (133/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (132/20). Enqueueing dlg-65f9f9f2 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0ebf70c9. Queue is full (133/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (133/20). Enqueueing dlg-31059873 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c2563096. Queue is full (134/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (134/20). Enqueueing dlg-32d08e79 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (134/20). Enqueueing dlg-6d9b3ce7 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (135/20). Enqueueing dlg-f6db67f4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (136/20). Enqueueing dlg-61da5deb anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (137/20). Enqueueing dlg-0193c83f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (138/20). Enqueueing dlg-b41613be anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (138/20). Enqueueing dlg-82a70fb0 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (139/20). Enqueueing dlg-0b17b8d8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (140/20). Enqueueing dlg-120aef2f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e6f4b01f. Queue is full (141/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (141/20). Enqueueing dlg-d81a8ace anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (141/20). Enqueueing dlg-8812d0c1 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9c686600. Queue is full (142/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (142/20). Enqueueing dlg-e492a37b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (143/20). Enqueueing dlg-0eb86ec0 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (144/20). Enqueueing dlg-e4bb14e9 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (144/20). Enqueueing dlg-11b068fa anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-adf4e93d. Queue is full (145/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (145/20). Enqueueing dlg-8e4afeef anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (146/20). Enqueueing dlg-bcb76a51 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5d2fb7e6. Queue is full (147/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (147/20). Enqueueing dlg-80cdb69c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (147/20). Enqueueing dlg-0097f268 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (148/20). Enqueueing dlg-c95936b5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (149/20). Enqueueing dlg-67f540b6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (150/20). Enqueueing dlg-49782213 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (150/20). Enqueueing dlg-8edb0813 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (151/20). Enqueueing dlg-ed9bc0c4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (152/20). Enqueueing dlg-237d1f88 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (153/20). Enqueueing dlg-cf5e6463 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1c09f7a8. Queue is full (154/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (154/20). Enqueueing dlg-a9f42c1a anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0175df11. Queue is full (154/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (154/20). Enqueueing dlg-f5ee770c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-17029845. Queue is full (155/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (155/20). Enqueueing dlg-79211b01 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (155/20). Enqueueing dlg-add4345b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d99af089. Queue is full (156/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (156/20). Enqueueing dlg-5ec834d1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6f58de80. Queue is full (157/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (156/20). Enqueueing dlg-314ba411 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (157/20). Enqueueing dlg-d33615b9 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-24be8ce6. Queue is full (158/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (158/20). Enqueueing dlg-84e6062a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (159/20). Enqueueing dlg-de09b6f0 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (159/20). Enqueueing dlg-b2e9d5b4 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (160/20). Enqueueing dlg-0a0a1eb7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (161/20). Enqueueing dlg-cc0eff44 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7ad797b1. Queue is full (161/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (161/20). Enqueueing dlg-14856fa5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (162/20). Enqueueing dlg-6b96d9f4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fa8e3288. Queue is full (163/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (163/20). Enqueueing dlg-4fd953f3 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (163/20). Enqueueing dlg-e8a4ccb3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (164/20). Enqueueing dlg-0588be4d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (165/20). Enqueueing dlg-628ab442 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (165/20). Enqueueing dlg-c7d8b1aa anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (166/20). Enqueueing dlg-6a27d67d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (167/20). Enqueueing dlg-0b9824a6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (168/20). Enqueueing dlg-b8e9cc03 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (168/20). Enqueueing dlg-280b3002 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-910cb472. Queue is full (169/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (169/20). Enqueueing dlg-bad2bfe5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (170/20). Enqueueing dlg-3371d92a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (170/20). Enqueueing dlg-096591e0 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b35ca341. Queue is full (171/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (171/20). Enqueueing dlg-dbd4b072 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (171/20). Enqueueing dlg-b4d1910b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (172/20). Enqueueing dlg-23702dd8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-235ee8c3. Queue is full (173/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2849fe6a. Queue is full (173/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (172/20). Enqueueing dlg-168ed034 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-78078be8. Queue is full (173/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (173/20). Enqueueing dlg-2bb9496d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (174/20). Enqueueing dlg-d136000b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fcda3461. Queue is full (174/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (174/20). Enqueueing dlg-5474f906 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5cd005b7. Queue is full (175/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (174/20). Enqueueing dlg-a04a98de anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (175/20). Enqueueing dlg-4570e2f1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (176/20). Enqueueing dlg-165cf5ab anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (176/20). Enqueueing dlg-c89a58a3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (177/20). Enqueueing dlg-34e97ccb anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (178/20). Enqueueing dlg-d6b1b057 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-9af07c87. Queue is full (179/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5a808015. Queue is full (179/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (178/20). Enqueueing dlg-87eba941 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c264110f. Queue is full (179/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (179/20). Enqueueing dlg-4a0e0262 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5d96b8ae. Queue is full (180/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (179/20). Enqueueing dlg-82dc5d92 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-93562108. Queue is full (180/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4d602ecd. Queue is full (180/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (180/20). Enqueueing dlg-c4b44259 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (180/20). Enqueueing dlg-1c34a4e5 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (181/20). Enqueueing dlg-c60b23d8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (182/20). Enqueueing dlg-64815eb5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (183/20). Enqueueing dlg-75c19912 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (183/20). Enqueueing dlg-22ae3bd9 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (184/20). Enqueueing dlg-75540bc5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8ed1bb38. Queue is full (185/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1098ecf1. Queue is full (185/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (184/20). Enqueueing dlg-f75ea704 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (185/20). Enqueueing dlg-310619b6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (186/20). Enqueueing dlg-ba005596 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (186/20). Enqueueing dlg-87d4a7d7 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (187/20). Enqueueing dlg-30b27ba8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-fe218d17. Queue is full (188/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0c623b8a. Queue is full (188/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (188/20). Enqueueing dlg-e70aacca anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (188/20). Enqueueing dlg-3e1f602a anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (189/20). Enqueueing dlg-d2127461 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (190/20). Enqueueing dlg-82de11e3 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (191/20). Enqueueing dlg-d1d6eb8f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (192/20). Enqueueing dlg-d0290cb4 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (192/20). Enqueueing dlg-7837c94d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (193/20). Enqueueing dlg-cfde2fe4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (194/20). Enqueueing dlg-48ff519d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2d189bca. Queue is full (195/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (194/20). Enqueueing dlg-eed98967 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (195/20). Enqueueing dlg-722f2b88 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0c7bfaf2. Queue is full (196/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-10dbcf9a. Queue is full (196/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e1c073fd. Queue is full (196/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (195/20). Enqueueing dlg-d349ec88 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8d19e4d0. Queue is full (196/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (196/20). Enqueueing dlg-2b4c9219 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (197/20). Enqueueing dlg-5158c265 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (198/20). Enqueueing dlg-f0df9efd anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (198/20). Enqueueing dlg-f3f385cf anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (199/20). Enqueueing dlg-15ee1bd6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (200/20). Enqueueing dlg-95d7afea anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0c39d53c. Queue is full (201/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (200/20). Enqueueing dlg-916bd7f5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (201/20). Enqueueing dlg-6741a2c2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8aa28fce. Queue is full (202/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (201/20). Enqueueing dlg-f519ee03 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (202/20). Enqueueing dlg-3c976d8e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (203/20). Enqueueing dlg-2c17ec26 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (204/20). Enqueueing dlg-d2cbbd2f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (204/20). Enqueueing dlg-b15953ee anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (205/20). Enqueueing dlg-b9fd17ae anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (206/20). Enqueueing dlg-980b55af anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (205/20). Enqueueing dlg-a654afff anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c5fb5f0e. Queue is full (206/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (206/20). Enqueueing dlg-5eaba93d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (207/20). Enqueueing dlg-9ace9ad0 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (208/20). Enqueueing dlg-df27d298 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (208/20). Enqueueing dlg-ce5a9570 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (209/20). Enqueueing dlg-d635657f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (210/20). Enqueueing dlg-e7968e82 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (210/20). Enqueueing dlg-747904d6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (211/20). Enqueueing dlg-5f8df8d7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (212/20). Enqueueing dlg-da085777 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (213/20). Enqueueing dlg-d9df035d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (213/20). Enqueueing dlg-2a9aec20 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0898a9be. Queue is full (214/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (214/20). Enqueueing dlg-b453de96 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (215/20). Enqueueing dlg-8eed3567 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (216/20). Enqueueing dlg-7548f407 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (216/20). Enqueueing dlg-8d57e242 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (217/20). Enqueueing dlg-b8760435 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (217/20). Enqueueing dlg-e5a2b5d0 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (218/20). Enqueueing dlg-1d8bd589 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (219/20). Enqueueing dlg-d3dd33b5 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (220/20). Enqueueing dlg-1524c656 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-df64f826. Queue is full (220/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-727f3579. Queue is full (220/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (220/20). Enqueueing dlg-9825dedb anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (221/20). Enqueueing dlg-dc0c260d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (221/20). Enqueueing dlg-bed4f810 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1b81bae4. Queue is full (222/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (222/20). Enqueueing dlg-36072357 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d87dbd1e. Queue is full (223/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (223/20). Enqueueing dlg-db95a27e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (223/20). Enqueueing dlg-60e33412 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (224/20). Enqueueing dlg-cfdf4753 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (225/20). Enqueueing dlg-4daf19fb anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (226/20). Enqueueing dlg-e7234cd0 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (227/20). Enqueueing dlg-615a1ac8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (227/20). Enqueueing dlg-25a0058b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (228/20). Enqueueing dlg-2241b559 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (229/20). Enqueueing dlg-6833d780 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-67b61e72. Queue is full (230/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (230/20). Enqueueing dlg-5afaa1e1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (230/20). Enqueueing dlg-c5b59736 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (231/20). Enqueueing dlg-60aaca2b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-44be8e62. Queue is full (232/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (232/20). Enqueueing dlg-5168e751 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (232/20). Enqueueing dlg-2b950bab anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e27346df. Queue is full (233/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2a56e2d4. Queue is full (233/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8d28c8a4. Queue is full (233/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a707e90f. Queue is full (233/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-302ed831. Queue is full (233/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (231/20). Enqueueing dlg-9b82d84b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (232/20). Enqueueing dlg-8deb8db2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (233/20). Enqueueing dlg-279cbda2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (233/20). Enqueueing dlg-5a1872e3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (234/20). Enqueueing dlg-863158cf anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (235/20). Enqueueing dlg-b5113643 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-79100832. Queue is full (235/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f1395bf7. Queue is full (235/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (235/20). Enqueueing dlg-bbdc6b7e anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (235/20). Enqueueing dlg-d753a2fe anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (236/20). Enqueueing dlg-d74d14b6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (237/20). Enqueueing dlg-326e91c7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (237/20). Enqueueing dlg-f2aa6088 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (238/20). Enqueueing dlg-214b8482 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (239/20). Enqueueing dlg-13981dcf anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (240/20). Enqueueing dlg-fea05aa9 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (241/20). Enqueueing dlg-046f1972 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (241/20). Enqueueing dlg-b6b9fec6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (242/20). Enqueueing dlg-3b0fc478 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bc861fa7. Queue is full (243/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (243/20). Enqueueing dlg-1ff9e314 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e8736f90. Queue is full (244/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5e8cadd4. Queue is full (243/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f41c414b. Queue is full (243/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3241afb5. Queue is full (243/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (242/20). Enqueueing dlg-78ed5b70 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (243/20). Enqueueing dlg-a17f9b92 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ef1c7739. Queue is full (244/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (243/20). Enqueueing dlg-f58c8042 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (244/20). Enqueueing dlg-d508223c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (245/20). Enqueueing dlg-be570fec anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (245/20). Enqueueing dlg-5b27019d anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ae863ac8. Queue is full (246/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cf65969f. Queue is full (246/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (246/20). Enqueueing dlg-7ffd94e8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (246/20). Enqueueing dlg-62ef475e anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d4ed9142. Queue is full (247/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-33e1e3e4. Queue is full (247/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (247/20). Enqueueing dlg-6256b2b7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (248/20). Enqueueing dlg-b8efeb38 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (248/20). Enqueueing dlg-8cd535f3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-88a2ea17. Queue is full (249/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (249/20). Enqueueing dlg-64337235 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (250/20). Enqueueing dlg-2b3c55a2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (250/20). Enqueueing dlg-3e8d0ee0 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c20139ea. Queue is full (251/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b2b65e99. Queue is full (251/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f55eb69e. Queue is full (251/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (251/20). Enqueueing dlg-3657cf5f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (251/20). Enqueueing dlg-8b9e7605 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (252/20). Enqueueing dlg-4db6cdee anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-45178a45. Queue is full (253/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ea2cda21. Queue is full (253/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (252/20). Enqueueing dlg-a199959d anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (253/20). Enqueueing dlg-ce0b6d51 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b0c2ee44. Queue is full (254/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (254/20). Enqueueing dlg-37dfa47e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (254/20). Enqueueing dlg-88743641 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-239b7566. Queue is full (255/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-518e709c. Queue is full (255/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (255/20). Enqueueing dlg-60005a82 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (255/20). Enqueueing dlg-24ccff7c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (256/20). Enqueueing dlg-3331df51 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (257/20). Enqueueing dlg-47061f78 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (257/20). Enqueueing dlg-c94f7618 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-40aae26b. Queue is full (258/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (258/20). Enqueueing dlg-2da21841 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8e8b38ae. Queue is full (259/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (258/20). Enqueueing dlg-ebb5af24 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (259/20). Enqueueing dlg-2dc849f2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (260/20). Enqueueing dlg-93495714 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (261/20). Enqueueing dlg-84bd924c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (261/20). Enqueueing dlg-149237cd anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (262/20). Enqueueing dlg-bf016c73 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (263/20). Enqueueing dlg-077e8c95 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1a27111b. Queue is full (264/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (264/20). Enqueueing dlg-a42c53bc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (264/20). Enqueueing dlg-ca6aad18 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (265/20). Enqueueing dlg-e29d3f34 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (266/20). Enqueueing dlg-a5961473 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-498225be. Queue is full (267/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (267/20). Enqueueing dlg-52135002 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (267/20). Enqueueing dlg-5380ac6e anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-882539c4. Queue is full (268/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (268/20). Enqueueing dlg-7105d77c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (269/20). Enqueueing dlg-0d458258 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (270/20). Enqueueing dlg-8bdecc83 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (270/20). Enqueueing dlg-8c203dc2 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8be10c00. Queue is full (271/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (271/20). Enqueueing dlg-c3bb4b0f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-25c20b08. Queue is full (272/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (272/20). Enqueueing dlg-7278c592 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (272/20). Enqueueing dlg-ef5557e5 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b8e4f68f. Queue is full (273/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (273/20). Enqueueing dlg-5305a1a6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (274/20). Enqueueing dlg-d764768a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (274/20). Enqueueing dlg-ce85634c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (275/20). Enqueueing dlg-e62b17f2 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (276/20). Enqueueing dlg-f756e327 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (277/20). Enqueueing dlg-3890b4a4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (278/20). Enqueueing dlg-747ce985 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (278/20). Enqueueing dlg-7b57de02 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (279/20). Enqueueing dlg-d8cd3539 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (280/20). Enqueueing dlg-51bcdbef anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (281/20). Enqueueing dlg-b73121a1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (282/20). Enqueueing dlg-50632e0c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (283/20). Enqueueing dlg-d93551b3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-677cbeb5. Queue is full (283/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b27f2180. Queue is full (283/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (283/20). Enqueueing dlg-75c9362c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (284/20). Enqueueing dlg-ca99b8da anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (284/20). Enqueueing dlg-2ac86f1f anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (285/20). Enqueueing dlg-5cb14a74 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (286/20). Enqueueing dlg-9978ba59 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-649f531e. Queue is full (287/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (287/20). Enqueueing dlg-b79dedd6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (288/20). Enqueueing dlg-f2e544db anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (288/20). Enqueueing dlg-7b696ba1 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6fb9f660. Queue is full (289/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (289/20). Enqueueing dlg-522975e8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (290/20). Enqueueing dlg-0ffbcc5b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-86f77cc6. Queue is full (291/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (291/20). Enqueueing dlg-e6428743 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (291/20). Enqueueing dlg-ab243acd anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (292/20). Enqueueing dlg-eddb6837 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (293/20). Enqueueing dlg-3a01e54c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (294/20). Enqueueing dlg-d0eef64c anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (295/20). Enqueueing dlg-b27d9ed2 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (295/20). Enqueueing dlg-25a410f7 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (296/20). Enqueueing dlg-3b3b968f anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (297/20). Enqueueing dlg-213b3e52 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (298/20). Enqueueing dlg-ab8d0813 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (298/20). Enqueueing dlg-d90f12f3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ae1a0f79. Queue is full (299/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (299/20). Enqueueing dlg-95ff5a8a anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4acb4767. Queue is full (300/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (299/20). Enqueueing dlg-ce9233f4 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (300/20). Enqueueing dlg-6dd01bec anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7081dfea. Queue is full (301/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (301/20). Enqueueing dlg-6bb6b9a9 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-afe47c8c. Queue is full (301/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1ec8e54a. Queue is full (301/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (300/20). Enqueueing dlg-e0aed0c1 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (301/20). Enqueueing dlg-96a7a1fc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1ba33150. Queue is full (302/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-dd993dc5. Queue is full (302/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (301/20). Enqueueing dlg-07f4bda3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (302/20). Enqueueing dlg-e683728d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (303/20). Enqueueing dlg-3243dad1 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (303/20). Enqueueing dlg-bbbe448c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (304/20). Enqueueing dlg-bf94217d anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-59ab72e9. Queue is full (305/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (305/20). Enqueueing dlg-dd88b717 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-891e3751. Queue is full (306/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (305/20). Enqueueing dlg-33bd0ad6 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b04fa68a. Queue is full (306/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (306/20). Enqueueing dlg-1590ecd8 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-74aecbde. Queue is full (307/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (306/20). Enqueueing dlg-5758555c anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (307/20). Enqueueing dlg-fb508e2e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (308/20). Enqueueing dlg-45700e19 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (309/20). Enqueueing dlg-ac7e0081 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6c3d0a2d. Queue is full (310/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (309/20). Enqueueing dlg-46f0d08a anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8b02c599. Queue is full (310/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (310/20). Enqueueing dlg-4fb99510 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d1c58d7e. Queue is full (311/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (310/20). Enqueueing dlg-d6bf8e55 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-918b7eb2. Queue is full (311/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ee20558c. Queue is full (311/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (310/20). Enqueueing dlg-597e6f3d anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (311/20). Enqueueing dlg-1ed8d9fc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-22135275. Queue is full (312/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (312/20). Enqueueing dlg-685e54f0 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (313/20). Enqueueing dlg-764a4de4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (313/20). Enqueueing dlg-c56fe1cd anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (314/20). Enqueueing dlg-9dd49847 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (315/20). Enqueueing dlg-fded58bc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (316/20). Enqueueing dlg-5cd71065 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (316/20). Enqueueing dlg-0a1397a1 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (317/20). Enqueueing dlg-59c2f1b4 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-f98e6181. Queue is full (318/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (317/20). Enqueueing dlg-0bc79840 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3ee84e41. Queue is full (318/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (318/20). Enqueueing dlg-84ee9804 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (319/20). Enqueueing dlg-12255afc anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (319/20). Enqueueing dlg-3b7e8d13 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (320/20). Enqueueing dlg-a07b4d15 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8c43e391. Queue is full (321/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (321/20). Enqueueing dlg-158ad722 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (321/20). Enqueueing dlg-3249e236 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2b204d83. Queue is full (322/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (322/20). Enqueueing dlg-6b9a6a74 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (323/20). Enqueueing dlg-b05e28df anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (323/20). Enqueueing dlg-68384708 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (324/20). Enqueueing dlg-8914f28e anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (325/20). Enqueueing dlg-7c6ab53b anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (326/20). Enqueueing dlg-b6a0e7e3 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (326/20). Enqueueing dlg-ef5650c6 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (327/20). Enqueueing dlg-238454da anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (328/20). Enqueueing dlg-d3fb9365 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (328/20). Enqueueing dlg-8e0ca731 anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (329/20). Enqueueing dlg-a7e2a435 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (330/20). Enqueueing dlg-39854d44 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (331/20). Enqueueing dlg-dafd462b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-266774b9. Queue is full (331/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (331/20). Enqueueing dlg-3d2c90da anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (331/20). Enqueueing dlg-e0c1d74b anyway, but system is lagging behind causal events.
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (332/20). Enqueueing dlg-d75b6904 anyway, but system is lagging behind causal events.
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0397f692. Queue is full (333/20).
+[DLG_QUEUE] OVERFLOW CRITICAL: Queue is full of canonical tasks (332/20). Enqueueing dlg-8535cec0 anyway, but system is lagging behind causal events.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-9-merchant_goran-3-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-17-blacksmith_orm-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for thief_shadow: Cannot operate on a closed database.
+[SCHEDULER] Task task-3-thief_shadow-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for maid_lusya: Cannot operate on a closed database.
+[SCHEDULER] Task task-44-maid_lusya-6-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-11-merchant_goran-3-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-24-blacksmith_orm-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for maid_lusya: Cannot operate on a closed database.
+[SCHEDULER] Task task-49-maid_lusya-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-15-merchant_goran-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for tavern_keeper_tornin: Cannot operate on a closed database.
+[SCHEDULER] Task task-52-tavern_keeper_tornin-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-30-blacksmith_orm-6-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for maid_lusya: Cannot operate on a closed database.
+[SCHEDULER] Task task-51-maid_lusya-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-37-merchant_goran-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-34-blacksmith_orm-3-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for maid_lusya: Cannot operate on a closed database.
+[SCHEDULER] Task task-76-maid_lusya-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-45-merchant_goran-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-14-blacksmith_orm-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for tavern_keeper_tornin: Cannot operate on a closed database.
+[SCHEDULER] Task task-89-tavern_keeper_tornin-1-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-22-merchant_goran-3-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-18-blacksmith_orm-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='tavern_keeper_tornin', source_id='maid_lusya', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-24-merchant_goran-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-54-blacksmith_orm-3-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for maid_lusya: Cannot operate on a closed database.
+[SCHEDULER] Task task-107-maid_lusya-4-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for tavern_keeper_tornin: Cannot operate on a closed database.
+[SCHEDULER] Task task-108-tavern_keeper_tornin-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for merchant_goran: Cannot operate on a closed database.
+[SCHEDULER] Task task-68-merchant_goran-2-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+Dialogue update failed: Cannot operate on a closed database.
+[REPLAY_STORE] Failed to get LLM call: Cannot operate on a closed database.
+[R4A_WORKER] exception: Cannot operate on a closed database.
+[DIALOGUE_EXEC] LLM call failed: Cannot operate on a closed database.. Raising exception to prevent silent failure.
+[DIALOGUE_EXEC] LLM call failed (timeout or error) for blacksmith_orm: Cannot operate on a closed database.
+[SCHEDULER] Task task-64-blacksmith_orm-5-dlg failed: LLM execution failed: Cannot operate on a closed database.
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[COMMITMENT_BASELINE] setup (production-стек, изолированный temp-dir)
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_4j_iy7qn
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_4j_iy7qn\saves
+[COMMITMENT_BASELINE] running 200 idle ticks...
+
+============================================================
+[BASELINE] N=200 | real_errors=0
+[BASELINE] ДВИЖЕНИЕ: moved=нет | ticks_with_traversals=198 | max_concurrent=6
+[BASELINE] VERDICT: TRAVERSAL_FLOW: материализации были, реестр отражает их
+============================================================
+terminals=42 actives=2 switch_rate=0.0350
+superseded=4 vanished=0 cross_loc=0
+statuses={'COMPLETED': 38, 'INTERRUPTED': 4}
+reasons={'SUPERSEDED_BY_NEW_MATERIALIZATION': 4}
+causes={'semantic_relocation:proactive_offer_job': 9, 'semantic_relocation:need_driven:shelter_urge=0.56': 4, 'semantic_relocation:schedule:eating': 5, 'semantic_relocation:proactive_change_role': 7, 'semantic_relocation:proactive_request_service': 5, 'semantic_relocation:proactive_call_for_help': 4, 'semantic_relocation:proactive_spread_rumor': 2, 'semantic_relocation:need_driven:social_urge=0.56': 1, 'semantic_relocation:schedule:guarding_gate': 1, 'semantic_relocation:schedule:sleeping': 1, 'semantic_relocation:need_driven:hunger=0.56': 2, 'semantic_relocation:schedule:resting': 1}
+
+████████████████████████████████████████████████████████████
+📄 ОТЧЁТ СОХРАНЁН: C:\DDD\Codex\VSC_Enigma\Enigma\reports\commitment_baseline.txt
+   Открыть в PowerShell: Invoke-Item "C:\DDD\Codex\VSC_Enigma\Enigma\reports\commitment_baseline.txt"
+████████████████████████████████████████████████████████████
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_4j_iy7qn
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

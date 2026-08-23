@@ -1284,12 +1284,12 @@ class SceneStateManager:
                                                 )
                                             else:
                                                 _active_travs[change.target] = _traversal_dict
-                                                # S203.1 (Stage 2A): shadow-зеркало материализации.
-                                                # cause — VERBATIM от upstream SceneChange.cause
-                                                # (№7: SSM не классифицирует behavioral-семантику;
-                                                # пустой cause -> UNKNOWN_LEGACY_SOURCE в реестре).
-                                                # Перезапись живого traversal (Н-46b) отражается
-                                                # внутри commit(): INTERRUPTED(SUPERSEDED) + parent.
+                                                # S203.1 (Stage 2A, ADR-O-363): FALLBACK-зеркало.
+                                                # В dual-rail compiled-изменения пишет ProjectionEngine
+                                                # РАНЬШЕ (ADR-O-204) — тогда traversal уже MOVING,
+                                                # guard выше блокирует эту ветку, и зеркало не
+                                                # срабатывает (двойной commit исключён guard'ом).
+                                                # Здесь — материализации, миновавшие shadow-компиляцию.
                                                 from app.services.action.commitment_registry import CommitmentRegistry
                                                 CommitmentRegistry.mirror_traversal_materialized(
                                                     scene_state=scene_state,

@@ -213,10 +213,10 @@ class NpcTickPipeline:
             profile_l0 = load_profile_from_legacy_json(_npc_dict_for_write)
             state_l2 = load_l2_state_from_runtime_dict(_npc_dict_for_write)
 
-            # TZ-10: Чтение preloaded narrative_cache из TickState
+            # TZ-10: Чтение preloaded narrative_cache из TickState (ADR-WRITE-GUARD safe)
             _sqlite_cache = state.narrative_cache_map.get(npc_id)
             if _sqlite_cache is not None:
-                state_l2.narrative_cache = _sqlite_cache
+                _npc_dict_for_write["narrative_cache"] = _sqlite_cache
 
             age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
 
@@ -318,7 +318,7 @@ class NpcTickPipeline:
                     state_l2, _event_for_belief, state.tick_id
                 )
                 for _bd in _belief_deltas:
-                    state_applicator.apply_belief_delta(state_l2, _bd)
+                    StateApplicator(state.relationship_store).apply_belief_delta(state_l2, _bd)
             except Exception as _belief_err:
                 logger.warning(
                     f"[BELIEF] belief update failed for {npc_id}: {_belief_err}"
@@ -464,10 +464,19 @@ class NpcTickPipeline:
             _greg = (
                 _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
             )
-            # S189 ARCH-SLEEP Phase C: ActiveCommitment.
-            # Если NPC находится в активном транзите, проактивные интенты блокируются.
-            _my_trav = state.scene_state.get("active_traversals", {}).get(npc_id, {}) if state.scene_state else {}
-            _has_active_commitment = _my_trav.get("status") == "MOVING"
+            from app.services.action.commitment_registry import CommitmentRegistry
+
+            # S189 ARCH-SLEEP Phase C → S203.2 (Stage 2A, ADR-O-363): проекция
+            # has_active_commitment мигрирована на реестр обязательств (Мастер:
+            # сейчас, как рефактор). Registry-first + legacy-fallback: при
+            # traversal-only реестре NEW == OLD; FLAG=OFF → fallback → поведение
+            # байтово прежнее. ACTIVE = {PROPOSED, COMMITTED, EXECUTING, BLOCKED}.
+            if state.scene_state:
+                _has_active_commitment = CommitmentRegistry.has_behavioral_owner(
+                    state.scene_state, npc_id
+                )
+            else:
+                _has_active_commitment = False
 
             # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
             _decision_ctx = (
@@ -611,8 +620,8 @@ class NpcTickPipeline:
 
             if _is_move_command and decision.intent.value != "approach":
                 import dataclasses
-
-                from app.models.npc_state import Intent
+                from app.services.npc.state_applicator import StateApplicator as state_applicator
+                from app.models.npc_state import MovementIntent
 
                 new_result = dataclasses.replace(
                     decision.decision, intent=Intent.APPROACH, intent_target="player"
@@ -1008,7 +1017,7 @@ def build_verbalization_context(
         ),
         # Инвариант 2: LLM не может галлюцинировать движение без TraversalState
         is_moving=_is_moving,
-        movement_intent=decision.intent.value if _is_moving else "",
+        movement_intent=intent_value if _is_moving else "",
         gender=profile_l0.gender,
         narrative_hints=state_for_llm.narrative_cache,
         recalled_facts=tuple(_recalled),
@@ -1228,7 +1237,7 @@ def _resolve_reactive_movement(
     )
     # Используем легаси-поле для прокидывания тени, чтобы не ломать DTO
     if not hasattr(_goal, "causal_claims"):
-        _goal.causal_claims = []
+        object.__setattr__(_goal, "causal_claims", [])
     _goal.causal_claims.append(_claim)
 
     return _goal

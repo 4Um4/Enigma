@@ -4,6 +4,9 @@
   #define AppVersion "0.0.0.0"
 #endif
 
+[Dirs]
+Name: "{app}\backend\logs"; Flags: uninsneveruninstall
+
 [Setup]
 AppName=Bloodloom
 AppVersion={#AppVersion}
@@ -42,14 +45,14 @@ Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU)"; Types: fu
 
 [Files]
 ; 1. Ядро игры (Берем из временной папки staging, где лежат .pyc)
-Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,architecture,Models LLM,payload,*.py"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
+Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
 
 ; 1.1 Портативный Python — S210: payload-пайплайн не автоматизирован (payload/
 ; не создаётся сборкой). До его реализации установщик — dev-дистрибутив:
 ; требует установленный Python 3.13 на целевой машине. TODO(payload): embeddable
 ; Python + pip install -r requirements + упаковка в payload/python — отдельная
 ; задача релизного пайплайна (см. MUTATIONS S210, долг BUILD-P1).
-; Source: "payload\python\*"; DestDir: "{app}\_internal\python"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
+Source: "payload\python\*"; DestDir: "{app}\_internal\python"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
 
 ; 2. LLM-модель (ИСКЛЮЧЕНА! Скачивается отдельным установщиком)
 ; Source: "Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"; DestDir: "{app}\Models LLM"; Components: llm; Flags: nocompression ignoreversion

@@ -30,7 +30,8 @@ from ui_components import (
     PropertyPanel,
     ToggleButton,
 )
-from undo_manager import (
+from core.geometry import Geometry
+from core.commands import (
     AddWallCommand,
     AddNodeCommand,
     AddConnectionCommand,
@@ -69,16 +70,11 @@ MODE_WORLD = "world"  # Карта мира - выбор локаций
 MODE_LOCAL = "local"  # Редактирование локации
 
 # Инструменты
-TOOL_SELECT = "select"
-TOOL_WALL = "wall"  # Рисование стен
-TOOL_ROOM = "room"  # Создание комнат
-TOOL_OBJECT = "object"  # Размещение объектов
-TOOL_PASSAGE = "passage"  # Создание прохода в стене
-TOOL_LABEL = "label"  # Создание надписи
-TOOL_NPC = "npc"  # Размещение NPC
-TOOL_SPAWN = "spawn"  # Установка точки спавна игрока
-TOOL_DELETE = "delete"  # Удаление
-TOOL_NODE = "node"  # Создание и связывание навигационных узлов
+from tools.constants import (
+    TOOL_SELECT, TOOL_WALL, TOOL_ROOM, TOOL_OBJECT, TOOL_PASSAGE,
+    TOOL_LABEL, TOOL_NPC, TOOL_SPAWN, TOOL_DELETE, TOOL_NODE,
+    MODE_WORLD, MODE_LOCAL
+)
 
 # Цвета объектов
 OBJECT_COLORS = {
@@ -178,6 +174,12 @@ class EditorCore:
 
         # Выбранные типы
         self.selected_object_type = "table"
+        from render.map_renderer import MapRenderer
+        self.renderer = MapRenderer()
+
+        from core.event_handler import EventHandler
+        self.event_handler = EventHandler()
+
         self.selected_npc_id: str = ""  # id реального NPC из config
         self._npc_list: List[Dict[str, str]] = load_npc_individuals()
         if self._npc_list:
@@ -967,33 +969,23 @@ class EditorCore:
     # === Координатные преобразования ===
     def world_to_screen(self, wx: float, wy: float) -> Tuple[int, int]:
         """Преобразует мировые координаты в экранные"""
-        sx = int(wx * SCALE * self.zoom + self.camera_x)
-        sy = int(wy * SCALE * self.zoom + self.camera_y)
-        return (sx, sy)
+        return Geometry.world_to_screen(self.camera_x, self.camera_y, self.zoom, wx, wy)
 
     def screen_to_world(self, sx: int, sy: int) -> Tuple[float, float]:
         """Преобразует экранные координаты в мировые"""
-        wx = (sx - self.camera_x) / (SCALE * self.zoom)
-        wy = (sy - self.camera_y) / (SCALE * self.zoom)
-        return (wx, wy)
+        return Geometry.screen_to_world(self.camera_x, self.camera_y, self.zoom, sx, sy)
 
     def snap_to_grid(
         self, x: float, y: float, grid_size: float = 0.5
     ) -> Tuple[float, float]:
         """Привязывает координаты к сетке"""
-        return (round(x / grid_size) * grid_size, round(y / grid_size) * grid_size)
+        return Geometry.snap_to_grid(x, y, grid_size)
 
     def _rotated_rect_points(
         self, cx: float, cy: float, w: float, h: float, angle_deg: float
     ) -> List[Tuple[float, float]]:
         """Возвращает 4 точки повёрнутого прямоугольника"""
-        angle = math.radians(angle_deg)
-        cos_a, sin_a = math.cos(angle), math.sin(angle)
-        hw, hh = w / 2, h / 2
-        corners = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
-        return [
-            (x * cos_a - y * sin_a + cx, x * sin_a + y * cos_a + cy) for x, y in corners
-        ]
+        return Geometry.rotated_rect_points(cx, cy, w, h, angle_deg)
 
     def _get_rotation_buttons(self, obj_id: str) -> List[Dict[str, Any]]:
         """Возвращает кнопки поворота/зеркала для выделенного объекта"""
@@ -1353,6 +1345,8 @@ class EditorCore:
                 elif self.dialog and getattr(self.dialog, "active", False):
                     if self.dialog.handle_event(event):
                         continue
+                elif hasattr(self, "calibration_panel") and self.calibration_panel and getattr(self.calibration_panel, "active", False):
+                    self.calibration_panel.handle_event(event)
                 elif hasattr(self, "vc_editor") and self.vc_editor and getattr(self.vc_editor, "active", False):
                     if self.vc_editor.handle_event(event):
                         continue
@@ -1368,221 +1362,7 @@ class EditorCore:
         return
 
     def _handle_event(self, event: pygame.event.Event):
-        """Обрабатывает события ввода"""
-        mx, my = pygame.mouse.get_pos()
-
-        # Горячие клавиши
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                if self.wall_drawing:
-                    self.wall_drawing = False
-                    self.wall_start = None
-                elif self.room_drawing:
-                    self.room_drawing = False
-                    self.room_start = None
-                elif self.node_link_start is not None:
-                    self.node_link_start = None
-                    self._show_toast("Создание связи отменено")
-                elif self.selected_object is not None or self.tool is not None:
-                    self.selected_object = None
-                    self._set_tool(None)
-                else:
-                    self._running = False  # Выход в главное меню
-
-            elif event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
-                # Удаление выбранного объекта
-                if self.selected_object and self.tool is None:
-                    self._delete_at(mx, my)
-
-            elif event.key == pygame.K_TAB:
-                self._toggle_mode()
-            elif event.key == pygame.K_PAGEUP:
-                self.current_z += 1
-                self._show_toast(f"Этаж: {self.current_z}")
-            elif event.key == pygame.K_PAGEDOWN:
-                self.current_z = max(0, self.current_z - 1)
-                self._show_toast(f"Этаж: {self.current_z}")
-
-            elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                if self.current_file:
-                    if self.cm.is_open:
-                        self.cm.save_location(self.current_file)
-                    else:
-                        self.dm.save(self.current_file)
-                    self._rebuild_spatial_registry()
-                    self._show_toast(f"Сохранено: {self.current_file}")
-
-            elif event.key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                label = self.undo.undo()
-                if label:
-                    self.selected_object = None
-                    self._show_toast(f"Отменено: {label}")
-                else:
-                    self._show_toast("Нечего отменять")
-
-            elif event.key == pygame.K_q and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                label = self.undo.redo()
-                if label:
-                    self.selected_object = None
-                    self._show_toast(f"Возвращено: {label}")
-                else:
-                    self._show_toast("Нечего возвращать")
-
-            elif event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                self._copy_selection()
-
-            elif event.key == pygame.K_F2:
-                # F2 — переименовать выделенный объект
-                if self.selected_object and self.tool is None:
-                    mx, my = pygame.mouse.get_pos()
-                    self._handle_double_click(mx, my)
-
-            elif event.key == pygame.K_v and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                self._paste_clipboard()
-
-            elif (
-                event.key == pygame.K_PLUS
-                or event.key == pygame.K_EQUALS
-                or event.key == pygame.K_KP_PLUS
-            ):
-                self._zoom(ZOOM_STEP, mx, my)
-            elif event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:
-                self._zoom(1 / ZOOM_STEP, mx, my)
-            elif event.key == pygame.K_0:
-                self.zoom = 1.0
-                self._center_camera()
-
-        # Зум колёсиком мыши
-        elif event.type == pygame.MOUSEWHEEL:
-            mx, my = pygame.mouse.get_pos()
-            if event.y > 0:
-                self._zoom(ZOOM_STEP, mx, my)
-            elif event.y < 0:
-                self._zoom(1 / ZOOM_STEP, mx, my)
-
-        # UI элементы
-        for btn in self.menu_buttons:
-            if btn.handle_event(event):
-                return
-
-        for btn in self.toolbar_buttons:
-            if btn.handle_event(event):
-                return
-
-        if self.object_dropdown and self.object_dropdown.handle_event(event):
-            return
-
-        # Хэндлы ресайза на холсте — максимальный приоритет
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mx, my = event.pos
-            if (
-                self.tool is None
-                and self.selected_object
-                and self.selected_object[0] == "object"
-            ):
-                for handle in self._get_resize_handles(self.selected_object[1]):
-                    if handle["rect"].collidepoint(mx, my):
-                        obj = next(
-                            (
-                                o
-                                for o in self.dm.locations[self.current_file]["objects"]
-                                if o.get("id") == self.selected_object[1]
-                            ),
-                            None,
-                        )
-                        if obj:
-                            self._resizing = {
-                                "obj_id": self.selected_object[1],
-                                "handle": handle,
-                                "start_mx": mx,
-                                "start_my": my,
-                                "start_w": obj["size"]["w"],
-                                "start_h": obj["size"]["h"],
-                            }
-                        return
-
-        # Перетаскивание выделенной сущности — после хэндлов и кнопок
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mx, my = event.pos
-            if (
-                self.tool is None
-                and self.selected_object
-                and not self._resizing
-                and not self.property_panel.rect.collidepoint(mx, my)
-            ):
-                if self._is_on_selected(mx, my) and self.selected_object is not None:
-                    etype, eid = self.selected_object
-                    orig = self._get_drag_orig(etype, eid)
-                    if orig:
-                        self._dragging_entity = {
-                            "start_mx": mx,
-                            "start_my": my,
-                            "orig": orig,
-                        }
-                    return
-
-        # Кнопки поворота/зеркала на холсте — приоритет над панелью свойств
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mx, my = event.pos
-            if (
-                self.tool is None
-                and self.selected_object
-                and self.selected_object[0] == "object"
-                and not self.property_panel.rect.collidepoint(mx, my)
-            ):
-                for btn in self._get_rotation_buttons(self.selected_object[1]):
-                    if btn["rect"].collidepoint(mx, my):
-                        obj = next(
-                            (
-                                o
-                                for o in self.dm.locations[self.current_file]["objects"]
-                                if o.get("id") == self.selected_object[1]
-                            ),
-                            None,
-                        )
-                        if obj:
-                            if btn.get("action") == "mirror":
-                                self.undo.push(
-                                    MirrorObjectCommand(
-                                        self.dm,
-                                        self.current_file,
-                                        self.selected_object[1],
-                                        obj.get("mirrored", False),
-                                    )
-                                )
-                            else:
-                                try:
-                                    old_rot = float(obj.get("rotation") or 0)
-                                except (ValueError, TypeError):
-                                    old_rot = 0.0
-                                self.undo.push(
-                                    RotateObjectCommand(
-                                        self.dm,
-                                        self.current_file,
-                                        self.selected_object[1],
-                                        old_rot,
-                                        btn["delta"],
-                                    )
-                                )
-                        return
-
-        # Панель свойств
-        action = self.property_panel.handle_event(event)
-        if action:
-            self._handle_property_action(action)
-            return
-        # Поглощаем клики внутри панели — чтобы не деселектить объекты
-        if (
-            event.type == pygame.MOUSEBUTTONDOWN
-            and self.property_panel.rect.collidepoint(event.pos)
-        ):
-            return
-
-        # Основное взаимодействие
-        if self.mode == MODE_WORLD:
-            self._handle_world_event(event)
-        else:
-            self._handle_local_event(event)
+        self.event_handler.handle_event(self, event)
 
     def _toggle_mode(self):
         """Переключает между режимами мира и локации"""
@@ -1611,206 +1391,6 @@ class EditorCore:
         self.zoom = new_zoom
         self.camera_x = cx - world_x * SCALE * new_zoom
         self.camera_y = cy - world_y * SCALE * new_zoom
-
-    def _handle_world_event(self, event: pygame.event.Event):
-        """Обрабатывает события в режиме карты мира"""
-        mx, my = pygame.mouse.get_pos()
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                mods = pygame.key.get_mods()
-                # Shift+ЛКМ — перетаскивание локации (смещение origin)
-                if mods & pygame.KMOD_SHIFT:
-                    for fname, data in self.dm.locations.items():
-                        rect = self._get_location_screen_rect(fname)
-                        if rect and rect.collidepoint(mx, my):
-                            self._dragging_location = fname
-                            self._drag_offset = (mx - rect.x, my - rect.y)
-                            return
-                else:
-                    # ЛКМ — выбор локации и переход в режим редактирования
-                    for fname, data in self.dm.locations.items():
-                        rect = self._get_location_screen_rect(fname)
-                        if rect and rect.collidepoint(mx, my):
-                            self.current_file = fname
-                            self._toggle_mode()
-                            return
-
-            elif event.button == 2:
-                # Колёсико — перемещение камеры
-                self.dragging_camera = True
-
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 2:
-                self.dragging_camera = False
-            if (
-                event.button == 1
-                and hasattr(self, "_dragging_location")
-                and self._dragging_location
-            ):
-                self._dragging_location = None
-
-        elif event.type == pygame.MOUSEMOTION:
-            if self.dragging_camera:
-                self.camera_x += event.rel[0]
-                self.camera_y += event.rel[1]
-            elif hasattr(self, "_dragging_location") and self._dragging_location:
-                # Перетаскивание локации — обновляем origin
-                fname = self._dragging_location
-                data = self.dm.locations.get(fname)
-                if data:
-                    new_sx = mx - self._drag_offset[0]
-                    new_sy = my - self._drag_offset[1]
-                    # Конвертируем экранные координаты обратно в мировые
-                    data["origin"]["x"] = (new_sx - self.camera_x) / (SCALE * self.zoom)
-                    data["origin"]["y"] = (new_sy - self.camera_y) / (SCALE * self.zoom)
-
-    def _handle_local_event(self, event: pygame.event.Event):
-        """Обрабатывает события в режиме редактирования локации"""
-        mx, my = pygame.mouse.get_pos()
-
-        # Проверяем что клик не в UI
-        if my < self.menu_height + self.toolbar_height:
-            return
-        if mx > self.screen.get_width() - self.panel_width:
-            return
-
-        world_x, world_y = self.screen_to_world(mx, my)
-        grid_x, grid_y = self.snap_to_grid(world_x, world_y, 0.5)
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # ЛКМ
-                # Проверка двойного клика (< 400мс, < 8 пикселей)
-                now = pygame.time.get_ticks()
-                dx = abs(mx - self._last_click_pos[0])
-                dy = abs(my - self._last_click_pos[1])
-                if now - self._last_click_time < 400 and dx < 8 and dy < 8:
-                    self._handle_double_click(mx, my)
-                    self._last_click_time = 0
-                else:
-                    self._handle_left_click(mx, my, world_x, world_y, grid_x, grid_y)
-                self._last_click_time = now
-                self._last_click_pos = (mx, my)
-
-            elif event.button == 2:  # Колёсико — двигать камеру
-                self.dragging_camera = True
-            elif event.button == 3:  # ПКМ
-                if self.tool is not None:
-                    # В режиме создания — выйти в покой, выделение остаётся
-                    self._set_tool(None)
-                else:
-                    # В режиме покоя — снять выделение
-                    self.selected_object = None
-
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                # S-OBS-05: Прямой триггер обновления Observatory при отпускании мыши
-                if self.observatory_data is not None:
-                    self._spatial_dirty = True
-                    self._last_edit_time = pygame.time.get_ticks() - 300  # Немедленный запрос
-
-                if self._resizing:
-                    obj = next(
-                        (
-                            o
-                            for o in self.dm.locations[self.current_file]["objects"]
-                            if o.get("id") == self._resizing["obj_id"]
-                        ),
-                        None,
-                    )
-                    if obj:
-                        new_w = round(obj["size"]["w"], 2)
-                        new_h = round(obj["size"]["h"], 2)
-                        old_w = round(self._resizing["start_w"], 2)
-                        old_h = round(self._resizing["start_h"], 2)
-                        if abs(new_w - old_w) > 0.01 or abs(new_h - old_h) > 0.01:
-                            self.undo.push(
-                                ResizeObjectCommand(
-                                    self.dm,
-                                    self.current_file,
-                                    self._resizing["obj_id"],
-                                    old_w,
-                                    old_h,
-                                    new_w,
-                                    new_h,
-                                )
-                            )
-                    self._resizing = None
-                elif self._dragging_entity and self.selected_object is not None:
-                    mx_now, my_now = event.pos
-                    total_dx = mx_now - self._dragging_entity["start_mx"]
-                    total_dy = my_now - self._dragging_entity["start_my"]
-                    scale = 1.0 / (SCALE * self.zoom)
-                    dx_world = round(total_dx * scale, 2)
-                    dy_world = round(total_dy * scale, 2)
-                    if abs(dx_world) > 0.01 or abs(dy_world) > 0.01:
-                        etype, eid = self.selected_object
-                        drag_wall = etype == "object" and bool(
-                            self._dragging_entity["orig"].get("wall_id")
-                        )
-                        cmd = MoveEntityCommand(
-                            self.dm,
-                            self.current_file,
-                            etype,
-                            eid,
-                            dx_world,
-                            dy_world,
-                            drag_wall,
-                        )
-                        cmd._skip_do = True
-                        self.undo.push(cmd)
-                    self._dragging_entity = None
-                else:
-                    self._handle_left_release(mx, my, world_x, world_y, grid_x, grid_y)
-            elif event.button == 2:  # Колёсико
-                self.dragging_camera = False
-
-        elif event.type == pygame.MOUSEMOTION:
-            if self._dragging_entity and self.selected_object is not None:
-                mx_now, my_now = event.pos
-                total_dx = mx_now - self._dragging_entity["start_mx"]
-                total_dy = my_now - self._dragging_entity["start_my"]
-                scale = 1.0 / (SCALE * self.zoom)
-                dx_world = total_dx * scale
-                dy_world = total_dy * scale
-                if self.selected_object is not None:
-                    etype, eid = self.selected_object
-                    self._apply_drag(
-                        etype, eid, self._dragging_entity["orig"], dx_world, dy_world
-                    )
-            elif self._resizing:
-                obj = next(
-                    (
-                        o
-                        for o in self.dm.locations[self.current_file]["objects"]
-                        if o.get("id") == self._resizing["obj_id"]
-                    ),
-                    None,
-                )
-                if obj:
-                    mx_now, my_now = event.pos
-                    total_dx = mx_now - self._resizing["start_mx"]
-                    total_dy = my_now - self._resizing["start_my"]
-                    scale = 1.0 / (SCALE * self.zoom)
-                    handle = self._resizing["handle"]
-
-                    if handle["axis"] == "w":
-                        # Только ширина (для объектов в стенах)
-                        dw = total_dx * scale * handle["dir"]
-                        obj["size"]["w"] = max(0.3, self._resizing["start_w"] + dw)
-                    elif handle["axis"] == "h":
-                        # Только высота (для вертикальных объектов в стенах)
-                        dh = total_dy * scale * handle["dir"]
-                        obj["size"]["h"] = max(0.3, self._resizing["start_h"] + dh)
-                    else:
-                        # Свободный ресайз по обоим осям
-                        dw = total_dx * scale * handle["dir_x"]
-                        dh = total_dy * scale * handle["dir_y"]
-                        obj["size"]["w"] = max(0.3, self._resizing["start_w"] + dw)
-                        obj["size"]["h"] = max(0.3, self._resizing["start_h"] + dh)
-            elif self.dragging_camera:
-                self.camera_x += event.rel[0]
-                self.camera_y += event.rel[1]
 
     def _handle_double_click(self, mx: int, my: int) -> None:
         """Обрабатывает двойной клик — редактирование свойств сущности"""
@@ -2290,31 +1870,17 @@ class EditorCore:
                     return True
         return False
 
-    @staticmethod
     def _point_to_segment_dist(
-        px: float, py: float, x1: float, y1: float, x2: float, y2: float
+        self, px: float, py: float, x1: float, y1: float, x2: float, y2: float
     ) -> float:
         """Расстояние от точки до отрезка"""
-        dx, dy = x2 - x1, y2 - y1
-        length_sq = dx * dx + dy * dy
-        if length_sq == 0:
-            return math.hypot(px - x1, py - y1)
-        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
-        proj_x = x1 + t * dx
-        proj_y = y1 + t * dy
-        return math.hypot(px - proj_x, py - proj_y)
+        return Geometry.point_to_segment_dist(px, py, x1, y1, x2, y2)
 
-    @staticmethod
     def _project_point_to_segment(
-        px: float, py: float, x1: float, y1: float, x2: float, y2: float
+        self, px: float, py: float, x1: float, y1: float, x2: float, y2: float
     ) -> Tuple[float, float]:
         """Проецирует точку на отрезок. Возвращает (proj_x, proj_y)."""
-        dx, dy = x2 - x1, y2 - y1
-        length_sq = dx * dx + dy * dy
-        if length_sq == 0:
-            return x1, y1
-        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
-        return x1 + t * dx, y1 + t * dy
+        return Geometry.project_point_to_segment(px, py, x1, y1, x2, y2)
 
     def _check_wall_overlap(
         self, x1: float, y1: float, x2: float, y2: float, tolerance: float = 0.01
@@ -2340,19 +1906,12 @@ class EditorCore:
                 return True
         return False
 
-    @staticmethod
     def _segments_intersect(
-        x1: float, y1: float, x2: float, y2: float,
+        self, x1: float, y1: float, x2: float, y2: float,
         x3: float, y3: float, x4: float, y4: float
     ) -> bool:
         """Стандартный алгоритм проверки пересечения отрезков (CCW)."""
-        def ccw(ax, ay, bx, by, cx, cy):
-            return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax)
-        
-        return (
-            ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4) and
-            ccw(x1, y1, x2, y2, x3, y3) != ccw(x1, y1, x2, y2, x4, y4)
-        )
+        return Geometry.segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4)
 
     def _try_select_existing(self, mx: int, my: int) -> bool:
         """Пробует выбрать существующий объект под курсором. Возвращает True если нашёл."""
@@ -2607,18 +2166,7 @@ class EditorCore:
         self, px: int, py: int, x1: int, y1: int, x2: int, y2: int, threshold: int
     ) -> bool:
         """Проверяет, находится ли точка рядом с отрезком"""
-        # Расстояние от точки до отрезка
-        line_len = math.hypot(x2 - x1, y2 - y1)
-        if line_len == 0:
-            return math.hypot(px - x1, py - y1) < threshold
-
-        t = max(
-            0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / (line_len**2))
-        )
-        proj_x = x1 + t * (x2 - x1)
-        proj_y = y1 + t * (y2 - y1)
-
-        return math.hypot(px - proj_x, py - proj_y) < threshold
+        return Geometry.point_near_line(px, py, x1, y1, x2, y2, threshold)
 
     def _handle_property_action(self, action: str):
         """Обрабатывает действия из панели свойств"""
@@ -2722,7 +2270,7 @@ class EditorCore:
 
         if action == "edit_psyche" and obj_type == "npc":
             from data_manager import load_npc_calibration, save_npc_calibration
-            from calibration_panel import CalibrationPanel
+            from ui.dialogs import CalibrationPanel
             
             npc = next((n for n in loc.get("npcs", []) if n["ref_id"] == obj_key), None)
             if not npc:
@@ -3095,8 +2643,9 @@ class EditorCore:
                         "label": "Комната",
                         "value": npc.get("room_id", "—"),
                     },
-                    {"type": "toggle", "label": "🖼️ Выбрать спрайт", "action": "pick_sprite"},
-                    {"type": "toggle", "label": "🎭 Редактировать портреты", "action": "edit_portraits"},
+                    {"type": "button", "label": "Выбрать спрайт", "action": "pick_sprite"},
+                    {"type": "button", "label": "Редактировать портреты", "action": "edit_portraits"},
+                    {"type": "button", "label": "Калибровать психику", "action": "edit_psyche"},
                 ]
 
                 # S176: Превью портрета Neutral (из visual_casting)
@@ -3110,8 +2659,6 @@ class EditorCore:
                             items.append({"type": "image", "surface": _surf, "w": 128, "h": 128})
                     except Exception:
                         pass
-
-                items.append({"type": "button", "label": "Редактировать портреты", "action": "edit_portraits"})
 
         elif obj_type == "spawn":
             spawn = loc.get("player_spawn")
@@ -3148,75 +2695,19 @@ class EditorCore:
                 self.dialog.draw(self.screen, self.font)
             else:
                 self.dialog.draw(self.font, self.font_small)
+        if hasattr(self, "calibration_panel") and self.calibration_panel and getattr(self.calibration_panel, "active", False):
+            self.calibration_panel.draw(self.font, self.font_small)
         elif hasattr(self, "vc_editor") and self.vc_editor and getattr(self.vc_editor, "active", False):
             self.vc_editor.draw(self.font, self.font_small)
 
     def _draw_world(self):
-        """Отрисовывает карту мира"""
-        # Сетка мира
-        self._draw_world_grid()
+        self.renderer.draw_world(self)
 
-        # Локации
-        for fname, data in self.dm.locations.items():
-            rect = self._get_location_screen_rect(fname)
-            if not rect:
-                continue
+    def _draw_local(self):
+        self.renderer.draw_local(self)
 
-            # Цвет в зависимости от типа
-            if data.get("is_outdoor"):
-                color = (80, 120, 80)  # Улица - зеленоватый
-            else:
-                color = (100, 100, 110)  # Помещение - серый
-
-            if fname == self.current_file:
-                color = (100, 150, 200)  # Выбранная - синий
-
-            pygame.draw.rect(self.screen, color, rect, border_radius=4)
-            pygame.draw.rect(self.screen, COLORS["border"], rect, 2, border_radius=4)
-
-            # Название локации
-            label = self.font_bold.render(
-                data.get("label", fname), True, COLORS["text_highlight"]
-            )
-            self.screen.blit(label, (rect.x + 8, rect.y - 18))
-
-            # Инфо
-            info_text = f"{data['size']['w']}x{data['size']['h']}м"
-            info = self.font_small.render(info_text, True, COLORS["text_dim"])
-            self.screen.blit(info, (rect.x + 8, rect.y + 5))
-
-            # Количество порталов
-            p_count = len(data.get("portals", []))
-            if p_count > 0:
-                p_text = self.font_small.render(
-                    f"🚪{p_count}", True, COLORS["accent_yellow"]
-                )
-                self.screen.blit(p_text, (rect.x + 8, rect.y + 20))
-
-    def _draw_world_grid(self):
-        """Отрисовывает сетку мира"""
-        # Крупная сетка (100м)
-        start_x = int(self.camera_x / (SCALE * self.zoom * 10)) - 1
-        end_x = start_x + int(self.screen.get_width() / (SCALE * self.zoom * 10)) + 2
-        start_y = int(self.camera_y / (SCALE * self.zoom * 10)) - 1
-        end_y = start_y + int(self.screen.get_height() / (SCALE * self.zoom * 10)) + 2
-
-        for x in range(start_x, end_x):
-            sx = x * SCALE * self.zoom * 10 + self.camera_x
-            pygame.draw.line(
-                self.screen,
-                COLORS["grid_major"],
-                (sx, 0),
-                (sx, self.screen.get_height()),
-            )
-        for y in range(start_y, end_y):
-            sy = y * SCALE * self.zoom * 10 + self.camera_y
-            pygame.draw.line(
-                self.screen,
-                COLORS["grid_major"],
-                (0, sy),
-                (self.screen.get_width(), sy),
-            )
+    def _draw_ui(self):
+        self.renderer.draw_ui(self)
 
     def _get_location_screen_rect(self, fname: str) -> Optional[pygame.Rect]:
         """Возвращает экранный прямоугольник локации"""
@@ -3229,865 +2720,6 @@ class EditorCore:
         sh = data["size"]["h"] * SCALE * self.zoom
 
         return pygame.Rect(sx, sy, sw, sh)
-
-    def _draw_local(self):
-        """Отрисовывает локацию в режиме редактирования"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        # Сетка
-        if self.show_grid:
-            self._draw_local_grid()
-
-        # Граница локации
-        self._draw_location_bounds()
-
-        # Комнаты
-        if self.show_rooms:
-            self._draw_rooms()
-
-        # Стены
-        if self.show_walls:
-            self._draw_walls()
-
-        # Проходы (внутренние двери в стенах)
-        self._draw_passages()
-        self._draw_nodes()  # BUG-P1-12: Включаем отрисовку навигационных узлов
-
-        # Надписи (поверх всего, чтобы не перекрывались)
-        self._draw_labels()
-
-        # Объекты
-        if self.show_objects:
-            self._draw_objects()
-
-        # NPC
-        self._draw_npcs()
-
-        # Точка спавна игрока
-        self._draw_spawn()
-
-        # Предпросмотр рисования
-        self._draw_preview()
-
-        # Выделение
-        self._draw_selection()
-
-        # ADR-O-330: Spatial Observatory Overlay
-        if self.observatory_data:
-            self._draw_observatory()
-
-    def _draw_observatory(self):
-        """Финальная отрисовка Spatial Observatory."""
-        if not self.observatory_data:
-            return
-
-        # Диагностика на экран
-        font = pygame.font.SysFont("Arial", 16)
-        status_text = f"OBS REV: {self._observatory_revision} | DIRTY: {self._spatial_dirty}"
-        text_surf = font.render(status_text, True, (255, 255, 0))
-        self.screen.blit(text_surf, (10, self.menu_height + self.toolbar_height + 30))
-
-        topo = self.observatory_data.get("topology", {})
-        nodes = topo.get("nodes", [])
-        edges = topo.get("edges", [])
-        agents = self.observatory_data.get("agents", [])
-
-        diag_text = f"Nodes: {len(nodes)} | Edges: {len(edges)} | Agents: {len(agents)}"
-        diag_surf = font.render(diag_text, True, (255, 255, 0))
-        self.screen.blit(diag_surf, (10, self.menu_height + self.toolbar_height + 50))
-
-        # Вывод каузальной ошибки, если граф не собрался
-        diagnostics = self.observatory_data.get("diagnostics", [])
-        if diagnostics:
-            err = diagnostics[0]
-            err_text = f"ERROR: {err.get('code', '')} - {err.get('message', '')[:120]}"
-            err_surf = font.render(err_text, True, (255, 0, 0))
-            self.screen.blit(err_surf, (10, self.menu_height + self.toolbar_height + 70))
-
-        # 1. Рисуем рёбра
-        for edge in edges:
-            from_node = next((n for n in nodes if n["node_id"] == edge["from_node_id"]), None)
-            to_node = next((n for n in nodes if n["node_id"] == edge["to_node_id"]), None)
-            if from_node and to_node:
-                p1 = self.world_to_screen(from_node["position"][0], from_node["position"][1])
-                p2 = self.world_to_screen(to_node["position"][0], to_node["position"][1])
-                
-                if edge.get("traversable", True):
-                    # Валидное ребро: толстая зелёная линия
-                    pygame.draw.line(self.screen, (0, 200, 0), p1, p2, 4)
-                else:
-                    # Заблокированное ребро: толстая красная линия с крестиком
-                    pygame.draw.line(self.screen, (255, 0, 0), p1, p2, 4)
-                    mid_x = (p1[0] + p2[0]) // 2
-                    mid_y = (p1[1] + p2[1]) // 2
-                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x - 8, mid_y - 8), (mid_x + 8, mid_y + 8), 4)
-                    pygame.draw.line(self.screen, (255, 255, 255), (mid_x + 8, mid_y - 8), (mid_x - 8, mid_y + 8), 4)
-
-        # 2. Рисуем узлы
-        for node in nodes:
-            sx, sy = self.world_to_screen(node["position"][0], node["position"][1])
-            # Узлы — ярко-жёлтые круги радиусом 10
-            pygame.draw.circle(self.screen, (255, 255, 0), (int(sx), int(sy)), 10)
-            pygame.draw.circle(self.screen, (0, 0, 0), (int(sx), int(sy)), 4)
-
-        # 3. Рисуем пути NPC
-        for agent in agents:
-            path = agent.get("path")
-            if not path or not path.get("points"):
-                continue
-            
-            points = []
-            for p in path["points"]:
-                sx, sy = self.world_to_screen(p[0], p[1])
-                points.append((int(sx), int(sy)))
-            
-            if len(points) >= 2:
-                # Пути NPC — ярко-синие линии
-                pygame.draw.lines(self.screen, (0, 100, 255), False, points, 5)
-                    # Заблокированное ребро: красная линия с белым крестиком
-
-    def _draw_local_grid(self):
-        """Отрисовывает локальную сетку"""
-        # Определяем видимый диапазон
-        screen_w = self.screen.get_width() - self.panel_width
-        screen_h = self.screen.get_height()
-
-        start_x = int((-self.camera_x) / (SCALE * self.zoom)) - 1
-        end_x = start_x + int(screen_w / (SCALE * self.zoom)) + 2
-        start_y = int((-self.camera_y) / (SCALE * self.zoom)) - 1
-        end_y = start_y + int(screen_h / (SCALE * self.zoom)) + 2
-
-        # Мелкая сетка (0.5м)
-        for x in range(start_x * 2, end_x * 2):
-            sx = x * SCALE * self.zoom * 0.5 + self.camera_x
-            pygame.draw.line(
-                self.screen,
-                COLORS["grid_minor"],
-                (sx, self.menu_height + self.toolbar_height),
-                (sx, screen_h),
-            )
-        for y in range(start_y * 2, end_y * 2):
-            sy = y * SCALE * self.zoom * 0.5 + self.camera_y
-            pygame.draw.line(self.screen, COLORS["grid_minor"], (0, sy), (screen_w, sy))
-
-        # Крупная сетка (1м)
-        for x in range(start_x, end_x):
-            sx = x * SCALE * self.zoom + self.camera_x
-            color = COLORS["grid_major"] if x % 5 == 0 else COLORS["grid_minor"]
-            pygame.draw.line(
-                self.screen,
-                color,
-                (sx, self.menu_height + self.toolbar_height),
-                (sx, screen_h),
-            )
-        for y in range(start_y, end_y):
-            sy = y * SCALE * self.zoom + self.camera_y
-            color = COLORS["grid_major"] if y % 5 == 0 else COLORS["grid_minor"]
-            pygame.draw.line(self.screen, color, (0, sy), (screen_w, sy))
-
-        # Координатные оси
-        origin_x, origin_y = self.world_to_screen(0, 0)
-        if 0 <= origin_x <= screen_w:
-            pygame.draw.line(
-                self.screen,
-                COLORS["accent_red"],
-                (origin_x, self.menu_height + self.toolbar_height),
-                (origin_x, screen_h),
-                2,
-            )
-        if self.menu_height + self.toolbar_height <= origin_y <= screen_h:
-            pygame.draw.line(
-                self.screen,
-                COLORS["accent_green"],
-                (0, origin_y),
-                (screen_w, origin_y),
-                2,
-            )
-
-    def _draw_location_bounds(self):
-        """Отрисовывает границы локации"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        origin = loc.get("origin", {"x": 0, "y": 0})
-        x, y = self.world_to_screen(origin["x"], origin["y"])
-        w = loc["size"]["w"] * SCALE * self.zoom
-        h = loc["size"]["h"] * SCALE * self.zoom
-
-        # Фон
-        bg_color = (40, 50, 40) if loc.get("is_outdoor") else (45, 45, 50)
-        pygame.draw.rect(self.screen, bg_color, (x, y, w, h))
-
-        # Граница
-        pygame.draw.rect(self.screen, COLORS["border"], (x, y, w, h), 3)
-
-        # Размеры
-        label = self.font.render(
-            f"{loc['size']['w']}x{loc['size']['h']}м", True, COLORS["text_dim"]
-        )
-        self.screen.blit(label, (x + 5, y - 15))
-
-    def _find_label_position(
-        self, room: Dict, objects_in_room: List[Dict]
-    ) -> Tuple[int, int]:
-        """Находит лучшую позицию для надписи комнаты — максимально удалённую от объектов."""
-        poly = room.get("polygon")
-        if not poly:
-            rx, ry = self.world_to_screen(room["x"], room["y"])
-            return rx + 4, ry + 4
-
-        # Экранные координаты полигона
-        screen_poly = [self.world_to_screen(p[0], p[1]) for p in poly]
-        # Bounding box
-        xs = [p[0] for p in screen_poly]
-        ys = [p[1] for p in screen_poly]
-        min_x, max_x = min(xs), max(xs)
-        min_y, max_y = min(ys), max(ys)
-
-        # Экранные позиции объектов
-        obj_positions = [
-            (self.world_to_screen(o["position"]["x"], o["position"]["y"]))
-            for o in objects_in_room
-        ]
-
-        # Сетка кандидатов — с запасом на размер текста
-        text_w, text_h = 150, 16  # примерный максимальный размер надписи
-        step = 16
-        best_pos = (min_x + 4, min_y + 4)
-        best_dist = -1
-
-        cx = min_x + text_w // 2 + 4
-        while cx < max_x - text_w // 2 - 4:
-            cy = min_y + text_h // 2 + 4
-            while cy < max_y - text_h // 2 - 4:
-                # Проверяем что ЛЕВЫЙ ВЕРХНИЙ угол текста и ПРАВЫЙ НИЖНИЙ — внутри полигона
-                if (
-                    DataManager._point_in_polygon(
-                        cx - text_w // 2, cy - text_h // 2, screen_poly
-                    )
-                    and DataManager._point_in_polygon(
-                        cx + text_w // 2, cy - text_h // 2, screen_poly
-                    )
-                    and DataManager._point_in_polygon(
-                        cx - text_w // 2, cy + text_h // 2, screen_poly
-                    )
-                    and DataManager._point_in_polygon(
-                        cx + text_w // 2, cy + text_h // 2, screen_poly
-                    )
-                ):
-                    # Минимальное расстояние до объектов
-                    min_d = float("inf")
-                    for ox, oy in obj_positions:
-                        d = math.hypot(cx - ox, cy - oy)
-                        if d < min_d:
-                            min_d = d
-                    if not obj_positions:
-                        min_d = 999
-                    if min_d > best_dist:
-                        best_dist = min_d
-                        best_pos = (int(cx) - text_w // 2, int(cy) - text_h // 2)
-                cy += step
-            cx += step
-
-        return best_pos
-
-    def _draw_rooms(self):
-        """Отрисовывает комнаты — полигональные или прямоугольные"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for room in loc.get("rooms", []):
-            poly = room.get("polygon")
-
-            if poly and len(poly) >= 3:
-                # Полигональная комната
-                screen_pts = [self.world_to_screen(p[0], p[1]) for p in poly]
-                pygame.draw.polygon(self.screen, (60, 60, 70), screen_pts)
-                pygame.draw.polygon(self.screen, (100, 100, 120), screen_pts, 2)
-            else:
-                # Прямоугольная (совместимость)
-                rx, ry = self.world_to_screen(room["x"], room["y"])
-                rw = room["width"] * SCALE * self.zoom
-                rh = room["height"] * SCALE * self.zoom
-                pygame.draw.rect(self.screen, (60, 60, 70), (rx, ry, rw, rh))
-                pygame.draw.rect(self.screen, (100, 100, 120), (rx, ry, rw, rh), 2)
-
-            # Надпись — умная позиция, уходящая от объектов
-            objects_in = [
-                o
-                for o in loc.get("objects", [])
-                if self.dm.find_room_at(
-                    self.current_file, o["position"]["x"], o["position"]["y"]
-                )
-                == room["id"]
-            ]
-            lx, ly = self._find_label_position(room, objects_in)
-            area = room.get("area_sqm", round(room["width"] * room["height"], 1))
-            label_str = f"{room['name']} — {area:.1f} м²"
-            label = self.font_small.render(label_str, True, COLORS["text_dim"])
-            self.screen.blit(label, (lx, ly))
-
-    def _draw_walls(self):
-        """Отрисовывает стены"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for wall in loc.get("walls", []):
-            x1, y1 = self.world_to_screen(wall["x1"], wall["y1"])
-            x2, y2 = self.world_to_screen(wall["x2"], wall["y2"])
-
-            # Толщина линии зависит от зума
-            thickness = max(2, int(3 * self.zoom))
-            pygame.draw.line(
-                self.screen, OBJECT_COLORS["wall"], (x1, y1), (x2, y2), thickness
-            )
-
-            # Точки концов
-            pygame.draw.circle(self.screen, (180, 120, 60), (x1, y1), 4)
-            pygame.draw.circle(self.screen, (180, 120, 60), (x2, y2), 4)
-
-    def _draw_passages(self):
-        """Отрисовывает проходы (внутренние двери/окна в стенах)"""
-        if not self.current_file:
-            return
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for passage in loc.get("passages", []):
-            if passage.get("z", 0) != self.current_z:
-                continue
-            sx, sy = self.world_to_screen(
-                passage["position"]["x"], passage["position"]["y"]
-            )
-            # Цвет по типу: дверь — жёлтый, окно — голубой, пролом — серый
-            ptype = passage.get("type", "door")
-            color = {
-                "door": (255, 215, 0),
-                "window": (135, 206, 235),
-                "gap": (170, 170, 170),
-            }.get(ptype, (255, 215, 0))
-            pygame.draw.circle(self.screen, color, (sx, sy), 6)
-            pygame.draw.circle(self.screen, COLORS["border"], (sx, sy), 6, 1)
-            label = self.font_small.render(passage["id"], True, COLORS["text_dim"])
-            self.screen.blit(label, (sx + 10, sy - 6))
-
-    def _draw_labels(self):
-        """Отрисовывает произвольные надписи"""
-        if not self.current_file:
-            return
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for lbl in loc.get("labels", []):
-            sx, sy = self.world_to_screen(lbl["x"], lbl["y"])
-            text = lbl.get("text", "")
-            if not text:
-                continue
-            color = COLORS["text_highlight"]
-            # Если выделена — подсветить
-            if self.selected_object == ("label", lbl["id"]):
-                color = COLORS["accent_yellow"]
-            rendered = self.font_small.render(text, True, color)
-            self.screen.blit(rendered, (sx, sy))
-
-    def _draw_objects(self):
-        """Отрисовывает объекты"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for i, obj in enumerate(loc.get("objects", [])):
-            sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
-            w = obj["size"]["w"] * SCALE * self.zoom
-            h = obj["size"]["h"] * SCALE * self.zoom
-            try:
-                rotation = float(obj.get("rotation") or 0)
-            except (ValueError, TypeError):
-                rotation = 0.0
-            color = OBJECT_COLORS.get(obj["type"], OBJECT_COLORS["decoration"])
-
-            # Попытка получить спрайт из объекта или из пресета
-            preset = OBJECT_PRESETS.get(obj["type"], {})
-            sprite_info = obj.get("sprite") or preset.get("sprite")
-            sprite_surf = None
-            if sprite_info:
-                if len(sprite_info) >= 5:
-                    _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
-                    _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
-                    sprite_surf = sprite_registry.get_rect(
-                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
-                        int(sprite_info[3]), int(sprite_info[4]), _t, _o
-                    )
-                else:
-                    sprite_surf = sprite_registry.get(
-                        sprite_info[0], sprite_info[1], sprite_info[2]
-                    )
-
-            if sprite_surf:
-                # S176 FIX: Сохраняем пропорции объекта, чтобы не сплющивать текстуру
-                sw, sh = sprite_surf.get_size()
-                ratio = min(w / sw, h / sh)
-                nw, nh = int(sw * ratio), int(sh * ratio)
-                scaled = pygame.transform.scale(sprite_surf, (nw, nh))
-                if rotation % 360 != 0:
-                    scaled = pygame.transform.rotate(scaled, -rotation)
-                scaled_rect = scaled.get_rect(center=(int(sx), int(sy)))
-                self.screen.blit(scaled, scaled_rect)
-            else:
-                # Fallback на цветной квадрат
-                if rotation % 360 != 0:
-                    pts = self._rotated_rect_points(sx, sy, w, h, rotation)
-                    pygame.draw.polygon(self.screen, color, pts)
-                    pygame.draw.polygon(self.screen, COLORS["border"], pts, 1)
-                else:
-                    rect = pygame.Rect(sx - w / 2, sy - h / 2, w, h)
-                    pygame.draw.rect(self.screen, color, rect, border_radius=2)
-                    pygame.draw.rect(
-                        self.screen, COLORS["border"], rect, 1, border_radius=2
-                    )
-
-            # Имя объекта — только если включено показ
-            if obj.get("show_name", False):
-                label_text = obj.get("name", obj["type"][:4])
-                label = self.font_small.render(
-                    label_text, True, COLORS["text_highlight"]
-                )
-                self.screen.blit(label, (sx - label.get_width() // 2, sy - h / 2 - 14))
-
-    def _draw_npcs(self):
-        """Отрисовывает размещённых NPC (реальных из config)"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for npc in loc.get("npcs", []):
-            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
-
-            # Имя NPC из списка загруженных
-            npc_name = next(
-                (n["name"] for n in self._npc_list if n["id"] == npc["ref_id"]),
-                npc["ref_id"],
-            )
-
-            # Спрайт из объекта или маппинга
-            sprite_info = npc.get("sprite") or NPC_SPRITE_MAP.get(
-                npc["ref_id"], ("Deadbeat/deadbeat_b", 23, 21)
-            )
-            # S177: Поддержка словаря направлений в редакторе
-            if isinstance(sprite_info, dict):
-                sprite_info = sprite_info.get("S") or next(iter(sprite_info.values()), None)
-            # S176 FIX: Увеличиваем базовый размер NPC в редакторе карт
-            size = int(SCALE * self.zoom * 1.5)
-            sprite_surf = None
-            if sprite_info:
-                if len(sprite_info) >= 5:
-                    _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
-                    _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
-                    sprite_surf = sprite_registry.get_rect(
-                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
-                        int(sprite_info[3]), int(sprite_info[4]), _t, _o
-                    )
-                else:
-                    sprite_surf = sprite_registry.get(
-                        sprite_info[0], sprite_info[1], sprite_info[2]
-                    )
-
-            is_selected = self.selected_object == ("npc", npc["ref_id"])
-
-            if sprite_surf:
-                # S176 FIX: Сохраняем пропорции NPC, чтобы не сплющивать текстуру
-                sw, sh = sprite_surf.get_size()
-                ratio = min(size / sw, size / sh)
-                nw, nh = int(sw * ratio), int(sh * ratio)
-                scaled = pygame.transform.scale(sprite_surf, (nw, nh))
-                rect = scaled.get_rect(center=(int(sx), int(sy)))
-                self.screen.blit(scaled, rect)
-                if is_selected:
-                    pygame.draw.rect(
-                        self.screen, COLORS["accent_yellow"], rect.inflate(4, 4), 2
-                    )
-            else:
-                color = COLORS["accent_yellow"] if is_selected else (100, 180, 100)
-                pygame.draw.circle(self.screen, color, (int(sx), int(sy)), size // 2)
-                pygame.draw.circle(
-                    self.screen, COLORS["border"], (int(sx), int(sy)), size // 2, 1
-                )
-
-            # Подпись с реальным именем NPC
-            label = self.font_small.render(npc_name, True, COLORS["text_highlight"])
-            self.screen.blit(label, (sx - label.get_width() // 2, sy - size // 2 - 14))
-
-    def _draw_spawn(self):
-        """Отрисовывает точку спавна игрока"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        spawn = loc.get("player_spawn")
-        if not spawn:
-            return
-
-        sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
-        is_selected = self.selected_object == ("spawn", "player_spawn")
-
-        # Флаг — жёлтый треугольник
-        size = int(SCALE * self.zoom * 0.5)
-        color = COLORS["accent_yellow"] if is_selected else (255, 200, 0)
-
-        points = [
-            (sx, sy - size),
-            (sx - size * 0.7, sy + size * 0.5),
-            (sx + size * 0.7, sy + size * 0.5),
-        ]
-        pygame.draw.polygon(self.screen, color, points)
-        pygame.draw.polygon(self.screen, COLORS["border"], points, 2)
-
-        # Подпись
-        label = self.font_small.render("СПАВН", True, COLORS["accent_yellow"])
-        self.screen.blit(label, (sx - label.get_width() // 2, sy + size * 0.5 + 4))
-
-    def _draw_nodes(self):
-        """Отрисовывает навигационные узлы"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        # Связи
-        for nid, ndata in loc.get("nodes", {}).items():
-            sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
-
-            for conn in ndata.get("connections", []):
-                if ":" not in conn and conn in loc["nodes"]:
-                    # Внутренняя связь
-                    ex, ey = self.world_to_screen(
-                        loc["nodes"][conn]["x"], loc["nodes"][conn]["y"]
-                    )
-                    pygame.draw.line(self.screen, (80, 80, 90), (sx, sy), (ex, ey), 2)
-                elif ":" in conn:
-                    # Внешняя связь - пунктир
-                    ex, ey = sx + 30, sy
-                    for j in range(0, 30, 8):
-                        pygame.draw.line(
-                            self.screen,
-                            COLORS["accent_yellow"],
-                            (sx + j, sy),
-                            (sx + min(j + 4, 30), sy),
-                            2,
-                        )
-
-        # Узлы
-        for nid, ndata in loc.get("nodes", {}).items():
-            sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
-
-            # S143: Подсветка выделенного узла для создания связи
-            if self.node_link_start == nid:
-                pygame.draw.circle(self.screen, COLORS["accent_yellow"], (sx, sy), 12)
-            # Круг узла
-            pygame.draw.circle(self.screen, COLORS["accent_blue"], (sx, sy), 8)
-            pygame.draw.circle(self.screen, COLORS["text_highlight"], (sx, sy), 8, 2)
-
-            # Подпись
-            label = self.font_small.render(
-                ndata.get("label", nid), True, COLORS["text"]
-            )
-            self.screen.blit(label, (sx + 10, sy - 8))
-
-    def _draw_preview(self):
-        """Отрисовывает предпросмотр при рисовании"""
-        mx, my = pygame.mouse.get_pos()
-
-        if self.tool == TOOL_WALL and self.wall_drawing and self.wall_start:
-            x1, y1 = self.world_to_screen(self.wall_start[0], self.wall_start[1])
-            pygame.draw.line(
-                self.screen, COLORS["accent_yellow"], (x1, y1), (mx, my), 2
-            )
-            # длина стены в метрах
-            wx2, wy2 = self.screen_to_world(mx, my)
-            length = math.hypot(wx2 - self.wall_start[0], wy2 - self.wall_start[1])
-            mid_x = (x1 + mx) // 2
-            mid_y = (y1 + my) // 2 - 14
-            label = self.font_small.render(
-                f"{length:.2f} м", True, COLORS["accent_yellow"]
-            )
-            self.screen.blit(label, (mid_x - label.get_width() // 2, mid_y))
-
-        elif self.tool == TOOL_ROOM and self.room_drawing and self.room_start:
-            x1, y1 = self.world_to_screen(self.room_start[0], self.room_start[1])
-            rect = pygame.Rect(min(x1, mx), min(y1, my), abs(mx - x1), abs(my - y1))
-            pygame.draw.rect(self.screen, (100, 100, 120, 100), rect)
-            pygame.draw.rect(self.screen, COLORS["accent_yellow"], rect, 2)
-            # Площадь в реальном времени
-            wx1, wy1 = self.room_start
-            wx2, wy2 = self.screen_to_world(mx, my)
-            w_m = abs(wx2 - wx1)
-            h_m = abs(wy2 - wy1)
-            area = w_m * h_m
-            if area > 0.5:
-                area_text = f"{area:.1f} м² ({w_m:.1f}×{h_m:.1f})"
-                area_surf = self.font_small.render(
-                    area_text, True, COLORS["accent_yellow"]
-                )
-                self.screen.blit(
-                    area_surf,
-                    (
-                        rect.centerx - area_surf.get_width() // 2,
-                        rect.centery - area_surf.get_height() // 2,
-                    ),
-                )
-
-    def _draw_selection(self):
-        """Отрисовывает выделение объекта"""
-        if not self.current_file or not self.selected_object:
-            return
-
-        obj_type, obj_key = self.selected_object
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        if obj_type == "object":
-            obj = next(
-                (o for o in loc.get("objects", []) if o.get("id") == obj_key), None
-            )
-            if obj:
-                sx, sy = self.world_to_screen(
-                    obj["position"]["x"], obj["position"]["y"]
-                )
-                w = obj["size"]["w"] * SCALE * self.zoom
-                h = obj["size"]["h"] * SCALE * self.zoom
-                try:
-                    rotation = float(obj.get("rotation") or 0)
-                except (ValueError, TypeError):
-                    rotation = 0.0
-                # Рамка выделения — только для объектов без спрайта
-                preset = OBJECT_PRESETS.get(obj["type"], {})
-                if not preset.get("sprite"):
-                    if rotation % 360 != 0:
-                        pts = self._rotated_rect_points(sx, sy, w + 6, h + 6, rotation)
-                        pygame.draw.polygon(
-                            self.screen, COLORS["accent_yellow"], pts, 3
-                        )
-                    else:
-                        rect = pygame.Rect(sx - w / 2 - 3, sy - h / 2 - 3, w + 6, h + 6)
-                        pygame.draw.rect(
-                            self.screen,
-                            COLORS["accent_yellow"],
-                            rect,
-                            3,
-                            border_radius=3,
-                        )
-                # хэндлы ресайза — только в режиме выбора
-                if self.tool is None:
-                    for handle in self._get_resize_handles(obj_key):
-                        r = handle["rect"]
-                        pygame.draw.rect(self.screen, COLORS["bg_panel"], r)
-                        pygame.draw.rect(self.screen, COLORS["accent_yellow"], r, 1)
-                # кнопки поворота/зеркала — только в режиме выбора
-                if self.tool is None:
-                    for btn in self._get_rotation_buttons(obj_key):
-                        r = btn["rect"]
-                        pygame.draw.circle(
-                            self.screen, COLORS["bg_panel"], r.center, r.width // 2
-                        )
-                        pygame.draw.circle(
-                            self.screen, COLORS["border"], r.center, r.width // 2, 1
-                        )
-                        cx, cy = r.center
-                        if btn.get("action") == "mirror":
-                            # горизонтальная двусторонняя стрелка ↔
-                            pygame.draw.line(
-                                self.screen,
-                                COLORS["text"],
-                                (cx - 5, cy),
-                                (cx + 5, cy),
-                                2,
-                            )
-                            pygame.draw.polygon(
-                                self.screen,
-                                COLORS["text"],
-                                [(cx + 5, cy), (cx + 2, cy - 3), (cx + 2, cy + 3)],
-                            )
-                            pygame.draw.polygon(
-                                self.screen,
-                                COLORS["text"],
-                                [(cx - 5, cy), (cx - 2, cy - 3), (cx - 2, cy + 3)],
-                            )
-                        else:
-                            # треугольник-стрелка поворота
-                            if btn["delta"] > 0:  # по часовой →
-                                pts = [(cx - 4, cy - 4), (cx - 4, cy + 4), (cx + 4, cy)]
-                            else:  # против часовой ←
-                                pts = [(cx + 4, cy - 4), (cx + 4, cy + 4), (cx - 4, cy)]
-                            pygame.draw.polygon(self.screen, COLORS["text"], pts)
-
-        elif obj_type == "portal":
-            for p in loc.get("portals", []):
-                if p["id"] == obj_key:
-                    sx, sy = self.world_to_screen(
-                        p["position"]["x"], p["position"]["y"]
-                    )
-                    pygame.draw.circle(
-                        self.screen, COLORS["accent_yellow"], (sx, sy), 18, 3
-                    )
-                    break
-
-        elif obj_type == "wall":
-            for wall in loc.get("walls", []):
-                if wall["id"] == obj_key:
-                    x1, y1 = self.world_to_screen(wall["x1"], wall["y1"])
-                    x2, y2 = self.world_to_screen(wall["x2"], wall["y2"])
-                    pygame.draw.line(
-                        self.screen, COLORS["accent_yellow"], (x1, y1), (x2, y2), 4
-                    )
-                    break
-
-        elif obj_type == "room":
-            for room in loc.get("rooms", []):
-                if room["id"] == obj_key:
-                    poly = room.get("polygon")
-                    if poly and len(poly) >= 3:
-                        screen_pts = [self.world_to_screen(p[0], p[1]) for p in poly]
-                        pygame.draw.polygon(
-                            self.screen, COLORS["accent_yellow"], screen_pts, 3
-                        )
-                    else:
-                        rx, ry = self.world_to_screen(room["x"], room["y"])
-                        rw = room["width"] * SCALE * self.zoom
-                        rh = room["height"] * SCALE * self.zoom
-                        pygame.draw.rect(
-                            self.screen,
-                            COLORS["accent_yellow"],
-                            (rx - 2, ry - 2, rw + 4, rh + 4),
-                            3,
-                        )
-                    break
-
-    def _draw_ui(self):
-        """Отрисовывает пользовательский интерфейс"""
-        # Верхняя панель (меню)
-        pygame.draw.rect(
-            self.screen,
-            COLORS["bg_menu"],
-            (0, 0, self.screen.get_width(), self.menu_height),
-        )
-        pygame.draw.line(
-            self.screen,
-            COLORS["border"],
-            (0, self.menu_height),
-            (self.screen.get_width(), self.menu_height),
-        )
-
-        for btn in self.menu_buttons:
-            btn.draw(self.screen, self.font)
-
-        # Тулбар
-        toolbar_y = self.menu_height
-        pygame.draw.rect(
-            self.screen,
-            COLORS["bg_panel"],
-            (
-                0,
-                toolbar_y,
-                self.screen.get_width() - self.panel_width,
-                self.toolbar_height,
-            ),
-        )
-        pygame.draw.line(
-            self.screen,
-            COLORS["border"],
-            (0, toolbar_y + self.toolbar_height),
-            (
-                self.screen.get_width() - self.panel_width,
-                toolbar_y + self.toolbar_height,
-            ),
-        )
-
-        for btn in self.toolbar_buttons:
-            btn.draw(self.screen, self.font)
-
-        # Дропдауны
-        if self.object_dropdown:
-            self.object_dropdown.draw(self.screen, self.font, self.font_small)
-
-        # Панель свойств
-        self.property_panel.draw(self.screen, self.font, self.font_small)
-
-        # Статусная строка
-        self._draw_status_bar()
-
-        # Toast сообщение
-        if self.toast_timer > 0:
-            self._draw_toast()
-
-    def _draw_status_bar(self):
-        """Отрисовывает статусную строку"""
-        screen_h = self.screen.get_height()
-        status_y = screen_h - self.status_height
-
-        pygame.draw.rect(
-            self.screen,
-            COLORS["bg_menu"],
-            (0, status_y, self.screen.get_width(), self.status_height),
-        )
-        pygame.draw.line(
-            self.screen,
-            COLORS["border"],
-            (0, status_y),
-            (self.screen.get_width(), status_y),
-        )
-
-        # Информация
-        mx, my = pygame.mouse.get_pos()
-        wx, wy = self.screen_to_world(mx, my) if self.mode == MODE_LOCAL else (0, 0)
-
-        if self.mode == MODE_LOCAL:
-            undo_info = (
-                f" | Отмена:{self.undo.undo_label}" if self.undo.can_undo else ""
-            )
-            camp_info = (
-                f" | Кампания: {self.cm.campaign_data.get('name', self.cm.current_campaign_name or '?')}"
-                if self.cm.is_open
-                else " | (без кампании)"
-            )
-            info = f"X:{wx:.1f} Y:{wy:.1f} | Этаж:{self.current_z} | Zoom:{self.zoom:.1f}x | {self.current_file or '—'}{camp_info}{undo_info}"
-        else:
-            info = f"Карта мира | Локаций: {len(self.dm.locations)}"
-
-        text = self.font_small.render(info, True, COLORS["text_dim"])
-        self.screen.blit(text, (10, status_y + 5))
-
-        # Подсказки
-        hints = "[TAB] Мир/Лок | [PgUp/PgDn] Этаж | [Ctrl+S] Save | [Ctrl+Z/Q] Undo/Redo | [Ctrl+C/V] Copy/Paste | [+/-] Зум"
-        hint_text = self.font_small.render(hints, True, COLORS["text_dim"])
-        self.screen.blit(
-            hint_text,
-            (self.screen.get_width() - hint_text.get_width() - 10, status_y + 5),
-        )
-
-    def _draw_toast(self):
-        """Отрисовывает всплывающее сообщение"""
-        if not self.toast_message:
-            return
-
-        # Фон
-        padding = 15
-        text = self.font.render(self.toast_message, True, COLORS["text_highlight"])
-        w = text.get_width() + padding * 2
-        h = text.get_height() + padding
-
-        x = (self.screen.get_width() - w) // 2
-        y = self.screen.get_height() - h - 50
-
-        # Полупрозрачный фон
-        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-        overlay.fill((30, 30, 40, 220))
-        self.screen.blit(overlay, (x, y))
-
-        pygame.draw.rect(
-            self.screen, COLORS["border"], (x, y, w, h), 1, border_radius=6
-        )
-        self.screen.blit(text, (x + padding, y + padding // 2))
 
     def _find_room_perimeter_walls(self, room: dict) -> list:
         """Находит стены, совпадающие с рёбрами комнаты (прямоугольной или полигональной)"""

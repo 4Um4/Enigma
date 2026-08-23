@@ -30,6 +30,7 @@ from app.domain.action_commitment import (
 )
 from app.services.action import commitment_registry as cr_module
 from app.services.action.commitment_registry import CommitmentRegistry
+from app.services.action.commitment_arbiter import CommitmentArbiter
 
 
 @pytest.fixture
@@ -228,6 +229,48 @@ class TestSweep:
 # ── Нейтральность флага ─────────────────────────────────────────────────────
 
 
+class TestBehavioralOwnerProjection:
+    """S203.2: миграция has_active_commitment (Мастер: сейчас, проекция+fallback)."""
+
+    def test_registry_entry_active_states(self):
+        """Каждый ACTIVE-статус занимает владельца; терминалы — нет."""
+        from app.domain.action_commitment import (
+            ACTIVE_COMMITMENT_STATUSES,
+            COMMITMENT_TERMINAL_STATUSES,
+        )
+
+        for status in ACTIVE_COMMITMENT_STATUSES:
+            ss = {"active_commitments": {"n1": {"status": status}}}
+            assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is True, status
+        for status in COMMITMENT_TERMINAL_STATUSES:
+            ss = {"active_commitments": {"n1": {"status": status}}}  # гипотетически
+            assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is False, status
+
+    def test_fallback_traversal_moving(self):
+        """Нет записи в реестре → legacy-формула (Н-35): NEW == OLD."""
+        ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
+        assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is True
+
+    def test_fallback_traversal_not_moving(self):
+        ss = {"active_traversals": {"n1": {"status": "PENDING"}}}
+        assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is False
+
+    def test_noop_contract_flag_off(self):
+        """No-op контракт: пустой реестр (FLAG=OFF) + MOVING traversal →
+        fallback=True — поведение идентично старой формуле."""
+        ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
+        assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is True
+
+    def test_commitment_wins_over_missing_traversal(self):
+        """Запись реестра приоритетна: COMMITTED без traversal (окно будущего
+        S203.3/4) занимает владельца — commitment race Мастера исключён."""
+        ss = {
+            "active_commitments": {"n1": {"status": "COMMITTED"}},
+            "active_traversals": {},
+        }
+        assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is True
+
+
 class TestFlagNeutrality:
     def test_disabled_flag_full_noop(self):
         """Rollback-контракт S203.1: флаг OFF = реестр не пишет, поведение байтово прежнее."""
@@ -263,3 +306,187 @@ class TestJsonRoundTrip:
         assert restored["active_commitments"]["n2"]["commitment_id"] == ss["active_commitments"]["n2"]["commitment_id"]
         assert len(restored["commitment_history"]["n1"]) == len(ss["commitment_history"]["n1"])
         assert restored["commitment_ordinals"] == ss["commitment_ordinals"]
+
+# ── S203.2: Arbiter ─────────────────────────────────────────────────────────
+
+
+class TestCommitmentArbiter:
+    def test_pass_when_no_incumbent(self):
+        from app.services.action.commitment_arbiter import (
+            CommitmentArbiter,
+            VERDICT_PASS,
+        )
+
+        ss = {}
+        r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "schedule:eating", 5)
+        assert r.verdict == VERDICT_PASS and r.reason is None
+
+    def test_reject_duplicate_same_target(self):
+        from app.services.action.commitment_arbiter import (
+            REASON_DUPLICATE,
+            VERDICT_REJECT,
+            CommitmentArbiter,
+        )
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="bar")
+        CommitmentRegistry.mark_executing(ss, "n1", 1)
+        r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "need:hunger", 2)
+        assert r.verdict == VERDICT_REJECT and r.reason == REASON_DUPLICATE
+        assert r.incumbent_target == "bar"
+
+    def test_reject_incumbent_different_target(self):
+        from app.services.action.commitment_arbiter import (
+            REASON_INCUMBENT,
+            VERDICT_REJECT,
+            CommitmentArbiter,
+        )
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="bar")
+        CommitmentRegistry.mark_executing(ss, "n1", 1)
+        r = CommitmentArbiter.arbitrate(ss, "n1", "kitchen", "proactive_offer_job", 2)
+        assert r.verdict == VERDICT_REJECT and r.reason == REASON_INCUMBENT
+
+    def test_committed_counts_as_occupied(self):
+        """Мастер, критическое: COMMITTED без traversal — кандидат отвергнут
+        (commitment race исключён), даже если traversal ещё не материализован."""
+        from app.services.action.commitment_arbiter import (
+            REASON_INCUMBENT,
+            VERDICT_REJECT,
+            CommitmentArbiter,
+        )
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="bar")
+        # статус COMMITTED — mark_executing НЕ вызван (окно между COMMIT и
+        # материализацией, которое S203.2 не создаёт, но обязана защищать)
+        r = CommitmentArbiter.arbitrate(ss, "n1", "kitchen", "any", 1)
+        assert r.verdict == VERDICT_REJECT and r.reason == REASON_INCUMBENT
+
+    def test_orphaned_terminal_incumbent_passes(self):
+        """Осиротевший терминальный инкумбент (sweep не прошёл) — PASS:
+        суперсессию выполнит mirror; арбитр не создаёт starvation."""
+        from app.services.action.commitment_arbiter import (
+            VERDICT_PASS,
+            CommitmentArbiter,
+        )
+
+        ss = {"active_commitments": {"n1": {"status": "INTERRUPTED", "commitment_id": "x", "target_id": "bar"}}}
+        r = CommitmentArbiter.arbitrate(ss, "n1", "kitchen", "any", 3)
+        assert r.verdict == VERDICT_PASS
+
+    def test_log_only_always_permits_enforcement_blocks(self):
+        """Режимы: LOG_ONLY — True всегда; ENFORCEMENT — True только при PASS."""
+        import app.services.action.commitment_arbiter as ca
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="bar")
+        CommitmentRegistry.mark_executing(ss, "n1", 1)
+
+        old = ca.ARBITER_ENFORCEMENT
+        try:
+            ca.ARBITER_ENFORCEMENT = False
+            assert ca.CommitmentArbiter.enforce(ss, "n1", "kitchen", "s", 2) is True
+            ca.ARBITER_ENFORCEMENT = True
+            assert ca.CommitmentArbiter.enforce(ss, "n1", "kitchen", "s", 2) is False
+            assert ca.CommitmentArbiter.enforce(ss, "n1", "door", "s", 2) is False  # DUPLICATE тоже
+            assert ca.CommitmentArbiter.enforce(ss, "free_npc", "door", "s", 2) is True
+        finally:
+            ca.ARBITER_ENFORCEMENT = old
+
+# ── S203.3: interrupt_traversal (атомарность, idempotency, GC-подхват) ─────
+
+
+class TestInterruptTraversal:
+    """Закон Мастера: INTERRUPT не успешен, пока traversal и commitment
+    не достигли согласованного terminal. Частичное прерывание запрещено."""
+
+    @staticmethod
+    def _world(commitment=True):
+        ss = {
+            "active_traversals": {
+                "n1": {"npc_id": "n1", "status": "MOVING", "target_node": "bar",
+                       "started_tick": 1, "duration_ticks": 3,
+                       "path_waypoints": [[0, 0], [1, 1]],
+                       "segment_modes": ["WALK"], "segment_arc_heights": [0.0],
+                       "current_waypoint_idx": 0, "from_node": "a"},
+            }
+        }
+        if commitment:
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE",
+                                      cause="c", target_id="bar")
+            CommitmentRegistry.mark_executing(ss, "n1", 1)
+        return ss
+
+    def test_atomic_success_both_rails(self):
+        """True → ОБА рельса terminal; запись живёт до GC (не pop)."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        ss = self._world()
+        ok = interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 5)
+        assert ok is True
+        assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"  # живёт
+        hist = ss["commitment_history"]["n1"]
+        assert hist[-1]["status"] == "INTERRUPTED"
+        assert hist[-1]["interrupt_reason"] == "CROSS_LOCATION_TRANSFER"
+        assert "n1" not in ss["active_commitments"]  # ownership released
+
+    def test_already_terminal_noop(self):
+        """CANCELLED traversal → False, БЕЗ мутаций (ALREADY_TERMINAL)."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        ss = self._world()
+        interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 5)
+        hist_len = len(ss["commitment_history"]["n1"])
+        ok2 = interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 6)
+        assert ok2 is False
+        assert len(ss["commitment_history"]["n1"]) == hist_len  # ни одной новой записи
+
+    def test_not_found_distinct_from_already(self):
+        """NOT_FOUND (записи нет) — отдельная семантика: ни ошибок, ни мутаций."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        ss = self._world(commitment=False)
+        ss["active_traversals"] = {}
+        assert interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 5) is False
+
+    def test_rejected_invalid_no_mutation(self):
+        """Commitment в не-прерываемом статусе (COMPLETED-осиротевший в active —
+        гипотетически) → False; НИ ОДИН слой не мутирован."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        ss = self._world()
+        # terminal commitment в active (G4-нарушение симулируем для проверки
+        # атомарности): preview обязан отклонить — traversal остаётся MOVING.
+        ss["active_commitments"]["n1"]["status"] = "COMPLETED"
+        ok = interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 5)
+        assert ok is False
+        assert ss["active_traversals"]["n1"]["status"] == "MOVING"  # не тронут
+
+    def test_unknown_reason_raises(self):
+        """Причина вне реестра → ValueError (расширение = мини-ADR)."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        ss = self._world()
+        try:
+            interrupt_traversal(ss, "n1", "RANDOM_REASON", 5)
+            raise AssertionError("expected ValueError")
+        except ValueError:
+            pass
+
+    def test_executor_stopped_by_status(self):
+        """Гарантия executor stopped: CANCELLED-запись не двигается TES
+        (advance пропускает не-MOVING) — физика остановлена статусом."""
+        from app.services.spatial.traversal_execution_system import (
+            TraversalExecutionSystem,
+        )
+
+        ss = self._world()
+        from app.domain.traversal_schema import interrupt_traversal
+
+        interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 5)
+        pos_before = (ss.get("npc_positions") or {}).get("n1")
+        TraversalExecutionSystem.advance(ss, 6)
+        # запись всё ещё CANCELLED (GC не запускался — advance не удаляет)
+        assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"

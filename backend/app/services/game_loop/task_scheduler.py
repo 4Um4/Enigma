@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 
 from app.domain.communication import DialogueRequest
-from app.domain.intent_profiles import requires_dialogue_context
+from app.domain.intent_profiles import requires_dialogue_context, produces_claim
 from app.domain.execution import (
     Materializer,
     QueuedTask,
@@ -122,6 +122,8 @@ class TaskScheduler:
             from app.services.game_loop.speech_scheduler import SpeechScheduler
             self._speech_scheduler = SpeechScheduler(self._memory_manager)
 
+        from app.domain.intent_profiles import requires_llm_materialization
+        
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":
                 speaker_id = task_dict.get("owner_id", "")
@@ -130,9 +132,19 @@ class TaskScheduler:
                 _intent_type = _payload.get("intent_type", "")
                 _has_prop = bool(_payload.get("proposition"))
 
-                # S198 FIX: Эпистемическая коммуникация (WARN, TALK с proposition) обязана быть canonical.
-                # ambient болтовня не порождает COMMUNICATION_CLAIM.
-                if _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade"):
+                # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
+                # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
+                if not requires_llm_materialization(_intent_type):
+                    self._executor_pool.submit(
+                        self._process_tasks_async, scene_state, [task_dict], campaign_id, "canonical", _game_time
+                    )
+                    continue
+
+                # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
+                # Если интент produces_claim=True ИЛИ payload содержит proposition -> canonical.
+                # Иначе -> ambient. Это предотвращает переполнение canonical-очереди
+                # экономическими и социальными интентами без proposition.
+                if _has_prop or produces_claim(_intent_type):
                     _task_type = "canonical"
                     _priority = 1  # Высокий приоритет (heapq min-heap)
                 else:
@@ -204,12 +216,9 @@ class TaskScheduler:
 
         for task_dict in tasks:
             self.total_processed_tasks += 1
-            try:
-                task = self._reconstruct_task(task_dict)
-            except Exception as e:
-                logger.error(
-                    f"[SCHEDULER] Failed to reconstruct task {task_dict.get('task_id')}: {e}"
-                )
+            task = self._reconstruct_task(task_dict)
+            if task is None:
+                # ENIGMA-ARCH-038: Реконструкция провалена. Задача уже отброшена с ERROR-логом.
                 continue
 
             # Блокер 5: Маршрутизация ambient -> NpcConversation, canonical -> DialogueExecutor
@@ -331,52 +340,67 @@ class TaskScheduler:
                     self._speech_scheduler.reset_context(task_dict)
                 break
 
-    def _reconstruct_task(self, task_dict: dict) -> QueuedTask:
-        """Собирает QueuedTask из словаря (после JSON сериализации)."""
+    def _reconstruct_task(self, task_dict: dict) -> Optional[QueuedTask]:
+        """Собирает QueuedTask из словаря (после JSON сериализации).
+        
+        ENIGMA-ARCH-038: Строгая реконструкция без silent fallback'ов.
+        Canonical reconstruction failure → FAILED / drop (никогда не raw dict).
+        """
         from app.domain.communication import DialogueRequest, ExposureLevel
 
         payload_dict = task_dict.get("payload", {})
-        req = payload_dict  # По умолчанию оставляем как dict
+        task_id = task_dict.get("task_id", "UNKNOWN")
 
+        # 1. Строгое восстановление Kind
         kind_str = task_dict.get("kind")
-        if kind_str == "dialogue":
-            try:
-                semantic = payload_dict.get("exposure_semantic", "normal")
-                exposure = ExposureLevel.from_semantic(semantic)
-
-                _emotional_state = payload_dict.get("emotional_state", "нейтрально")
-
-                req = DialogueRequest(
-                    topic=payload_dict.get("topic", ""),
-                    target_id=payload_dict.get("target_id", ""),
-                    exposure=ExposureLevel(semantic=payload_dict.get("exposure_semantic", "normal")),
-                    intent_type=payload_dict.get("intent_type", "talk"),
-                    emotional_state=_emotional_state,
-                    npc_npc_context=payload_dict.get("npc_npc_context", ""),
-                    thread_id=payload_dict.get("thread_id", ""),
-                    prepared_prompt=payload_dict.get("prepared_prompt", ""), # V8-DLG-10 FIX
-                    proposition=payload_dict.get("proposition"), # S197: Восстановление Proposition
-                )
-            except Exception as e:
-                logger.error(
-                    f"[SCHEDULER] Failed to reconstruct DialogueRequest: {e}. Payload: {payload_dict}"
-                )
-                req = payload_dict
-
-        # Безопасное восстановление Enum'ов
         try:
             kind = TaskKind(kind_str)
-        except ValueError:
-            kind = TaskKind.DIALOGUE
+        except (ValueError, TypeError):
+            logger.error(f"[SCHEDULER] Reconstruction FAILED for task {task_id}: unknown kind '{kind_str}'. Task dropped.")
+            return None
 
+        # 2. Строгое восстановление Priority
         try:
             priority_val = task_dict.get("priority", 1)
             if isinstance(priority_val, int):
                 priority = TaskPriority(priority_val)
             else:
                 priority = TaskPriority[priority_val]
-        except ValueError:
-            priority = TaskPriority.NORMAL
+        except (ValueError, KeyError, TypeError):
+            logger.error(f"[SCHEDULER] Reconstruction FAILED for task {task_id}: invalid priority '{priority_val}'. Task dropped.")
+            return None
+
+        # 3. Строгое восстановление Payload
+        req = None
+        if kind == TaskKind.DIALOGUE:
+            _intent_type = payload_dict.get("intent_type", "")
+            _has_prop = bool(payload_dict.get("proposition"))
+            _is_canonical = _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade")
+            
+            try:
+                semantic = payload_dict.get("exposure_semantic", "normal")
+                _emotional_state = payload_dict.get("emotional_state", "нейтрально")
+                
+                req = DialogueRequest(
+                    topic=payload_dict.get("topic", ""),
+                    target_id=payload_dict.get("target_id", ""),
+                    exposure=ExposureLevel(semantic=semantic),
+                    intent_type=_intent_type,
+                    emotional_state=_emotional_state,
+                    npc_npc_context=payload_dict.get("npc_npc_context", ""),
+                    thread_id=payload_dict.get("thread_id", ""),
+                    prepared_prompt=payload_dict.get("prepared_prompt", ""),
+                    proposition=payload_dict.get("proposition"),
+                )
+            except Exception as e:
+                logger.error(
+                    f"[SCHEDULER] Reconstruction FAILED for task {task_id} (Canonical: {_is_canonical}): {e}. "
+                    f"Task dropped. Payload: {payload_dict}",
+                    exc_info=True
+                )
+                return None
+        else:
+            req = payload_dict
 
         return QueuedTask(
             task_id=task_dict["task_id"],

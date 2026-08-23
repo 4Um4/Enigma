@@ -1,4 +1,5 @@
-[LLM_MANAGER] llama-server уже запущен.
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
 
 🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA
    Режим: quick_debug
@@ -9,8 +10,8 @@
 DRIFT LABORATORY — Mode: quick_debug
 ============================================================
 [DRIFT_LAB] GameLoop built via build_game_loop()
-[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_bzw8utf7
-[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_bzw8utf7\saves
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_nuqurlh9
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_nuqurlh9\saves
 
 --- MODE 0: Quick Debug (3 ticks) ---
 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
@@ -21,7 +22,7 @@ DRIFT LABORATORY — Mode: quick_debug
 [SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.
 [DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
 [DRIFT_LAB] LifeEngine singleton reset
-[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_bzw8utf7
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_nuqurlh9
 
 ======================================================================
   ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: quick_debug
@@ -63,8 +64,8 @@ DRIFT LABORATORY — Mode: quick_debug
     ✅ Класс D: КРИТИЧНО — разные причинные цепочки
     ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
 
-  Время эксперимента: 0.3 сек
-  Скорость: 56 сравнений/сек, 10.5 тиков/сек
+  Время эксперимента: 0.5 сек
+  Скорость: 32 сравнений/сек, 6.1 тиков/сек
 [R4A_WORKER] exception: Cannot operate on a closed database.
 Dialogue update failed: Cannot operate on a closed database.
 [L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='blacksmith_orm', source_id='merchant_goran', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
@@ -84,15 +85,17 @@ Dialogue update failed: Cannot operate on a closed database.
   📊 CSV сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug.csv
   📝 Markdown-отчёт сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug.md
   📈 Графики сохранены: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug_*.png (3 файла)
-  📄 Лог работы сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug_2026-08-23_02-32-34.log
+  📄 Лог работы сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_quick_debug_2026-08-23_09-27-45.log
 
 ============================================================
 📁 REPLAY SESSION RECORDED
-   Session ID: 4fd2eaeb-98ba-4908-946a-c41179f0b908
+   Session ID: 5aa53024-7d65-4726-8390-176acc548d89
    Команда для сравнения:
-   python -m tests.sandbox.SUPERBOX.run drift replay_compare 4fd2eaeb-98ba-4908-946a-c41179f0b908
+   python -m tests.sandbox.SUPERBOX.run drift replay_compare 5aa53024-7d65-4726-8390-176acc548d89
 ============================================================
 
 
   ⏳ Недостаточно данных — нужно ещё ~99,984 сравнений
      Текущий прогресс: 16 / 100 000
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

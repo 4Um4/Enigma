@@ -29,8 +29,19 @@ from __future__ import annotations
 import logging
 import time
 
+
+
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Union
+
+import os
+
+# S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
+# default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
+TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
+    os.environ.get("TRAVERSAL_OWNERSHIP_ENFORCEMENT", "").strip().lower()
+    in ("1", "true", "yes")
+)
 
 from app.contracts.interventions import InterventionEvent
 from app.domain.tick import TickResultDTO
@@ -959,13 +970,23 @@ class TickOrchestrator:
             if npc_id in _npc_positions:
                 del _npc_positions[npc_id]
             
-            # BUG-SLEEP-013 FIX: Удаляем активные транзиты NPC в старой локации.
-            # Без этого TraversalExecutionSystem завершит старый транзит к boundary-узлу
-            # и вернёт NPC обратно в старую локацию (causing infinite cross-location bounce).
+            # BUG-SLEEP-013 FIX + S203.3 (Stage 2A): транзит NPC в старой локации
+            # останавливается легально. Н-46c: был тихий pop (parent-лаг реестра);
+            # теперь атомарный interrupt двух рельсов (запись до SSM-GC; TES не
+            # двигает не-MOVING — bounce исключён статусом, а не удалением).
             _active_traversals = ctx.scene_state.get("active_traversals", {})
             if isinstance(_active_traversals, dict) and npc_id in _active_traversals:
-                _active_traversals.pop(npc_id, None)
-                logger.info(f"[S186_TRANSFER] Cleared stale traversal for NPC={npc_id} in {_current_loc}")
+                if TRAVERSAL_OWNERSHIP_ENFORCEMENT:
+                    from app.domain.traversal_schema import interrupt_traversal
+
+                    interrupt_traversal(
+                        ctx.scene_state, npc_id,
+                        "CROSS_LOCATION_TRANSFER", ctx.tick_number,
+                    )
+                    logger.info(f"[S186_TRANSFER] Interrupted traversal for NPC={npc_id} in {_current_loc}")
+                else:
+                    _active_traversals.pop(npc_id, None)
+                    logger.info(f"[S186_TRANSFER] Cleared stale traversal for NPC={npc_id} in {_current_loc}")
             
             # S186 FIX: Не удаляем NPC из all_npcs_raw, а только обновляем location_id.
             # Это необходимо, чтобы LifeEngine кэшировал правильную локацию и не воскрешал призрака.

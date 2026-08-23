@@ -17,6 +17,12 @@ INTENT_PROFILES: Dict[str, Dict[str, Any]] = {
     # S209: кража не говорит и не создаёт Claim — эпистемика идёт через
     # ObservationSubscriber (THEFT, ADR-O-360). LLM не нужна: действие немое.
     "steal": {"requires_dialogue_context": False, "requires_llm": False, "produces_claim": False},
+    # S216 FIX (027.1): Социальные и экономические интенты не порождают EpistemicClaim сами по себе.
+    # Без явного proposition они являются ambient-коммуникацией.
+    "call_for_help": {"requires_dialogue_context": False, "requires_llm": True, "produces_claim": False},
+    "offer_job": {"requires_dialogue_context": False, "requires_llm": True, "produces_claim": False},
+    "request_service": {"requires_dialogue_context": False, "requires_llm": True, "produces_claim": False},
+    "trade": {"requires_dialogue_context": False, "requires_llm": True, "produces_claim": False},
 }
 
 def requires_dialogue_context(intent_type: str) -> bool:
@@ -24,3 +30,7 @@ def requires_dialogue_context(intent_type: str) -> bool:
 
 def requires_llm_materialization(intent_type: str) -> bool:
     return INTENT_PROFILES.get(intent_type, {}).get("requires_llm", True)
+
+def produces_claim(intent_type: str) -> bool:
+    """S216 (027.1): Возвращает True, если интент порождает EpistemicClaim (canonical)."""
+    return INTENT_PROFILES.get(intent_type, {}).get("produces_claim", False)

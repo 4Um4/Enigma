@@ -26,6 +26,15 @@ from app.domain.movement_contract import (
     MovementTrace,
     PathStatus,
 )
+import os
+
+# S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
+# default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
+TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
+    os.environ.get("TRAVERSAL_OWNERSHIP_ENFORCEMENT", "").strip().lower()
+    in ("1", "true", "yes")
+)
+
 from app.domain.traversal_schema import (
     MovementPlanResult,
     MovementPlanStatus,
@@ -325,20 +334,29 @@ class MovementEngine:
                                 _traversal_items = _active_traversals.values() if isinstance(_active_traversals, dict) else _active_traversals
                                 _entry = next((e for e in _traversal_items if isinstance(e, dict) and e.get("npc_id") == intent.actor_id), None)
                                 if _entry:
-                                    if isinstance(_active_traversals, dict):
-                                        # Удаляем по ключу (npc_id), если это dict
-                                        _active_traversals.pop(intent.actor_id, None)
+                                    # S203.3 (Stage 2A, ADR-O-363): Н-46a легализован.
+                                    # interrupt_traversal: атомарный interrupt ДВУХ рельсов
+                                    # (traversal CANCELLED + commitment INTERRUPTED), запись
+                                    # живёт до SSM-GC; частичный успех запрещён.
+                                    if TRAVERSAL_OWNERSHIP_ENFORCEMENT:
+                                        from app.domain.traversal_schema import interrupt_traversal
+
+                                        interrupt_traversal(
+                                            scene_state, intent.actor_id,
+                                            "CROSS_LOCATION_MATERIALIZE", tick,
+                                        )
                                     else:
-                                        _active_traversals.remove(_entry)
-                                    logger.debug(f"Cleared traversal for {intent.actor_id} after materialize")
-                                    # S203.1 (Stage 2A): обход Н-46a легализован в реестре —
-                                    # traversal исчез при cross-loc материализации.
-                                    # INTERRUPTED(CROSS_LOCATION_TRANSFER): возобновление
-                                    # в новой локации = НОВОЕ обязательство (терминальность №3).
-                                    from app.services.action.commitment_registry import CommitmentRegistry
-                                    CommitmentRegistry.mirror_traversal_interrupted(
-                                        scene_state, intent.actor_id, tick, "CROSS_LOCATION_TRANSFER"
-                                    )
+                                        # Legacy: тихий pop + mirror (A/B-база)
+                                        if isinstance(_active_traversals, dict):
+                                            _active_traversals.pop(intent.actor_id, None)
+                                        else:
+                                            _active_traversals.remove(_entry)
+                                        logger.debug(f"Cleared traversal for {intent.actor_id} after materialize")
+                                        from app.services.action.commitment_registry import CommitmentRegistry
+                                        CommitmentRegistry.mirror_traversal_interrupted(
+                                            scene_state, intent.actor_id, tick,
+                                            "CROSS_LOCATION_MATERIALIZE",
+                                        )
 
                                 changes.extend([
                                     SceneChange(

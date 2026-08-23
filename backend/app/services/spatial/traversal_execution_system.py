@@ -113,14 +113,13 @@ class TraversalExecutionSystem:
         # Очистка завершённых маршрутов из active_traversals (FIX NEW-SPATIAL-001)
         # Удаляем зомби-записи, чтобы NPC могли начать новый маршрут.
         _active_traversals = scene_state.get("active_traversals", {})
-        # S203.1 (Stage 2A): traversal покинул реестр — зеркалим завершение
-        # обязательства (EXECUTING -> COMPLETED). Вызов вне if: маршрут ДОСТИГ
-        # цели (он в completed_npcs), даже если запись уже убрал кто-то другой.
+        # S203.3 (Stage 2A, ADR-O-363; Ц1): SSM zombie-GC — ЕДИНСТВЕННЫЙ
+        # владелец удаления. TES завершает lifecycle (transition→COMPLETED),
+        # запись остаётся терминальной до GC-прохода SSM (контракт плейсхолдера
+        # ADR-XXX, поглощённого O-363). Не-MOVING записи TES не двигает —
+        # физика остановлена статусом.
         from app.services.action.commitment_registry import CommitmentRegistry
         for npc_id in completed_npcs:
-            if npc_id in _active_traversals:
-                del _active_traversals[npc_id]
-                logger.debug(f"[TRAV_EXEC] Cleaned up zombie traversal for {npc_id}")
             CommitmentRegistry.mirror_traversal_completed(scene_state, npc_id, current_tick)
 
     @staticmethod

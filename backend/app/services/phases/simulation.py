@@ -72,6 +72,24 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
     # Намерения расписания обрабатываются через MovementEngine, порождая TraversalState.
     if life_intents:
+        # S203.2 (Stage 2A, ADR-O-363): ГЕЙТ ① — арбитраж LifeEngine-кандидатов
+        # ДО MovementEngine. Один арбитр, два invocation points (Гейт ② —
+        # movement_bridge). Read-only: реестр не пишется; commit — только mirror
+        # при материализации. LOG_ONLY (enforce=True всегда) → фильтр —
+        # тождество, поведение байтово прежнее; телеметрия [ARBITER_REJECT].
+        from app.services.action.commitment_arbiter import CommitmentArbiter
+
+        life_intents = [
+            _i
+            for _i in life_intents
+            if CommitmentArbiter.enforce(
+                ctx.scene_state,
+                getattr(_i, "actor_id", ""),
+                getattr(_i, "target_node_id", None),
+                getattr(_i, "reason", ""),
+                ctx.tick_number,
+            )
+        ]
         # DRF: Претензии уже собраны напрямую в ctx.claim_field через Side-Channel Bus
         from app.services.spatial.movement_engine import MovementEngine
 

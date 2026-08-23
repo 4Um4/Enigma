@@ -51,6 +51,10 @@ def process_movement_intents(
         resolver = SpatialTargetResolver(_spatial_svc)
         _npc_positions = ctx.scene_state.get("npc_positions", {})
         _resolved_intents = []
+        # S203.2 (Stage 2A, ADR-O-363): ГЕЙТ ② — тот же арбитр, что и в Гейте ①
+        # (simulation.py). Микро-движение (LOCAL_POSITION/steering) не гейтится:
+        # не создаёт обязательств (ADR-O-328). LOG_ONLY → тождество.
+        from app.services.action.commitment_arbiter import CommitmentArbiter
         
         for intent in _merged_intents:
             if hasattr(intent, 'target_intent') and intent.target_intent:
@@ -68,7 +72,19 @@ def process_movement_intents(
                 if resolved.mode == SpatialResolutionMode.NAV_NODE:
                     # Конвертируем в старый макро-интент
                     intent.target_node_id = resolved.anchor_node_id
-                    _resolved_intents.append(intent)
+                    if CommitmentArbiter.enforce(
+                        ctx.scene_state,
+                        intent.actor_id,
+                        intent.target_node_id,
+                        getattr(intent, "reason", ""),
+                        ctx.tick_number,
+                    ):
+                        _resolved_intents.append(intent)
+                    else:
+                        logger.debug(
+                            f"[ARBITER_GATE_2] blocked npc={intent.actor_id} "
+                            f"target={intent.target_node_id}"
+                        )
                 elif resolved.mode == SpatialResolutionMode.LOCAL_POSITION:
                     if resolved.position is None:
                         logger.error("[MOVEMENT_BRIDGE] RESOLVED LOCAL_POSITION without position")
@@ -82,6 +98,20 @@ def process_movement_intents(
                     )
                     _resolved_intents.append(micro_goal)
             else:
+                # Гейт ②b: сквозные интенты без target_intent — гейт только
+                # макро-подобные (с target_node_id); микро проходит свободно.
+                _macro_target = getattr(intent, "target_node_id", None)
+                if _macro_target and not CommitmentArbiter.enforce(
+                    ctx.scene_state,
+                    getattr(intent, "actor_id", ""),
+                    _macro_target,
+                    getattr(intent, "reason", ""),
+                    ctx.tick_number,
+                ):
+                    logger.debug(
+                        f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"
+                    )
+                    continue
                 _resolved_intents.append(intent)
         
         _merged_intents = _resolved_intents

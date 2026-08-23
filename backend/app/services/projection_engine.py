@@ -149,6 +149,20 @@ class ProjectionEngine:
                     )
                 else:
                     _active_traversals[thick.target] = _fields
+                    # S203.1 (Stage 2A, ADR-O-363): shadow-зеркало реестра обязательств.
+                    # ProjectionEngine — ПЕРВЫЙ авторитетный писатель traversals
+                    # (ADR-O-204: shadow-rail ДО legacy), поэтому материализация
+                    # обязательства фиксируется ЗДЕСЬ, а не в SSM (SSM-ветка
+                    # подавлена guard'ом in-flight — мёртвый путь в dual-rail).
+                    # cause verbatim из thick-контракта; пустой -> UNKNOWN_LEGACY_SOURCE.
+                    from app.services.action.commitment_registry import CommitmentRegistry
+                    CommitmentRegistry.mirror_traversal_materialized(
+                        scene_state=scene_state,
+                        tick=_fields.get("started_tick", 0),
+                        npc_id=thick.target,
+                        cause=(getattr(thick, "cause", "") or "").__str__(),
+                        target_node=_fields.get("target_node"),
+                    )
                     logger.debug(
                         f"[PROJECTION] Traversal NEW: npc={thick.target} "
                         f"target={thick.value} "

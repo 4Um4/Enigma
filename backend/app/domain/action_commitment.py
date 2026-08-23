@@ -59,6 +59,18 @@ COMMITMENT_TERMINAL_STATUSES: frozenset = frozenset(
     status for status, targets in COMMITMENT_TRANSITIONS.items() if not targets
 )
 
+# S203.2 (Мастер, обязательное решение): ACTIVE = статусы, в которых NPC ЗАНЯТ.
+# COMMITTED включён явно: обязательство между COMMIT и материализацией НЕ делает
+# NPC свободным (защита от commitment race). PROPOSED — превентивно: кандидат
+# в рассмотрении тоже занимает владельца (появится в S203.3/4; зеркала его не
+# создают). Терминалы в ACTIVE не входят по построению.
+ACTIVE_COMMITMENT_STATUSES: frozenset = frozenset({
+    "PROPOSED",
+    "COMMITTED",
+    "EXECUTING",
+    "BLOCKED",
+})
+
 # Bounded retention терминальной истории на NPC (решение Мастера №1).
 # Прецедент: causal_ledger — bounded runtime history.
 COMMITMENT_HISTORY_CAP_PER_NPC: int = 10

@@ -4,6 +4,7 @@
 
 import os
 import sys
+import time
 import urllib.request
 import tkinter as tk
 from tkinter import font as tkfont
@@ -49,6 +50,10 @@ class SplashScreen(tk.Tk):
         self._progress = 0
         self._direction = 1
 
+        # Таймаут: если бэкенд не ответит за 60 секунд, закрываемся
+        self._start_time = time.time()
+        self._timeout = 60
+        
         # Запуск проверки бэкенда
         self.after(100, self.update_progress)
         self.after(500, self.check_backend)
@@ -82,6 +87,13 @@ class SplashScreen(tk.Tk):
                 self.status_var.set("Загрузка AI-модели в видеопамять...")
             else:
                 self.status_var.set("Запуск игрового сервера...")
+            
+            # Проверка таймаута для защиты от зомби-процесса
+            if time.time() - self._start_time > self._timeout:
+                self.status_var.set("Ошибка: сервер не отвечает. Проверьте launch_error.log.")
+                self.update()
+                self.after(3000, self.destroy)
+                return
                 
         self.after(1000, self.check_backend)
 

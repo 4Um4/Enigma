@@ -99,9 +99,19 @@ def main():
                     main_path = os.path.join(temp_dir, "bloodloom_main_update.exe")
                     if download_file(main_setup_url, main_path):
                         try:
-                            subprocess.run([main_path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NOCANCEL", "/NORESTART"], check=True)
+                            # Запускаем установщик и немедленно выходим, чтобы Inno Setup мог перезаписать Bloodloom.exe
+                            subprocess.Popen(['cmd', '/c', 'start', '""', main_path, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NOCANCEL', '/NORESTART', '/CLOSEAPPLICATIONS'])
+                            os._exit(0)
                         except Exception:
                             pass
+                
+                # Если мы дошли сюда, значит обновление не скачалось или не запустилось.
+                # Не запускаем старую игру!
+                root = tk.Tk()
+                root.withdraw()
+                messagebox.showerror("Ошибка обновления", "Не удалось скачать или запустить установщик обновления. Игра будет закрыана.")
+                root.destroy()
+                os._exit(1)
                 
                 # 2. Скачиваем модели (только если их нет)
                 if need_models and models_setup_url:
@@ -121,7 +131,8 @@ def main():
                         
                         if all_models_downloaded:
                             try:
-                                subprocess.run([models_path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NOCANCEL", "/NORESTART"], check=True)
+                                subprocess.Popen(['cmd', '/c', 'start', '""', models_path, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NOCANCEL', '/NORESTART', '/CLOSEAPPLICATIONS'])
+                                os._exit(0)
                             except Exception:
                                 pass
 
