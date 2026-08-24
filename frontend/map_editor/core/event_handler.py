@@ -16,7 +16,7 @@ from core.commands import (
 from ui.dialogs import ModalDialog
 
 from tools.constants import (
-    TOOL_WALL, TOOL_ROOM, TOOL_NODE, MODE_WORLD, MODE_LOCAL
+    TOOL_WALL, TOOL_ROOM, TOOL_NODE, MODE_WORLD, MODE_LOCAL, MODE_LAB
 )
 
 SCALE = 20
@@ -33,6 +33,11 @@ class EventHandler:
     def handle_event(self, core, event: pygame.event.Event):
         """Маршрутизатор событий"""
         mx, my = pygame.mouse.get_pos()
+
+        # Перехват событий для полноэкранной Лаборатории
+        if core.mode == MODE_LAB:
+            core.lab_screen.handle_event(event)
+            return
 
         # Горячие клавиши
         if event.type == pygame.KEYDOWN:
@@ -59,6 +64,10 @@ class EventHandler:
 
             elif event.key == pygame.K_TAB:
                 core._toggle_mode()
+            elif event.key == pygame.K_F5:
+                core.mode = MODE_LAB
+                core.lab_screen.enter()
+                return
             elif event.key == pygame.K_PAGEUP:
                 core.current_z += 1
                 core._show_toast(f"Этаж: {core.current_z}")

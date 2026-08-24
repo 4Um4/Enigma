@@ -1015,7 +1015,7 @@ class GameLoop:
         """E.2: Инкапсуляция character_service.list_characters"""
         return self.character_service.list_characters(campaign_id)
 
-    def idle_tick(self, campaign_id: str, location_id: Optional[str] = None) -> dict:
+    def idle_tick(self, campaign_id: str, location_id: Optional[str] = None, interventions: Optional[List["InterventionEvent"]] = None) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 
         Вызывается когда игрок бездействует (таймер pygame).
@@ -1119,6 +1119,7 @@ class GameLoop:
             location_ids=_location_ids,
             eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
             mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
+            interventions=interventions,  # M1: Внедрение событий игрока
         )
         
         # Коммит результатов оркестратора (если ядро не сделало это само)

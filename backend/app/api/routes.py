@@ -329,29 +329,62 @@ from app.services.llm.downloader import get_model_status, download_model
 
 @router.get("/llm/status")
 async def llm_status() -> dict:
-    """Возвращает статус скачивания LLM-моделей."""
-    return get_model_status()
+    """Возвращает статус LLM-сервера, моделей и причин ошибок."""
+    import os
+    from app.core.config import settings
+    _status = get_model_status()
+    
+    # Фикс D: Добавляем явную причину отсутствия LLM для UI
+    _model_exists = os.path.exists(settings.llama_cpp_model_path)
+    _status["model_path"] = settings.llama_cpp_model_path
+    _status["model_exists"] = _model_exists
+    _status["server_executable_exists"] = os.path.exists(settings.llama_cpp_server_executable)
+    
+    if not _model_exists:
+        _status["error_reason"] = "model_file_missing"
+    elif not _status.get("is_running", False):
+        _status["error_reason"] = "server_not_running"
+    else:
+        _status["error_reason"] = None
+        
+    return _status
 
 @router.post("/llm/download/{model_key}")
-async def llm_download(model_key: str, background_tasks: BackgroundTasks) -> dict:
-    """Запускает скачивание модели в фоне."""
-    background_tasks.add_task(download_model, model_key)
+async def llm_download(model_key: str, background_tasks: BackgroundTasks, force: bool = False) -> dict:
+    """Запускает скачивание модели в фоне. Если force=True — удаляет старый файл."""
+    background_tasks.add_task(download_model, model_key, force=force)
     return {"status": "started", "model": model_key}
+
+@router.post("/llm/cancel/{model_key}")
+async def llm_cancel(model_key: str) -> dict:
+    """Отменяет активное скачивание модели (недокачанный файл будет удалён)."""
+    from app.services.llm.downloader import cancel_download
+    _ok = cancel_download(model_key)
+    return {"status": "cancelled" if _ok else "not_downloading", "model": model_key}
 
 @router.post("/llm/select/{model_key}")
 async def llm_select(model_key: str) -> dict:
     """Меняет активную модель, перезапускает LLM-сервер и отправляет тестовый промпт."""
     from app.services.llm.downloader import get_llm_sources
     from app.core.config import settings, BASE_DIR
-    from app.services.llm.server_lifecycle import restart_llama_server
+    from app.services.llm.server_lifecycle import restart_llama_server, kill_llama_server
     from fastapi import HTTPException
+    from pathlib import Path
 
     sources = get_llm_sources()
-    if model_key not in sources:
-        raise HTTPException(status_code=404, detail="Model not found in config")
-        
-    info = sources[model_key]
-    target_path = BASE_DIR / info["target_path"]
+    target_path = None
+    # Сначала ищем в llm_sources.json
+    if model_key in sources:
+        target_path = BASE_DIR / sources[model_key]["target_path"].replace("\\", "/")
+    else:
+        # Если не нашли — ищем ручную модель в папке Models LLM
+        _llm_dir = BASE_DIR / "Models LLM"
+        _manual_file = _llm_dir / f"{model_key}.gguf"
+        if _manual_file.exists():
+            target_path = _manual_file
+        else:
+            raise HTTPException(status_code=404, detail="Model not found in config or folder")
+            
     if not target_path.exists():
         raise HTTPException(status_code=400, detail="Model is not downloaded yet")
         
@@ -359,9 +392,7 @@ async def llm_select(model_key: str) -> dict:
     settings.llama_cpp_model_path = str(target_path)
     settings.default_model = model_key
     
-    # ГЛАВНЫЙ ФИКС: restart_llama_server видит, что старый сервер жив, и не перезапускает его.
-    # Нам нужно принудительно убить старую модель, выгрузить её из VRAM и запустить новую.
-    from app.services.llm.server_lifecycle import kill_llama_server
+    # Принудительно убиваем старую модель, выгрузить её из VRAM и запустить новую
     kill_llama_server()
     
     import time
@@ -369,7 +400,8 @@ async def llm_select(model_key: str) -> dict:
     
     success = restart_llama_server()
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to restart LLM server with new model")
+        # Вместо 500 ошибки, возвращаем текстовое сообщение для UI
+        return {"test_prompt": "", "test_response": "ОШИБКА: LLM сервер не смог запуститься с этой моделью. Возможно, не хватает VRAM или файл повреждён."}
         
     # Отправляем реальный игровой промпт с профилем NPC (Борко), чтобы проверить качество модели
     test_response = ""
@@ -403,6 +435,8 @@ async def llm_select(model_key: str) -> dict:
             prompt=user_prompt,
             system_prompt=sys_prompt
         )
+        return {"test_prompt": user_prompt, "test_response": test_response}
+    
     except Exception as e:
         test_response = f"[Ошибка тестового запроса]: {e}"
         

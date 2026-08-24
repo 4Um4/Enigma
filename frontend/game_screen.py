@@ -753,7 +753,7 @@ class GameScreen:
                     if event.key == pygame.K_ESCAPE:
                         action_queue.stop()
                         running = False
-                        return
+                        return "PAUSE"
                     # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
                     elif not text_input.focused and event.key == pygame.K_j:
                         self.show_journal = not self.show_journal

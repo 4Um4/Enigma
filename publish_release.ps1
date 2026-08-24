@@ -63,7 +63,9 @@ Write-Host "📦 Подготовка кода (копирование исхо�
 if (Test-Path $StagingDir) { Remove-Item -Recurse -Force $StagingDir }
 New-Item -ItemType Directory -Path $StagingDir | Out-Null
 
-robocopy . $StagingDir /E /XD .venv .git build logs reports __pycache__ /XF *.pyc *.log *.spec > $null
+# /XD "Models LLM": модели (24 ГБ) в staging не нужны — enigma_setup.iss берёт
+# llama-бинарники из корня, а модели доставляются внутриигровым загрузчиком.
+robocopy . $StagingDir /E /XD .venv .git build logs reports __pycache__ "Models LLM" /XF *.pyc *.log *.spec > $null
 
 Write-Host "✅ Исходный код скопирован во временную папку" -ForegroundColor Green
 
@@ -156,6 +158,16 @@ if ($releasesJson) {
     }
 }
 Write-Host "✅ Очистка завершена." -ForegroundColor Green
+
+# Конфликт тегов: version.txt может отставать от реальных тегов в репо
+# (наблюдалось: существовал v0.5.3.15 при счётчике 10). Перед публикацией
+# удаляем релиз и тег с тем же именем, если они есть.
+ $existingRelease = gh release view $TagName --repo "$RepoOwner/$RepoName" 2>$null
+if ($existingRelease) {
+    Write-Host "Тег $TagName уже существует — удаляю старый релиз и тег..." -ForegroundColor Yellow
+    gh release delete $TagName --repo "$RepoOwner/$RepoName" --yes 2>$null
+    git push --delete origin $TagName 2>$null
+}
 
 gh release create $TagName $FilesToUpload `
     --repo "$RepoOwner/$RepoName" `

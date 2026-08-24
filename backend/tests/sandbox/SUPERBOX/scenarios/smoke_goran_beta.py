@@ -70,25 +70,43 @@ def run_scenario(goran_in_los: bool) -> dict:
     """Прогон одного сценария (Control или Experiment)."""
     SPY["events"].clear()
     
-    # β-M (Motivated Environment): Monkey-patch DecisionHub.compute
-    # Внедряем идеальный OpportunityContext и will_state прямо в decision function,
-    # чтобы изолировать тест от сложности генерации мотивации (WillpowerGate/BreakProgress).
+    # β-M (Motivated Environment): Monkey-patch OpportunityEngine
+    from app.services.economy.opportunity_engine import OpportunityEngine, OpportunityResult
+    @staticmethod
+    def _patched_calculate(ctx, will_state):
+        return OpportunityResult(
+            score=1.0,
+            hidden_action_allowed=True,
+            unlocked_intents=frozenset(["steal"]),
+            score_trace={"reason": "smoke_test_forced"}
+        )
+    OpportunityEngine.calculate = _patched_calculate
+
+    # β-G (Guard Bypass): Monkey-patch DecisionHub to bypass sleep/suppression for STEAL
     from app.services.npc.decision_hub import DecisionHub as _DH
     from app.models.npc_state import WillState
     _orig_compute = _DH.compute
+    _orig_get_possible = _DH._get_possible_intents
     
     def _patched_compute(self, *args, **kwargs):
-        # Извлекаем state (позиционный или ключевой)
         state = kwargs.get("state") or (args[0] if args else None)
         if state and getattr(state, "npc_id", None) == THIEF:
-            # ADR-WRITE-GUARD bypass: use object.__setattr__ to bypass the guard
             object.__setattr__(state, "will_state", WillState.DECEPTIVE)
+            object.__setattr__(state, "initiative_suppression", 0.0)
             kwargs["opportunity_ctx"] = OpportunityContext(
                 player_attention=0.0, distance=0.1, weapon_access=True, allies=3
             )
         return _orig_compute(self, *args, **kwargs)
-    
+
+    def _patched_get_possible(self, *args, **kwargs):
+        possible = _orig_get_possible(self, *args, **kwargs)
+        state = args[0] if args else kwargs.get("state")
+        if state and getattr(state, "npc_id", None) == THIEF and "steal" not in possible:
+            possible.append("steal")
+        return possible
+
     _DH.compute = _patched_compute
+    _DH._get_possible_intents = _patched_get_possible
 
     world = types.SimpleNamespace(game_loop=build_game_loop(data_dir=BACKEND_ROOT.parent / "data"))
     
@@ -135,8 +153,9 @@ def run_scenario(goran_in_los: bool) -> dict:
                 description="обвиняю Тень в краже"))
             accuse_passed = _r is None
 
-    # Restore original method
+    # Restore original methods
     _DH.compute = _orig_compute
+    _DH._get_possible_intents = _orig_get_possible
 
     return {
         "events": list(SPY["events"]),

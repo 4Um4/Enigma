@@ -342,6 +342,171 @@ class ExperimentRunner:
             rel_captures_deterministic=rel_ok,
         )
 
+    # === M1: Интерактивный API для Pygame UI (ADR-O-361) ===
+    def start(self, config: ExperimentConfig) -> str:
+        """Запускает интерактивную сессию: изоляция, сборка GameLoop, overlay.
+        Возвращает experiment_id. GameLoop хранится в self._active_game_loop."""
+        if overlay_active():
+            raise ExperimentError("overlay активен — вложенные эксперименты запрещены")
+        if hasattr(self, "_active_game_loop") and self._active_game_loop:
+            raise ExperimentError("Сессия уже активна. Используйте stop() перед новым start().")
+
+        self._active_config = config
+        self._active_preset = load_preset(config.preset_path)
+        
+        from app.services.events.event_bus import get_event_bus
+        get_event_bus().clear()
+
+        self._orig_saves = settings.saves_dir
+        self._orig_env = settings.environment
+        self._orig_data_dir = Path(settings.data_dir)
+        self._model_cfg = settings.available_models.get("qwen_7b")
+        self._orig_provider = getattr(self._model_cfg, "provider_type", None) if self._model_cfg else None
+
+        self._temp_root = Path(tempfile.mkdtemp(prefix="calib_exp_"))
+        self._experiment_id = f"calib_{uuid.uuid4().hex[:12]}"
+        self._sessions_root = _sessions_dir(config)
+        self._sessions_snap = _snapshot_dir(self._sessions_root)
+        self._invalidate_ram_caches()
+
+        settings.saves_dir = str(self._temp_root)
+        settings.environment = "development"
+        if self._model_cfg is not None:
+            self._model_cfg.provider_type = ProviderType.MOCK
+
+        # materialize_preset и overlay_constants держат контекст открытыми
+        self._preset_ctx = materialize_preset(self._active_preset)
+        self._preset_ctx.__enter__()
+        
+        self._active_game_loop = build_game_loop(data_dir=self._orig_data_dir)
+        self._active_tap = ObservabilityTap()
+        self._active_metrics = build_metrics_bundle()
+        self._active_tap.attach()
+        
+        self._overlay_ctx = overlay_constants(
+            self._active_preset.constants, require_loaded=_REQUIRE_LOADED
+        )
+        self._overlay_ctx.__enter__()
+
+        self._statuses = []
+        self._npc_captures = []
+        self._rel_captures = []
+        self._events_per_tick = []
+        self._ticks_executed = 0
+
+        return self._experiment_id
+
+    def step(self, ticks: int = 1) -> Dict[str, Any]:
+        """Выполняет N тиков и возвращает текущее состояние NPC (LiveStateDTO)."""
+        if not hasattr(self, "_active_game_loop") or not self._active_game_loop:
+            raise ExperimentError("Сессия не запущена. Вызовите start() сначала.")
+
+        config = self._active_config
+        game_loop = self._active_game_loop
+        engine = game_loop._get_life_engine()  # noqa: ENIGMA002
+
+        # M1/Sprint 1: Временная инъекция события для проверки динамики Trust
+        _test_intervention = None
+        if self._ticks_executed == 10:
+            from app.contracts.interventions import InterventionEvent
+            _test_intervention = InterventionEvent.from_player_action(
+                action_text="помочь", player_name="player", tick=10, target_id="maid_lusya"
+            )
+            logger.info("[CALIB_TEST_INJECT] Внедрено событие: помощь Люсе на тике 10")
+
+        for _ in range(ticks):
+            interventions = [_test_intervention] if _test_intervention and self._ticks_executed == 10 else []
+            tick_result = game_loop.idle_tick(config.campaign_id, interventions=interventions)
+            self._statuses.append(str(tick_result.get("status", "unknown")))
+            self._settle_async_dialogue_layer(game_loop, config)
+            
+            self._npc_captures.append(copy.deepcopy(engine.get_npc_states(config.campaign_id)))
+            self._rel_captures.append(game_loop.memory_manager.get_relationships(config.campaign_id))
+            
+            tick_records = self._active_tap.take_tick_records()
+            self._events_per_tick.append(len(tick_records))
+            self._active_metrics.update(
+                tick=len(self._npc_captures) - 1,
+                state_snapshot={
+                    n.get("id", n.get("npc_id", "?")): n for n in self._npc_captures[-1]
+                },
+                event={"count": len(tick_records), "records": tick_records},
+            )
+            self._ticks_executed += 1
+
+        # Возвращаем текущее состояние NPC (последний capture)
+        return {
+            "tick": self._ticks_executed,
+            "npcs": self._npc_captures[-1] if self._npc_captures else [],
+            "relationships": self._rel_captures[-1] if self._rel_captures else {},
+        }
+
+    def stop(self) -> ExperimentResult:
+        """Завершает сессию: quiesce, вычисление метрик, очистка ресурсов."""
+        if not hasattr(self, "_active_game_loop") or not self._active_game_loop:
+            raise ExperimentError("Сессия не запущена.")
+
+        game_loop = self._active_game_loop
+        config = self._active_config
+        tap = self._active_tap
+
+        self._final_quiesce(game_loop, tap)
+        metrics = self._active_metrics.compute_all()
+        
+        final_raw = self._npc_captures[-1] if self._npc_captures else []
+        final_by_id = {
+            n.get("id", n.get("npc_id", "unknown")): n for n in final_raw
+        }
+        nan_count = sum(_count_nan(n) for n in final_raw)
+        
+        l1_event_count = 0
+        chron = getattr(game_loop._tick_orch, "l1_chronicle", None)  # noqa: ENIGMA002
+        if chron is not None:
+            for npc_id in final_by_id:
+                l1_event_count += len(chron.query_raw(npc_id))
+
+        # Закрытие контекстов overlay и preset
+        self._overlay_ctx.__exit__(None, None, None)
+        self._preset_ctx.__exit__(None, None, None)
+
+        try:
+            tap.detach()
+        except Exception as exc:
+            logger.warning("[CALIB_RUNNER] tap detach: %s", exc)
+        self._dispose(game_loop)
+
+        # Восстановление настроек
+        settings.saves_dir = self._orig_saves
+        settings.environment = self._orig_env
+        if self._model_cfg is not None and self._orig_provider is not None:
+            self._model_cfg.provider_type = self._orig_provider
+        _restore_dir(self._sessions_root, self._sessions_snap)
+        shutil.rmtree(self._temp_root, ignore_errors=True)
+
+        result = ExperimentResult(
+            experiment_id=self._experiment_id,
+            config=config,
+            preset_id=self._active_preset.preset_id,
+            ticks_executed=self._ticks_executed,
+            statuses=self._statuses,
+            npc_captures=self._npc_captures,
+            rel_captures=self._rel_captures,
+            final_npc_state=final_by_id,
+            nan_count=nan_count,
+            l1_event_count=l1_event_count,
+            events_per_tick=self._events_per_tick,
+            metrics=metrics,
+        )
+        
+        # Очистка атрибутов состояния
+        del self._active_game_loop
+        del self._active_config
+        del self._active_preset
+        del self._overlay_ctx
+        del self._preset_ctx
+
+        return result
+
     @staticmethod
     def _settle_async_dialogue_layer(game_loop: Any, config: ExperimentConfig) -> None:
         """Quiesce-барьер асинхронного диалогового слоя (DEBT-REL-QUIESCE).

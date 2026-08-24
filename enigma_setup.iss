@@ -40,7 +40,11 @@ Name: "custom"; Description: "Выборочная установка"; Flags: i
 
 [Components]
 Name: "core"; Description: "Ядро игры (обязательно)"; Types: full compact custom; Flags: fixed
-Name: "llm"; Description: "AI-модель Qwen 7B (около 5 ГБ)"; Types: full
+; Компонент llm удалён: модель НЕ входит в установщик. Доставляется
+; внутриигровым загрузчиком при первом запуске (Настройки -> LLM Модели:
+; докачка, прогресс, скорость, отмена). Галочка «5 ГБ», не ставящая ни
+; байта, — ложь в UI (исходный баг тестера, закрытие).
+; Name: "llm"; Description: "AI-модель Qwen 7B (около 5 ГБ)"; Types: full
 Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU)"; Types: full compact custom
 
 [Files]
@@ -54,11 +58,17 @@ Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*
 ; задача релизного пайплайна (см. MUTATIONS S210, долг BUILD-P1).
 Source: "payload\python\*"; DestDir: "{app}\_internal\python"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
 
-; 2. LLM-модель (ИСКЛЮЧЕНА! Скачивается отдельным установщиком)
-; Source: "Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"; DestDir: "{app}\Models LLM"; Components: llm; Flags: nocompression ignoreversion
+; 2. LLM-модель — ИСКЛЮЧЕНА (доставляется внутриигровым загрузчиком)
+; Модель НЕ входит в установщик (5 ГБ не влезают в сборку).
+; Доставляется внутриигровым загрузчиком при первом запуске:
+; Настройки -> LLM Модели (докачка, прогресс, скорость, отмена).
+; Source: "Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"; DestDir: "{app}\Models LLM"; Components: llm; Flags: nocompression ignoreversion
 
 ; 3. llama.cpp бинарники
-Source: "Models LLM\llama\*"; DestDir: "{app}\Models LLM\llama"; Components: llama_cpp; Flags: recursesubdirs ignoreversion nocompression; BeforeInstall: UpdateLog
+; nocompression снят: CUDA DLL (cublasLt 458 МБ, cufft 283 МБ...) жмутся lzma
+; на ~40-45% — установщик 2.27 ГБ -> ~1.4 ГБ, под лимитом GitHub 2 ГБ,
+; RAR-томление не требуется. Установка лишь чуть дольше распаковывается.
+Source: "Models LLM\llama\*"; DestDir: "{app}\Models LLM\llama"; Components: llama_cpp; Flags: recursesubdirs ignoreversion; BeforeInstall: UpdateLog
 
 [Icons]
 Name: "{group}\Bloodloom"; Filename: "{app}\Bloodloom.exe"; IconFilename: "{app}\Bloodloom.ico"

@@ -74,9 +74,12 @@ def _ensure_llm_running() -> subprocess.Popen:
             return None
             
     # Берем путь к модели из настроек бэкенда
-    _model_path = getattr(_enigma_settings, "llama_cpp_model_path", os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"))
-    if not os.path.exists(_model_path):
-        print(f"  ✗ Файл модели не найден: {_model_path}. LLM не будет запущен.")
+    _model_path = getattr(_enigma_settings, "llama_cpp_model_path", os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"))
+    _file_exists = os.path.exists(_model_path)
+    _file_size = os.path.getsize(_model_path) if _file_exists else 0
+    print(f"  [DIAG_LAUNCH] Проверка модели: {_model_path} (exists={_file_exists}, size={_file_size} bytes)")
+    if not _file_exists or _file_size < 1024 * 1024:  # Файл должен быть больше 1 МБ
+        print(f"  ✗ Файл модели не найден или повреждён (размер < 1МБ): {_model_path}.")
         return None
         
     _creation_flags = 0
@@ -301,6 +304,17 @@ def main() -> None:
     
     backend_proc, llm_proc = _ensure_servers_running()
     
+    # Проверка наличия модели LLM перед стартом меню
+    import importlib
+    from pathlib import Path
+    _enigma_settings = importlib.import_module("app.core.config").settings
+    if not Path(_enigma_settings.llama_cpp_model_path).exists():
+        print("  ⚠ Файл модели не найден! Открытие экрана скачивания...")
+        screen, clock, menu = _init_menu_display()
+        settings_screen = SettingsScreen(screen, clock)
+        settings_screen.run(initial_tab="llm")
+        # После закрытия настроек — продолжаем работу (бэкенд уже запущен)
+    
     screen, clock, menu = _init_menu_display()
 
     # --- CDS: Causal Diagnostic System ---
@@ -399,7 +413,16 @@ def main() -> None:
                         if _reset_ok:
                             screen = pygame.display.get_surface()
                             game_screen = GameScreen(screen, clock)
-                            game_screen.run(selected_folder, selected_data["character_id"])
+                            game_result = game_screen.run(selected_folder, selected_data["character_id"])
+                            # Обработка паузы (ESC открывает настройки, затем продолжаем)
+                            while game_result == "PAUSE":
+                                screen = pygame.display.get_surface()
+                                settings_screen = SettingsScreen(screen, clock)
+                                settings_screen.run(initial_tab="graphics")
+                                # Пересоздаём поверхность и продолжаем игру
+                                screen = pygame.display.get_surface()
+                                game_screen = GameScreen(screen, clock)
+                                game_result = game_screen.run(selected_folder, selected_data["character_id"])
                         else:
                             print("  ✖ Запуск игры отменён из-за ошибки сброса мира.")
                 # Возвращаемся в меню — пересоздаём поверхность и меню

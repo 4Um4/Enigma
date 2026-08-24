@@ -189,6 +189,15 @@ async def lifespan(app: FastAPI):
                 app.state.startup_status["llm_server"] = "ready"
             except Exception:
                 # Не запущен — стартуем
+                # Фикс C: Жёсткая проверка наличия файла модели перед Popen
+                import os
+                if not os.path.exists(settings.llama_cpp_model_path):
+                    _err = f"Файл модели не найден: {settings.llama_cpp_model_path}. LLM недоступен."
+                    logger.error(f"[STARTUP] {_err}")
+                    print(f"✗ {_err}")
+                    app.state.startup_status["llm_server"] = "failed"
+                    app.state.startup_status["llm_error"] = "model_file_missing"
+                    return
                 try:
                     server_cmd = [
                         settings.llama_cpp_server_executable,

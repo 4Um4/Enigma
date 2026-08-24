@@ -73,7 +73,7 @@ MODE_LOCAL = "local"  # Редактирование локации
 from tools.constants import (
     TOOL_SELECT, TOOL_WALL, TOOL_ROOM, TOOL_OBJECT, TOOL_PASSAGE,
     TOOL_LABEL, TOOL_NPC, TOOL_SPAWN, TOOL_DELETE, TOOL_NODE,
-    MODE_WORLD, MODE_LOCAL
+    MODE_WORLD, MODE_LOCAL, MODE_LAB
 )
 
 # Цвета объектов
@@ -179,6 +179,15 @@ class EditorCore:
 
         from core.event_handler import EventHandler
         self.event_handler = EventHandler()
+
+        from tools.interaction import InteractionManager
+        self.interaction_manager = InteractionManager()
+
+        from ui.property_builder import PropertyBuilder
+        self.property_builder = PropertyBuilder()
+
+        from ui.lab_screen import LabScreen
+        self.lab_screen = LabScreen(self)
 
         self.selected_npc_id: str = ""  # id реального NPC из config
         self._npc_list: List[Dict[str, str]] = load_npc_individuals()
@@ -1462,413 +1471,20 @@ class EditorCore:
 
         self.dialog = ModalDialog(self.screen, "Переименовать", fields, on_confirm)
 
-    def _handle_left_click(
-        self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float
-    ):
-        """Обрабатывает клик ЛКМ в режиме редактирования"""
-        if not self.current_file:
-            return
+    def _handle_left_click(self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float):
+        self.interaction_manager.handle_left_click(self, mx, my, wx, wy, gx, gy)
 
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        # Режим покоя (tool=None) — клик выделяет объекты
-        if self.tool is None:
-            self._try_select_existing(mx, my)
-            return
-
-        # Ниже — активные инструменты создания
-        if self.tool == TOOL_WALL:
-            if self.wall_start is None:
-                # Первый клик — начало стены
-                self.wall_drawing = True
-                self.wall_start = (gx, gy)
-            else:
-                # Второй клик — завершение стены
-                if (
-                    abs(gx - self.wall_start[0]) > 0.1
-                    or abs(gy - self.wall_start[1]) > 0.1
-                ):
-                    # Валидация наложения стен (§1: запрещаем пересечение отрезков)
-                    if self._check_wall_overlap(self.wall_start[0], self.wall_start[1], gx, gy):
-                        self._show_toast("Ошибка: Стены не могут накладываться друг на друга (кроме стыков в углах).")
-                        self.wall_drawing = False
-                        self.wall_start = None
-                        return
-                    
-                    wall_id = self.undo.push(
-                        AddWallCommand(
-                            self.dm,
-                            self.current_file,
-                            self.wall_start[0],
-                            self.wall_start[1],
-                            gx,
-                            gy,
-                        )
-                    )
-                    self._show_toast("Стена создана")
-                    self._try_auto_room(wall_id)
-                self.wall_drawing = False
-                self.wall_start = None
-
-        elif self.tool == TOOL_ROOM:
-            # Начинаем создание комнаты
-            self.room_drawing = True
-            self.room_start = (gx, gy)
-
-        elif self.tool == TOOL_OBJECT:
-            # Для уличных локаций разрешаем объекты вне комнат
-            loc_data = self.dm.locations.get(self.current_file, {})
-            is_outdoor = loc_data.get("is_outdoor", False)
-            if not is_outdoor and not self._is_point_in_any_room(wx, wy):
-                self._show_toast("Объекты можно размещать только внутри комнат")
-                return
-            # Создаём объект
-            preset = OBJECT_PRESETS.get(self.selected_object_type, {})
-            ds = preset.get("default_size", {"w": 1.0, "h": 1.0})
-            obj_w = float(ds.get("w", 1.0))
-            obj_h = float(ds.get("h", 1.0))
-            # Проверяем требует ли объект стену
-            wall_id = ""
-            # S143: Выравнивание дверей по стене (Snapping) для гарантированной резки (§1)
-            if preset.get("requires_wall", False):
-                wall_id = self._find_wall_near(gx, gy, threshold=1.5) or ""
-                if not wall_id:
-                    self._show_toast(
-                        "Этот объект должен быть на стене — кликните ближе к стене"
-                    )
-                    return
-                # Выравниваем объект по оси стены и проецируем на отрезок
-                wall: Optional[Dict[str, Any]] = next(
-                    (
-                        w
-                        for w in self.dm.locations[self.current_file]["walls"]
-                        if w["id"] == wall_id
-                    ),
-                    None,
-                )
-                if wall:
-                    # Снаппинг: проекция точки клика на отрезок стены
-                    gx, gy = self._project_point_to_segment(
-                        gx, gy, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-                    )
-                    dx = abs(wall["x2"] - wall["x1"])
-                    dy = abs(wall["y2"] - wall["y1"])
-                    if dy > dx:  # стена более вертикальная — меняем w/h местами
-                        obj_w, obj_h = obj_h, obj_w
-            idx = self.undo.push(
-                AddObjectCommand(
-                    dm=self.dm,
-                    filename=self.current_file,
-                    obj_type=self.selected_object_type,
-                    x=gx,
-                    y=gy,
-                    width=obj_w,
-                    height=obj_h,
-                    wall_id=wall_id,
-                )
-            )
-            self.selected_object = ("object", str(idx))
-            self._show_toast(f"Объект создан: {self.selected_object_type}")
-
-        elif self.tool == TOOL_PASSAGE:
-            # Создаём проход — ищем стену рядом с кликом
-            wall_id = self._find_wall_near(gx, gy, threshold=1.0)
-            if wall_id:
-                pass_id = self.undo.push(
-                    AddPassageCommand(
-                        self.dm,
-                        self.current_file,
-                        wall_id,
-                        "door",
-                        {"x": gx, "y": gy},
-                        self.current_z,
-                    )
-                )
-                self.selected_object = ("passage", pass_id)
-                self._show_toast(f"Проход создан в стене {wall_id}")
-            else:
-                self._show_toast("Нет стены рядом — кликните ближе к стене")
-
-        elif self.tool == TOOL_LABEL:
-            # Для уличных локаций разрешаем надписи вне комнат
-            loc_data = self.dm.locations.get(self.current_file, {})
-            is_outdoor = loc_data.get("is_outdoor", False)
-            if not is_outdoor and not self._is_point_in_any_room(wx, wy):
-                self._show_toast("Надписи можно размещать только внутри комнат")
-                return
-            # Создаём надпись — сначала спрашиваем текст
-            self._pending_label_pos = (gx, gy)
-            fields = [{"key": "text", "label": "Текст надписи", "value": "Надпись"}]
-
-            def on_confirm(inputs: Dict[str, str]) -> None:
-                text = inputs.get("text", "").strip()
-                if text and self._pending_label_pos:
-                    lid = self.undo.push(
-                        AddLabelCommand(
-                            self.dm,
-                            self.current_file,
-                            self._pending_label_pos[0],
-                            self._pending_label_pos[1],
-                            text,
-                        )
-                    )
-                    self.selected_object = ("label", lid)
-                    self._show_toast("Надпись создана")
-
-            self.dialog = ModalDialog(self.screen, "Новая надпись", fields, on_confirm)
-
-        elif self.tool == TOOL_NPC:
-            # Для уличных локаций разрешаем NPC вне комнат
-            loc_data = self.dm.locations.get(self.current_file, {})
-            is_outdoor = loc_data.get("is_outdoor", False)
-            if not is_outdoor and not self._is_point_in_any_room(wx, wy):
-                self._show_toast("NPC можно размещать только внутри комнат")
-                return
-            if not self.selected_npc_id:
-                self._show_toast("Нет доступных NPC в config/npc/individuals")
-                return
-            room_id = self.dm.find_room_at(self.current_file, wx, wy)
-            npc_ref = self.undo.push(  # noqa: F841
-                AddNpcCommand(
-                    self.dm, self.current_file, self.selected_npc_id, gx, gy, room_id
-                )
-            )
-            self.selected_object = ("npc", self.selected_npc_id)
-            npc_name = next(
-                (n["name"] for n in self._npc_list if n["id"] == self.selected_npc_id),
-                self.selected_npc_id,
-            )
-            self._show_toast(f"NPC размещён: {npc_name}")
-
-        elif self.tool == TOOL_NODE:
-            # S143: Создание узлов и связей между ними
-            loc = self.dm.locations[self.current_file]
-            clicked_node_id = None
-            # Ищем узел под кликом (радиус 0.5м)
-            for nid, ndata in loc.get("nodes", {}).items():
-                if math.hypot(ndata["x"] - gx, ndata["y"] - gy) <= 0.5:
-                    clicked_node_id = nid
-                    break
-
-            if clicked_node_id:
-                # Кликнули по существующему узлу
-                if self.node_link_start is None:
-                    # Первый клик — выделяем узел-источник
-                    self.node_link_start = clicked_node_id
-                    self._show_toast(f"Узел {clicked_node_id} выделен. Кликните по другому узлу для связи.")
-                elif self.node_link_start == clicked_node_id:
-                    # Клик по тому же узлу — снимаем выделение
-                    self.node_link_start = None
-                    self._show_toast("Выделение узла снято")
-                else:
-                    # Клик по другому узлу — создаём связь
-                    self.undo.push(
-                        AddConnectionCommand(
-                            self.dm,
-                            self.current_file,
-                            self.node_link_start,
-                            clicked_node_id,
-                        )
-                    )
-                    self._show_toast(f"Создана связь: {self.node_link_start} -> {clicked_node_id}")
-                    self.node_link_start = None
-            else:
-                # Клик по пустому месту — создаём новый узел
-                node_id = f"node_{len(loc.get('nodes', {}))}"
-                self.undo.push(
-                    AddNodeCommand(
-                        self.dm,
-                        self.current_file,
-                        node_id,
-                        gx,
-                        gy,
-                        "Новый узел",
-                    )
-                )
-                self._show_toast(f"Создан узел {node_id}")
-
-        elif self.tool == TOOL_SPAWN:
-            # Устанавливаем точку спавна игрока
-            self.dm.set_player_spawn(self.current_file, gx, gy, self.current_z)
-            self.selected_object = ("spawn", "player_spawn")
-            self._show_toast(f"Точка спавна установлена: ({gx}, {gy})")
-
-        elif self.tool == TOOL_DELETE:
-            # Удаляем объект под курсором
-            self._delete_at(mx, my)
-
-    def _handle_left_release(
-        self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float
-    ):
-        """Обрабатывает отпускание ЛКМ"""
-        if not self.current_file:
-            return
-
-        if self.tool == TOOL_ROOM and self.room_drawing and self.room_start:
-            # Завершаем создание комнаты
-            x = min(self.room_start[0], gx)
-            y = min(self.room_start[1], gy)
-            w = abs(gx - self.room_start[0])
-            h = abs(gy - self.room_start[1])
-            if w > 1 and h > 1:
-                room_name = (
-                    f"Комната {len(self.dm.locations[self.current_file]['rooms'])}"
-                )
-                room_cmd = AddRoomCommand(
-                    self.dm, self.current_file, room_name, x, y, w, h
-                )
-                # 4 стены коробки
-                wall_cmds = [
-                    AddWallCommand(self.dm, self.current_file, x, y, x + w, y),
-                    AddWallCommand(self.dm, self.current_file, x + w, y, x + w, y + h),
-                    AddWallCommand(self.dm, self.current_file, x + w, y + h, x, y + h),
-                    AddWallCommand(self.dm, self.current_file, x, y + h, x, y),
-                ]
-                self.undo.push(
-                    CompoundCommand("Комната + стены", [room_cmd] + wall_cmds)
-                )
-                self._show_toast(f"Комната создана: {room_cmd.room_id}")
-            self.room_drawing = False
-            self.room_start = None
+    def _handle_left_release(self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float):
+        self.interaction_manager.handle_left_release(self, mx, my, wx, wy, gx, gy)
 
     def _try_auto_room(self, last_wall_id: str) -> None:
-        """Проверяет, замкнулся ли контур после создания стены.
-        Если да — создаёт комнату автоматически."""
-        if not self.current_file:
-            return
-        loc = self.dm.locations[self.current_file]  # noqa: F841
+        self.interaction_manager.try_auto_room(self, last_wall_id)
 
-        # Округляем координаты до сетки 0.5м для сравнения
-        def snap(pt: float) -> float:
-            return round(pt * 2) / 2
-
-        # Строим граф: точка (snapped) → список стен
-        graph: Dict[Tuple[float, float], List[Dict]] = {}
-        for wall in loc.get("walls", []):
-            p1 = (snap(wall["x1"]), snap(wall["y1"]))
-            p2 = (snap(wall["x2"]), snap(wall["y2"]))
-            graph.setdefault(p1, []).append(wall)
-            graph.setdefault(p2, []).append(wall)
-
-        # Начальная стена
-        start_wall = next((w for w in loc["walls"] if w["id"] == last_wall_id), None)
-        if not start_wall:
-            return
-
-        origin = (snap(start_wall["x1"]), snap(start_wall["y1"]))
-        current = (snap(start_wall["x2"]), snap(start_wall["y2"]))
-
-        # Ищем путь обратно к origin
-        visited_walls = {last_wall_id}
-        path_points = [origin, current]
-        max_depth = 50  # защита от бесконечного цикла
-
-        while current != origin and max_depth > 0:
-            max_depth -= 1
-            candidates = graph.get(current, [])
-            found = False
-            for wall in candidates:
-                if wall["id"] in visited_walls:
-                    continue
-                visited_walls.add(wall["id"])
-                p1 = (snap(wall["x1"]), snap(wall["y1"]))
-                p2 = (snap(wall["x2"]), snap(wall["y2"]))
-                # Идём к другому концу стены
-                next_pt = p2 if p1 == current else p1
-                if next_pt == current:
-                    continue  # стена длиной 0
-                current = next_pt
-                path_points.append(current)
-                found = True
-                break
-            if not found:
-                return  # тупик — не замкнутый
-
-        if current != origin or len(path_points) < 4:
-            return  # не замкнулся или слишком мало точек
-
-        # Вычисляем площадь по формуле шнурков
-        n = len(path_points)
-        area = 0.0
-        for i in range(n):
-            j = (i + 1) % n
-            area += path_points[i][0] * path_points[j][1]
-            area -= path_points[j][0] * path_points[i][1]
-        area = abs(area) / 2.0
-
-        if area < 1.0:
-            return  # слишком маленькая
-
-        # Проверяем что комната с такими координатами ещё не существует
-        all_room_keys = set()
-        for r in loc.get("rooms", []):
-            all_room_keys.add(
-                (
-                    round(r["x"], 1),
-                    round(r["y"], 1),
-                    round(r["width"], 1),
-                    round(r["height"], 1),
-                )
-            )
-
-        # Bounding box
-        xs = [p[0] for p in path_points]
-        ys = [p[1] for p in path_points]
-        bx = round(min(xs), 2)
-        by = round(min(ys), 2)
-        bw = round(max(xs) - bx, 2)
-        bh = round(max(ys) - by, 2)
-
-        room_key = (round(bx, 1), round(by, 1), round(bw, 1), round(bh, 1))
-        if room_key in all_room_keys:
-            return  # уже есть
-
-        room_name = f"Комната {len(loc['rooms'])}"
-        room_cmd = AddRoomCommand(
-            self.dm,
-            self.current_file,
-            room_name,
-            bx,
-            by,
-            bw,
-            bh,
-            polygon=path_points,
-            area_sqm=round(area, 1),
-        )
-
-        self.undo.push(room_cmd)
-        self._show_toast(f"Автокомната: {room_name} ({area:.1f} м²)")
-
-    def _find_wall_near(
-        self, wx: float, wy: float, threshold: float = 1.0
-    ) -> Optional[str]:
-        """Ищет стену, ближайшую к мировой точке (wx, wy). Возвращает wall_id или None."""
-        if not self.current_file:
-            return None
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        best_id: Optional[str] = None
-        best_dist = threshold
-        for wall in loc.get("walls", []):
-            # Расстояние от точки до отрезка
-            dist = self._point_to_segment_dist(
-                wx, wy, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-            )
-            if dist < best_dist:
-                best_dist = dist
-                best_id = wall["id"]
-        return best_id
+    def _find_wall_near(self, wx: float, wy: float, threshold: float = 1.0) -> Optional[str]:
+        return self.interaction_manager.find_wall_near(self, wx, wy, threshold)
 
     def _is_point_in_any_room(self, wx: float, wy: float) -> bool:
-        """Проверяет, попадает ли мировая точка внутрь хотя бы одной комнаты"""
-        if not self.current_file:
-            return False
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        for room in loc.get("rooms", []):
-            poly = room.get("polygon")
-            if poly and len(poly) >= 3:
-                if DataManager._point_in_polygon(wx, wy, [(p[0], p[1]) for p in poly]):
-                    return True
-        return False
+        return self.interaction_manager.is_point_in_any_room(self, wx, wy)
 
     def _point_to_segment_dist(
         self, px: float, py: float, x1: float, y1: float, x2: float, y2: float
@@ -1882,29 +1498,8 @@ class EditorCore:
         """Проецирует точку на отрезок. Возвращает (proj_x, proj_y)."""
         return Geometry.project_point_to_segment(px, py, x1, y1, x2, y2)
 
-    def _check_wall_overlap(
-        self, x1: float, y1: float, x2: float, y2: float, tolerance: float = 0.01
-    ) -> bool:
-        """Проверяет, пересекается ли новый отрезок стены с существующими (кроме концов)."""
-        if not self.current_file:
-            return False
-        loc = self.dm.locations[self.current_file]
-        for wall in loc.get("walls", []):
-            # Если отрезки имеют общую точку (стык в углу) — это не overlap
-            # Проверяем пересечение с помощью скалярных произведений (Ориентация)
-            if self._segments_intersect(
-                x1, y1, x2, y2,
-                wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-            ):
-                # Допуск: если они просто касаются концами (расстояние между концами < tolerance)
-                d1 = math.hypot(x1 - wall["x1"], y1 - wall["y1"])
-                d2 = math.hypot(x1 - wall["x2"], y1 - wall["y2"])
-                d3 = math.hypot(x2 - wall["x1"], y2 - wall["y1"])
-                d4 = math.hypot(x2 - wall["x2"], y2 - wall["y2"])
-                if min(d1, d2, d3, d4) < tolerance:
-                    continue
-                return True
-        return False
+    def _check_wall_overlap(self, x1: float, y1: float, x2: float, y2: float, tolerance: float = 0.01) -> bool:
+        return self.interaction_manager.check_wall_overlap(self, x1, y1, x2, y2, tolerance)
 
     def _segments_intersect(
         self, x1: float, y1: float, x2: float, y2: float,
@@ -1914,253 +1509,10 @@ class EditorCore:
         return Geometry.segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4)
 
     def _try_select_existing(self, mx: int, my: int) -> bool:
-        """Пробует выбрать существующий объект под курсором. Возвращает True если нашёл."""
-        if not self.current_file:
-            return False
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        # S143: Узлы — проверяем первыми, чтобы можно было их таскать и выделять
-        for nid, ndata in loc.get("nodes", {}).items():
-            sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
-            if abs(sx - mx) < 12 and abs(sy - my) < 12:
-                self.selected_object = ("node", nid)
-                if self.tool is None:
-                    self._dragging_entity = {
-                        "type": "node",
-                        "id": nid,
-                        "start_mx": mx,
-                        "start_my": my,
-                        "orig": {"x": ndata["x"], "y": ndata["y"]},
-                    }
-                return True
-
-        # Объекты
-        if self.show_objects:
-            for obj in loc.get("objects", []):
-                pos = obj.get("position", {})
-                if not pos:
-                    continue
-                sx, sy = self.world_to_screen(
-                    pos.get("x", 0.0), pos.get("y", 0.0)
-                )
-                sz = obj.get("size", {})
-                w = float(sz.get("w", 1.0)) * SCALE * self.zoom
-                h = float(sz.get("h", 1.0)) * SCALE * self.zoom
-                hit_rect = pygame.Rect(sx - w / 2, sy - h / 2, w, h)
-                if hit_rect.collidepoint(mx, my):
-                    self.selected_object = ("object", obj.get("id", ""))
-                    return True
-
-        # NPC (проверяем перед стенами — приоритет)
-        for npc in loc.get("npcs", []):
-            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
-            hit_r = int(SCALE * self.zoom * 0.4)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(
-                mx, my
-            ):
-                self.selected_object = ("npc", npc["ref_id"])
-                return True
-
-        # Точка спавна
-        spawn = loc.get("player_spawn")
-        if spawn:
-            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
-            hit_r = int(SCALE * self.zoom * 0.5)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(
-                mx, my
-            ):
-                self.selected_object = ("spawn", "player_spawn")
-                return True
-
-        # Стены
-        if self.show_walls:
-            for wall in loc.get("walls", []):
-                sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
-                sx2, sy2 = self.world_to_screen(wall["x2"], wall["y2"])
-                if self._point_near_line(mx, my, sx1, sy1, sx2, sy2, 10):
-                    self.selected_object = ("wall", wall["id"])
-                    return True
-
-        # Комнаты — собираем все перекрытые, переключаемся циклом
-        if self.show_rooms:
-            wx, wy = self.screen_to_world(mx, my)
-            matched_rooms: List[str] = []
-            for room in loc.get("rooms", []):
-                poly = room.get("polygon")
-                if poly and len(poly) >= 3:
-                    if DataManager._point_in_polygon(
-                        wx, wy, [(p[0], p[1]) for p in poly]
-                    ):
-                        matched_rooms.append(room["id"])
-                else:
-                    rx, ry = self.world_to_screen(room["x"], room["y"])
-                    rw = room["width"] * SCALE * self.zoom
-                    rh = room["height"] * SCALE * self.zoom
-                    if pygame.Rect(rx, ry, rw, rh).collidepoint(mx, my):
-                        matched_rooms.append(room["id"])
-
-            if matched_rooms:
-                # Проверяем что клик в той же области (±8 пикселей)
-                dx = abs(mx - self._last_click_pos[0])
-                dy = abs(my - self._last_click_pos[1])
-                if matched_rooms == self._overlap_room_ids and dx < 8 and dy < 8:
-                    # Переключаемся на следующую
-                    self._overlap_index = (self._overlap_index + 1) % len(matched_rooms)
-                else:
-                    # Новая область — начинаем с первой
-                    self._overlap_room_ids = matched_rooms
-                    self._overlap_index = 0
-
-                self.selected_object = ("room", matched_rooms[self._overlap_index])
-                return True
-
-        return False
+        return self.interaction_manager.try_select_existing(self, mx, my)
 
     def _delete_at(self, mx: int, my: int):
-        """Удаляет объект под курсором"""
-        if not self.current_file:
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        # Узлы
-        for nid in list(loc.get("nodes", {}).keys()):
-            ndata = loc["nodes"][nid]
-            sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
-            if abs(sx - mx) < 15 and abs(sy - my) < 15:
-                self.undo.push(
-                    RemoveNodeCommand(self.dm, self.current_file, nid, deepcopy(ndata))
-                )
-                self._show_toast(f"Узел удалён: {nid}")
-                self.selected_object = None
-                return
-
-        # Связи (рёбра графа)
-        for nid, ndata in loc.get("nodes", {}).items():
-            sx1, sy1 = self.world_to_screen(ndata["x"], ndata["y"])
-            for conn in ndata.get("connections", []):
-                if conn in loc.get("nodes", {}):
-                    target_data = loc["nodes"][conn]
-                    sx2, sy2 = self.world_to_screen(target_data["x"], target_data["y"])
-                    if self._point_near_line(mx, my, sx1, sy1, sx2, sy2, 5):
-                        self.dm.remove_connection(self.current_file, nid, conn)
-                        self._show_toast(f"Связь удалена: {nid} -> {conn}")
-                        self.selected_object = None
-                        return
-
-        # Объекты
-        for i in range(len(loc.get("objects", [])) - 1, -1, -1):
-            obj = loc["objects"][i]
-            pos = obj.get("position", {})
-            if not pos:
-                continue
-            sx, sy = self.world_to_screen(pos.get("x", 0.0), pos.get("y", 0.0))
-            if abs(sx - mx) < 20 and abs(sy - my) < 20:
-                self.undo.push(
-                    RemoveObjectCommand(
-                        self.dm, self.current_file, obj.get("id", ""), deepcopy(obj)
-                    )
-                )
-                self._show_toast("Объект удалён")
-                self.selected_object = None
-                return
-
-        # NPC
-        for npc in loc.get("npcs", []):
-            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
-            hit_r = int(SCALE * self.zoom * 0.4)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(
-                mx, my
-            ):
-                self.undo.push(
-                    RemoveNpcCommand(self.dm, self.current_file, deepcopy(npc))
-                )
-                npc_name = next(
-                    (n["name"] for n in self._npc_list if n["id"] == npc["ref_id"]),
-                    npc["ref_id"],
-                )
-                self._show_toast(f"NPC удалён: {npc_name}")
-                self.selected_object = None
-                return
-
-        # Надписи
-        for lbl in loc.get("labels", []):
-            sx, sy = self.world_to_screen(lbl["x"], lbl["y"])
-            text_surf = self.font_small.render(
-                lbl.get("text", ""), True, COLORS["text"]
-            )
-            tw, th = text_surf.get_size()
-            if pygame.Rect(sx, sy, tw, th).collidepoint(mx, my):
-                self.undo.push(
-                    RemoveLabelCommand(self.dm, self.current_file, deepcopy(lbl))
-                )
-                self._show_toast("Надпись удалена")
-                self.selected_object = None
-                return
-
-        # Точка спавна игрока
-        spawn = loc.get("player_spawn")
-        if spawn:
-            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
-            if abs(sx - mx) < 15 and abs(sy - my) < 15:
-                del loc["player_spawn"]
-                self._show_toast("Точка спавна удалена")
-                self.selected_object = None
-                return
-
-        # Стены
-        for wall in loc.get("walls", []):
-            sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
-            sx2, sy2 = self.world_to_screen(wall["x2"], wall["y2"])
-            if self._point_near_line(mx, my, sx1, sy1, sx2, sy2, 10):
-                self.dm.remove_wall(self.current_file, wall["id"])
-                self._show_toast("Стена удалена")
-                self.selected_object = None
-                return
-
-        # Комнаты
-        for room in loc.get("rooms", []):
-            rx, ry = self.world_to_screen(room["x"], room["y"])
-            rw = room["width"] * SCALE * self.zoom
-            rh = room["height"] * SCALE * self.zoom
-            if pygame.Rect(rx, ry, rw, rh).collidepoint(mx, my):
-                # собираем стены по границам комнаты
-                x, y, w, h = room["x"], room["y"], room["width"], room["height"]
-                edges = [
-                    (x, y, x + w, y),
-                    (x + w, y, x + w, y + h),
-                    (x + w, y + h, x, y + h),
-                    (x, y + h, x, y),
-                ]
-                wall_cmds = []
-                for wall in list(loc["walls"]):
-                    for ex1, ey1, ex2, ey2 in edges:
-                        direct = (
-                            abs(wall["x1"] - ex1) < 0.01
-                            and abs(wall["y1"] - ey1) < 0.01
-                            and abs(wall["x2"] - ex2) < 0.01
-                            and abs(wall["y2"] - ey2) < 0.01
-                        )
-                        reverse = (
-                            abs(wall["x1"] - ex2) < 0.01
-                            and abs(wall["y1"] - ey2) < 0.01
-                            and abs(wall["x2"] - ex1) < 0.01
-                            and abs(wall["y2"] - ey1) < 0.01
-                        )
-                        if direct or reverse:
-                            wall_cmds.append(
-                                RemoveWallCommand(
-                                    self.dm, self.current_file, deepcopy(wall)
-                                )
-                            )
-                            break
-                room_cmd = RemoveRoomCommand(self.dm, self.current_file, deepcopy(room))
-                self.undo.push(
-                    CompoundCommand("Удалить комнату", [room_cmd] + wall_cmds)
-                )
-                self._show_toast(f"Комната удалена: {room['name']}")
-                self.selected_object = None
-                return
+        self.interaction_manager.delete_at(self, mx, my)
 
     def _point_near_line(
         self, px: int, py: int, x1: int, y1: int, x2: int, y2: int, threshold: int
@@ -2392,294 +1744,22 @@ class EditorCore:
             self.camera_y -= self.camera_speed
 
         # Обновляем панель свойств
-        self._update_property_panel()
+        if self.mode == MODE_LAB:
+            self.lab_screen.update()
+        else:
+            self._update_property_panel()
 
     def _update_property_panel(self):
-        """Обновляет содержимое панели свойств"""
-        if not self.current_file:
-            self.property_panel.set_content("СВОЙСТВА", [])
-            return
-
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-
-        # Если ничего не выделено — показываем свойства локации
-        if not self.selected_object:
-            items = [
-                {
-                    "type": "label",
-                    "text": f"Локация: {loc.get('label', self.current_file)}",
-                    "important": True,
-                },
-                {"type": "value", "label": "Файл", "value": self.current_file},
-                {
-                    "type": "value",
-                    "label": "Размер",
-                    "value": f"{loc['size']['w']}x{loc['size']['h']}м",
-                },
-                {
-                    "type": "value",
-                    "label": "location_id",
-                    "value": loc.get("location_id", "—"),
-                },
-                {
-                    "type": "toggle",
-                    "label": "✏️ Задать location_id",
-                    "action": "set_location_id",
-                },
-                {"type": "section", "text": "Содержимое:"},
-                {
-                    "type": "value",
-                    "label": "Комнаты",
-                    "value": str(len(loc.get("rooms", []))),
-                },
-                {
-                    "type": "value",
-                    "label": "Стены",
-                    "value": str(len(loc.get("walls", []))),
-                },
-                {
-                    "type": "value",
-                    "label": "Объекты",
-                    "value": str(len(loc.get("objects", []))),
-                },
-                {
-                    "type": "value",
-                    "label": "NPC",
-                    "value": str(len(loc.get("npcs", []))),
-                },
-                {
-                    "type": "value",
-                    "label": "Узлы",
-                    "value": str(len(loc.get("nodes", {}))),
-                },
-            ]
-            self.property_panel.set_content("СВОЙСТВА", items)
-            return
-
-        obj_type, obj_key = self.selected_object
-        items = []
-
-        obj_type, obj_key = self.selected_object
-        loc = self.dm.locations[self.current_file]  # noqa: F841
-        items = []
-
-        if obj_type == "object":
-            obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
-            if not obj:
-                self.property_panel.set_content("СВОЙСТВА", [])
-                return
-            items = [
-                {"type": "label", "text": f"Объект: {obj['type']}", "important": True},
-                {"type": "value", "label": "Имя", "value": obj.get("name", "")},
-                {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
-                {
-                    "type": "toggle",
-                    "label": "Показать имя",
-                    "value": obj.get("show_name", False),
-                    "action": "toggle_show_name",
-                },
-                {"type": "toggle", "label": "🖼️ Выбрать спрайт", "action": "pick_sprite"},
-                {"type": "value", "label": "X", "value": f"{obj['position']['x']:.1f}"},
-                {"type": "value", "label": "Y", "value": f"{obj['position']['y']:.1f}"},
-                {"type": "section", "text": "Проходимость:"},
-                {
-                    "type": "toggle",
-                    "label": "Идти",
-                    "value": obj["passability"]["walk"],
-                    "action": "toggle_walk",
-                },
-                {
-                    "type": "toggle",
-                    "label": "Прыгать",
-                    "value": obj["passability"]["jump_over"],
-                    "action": "toggle_jump_over",
-                },
-                {
-                    "type": "toggle",
-                    "label": "Ползти",
-                    "value": obj["passability"]["crawl_under"],
-                    "action": "toggle_crawl_under",
-                },
-                {
-                    "type": "toggle",
-                    "label": "Лезть",
-                    "value": obj["passability"]["climb_on"],
-                    "action": "toggle_climb_on",
-                },
-            ]
-            # Свойства объекта (если есть)
-            props = obj.get("properties", {})
-            if props:
-                items.append({"type": "section", "text": "Свойства:"})
-                prop_labels = {
-                    "open": "Открыто",
-                    "locked": "Замок",
-                    "durability": "Прочность",
-                    "opacity": "Непрозрачность",
-                    "destructible": "Разрушаемое",
-                    "sound_attenuation": "Заглушение звука",
-                }
-                for key, value in props.items():
-                    label = prop_labels.get(key, key)
-                    if isinstance(value, bool):
-                        items.append(
-                            {
-                                "type": "value",
-                                "label": label,
-                                "value": "Да" if value else "Нет",
-                            }
-                        )
-                    elif isinstance(value, (int, float)):
-                        items.append(
-                            {"type": "value", "label": label, "value": f"{value}"}
-                        )
-                    else:
-                        items.append(
-                            {"type": "value", "label": label, "value": str(value)}
-                        )
-
-        elif obj_type == "portal":
-            p = next((p for p in loc["portals"] if p["id"] == obj_key), None)
-            if p:
-                items = [
-                    {
-                        "type": "label",
-                        "text": f"Портал: {p['label']}",
-                        "important": True,
-                    },
-                    {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
-                    {"type": "value", "label": "Тип", "value": p["type"]},
-                    {
-                        "type": "value",
-                        "label": "Цель",
-                        "value": p.get("target") or "(не связан)",
-                    },
-                ]
-
-        elif obj_type == "wall":
-            wall = next((w for w in loc["walls"] if w["id"] == obj_key), None)
-            if wall:
-                items = [
-                    {"type": "label", "text": "Стена", "important": True},
-                    {"type": "value", "label": "X1", "value": f"{wall['x1']:.1f}"},
-                    {"type": "value", "label": "Y1", "value": f"{wall['y1']:.1f}"},
-                    {"type": "value", "label": "X2", "value": f"{wall['x2']:.1f}"},
-                    {"type": "value", "label": "Y2", "value": f"{wall['y2']:.1f}"},
-                ]
-
-        elif obj_type == "room":
-            room = next((r for r in loc["rooms"] if r["id"] == obj_key), None)
-            if room:
-                items = [
-                    {
-                        "type": "label",
-                        "text": f"Комната: {room['name']}",
-                        "important": True,
-                    },
-                    {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
-                    {
-                        "type": "toggle",
-                        "label": "🔨 Стены по периметру",
-                        "value": len(self._find_room_perimeter_walls(room)) > 0,
-                        "action": "create_perimeter_walls",
-                    },
-                    {"type": "value", "label": "X", "value": f"{room['x']:.1f}"},
-                    {"type": "value", "label": "Y", "value": f"{room['y']:.1f}"},
-                    {
-                        "type": "value",
-                        "label": "Ширина",
-                        "value": f"{room['width']:.1f}",
-                    },
-                    {
-                        "type": "value",
-                        "label": "Высота",
-                        "value": f"{room['height']:.1f}",
-                    },
-                    {
-                        "type": "value",
-                        "label": "Площадь",
-                        "value": f"{room.get('area_sqm', room['width'] * room['height']):.1f} м²",
-                    },
-                ]
-
-        elif obj_type == "label":
-            lbl = next((l for l in loc["labels"] if l["id"] == obj_key), None)  # noqa: E741
-            if lbl:
-                items = [
-                    {"type": "label", "text": "Надпись", "important": True},
-                    {
-                        "type": "toggle",
-                        "label": "✏️ Изменить текст",
-                        "action": "rename_label",
-                    },
-                    {"type": "value", "label": "X", "value": f"{lbl['x']:.1f}"},
-                    {"type": "value", "label": "Y", "value": f"{lbl['y']:.1f}"},
-                ]
-
-        elif obj_type == "npc":
-            npc = next(
-                (n for n in loc.get("npcs", []) if n.get("ref_id") == obj_key), None
-            )
-            if npc:
-                npc_name = next(
-                    (nn["name"] for nn in self._npc_list if nn["id"] == npc["ref_id"]),
-                    npc["ref_id"],
-                )
-                items = [
-                    {"type": "label", "text": f"NPC: {npc_name}", "important": True},
-                    {"type": "value", "label": "ID", "value": npc["ref_id"]},
-                    {
-                        "type": "value",
-                        "label": "X",
-                        "value": f"{npc['position']['x']:.1f}",
-                    },
-                    {
-                        "type": "value",
-                        "label": "Y",
-                        "value": f"{npc['position']['y']:.1f}",
-                    },
-                    {
-                        "type": "value",
-                        "label": "Комната",
-                        "value": npc.get("room_id", "—"),
-                    },
-                    {"type": "button", "label": "Выбрать спрайт", "action": "pick_sprite"},
-                    {"type": "button", "label": "Редактировать портреты", "action": "edit_portraits"},
-                    {"type": "button", "label": "Калибровать психику", "action": "edit_psyche"},
-                ]
-
-                # S176: Превью портрета Neutral (из visual_casting)
-                from data_manager import load_npc_visual_casting
-                v_casting = load_npc_visual_casting(npc["ref_id"])
-                fb_asset = v_casting.get("fallback", {}).get("asset", [])
-                if isinstance(fb_asset, list) and len(fb_asset) == 3 and fb_asset[0]:
-                    try:
-                        _surf = sprite_registry.get(fb_asset[0], fb_asset[1], fb_asset[2])
-                        if _surf:
-                            items.append({"type": "image", "surface": _surf, "w": 128, "h": 128})
-                    except Exception:
-                        pass
-
-        elif obj_type == "spawn":
-            spawn = loc.get("player_spawn")
-            if spawn:
-                items = [
-                    {
-                        "type": "label",
-                        "text": "🏁 Точка спавна игрока",
-                        "important": True,
-                    },
-                    {"type": "value", "label": "X", "value": f"{spawn['x']:.1f}"},
-                    {"type": "value", "label": "Y", "value": f"{spawn['y']:.1f}"},
-                    {"type": "value", "label": "Z", "value": f"{spawn.get('z', 0)}"},
-                ]
-
-        self.property_panel.set_content("СВОЙСТВА", items)
+        self.property_builder.update(self)
 
     # === ОТРИСОВКА ===
     def _draw(self):
         """Отрисовывает всё"""
         self.screen.fill(COLORS["bg_dark"])
+
+        if self.mode == MODE_LAB:
+            self.lab_screen.draw()
+            return  # Выходим, чтобы не рисовать тулбар и меню редактора
 
         if self.mode == MODE_WORLD:
             self._draw_world()
@@ -2713,24 +1793,20 @@ class EditorCore:
         """Возвращает экранный прямоугольник локации"""
         if fname not in self.dm.locations:
             return None
-
         data = self.dm.locations[fname]
         sx, sy = self.world_to_screen(data["origin"]["x"], data["origin"]["y"])
         sw = data["size"]["w"] * SCALE * self.zoom
         sh = data["size"]["h"] * SCALE * self.zoom
-
         return pygame.Rect(sx, sy, sw, sh)
 
     def _find_room_perimeter_walls(self, room: dict) -> list:
         """Находит стены, совпадающие с рёбрами комнаты (прямоугольной или полигональной)"""
         if not self.current_file:
             return []
-        loc = self.dm.locations[self.current_file]  # noqa: F841
+        loc = self.dm.locations[self.current_file]
         walls = loc.get("walls", [])
         if not walls:
             return []
-
-        # Собираем рёбра комнаты
         edges = []
         poly = room.get("polygon")
         if poly and len(poly) >= 3:
@@ -2752,8 +1828,6 @@ class EditorCore:
                 (rx, ry + rh, rx + rw, ry + rh),
                 (rx, ry, rx, ry + rh),
             ]
-
-        # Ищем стены, совпадающие с рёбрами (прямо или наоборот)
         matched = []
         for wall in walls:
             for ex1, ey1, ex2, ey2 in edges:

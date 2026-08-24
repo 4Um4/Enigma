@@ -16,3 +16,4 @@ TOOL_NODE = "node"  # Создание и связывание навигаци�
 
 MODE_WORLD = "world"
 MODE_LOCAL = "local"
+MODE_LAB = "lab"  # Полноэкранный режим Лаборатории калибровки психики

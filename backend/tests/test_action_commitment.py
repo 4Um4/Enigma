@@ -490,3 +490,24 @@ class TestInterruptTraversal:
         TraversalExecutionSystem.advance(ss, 6)
         # запись всё ещё CANCELLED (GC не запускался — advance не удаляет)
         assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
+
+    def test_g6_cross_scene_continuity(self):
+        """G6 (Мастер): старая сцена — terminal до GC; новая — новая собственность.
+        Инвариант: не существует old MOVING при новом MOVING (эмуляция границы
+        сцен в одном dict — контракт идентичен, т.к. сцены разделяют только
+        пространство ключей, не механику)."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        scene_a = self._world()  # MOVING + EXECUTING
+        # Transfer: прерываем владение в A
+        assert interrupt_traversal(scene_a, "n1", "CROSS_LOCATION_TRANSFER", 5) is True
+        # A: terminal до GC
+        assert scene_a["active_traversals"]["n1"]["status"] == "CANCELLED"
+        assert scene_a["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+        # «Материализация в B»: новый traversal+commitment (другие id)
+        scene_b = self._world()
+        scene_b["active_commitments"]["n1"]["cause"] = "transfer_rebuild"
+        assert scene_b["active_traversals"]["n1"]["status"] == "MOVING"
+        # old ≠ new (id и история независимы; parent-цепочка восстановления —
+        # через parent_commitment_id в реальном контуре)
+        assert scene_a["active_traversals"]["n1"]["status"] == "CANCELLED"  # A не ожил

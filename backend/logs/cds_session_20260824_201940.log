@@ -1,0 +1,36 @@
+2026-08-24 20:19:40,913 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260824_201940.log
+2026-08-24 20:19:40,913 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 20:19:40,913 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 20:19:40,914 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 20:19:40,956 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-08-24 20:19:40,963 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-24 20:19:40,981 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-24 20:19:41,002 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-08-24 20:19:41,020 app.services.game_loop INFO: [GAME_LOOP] Replay Recorder started. Session ID: bfabab82-b70a-475a-9409-bde86f396c3c
+2026-08-24 20:19:41,020 app.services.llm.router INFO: [LLM_CACHE] Replay context bound. Session: bfabab82-b70a-475a-9409-bde86f396c3c
+2026-08-24 20:19:41,022 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-08-24 20:19:41,022 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-08-24 20:19:41,024 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-08-24 20:19:41,026 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-08-24 20:19:41,030 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 20:19:41,033 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=0 nodes
+2026-08-24 20:19:41,033 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-24 20:19:41,033 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 29 edges, 42 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-24 20:19:41,036 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 20:19:41,037 app.services.game_loop INFO: [GAME_LOOP] EpistemicResolver injected into ActionConsequenceCompiler (ACCUSE gate)
+2026-08-24 20:19:41,037 app.services.game_loop INFO: [GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered
+2026-08-24 20:19:41,040 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-08-24 20:19:41,043 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-24 20:19:41,044 app.core.schema_validator ERROR: [SCHEMA] EventBus validation failed: 'EventBus' object has no attribute '_subscribers'
+2026-08-24 20:19:41,044 app.core.schema_validator WARNING: [SCHEMA] Validation finished with 1 errors (non-blocking).
+2026-08-24 20:19:46,181 app.main ERROR: [STARTUP] llama-server exited immediately (code=1): system_info: n_threads = 8 (n_threads_batch = 8) / 12 | CUDA : ARCHS = 750,800,860,890,1200,1210 | USE_GRAPHS = 1 | PEER_MAX_BATCH_SIZE = 128 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | AVX512 = 1 | AVX512_VBMI = 1 | AVX512_VNNI = 1 | AVX512_BF16 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+
+Running without SSL
+init: using 11 threads for HTTP server
+start: binding port with default address family
+main: loading model
+srv    load_model: loading model 'C:
+2026-08-24 20:19:50,514 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 20:19:50,515 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 20:19:50,519 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 20:19:50,520 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern

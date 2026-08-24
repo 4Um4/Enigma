@@ -577,7 +577,7 @@ class MapRenderer:
         text = core.font_small.render(info, True, COLORS["text_dim"])
         core.screen.blit(text, (10, status_y + 5))
 
-        hints = "[TAB] Мир/Лок | [PgUp/PgDn] Этаж | [Ctrl+S] Save | [Ctrl+Z/Q] Undo/Redo | [Ctrl+C/V] Copy/Paste | [+/-] Зум"
+        hints = "[TAB] Мир/Лок | [F5] Лаборатория | [PgUp/PgDn] Этаж | [Ctrl+S] Save | [Ctrl+Z/Q] Undo/Redo | [Ctrl+C/V] Copy/Paste | [+/-] Зум"
         hint_text = core.font_small.render(hints, True, COLORS["text_dim"])
         core.screen.blit(hint_text, (core.screen.get_width() - hint_text.get_width() - 10, status_y + 5))
 

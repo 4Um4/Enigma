@@ -1,38 +1,51 @@
 {
-  "qwen_7b": {
-    "display_name": "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M",
-    "url": "https://huggingface.co/huihui-ai/Qwen2.5-7B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf",
-    "target_path": "Models LLM\\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf",
+  "qwen_7b_q4": {
+    "display_name": "Qwen2.5-7B abliterated Q4_K_M",
+    "url": "https://huggingface.co/QuantFactory/Qwen2.5-7B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf",
+    "target_path": "Models LLM\\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf",
     "required": true
   },
-  "gemma_12b": {
-    "display_name": "gemma-3-12b-it-q4_k_m",
-    "url": "https://huggingface.co/bartowski/gemma-3-12b-it-GGUF/resolve/main/gemma-3-12b-it-Q4_K_M.gguf",
-    "target_path": "Models LLM\\gemma-3-12b-it-q4_k_m.gguf",
+  "qwen_7b_q5": {
+    "display_name": "Qwen2.5-7B abliterated Q5_K_M",
+    "url": "https://huggingface.co/QuantFactory/Qwen2.5-7B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf",
+    "target_path": "Models LLM\\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf",
     "required": false
   },
-  "gemma_4b": {
-    "display_name": "gemma-3-4b-it.Q5_K_M",
-    "url": "https://huggingface.co/bartowski/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q5_K_M.gguf",
-    "target_path": "Models LLM\\gemma-3-4b-it.Q5_K_M.gguf",
+  "qwen_7b_q6": {
+    "display_name": "Qwen2.5-7B abliterated Q6_K",
+    "url": "https://huggingface.co/QuantFactory/Qwen2.5-7B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf",
+    "target_path": "Models LLM\\Qwen2.5-7B-Instruct-abliterated-v2.Q6_K.gguf",
     "required": false
   },
-  "mistral_pygmalion": {
-    "display_name": "mistral-pygmalion-7b.Q5_K_M",
-    "url": "https://huggingface.co/PygmalionAI/mistral-7b-pygmalion-GGUF/resolve/main/mistral-pygmalion-7b.Q5_K_M.gguf",
-    "target_path": "Models LLM\\mistral-pygmalion-7b.Q5_K_M.gguf",
+  "mistral_nemo_12b": {
+    "display_name": "Mistral-Nemo 12B RU Q3_K_M",
+    "url": "https://huggingface.co/QuantFactory/Mistral-Nemo-Instruct-2407-GGUF/resolve/main/Mistral-Nemo-Instruct-2407.Q3_K_M.gguf",
+    "target_path": "Models LLM\\Mistral-Nemo-Instruct-2407.Q3_K_M.gguf",
+    "required": false
+  },
+  "pavelgpt_7b": {
+    "display_name": "PavelGPT-7B 128K RU Q4_K_M",
+    "url": "https://huggingface.co/evilfreelancer/PavelGPT-7B-128K-v0.1-GGUF/resolve/main/ggml-model-Q4_K_M.gguf",
+    "target_path": "Models LLM\\PavelGPT-7B-128K-v0.1.Q4_K_M.gguf",
+    "required": false
+  },
+  "vikhr_1b": {
+    "display_name": "Vikhr-Llama 1B RU Q4_K_M",
+    "url": "https://huggingface.co/Vikhrmodels/Vikhr-Llama-3.2-1B-instruct-GGUF/resolve/main/Vikhr-Llama-3.2-1B-Q4_K_M.gguf",
+    "target_path": "Models LLM\\Vikhr-Llama-3.2-1B-Q4_K_M.gguf",
     "required": false
   },
   "yandexgpt_8b": {
-    "display_name": "YandexGPT-5-Lite-8B-instruct-Q4_K_M",
+    "display_name": "YandexGPT-5-Lite 8B RU Q4_K_M",
     "url": "https://huggingface.co/IlyaGusev/yandexgpt_5_lite_gguf/resolve/main/YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf",
     "target_path": "Models LLM\\YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf",
-    "required": false
+    "required": false,
+    "gated": true
   },
-  "huihui_qwen": {
-    "display_name": "Huihui-Qwen3.5-4B-abliterated.Q4_K_M",
-    "url": "https://huggingface.co/huihui-ai/Qwen2.5-3B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-3B-Instruct-abliterated-v2.Q4_K_M.gguf",
-    "target_path": "Models LLM\\Huihui-Qwen3.5-4B-abliterated.Q4_K_M.gguf",
+  "t_lite_7b": {
+    "display_name": "T-lite 7B RU abliterated Q4_K_M",
+    "url": "https://huggingface.co/mradermacher/T-lite-instruct-0.1-abliterated-GGUF/resolve/main/T-lite-instruct-0.1-abliterated.Q4_K_M.gguf",
+    "target_path": "Models LLM\\T-lite-instruct-0.1-abliterated.Q4_K_M.gguf",
     "required": false
   }
 }

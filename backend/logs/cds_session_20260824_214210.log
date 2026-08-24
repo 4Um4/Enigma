@@ -1,0 +1,37 @@
+2026-08-24 21:42:10,442 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260824_214210.log
+2026-08-24 21:42:10,442 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 21:42:10,443 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 21:42:10,443 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 21:42:10,489 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-08-24 21:42:10,500 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-24 21:42:10,521 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-24 21:42:10,539 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-08-24 21:42:10,549 app.services.game_loop INFO: [GAME_LOOP] Replay Recorder started. Session ID: 2c0d476a-dae2-4bda-80d8-6264e8606245
+2026-08-24 21:42:10,549 app.services.llm.router INFO: [LLM_CACHE] Replay context bound. Session: 2c0d476a-dae2-4bda-80d8-6264e8606245
+2026-08-24 21:42:10,550 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-08-24 21:42:10,550 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-08-24 21:42:10,553 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-08-24 21:42:10,555 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-08-24 21:42:10,558 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:42:10,560 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=0 nodes
+2026-08-24 21:42:10,560 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-24 21:42:10,560 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 29 edges, 42 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-24 21:42:10,563 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:42:10,564 app.services.game_loop INFO: [GAME_LOOP] EpistemicResolver injected into ActionConsequenceCompiler (ACCUSE gate)
+2026-08-24 21:42:10,564 app.services.game_loop INFO: [GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered
+2026-08-24 21:42:10,567 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-08-24 21:42:10,571 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-24 21:42:10,571 app.core.schema_validator ERROR: [SCHEMA] EventBus validation failed: 'EventBus' object has no attribute '_subscribers'
+2026-08-24 21:42:10,571 app.core.schema_validator WARNING: [SCHEMA] Validation finished with 1 errors (non-blocking).
+2026-08-24 21:42:14,982 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 200 OK"
+2026-08-24 21:42:14,985 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:42:14,987 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:42:14,987 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-08-24 21:42:18,783 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:42:18,785 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:42:44,993 app.services.llm.downloader INFO: Начало скачивания модели 'huihui_qwen' из https://huggingface.co/huihui-ai/Qwen2.5-3B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-3B-Instruct-abliterated-v2.Q4_K_M.gguf...
+2026-08-24 21:42:45,595 app.services.llm.downloader ERROR: Ошибка скачивания модели 'huihui_qwen': Модель закрыта лицензией (401). Зайдите на huggingface.co, войдите в аккаунт и примите лицензию. Затем скачайте вручную в папку Models LLM или задайте переменную окружения HF_TOKEN.
+2026-08-24 21:43:01,115 app.services.llm.downloader INFO: Начало скачивания модели 'mistral_pygmalion' из https://huggingface.co/PygmalionAI/mistral-7b-pygmalion-GGUF/resolve/main/mistral-pygmalion-7b.Q5_K_M.gguf...
+2026-08-24 21:43:01,780 app.services.llm.downloader ERROR: Ошибка скачивания модели 'mistral_pygmalion': Модель закрыта лицензией (401). Зайдите на huggingface.co, войдите в аккаунт и примите лицензию. Затем скачайте вручную в папку Models LLM или задайте переменную окружения HF_TOKEN.
+2026-08-24 21:43:15,325 app.services.llm.downloader INFO: Начало скачивания модели 'qwen_7b_q5' из https://huggingface.co/QuantFactory/Qwen2.5-7B-Instruct-abliterated-v2-GGUF/resolve/main/Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf...
+2026-08-24 21:43:23,472 app.services.llm.downloader INFO: Скачивание модели 'qwen_7b_q5' отменено пользователем

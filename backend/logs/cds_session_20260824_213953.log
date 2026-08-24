@@ -1,0 +1,33 @@
+2026-08-24 21:39:53,641 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260824_213953.log
+2026-08-24 21:39:53,641 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 21:39:53,641 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 21:39:53,641 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-08-24 21:39:53,881 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-08-24 21:39:53,906 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-08-24 21:39:53,923 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-08-24 21:39:54,011 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-08-24 21:39:54,037 app.services.game_loop INFO: [GAME_LOOP] Replay Recorder started. Session ID: 07717258-8a3e-4d75-8186-ed5a8876851a
+2026-08-24 21:39:54,037 app.services.llm.router INFO: [LLM_CACHE] Replay context bound. Session: 07717258-8a3e-4d75-8186-ed5a8876851a
+2026-08-24 21:39:54,043 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-08-24 21:39:54,043 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-08-24 21:39:54,056 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-08-24 21:39:54,078 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-08-24 21:39:54,097 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:39:54,117 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=0 nodes
+2026-08-24 21:39:54,117 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-08-24 21:39:54,117 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 29 edges, 42 aliases, 2 boundaries (nav=True, rooms=True)
+2026-08-24 21:39:54,120 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:39:54,130 app.services.game_loop INFO: [GAME_LOOP] EpistemicResolver injected into ActionConsequenceCompiler (ACCUSE gate)
+2026-08-24 21:39:54,130 app.services.game_loop INFO: [GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered
+2026-08-24 21:39:54,162 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-08-24 21:39:54,172 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-08-24 21:39:54,172 app.core.schema_validator ERROR: [SCHEMA] EventBus validation failed: 'EventBus' object has no attribute '_subscribers'
+2026-08-24 21:39:54,172 app.core.schema_validator WARNING: [SCHEMA] Validation finished with 1 errors (non-blocking).
+2026-08-24 21:39:58,242 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-08-24 21:40:02,394 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 200 OK"
+2026-08-24 21:40:02,398 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:40:02,400 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:40:04,149 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:40:04,150 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-08-24 21:40:19,273 app.services.llm.downloader INFO: Начало скачивания модели 'gemma_4b' из https://huggingface.co/bartowski/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q5_K_M.gguf...
+2026-08-24 21:40:19,889 app.services.llm.downloader ERROR: ❌ Ошибка скачивания модели 'gemma_4b': HTTP Error 401: Unauthorized

@@ -63,6 +63,7 @@ class _MenuButton:
         self.color_hover = color_hover
         self.on_click = on_click
         self.hovered = False
+        self._last_click_time = 0
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEMOTION:

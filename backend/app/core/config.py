@@ -43,7 +43,7 @@ class ModelConfig(BaseSettings):
 
 class Settings(BaseSettings):
     app_name: str = "Enigma — Dark Fantasy RPG"
-    default_model: str = "qwen_7b"
+    default_model: str = "qwen_7b_q4"
     world_tick_minutes: int = 15
     data_dir: str = str((BASE_DIR / "backend" / "data").resolve())
     saves_dir: str = str(BASE_DIR / "saves")
@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     )
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
     )
 
     # Единый источник истины для API и LLM портов
@@ -149,7 +149,7 @@ class Settings(BaseSettings):
     # Единственная модель проекта
     # ─────────────────────────────────────────────────────────────────
     model_qwen_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
     )
 
     # Agent → Model mapping (все агенты → одна модель)
@@ -194,7 +194,7 @@ class Settings(BaseSettings):
             "qwen_7b": ModelConfig(
                 name="qwen_7b",
                 path=self.model_qwen_7b_path,
-                display_name="Qwen2.5-7B-Instruct-abliterated Q5_K_M",
+                display_name="Qwen2.5-7B-Instruct-abliterated Q4_K_M",
                 vram_mb=5000,
                 context_size=8192,
                 temperature=0.9,
