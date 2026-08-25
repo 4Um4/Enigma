@@ -379,6 +379,13 @@ class ExperimentRunner:
         self._preset_ctx.__enter__()
         
         self._active_game_loop = build_game_loop(data_dir=self._orig_data_dir)
+        # M1: зеркалирует P-MVP-1 из new_game. Без init_campaign у
+        # action_compiler отсутствует _campaign_id — P2-мост в
+        # RelationshipStore (SSOT) мёртв: дельты trust исчезают молча
+        # в guard `if self._relationship_store and self._campaign_id`.
+        _mvp_ctrl = getattr(self._active_game_loop, "mvp_controller", None)
+        if _mvp_ctrl is not None:
+            _mvp_ctrl.init_campaign(config.campaign_id)
         self._active_tap = ObservabilityTap()
         self._active_metrics = build_metrics_bundle()
         self._active_tap.attach()
@@ -409,8 +416,17 @@ class ExperimentRunner:
         _test_intervention = None
         if self._ticks_executed == 10:
             from app.contracts.interventions import InterventionEvent
+            # M1: ядро не парсит текст (L4.1) — семантика передаётся
+            # структурированно, как это делает IntentCompressor на DM-пути.
+            # Контракт _process_player_action: semantic_action + target_reference
+            # (guard) + target_id (резолв цели). Фабрика прокидывает kwargs в payload.
             _test_intervention = InterventionEvent.from_player_action(
-                action_text="помочь", player_name="player", tick=10, target_id="maid_lusya"
+                action_text="помочь",
+                player_name="player",
+                tick=self._ticks_executed,
+                target_id="maid_lusya",
+                semantic_action="HELP",
+                target_reference="maid_lusya",
             )
             logger.info("[CALIB_TEST_INJECT] Внедрено событие: помощь Люсе на тике 10")
 

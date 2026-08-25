@@ -40,6 +40,7 @@ class LabScreen:
         self.speed_multiplier = 1
         self.current_tick = 0
         self.npc_states = []
+        self.relationships = {}
         self.runner = None
         self.experiment_id = "—"
 
@@ -121,6 +122,7 @@ class LabScreen:
             state = self.runner.step(ticks)
             self.current_tick = state.get("tick", 0)
             self.npc_states = state.get("npcs", [])
+            self.relationships = state.get("relationships", {})
         except Exception as e:
             print(f"Ошибка симуляции: {e}")
             self.is_running = False
@@ -198,10 +200,13 @@ class LabScreen:
         
         # Данные
         psyche = npc.get("psyche", {})
-        social = npc.get("social_stats", {})
+        # Trust живёт в RelationshipStore (SSOT): кэш в NPCState запрещён
+        # (L13) и не обновляется. Направление NPC -> player (компилятор:
+        # source=цель действия, target=actor).
         
         stress = float(psyche.get("stress", 0))
-        trust = float(social.get("trust", 0))
+        _rel_pair = self.relationships.get(f"{npc_id}→player", {})
+        trust = float(_rel_pair.get("trust", 0.0))
         willpower = float(psyche.get("willpower", 0))
         breakpoint = float(psyche.get("breakpoint", 0))
         

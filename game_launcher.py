@@ -22,6 +22,13 @@ from pathlib import Path
 # Центрируем окно игры на экране (должно быть до импорта pygame)
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
+# Локальные серверы (uvicorn, llama-server) никогда не ходят через прокси:
+# без этого urllib на машинах с системным прокси/WPAD платит до ~4с на КАЖДЫЙ
+# health-запрос (десятки запросов за старт) — наблюдено на PowerShell-замерах,
+# Python-клиент читает те же настройки реестра. Страховка дистрибутива.
+os.environ['NO_PROXY'] = 'localhost,127.0.0.1'
+os.environ['no_proxy'] = 'localhost,127.0.0.1'
+
 # Два пути нужны из-за голых импортов внутри map_editor (sprite_registry и т.д.)
 # TODO: временное решение — после миграции map_editor на относительные импорты убрать второй путь
 _ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -54,11 +61,13 @@ def _ensure_llm_running() -> subprocess.Popen:
     # Локальный импорт конфига
     from app.core.config import settings as _enigma_settings  # type: ignore
     _llm_port = getattr(_enigma_settings, "llama_cpp_port", 8181)
-    _llm_url = f"http://localhost:{_llm_port}/health"
+    _llm_url = f"http://127.0.0.1:{_llm_port}/health"
     
-    # Проверяем — уже запущен?
+    # Проверяем — уже запущен? timeout=0.5: после _kill_zombies() LLM почти
+    # всегда мёртв, 2с ожидания были гарантированной потерей на каждом старте.
+    # 0.5с достаточно для ответа живого localhost-сервера.
     try:
-        with urllib.request.urlopen(_llm_url, timeout=2) as resp:
+        with urllib.request.urlopen(_llm_url, timeout=0.5) as resp:
             if resp.status == 200:
                 print("  ✓ LLM сервер уже запущен")
                 return None
@@ -126,15 +135,54 @@ def _ensure_servers_running() -> tuple:
     _api_port = _enigma_settings.api_port
     _llm_port = getattr(_enigma_settings, "llama_cpp_port", 8181)
     global _BACKEND_URL
-    _BACKEND_URL = f"http://localhost:{_api_port}"
+    # 127.0.0.1, не localhost: config.py биндит api_host=127.0.0.1, а резолв
+    # localhost на части машин (IPv6 ::1 -> IPv4 фолбэк) добавляет секунды
+    # к КАЖДОМУ health-запросу — наблюдено замерами (refused за 4с вместо мс).
+    # Единый хост с биндом — заодно честнее.
+    _BACKEND_URL = f"http://127.0.0.1:{_api_port}"
+
+    # ЕДИНАЯ шкала прогресса на весь _ensure_servers_running (окно уже создано
+    # в main()). Раньше бар существовал только в цикле ожидания готовности и
+    # стоял на нуле ~4-5с, пока zombie-kill + LLM health + backend spawn
+    # выполнялись молча. Теперь: бар + статус одним вызовом, доли шкалы
+    # подобраны из фактических таймингов лога.
+    _status_screen = pygame.display.get_surface()
+    _status_font = pygame.font.SysFont("Arial", 24)
+
+    def _draw_progress(text: str, fraction: float) -> None:
+        """Рисует окно загрузки: заголовок, статус этапа, бар (0..1).
+        fraction может уточняться внутри этапа (LLM wait передаёт свой прогресс)."""
+        if not _status_screen:
+            return
+        _status_screen.fill((20, 20, 20))
+        _title = _status_font.render("Идёт загрузка мира...", True, (200, 200, 200))
+        _status_screen.blit(_title, (50, 50))
+        _status_screen.blit(_status_font.render(text, True, (150, 150, 150)), (50, 130))
+        # Бар в том же стиле, что и цикл ожидания ниже (единый вид экрана)
+        pygame.draw.rect(_status_screen, (50, 50, 50), (50, 100, 700, 20))
+        _fill = int(700 * max(0.0, min(1.0, fraction)))
+        if _fill > 0:
+            pygame.draw.rect(_status_screen, (0, 120, 200), (50, 100, _fill, 20))
+        pygame.display.flip()
+
+    # Этап 1/5: очистка зомби (netstat/taskkill ~1с) — была полностью невидима
+    _draw_progress("Очистка фоновых процессов...", 0.10)
+
+    # Этап 2/5: LLM health check (timeout=2) + Popen
+    _draw_progress("Подготовка AI-модели...", 0.30)
 
     # 1. Запускаем LLM в фоне (Popen не блокирует поток)
     llm_proc = _ensure_llm_running()
 
+    # Этап 3/5: спавн backend
+    _draw_progress("Запуск игрового сервера...", 0.50)
+
     # 2. Проверяем — уже запущен ли Backend?
     backend_proc = None
+    # timeout=0.5 — та же логика: после _kill_zombies() backend мёртв,
+    # ждать 2с нечего (живой localhost отвечает за миллисекунды)
     try:
-        with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
+        with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=0.5) as resp:
             if resp.status == 200:
                 print("  ✓ Backend уже запущен")
                 backend_proc = None
@@ -170,6 +218,7 @@ def _ensure_servers_running() -> tuple:
             env=_env,
         )
         print(f"  ○ Запуск backend ({_BACKEND_URL})...")
+        _dt("backend Popen issued")
 
     # 3. Инициализируем экран загрузки
     screen = pygame.display.get_surface()
@@ -191,19 +240,17 @@ def _ensure_servers_running() -> tuple:
                 pygame.quit()
                 sys.exit(0)
 
-        screen.fill((20, 20, 20))
-        loading_text = font.render("Идёт загрузка мира...", True, (200, 200, 200))
-        screen.blit(loading_text, (50, 50))
-
-        progress = _attempt / _BACKEND_STARTUP_TIMEOUT
-        pygame.draw.rect(screen, (50, 50, 50), (50, 100, 700, 20))
-        pygame.draw.rect(screen, (0, 120, 200), (50, 100, int(700 * progress), 20))
-
-        status_text = "Ожидание AI-модели..." if not _llm_ok else "Ожидание Backend..."
-        sec_text = font.render(status_text, True, (150, 150, 150))
-        screen.blit(sec_text, (50, 130))
-        pygame.display.flip()
-        clock.tick(30)
+        # Общая шкала: ожидание готовности — последние 50% (0.50 → 1.0),
+        # делённые между LLM и backend по факту их готовности
+        _stage_fraction = 0.50
+        if _llm_ok:
+            _stage_fraction += 0.25
+        if _backend_ok:
+            _stage_fraction += 0.25
+        # Внутри этапа — плавный подтProgress по попыткам (до 0.2 доли шкалы)
+        _attempt_frac = (_attempt / _BACKEND_STARTUP_TIMEOUT) * 0.20
+        _status_text = "Ожидание AI-модели..." if not _llm_ok else "Ожидание Backend..."
+        _draw_progress(_status_text, _stage_fraction + _attempt_frac * (0.5 if _llm_ok or _backend_ok else 1.0))
 
         if backend_proc is not None and backend_proc.poll() is not None:
             print(f"\n  ✗ Backend процесс упал с кодом {backend_proc.returncode}.")
@@ -213,12 +260,17 @@ def _ensure_servers_running() -> tuple:
             print(f"\n  ✗ LLM процесс упал с кодом {llm_proc.returncode}.")
             llm_proc = None
 
+        # Опрос выживших: timeout=0.3 — живой localhost отвечает <100мс;
+        # закрытый порт даёт ConnectionRefused мгновенно (не таймаут).
+        # Прежние timeout=2 на каждый чек удлиняли цикл: 2 невыполненных
+        # запроса = до 4с за проход при шаге кадра 1/30с.
         if not _backend_ok and backend_proc is not None:
             try:
-                with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as resp:
+                with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=0.3) as resp:
                     if resp.status == 200:
                         _backend_ok = True
                         print("\n  ✓ Backend готов к работе")
+                        _dt("backend health OK")
             except Exception:
                 pass
         elif backend_proc is None and not _backend_ok:
@@ -226,10 +278,11 @@ def _ensure_servers_running() -> tuple:
 
         if not _llm_ok and llm_proc is not None:
             try:
-                with urllib.request.urlopen(f"http://localhost:{_llm_port}/health", timeout=2) as resp:
+                with urllib.request.urlopen(f"http://127.0.0.1:{_llm_port}/health", timeout=0.3) as resp:
                     if resp.status == 200:
                         _llm_ok = True
                         print("\n  ✓ LLM готов к работе")
+                        _dt("llm health OK")
             except Exception:
                 pass
 
@@ -239,6 +292,7 @@ def _ensure_servers_running() -> tuple:
     if not (_backend_ok and _llm_ok):
         print(f"\n  ⚠ Не все сервисы готовы за {_BACKEND_STARTUP_TIMEOUT}с")
 
+    _dt(f"wait loop done (backend_ok={_backend_ok}, llm_ok={_llm_ok})")
     return backend_proc, llm_proc
 
 
@@ -293,16 +347,71 @@ def _kill_zombies():
         pass
 
 
+def _wait_backend_ready(max_attempts: int = 5, timeout: float = 2.0) -> bool:
+    """Быстрая проверка живости backend перед сбросом/инициализацией мира.
+    НЕ запускает процесс (это делает _ensure_servers_running один раз при старте) —
+    лишь подтверждает HTTP-готовность. Молчит при успехе с первой попытки:
+    визуально в логе не должно быть 'второго ожидания'."""
+    import urllib.request
+    import time as _t
+    for _attempt in range(max_attempts):
+        try:
+            with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=timeout) as _hr:
+                if _hr.status == 200:
+                    if _attempt > 0:
+                        print(f"\n  ✓ Backend готов (попытка {_attempt + 1})")
+                    return True
+        except Exception:
+            pass
+        print(".", end="", flush=True)
+        _t.sleep(1)
+    print()
+    return False
+
+
+_T0 = None
+
+def _dt(msg: str) -> None:
+    """Диагностическая метка elapsed от старта main(): раскладка секунд запуска.
+    Пишет в ОТДЕЛЬНЫЙ startup_timing.log: cds_backend.log непригоден —
+    CDS-инициализация ниже по main() перезаписывает его режимом "w" и
+    стирает все метки, записанные до неё (наблюдено: пустой Select-String)."""
+    import time as _t
+    global _T0
+    if _T0 is None:
+        _T0 = _t.monotonic()
+    try:
+        _log = Path(_BACKEND_DIR) / "logs" / "startup_timing.log"
+        _log.parent.mkdir(parents=True, exist_ok=True)
+        with open(_log, "a", encoding="utf-8") as _f:
+            _f.write(f"[TIMING] +{_t.monotonic() - _T0:6.2f}с  {msg}\n")
+    except Exception:
+        pass  # диагностика не должна ронять запуск
+
 def main() -> None:
     """Главная функция — запускает backend, инициализирует pygame, запускает цикл меню"""
-    print("\n=== Enigma Startup ===")
-    _kill_zombies()
-    
-    # Инициализируем pygame до запуска бэкенда, чтобы отрисовать экран загрузки
+    # Окно загрузки — ПЕРВОЕ действие main(): игрок видит отклик мгновенно,
+    # пока идёт тяжёлая подготовка (zombie-kill ~1с, LLM health timeout ~2с,
+    # backend spawn ~2с). Раньше окно создавалось внутри
+    # _ensure_servers_running ПОСЛЕ обоих Popen — 4-5 сек без окна = «завис».
+    # _ensure_servers_running подхватит эту поверхность через get_surface().
     print("=== Pygame Init ===")
     pygame.init()
+    _boot_screen = pygame.display.set_mode((800, 600))
+    pygame.display.set_caption("Загрузка Bloodloom...")
+    _boot_screen.fill((20, 20, 20))
+    _boot_font = pygame.font.SysFont("Arial", 24)
+    _boot_text = _boot_font.render("Идёт загрузка мира...", True, (200, 200, 200))
+    _boot_screen.blit(_boot_text, (50, 50))
+    pygame.display.flip()
+    
+    print("\n=== Enigma Startup ===")
+    _dt("main() start")
+    _kill_zombies()
+    _dt("zombie-kill done")
     
     backend_proc, llm_proc = _ensure_servers_running()
+    _dt("servers ready")
     
     # Проверка наличия модели LLM перед стартом меню
     import importlib
@@ -316,6 +425,7 @@ def main() -> None:
         # После закрытия настроек — продолжаем работу (бэкенд уже запущен)
     
     screen, clock, menu = _init_menu_display()
+    _dt("menu display created — START-TO-MENU TOTAL")
 
     # --- CDS: Causal Diagnostic System ---
     _observer = None
@@ -344,6 +454,7 @@ def main() -> None:
         _observer.start()
     except Exception as _cds_err:
         print(f"[CDS] Не удалось запустить наблюдатель (игра продолжится): {_cds_err}")
+    _dt("CDS observer init done")
 
     try:
         while True:
@@ -363,27 +474,11 @@ def main() -> None:
                     char_screen = CharacterSelectScreen(screen, clock, selected_folder)
                     selected_data = char_screen.run()
                     if selected_data is not None:
-                        # ADR-O-146: New Game = сброс runtime мира через шлюз
-                        # Ждём готовности backend (race condition: uvicorn мог ещё не подняться)
-                        import time as _time
-
-                        _backend_ok = False
-                        print("  ○ Ожидание готовности backend...", end="", flush=True)
-                        for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
-                            try:
-                                import urllib.request as _ur
-                                with _ur.urlopen(
-                                    f"{_BACKEND_URL}/api/health", timeout=2
-                                ) as _hr:
-                                    if _hr.status == 200:
-                                        _backend_ok = True
-                                        print(f"\n  [DIAG_LAUNCH] Health OK on attempt {_attempt}", flush=True)
-                                        break
-                            except Exception as _e:
-                                print(f"\n  [DIAG_LAUNCH] Wait exception: {_e}", flush=True)
-                            print(".", end="", flush=True)
-                            _time.sleep(1)
-                        print()
+                        # ADR-O-146: New Game = сброс runtime мира через шлюз.
+                        # Быстрая страховка живости (не запуск!): backend поднят
+                        # в _ensure_servers_running; здесь ловим только падение
+                        # за время, пока игрок был в меню. Тишина = успех.
+                        _backend_ok = _wait_backend_ready(5)
                         print(f"  [DIAG_LAUNCH] Backend OK: {_backend_ok}", flush=True)
                         
                         _reset_ok = False

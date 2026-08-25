@@ -73,6 +73,23 @@ def _get_remote_size(url: str, key: str) -> int:
         _req = urllib.request.Request(_api_url, headers=_headers)
         with urllib.request.urlopen(_req, timeout=10) as _resp:
             _files = _json.loads(_resp.read().decode("utf-8"))
+        # Сплит-файлы (Qwen2.5-14B): HF режет большие GGUF на части
+        # {base}-0000N-of-0000M.gguf. Размер модели = сумма всех частей.
+        if "-of-" in _fname:
+            _base_prefix = _fname[: -len(".gguf")].rsplit("-", 3)[0] + "-"
+            _total = 0
+            _found = 0
+            for _f in _files:
+                _p = _f.get("path", "")
+                if _p.startswith(_base_prefix) and "-of-" in _p and _p.endswith(".gguf"):
+                    _total += int(_f.get("size", 0) or 0)
+                    _found += 1
+            if _found > 0 and _total > 0:
+                _REMOTE_SIZE_CACHE[key] = _total
+                _REMOTE_SIZE_CACHE_TIME[key] = _now
+                return _total
+            print(f"[REMOTE_SIZE] split parts not in tree: key={key} fname={_fname}")
+            return 0
         for _f in _files:
             if _f.get("path") == _fname:
                 _size = int(_f.get("size", 0) or 0)
@@ -190,15 +207,32 @@ def get_model_status() -> Dict:
         is_downloading = progress is not None and progress >= 0
         is_error = progress is not None and progress < 0
         
-        _file_exists = target.exists()
-        _file_size = target.stat().st_size if _file_exists else 0
+        # Сплит-модели: file_size = сумма всех частей, существование = все части на диске
+        _split_parts = int(info.get("split_parts", 1) or 1)
+        if _split_parts > 1:
+            _tname = target.name
+            _part_paths = [
+                target.parent / _tname.replace(
+                    f"-00001-of-{_split_parts:05d}.gguf",
+                    f"-{_i:05d}-of-{_split_parts:05d}.gguf",
+                )
+                for _i in range(1, _split_parts + 1)
+            ]
+            _file_exists = all(_p.exists() for _p in _part_paths)
+            _file_size = sum(_p.stat().st_size for _p in _part_paths if _p.exists())
+        else:
+            _file_exists = target.exists()
+            _file_size = target.stat().st_size if _file_exists else 0
         _remote_size = _REMOTE_SIZE_CACHE.get(key, 0)  # Читаем из кэша, обновляемого в фоне
         
         # Файл считается валидным, только если мы знаем его размер на сервере и он совпадает
         # Для ручных моделей (без URL) — просто больше 1 МБ
         if url:
             # Если знаем remote_size, проверяем целостность. Если нет - верим, что файл целый, если он больше 1 МБ
-            _file_valid = (_remote_size > 0 and _file_size >= _remote_size * 0.99) or (_remote_size == 0 and _file_size > 1024 * 1024)
+            _file_valid = (
+                (_remote_size > 0 and _file_size >= _remote_size * 0.99)
+                or (_remote_size == 0 and _file_size > 1024 * 1024)
+            ) and (_split_parts <= 1 or _file_exists)
         else:
             _file_valid = _file_size > 1024 * 1024
             
@@ -229,6 +263,8 @@ def get_model_status() -> Dict:
         for _f in _llm_dir.glob("*.gguf"):
             if _f.name.lower() in _existing_files:
                 continue  # Файл уже есть в списке, пропускаем
+            if "-of-" in _f.stem:
+                continue  # Сплит-часть большой модели — не самостоятельная модель
                 
             _key = _f.stem
             _file_size = _f.stat().st_size
@@ -254,6 +290,83 @@ def _reporthook(block_num: int, block_size: int, total_size: int, model_key: str
         progress = min(100.0, (downloaded / total_size) * 100.0)
         _DOWNLOAD_STATUS[model_key] = round(progress, 1)
 
+def _download_split_model(model_key: str, info: dict, target_path, url: str, parts: int, force: bool) -> bool:
+    """Скачивает все части сплит-модели (HF-канон {base}-0000N-of-0000M.gguf).
+    Общий прогресс — по суммарным байтам. llama-server грузит сплиты нативно:
+    в -m передаётся первая часть, остальные подхватываются из той же папки."""
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    _DOWNLOAD_STATUS[model_key] = 0.0
+    _DOWNLOAD_CANCEL[model_key] = False
+    _tname = target_path.name
+    _first_suffix = f"-00001-of-{parts:05d}.gguf"
+    _total_size = 0
+    _done_bytes = 0
+    _cur_part = None  # часть, качающаяся сейчас — удаляется при отмене
+
+    try:
+        import os as _os
+        _hf_token = _os.environ.get("HF_TOKEN", "")
+        for _i in range(1, parts + 1):
+            _suffix = f"-{_i:05d}-of-{parts:05d}.gguf"
+            _cur_part = target_path.parent / _tname.replace(_first_suffix, _suffix)
+            _part_url = url.replace(_first_suffix, _suffix)
+            if force and _cur_part.exists():
+                _cur_part.unlink(missing_ok=True)
+
+            _existing = _cur_part.stat().st_size if _cur_part.exists() else 0
+            _headers = {"User-Agent": "Bloodloom/0.5.3"}
+            if _existing > 0:
+                _headers["Range"] = f"bytes={_existing}-"
+            if _hf_token:
+                _headers["Authorization"] = f"Bearer {_hf_token}"
+
+            _req = urllib.request.Request(_part_url, headers=_headers)
+            with urllib.request.urlopen(_req, timeout=30) as _resp:
+                _clen = int(_resp.info().get("Content-Length", 0) or 0)
+                if _existing > 0 and _resp.status == 206:
+                    _clen += _existing
+                elif _existing > 0 and _resp.status == 200:
+                    _existing = 0
+                    _cur_part.unlink(missing_ok=True)
+                _total_size += _clen
+                _done_bytes += _existing
+                with open(_cur_part, "ab" if _existing > 0 else "wb") as _f:
+                    while True:
+                        if _DOWNLOAD_CANCEL.get(model_key, False):
+                            raise RuntimeError("cancelled")
+                        _chunk = _resp.read(65536)
+                        if not _chunk:
+                            break
+                        _f.write(_chunk)
+                        _done_bytes += len(_chunk)
+                        if _total_size > 0:
+                            _DOWNLOAD_STATUS[model_key] = round(
+                                min(100.0, _done_bytes / _total_size * 100.0), 1
+                            )
+        if model_key in _DOWNLOAD_STATUS:
+            del _DOWNLOAD_STATUS[model_key]
+        logger.info(f"Модель '{model_key}' ({parts} частей) скачана в {target_path.parent}")
+        return True
+    except RuntimeError:
+        # Отмена: недокачанная часть удаляется, целые части остаются (докачка)
+        if _cur_part is not None and _cur_part.exists():
+            _cur_part.unlink(missing_ok=True)
+        _DOWNLOAD_STATUS[model_key] = -1.0
+        _DOWNLOAD_ERRORS[model_key] = "Скачивание отменено пользователем"
+        _DOWNLOAD_CANCEL[model_key] = False
+        return False
+    except urllib.error.HTTPError as _http_err:
+        _msg = ("Модель закрыта лицензией (401). Требуется HF_TOKEN или ручное скачивание."
+                if _http_err.code == 401 else f"HTTP ошибка {_http_err.code}")
+        _DOWNLOAD_STATUS[model_key] = -1.0
+        _DOWNLOAD_ERRORS[model_key] = _msg
+        return False
+    except Exception as _e:
+        logger.error(f"Ошибка скачивания модели '{model_key}': {_e}")
+        _DOWNLOAD_STATUS[model_key] = -1.0
+        _DOWNLOAD_ERRORS[model_key] = str(_e)
+        return False
+
 def download_model(model_key: str, force: bool = False) -> bool:
     """Скачивает модель по ключу из llm_sources.json. Если force=True — удаляет старый файл."""
     sources = get_llm_sources()
@@ -264,6 +377,11 @@ def download_model(model_key: str, force: bool = False) -> bool:
     info = sources[model_key]
     target_path = BASE_DIR / info["target_path"]
     url = info["url"]
+
+    # Сплит-модели (Qwen2.5-14B): скачиваем все части отдельным путём
+    _split_parts = int(info.get("split_parts", 1) or 1)
+    if _split_parts > 1:
+        return _download_split_model(model_key, info, target_path, url, _split_parts, force)
 
     target_path.parent.mkdir(parents=True, exist_ok=True)
     

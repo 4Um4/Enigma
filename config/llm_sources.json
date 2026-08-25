@@ -47,5 +47,24 @@
     "url": "https://huggingface.co/mradermacher/T-lite-instruct-0.1-abliterated-GGUF/resolve/main/T-lite-instruct-0.1-abliterated.Q4_K_M.gguf",
     "target_path": "Models LLM\\T-lite-instruct-0.1-abliterated.Q4_K_M.gguf",
     "required": false
+  },
+  "vikhr_nemo_12b": {
+    "display_name": "Vikhr-Nemo 12B RU Roleplay Q4_K_M",
+    "url": "https://huggingface.co/mradermacher/Vikhr-Nemo-12B-Instruct-R-21-09-24-GGUF/resolve/main/Vikhr-Nemo-12B-Instruct-R-21-09-24.Q4_K_M.gguf",
+    "target_path": "Models LLM\\Vikhr-Nemo-12B-Instruct-R-21-09-24.Q4_K_M.gguf",
+    "required": false
+  },
+  "nekomix_12b": {
+    "display_name": "NekoMix 12B RU Roleplay Q4_K_M",
+    "url": "https://huggingface.co/mradermacher/NekoMix-12B-GGUF/resolve/main/NekoMix-12B.Q4_K_M.gguf",
+    "target_path": "Models LLM\\NekoMix-12B.Q4_K_M.gguf",
+    "required": false
+  },
+  "qwen_14b_q4": {
+    "display_name": "Qwen2.5-14B Instruct Q4_K_M",
+    "url": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct-GGUF/resolve/main/qwen2.5-14b-instruct-q4_k_m-00001-of-00003.gguf",
+    "target_path": "Models LLM\\qwen2.5-14b-instruct-q4_k_m-00001-of-00003.gguf",
+    "required": false,
+    "split_parts": 3
   }
 }

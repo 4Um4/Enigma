@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-08-24 22:18
+# ENIGMA Session State — 2026-08-25 20:20
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,25 +16,25 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 0.9 мин | Тиков: 0 | LLM-вызовов: 0_
+_Сессия: 2.4 мин | Тиков: 22 | LLM-вызовов: 44_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
-| **SHI** (Simulation Health) | 0% | → +0.0% | ⛔ МЕРТВА: решений нет. Проверь DecisionHub.compute() |
-| **NPI** (NPC Pipeline) | 0% | → +0.0% | нет данных о NPC |
+| **SHI** (Simulation Health) | 100% | ↑ +100.0% | ✅ норма: NPC активно принимают решения |
+| **NPI** (NPC Pipeline) | 86% | ↑ +85.7% | ⚠️ 6/7 NPC с координатами: есть потери в traversal |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 0.00/мин | → +0.0 | LLM не вызывалась: сессия без действий игрока |
+| **CVS** (Causal Velocity) | 18.57/мин | ↑ +18.6 | ✅ 18.57/мин: активная сессия |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
-| **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
-| **BCI** (Belief Crystallization) | 0 (idx=0.00) | → | ⚠️ Память не кристаллизуется (BCI=0) |
-| **BPI** (Break Progress) | 0 (broken=0) | → | ⚠️ NPC не ломаются (BPI=0) |
+| **Tracebacks** | 14 (AttrErr=0, TypeErr=0) | → | ⚠️ КРИТИЧНО: невидимые регрессии (Tracebacks) |
+| **BCI** (Belief Crystallization) | 18 (idx=0.82) | → | ✅ Убеждения формируются |
+| **BPI** (Break Progress) | 150 (broken=0) | → | ✅ Давление доходит |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1086 записей_
+_История: `reports/dna_history.jsonl` — 1102 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 3109486 Merge remote-tracking branch 'origin/main' into V.0.5.3.8.7_сверхЭра_4
-  - 6ed3310 V.0.5.3.8.7_сверхЭра_4: полное сохранение проекта; актуализация версий до 0.5.3.8.7 (pyproject, constants, version.txt)
-  - 3969097 Restore scene_changes.jsonl to current state
-  - e8da8a6 Update project version to 0.5.3.8.6 in main branch
-  - cb7b80c Update project version to 0.5.3.8.6 across all files
+  - 227f6998 V.0.5.3.8.8_Настройки_и_ЛЛМ: полное сохранение проекта; актуализация версий до 0.5.3.8.8 (pyproject, constants, version.txt)
+  - 3109486a Merge remote-tracking branch 'origin/main' into V.0.5.3.8.7_сверхЭра_4
+  - 6ed3310f V.0.5.3.8.7_сверхЭра_4: полное сохранение проекта; актуализация версий до 0.5.3.8.7 (pyproject, constants, version.txt)
+  - 3969097a Restore scene_changes.jsonl to current state
+  - e8da8a60 Update project version to 0.5.3.8.6 in main branch
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -83,10 +83,15 @@ _(баги не обнаружены в этой сессии)_
 (не определено — обнови MUTATIONS.md)
 
 ### Состояние рендеринга (из последней сессии игры):
-- NPC с известными координатами (0):
-  - _(нет данных о координатах — SNAPSHOT-паттерн не сработал)_
-- NPC без координат (lerp не работает, 0):
-  - _(нет)_
+- NPC с известными координатами (6):
+  - `guard_borko`: x=10.5 y=6.5
+  - `merchant_goran`: x=10.5 y=3.0
+  - `maid_lusya`: x=10.5 y=3.0
+  - `blacksmith_orm`: x=10.5 y=6.5
+  - `thief_shadow`: x=8.1 y=13.0
+  - `tavern_keeper_tornin`: x=10.5 y=3.0
+- NPC без координат (lerp не работает, 1):
+  - `player` (intent=offer_job)
 - Граф-fallback локаций: нет
 
 ### Визуальные аномалии:
@@ -106,24 +111,35 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 0 | Decisions > 0: 0/0 | LLM: 0 вызовов / 0 ответов | Симуляция: ✅ живёт
+Тиков: 22 | Decisions > 0: 5/22 | LLM: 44 вызовов / 44 ответов | Симуляция: ❌ МЕРТВА
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
 - LLM сервер: ❌ (не доступен при старте)
 
 **Предупреждения:**
-  - _(нет)_
+  - ⚠️ КРИТИЧНО: все тики вернули 0 decisions — симуляция заморожена
 
 **Movement Pipeline (по NPC):**
-_Нет данных по NPC_
+| NPC | Intent | Score | Traversal | Координаты | Виден игроку |
+|-----|--------|-------|-----------|------------|--------------|
+| blacksmith_orm | request_service | 0.667 | ✅ | x=10.5 y=6.5 | ❌ |
+| guard_borko | block_path | 0.333 | ✅ | x=10.5 y=6.5 | ❌ |
+| maid_lusya | seek_ally | 0.323 | ✅ | x=10.5 y=3.0 | ❌ |
+| merchant_goran | request_service | 0.740 | ✅ | x=10.5 y=3.0 | ❌ |
+| player | offer_job | 0.311 | ✅ | None | ❌ |
+| tavern_keeper_tornin | call_for_help | 0.337 | ✅ | x=10.5 y=3.0 | ❌ |
+| thief_shadow | idle | 0.000 | ✅ | x=8.1 y=13.0 | ❌ |
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
   - _(нет разрывов в movement pipeline)_
 
 ### Каузальные разрывы:
 
-_Каузальных разрывов не обнаружено_
+#### [BREAK-1] Симуляция заморожена
+**Симптом:** все тики вернули 0 decisions
+**Файл для проверки:** `backend/app/services/npc/decision_hub.py`
+**PowerShell:** `Select-String -Path "backend/app/services/npc/decision_hub.py" -Pattern "def compute"`
 
 ### Архитектурный долг (не трогать без обсуждения):
 - Stale Cognition: DecisionHub работает на state T-1. Требует ADR-059.

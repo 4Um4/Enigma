@@ -386,7 +386,18 @@ def create_tick_context(
         all_npcs_raw=all_npcs_raw or [],
         shared_context=shared_context
         if shared_context is not None
-        else types.SimpleNamespace(),  # S116 FIX: Проброс shared_context из game_loop
+        else types.SimpleNamespace(
+            # M1 (Лаборатория): пустой фоллбэк S116 ронял Фазу 10 на тике
+            # с InterventionEvent — player-ветка commit_phase (is_player_turn)
+            # читает shared_context.scene_state, которого в пустом
+            # SimpleNamespace нет (AttributeError -> TICK_CRASH).
+            # Подкладываем живую сцену: это тот же dict, которым владеет
+            # scene_manager (idle_tick передаёт её как scene_state), —
+            # семантика равна боевому shared_context. Пути без
+            # вмешательств (IPT/DriftLab/idle) флаг не включают и
+            # атрибут не читают — для них изменение нейтрально.
+            scene_state=scene_state
+        ),
         is_player_turn=_is_player,  # S116 FIX: Передаём флаг в контекст
         spatial_query=_spatial_query,
         eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO

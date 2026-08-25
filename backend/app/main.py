@@ -12,6 +12,13 @@ import sys
 os.environ["PYTHONIOENCODING"] = "utf-8"
 os.environ["PYTHONUTF8"] = "1"
 
+# Локальный llama-server — никогда через прокси: backend сам ходит на
+# localhost:8181 (health check, TaskScheduler). На машинах с системным
+# прокси/WPAD urllib платит до ~4с на каждый запрос к localhost —
+# наблюдено замерами; страховка дистрибутива, нулевой эффект на чистых машинах.
+os.environ["NO_PROXY"] = "localhost,127.0.0.1"
+os.environ["no_proxy"] = "localhost,127.0.0.1"
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 

@@ -801,6 +801,11 @@ class TickOrchestrator:
         self._phase_0_5_idle_services(ctx) # 0.5
         self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
 
+        # S203.3 (Stage 2A, ADR-O-363, Ц1): гарантированный GC-проход за тик.
+        # TES завершает маршруты в Фазе 0.5; без этой точки терминальные
+        # записи живут до следующего apply_changes (окно INV-TRAV-ZOMBIE).
+        self._scene_manager.gc_traversals(ctx.scene_state)
+
         # S203.1 (Stage 2A): консистентность shadow-реестра обязательств.
         # Активный traversal-commitment без живого traversal -> INTERRUPTED
         # (TRAVERSAL_VANISHED). Ловит незеркалированные обходы (Н-46-класс).
@@ -1226,6 +1231,43 @@ class TickOrchestrator:
 
         if not _sem_action or not _sem_target:
             return
+
+        # M1 (ADR-O-361): действия с каузальными последствиями (HELP /
+        # BLACKMAIL / ACCUSE) маршрутизируются в ActionConsequenceCompiler —
+        # тот же write-path, что и production (game_loop:
+        # _execute_dm_and_intent_resolution -> intent_to_player_action ->
+        # process_action). Семантика приходит структурированной из
+        # InterventionEvent.payload; ядро текст не парсит (L4.1).
+        # action_id детерминирован (идемпотентность компилятора, replay).
+        if _sem_action.upper() in ("HELP", "BLACKMAIL", "ACCUSE"):
+            _mvp_ctrl = getattr(ctx, "mvp_controller", None)
+            _compiler = getattr(_mvp_ctrl, "action_compiler", None)
+            if _compiler is not None:
+                from app.models.player_action import ActionType, PlayerAction
+
+                _consequence = PlayerAction(
+                    action_id=(
+                        f"interv:{ctx.tick_number}:"
+                        f"{_sem_action.upper()}:{_target_id or 'unknown'}"
+                    ),
+                    tick=ctx.tick_number,
+                    actor_id="player",
+                    action_type=ActionType(_sem_action.lower()),
+                    target_id=_target_id or "",
+                    description=str(_payload.get("text", ""))[:200],
+                )
+                _compiler.process_action(_consequence)
+                logger.info(
+                    "[INPUT_MERGE] consequence action applied: "
+                    f"{_sem_action.upper()} -> {_target_id} "
+                    f"(tick={ctx.tick_number})"
+                )
+            else:
+                logger.warning(
+                    "[INPUT_MERGE] consequence action dropped: "
+                    "mvp_controller/action_compiler недоступен "
+                    f"(action={_sem_action}, tick={ctx.tick_number})"
+                )
 
         # S122 FIX: Боевая труба. Если игрок атакует — публикуем событие в EventBus,
         # чтобы CombatSubscriber (Фаза 8) вызвал ImpactEngine и нанёс физический урон.

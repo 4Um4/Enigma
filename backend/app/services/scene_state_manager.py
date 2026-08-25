@@ -1417,8 +1417,23 @@ class SceneStateManager:
             if isinstance(ch, SceneChange)
             and self.apply_change(campaign_id, ch, scene_state)
         )
-        # ADR-XXX: Traversal Lifecycle — Zombie cleanup (SSOT owner).
-        # После применения всех changes: удаляем terminal-статусы (COMPLETED, CANCELLED).
+        # ADR-O-363 (S203.3, Ц1): zombie cleanup — SSM = SSOT owner.
+        self.gc_traversals(scene_state)
+        if applied_count:
+            logger.info(
+                f"[SCENE] Применено {applied_count}/{len(changes)} изменений (in-memory, persist=Phase10)"
+            )
+        return applied_count
+
+    def gc_traversals(self, scene_state: dict) -> int:
+        """S203.3 (ADR-O-363, Ц1): SSM — ЕДИНСТВЕННЫЙ GC-владелец traversals.
+
+        Удаляет terminal-статусы (COMPLETED/CANCELLED). Вызывается:
+        (а) из apply_changes — историческая точка;
+        (б) из TickOrchestrator после Фазы 0.5 — гарантия одного GC-прохода
+        на тик (Ц1 убрал самоудаление TES; без гарантии терминальная запись
+        живёт до следующего apply_changes — окно, ловимое INV-TRAV-ZOMBIE).
+        """
         from app.domain.traversal_schema import TRAVERSAL_TRANSITIONS
 
         _active_traversals = scene_state.get("active_traversals", {})
@@ -1433,11 +1448,7 @@ class SceneStateManager:
             logger.debug(
                 f"[GATE_ZOMBIE] SSM cleaned={len(_zombie_ids)} zombies remaining={len(_active_traversals)}"
             )
-        if applied_count:
-            logger.info(
-                f"[SCENE] Применено {applied_count}/{len(changes)} изменений (in-memory, persist=Phase10)"
-            )
-        return applied_count
+        return len(_zombie_ids)
 
     # ─────────────────────────────────────────────────────────────────────────
     # R2.1 — apply_narrative_extractions: регистрирует объекты и события из DM

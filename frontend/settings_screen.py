@@ -90,17 +90,35 @@ class _SettingsButton:
 class SettingsScreen:
     """Экран настроек. Владеет своим циклом отрисовки."""
     
+    # Виртуальное разрешение для масштабирования UI
+    VIRTUAL_W, VIRTUAL_H = 1920, 1080
+    
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
         self.screen = screen
         self.clock = clock
         self._result: Optional[str] = None
         self._active_tab = "graphics"
+        
+        # Рассчитываем масштаб под текущее разрешение
+        self._scale = min(
+            screen.get_width() / self.VIRTUAL_W,
+            screen.get_height() / self.VIRTUAL_H
+        )
+        
+        # Прокрутка для списка моделей
+        self._scroll_y = 0
+        self._max_scroll = 0
         self._llm_test_log = ""
         self._last_llm_fetch = 0
         
-        self.font_title = pygame.font.SysFont("consolas", 36, bold=True)
-        self.font_button = pygame.font.SysFont("consolas", 20, bold=True)
-        self.font_small = pygame.font.SysFont("consolas", 14)
+        # Масштабируем шрифты под разрешение
+        _title_size = max(24, int(36 * self._scale))
+        _button_size = max(16, int(20 * self._scale))
+        _small_size = max(12, int(14 * self._scale))
+        
+        self.font_title = pygame.font.SysFont("consolas", _title_size, bold=True)
+        self.font_button = pygame.font.SysFont("consolas", _button_size, bold=True)
+        self.font_small = pygame.font.SysFont("consolas", _small_size)
         
         # Настройки графики
         self._gfx_settings = load_display_settings()
@@ -124,8 +142,10 @@ class SettingsScreen:
 
     def _build_buttons(self):
         buttons = []
-        tab_w, tab_h = 200, 50
-        gap = 20
+        # Масштабируем размеры кнопок
+        tab_w = int(200 * self._scale)
+        tab_h = int(50 * self._scale)
+        gap = int(20 * self._scale)
         start_x = (self.screen.get_width() - (tab_w * 3 + gap * 2)) // 2
         start_y = 120
         
@@ -179,7 +199,10 @@ class SettingsScreen:
             status = self._llm_status or {}
             llm_btn_w = 600
             llm_x = (self.screen.get_width() - llm_btn_w) // 2
-            _max_y = self.screen.get_height() - 200  # Граница для скролла (не перекрываем кнопки)
+            # Динамическая высота списка с учетом масштаба
+            _list_height = int((self.screen.get_height() - 300) * self._scale)
+            _max_y = self.screen.get_height() - 200
+            self._max_scroll = 0  # пересчитывается ниже, когда списки собраны
             
             if not status or not isinstance(status, dict):
                 buttons.append(_SettingsButton(llm_x, start_y, llm_btn_w, list_btn_h, "Нет доступных моделей", _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda: None, tooltip="Бэкенд не вернул список. Проверьте config/llm_sources.json"))
@@ -193,6 +216,14 @@ class SettingsScreen:
                         _installed.append((key, info))
                     else:
                         _available.append((key, info))
+                
+                # Рассчитываем максимальную прокрутку (списки собраны — считаем безопасно)
+                _content_height = (len(_installed) + len(_available)) * (list_btn_h + list_gap) + 2 * (list_btn_h + list_gap)
+                self._max_scroll = max(0, _content_height - _list_height)
+                self._llm_scroll_y = min(self._llm_scroll_y, self._max_scroll)
+                # Сохраняем для отрисовки скроллбара в run() (там списков уже нет)
+                self._list_height = _list_height
+                self._content_height = _content_height
                 
                 _y_offset = start_y - self._llm_scroll_y
                 
@@ -764,7 +795,9 @@ class SettingsScreen:
                     self.buttons = self._build_buttons()
                 elif event.type == pygame.MOUSEWHEEL:
                     if self._active_tab == "llm":
-                        self._llm_scroll_y = max(0, self._llm_scroll_y - event.y * 60)
+                        # Прокрутка с ускорением на высоких разрешениях
+                        _scroll_speed = int(60 * self._scale)
+                        self._llm_scroll_y = max(0, self._llm_scroll_y - event.y * _scroll_speed)
                         self.buttons = self._build_buttons()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
@@ -804,5 +837,24 @@ class SettingsScreen:
                 pygame.draw.rect(self.screen, _MENU_COLORS["border"], bg_rect, 1, border_radius=4)
                 self.screen.blit(tip_surf, tip_rect)
                 
+            # Полоса прокрутки для списка моделей
+            if self._active_tab == "llm" and self._max_scroll > 0:
+                _scrollbar_w = 8
+                _scrollbar_x = self.screen.get_width() - 20
+                _scrollbar_h = getattr(self, "_list_height", 0)
+                _scrollbar_y = 150
+                _content_h = getattr(self, "_content_height", 1)
+                
+                if _scrollbar_h > 0 and _content_h > _scrollbar_h:
+                    # Фон полосы прокрутки
+                    pygame.draw.rect(self.screen, (40, 40, 40), (_scrollbar_x, _scrollbar_y, _scrollbar_w, _scrollbar_h), border_radius=4)
+                    
+                    # Позиция ползунка
+                    _thumb_h = max(30, int(_scrollbar_h * (_scrollbar_h / _content_h)))
+                    _thumb_y = _scrollbar_y + int((_scrollbar_h - _thumb_h) * (self._llm_scroll_y / self._max_scroll))
+                    
+                    # Ползунок
+                    pygame.draw.rect(self.screen, (100, 100, 100), (_scrollbar_x, _thumb_y, _scrollbar_w, _thumb_h), border_radius=4)
+            
             pygame.display.flip()
             self.clock.tick(60)
