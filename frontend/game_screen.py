@@ -49,6 +49,7 @@ from game_types import (  # noqa: E402
 from i18n import t  # noqa: E402
 from scene_renderer import SceneRenderer  # noqa: E402
 from text_input import TextInput  # noqa: E402
+from keybindings import load_keybinds, get_key  # noqa: E402
 
 
 def _clean_dm_response(text: str) -> str:
@@ -549,6 +550,11 @@ class GameScreen:
         # MVP Mini-game: состояние финального экрана
         self.show_end_screen = False
         self.end_screen_data = None
+        # FIX(cold start): читатель current_snapshot (вкладка «Мои убеждения»,
+        # строка ~2135) не имел ни инициализации, ни писателя — AttributeError
+        # на первом кадре с открытым журналом после свежей new_game.
+        # None = честное «нет данных» (§ENIGMA-003); guard у читателя уже есть.
+        self.current_snapshot: dict | None = None
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
@@ -750,10 +756,25 @@ class GameScreen:
                     action_queue.stop()
                     return
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
+                    # FIX(диалог-выход): ESC при сфокусированном вводе закрывает
+                    # ввод, а не паузу. Раньше PAUSE-ветка перехватывала ESC
+                    # раньше TextInput — его собственный ESC-unfocus
+                    # (text_input.py:305) был мёртвым кодом из игрового цикла.
+                    if event.key == pygame.K_ESCAPE and text_input.focused:
+                        text_input.focused = False
+                    elif event.key == pygame.K_ESCAPE:
                         action_queue.stop()
                         running = False
                         return "PAUSE"
+                    # Диалоговое окно ввода: Tab (дефолт) / настраивается в Управлении.
+                    # Раньше TextInput вообще не имел клавиши (только клик мышью),
+                    # а Tab был дублем журнала.
+                    # FIX(toggle): было только открытие — повторный Tab тонул в
+                    # TextInput._handle_keydown («прочие клавиши»), и диалог
+                    # невозможно было закрыть. Честный toggle: буфер ввода не
+                    # очищается — повторная фокусировка вернёт набранный текст.
+                    elif event.key == get_key(load_keybinds(), "dialogue_open"):
+                        text_input.focused = not text_input.focused
                     # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
                     elif not text_input.focused and event.key == pygame.K_j:
                         self.show_journal = not self.show_journal
@@ -762,24 +783,6 @@ class GameScreen:
                     # P8: Переключение панели инвентаря (I / Русская Ш)
                     elif not text_input.focused and event.key == pygame.K_i:
                         self.show_inventory = not self.show_inventory
-
-                    # S128: Обработка кликов по вкладкам журнала
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        if self.show_journal and self._journal_tab_rects:
-                            _mx, _my = event.pos
-                            for _tab_id, _rect in self._journal_tab_rects:
-                                if _rect.collidepoint(_mx, _my):
-                                    self._journal_active_tab = _tab_id
-                                    break
-                    elif event.key == pygame.K_TAB:
-                        # Переключение фокуса: игра <-> консоль общения
-                        text_input.focused = not text_input.focused
-                        if text_input.focused:
-                            # Открыли консоль — ждём ввода игрока
-                            logger.debug("[CONSOLE] opened — waiting for player input")
-                        else:
-                            # Закрыли консоль — убираем пузыри с экрана, чтобы не загораживали игру
-                            message_log.clear()
                     # Time Controls: ускорение симуляции (Приоритет 1)
                     elif event.key == pygame.K_1 and not text_input.focused:
                         threading.Thread(
@@ -835,7 +838,6 @@ class GameScreen:
                         message_log.append(player_beat)
                         # B1.3-FIX: НЕ добавляем локально. Backend вернёт обновлённый
                         # journal в следующем world_snapshot.
-                        pass
                         # ADR-SPEECH: Облачко над головой игрока
                         self.player_speech_bubble = {
                             "text": text_input.text.strip(),
@@ -884,6 +886,18 @@ class GameScreen:
                 elif event.type == pygame.TEXTEDITING:
                     text_input.handle_event(event)
                 elif event.type == pygame.MOUSEBUTTONDOWN:
+                    # S128: Клик по вкладкам журнала (вернули из KEYDOWN-цепочки,
+                    # где ветка была мертва: event.type в цепочке event.key всегда False)
+                    if event.button == 1 and self.show_journal and self._journal_tab_rects:
+                        _mx, _my = event.pos
+                        _tab_hit = False
+                        for _tab_id, _rect in self._journal_tab_rects:
+                            if _rect.collidepoint(_mx, _my):
+                                self._journal_active_tab = _tab_id
+                                _tab_hit = True
+                                break
+                        if _tab_hit:
+                            continue  # клик съеден вкладкой — не проваливать в клик по NPC
                     clicked_npc = self._handle_click(
                         event.pos,
                         scene_state,
@@ -927,7 +941,10 @@ class GameScreen:
                         print(f"[MVP] popup failed: {_mvp_err}")
                         # NEW-MVP-001 FIX: Показываем окно даже с ошибкой, чтобы не зацикливать попытки.
                         self.show_end_screen = True
-                        self._end_screen_data = {"error": str(_mvp_err)}
+                        # FIX(опечатка): данные писались в _end_screen_data
+                        # (мёртвый атрибут), рендер читает end_screen_data —
+                        # при ошибке API экран зависал в полусостоянии.
+                        self.end_screen_data = {"error": str(_mvp_err)}
                         system_log.append(f"[END_SCREEN] API Error: {_mvp_err}")
 
                 # Движение к NPC: отправляем намерение, бэкенд строит маршрут
@@ -2132,6 +2149,12 @@ class GameScreen:
 
             # === ADR-JOURNAL: VN-стиль журнал (клавиша J) ===
             if self.show_journal and isinstance(scene_state, dict):
+                # S199-restore: писатель current_snapshot утерян при рефакторинге
+                # (единственный читатель — ниже, вкладка «Мои убеждения»).
+                # scene_state здесь — world-snapshot словарь: источник
+                # player_beliefs по комментарию Phase 8.2. Кэш при sync —
+                # тот же паттерн, что _dialog_journal_backend (B1.3-FIX).
+                self.current_snapshot = scene_state
                 # Phase 8.2: Передаём player_beliefs из world_snapshot для вкладки "Мои убеждения"
                 _player_beliefs = self.current_snapshot.get("player_beliefs", []) if self.current_snapshot else []
                 self._journal_tab_rects = self._analysis_renderer.draw_journal(

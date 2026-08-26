@@ -79,6 +79,22 @@ COMMITMENT_HISTORY_CAP_PER_NPC: int = 10
 # Правило №7: слой проекции (SSM) НЕ придумывает behavioral семантику постфактум.
 CAUSE_UNKNOWN_LEGACY_SOURCE: str = "UNKNOWN_LEGACY_SOURCE"
 
+# ── S203.4 (ADR-O-365): реестры причинных констант ─────────────────────────
+# Закон №16: причины — реестры констант; расширение = мини-ADR (прецеденты:
+# _INTENT_EVENT_MAP ADR-O-349; _INTERRUPT_TRAVERSAL_REASONS S219).
+
+# interrupt_reason — ПОЧЕМУ ПРЕКРАЩЁН (внешнее каузальное событие):
+INTERRUPT_PRIORITY_SUPERSEDE: str = "PRIORITY_SUPERSEDE"  # арбитр-INTERRUPT (S203.4)
+INTERRUPT_TASK_VANISHED: str = "TASK_VANISHED"  # sweep: task-исполнитель исчез (grace)
+INTERRUPT_WINDUP_STALE_INTENT: str = "WINDUP_STALE_INTENT"  # Фаза 7: stale-интент
+INTERRUPT_SLEEP_VANISHED: str = "SLEEP_VANISHED"  # reconciliation: спящий исчез
+
+# fail_reason — ПОЧЕМУ ПРОВАЛЕНО (D-6: отдельный контракт; №7 распространён:
+# cause ≠ interrupt_reason ≠ fail_reason, универсальное reason запрещено):
+FAIL_BLOCKED_TIMEOUT: str = "BLOCKED_TIMEOUT"  # BLOCKED дольше BLOCKED_TIMEOUT_TICKS (Ц5)
+FAIL_TASK_ERROR: str = "TASK_ERROR"  # task-исполнитель вернул error-artifact
+FAIL_TASK_CRASH: str = "TASK_CRASH"  # исключение в исполнении задачи
+
 
 def build_commitment_id(tick: int, npc_id: str, action: str, ordinal: int) -> str:
     """Детерминированная идентичность обязательства.
@@ -101,6 +117,10 @@ def build_commitment_dict(
     executor: str = "",
     parent_commitment_id: Optional[str] = None,
     initial_status: str = "PROPOSED",
+    # ── S203.4 (ADR-O-365): приоритетная политика + executor-ссылка ─────────
+    priority: int = 0,
+    priority_policy_version: Optional[str] = None,
+    executor_ref: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Единственный легальный способ создания commitment-записи.
 
@@ -130,11 +150,25 @@ def build_commitment_dict(
         "interrupt_reason": None,
         "parent_commitment_id": parent_commitment_id,
         "target_id": target_id,
-        # Владелец исполнения: "traversal" (S203.1 shadow) | "windup"/"task"
-        # (S203.3/4 — только после доказательства их ownership-контрактов, №6).
+        # Владелец исполнения: "traversal" (S203.1/S203.3) | "windup"/"task"
+        # (S203.4, ADR-O-365) | "sleep" (S203.4: state-based reconciliation).
         "executor": executor,
+        # S203.4: ссылка на объект исполнителя (task_id / held_intent_id) —
+        # join терминальных зеркал и телеметрии с исполнителем.
+        "executor_ref": executor_ref,
+        # S203.4 (D-5): приоритет — РЕЗУЛЬТАТ policy на момент создания.
+        # Replay читает записанное число, пересчёт запрещён. 0 + None-версия
+        # = legacy-запись без заявленного права на прерывание.
+        "priority": priority,
+        "priority_policy_version": priority_policy_version,
         "created_tick": tick,
         "updated_tick": tick,
+        # S203.4: старт часов BLOCKED_TIMEOUT (Ц5). None вне фазы BLOCKED;
+        # ведётся transition_commitment (Э2-b: вход/выход из BLOCKED).
+        "blocked_since_tick": None,
+        # fail_reason: ПОЧЕМУ ПРОВАЛЕНО (D-6, №7: cause ≠ interrupt_reason
+        # ≠ fail_reason). Заполняется только при переходе в FAILED.
+        "fail_reason": None,
     }
 
 

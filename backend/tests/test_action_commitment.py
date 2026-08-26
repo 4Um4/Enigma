@@ -271,6 +271,171 @@ class TestBehavioralOwnerProjection:
         assert CommitmentRegistry.has_behavioral_owner(ss, "n1") is True
 
 
+# ── S203.4: Priority policy + reason-контракты (ADR-O-365) ──────────────────
+
+
+class TestS2034PriorityPolicy:
+    """Шкала v1 + pure-функция приоритета (D-5: результат policy, не онтология)."""
+
+    def test_scale_ordering_v1(self):
+        from app.domain.action_priority import (
+            PRIORITY_EXPLORATION,
+            PRIORITY_ROUTINE,
+            PRIORITY_SLEEP,
+            PRIORITY_SOCIAL,
+            PRIORITY_SURVIVAL,
+            PRIORITY_WINDOWED,
+        )
+
+        assert PRIORITY_EXPLORATION < PRIORITY_ROUTINE < PRIORITY_SOCIAL
+        assert PRIORITY_SOCIAL < PRIORITY_SLEEP == PRIORITY_SURVIVAL
+        assert PRIORITY_SURVIVAL < PRIORITY_WINDOWED
+
+    def test_resolve_windowed_actions(self):
+        from app.domain.action_priority import (
+            PRIORITY_WINDOWED,
+            resolve_candidate_priority,
+        )
+
+        assert resolve_candidate_priority(intent_type="attack") == PRIORITY_WINDOWED
+        assert resolve_candidate_priority(intent_type="steal") == PRIORITY_WINDOWED
+
+    def test_resolve_by_intent_domain(self):
+        from app.domain.action_priority import (
+            PRIORITY_EXPLORATION,
+            PRIORITY_ROUTINE,
+            PRIORITY_SOCIAL,
+            PRIORITY_SURVIVAL,
+            resolve_candidate_priority,
+        )
+
+        assert resolve_candidate_priority(intent_domain="SURVIVAL") == PRIORITY_SURVIVAL
+        assert resolve_candidate_priority(intent_domain="social") == PRIORITY_SOCIAL
+        assert resolve_candidate_priority(intent_domain="Routine") == PRIORITY_ROUTINE
+        assert resolve_candidate_priority(intent_domain="EXPLORATION") == PRIORITY_EXPLORATION
+
+    def test_resolve_unknown_defaults_to_routine(self):
+        from app.domain.action_priority import (
+            PRIORITY_ROUTINE,
+            resolve_candidate_priority,
+        )
+
+        # Консервативный базовый уровень: неизвестный кандидат не получает
+        # права прерывать (2 < любого инкумбента + порог 3).
+        assert resolve_candidate_priority() == PRIORITY_ROUTINE
+        assert resolve_candidate_priority(intent_domain="UNHEARD_OF") == PRIORITY_ROUTINE
+
+    def test_resolve_deterministic(self):
+        from app.domain.action_priority import resolve_candidate_priority
+
+        first = resolve_candidate_priority(intent_type="attack", intent_domain="SOCIAL")
+        for _ in range(3):
+            assert resolve_candidate_priority(
+                intent_type="attack", intent_domain="SOCIAL"
+            ) == first
+
+
+class TestS2034CommitmentContract:
+    """Расширение фабрики (priority/версия/executor_ref) и reason-контракты."""
+
+    def test_factory_default_fields_are_legacy_neutral(self):
+        from app.domain.action_commitment import build_commitment_dict
+
+        cm = build_commitment_dict(
+            tick=1, npc_id="n1", action="MOVE", ordinal=1, cause="schedule:patrol"
+        )
+        assert cm["priority"] == 0
+        assert cm["priority_policy_version"] is None
+        assert cm["executor_ref"] is None
+        assert cm["blocked_since_tick"] is None
+        assert cm["fail_reason"] is None
+
+    def test_factory_priority_passthrough(self):
+        from app.domain.action_commitment import build_commitment_dict
+        from app.domain.action_priority import (
+            PRIORITY_POLICY_VERSION,
+            PRIORITY_SURVIVAL,
+        )
+
+        cm = build_commitment_dict(
+            tick=1,
+            npc_id="n1",
+            action="MOVE",
+            ordinal=2,
+            cause="need:hunger",
+            priority=PRIORITY_SURVIVAL,
+            priority_policy_version=PRIORITY_POLICY_VERSION,
+            executor_ref="task-1-n1-0-dlg",
+        )
+        assert cm["priority"] == PRIORITY_SURVIVAL
+        assert cm["priority_policy_version"] == PRIORITY_POLICY_VERSION
+        assert cm["executor_ref"] == "task-1-n1-0-dlg"
+
+    def test_commitment_id_independent_of_priority(self):
+        """D-5: приоритет НЕ входит в commitment_id — смена policy-шкалы не
+        меняет ретроактивно идентичности (INV-REPLAY-DETERMINISM)."""
+        from app.domain.action_commitment import build_commitment_dict
+
+        a = build_commitment_dict(
+            tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=1
+        )
+        b = build_commitment_dict(
+            tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=7
+        )
+        assert a["commitment_id"] == b["commitment_id"]
+
+    def test_fail_reason_constants_fixed(self):
+        """D-6: fail_reason — отдельный контракт; константы реестра (№16)."""
+        from app.domain.action_commitment import (
+            FAIL_BLOCKED_TIMEOUT,
+            FAIL_TASK_CRASH,
+            FAIL_TASK_ERROR,
+        )
+
+        assert FAIL_BLOCKED_TIMEOUT == "BLOCKED_TIMEOUT"
+        assert FAIL_TASK_ERROR == "TASK_ERROR"
+        assert FAIL_TASK_CRASH == "TASK_CRASH"
+
+    def test_interrupted_accepts_priority_supersede(self):
+        from app.domain.action_commitment import (
+            INTERRUPT_PRIORITY_SUPERSEDE,
+            build_commitment_dict,
+            transition_commitment,
+        )
+
+        cm = build_commitment_dict(
+            tick=1,
+            npc_id="n1",
+            action="MOVE",
+            ordinal=1,
+            cause="schedule:patrol",
+            initial_status="COMMITTED",
+        )
+        ok = transition_commitment(
+            cm, "INTERRUPTED", tick=2, interrupt_reason=INTERRUPT_PRIORITY_SUPERSEDE
+        )
+        assert ok is True
+        assert cm["interrupt_reason"] == INTERRUPT_PRIORITY_SUPERSEDE
+
+    def test_interrupt_traversal_atomic_with_priority_supersede(self, flag_on):
+        """PRIORITY_SUPERSEDE — легальная причина атомарного interrupt обоих
+        рельсов (расширение реестра причин ADR-O-365; закон №16)."""
+        from app.domain.traversal_schema import interrupt_traversal
+
+        ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
+        CommitmentRegistry.mirror_traversal_materialized(
+            ss, tick=5, npc_id="n1", cause="schedule:patrol", target_node="gate"
+        )
+        assert interrupt_traversal(ss, "n1", "PRIORITY_SUPERSEDE", tick=6) is True
+        # Закон №14 — атомарность: ОБА рельса терминальны.
+        assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
+        assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+        assert (
+            ss["commitment_history"]["n1"][-1]["interrupt_reason"]
+            == "PRIORITY_SUPERSEDE"
+        )
+
+
 class TestFlagNeutrality:
     def test_disabled_flag_full_noop(self):
         """Rollback-контракт S203.1: флаг OFF = реестр не пишет, поведение байтово прежнее."""

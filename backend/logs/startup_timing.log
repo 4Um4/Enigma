@@ -32,3 +32,47 @@
 [TIMING] +  8.78с  servers ready
 [TIMING] +  8.83с  menu display created — START-TO-MENU TOTAL
 [TIMING] +  8.89с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.33с  zombie-kill done
+[TIMING] +  1.37с  backend Popen issued
+[TIMING] +  5.64с  llm health OK
+[TIMING] + 12.81с  backend health OK
+[TIMING] + 12.81с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] + 12.81с  servers ready
+[TIMING] + 12.86с  menu display created — START-TO-MENU TOTAL
+[TIMING] + 12.91с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.35с  zombie-kill done
+[TIMING] +  1.42с  backend Popen issued
+[TIMING] +  4.14с  llm health OK
+[TIMING] + 10.41с  backend health OK
+[TIMING] + 10.41с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] + 10.41с  servers ready
+[TIMING] + 10.48с  menu display created — START-TO-MENU TOTAL
+[TIMING] + 10.55с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.56с  zombie-kill done
+[TIMING] +  1.60с  backend Popen issued
+[TIMING] +  6.53с  backend health OK
+[TIMING] +  7.00с  wait loop done (backend_ok=True, llm_ok=False)
+[TIMING] +  7.00с  servers ready
+[TIMING] +  7.09с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  7.11с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.70с  zombie-kill done
+[TIMING] +  1.74с  backend Popen issued
+[TIMING] +  6.29с  llm health OK
+[TIMING] +  9.27с  backend health OK
+[TIMING] +  9.27с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  9.27с  servers ready
+[TIMING] +  9.33с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  9.34с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.31с  zombie-kill done
+[TIMING] +  1.35с  backend Popen issued
+[TIMING] +  6.24с  llm health OK
+[TIMING] +  8.91с  backend health OK
+[TIMING] +  8.91с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  8.91с  servers ready
+[TIMING] +  9.01с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  9.02с  CDS observer init done

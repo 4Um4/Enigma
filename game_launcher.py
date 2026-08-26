@@ -322,19 +322,22 @@ def _kill_zombies():
 
     # 1. Убиваем по портам (самый надежный способ найти висящие сокеты)
     try:
+        _no_window = 0x08000000 if sys.platform == 'win32' else 0  # CREATE_NO_WINDOW
         for port in [_enigma_settings.api_port, getattr(_enigma_settings, "llama_cpp_port", 8181)]:
             res = subprocess.run(
                 f"netstat -ano | findstr :{port}",
                 shell=True,
                 capture_output=True,
                 text=True,
+                creationflags=_no_window,
             )
             for line in res.stdout.splitlines():
                 parts = line.split()
                 if len(parts) > 4 and parts[-2] == "LISTENING":
                     pid = parts[-1]
                     subprocess.run(
-                        f"taskkill /F /T /PID {pid}", shell=True, capture_output=True
+                        f"taskkill /F /T /PID {pid}", shell=True, capture_output=True,
+                        creationflags=_no_window,
                     )
     except Exception:
         pass

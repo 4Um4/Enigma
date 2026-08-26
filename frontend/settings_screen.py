@@ -337,12 +337,13 @@ class SettingsScreen:
                 "move_up": "Движение вверх", "move_down": "Движение вниз",
                 "move_left": "Движение влево", "move_right": "Движение вправо",
                 "interact": "Взаимодействие (E)", "open_journal": "Журнал (J)",
+                "dialogue_open": "Диалоговое окно (Tab)",
                 "pause": "Пауза (ESC)", "console_enter": "Отправить ввод (Enter)"
             }
             
             for i, (key, val) in enumerate(self._keybinds.items()):
                 name = _action_names.get(key, key)
-                text = f"{name}: {val.upper()}"
+                text = f"{name}: [{val.upper()}]"
                 # Кнопка переназначения (пока заглушка, требующая отдельной логики ожидания клавиши)
                 buttons.append(_SettingsButton(ctrl_x, start_y + i*(list_btn_h+list_gap), ctrl_btn_w, list_btn_h, text, _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda k=key: self._rebind_key(k), tooltip="Нажмите, чтобы изменить клавишу"))
 
@@ -482,7 +483,48 @@ class SettingsScreen:
                 
                 _prog = _info.get("progress", 0.0)
                 if _info.get("is_downloaded", False) or _prog >= 100.0:
-                    waiting = False
+                    # Скачано: НЕ советуем перезапуск — активация на лету возможна
+                    # (llm_select перезапускает llama-server без перезапуска игры:
+                    # kill + restart; диалоги подхватятся через llama_cpp_server_url).
+                    # Спрашиваем игрока: активировать сейчас?
+                    _q_font = pygame.font.SysFont("consolas", 18, bold=True)
+                    _yes_rect = pygame.Rect(_dx + _dw//2 - 190, _dy + _dh - 60, 170, 40)
+                    _no_rect = pygame.Rect(_dx + _dw//2 + 20, _dy + _dh - 60, 170, 40)
+                    _choosing = True
+                    while _choosing:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                sys.exit(0)
+                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                                _choosing = False
+                            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                                if _yes_rect.collidepoint(event.pos):
+                                    _choosing = False
+                                    waiting = False
+                                    # Активация на лету: select = kill + restart
+                                    # llama-server + тестовый промпт (вопрос/ответ)
+                                    self._test_llm_modal(model_key)
+                                elif _no_rect.collidepoint(event.pos):
+                                    _choosing = False
+                        pygame.draw.rect(self.screen, (20, 20, 20), (_dx, _dy, _dw, _dh), border_radius=8)
+                        pygame.draw.rect(self.screen, _MENU_COLORS["accent_green"], (_dx, _dy, _dw, _dh), 2, border_radius=8)
+                        _t1 = _q_font.render("Модель скачана!", True, _MENU_COLORS["accent_green"])
+                        self.screen.blit(_t1, _t1.get_rect(center=(_dx + _dw//2, _dy + 60)))
+                        _t2 = _small_font.render("Активировать сейчас? Сервер перезапустится,", True, _MENU_COLORS["text"])
+                        self.screen.blit(_t2, _t2.get_rect(center=(_dx + _dw//2, _dy + 110)))
+                        _t3 = _small_font.render("перезапуск игры не нужен.", True, _MENU_COLORS["text"])
+                        self.screen.blit(_t3, _t3.get_rect(center=(_dx + _dw//2, _dy + 132)))
+                        _mouse = pygame.mouse.get_pos()
+                        _yh = _yes_rect.collidepoint(_mouse)
+                        pygame.draw.rect(self.screen, _MENU_COLORS["accent_green"] if _yh else _MENU_COLORS["btn_primary"], _yes_rect.inflate(4, 4), border_radius=6)
+                        _yt = _small_font.render("Да, активировать", True, _MENU_COLORS["text"])
+                        self.screen.blit(_yt, _yt.get_rect(center=_yes_rect.center))
+                        _nh = _no_rect.collidepoint(_mouse)
+                        pygame.draw.rect(self.screen, _MENU_COLORS["btn_secondary_hover"] if _nh else _MENU_COLORS["btn_secondary"], _no_rect.inflate(4, 4), border_radius=6)
+                        _nt = _small_font.render("Позже", True, _MENU_COLORS["text"])
+                        self.screen.blit(_nt, _nt.get_rect(center=_no_rect.center))
+                        pygame.display.flip()
+                        self.clock.tick(30)
                     break
                 if _info.get("error", False):
                     waiting = False

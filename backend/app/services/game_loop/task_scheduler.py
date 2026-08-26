@@ -135,9 +135,14 @@ class TaskScheduler:
                 # S216 FIX (027.1): Fast-path для задач, не требующих LLM (warn, spread_rumor, steal).
                 # Они исполняются синхронно, минуя DialogueQueue, чтобы не создавать backlog.
                 if not requires_llm_materialization(_intent_type):
-                    self._executor_pool.submit(
-                        self._process_tasks_async, scene_state, [task_dict], campaign_id, "canonical", _game_time
-                    )
+                    # FIX [4]: fast-path исполняется СИНХРОННО на вызывающем потоке
+                    # (не через _executor_pool). warn/spread_rumor/steal не используют
+                    # LLM (stub-режим или детерминированный текст) → мгновенно. Пул с
+                    # max_workers=1 (ADR-O-343) более не блокирует доставку: warn-задача
+                    # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
+                    # execute_pending → поллинг видит conf в том же тике.
+                    # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+                    self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time)
                     continue
 
                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.

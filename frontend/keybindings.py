@@ -15,6 +15,7 @@ DEFAULT_KEYBINDS = {
     "move_right": "d",
     "interact": "e",
     "open_journal": "j",
+    "dialogue_open": "tab",      # Вызов диалогового окна ввода (раньше был захардкожен)
     "pause": "escape",
     "console_enter": "return",
     "console_escape": "escape"
@@ -41,7 +42,21 @@ def save_keybinds(keybinds: dict) -> None:
         print(f"Failed to save keybinds: {e}")
 
 def get_key(keybinds: dict, action: str) -> int:
-    """Возвращает pygame.K_ код клавиши для действия."""
+    """Возвращает pygame.K_ код клавиши для действия.
+
+    FIX(имена): конвенция pygame несимметрична — буквы lowercase (K_w),
+    спец-клавиши UPPERCASE (K_TAB, K_ESCAPE, K_RETURN). pygame.key.name()
+    и дефолты хранят lowercase ("tab") → старый одиночный getattr молча
+    резолвил ВСЕ спец-клавиши в K_UNKNOWN (dialogue_open/pause/console_enter
+    были мертвы и до, и после ребинда). Двухкандидатный lookup закрывает
+    оба семейства без карты-исключений.
+    """
     import pygame
     key_name = keybinds.get(action, DEFAULT_KEYBINDS.get(action, ""))
-    return getattr(pygame, f"K_{key_name}", pygame.K_UNKNOWN)
+    if not key_name:
+        return pygame.K_UNKNOWN
+    for _cand in (f"K_{key_name}", f"K_{key_name.upper()}"):
+        if hasattr(pygame, _cand):
+            return getattr(pygame, _cand)
+    print(f"[KEYBINDINGS] неизвестная клавиша '{key_name}' для '{action}'")
+    return pygame.K_UNKNOWN

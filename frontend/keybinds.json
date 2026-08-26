@@ -1,0 +1,12 @@
+{
+    "move_up": "w",
+    "move_down": "s",
+    "move_left": "a",
+    "move_right": "d",
+    "interact": "e",
+    "open_journal": "j",
+    "dialogue_open": "tab",
+    "pause": "escape",
+    "console_enter": "return",
+    "console_escape": "escape"
+}

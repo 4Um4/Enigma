@@ -178,6 +178,10 @@ class MovementPlanResult:
 _INTERRUPT_TRAVERSAL_REASONS = frozenset({
     "CROSS_LOCATION_MATERIALIZE",   # Н-46a: ME:330 (был pop)
     "CROSS_LOCATION_TRANSFER",      # Н-46c: ORCH:967 (был pop, BUG-SLEEP-013)
+    # S203.4 (ADR-O-365): арбитр-INTERRUPT — кандидат превысил приоритетный
+    # порог. Расширение реестра причин = мини-ADR (закон №16): ADR-O-365
+    # и есть эта запись.
+    "PRIORITY_SUPERSEDE",
 })
 
 

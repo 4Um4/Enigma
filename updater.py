@@ -13,7 +13,8 @@ import subprocess
 import tempfile
 import traceback
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+from tkinter import font as tkfont
 
 # --- КОНФИГУРАЦИЯ ---
 GITHUB_OWNER = "4Um4"
@@ -44,14 +45,44 @@ def get_latest_release():
     except Exception as e:
         return None
 
-def download_file(url, dest):
+def download_file_with_progress(url, dest, progress_cb=None):
+    """Скачивание с реальным прогрессом (байты -> проценты), отменой и
+    частичной записью на диск (не в память: файл ~1.4 ГБ).
+    progress_cb(done_mb, total_mb, speed_mbs, eta_sec) — вызывается на каждом чанке.
+    Возвращает: True | False (ошибка) | None (отменено пользователем)."""
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Bloodloom-Updater'})
-        with urllib.request.urlopen(req, timeout=60) as response:
-            with open(dest, 'wb') as out_file:
-                out_file.write(response.read())
+        with urllib.request.urlopen(req, timeout=30) as response:
+            total = int(response.headers.get('Content-Length', 0) or 0)
+            import time as _t
+            t0 = _t.time()
+            done = 0
+            with open(dest + '.part', 'wb') as out_file:
+                while True:
+                    if progress_cb and progress_cb.cancelled:
+                        out_file.close()
+                        try:
+                            os.remove(dest + '.part')
+                        except OSError:
+                            pass
+                        return None
+                    chunk = response.read(65536)
+                    if not chunk:
+                        break
+                    out_file.write(chunk)
+                    done += len(chunk)
+                    if progress_cb and total > 0:
+                        elapsed = max(0.001, _t.time() - t0)
+                        speed = done / (1024 * 1024) / elapsed
+                        eta = (total - done) / (1024 * 1024) / speed if speed > 0 else 0
+                        progress_cb(done // (1024 * 1024), total // (1024 * 1024), speed, eta)
+        os.replace(dest + '.part', dest)
         return True
-    except Exception as e:
+    except Exception:
+        try:
+            os.remove(dest + '.part')
+        except OSError:
+            pass
         return False
 
 def main():
@@ -78,63 +109,136 @@ def main():
                 temp_dir = tempfile.gettempdir()
                 assets = release.get('assets', [])
                 
-                # Проверяем, нужна ли модель
-                model_path = os.path.join(app_dir, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf")
-                need_models = not os.path.exists(model_path)
-                
                 main_setup_url = None
-                models_setup_url = None
-                models_bin_urls = []
                 
                 for asset in assets:
-                    if asset['name'] == 'Bloodloom_models_setup.exe':
-                        models_setup_url = asset['browser_download_url']
-                    elif asset['name'].startswith('Bloodloom_models_setup') and asset['name'].endswith('.bin'):
-                        models_bin_urls.append(asset['browser_download_url'])
-                    elif asset['name'].endswith('.exe') and not asset['name'].startswith('Bloodloom_models'):
+                    # Фильтр: основной установщик = .exe (не models-ассет — их больше нет).
+                    # .rar (легаси-сжатие >2ГБ релизов) обновлятор ставить не умеет —
+                    # такие релизы считаются несовместимыми с автообновлением.
+                    if asset['name'].endswith('.exe') and not asset['name'].startswith('Bloodloom_models'):
                         main_setup_url = asset['browser_download_url']
                 
-                # 1. Скачиваем основной патч (всегда)
-                if main_setup_url:
-                    main_path = os.path.join(temp_dir, "bloodloom_main_update.exe")
-                    if download_file(main_setup_url, main_path):
-                        try:
-                            # Запускаем установщик и немедленно выходим, чтобы Inno Setup мог перезаписать Bloodloom.exe
-                            subprocess.Popen(['cmd', '/c', 'start', '""', main_path, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NOCANCEL', '/NORESTART', '/CLOSEAPPLICATIONS'])
-                            os._exit(0)
-                        except Exception:
-                            pass
+                # Раньше здесь была минута молчания: 1.4 ГБ качались в память без
+                # единого окна (наблюдено Мастером: «нажал Да — ничего»). Теперь —
+                # живое окно прогресса с байтами, скоростью, ETA и отменой.
+                import threading
+                import time as _time
                 
-                # Если мы дошли сюда, значит обновление не скачалось или не запустилось.
-                # Не запускаем старую игру!
-                root = tk.Tk()
-                root.withdraw()
-                messagebox.showerror("Ошибка обновления", "Не удалось скачать или запустить установщик обновления. Игра будет закрыана.")
-                root.destroy()
+                if not main_setup_url:
+                    _err = tk.Tk(); _err.withdraw()
+                    messagebox.showerror(
+                        "Обновление недоступно",
+                        "В последнем релизе нет подходящего файла установки (.exe).\n"
+                        "Возможно, релиз опубликован архивом .rar. Скачайте его вручную\n"
+                        "со страницы релизов GitHub.")
+                    _err.destroy()
+                    os._exit(1)
+                
+                main_path = os.path.join(temp_dir, "bloodloom_main_update.exe")
+                
+                win = tk.Tk()
+                win.title("Обновление Bloodloom")
+                win.geometry("480x220")
+                win.resizable(False, False)
+                win.configure(bg="#0F1419")
+                try:
+                    win.attributes("-topmost", True)
+                except tk.TclError:
+                    pass
+                _cx = (win.winfo_screenwidth() // 2) - 240
+                _cy = (win.winfo_screenheight() // 2) - 110
+                win.geometry(f"480x220+{_cx}+{_cy}")
+                
+                _title_font = tkfont.Font(family="Segoe UI", size=14, weight="bold")
+                _status_font = tkfont.Font(family="Segoe UI", size=11)
+                tk.Label(win, text="Загрузка обновления Bloodloom", font=_title_font,
+                         bg="#0F1419", fg="#00A887").pack(pady=(24, 8))
+                
+                _info = tk.Label(win, text="Подключение...", font=_status_font,
+                                 bg="#0F1419", fg="#FFFFFF")
+                _info.pack(pady=4)
+                
+                _bar = ttk.Progressbar(win, length=420, mode='determinate', maximum=100)
+                _bar.pack(pady=12)
+                
+                _speed = tk.Label(win, text="", font=_status_font, bg="#0F1419", fg="#8FA3B0")
+                _speed.pack()
+                
+                class _CB:
+                    def __init__(self):
+                        self.cancelled = False
+                    def __call__(self, done_mb, total_mb, speed_mbs, eta_sec):
+                        # Обновления UI — только через after(): download идёт в потоке
+                        pct = int(done_mb * 100 / total_mb) if total_mb else 0
+                        _eta = f"{int(eta_sec // 60)}м {int(eta_sec % 60)}с"
+                        _info_text = f"Загружено {done_mb} из {total_mb} МБ ({pct}%)"
+                        _speed_text = f"Скорость: {speed_mbs:.1f} МБ/с | Осталось: {_eta}"
+                        win.after(0, lambda: (
+                            _bar.configure(value=pct),
+                            _info.configure(text=_info_text),
+                            _speed.configure(text=_speed_text),
+                        ))
+                
+                _cb = _CB()
+                
+                _btn = tk.Button(win, text="Отменить", command=lambda: setattr(_cb, 'cancelled', True),
+                                 bg="#252530", fg="#FF6B6B", activebackground="#3a3a3a",
+                                 relief="flat", padx=16, pady=4)
+                _btn.pack(pady=10)
+                
+                _result = {}
+                
+                def _worker():
+                    _result['ok'] = download_file_with_progress(main_setup_url, main_path, _cb)
+                    win.after(0, win.quit)
+                
+                threading.Thread(target=_worker, daemon=True).start()
+                win.mainloop()
+                
+                if _cb.cancelled or _result.get('ok') is None:
+                    win.destroy()
+                    _c = tk.Tk(); _c.withdraw()
+                    messagebox.showinfo("Обновление отменено", "Загрузка отменена. Недокачанный файл удалён.\nЗапустите игру позже, чтобы повторить.")
+                    _c.destroy()
+                    os._exit(0)  # Отмена = не запускаем игру со старой версией молча
+                
+                win.destroy()
+                
+                if _result.get('ok') is True:
+                    try:
+                        # Установщик напрямую (без 'cmd /c start'): не всплывает чёрное
+                        # окно, нет слоя кавычек. Дочерний переживает os._exit родителя.
+                        _flags = 0x08000000 if sys.platform == 'win32' else 0
+                        subprocess.Popen(
+                            [main_path, '/VERYSILENT', '/SUPPRESSMSGBOXES',
+                             '/NOCANCEL', '/NORESTART', '/CLOSEAPPLICATIONS'],
+                            creationflags=_flags,
+                        )
+                        _s = tk.Tk(); _s.withdraw()
+                        messagebox.showinfo(
+                            "Обновление загружено",
+                            "Установщик запущен. Игра обновится автоматически\n"
+                            "и ярлык можно будет запустить снова через минуту.")
+                        _s.destroy()
+                        os._exit(0)
+                    except Exception as _e:
+                        _err = tk.Tk(); _err.withdraw()
+                        messagebox.showerror("Ошибка запуска установщика", f"Установщик скачан, но не запустился:\n{_e}\n\nФайл: {main_path}")
+                        _err.destroy()
+                        os._exit(1)
+                
+                # Скачивание упало (сеть и т.п.)
+                _err = tk.Tk(); _err.withdraw()
+                messagebox.showerror(
+                    "Ошибка загрузки",
+                    "Не удалось скачать обновление (проблема сети или GitHub).\n"
+                    "Проверьте соединение и запустите игру снова — загрузка начнётся заново.")
+                _err.destroy()
                 os._exit(1)
                 
-                # 2. Скачиваем модели (только если их нет)
-                if need_models and models_setup_url:
-                    root = tk.Tk()
-                    root.withdraw()
-                    messagebox.showinfo("Bloodloom", "AI-модель не найдена. Начинается загрузка (около 5 ГБ). Это займет время.")
-                    root.destroy()
-                    
-                    models_path = os.path.join(temp_dir, "bloodloom_models_update.exe")
-                    if download_file(models_setup_url, models_path):
-                        all_models_downloaded = True
-                        for i, bin_url in enumerate(models_bin_urls, 1):
-                            bin_path = os.path.join(temp_dir, f"bloodloom_models_update-{i}.bin")
-                            if not download_file(bin_url, bin_path):
-                                all_models_downloaded = False
-                                break
-                        
-                        if all_models_downloaded:
-                            try:
-                                subprocess.Popen(['cmd', '/c', 'start', '""', models_path, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NOCANCEL', '/NORESTART', '/CLOSEAPPLICATIONS'])
-                                os._exit(0)
-                            except Exception:
-                                pass
+                # Блок доставки моделей удалён: недостижим (os._exit выше) и устарел —
+                # models_setup-ассеты больше не публикуются, модель доставляет
+                # внутриигровой загрузчик (Настройки -> LLM Модели, докачка/отмена).
 
     # ЗАПУСК ИГРЫ
     launcher_path = os.path.join(app_dir, "game_launcher.pyc")
