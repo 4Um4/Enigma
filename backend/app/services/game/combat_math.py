@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from app.core.clock import get_clock
+from app.core.log_gate import file_logs_enabled
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Логирование
@@ -25,6 +26,9 @@ _COMBAT_LOG = _LOG_DIR / "combat_log.jsonl"
 
 
 def _log_roll(description: str, rolls: Any, total: int, context: Dict = None) -> None:
+    # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл молчит.
+    if not file_logs_enabled():
+        return
     entry = {
         "ts": get_clock().now().isoformat(timespec="seconds"),
         "event": "roll",
@@ -38,6 +42,9 @@ def _log_roll(description: str, rolls: Any, total: int, context: Dict = None) ->
 
 
 def _log_event(event: str, data: Dict) -> None:
+    # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл молчит.
+    if not file_logs_enabled():
+        return
     entry = {"ts": get_clock().now().isoformat(timespec="seconds"), "event": event, **data}
     with open(_COMBAT_LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")

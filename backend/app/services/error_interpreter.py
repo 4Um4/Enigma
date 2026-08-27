@@ -156,9 +156,14 @@ class ErrorInterpreter:
 
     def _jsonl_log(self, entry: Dict):
         """Append to daily JSONL log."""
+        # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл
+        # молчит, но in-memory tail продолжает наполняться (analyze/get_recent).
         try:
-            with open(LOG_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry) + "\n")
+            from app.core.log_gate import file_logs_enabled
+
+            if file_logs_enabled():
+                with open(LOG_FILE, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(entry) + "\n")
             self._log_entries.append(entry)
             self._log_entries = self._log_entries[-self._tail_lines :]
         except Exception:

@@ -1,8 +1,8 @@
 #!/bin/sh
 
-echo "[HOOK] Running sandbox tests..."
+echo "[HOOK] Running sandbox tests (file logs muted: ENIGMA_DISABLE_FILE_LOGS=1)..."
 
-PYTHONPATH=backend python -m pytest \
+ENIGMA_DISABLE_FILE_LOGS=1 PYTHONPATH=backend python -m pytest \
   backend/tests/sandbox/micro/test_lod_arbitration.py \
   backend/tests/sandbox/test_causal_bridge_integration.py \
   -q

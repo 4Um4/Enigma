@@ -409,8 +409,11 @@ class ModelPool:
 
     def _jsonl_log(self, event: dict) -> None:
         try:
-            with open(self._log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(event, ensure_ascii=False) + "\n")
+            from app.core.log_gate import file_logs_enabled
+
+            if file_logs_enabled():
+                with open(self._log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(event, ensure_ascii=False) + "\n")
         except Exception as e:
             logger.debug(f"[PROVIDER_MGR] Ошибка записи лога: {e}")
 

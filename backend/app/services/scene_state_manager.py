@@ -43,6 +43,7 @@ from typing import Any, Optional
 
 from app.core.calendar import Calendar
 from app.core.config import settings
+from app.core.log_gate import file_logs_enabled
 from app.services.scene_change import ChangeType, SceneChange
 
 # ADR-102: load_graph удалён — заменён на SpatialService
@@ -72,6 +73,15 @@ def _scene_log_file() -> Path:
 
 def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
     """Логирует SceneChange в scene_changes_YYYYMMDD.jsonl."""
+    # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл молчит.
+    if not file_logs_enabled():
+        logger.debug(
+            "File logs disabled (%s) — SceneChange не записан в файл: %s/%s",
+            "ENIGMA_DISABLE_FILE_LOGS",
+            campaign_id,
+            change.type,
+        )
+        return
     entry = {
         "ts": datetime.now().isoformat(timespec="seconds"),  # §15.2: Logging/telemetry
         "campaign_id": campaign_id,
