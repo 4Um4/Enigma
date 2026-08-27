@@ -844,6 +844,10 @@ class TickOrchestrator:
         self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
         self._phase_8_drain_secondary(ctx) # 8
 
+        
+        # AUDIT #7: FrontEngine интегрирован выше по потоку — точка
+        # run_npc_orchestration (до ядрового цикла локаций), т.к. маска
+        # принадлежит игроку и мутируется один раз за ход.
         # TODO (Фаза 2 / Эпоха 7): Интеграция FrontEngine.
         # Здесь, после обработки событий (Фаза 8) и до интеграции (Фаза 9),
         # должен вызываться apply_front_engine() из character/front_applicator.py.

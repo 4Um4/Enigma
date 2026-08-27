@@ -52,6 +52,22 @@ def run_npc_orchestration(
         logger.warning("[CHAR_FILTER] Action blocked, skipping NPC decisions")
         return npc_contexts
 
+    # AUDIT #7 INTEGRATED (2026-08): давление мира -> маска игрока.
+    # Единственная точка в causal flow хода игрока (TODO tick_orchestrator:849
+    # закрыт). Мутирует player_profile.front и shared_context
+    # (front_description / front_type / world_pressure).
+    _player_name = actions[0].player_name if actions else ""
+    if _player_name:
+        from app.services.character.front_applicator import apply_front_engine
+
+        apply_front_engine(
+            character_service=game_loop.character_service,
+            reputation_engine=game_loop._svc.get_reputation_engine(),
+            campaign_id=campaign_id,
+            player_name=_player_name,
+            shared_context=shared_context,
+        )
+
     # SceneContinuity — физические факты для NPC
     if not hasattr(shared_context, "scene_continuity"):
         shared_context.scene_continuity = game_loop._scene_continuities.setdefault(
