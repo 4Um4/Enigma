@@ -82,13 +82,8 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
         life_intents = [
             _i
             for _i in life_intents
-            if CommitmentArbiter.enforce(
-                ctx.scene_state,
-                getattr(_i, "actor_id", ""),
-                getattr(_i, "target_node_id", None),
-                getattr(_i, "reason", ""),
-                ctx.tick_number,
-            )
+            # S203.4: enforce_for_intent — вердикт + исполнение INTERRUPT
+            if CommitmentArbiter.enforce_for_intent(ctx.scene_state, _i, ctx.tick_number)
         ]
         # DRF: Претензии уже собраны напрямую в ctx.claim_field через Side-Channel Bus
         from app.services.spatial.movement_engine import MovementEngine

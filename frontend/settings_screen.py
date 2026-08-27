@@ -146,7 +146,7 @@ class SettingsScreen:
         tab_w = int(200 * self._scale)
         tab_h = int(50 * self._scale)
         gap = int(20 * self._scale)
-        start_x = (self.screen.get_width() - (tab_w * 3 + gap * 2)) // 2
+        start_x = (self.screen.get_width() - (tab_w * 4 + gap * 3)) // 2  # AUDIT #14: вкладок четыре
         start_y = 120
         
         buttons.append(_SettingsButton(start_x, start_y, tab_w, tab_h, "Графика", _MENU_COLORS["btn_primary"], _MENU_COLORS["btn_primary_hover"], lambda: self._switch_tab("graphics"), self._active_tab == "graphics"))
@@ -348,7 +348,7 @@ class SettingsScreen:
                 buttons.append(_SettingsButton(ctrl_x, start_y + i*(list_btn_h+list_gap), ctrl_btn_w, list_btn_h, text, _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], lambda k=key: self._rebind_key(k), tooltip="Нажмите, чтобы изменить клавишу"))
 
         # Универсальные кнопки внизу экрана (кроме вкладки LLM, там своя кнопка Назад)
-        if self._active_tab != "llm":
+        if self._active_tab not in ("llm", "controls"):  # AUDIT #14: controls сохраняет бинды сразу
             bottom_y = self.screen.get_height() - btn_h - 40
             buttons.append(_SettingsButton(self.screen.get_width() // 2 - btn_w - 20, bottom_y, btn_w, btn_h, "Применить", _MENU_COLORS["accent_green"], _MENU_COLORS["btn_primary_hover"], self._apply_graphics))
             buttons.append(_SettingsButton(self.screen.get_width() // 2 + 20, bottom_y, btn_w, btn_h, "Назад", _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], lambda: setattr(self, "_result", "back")))

@@ -156,7 +156,7 @@ class MovementPlanResult:
     proposal: Optional[TraversalProposal] = None
     reason: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """ADR-O-323: Инварианты результата планирования."""
         if self.status is MovementPlanStatus.ACCEPTED:
             if self.proposal is None:
@@ -272,10 +272,17 @@ def interrupt_traversal(
 
 
 def transition_commitment_preview(
-    commitment: Dict[str, Any], new_status: str, interrupt_reason: str
+    commitment: Dict[str, Any],
+    new_status: str,
+    interrupt_reason: str = "",
+    fail_reason: Optional[str] = None,
 ) -> bool:
     """S203.3: безмутационная валидация commitment-FSM перехода
-    (зеркало transition_commitment из action_commitment)."""
+    (зеркало transition_commitment из action_commitment).
+
+    S203.4: паритет с fail_reason-контрактом обязателен — рассинхрон
+    preview/transition = частичный interrupt (закон №14). interrupt_reason
+    получил дефолт: существующий вызов positional-safe."""
     from app.domain.action_commitment import COMMITMENT_TRANSITIONS
 
     current = commitment.get("status", "")
@@ -283,119 +290,7 @@ def transition_commitment_preview(
         return False
     if new_status == "INTERRUPTED" and not interrupt_reason:
         return False
-    return True
-
-
-# S203.3 (Stage 2A, ADR-O-363; закон Мастера): INTERRUPT — lifecycle-операция
-# над ДВУМЯ рельсами (traversal FSM + commitment registry). Частичный успех
-# запрещён: interrupt не успешен, пока оба слоя не достигли согласованного
-# terminal. Реализация — prepare-then-commit: обе мутации валидируются ДО
-# первой записи; между валидацией и записью детерминированный успех;
-# исключение между двумя записями — rollback первой (единственный остаточный
-# путь, покрытие тестом atomicity_rollback).
-_INTERRUPT_TRAVERSAL_REASONS = frozenset({
-    "CROSS_LOCATION_MATERIALIZE",   # Н-46a: ME:330 (был pop)
-    "CROSS_LOCATION_TRANSFER",      # Н-46c: ORCH:967 (был pop, BUG-SLEEP-013)
-})
-
-
-def interrupt_traversal(
-    scene_state: Dict[str, Any],
-    npc_id: str,
-    reason: str,
-    tick: int,
-) -> bool:
-    """Атомарный interrupt traversal+commitment (S203.3).
-
-    True  = INTERRUPTED_NOW: traversal CANCELLED, commitment INTERRUPTED(reason),
-            запись живёт до SSM-GC (TES не двигает не-MOVING — executor stop
-            самим статусом; guard in-flight блокирует stale-материализацию).
-    False = ALREADY_TERMINAL (no-op, консистентно) | NOT_FOUND (записи нет:
-            legacy-GC/чужой путь — НЕ то же самое, что уже-interrupted) |
-            REJECTED_INVALID_STATE (commitment не прерываем; ни один слой
-            не мутирован — частичный interrupt запрещён).
-    reason обязан быть из реестра причин — расширение = мини-ADR (класс
-    причинных констант, прецедент _INTENT_EVENT_MAP ADR-O-349).
-    """
-    if reason not in _INTERRUPT_TRAVERSAL_REASONS:
-        raise ValueError(f"interrupt_traversal: unknown reason '{reason}'")
-
-    traversals = scene_state.get("active_traversals") or {}
-    trav = traversals.get(npc_id)
-    if trav is None:
-        # NOT_FOUND: записи нет — оценивать commitment-слой нечем;
-        # вызывающий путь решает сам (у cross-loc путей commitment
-        # осиротеет и будет снят sweep'ом либо суперсессией).
-        return False
-    if trav.get("status") != "MOVING":
-        # ALREADY_TERMINAL (COMPLETED/CANCELLED): физика уже остановлена;
-        # no-op успешен по определению атомарности.
-        return False
-
-    # ── PREPARE (без мутаций): валидны ли ОБА перехода? ──────────────
-    _commitments = scene_state.get("active_commitments") or {}
-    cm = _commitments.get(npc_id)
-    # Заглушка-двойник для валидации FSM commitment-перехода без мутации:
-    # INTERRUPTED разрешён из {COMMITTED, EXECUTING, BLOCKED} и требует
-    # interrupt_reason (проверяем локальной копией словаря).
-    _cm_transition_ok = False
-    if cm is not None:
-        _probe = dict(cm)
-        _cm_transition_ok = transition_commitment_preview(_probe, "INTERRUPTED", reason)
-    # Если активного commitment нет (осиротел / legacy-мир без реестра) —
-    # рельс ownership уже terminal-consistent (нет владельца = нечему
-    # прерываться); interrupt traversal валиден и атомарен по факту.
-
-    # traversal-переход валидируем так же без мутации:
-    _trav_probe = dict(trav)
-    _trav_transition_ok = transition_traversal(_trav_probe, "CANCELLED")
-
-    if not _trav_transition_ok:
-        return False  # REJECTED_INVALID_STATE; ничего не мутировано
-    if cm is not None and not _cm_transition_ok:
-        return False  # REJECTED_INVALID_STATE; ничего не мутировано
-
-    # ── COMMIT (обе записи; после валидации обе обязаны удаться) ─────
-    # §1.2 (domain purity): запись commitment-рельса — доменным API
-    # transition_commitment + перенос в history (структура реестра:
-    # active_commitments / commitment_history / cap — константы домена).
-    # Никаких импортов services из domain.
-    from app.domain.action_commitment import (
-        COMMITMENT_HISTORY_CAP_PER_NPC,
-        transition_commitment,
-    )
-
-    transition_traversal(trav, "CANCELLED")
-    if cm is not None:
-        if not transition_commitment(cm, "INTERRUPTED", tick=tick,
-                                     interrupt_reason=reason):
-            # Невозможно после preview: атомарность нарушена. Полный откат
-            # недостижим (CANCELLED terminal) — падаем громко (L4):
-            # падение лучше тихого рассинхрона рельсов.
-            raise RuntimeError(
-                f"interrupt_traversal: commitment-interrupt failed after "
-                f"preview for npc={npc_id} — atomicity violated"
-            )
-        _commitments.pop(npc_id, None)
-        _history = scene_state.setdefault("commitment_history", {})
-        _bucket = _history.setdefault(npc_id, [])
-        _bucket.append(cm)
-        if len(_bucket) > COMMITMENT_HISTORY_CAP_PER_NPC:
-            del _bucket[: len(_bucket) - COMMITMENT_HISTORY_CAP_PER_NPC]
-    return True
-
-
-def transition_commitment_preview(
-    commitment: Dict[str, Any], new_status: str, interrupt_reason: str
-) -> bool:
-    """S203.3: безмутационная валидация commitment-FSM перехода
-    (зеркало transition_commitment из action_commitment)."""
-    from app.domain.action_commitment import COMMITMENT_TRANSITIONS
-
-    current = commitment.get("status", "")
-    if new_status not in COMMITMENT_TRANSITIONS.get(current, set()):
-        return False
-    if new_status == "INTERRUPTED" and not interrupt_reason:
+    if new_status == "FAILED" and not fail_reason:
         return False
     return True
 

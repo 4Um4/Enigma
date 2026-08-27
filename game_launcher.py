@@ -140,6 +140,8 @@ def _ensure_servers_running() -> tuple:
     # к КАЖДОМУ health-запросу — наблюдено замерами (refused за 4с вместо мс).
     # Единый хост с биндом — заодно честнее.
     _BACKEND_URL = f"http://127.0.0.1:{_api_port}"
+    import os as _os_cfg  # AUDIT #13: LLM-вкладка читает тот же адрес
+    _os_cfg.environ.setdefault("ENIGMA_BACKEND_URL", _BACKEND_URL)
 
     # ЕДИНАЯ шкала прогресса на весь _ensure_servers_running (окно уже создано
     # в main()). Раньше бар существовал только в цикле ожидания готовности и
@@ -486,9 +488,11 @@ def main() -> None:
                         
                         _reset_ok = False
                         if _backend_ok:
+                            import os as _os
+                            _os.environ.setdefault("ENIGMA_BACKEND_URL", _BACKEND_URL)
                             try:
                                 from api_client import create_game_gateway
-                                _gateway, _ = create_game_gateway()
+                                _gateway, _ = create_game_gateway(base_url=_BACKEND_URL)
                                 
                                 _result = _gateway.new_game(
                                     campaign_id=selected_folder,
@@ -550,9 +554,11 @@ def main() -> None:
                                 _time.sleep(0.5)
                         
                         if _backend_ok:
+                            import os as _os
+                            _os.environ.setdefault("ENIGMA_BACKEND_URL", _BACKEND_URL)
                             try:
                                 from api_client import create_game_gateway
-                                _gateway, _ = create_game_gateway()
+                                _gateway, _ = create_game_gateway(base_url=_BACKEND_URL)
                                 # continuity_mode="continuous" сохраняет прогресс и инициализирует MVP
                                 _gateway.new_game(
                                     campaign_id=selected_folder,

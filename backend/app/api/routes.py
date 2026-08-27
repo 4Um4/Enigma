@@ -281,7 +281,6 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
         "queue_health": queue_health,
         "warnings": warnings,
         "startup": startup_status,
-        "mvp_health": mvp_health,
     }
 
 

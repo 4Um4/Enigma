@@ -38,6 +38,16 @@ _KEY_ORDINALS = "commitment_ordinals"
 
 # Зеркало Н-46b: перезапись traversal без CANCELLED.
 _INTERRUPT_SUPERSEDED = "SUPERSEDED_BY_NEW_MATERIALIZATION"
+
+# S203.4 (ADR-O-365, D-4): зеркала владения task/windup/sleep. OFF (default) =
+# зеркала не создаются, поведение байтово прежнее. Оба имени env принимаются
+# (точка неудобна в части шеллов) — прецедент S203_4_ARBITER_INTERRUPT.
+import os as _os  # noqa: E402  (локальный: заголовок модуля не читан — якорь-безопасность)
+
+S203_4_OWNERSHIP_MIRRORS: bool = any(
+    _os.environ.get(_k, "").strip().lower() in ("1", "true", "yes")
+    for _k in ("S203.4_OWNERSHIP_MIRRORS", "S203_4_OWNERSHIP_MIRRORS")
+)
 # Sweep: traversal исчез вне зеркалируемых путей (Н-46-класс).
 _INTERRUPT_VANISHED = "TRAVERSAL_VANISHED"
 
@@ -118,6 +128,7 @@ class CommitmentRegistry:
         tick: int,
         new_status: str,
         interrupt_reason: Optional[str] = None,
+        fail_reason: Optional[str] = None,
     ) -> bool:
         """Терминальный переход + перенос в history. False = нечего/нельзя."""
         active = scene_state.setdefault(_KEY_ACTIVE, {})
@@ -125,7 +136,11 @@ class CommitmentRegistry:
         if commitment is None:
             return False
         if not transition_commitment(
-            commitment, new_status, tick=tick, interrupt_reason=interrupt_reason
+            commitment,
+            new_status,
+            tick=tick,
+            interrupt_reason=interrupt_reason,
+            fail_reason=fail_reason,
         ):
             logger.error(
                 f"[COMMITMENT] transition rejected: npc={npc_id} "
@@ -209,9 +224,12 @@ class CommitmentRegistry:
         return CommitmentRegistry._terminate(scene_state, npc_id, tick, "COMPLETED")
 
     @staticmethod
-    def fail(scene_state: Dict[str, Any], npc_id: str, tick: int) -> bool:
-        """-> FAILED (+history)."""
-        return CommitmentRegistry._terminate(scene_state, npc_id, tick, "FAILED")
+    def fail(scene_state: Dict[str, Any], npc_id: str, tick: int, fail_reason: str) -> bool:
+        """-> FAILED (+history). Причина провала ОБЯЗАТЕЛЬНА (D-6: симметрия
+        INTERRUPTED). fail_reason ∈ FAIL_* — реестр констант, закон №16."""
+        return CommitmentRegistry._terminate(
+            scene_state, npc_id, tick, "FAILED", fail_reason=fail_reason
+        )
 
     @staticmethod
     def interrupt(
@@ -251,6 +269,23 @@ class CommitmentRegistry:
         """
         if not COMMITMENT_REGISTRY_ENABLED:
             return
+        # D-1 (ADR-O-365): parent-цепочка при арбитр-INTERRUPT. Гейт прервал
+        # инкумбента этим же тиком (enforce_for_intent); зеркало материализации
+        # нового кандидата восстанавливает каузальную связь (№3a) поиском по
+        # истории: PRIORITY_SUPERSEDE-терминал с updated_tick == тику зеркала —
+        # не более одного на NPC/тик (после interrupt инкумбента нет).
+        # Fallback: parent=None (разрыв цепочки лучше ложной связи — Мастер).
+        from app.domain.action_commitment import INTERRUPT_PRIORITY_SUPERSEDE
+
+        _parent: Optional[str] = None
+        _hist = (scene_state.get("commitment_history") or {}).get(npc_id, [])
+        for _prev in reversed(_hist):
+            if (
+                _prev.get("interrupt_reason") == INTERRUPT_PRIORITY_SUPERSEDE
+                and _prev.get("updated_tick") == tick
+            ):
+                _parent = _prev.get("commitment_id")
+                break
         commitment = CommitmentRegistry.commit(
             scene_state,
             tick,
@@ -259,6 +294,7 @@ class CommitmentRegistry:
             cause=cause,
             target_id=target_node,
             executor="traversal",
+            parent_commitment_id=_parent,
         )
         if commitment is not None:
             CommitmentRegistry.mark_executing(scene_state, npc_id, tick)
@@ -271,6 +307,120 @@ class CommitmentRegistry:
         if not COMMITMENT_REGISTRY_ENABLED:
             return
         CommitmentRegistry.complete(scene_state, npc_id, tick)
+
+    # ── S203.4 (ADR-O-365): зеркала не-traversal исполнителей ────────────
+
+    @staticmethod
+    def _commit_nonsuperseding(
+        scene_state: Dict[str, Any],
+        tick: int,
+        npc_id: str,
+        action: str,
+        cause: str,
+        executor: str,
+        target_id: Optional[str] = None,
+        executor_ref: Optional[str] = None,
+        priority: int = 0,
+        priority_policy_version: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """R2/F12: non-superseding создание зеркала владения.
+
+        Зеркало НИКОГДА не убивает инкумбента: auto-supersede в зеркалах =
+        зомби (мёртвый commitment при живом исполнителе; закон №14). Коллизия
+        → None + телеметрия (частота walk+talk — вход будущей модели
+        конкурентности TZ §6). Priority — уже вычисленный результат policy
+        (зеркало не классифицирует семантику, №7).
+        """
+        if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
+            return None
+        active = scene_state.setdefault(_KEY_ACTIVE, {})
+        existing = active.get(npc_id)
+        if existing is not None:
+            logger.info(
+                f"[{executor.upper()}_MIRROR_COLLISION] tick={tick} npc={npc_id} "
+                f"action={action} executor_ref={executor_ref} "
+                f"incumbent={existing.get('commitment_id')} "
+                f"incumbent_executor={existing.get('executor')}"
+            )
+            return None
+        ordinal = CommitmentRegistry._next_ordinal(scene_state, npc_id)
+        commitment = build_commitment_dict(
+            tick=tick,
+            npc_id=npc_id,
+            action=action,
+            ordinal=ordinal,
+            cause=cause or CAUSE_UNKNOWN_LEGACY_SOURCE,
+            target_id=target_id,
+            executor=executor,
+            executor_ref=executor_ref,
+            priority=priority,
+            priority_policy_version=priority_policy_version,
+            initial_status="COMMITTED",
+        )
+        active[npc_id] = commitment
+        logger.debug(
+            f"[COMMITMENT] MIRROR-COMMIT npc={npc_id} action={action} "
+            f"executor={executor} executor_ref={executor_ref}"
+        )
+        return commitment
+
+    @staticmethod
+    def mirror_task_committed(
+        scene_state: Dict[str, Any],
+        tick: int,
+        npc_id: str,
+        cause: str,
+        task_id: str,
+        priority: int = 0,
+    ) -> Optional[Dict[str, Any]]:
+        """Ц1: canonical-задача поставлена в очередь (Фаза 6, Э5-b).
+
+        cause — verbatim upstream; классификацию canonical/ambient выполняет
+        вызывающая сторона (D-8): ambient в реестр не попадает.
+        """
+        from app.domain.action_priority import PRIORITY_POLICY_VERSION
+
+        return CommitmentRegistry._commit_nonsuperseding(
+            scene_state, tick, npc_id, action="TALK", cause=cause,
+            executor="task", executor_ref=task_id,
+            priority=priority,
+            priority_policy_version=(PRIORITY_POLICY_VERSION if priority else None),
+        )
+
+    @staticmethod
+    def mirror_task_terminal(
+        scene_state: Dict[str, Any],
+        npc_id: str,
+        tick: int,
+        outcome: str,
+        fail_reason: Optional[str] = None,
+    ) -> bool:
+        """Ц1: терминал task-исполнителя из outbox-дренажа (D-2).
+
+        outcome ∈ {EXECUTING, COMPLETED, FAILED, CANCELLED, EXPIRED}
+        (terminal-mapping v2). FAILED требует fail_reason (D-6). Executor-
+        мисматч = устаревший дренаж (гонка со sweep) → False, без мутации.
+        """
+        if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
+            return False
+        commitment = CommitmentRegistry.get_active(scene_state, npc_id)
+        if commitment is None or commitment.get("executor") != "task":
+            logger.info(
+                f"[TASK_MIRROR_STALE] tick={tick} npc={npc_id} outcome={outcome} "
+                f"active_executor={(commitment or {}).get('executor')}"
+            )
+            return False
+        if outcome == "EXECUTING":
+            return CommitmentRegistry.mark_executing(scene_state, npc_id, tick)
+        if outcome == "COMPLETED":
+            return CommitmentRegistry.complete(scene_state, npc_id, tick)
+        if outcome == "FAILED":
+            return CommitmentRegistry.fail(scene_state, npc_id, tick, fail_reason or "")
+        if outcome == "CANCELLED":
+            return CommitmentRegistry.cancel(scene_state, npc_id, tick)
+        if outcome == "EXPIRED":
+            return CommitmentRegistry.expire(scene_state, npc_id, tick)
+        raise ValueError(f"mirror_task_terminal: unknown outcome '{outcome}'")
 
     @staticmethod
     def mirror_traversal_interrupted(

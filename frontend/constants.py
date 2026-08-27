@@ -13,7 +13,7 @@ path: /frontend/constants.py
 # ─── Версия проекта ────────────────────────────────────────────────
 # Единственное место во frontend, где версия задаётся явно.
 # Истина: backend/pyproject.toml (строка 7). Здесь дублируется для UI.
-PROJECT_VERSION: str = "v0.5.3.9.0"
+PROJECT_VERSION: str = "v0.5.3.9.1"
 
 # Тайминги опроса backend в зависимости от расстояния до ближайшего NPC
 IDLE_TICK_NEAR_MS: int = 500

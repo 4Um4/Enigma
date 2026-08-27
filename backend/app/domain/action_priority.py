@@ -51,14 +51,18 @@ _DOMAIN_TO_PRIORITY: Dict[str, int] = {
 }
 
 # Windowed-действия (windup-класс, S209): окно подготовки 2 тика.
-_WINDOWED_ACTIONS: frozenset = frozenset({"attack", "steal"})
+_WINDOWED_ACTIONS: frozenset[str] = frozenset({"attack", "steal"})
 
 
 def resolve_candidate_priority(
     intent_type: str = "",
-    intent_domain: str = "",
+    intent_domain: object = None,
 ) -> int:
     """Pure function: приоритет кандидата по шкале PRIORITY_POLICY_VERSION.
+
+    intent_domain принимает IntentDomain Enum | str | None (гейты читают
+    getattr(intent, "domain", None)); нормализация внутри: Enum → .name
+    (str(Enum) ненадёжен между версиями Python), None/чужой тип → fallback.
 
     Детерминизм: результат зависит только от аргументов — одинаковый вход
     всегда даёт одинаковый приоритет (INV-REPLAY-DETERMINISM; приоритет
@@ -73,7 +77,14 @@ def resolve_candidate_priority(
         return PRIORITY_WINDOWED
     if intent_type == "sleep":
         return PRIORITY_SLEEP
-    domain = (intent_domain or "").strip().upper()
+    # Нормализация: на входе IntentDomain Enum (гейты передают getattr(intent,
+    # "domain")) либо строка; str(Enum) ненадёжен между версиями Python —
+    # каноничен .name. Чистый домен — без распознавания типов сервисов.
+    _domain = intent_domain if intent_domain is not None else ""
+    _domain = getattr(_domain, "name", _domain)
+    if not isinstance(_domain, str):
+        _domain = str(_domain)
+    domain = _domain.strip().upper()
     if domain in _DOMAIN_TO_PRIORITY:
         return _DOMAIN_TO_PRIORITY[domain]
     return PRIORITY_ROUTINE

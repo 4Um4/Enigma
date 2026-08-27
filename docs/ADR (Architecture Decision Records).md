@@ -250,6 +250,8 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — FSM, упр
 - ❌ **Taboo:** Мгновенная смена `life_project`; Бусты в `LOST`/`SEARCHING`; Скалярный `identity_crisis`.
 - 📁 `mod/npc_state.py`, `svc/npc/life_project_resolver.py`
 
+ADR-O-366 [ONTOLOGY] OpportunityProducer: Production Wiring — _build_opportunity_context inline in npc_tick_pipeline; Phase 1 (proximity proxy + real distance + perceived_allies); weapon=False; invariant: producer=DATA only
+
 ---
 
 ## DOM-08: OBSERVABILITY & ENFORCEMENT

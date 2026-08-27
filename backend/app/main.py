@@ -128,7 +128,7 @@ async def lifespan(app: FastAPI):
         vram = get_vram_monitor()
         # Устанавливаем VRAM baseline ЗДЕСЬ — исправляет ложные утечки (+5757 MB)
         await vram.start_session()
-        print("✓ ErrorInterpreter + VRAMMonitor initialized")
+        print("~ ErrorInterpreter initialized; VRAMMonitor — ЗАГЛУШКА (S142), телеметрия нулевая")
     except Exception as e:
         logger.error(f"[STARTUP] Monitor init failed: {e}")
         print(f"✗ Monitor error: {e}")

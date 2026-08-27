@@ -556,6 +556,31 @@ class NpcTickPipeline:
                 n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id")
             ]
 
+            # ADR-O-366: OpportunityProducer (DEBT-OPP-PRODUCER fix).
+            # Phase 1: proximity proxy for player_attention; real distance
+            # from SpatialQueryService; real allies from EpistemicContext
+            # (subjective, per ENIGMA Invariant V); weapon=False (Phase 2).
+            # INVARIANT: producer builds DATA only — no Intent/score/unlocked.
+            from app.services.economy.opportunity_engine import OpportunityContext as _OppCtx
+            _OPP_ATTENTION_RANGE_M = 10.0  # proxy; calibration candidate (021)
+            _opp_dist = state.spatial_query.distance_player(npc_id) if state.spatial_query else 999.0
+            _opp_att = max(0.0, min(1.0, 1.0 - _opp_dist / _OPP_ATTENTION_RANGE_M))
+            _opp_allies = len(getattr(_epistemic_ctx, "perceived_allies", ())) if _epistemic_ctx else 0
+            _opp_ctx = _OppCtx(
+                player_attention=_opp_att, distance=_opp_dist,
+                weapon_access=False, allies=_opp_allies,
+            )
+            # [HOTFIX-FOR-ADR-O-366, санкция Мастера W2, DIAGNOSTIC_PROBE_CRASH]:
+            # TickState не несёт will_state (DTO Registry §11; воля живёт per-NPC
+            # в psyche). Зонд обязан быть менее хрупким, чем наблюдаемый код
+            # (DIAG-PROBE-SAFETY): деградирует до None до проброса поля владельцем ADR.
+            _opp_will_state = getattr(state, "will_state", None)
+            _opp_will = (
+                _opp_will_state.value
+                if hasattr(_opp_will_state, "value")
+                else str(_opp_will_state)
+            )
+            print(f"[DIAG-OPP] npc={npc_id} will={_opp_will} dist={_opp_dist:.1f} att={_opp_att:.2f} allies={_opp_allies}")
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
@@ -576,6 +601,7 @@ class NpcTickPipeline:
                 campaign_id=state.campaign_id, # S135: SSOT
                 epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
                 epistemic_context=_epistemic_ctx, # S197: Causal Provenance
+                opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER
             )
 
 

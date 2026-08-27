@@ -87,3 +87,5 @@ class NpcTickServices:
     spatial_query: Optional[Any] = (
         None  # SpatialQueryService — ADR-048 Authoritative Spatial Spine
     )
+    crystallized_belief_store: Optional[Any] = None  # AUDIT-002 §3.2
+

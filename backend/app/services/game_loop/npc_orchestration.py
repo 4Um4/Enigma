@@ -121,6 +121,11 @@ def run_npc_orchestration(
         npc_positions=_scene_state.get("npc_positions", {}),
         scene_state=_scene_state,
     )
+    _cryst_store = getattr(
+        getattr(game_loop, "_tick_orch", None),
+        "crystallized_belief_store",
+        None,
+    )  # AUDIT-002 §3.2
     _npc_svc = NpcTickServices(
         memory_manager=game_loop.memory_manager,
         relationship_store=game_loop.memory_manager._relationships,
@@ -130,6 +135,7 @@ def run_npc_orchestration(
         event_bus=get_event_bus(),
         spatial_service=_spatial_svc,
         spatial_query=_spatial_query,
+        crystallized_belief_store=_cryst_store,  # AUDIT-002 §3.2
     )
     _pl = (
         getattr(ctx.hub_event, "payload", "<NO_PAYLOAD>")

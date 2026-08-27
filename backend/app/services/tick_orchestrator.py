@@ -853,11 +853,12 @@ class TickOrchestrator:
         # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
         # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
         # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
-
         # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
         # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
         # и Traveller.generate_visits() для спавна странников (торговцев, путников).
         # Это обеспечит внешние экономические шоки для локации.
+        # AUDIT #6 VERDICT=BURIED (2026-08): runtime захоронен, точка возврата
+        # задокументирована в services/economy/__init__.py.
 
         self._phase_9_integration(ctx) # 9
         self._run_affective_pipeline(ctx) # 9.1

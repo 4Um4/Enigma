@@ -55,7 +55,7 @@ COMMITMENT_TRANSITIONS: dict[str, set[str]] = {
     "CANCELLED": set(),  # terminal
 }
 
-COMMITMENT_TERMINAL_STATUSES: frozenset = frozenset(
+COMMITMENT_TERMINAL_STATUSES: frozenset[str] = frozenset(
     status for status, targets in COMMITMENT_TRANSITIONS.items() if not targets
 )
 
@@ -64,7 +64,7 @@ COMMITMENT_TERMINAL_STATUSES: frozenset = frozenset(
 # NPC свободным (защита от commitment race). PROPOSED — превентивно: кандидат
 # в рассмотрении тоже занимает владельца (появится в S203.3/4; зеркала его не
 # создают). Терминалы в ACTIVE не входят по построению.
-ACTIVE_COMMITMENT_STATUSES: frozenset = frozenset({
+ACTIVE_COMMITMENT_STATUSES: frozenset[str] = frozenset({
     "PROPOSED",
     "COMMITTED",
     "EXECUTING",
@@ -94,6 +94,9 @@ INTERRUPT_SLEEP_VANISHED: str = "SLEEP_VANISHED"  # reconciliation: спящий
 FAIL_BLOCKED_TIMEOUT: str = "BLOCKED_TIMEOUT"  # BLOCKED дольше BLOCKED_TIMEOUT_TICKS (Ц5)
 FAIL_TASK_ERROR: str = "TASK_ERROR"  # task-исполнитель вернул error-artifact
 FAIL_TASK_CRASH: str = "TASK_CRASH"  # исключение в исполнении задачи
+# TZ Scenario C: pre-condition провален навсегда (цель уничтожена, путь
+# закрыт) — REPLAN-семантика; потребитель — Э5/C-сценарий гейта.
+FAIL_TASK_IMPOSSIBLE: str = "TASK_IMPOSSIBLE"
 
 
 def build_commitment_id(tick: int, npc_id: str, action: str, ordinal: int) -> str:
@@ -177,11 +180,14 @@ def transition_commitment(
     new_status: str,
     tick: Optional[int] = None,
     interrupt_reason: Optional[str] = None,
+    fail_reason: Optional[str] = None,
 ) -> bool:
     """FSM-переход обязательства. True = разрешён и выполнен.
 
     INTERRUPTED без interrupt_reason запрещён: прерывание обязано нести
-    причину прекращения.
+    причину прекращения. S203.4 (D-6): FAILED без fail_reason запрещён —
+    симметрия; провал обязан нести причину (cause ≠ interrupt_reason
+    ≠ fail_reason, №7).
     """
     current: str = commitment.get("status", "")
     allowed = COMMITMENT_TRANSITIONS.get(current, set())
@@ -189,10 +195,22 @@ def transition_commitment(
         return False
     if new_status == "INTERRUPTED" and not interrupt_reason:
         return False
+    if new_status == "FAILED" and not fail_reason:
+        return False
 
     commitment["status"] = new_status
     if new_status == "INTERRUPTED":
         commitment["interrupt_reason"] = interrupt_reason
+    if new_status == "FAILED":
+        commitment["fail_reason"] = fail_reason
+    # S203.4 (Ц5): часы BLOCKED-фазы для таймаут-продюсера (Э7). Вход в
+    # BLOCKED заводит часы (tick=None → часы не заведены: sweep такой записи
+    # не таймаутит — честное отсутствие сигнала, не ноль); любой выход из
+    # BLOCKED (EXECUTING/терминалы) — сброс.
+    if new_status == "BLOCKED":
+        commitment["blocked_since_tick"] = tick
+    elif current == "BLOCKED":
+        commitment["blocked_since_tick"] = None
     if tick is not None:
         commitment["updated_tick"] = tick
     return True

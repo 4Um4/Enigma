@@ -367,7 +367,9 @@ def run_scenario_c() -> dict:
         ss = {}
         CommitmentRegistry.commit(ss, tick=1, npc_id=_TARGET_NPC, action="MOVE", cause="c_test")
         CommitmentRegistry.mark_executing(ss, _TARGET_NPC, 2)
-        ok_fail = CommitmentRegistry.fail(ss, _TARGET_NPC, 3)
+        # S203.4 (D-6): FAILED без причины запрещён; Scenario C — pre-condition
+        # провален навсегда (литерал константы FAIL_TASK_IMPOSSIBLE).
+        ok_fail = CommitmentRegistry.fail(ss, _TARGET_NPC, 3, "TASK_IMPOSSIBLE")
         released = _TARGET_NPC not in ss.get("active_commitments", {})
         _log(f"  R6: fail()={ok_fail}, ownership released={released}")
         if not (ok_fail and released):

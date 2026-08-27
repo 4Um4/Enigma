@@ -19,7 +19,7 @@ from tools.constants import (
     TOOL_WALL, TOOL_ROOM, TOOL_NODE, MODE_WORLD, MODE_LOCAL, MODE_LAB
 )
 
-SCALE = 20
+SCALE = 20 
 ZOOM_STEP = 1.2
 MIN_ZOOM = 0.4
 MAX_ZOOM = 5.0

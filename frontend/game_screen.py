@@ -583,6 +583,12 @@ class GameScreen:
             f"[GAME_SCREEN] scene_state loaded: {bool(scene_state)}, loc={scene_state.get('location_id', 'N/A')}"
         )
         if not scene_state:
+            logger.error(
+                "[GAME_SCREEN] Отказ запуска экрана: session_state пуст (transport=%s, keys=%s)",
+                type(_gateway).__name__,
+                sorted(_session_data.keys()),
+            )
+            system_log.append("[!] Не удалось загрузить состояние сцены — возврат в меню (см. лог)")
             return
 
         # Игровое время — total_seconds от начала эпохи

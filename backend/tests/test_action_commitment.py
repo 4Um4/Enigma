@@ -17,7 +17,6 @@ path: /project/backend/tests/test_action_commitment.py
 import json
 
 import pytest
-
 from app.domain.action_commitment import (
     CAUSE_UNKNOWN_LEGACY_SOURCE,
     COMMITMENT_HISTORY_CAP_PER_NPC,
@@ -29,8 +28,8 @@ from app.domain.action_commitment import (
     transition_commitment,
 )
 from app.services.action import commitment_registry as cr_module
-from app.services.action.commitment_registry import CommitmentRegistry
 from app.services.action.commitment_arbiter import CommitmentArbiter
+from app.services.action.commitment_registry import CommitmentRegistry
 
 
 @pytest.fixture
@@ -70,7 +69,11 @@ class TestCommitmentFSM:
                     continue
                 record = _mk(initial_status=frm)
                 ok = transition_commitment(
-                    record, to, tick=99, interrupt_reason="R" if to == "INTERRUPTED" else None
+                    record, to, tick=99,
+                    interrupt_reason="R" if to == "INTERRUPTED" else None,
+                    # S203.4 (D-6): FAILED без причины запрещён — симметрия
+                    # параметризации INTERRUPTED в этом же вызове.
+                    fail_reason="TASK_ERROR" if to == "FAILED" else None,
                 )
                 assert ok == (to in allowed), f"{frm}->{to}: got {ok}, allowed={to in allowed}"
 
@@ -171,15 +174,28 @@ class TestRegistryLifecycle:
         assert CommitmentRegistry.complete(ss, "n1", 6) is False
 
     def test_terminal_variants(self, flag_on):
+        # S203.4 (D-6): FAILED теперь требует fail_reason (симметрия
+        # INTERRUPTED) — терминал-цикл параметризует причину по статусу.
+        from app.domain.action_commitment import FAIL_TASK_ERROR
+
+        _fail_reasons = {"FAILED": FAIL_TASK_ERROR}
         for terminal in ("FAILED", "EXPIRED", "CANCELLED"):
             ss = {}
             CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c")
             CommitmentRegistry.mark_executing(ss, "n1", 2)
+            _kwargs = (
+                {"fail_reason": _fail_reasons[terminal]} if terminal == "FAILED" else {}
+            )
             ok = {"FAILED": CommitmentRegistry.fail,
                   "EXPIRED": CommitmentRegistry.expire,
-                  "CANCELLED": CommitmentRegistry.cancel}[terminal](ss, "n1", 3)
+                  "CANCELLED": CommitmentRegistry.cancel}[terminal](ss, "n1", 3, **_kwargs)
             assert ok is True
             assert ss["commitment_history"]["n1"][-1]["status"] == terminal
+            if terminal == "FAILED":
+                assert (
+                    ss["commitment_history"]["n1"][-1]["fail_reason"]
+                    == FAIL_TASK_ERROR
+                )
 
     def test_history_cap_bounded(self, flag_on):
         """№1: retained history ограничена cap — реестр не растёт бесконечно."""
@@ -436,6 +452,401 @@ class TestS2034CommitmentContract:
         )
 
 
+class TestS2034FailReasonContract:
+    """D-6: FAILED обязан нести причину; Ц5: часы BLOCKED-фазы."""
+
+    def test_failed_without_fail_reason_rejected(self):
+        from app.domain.action_commitment import build_commitment_dict, transition_commitment
+
+        cm = build_commitment_dict(
+            tick=1, npc_id="n1", action="EAT", ordinal=1,
+            cause="need:hunger", initial_status="EXECUTING",
+        )
+        assert transition_commitment(cm, "FAILED", tick=2) is False
+        assert cm["status"] == "EXECUTING"  # ничего не мутировано
+
+    def test_failed_with_reason_sets_field(self):
+        from app.domain.action_commitment import (
+            FAIL_TASK_ERROR,
+            build_commitment_dict,
+            transition_commitment,
+        )
+
+        cm = build_commitment_dict(
+            tick=1, npc_id="n1", action="EAT", ordinal=1,
+            cause="need:hunger", initial_status="EXECUTING",
+        )
+        assert transition_commitment(cm, "FAILED", tick=2, fail_reason=FAIL_TASK_ERROR)
+        assert cm["fail_reason"] == FAIL_TASK_ERROR
+
+    def test_registry_fail_signature_requires_reason(self, flag_on):
+        import pytest as _pytest
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="EAT", cause="c")
+        with _pytest.raises(TypeError):
+            CommitmentRegistry.fail(ss, "n1", 2)  # type: ignore[call-arg]
+
+    def test_registry_fail_persists_reason_in_history(self, flag_on):
+        from app.domain.action_commitment import FAIL_TASK_CRASH
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="EAT", cause="c")
+        CommitmentRegistry.mark_executing(ss, "n1", 1)
+        assert CommitmentRegistry.fail(ss, "n1", 2, FAIL_TASK_CRASH)
+        assert ss["commitment_history"]["n1"][-1]["fail_reason"] == FAIL_TASK_CRASH
+
+    def test_blocked_clock_maintenance(self):
+        from app.domain.action_commitment import (
+            FAIL_BLOCKED_TIMEOUT,
+            build_commitment_dict,
+            transition_commitment,
+        )
+
+        cm = build_commitment_dict(
+            tick=1, npc_id="n1", action="EAT", ordinal=1,
+            cause="need:hunger", initial_status="COMMITTED",
+        )
+        assert transition_commitment(cm, "BLOCKED", tick=5)
+        assert cm["blocked_since_tick"] == 5
+        assert transition_commitment(cm, "EXECUTING", tick=7)
+        assert cm["blocked_since_tick"] is None  # выход из BLOCKED — сброс
+        assert transition_commitment(cm, "BLOCKED", tick=8)
+        assert transition_commitment(
+            cm, "FAILED", tick=9, fail_reason=FAIL_BLOCKED_TIMEOUT
+        )
+        assert cm["fail_reason"] == FAIL_BLOCKED_TIMEOUT
+
+    def test_blocked_entry_without_tick_leaves_clock_unwound(self):
+        from app.domain.action_commitment import build_commitment_dict, transition_commitment
+
+        cm = build_commitment_dict(
+            tick=1, npc_id="n1", action="EAT", ordinal=1,
+            cause="need:hunger", initial_status="COMMITTED",
+        )
+        assert transition_commitment(cm, "BLOCKED")  # tick=None
+        assert cm["blocked_since_tick"] is None  # часы не заведены — Э7-sweep скипает
+
+    def test_preview_parity_failed_contract(self):
+        from app.domain.action_commitment import build_commitment_dict
+        from app.domain.traversal_schema import transition_commitment_preview
+
+        cm = build_commitment_dict(
+            tick=1, npc_id="n1", action="EAT", ordinal=1,
+            cause="need:hunger", initial_status="EXECUTING",
+        )
+        assert transition_commitment_preview(cm, "FAILED") is False
+        assert transition_commitment_preview(cm, "FAILED", fail_reason="TASK_ERROR")
+
+
+class TestS2034ArbiterInterrupt:
+    """Э3: приоритетная политика прерываний (D-4/D-5/D-6; арбитр read-only)."""
+
+    def _policy(self, on: bool):
+        import app.services.action.commitment_arbiter as arb
+
+        saved = (arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT)
+        arb.ARBITER_ENFORCEMENT = on
+        arb.S203_4_ARBITER_INTERRUPT = on
+        return arb, saved
+
+    def test_policy_off_keeps_s2032_behavior(self, flag_on):
+        arb, saved = self._policy(False)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_INCUMBENT,
+                VERDICT_REJECT,
+                CommitmentArbiter,
+            )
+
+            ss = {}
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="gate")
+            r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=99)
+            assert r.verdict == VERDICT_REJECT and r.reason == REASON_INCUMBENT
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_interrupt_on_threshold(self, flag_on):
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_PRIORITY_SUPERSEDE,
+                VERDICT_INTERRUPT,
+                CommitmentArbiter,
+            )
+
+            ss = {}
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="gate")
+            r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=7)
+            assert r.verdict == VERDICT_INTERRUPT
+            assert r.reason == REASON_PRIORITY_SUPERSEDE
+            assert r.incumbent_id is not None
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_no_interrupt_below_threshold(self, flag_on):
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_INCUMBENT,
+                VERDICT_REJECT,
+                CommitmentArbiter,
+            )
+
+            ss = {}
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="gate")
+            # 3 > 0 + 3 — ложно: SOCIAL не прерывает базового инкумбента.
+            r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=3)
+            assert r.verdict == VERDICT_REJECT and r.reason == REASON_INCUMBENT
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_incumbent_protected_executors(self, flag_on):
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_INCUMBENT_PROTECTED,
+                VERDICT_REJECT,
+                CommitmentArbiter,
+            )
+
+            for executor in ("task", "windup", "sleep"):
+                ss = {}
+                CommitmentRegistry.commit(
+                    ss, tick=1, npc_id="n1", action="TALK", cause="c", executor=executor
+                )
+                r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=99)
+                assert r.verdict == VERDICT_REJECT, executor
+                assert r.reason == REASON_INCUMBENT_PROTECTED, executor
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_executing_policy_protection(self, flag_on):
+        """Вердикт B: EXECUTING-защита СОХРАНЯЕТСЯ для не-traversal
+        исполнителей (task/windup/sleep во всех статусах)."""
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_INCUMBENT_PROTECTED,
+                VERDICT_REJECT,
+                CommitmentArbiter,
+            )
+
+            ss = {}
+            CommitmentRegistry.commit(
+                ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task"
+            )
+            CommitmentRegistry.mark_executing(ss, "n1", 2)
+            r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 3, candidate_priority=99)
+            assert r.verdict == VERDICT_REJECT
+            assert r.reason == REASON_INCUMBENT_PROTECTED  # POLICY, не онтология
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_duplicate_never_interrupts(self, flag_on):
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_DUPLICATE,
+                VERDICT_REJECT,
+                CommitmentArbiter,
+            )
+
+            ss = {}
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="gate")
+            r = CommitmentArbiter.arbitrate(ss, "n1", "gate", "src", 2, candidate_priority=99)
+            assert r.verdict == VERDICT_REJECT and r.reason == REASON_DUPLICATE
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_enforce_for_intent_executes_interrupt_atomically(self, flag_on):
+        from types import SimpleNamespace
+
+        from app.domain.movement import IntentDomain
+
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import CommitmentArbiter
+
+            # Вердикт B: production-реалистичный инкумбент — born-EXECUTING
+            # traversal (Н-50, mirror). SURVIVAL(6) > 0 + 3 → INTERRUPT.
+            ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
+            CommitmentRegistry.mirror_traversal_materialized(
+                ss, tick=5, npc_id="n1", cause="schedule:patrol", target_node="gate"
+            )
+            _intent = SimpleNamespace(
+                actor_id="n1", target_node_id="bar", reason="need:flee",
+                domain=IntentDomain.SURVIVAL, intent_type="",
+            )
+            assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is True
+            # Закон №14: ОБА рельса терминальны одним вызовом.
+            assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
+            assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+            assert ss["commitment_history"]["n1"][-1]["interrupt_reason"] == "PRIORITY_SUPERSEDE"
+            # владелец освобождён — следующий кандидат PASS
+            r2 = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 7)
+            assert r2.verdict == "PASS"
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_enforce_for_intent_not_found_fallback(self, flag_on):
+        from types import SimpleNamespace
+
+        from app.domain.movement import IntentDomain
+
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import CommitmentArbiter
+
+            ss = {}
+            CommitmentRegistry.commit(ss, tick=5, npc_id="n1", action="MOVE", cause="c", target_id="gate")
+            _intent = SimpleNamespace(
+                actor_id="n1", target_node_id="bar", reason="need:flee",
+                domain=IntentDomain.SURVIVAL, intent_type="",
+            )
+            # traversal-записи нет → interrupt_traversal NOT_FOUND → False;
+            # инкумбент не тронут (частичный interrupt запрещён, №14).
+            assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is False
+            assert ss["active_commitments"]["n1"]["status"] == "COMMITTED"
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_executing_traversal_social_does_not_supersede(self, flag_on):
+        """Вердикт B, анти-флап грань: born-EXECUTING traversal (Н-50) НЕ
+        вытесняется SOCIAL(3): 3 > 0 + 3 — ложно. Болтовня не ломает дорогу;
+        выталкивают только SURVIVAL(6)/WINDOWED(7). Оба рельса нетронуты."""
+        from types import SimpleNamespace
+
+        from app.domain.action_priority import PRIORITY_SOCIAL
+        from app.domain.movement import IntentDomain
+
+        arb, saved = self._policy(True)
+        try:
+            from app.services.action.commitment_arbiter import (
+                REASON_INCUMBENT,
+                VERDICT_REJECT,
+                CommitmentArbiter,
+            )
+
+            ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
+            CommitmentRegistry.mirror_traversal_materialized(
+                ss, tick=5, npc_id="n1", cause="schedule:patrol", target_node="gate"
+            )
+            assert ss["active_commitments"]["n1"]["status"] == "EXECUTING"  # Н-50
+            _intent = SimpleNamespace(
+                actor_id="n1", target_node_id="bar", reason="social:greet",
+                domain=IntentDomain.SOCIAL, intent_type="",
+            )
+            assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is False
+            # Частичный эффект запрещён (№14): оба рельса нетронуты.
+            assert ss["active_traversals"]["n1"]["status"] == "MOVING"
+            assert ss["active_commitments"]["n1"]["status"] == "EXECUTING"
+            r = CommitmentArbiter.arbitrate(
+                ss, "n1", "bar", "src", 6, candidate_priority=PRIORITY_SOCIAL
+            )
+            assert r.verdict == VERDICT_REJECT and r.reason == REASON_INCUMBENT
+        finally:
+            arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
+
+    def test_resolve_accepts_intent_domain_enum(self):
+        from app.domain.action_priority import PRIORITY_SURVIVAL, resolve_candidate_priority
+        from app.domain.movement import IntentDomain
+
+        assert resolve_candidate_priority(intent_domain=IntentDomain.SURVIVAL) == PRIORITY_SURVIVAL
+
+
+class TestS2034OwnershipMirrors:
+    """Э5-a: non-supersiding зеркала task (флаг / коллизия / терминалы)."""
+
+    def _mirrors(self, on: bool):
+        import app.services.action.commitment_registry as cr
+
+        saved = cr.S203_4_OWNERSHIP_MIRRORS
+        cr.S203_4_OWNERSHIP_MIRRORS = on
+        return cr, saved
+
+    def test_mirrors_flag_off_noop(self):
+        cr, saved = self._mirrors(False)
+        try:
+            ss = {}
+            assert CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "c", "t-1") is None
+            assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 2, "COMPLETED") is False
+            assert "active_commitments" not in ss
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_task_mirror_commit_and_lifecycle(self, flag_on):
+        cr, saved = self._mirrors(True)
+        try:
+            ss = {}
+            cm = CommitmentRegistry.mirror_task_committed(
+                ss, 1, "n1", "warn:goran", "task-1-n1-0-dlg", priority=2
+            )
+            assert cm is not None and cm["status"] == "COMMITTED"
+            assert cm["executor"] == "task" and cm["executor_ref"] == "task-1-n1-0-dlg"
+            assert cm["priority"] == 2
+            assert cm["priority_policy_version"] == "s203.4.v1"
+            assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 2, "EXECUTING")
+            assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 5, "COMPLETED")
+            assert ss["commitment_history"]["n1"][-1]["status"] == "COMPLETED"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_task_mirror_collision_never_supersedes(self, flag_on):
+        cr, saved = self._mirrors(True)
+        try:
+            ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
+            CommitmentRegistry.mirror_traversal_materialized(
+                ss, tick=1, npc_id="n1", cause="schedule:patrol", target_node="gate"
+            )
+            # Коллизия: traversal-инкумбент жив → task-зеркало НЕ создаётся,
+            # инкумбент НЕ прерывается (non-superseding; №14).
+            assert CommitmentRegistry.mirror_task_committed(ss, 2, "n1", "c", "t-1") is None
+            assert ss["active_commitments"]["n1"]["executor"] == "traversal"
+            assert ss["active_traversals"]["n1"]["status"] == "MOVING"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_task_terminal_failed_requires_reason(self, flag_on):
+        cr, saved = self._mirrors(True)
+        try:
+            ss = {}
+            CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "c", "t-1")
+            CommitmentRegistry.mirror_task_terminal(ss, "n1", 2, "EXECUTING")
+            assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 3, "FAILED") is False
+            assert ss["active_commitments"]["n1"]["status"] == "EXECUTING"  # не мутировано
+            assert CommitmentRegistry.mirror_task_terminal(
+                ss, "n1", 3, "FAILED", fail_reason="TASK_CRASH"
+            )
+            assert ss["commitment_history"]["n1"][-1]["fail_reason"] == "TASK_CRASH"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_task_terminal_stale_executor_rejected(self, flag_on):
+        cr, saved = self._mirrors(True)
+        try:
+            ss = {}
+            CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "c", "t-1")
+            # симуляция гонки: исполнитель сменился → дренаж обязан отказаться
+            ss["active_commitments"]["n1"]["executor"] = "traversal"
+            assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 2, "COMPLETED") is False
+            assert ss["active_commitments"]["n1"]["status"] == "COMMITTED"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_task_terminal_unknown_outcome_raises(self, flag_on):
+        import pytest as _pytest
+
+        cr, saved = self._mirrors(True)
+        try:
+            ss = {}
+            CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "c", "t-1")
+            with _pytest.raises(ValueError):
+                CommitmentRegistry.mirror_task_terminal(ss, "n1", 2, "BOGUS")
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+
 class TestFlagNeutrality:
     def test_disabled_flag_full_noop(self):
         """Rollback-контракт S203.1: флаг OFF = реестр не пишет, поведение байтово прежнее."""
@@ -478,7 +889,6 @@ class TestJsonRoundTrip:
 class TestCommitmentArbiter:
     def test_pass_when_no_incumbent(self):
         from app.services.action.commitment_arbiter import (
-            CommitmentArbiter,
             VERDICT_PASS,
         )
 
@@ -490,7 +900,6 @@ class TestCommitmentArbiter:
         from app.services.action.commitment_arbiter import (
             REASON_DUPLICATE,
             VERDICT_REJECT,
-            CommitmentArbiter,
         )
 
         ss = {}
@@ -504,7 +913,6 @@ class TestCommitmentArbiter:
         from app.services.action.commitment_arbiter import (
             REASON_INCUMBENT,
             VERDICT_REJECT,
-            CommitmentArbiter,
         )
 
         ss = {}
@@ -519,7 +927,6 @@ class TestCommitmentArbiter:
         from app.services.action.commitment_arbiter import (
             REASON_INCUMBENT,
             VERDICT_REJECT,
-            CommitmentArbiter,
         )
 
         ss = {}
@@ -534,7 +941,6 @@ class TestCommitmentArbiter:
         суперсессию выполнит mirror; арбитр не создаёт starvation."""
         from app.services.action.commitment_arbiter import (
             VERDICT_PASS,
-            CommitmentArbiter,
         )
 
         ss = {"active_commitments": {"n1": {"status": "INTERRUPTED", "commitment_id": "x", "target_id": "bar"}}}
@@ -651,7 +1057,6 @@ class TestInterruptTraversal:
         from app.domain.traversal_schema import interrupt_traversal
 
         interrupt_traversal(ss, "n1", "CROSS_LOCATION_TRANSFER", 5)
-        pos_before = (ss.get("npc_positions") or {}).get("n1")
         TraversalExecutionSystem.advance(ss, 6)
         # запись всё ещё CANCELLED (GC не запускался — advance не удаляет)
         assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"

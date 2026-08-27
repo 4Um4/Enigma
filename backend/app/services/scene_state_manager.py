@@ -1580,31 +1580,15 @@ class SceneStateManager:
         # ADR-O-309: WorldProjectionBuffer (Shadow Causality).
         # Запускается внутри atomic commit boundary ДО persistence и обновления state_t-1.
         # Порядок: state_t финализирован → projection → persistence → update state_t-1.
-        if not hasattr(self, "_world_proj_buffer"):
-            from app.services.offscreen.world_projection_buffer import (
-                WorldProjectionBuffer,
-            )
-
-            self._world_proj_buffer = WorldProjectionBuffer()
-
         _loc_id = scene_state.get("location_id", "")
         _tick = scene_state.get("tick", 0)
-        # Запрашиваем state_t-1 (temporally sealed artifact от предыдущего тика)
-        _prev_state = self.get_last_committed_npcs()
 
-        _projections = self._world_proj_buffer.project(
-            tick=_tick,
-            campaign_id=campaign_id,
-            location_id=_loc_id,
-            all_npcs_raw=npc_dicts or [],
-            significant_events=significant_events or [],
-            previous_npcs_raw=_prev_state,
-        )
-        if _projections:
-            # TODO: В будущей фазе пробросить в shared_context для DM-агента
-            logger.debug(
-                f"[WORLD_PROJ] Сгенерировано вторичных эффектов: {len(_projections)}"
-            )
+        # AUDIT #10 VERDICT=OFF (2026-08): генерация WorldProjectionEvent
+        # отключена — потребителей в продукте нет, события создавались и
+        # умирали каждый коммит. Концепт сохранён в
+        # app/services/offscreen/world_projection_buffer.py; возврат — при
+        # появлении реального consumer (DM-агент, слухи).
+        # _SHADOW_CAUSALITY_DISABLED
 
         # S1-FIX (INV-COMMIT-CARDINALITY): Фаза 10 не пишет в БД напрямую.
         # Она только обновляет кэш в RAM. Запись на диск происходит 1 раз в unlock_tick().

@@ -924,6 +924,25 @@ class GameLoop:
                     )
                     self._current_spatial_query = None
 
+            # AUDIT-003 §3.3: сервисный контекст NPC для тиков вне хода игрока
+            from app.services.npc.npc_tick_contracts import NpcTickServices
+            from app.services.events.event_bus import get_event_bus
+
+            _npc_svc = NpcTickServices(
+                memory_manager=self.memory_manager,
+                relationship_store=self.memory_manager._relationships,
+                social_engine=self._svc.get_social_engine(campaign_id),
+                reputation_engine=self._svc.get_reputation_engine(),
+                economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
+                event_bus=get_event_bus(),
+                spatial_service=_spatial_svc,
+                spatial_query=getattr(self, "_current_spatial_query", None),
+                crystallized_belief_store=getattr(
+                    getattr(self, "_tick_orch", None),
+                    "crystallized_belief_store",
+                    None,
+                ),
+            )
             result = self._time_skip.skip(
                 campaign_id=campaign_id,
                 scene_state=_scene,
@@ -931,6 +950,7 @@ class GameLoop:
                 policy="B",  # Останавливаемся на значимых событиях
                 spatial_service=_spatial_svc,
                 get_npcs_callback=self._resolve_npcs_light_snapshot,  # Используем лёгкий срез
+                npc_services=_npc_svc,  # AUDIT-003 §3.3
             )
 
             # Формируем world_snapshot для фронтенда
@@ -1109,6 +1129,25 @@ class GameLoop:
         if _idle_ctx and not getattr(_idle_ctx, "relationship_store", None):
             _idle_ctx.relationship_store = getattr(self, "_rel_store", None)
             
+        # AUDIT-003 §3.3: контекст NPC для idle-тика — тот же паттерн сборки, что и путь игрока
+        from app.services.npc.npc_tick_contracts import NpcTickServices
+        from app.services.events.event_bus import get_event_bus
+
+        _npc_svc = NpcTickServices(
+            memory_manager=self.memory_manager,
+            relationship_store=self.memory_manager._relationships,
+            social_engine=self._svc.get_social_engine(campaign_id),
+            reputation_engine=self._svc.get_reputation_engine(),
+            economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
+            event_bus=get_event_bus(),
+            spatial_service=_spatial_svc,
+            spatial_query=getattr(self, "_current_spatial_query", None),
+            crystallized_belief_store=getattr(
+                getattr(self, "_tick_orch", None),
+                "crystallized_belief_store",
+                None,
+            ),
+        )
         result = self._tick_orch.execute(
             campaign_id=campaign_id,
             scene_state=_scene,
@@ -1120,6 +1159,7 @@ class GameLoop:
             eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
             mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
             interventions=interventions,  # M1: Внедрение событий игрока
+            npc_services=_npc_svc,  # AUDIT-003 §3.3
         )
         
         # Коммит результатов оркестратора (если ядро не сделало это само)
@@ -1167,10 +1207,15 @@ class GameLoop:
         )
 
         # ADR-O-313: Execution Framework. Материализация отложенных задач (LLM и др.)
-        # Работает с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus
+        # Работаем с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus
         # (напр. SocialInputProjector) попали в финальный unlock_tick.
         if _auth_scene and _auth_scene.get("pending_tasks"):
             self._get_task_scheduler().execute_pending(_auth_scene, campaign_id)
+
+        # S203.4 (ADR-O-365, D-2): БЕЗУСЛОВНЫЙ sync-дренаж outbox — тихие тики
+        # (без pending_tasks) не создают backlog терминалов; окно до unlock_tick (F24).
+        if _auth_scene:
+            self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict

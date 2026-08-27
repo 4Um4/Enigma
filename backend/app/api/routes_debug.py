@@ -94,11 +94,16 @@ async def get_npc_causal_ledger(npc_id: str, campaign_id: str, request: Request)
 
 
 @router.post("/reset-relationships/{campaign_id}")
-async def reset_campaign_relationships(campaign_id: str):
-    """Миграция: сброс relationships после бага #7 (дублирование дельт)."""
-    from app.core.game_loop import get_game_loop
+async def reset_campaign_relationships(request: Request, campaign_id: str):
+    """Миграция: сброс relationships после бага #7 (дублирование дельт).
 
-    loop = get_game_loop()
+    AUDIT #1: прежний код импортировал несуществующий модуль game_loop
+    и звал аксессор без Request -> 500 на любой вызов.
+    Выровнено по образцу get_npc_causal_ledger (:74-76).
+    """
+    from app.services.game_loop_accessor import get_game_loop
+
+    loop = get_game_loop(request)
     if not loop or not loop.memory_manager:
         return {"status": "error", "message": "GameLoop not initialized"}
     count = loop.memory_manager._relationships.reset_campaign(campaign_id)

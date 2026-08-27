@@ -373,9 +373,6 @@ class HttpGameGateway:
     def get_end_screen(self, campaign_id: str) -> dict:
         return self._contract.get_end_screen(campaign_id)
 
-    def set_continuity_mode(self, mode: str) -> dict:
-        return self._contract.set_continuity_mode(mode)
-
     def get_characters(self, campaign_id: str) -> list[dict]:
         return self._contract.get_characters(campaign_id)
 
@@ -556,16 +553,6 @@ class DirectGameGateway:
             # 8.1 FIX: Делегируем сериализацию контроллеру, чтобы получить текстовые поля
             return self._bridge._loop.mvp_controller.serialize_end_screen()
         return {}
-
-    def set_continuity_mode(self, mode: str) -> dict:
-        if not self._bridge.ready or not self._bridge._loop:
-            return {"error": "Bridge not ready"}
-        import importlib
-        WorldContinuityMode = importlib.import_module("app.models.world_continuity").WorldContinuityMode
-        if mode not in [WorldContinuityMode.ISOLATED.value, WorldContinuityMode.CONTINUOUS.value]:
-            return {"error": f"Invalid mode: {mode}"}
-        self._bridge._loop._continuity_mode = WorldContinuityMode(mode)
-        return {"status": "ok", "mode": self._bridge._loop._continuity_mode.value}
 
     def get_characters(self, campaign_id: str) -> list[dict]:
         # ADR-O-146: Через bridge, не через файлы. Law 1.1 — frontend не читает backend данные напрямую.
@@ -793,16 +780,7 @@ class FallbackGateway:
         except Exception:
             self._primary_healthy = False
             return self._fallback.get_end_screen(campaign_id)
-
-    def set_continuity_mode(self, mode: str) -> dict:
-        if self._primary_healthy is False:
-            return self._fallback.set_continuity_mode(mode)
-        try:
-            return self._primary.set_continuity_mode(mode)
-        except Exception:
-            self._primary_healthy = False
-            return self._fallback.set_continuity_mode(mode)
-
+        
     def get_characters(self, campaign_id: str) -> list[dict]:
         if self._primary_healthy is False:
             return self._fallback.get_characters(campaign_id)
@@ -1083,9 +1061,13 @@ class ActionQueue:
 
 
 def create_game_gateway(
-    base_url: str = "http://127.0.0.1:8000",
+    base_url: str | None = None,
     timeout_sec: int = 30,
 ) -> tuple[GameGateway, ActionQueue]:
+    """AUDIT #22/#5: без явного base_url берём ENIGMA_BACKEND_URL из окружения."""
+    if base_url is None:
+        import os
+        base_url = os.environ.get("ENIGMA_BACKEND_URL", "http://127.0.0.1:8000")
     """
     Создаёт gateway с fallback: HTTP приоритет, Direct при обрыве.
 

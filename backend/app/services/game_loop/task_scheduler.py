@@ -66,11 +66,47 @@ class TaskScheduler:
         self._spatial_query_service = None
         from app.services.execution.dialogue_queue import DialogueQueue
         self._dialogue_queue = DialogueQueue()
+        # S203.4 (ADR-O-365, D-2): outbox терминалов task-исполнителя.
+        # Воркеры пула НИКОГДА не пишут реестр (single-writer); sync-применение —
+        # drain_commitment_outbox (вход execute_pending + безусловно из idle_tick).
+        self._commitment_outbox: list = []
+        self._commitment_outbox_lock = threading.Lock()
         logger.info("[TASK_SCHED] DialogueQueue initialized")
 
     def set_spatial_query_service(self, sqs):
         """Инъекция SpatialQueryService для Social Target Resolver."""
         self._spatial_query_service = sqs
+
+    # ── S203.4 (ADR-O-365, D-2): outbox терминалов ──────────────────────
+
+    def _record_task_outcome(
+        self, npc_id: str, outcome: str, fail_reason: str = ""
+    ) -> None:
+        """Воркер/синхронный путь → thread-safe outbox. Реестр НЕ пишется здесь."""
+        with self._commitment_outbox_lock:
+            self._commitment_outbox.append((npc_id, outcome, fail_reason or None))
+
+    def drain_commitment_outbox(self, scene_state: dict) -> None:
+        """Единственная точка применения терминалов task → реестр.
+
+        Вызывается: (а) на входе execute_pending (покрывает calibration/тесты),
+        (б) безусловно из idle_tick между execute_pending и unlock_tick
+        (F23: тихие тики не создают backlog). terminal_tick = тик дренажа —
+        честный момент наблюдения. Executor-mismatch (гонка/ambient) →
+        mirror_task_terminal сам откажется без мутации.
+        """
+        if not self._commitment_outbox:
+            return
+        from app.services.action.commitment_registry import CommitmentRegistry
+
+        _tick = scene_state.get("tick", 0)
+        with self._commitment_outbox_lock:
+            _batch = self._commitment_outbox
+            self._commitment_outbox = []
+        for _npc_id, _outcome, _fail in _batch:
+            CommitmentRegistry.mirror_task_terminal(
+                scene_state, _npc_id, _tick, _outcome, fail_reason=_fail
+            )
 
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO."""
@@ -110,6 +146,9 @@ class TaskScheduler:
 
     def execute_pending(self, scene_state: dict, campaign_id: str) -> None:
         """Берёт задачи из очереди с учётом rate limit и запускает в фоне."""
+        # S203.4 (D-2): дренаж ДО разбора — терминалы прошлого цикла применяются
+        # даже при пустой очереди этого вызова.
+        self.drain_commitment_outbox(scene_state)
         pending = scene_state.get("pending_tasks", [])
         if not pending:
             return
@@ -203,6 +242,12 @@ class TaskScheduler:
                     break
                 elif _reason == "DEDUP":
                     # Уничтожаем спам-дубликат
+                    if _task_type == "canonical":
+                        # S203.4: DEDUP-смерть → CANCELLED (main-thread sync-путь;
+                        # применится дренажем ЭТОГО же idle-окна ниже).
+                        self._record_task_outcome(
+                            task_dict.get("owner_id", ""), "CANCELLED"
+                        )
                     continue
 
             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
@@ -215,6 +260,8 @@ class TaskScheduler:
     def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0):
         """Фоновая обработка задач LLM."""
         import time
+        # S203.4: константы fail_reason для терминальных хуков (закон №16).
+        from app.domain.action_commitment import FAIL_TASK_CRASH, FAIL_TASK_ERROR
         bus = get_event_bus()
         if not campaign_id:
             campaign_id = scene_state.get("campaign_id", "")
@@ -234,10 +281,15 @@ class TaskScheduler:
 
             if not executor:
                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
+                if _task_type == "canonical":
+                    self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
                 continue
 
             task.state = TaskState.PROCESSING
             task.campaign_id = campaign_id
+            # S203.4: COMMITTED→EXECUTING (только canonical — ambient вне владения, D-8).
+            if _task_type == "canonical":
+                self._record_task_outcome(task.owner_id, "EXECUTING")
 
             # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем ближнего NPC
             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
@@ -294,6 +346,8 @@ class TaskScheduler:
                 for artifact in artifacts:
                     if artifact.success:
                         task.state = TaskState.FINISHED
+                        if _task_type == "canonical":
+                            self._record_task_outcome(task.owner_id, "COMPLETED")
                         logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
 
                         materializer = self._materializers.get(artifact.result_type)
@@ -334,12 +388,17 @@ class TaskScheduler:
                             f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
                         )
                         task.state = TaskState.FINISHED  # Пока без сложного ретрая
+                        if _task_type == "canonical":
+                            self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_ERROR)
                         self.failed_tasks += 1
                         # ADR-O-343: Сбрасываем DEDUP в SpeechScheduler, чтобы NPC мог повторить попытку
                         if hasattr(self, '_speech_scheduler'):
                             self._speech_scheduler.reset_context(task_dict)
             except Exception as task_exc:
                 logger.error(f"[SCHEDULER] Crashed during task execution {task.task_id}: {task_exc}", exc_info=True)
+                if _task_type == "canonical":
+                    # Закрывает PROCESSING-лимбо (F9): crash-исполнение = FAILED.
+                    self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_CRASH)
                 self.failed_tasks += 1
                 if hasattr(self, '_speech_scheduler'):
                     self._speech_scheduler.reset_context(task_dict)
@@ -362,6 +421,9 @@ class TaskScheduler:
             kind = TaskKind(kind_str)
         except (ValueError, TypeError):
             logger.error(f"[SCHEDULER] Reconstruction FAILED for task {task_id}: unknown kind '{kind_str}'. Task dropped.")
+            # S203.4 (terminal-mapping v2): drop-до-исполнения → CANCELLED
+            # (ambient-дропы безопасно ноу-опят по executor-mismatch).
+            self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
             return None
 
         # 2. Строгое восстановление Priority
@@ -373,6 +435,7 @@ class TaskScheduler:
                 priority = TaskPriority[priority_val]
         except (ValueError, KeyError, TypeError):
             logger.error(f"[SCHEDULER] Reconstruction FAILED for task {task_id}: invalid priority '{priority_val}'. Task dropped.")
+            self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
             return None
 
         # 3. Строгое восстановление Payload
