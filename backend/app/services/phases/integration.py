@@ -430,6 +430,13 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
             # L2.5: Кристаллизация убеждений (проекция через личность)
             _existing_beliefs = deps.crystallized_belief_store.get_beliefs(_npc_id)
+            # AUDIT #9 VERDICT=BLOCKED (2026-08): inputs калькулятора не
+            # производятся миром — age отсутствует в модели NPC вовсе,
+            # voice_archetype_id пуст у большинства, identity_attachment =
+            # константа 1.0. Вызов require фабрикации данных. Возврат при
+            # появлении: age в state, заполненных голосовых архетипов,
+            # источника identity_attachment. Поле PsycheBase.linguistic_integrity
+            # честно документировано = 1.0 (без дрейфа) в models/npc_profile.py:52.
             # TODO (Фаза 3 / Эпоха 8): Интеграция LinguisticIntegrityCalculator.
             # Здесь должен вызываться LinguisticIntegrityCalculator().compute()
             # для расчёта целостности речи NPC (willpower * class * age * attachment).

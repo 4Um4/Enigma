@@ -665,7 +665,13 @@ class GameScreen:
 
         # Текстовый ввод — виджет с кириллицей и историей
         sw, sh = self.screen.get_size()
-        _WASD_KEYS = {pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d}
+        _kb_game = load_keybinds()  # AUDIT #12: движение уважает переназначение
+        _WASD_KEYS = {
+            get_key(_kb_game, "move_up"),
+            get_key(_kb_game, "move_down"),
+            get_key(_kb_game, "move_left"),
+            get_key(_kb_game, "move_right"),
+        }
         text_input = TextInput(
             rect=pygame.Rect(4, sh - 36, sw - 8, 32),
             font=self.renderer.font_small,
@@ -686,12 +692,13 @@ class GameScreen:
             font_bold=self.renderer.font_small,  # Используем font_small как жирный
         )
 
-        # WASD → направляющий вектор
+        # WASD → направляющий вектор (AUDIT #12: клавиши из биндов,
+        # потребители ниже используют membership этих объектов)
         _WASD_MAP = {
-            pygame.K_w: (0.0, -1.0),
-            pygame.K_s: (0.0, 1.0),
-            pygame.K_a: (-1.0, 0.0),
-            pygame.K_d: (1.0, 0.0),
+            get_key(_kb_game, "move_up"): (0.0, -1.0),
+            get_key(_kb_game, "move_down"): (0.0, 1.0),
+            get_key(_kb_game, "move_left"): (-1.0, 0.0),
+            get_key(_kb_game, "move_right"): (1.0, 0.0),
         }
         held_keys: set[int] = set()
 
@@ -768,7 +775,7 @@ class GameScreen:
                     # (text_input.py:305) был мёртвым кодом из игрового цикла.
                     if event.key == pygame.K_ESCAPE and text_input.focused:
                         text_input.focused = False
-                    elif event.key == pygame.K_ESCAPE:
+                    elif event.key == get_key(load_keybinds(), "pause"):
                         action_queue.stop()
                         running = False
                         return "PAUSE"
@@ -782,19 +789,20 @@ class GameScreen:
                     elif event.key == get_key(load_keybinds(), "dialogue_open"):
                         text_input.focused = not text_input.focused
                     # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
-                    elif not text_input.focused and event.key == pygame.K_j:
+                    # AUDIT #12: журнал через бинды (action open_journal)
+                    elif not text_input.focused and event.key == get_key(load_keybinds(), "open_journal"):
                         self.show_journal = not self.show_journal
                         if not self.show_journal:
                             self._journal_active_tab = "observations"  # Сброс вкладки при закрытии
-                    # P8: Переключение панели инвентаря (I / Русская Ш)
-                    elif not text_input.focused and event.key == pygame.K_i:
+                    # P8: Переключение панели инвентаря — через бинды
+                    elif not text_input.focused and event.key == get_key(load_keybinds(), "toggle_inventory"):
                         self.show_inventory = not self.show_inventory
-                    # Time Controls: ускорение симуляции (Приоритет 1)
-                    elif event.key == pygame.K_1 and not text_input.focused:
+                    # Time Controls: ускорение симуляции — через бинды
+                    elif event.key == get_key(load_keybinds(), "skip_time_short") and not text_input.focused:
                         threading.Thread(
                             target=lambda: _do_skip_time(10), daemon=True
                         ).start()
-                    elif event.key == pygame.K_2 and not text_input.focused:
+                    elif event.key == get_key(load_keybinds(), "skip_time_long") and not text_input.focused:
                         threading.Thread(
                             target=lambda: _do_skip_time(100), daemon=True
                         ).start()

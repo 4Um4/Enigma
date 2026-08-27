@@ -284,6 +284,21 @@ async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
     }
 
 
+@router.post("/settings/content-policy")
+async def set_content_policy(payload: dict) -> dict:
+    """AUDIT #16/#14c: владелец кэша контента — бэкенд-процесс.
+    Фронт шлёт preset сюда; save_content_policy на хвосте вызывает
+    settings.reload_content_policy() (content_policy.py:185)."""
+    from app.core.config import settings as _app_settings
+    from app.core.content_policy import save_content_policy
+
+    preset = payload.get("preset")
+    if preset not in ("safe", "moderate", "explicit"):
+        return {"status": "error", "message": f"Unknown preset: {preset}"}
+    save_content_policy(_app_settings, preset)
+    return {"status": "ok", "preset": preset}
+
+
 @router.get("/system/status")
 def system_status(game_loop=Depends(get_game_loop)) -> dict:
     llm_status = check_llm_health(use_cache=False)

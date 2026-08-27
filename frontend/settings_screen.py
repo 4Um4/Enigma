@@ -819,6 +819,18 @@ class SettingsScreen:
             elif preset == "explicit":
                 settings._content_policy_cache = ContentPolicy.preset_explicit()
             save_content_policy(settings, preset)
+            # AUDIT #16/#14c: пуш в живой бэкенд-процесс (владелец кэша).
+            try:
+                req = urllib.request.Request(
+                    f"{_backend_url()}/api/settings/content-policy",
+                    data=json.dumps({"preset": preset}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    print(f"[SETTINGS] content-policy push: {r.status}")
+            except Exception as e:
+                print(f"[SETTINGS] backend content-policy push failed: {e}")
         except Exception as e:
             print(f"Failed to save content policy: {e}")
         self.buttons = self._build_buttons()

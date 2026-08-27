@@ -390,6 +390,12 @@ Taboo: ❌ Новый ownership-источник кроме active_commitments; 
 Status: ACTIVE (S203.4: контракт утверждён Мастером, вердикты D-1…D-9; реализация Э2–Э10).
 Files: `dom/action_commitment.py`, `dom/action_priority.py` (NEW), `dom/traversal_schema.py`, `svc/action/commitment_registry.py`, `svc/action/commitment_arbiter.py`, `svc/phases/post_decision.py`, `svc/game_loop/task_scheduler.py`, `svc/game_loop/__init__.py`, `svc/tick_orchestrator.py`, `svc/npc/sleep_lifecycle_service.py`, `dom/tasks.py` (DELETE), `tests/test_action_commitment.py`, `tests/sandbox/commitment_baseline.py`, `tests/sandbox/SUPERBOX/scenarios/action_integrity_test.py`
 
+`ADR-O-367` [ONTO] **Intervention Consequence Routing — Structured Semantics Branch (Phase 1)**
+Суть: Вмешательства с каузальными дельтами (semantic_action ∈ HELP/BLACKMAIL/ACCUSE) маршрутизируются в _process_player_action на ActionConsequenceCompiler (ctx.mvp_controller) — тот же production write-path, что и DM-конвейер (game_loop:_execute_dm_and_intent_resolution → intent_to_player_action → process_action → RelationshipStore.update). Ядро текст НЕ парсит (L4.1 неприкосновенен): семантика обязана приходить структурированной в InterventionEvent.payload (semantic_action + target_reference/target_id; потребляется также конвертером tick_utils:350 → IntentDTO → WillpowerGate). action_id детерминирован (f"interv:{tick}:{ACTION}:{target}") — идемпотентность компилятора + replay. Кампания лаборатории инициализируется init_campaign (зеркало P-MVP-1 из new_game) — без него P2-мост дельт в SSOT мёртв. Диспетчеризация с DM-путём взаимоисключающая (payload с dm_ctx ≠ payload с semantic_action) — двойного применения нет. Расширение списка семантик — по одной мини-записи на действие (прецедент ADR-O-362).
+❌ Taboo: парсинг текста в ядре; вмешательства без структурной семантики; вызов компилятора мимо _process_player_action; uuid4/nondeterministic action_id; init_campaign-обход lab-сессией при ожидаемых дельтах SSOT.
+Status: ACTIVE (M1/S220; runtime: maid_lusya→player trust None→20.0, идемпотентность подтверждена)
+Files: backend/app/services/tick_orchestrator.py (_process_player_action), backend/app/services/calibration/experiment_runner.py (start/step), backend/app/contracts/interventions.py (контракт фабрики), backend/tests/calibration_lab/test_m1_trust_intervention.py
+
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 
 **Уровни сравнения:**

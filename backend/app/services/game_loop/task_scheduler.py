@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 
 from app.domain.communication import DialogueRequest
-from app.domain.intent_profiles import requires_dialogue_context, produces_claim
 from app.domain.execution import (
     Materializer,
     QueuedTask,
@@ -20,6 +19,7 @@ from app.domain.execution import (
     TaskPriority,
     TaskState,
 )
+from app.domain.intent_profiles import produces_claim, requires_dialogue_context
 from app.services.events.event_bus import get_event_bus
 from app.services.execution.dialogue_executor import DialogueExecutor
 from app.services.execution.dialogue_materializer import DialogueMaterializer
@@ -35,7 +35,6 @@ class TaskScheduler:
 
     def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None, memory_manager=None, confession_parser=None):
         from app.services.execution.npc_conversation import NpcConversation
-        from app.services.game_loop.speech_scheduler import SpeechScheduler
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
         }
@@ -162,7 +161,7 @@ class TaskScheduler:
             self._speech_scheduler = SpeechScheduler(self._memory_manager)
 
         from app.domain.intent_profiles import requires_llm_materialization
-        
+
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":
                 speaker_id = task_dict.get("owner_id", "")
@@ -216,7 +215,7 @@ class TaskScheduler:
         # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
         _max_tasks_per_tick = 1
         _processed_count = 0
-        
+
         while _processed_count < _max_tasks_per_tick:
             _eligible = self._dialogue_queue.dequeue_next(game_time_seconds=_game_time)
             if not _eligible:
@@ -226,10 +225,10 @@ class TaskScheduler:
             # S196 FIX: task_type хранится на уровне объекта QueuedDialogue, не внутри payload.
             # Ранее всегда падало в "canonical", отправляя ambient-задачи в LLM (нарушение ADR-O-342).
             _task_type = getattr(_eligible, "task_type", "canonical")
-            
+
             # ADR-O-343: Narrative Arbitration после извлечения из очереди
             _admitted, _reason = self._speech_scheduler.admit(task_dict, campaign_id)
-            
+
             if not _admitted:
                 if _reason == "PACING":
                     # Возвращаем в очередь для следующего тика и прерываем цикл (ждём wall-clock)
@@ -260,6 +259,7 @@ class TaskScheduler:
     def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0):
         """Фоновая обработка задач LLM."""
         import time
+
         # S203.4: константы fail_reason для терминальных хуков (закон №16).
         from app.domain.action_commitment import FAIL_TASK_CRASH, FAIL_TASK_ERROR
         bus = get_event_bus()
@@ -404,7 +404,7 @@ class TaskScheduler:
                     self._speech_scheduler.reset_context(task_dict)
                 break
 
-    def _reconstruct_task(self, task_dict: dict) -> Optional[QueuedTask]:
+    def _reconstruct_task(self, task_dict: dict) -> "Optional[QueuedTask]":
         """Собирает QueuedTask из словаря (после JSON сериализации).
         
         ENIGMA-ARCH-038: Строгая реконструкция без silent fallback'ов.
@@ -444,11 +444,11 @@ class TaskScheduler:
             _intent_type = payload_dict.get("intent_type", "")
             _has_prop = bool(payload_dict.get("proposition"))
             _is_canonical = _has_prop or _intent_type in ("warn", "talk", "intimidate", "threaten", "report", "spread_rumor", "call_for_help", "offer_job", "request_service", "trade")
-            
+
             try:
                 semantic = payload_dict.get("exposure_semantic", "normal")
                 _emotional_state = payload_dict.get("emotional_state", "нейтрально")
-                
+
                 req = DialogueRequest(
                     topic=payload_dict.get("topic", ""),
                     target_id=payload_dict.get("target_id", ""),
@@ -466,6 +466,8 @@ class TaskScheduler:
                     f"Task dropped. Payload: {payload_dict}",
                     exc_info=True
                 )
+                # S203.4 (terminal-mapping v2): drop-до-исполнения → CANCELLED.
+                self._record_task_outcome(task_dict.get("owner_id", ""), "CANCELLED")
                 return None
         else:
             req = payload_dict

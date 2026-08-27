@@ -18,7 +18,11 @@ DEFAULT_KEYBINDS = {
     "dialogue_open": "tab",      # Вызов диалогового окна ввода (раньше был захардкожен)
     "pause": "escape",
     "console_enter": "return",
-    "console_escape": "escape"
+    "console_escape": "escape",
+    # AUDIT #12: ранее дёргались литералами клавиш мимо биндов
+    "toggle_inventory": "i",
+    "skip_time_short": "1",
+    "skip_time_long": "2",
 }
 
 _KEYBINDS_FILE = Path(__file__).parent / "keybinds.json"

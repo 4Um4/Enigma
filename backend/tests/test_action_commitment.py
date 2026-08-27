@@ -847,6 +847,57 @@ class TestS2034OwnershipMirrors:
             cr.S203_4_OWNERSHIP_MIRRORS = saved
 
 
+class TestS2034TaskOutbox:
+    """Э5-b: outbox → drain → реестр (воркер никогда не пишет реестр)."""
+
+    def _mirrors(self, on: bool):
+        import app.services.action.commitment_registry as cr
+
+        saved = cr.S203_4_OWNERSHIP_MIRRORS
+        cr.S203_4_OWNERSHIP_MIRRORS = on
+        return cr, saved
+
+    def test_outbox_drain_applies_terminals(self, flag_on):
+        from app.services.game_loop.task_scheduler import TaskScheduler
+
+        cr, saved = self._mirrors(True)
+        try:
+            sched = TaskScheduler()
+            ss = {"tick": 3}
+            CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "warn:x", "t-1")
+            sched._record_task_outcome("n1", "EXECUTING")
+            sched._record_task_outcome("n1", "COMPLETED")
+            sched.drain_commitment_outbox(ss)
+            assert ss["commitment_history"]["n1"][-1]["status"] == "COMPLETED"
+            assert not sched._commitment_outbox  # outbox опустошён
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_drain_empty_outbox_noop(self):
+        from app.services.game_loop.task_scheduler import TaskScheduler
+
+        sched = TaskScheduler()
+        ss = {}
+        sched.drain_commitment_outbox(ss)  # тихий тик: no-op, ничего не создаёт
+        assert "active_commitments" not in ss
+
+    def test_drain_batch_order_preserved(self, flag_on):
+        from app.services.game_loop.task_scheduler import TaskScheduler
+
+        cr, saved = self._mirrors(True)
+        try:
+            sched = TaskScheduler()
+            ss = {"tick": 2}
+            CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "c", "t-1")
+            sched._record_task_outcome("n1", "FAILED", "TASK_ERROR")
+            sched.drain_commitment_outbox(ss)
+            # EXECUTING не записан — FAILED напрямую из COMMITTED запрещён
+            # матрицей → честный отказ без мутации; обязательство живо.
+            assert ss["active_commitments"]["n1"]["status"] == "COMMITTED"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+
 class TestFlagNeutrality:
     def test_disabled_flag_full_noop(self):
         """Rollback-контракт S203.1: флаг OFF = реестр не пишет, поведение байтово прежнее."""

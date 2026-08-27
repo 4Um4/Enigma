@@ -854,9 +854,14 @@ class TickOrchestrator:
         # Он вычислит давление мира (WorldPressure) и обновит маску персонажа (Front).
         # Поля для shared_context (front_description, world_pressure) уже готовы.
 
+        # AUDIT #8 VERDICT=DEFER (2026-08): DecisionHub не производит сигнала
+        # смены профессии; контракт RoleTransition требует реальной причины.
+        # Встраивание — при появлении источника причинности (needs/goals);
+        # фиктивный планировщик запрещён вердиктом владельца.
         # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
         # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
         # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
+        
         # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
         # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
         # и Traveller.generate_visits() для спавна странников (торговцев, путников).

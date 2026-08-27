@@ -15,6 +15,7 @@ GameLoop не знает про FastAPI, HTTP, SSE-формат.
 
 
 from __future__ import annotations
+
 import asyncio
 import logging
 import threading
@@ -154,12 +155,13 @@ class GameLoop:
         # S159: Инъекция NarrativeProjector для фильтрации реплик
         from app.services.perception.narrative_projector import NarrativeProjector
         self._narrative_projector = NarrativeProjector()
-        
+
         # P7-MVP: Инициализация эпистемического фасада
         from pathlib import Path as PathLib
-        from app.services.social.mvp_tavern_controller import MvpTavernController
+
         # N1 FIX (v7): Используем BASE_DIR напрямую, чтобы найти config/canon/ от корня проекта
         from app.core.config import BASE_DIR
+        from app.services.social.mvp_tavern_controller import MvpTavernController
         _canon_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
         if _canon_path.exists():
             # P2 FIX: Проброс RelationshipStore в MVP-контроллер для эмерджентной драмы.
@@ -172,7 +174,7 @@ class GameLoop:
                 "MVP epistemic pipeline DISABLED. End-Screen will be empty."
             )
             self.mvp_controller = None
-        
+
         # P7-13: Опциональная персистентность мира. GameLoop выступает хранилищем diff'ов между кампаниями.
         self._campaign_diffs: Dict[str, "WorldStateDiff"] = {}
         self._diffs_path = self._saves_dir / "_world_diffs.json"
@@ -226,20 +228,20 @@ class GameLoop:
         # Подсистема 2: Инициализация ReplayRecorder
         if settings.replay_mode != "off":
             settings.replay_record = True
-            from app.services.replay.replay_store import ReplayStore
             from app.services.replay.replay_recorder import ReplayRecorder
+            from app.services.replay.replay_store import ReplayStore
             _replay_db_path = Path(data_dir) / "replay.db"
             _replay_store = ReplayStore(_replay_db_path)
             _session_id = _replay_store.start_session(
-                campaign_id="Open_road", 
+                campaign_id="Open_road",
                 commit_hash="dev"
             )
             self._tick_orch._replay_recorder = ReplayRecorder(
-                store=_replay_store, 
+                store=_replay_store,
                 session_id=_session_id
             )
             logger.info(f"[GAME_LOOP] Replay Recorder started. Session ID: {_session_id}")
-            
+
             # Инъекция контекста в ModelRouter для LLM Cache (Этап 2.3)
             _router = self.dm_agent.router
             _router.set_replay_context(store=_replay_store, session_id=_session_id)
@@ -271,7 +273,7 @@ class GameLoop:
 
         # Регистрация NpcDialogueSubscriber для замыкания цикла NPC-NPC диалогов
         self._register_npc_dialogue_subscriber(memory_manager, _rel_store)
-        
+
         # S189: Epistemic Core Integration (ADR-O-354).
         self._register_epistemic_core(_rel_store)
 
@@ -304,7 +306,7 @@ class GameLoop:
             _sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002
             if _sq is not None:
                 return _sq
-        
+
         _sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002
         if _sq is not None:
             return _sq
@@ -314,7 +316,7 @@ class GameLoop:
         _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
         if not _scene:
             _scene = self.scene_manager.get_scene_state(_campaign_id, "city_gate")
-        
+
         if _scene:
             from app.services.spatial.spatial_query_service import SpatialQueryService
             _new_sq = SpatialQueryService(
@@ -379,10 +381,10 @@ class GameLoop:
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
             _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
             _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
-            
+
             # S150 FIX: Подписываем EconomyTracker для учёта диалогов (SOCIAL need)
             _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)
-            
+
             self._npc_dialogue_subscriber = _subscriber
             logger.info("[GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered")
         except Exception as e:
@@ -391,18 +393,19 @@ class GameLoop:
     def _register_epistemic_core(self, rel_store: Any) -> None:
         """S189: Инициализирует Epistemic Core и регистрирует ClaimEventSubscriber (ADR-O-354)."""
         try:
-            from app.services.npc.epistemic_store import EpistemicStore
+            from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+            from app.services.events.event_bus import get_event_bus
+            from app.services.events.event_types import EventType
             from app.services.npc.belief_revision_engine import BeliefRevisionEngine
             from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
-            from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+            from app.services.npc.epistemic_store import EpistemicStore
+
             # ADR-O-357 enforcement: reliability вычисляет канонический провайдер,
             # инлайн в подписчике удалён (см. docs/audits/ADR-O-357_IMPACT.md, Addendum).
             from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
-            from app.services.events.event_bus import get_event_bus
-            from app.services.events.event_types import EventType
 
             _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
-            
+
             # S193: Загружаем убеждения из scene_state, если они там есть.
             _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
             _epistemic_data = _scene.get("epistemic_records", []) if _scene else []
@@ -412,7 +415,7 @@ class GameLoop:
             _resolver = EpistemicContextResolver(store=_epistemic_store)
 
             _subscriber = ClaimEventSubscriber(
-                engine=_belief_engine, 
+                engine=_belief_engine,
                 store=_epistemic_store,
                 spatial_query_provider=self._get_spatial_query_for_subscriber
             )
@@ -420,7 +423,7 @@ class GameLoop:
             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
             # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
-            
+
             # S201: Регистрация SocialActionSubscriber для маршрутизации SOCIAL_ACTION
             from app.services.events.social_action_subscriber import SocialActionSubscriber
             _social_sub = SocialActionSubscriber(_bus)
@@ -438,7 +441,7 @@ class GameLoop:
                 tick_provider=lambda: self._tick_orch.get_current_tick(_campaign_id),
             )
             _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
-  
+
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
 
             # S211 (§18): инъекция резолвера в ACCUSE-гейт компилятора
@@ -474,15 +477,15 @@ class GameLoop:
         """Сохраняет WorldStateDiff на диск, чтобы он пережил рестарт бэкенда."""
         import json
         from dataclasses import asdict
-        
+
         try:
             all_diffs = {}
             if self._diffs_path.exists():
                 with open(self._diffs_path, "r", encoding="utf-8") as f:
                     all_diffs = json.load(f)
-            
+
             all_diffs[campaign_id] = asdict(diff)
-            
+
             self._diffs_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self._diffs_path, "w", encoding="utf-8") as f:
                 json.dump(all_diffs, f, ensure_ascii=False, indent=2)
@@ -493,14 +496,15 @@ class GameLoop:
     def _load_diff_from_disk(self, campaign_id: str) -> Optional["WorldStateDiff"]:
         """Загружает WorldStateDiff с диска, если он там есть."""
         import json
+
         from app.models.world_state_diff import WorldStateDiff
-        
+
         try:
             if not self._diffs_path.exists():
                 return None
             with open(self._diffs_path, "r", encoding="utf-8") as f:
                 all_diffs = json.load(f)
-            
+
             diff_data = all_diffs.get(campaign_id)
             if diff_data:
                 return WorldStateDiff(**diff_data)
@@ -838,7 +842,7 @@ class GameLoop:
                         not _live_body
                     ):  # None или {} — новый аватар без сохранённой физиологии
                         _live_body = dict(BODY_STATE_HEALTHY)
-                    
+
                     # V8-WL-3 FIX: fear и willpower лежат внутри psyche dict, а не в корне NPCState
                     _avatar_psyche = getattr(_avatar_state, "psyche", {})  # noqa: ENIGMA002
                     _live_psyche = {
@@ -925,8 +929,8 @@ class GameLoop:
                     self._current_spatial_query = None
 
             # AUDIT-003 §3.3: сервисный контекст NPC для тиков вне хода игрока
-            from app.services.npc.npc_tick_contracts import NpcTickServices
             from app.services.events.event_bus import get_event_bus
+            from app.services.npc.npc_tick_contracts import NpcTickServices
 
             _npc_svc = NpcTickServices(
                 memory_manager=self.memory_manager,
@@ -971,9 +975,9 @@ class GameLoop:
             _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
             logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
             _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
-            
+
             # S159: Фильтрация реплик через NarrativeProjector
-            from app.domain.presentation import PerceptionContext, AvatarPerceptionProfile
+            from app.domain.presentation import AvatarPerceptionProfile, PerceptionContext
             _npc_pos = result.final_state.get("npc_positions", {})
             _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
             _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
@@ -986,7 +990,7 @@ class GameLoop:
                 avatar_profile=AvatarPerceptionProfile(perceptual_stability=_p_stability)
             )
             _narratives = self._narrative_projector.project(_recent_d, _ctx)
-            
+
             _ws = _builder.build(
                 result.final_state,
                 result.final_state.get("tick", 0),
@@ -1050,15 +1054,15 @@ class GameLoop:
         # Одна точка входа в мир. Не второй мир — та же причинная система.
 
         # Шаг 1: Подготовка — гарантируем что сцена существует (стены, NPC, время)
-        from app.services.game_loop.scene_init import ensure_scene_initialized
         from app.core.constants import DEFAULT_LOCATION_ID
+        from app.services.game_loop.scene_init import ensure_scene_initialized
 
         _prepped_scene = ensure_scene_initialized(self, campaign_id)
         # S-146 FIX: Поддержка принудительного тика для конкретной локации (для тестов)
         _active_loc = location_id or (_prepped_scene.get("location_id", "") if _prepped_scene else DEFAULT_LOCATION_ID)
         if not _active_loc:
             _active_loc = DEFAULT_LOCATION_ID
-            
+
         # S186 FIX: Если запрошенная локация не была инициализирована в БД,
         # инициализируем её принудительно, чтобы TickOrchestrator смог её тикнуть.
         _active_scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
@@ -1082,7 +1086,7 @@ class GameLoop:
 
         # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
         self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
-        
+
         # Шаг 3: WorldTick — единый вызов оркестратора для всех локаций (ADR-O-344)
         _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
         if _scene is None:
@@ -1123,15 +1127,15 @@ class GameLoop:
                 self._current_spatial_query = None
 
         _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
-        
+
         # S198 FIX: Гарантируем, что idle_shared_context имеет relationship_store для SocialSubscriber
         _idle_ctx = getattr(self, "_idle_shared_context", None)
         if _idle_ctx and not getattr(_idle_ctx, "relationship_store", None):
             _idle_ctx.relationship_store = getattr(self, "_rel_store", None)
-            
+
         # AUDIT-003 §3.3: контекст NPC для idle-тика — тот же паттерн сборки, что и путь игрока
-        from app.services.npc.npc_tick_contracts import NpcTickServices
         from app.services.events.event_bus import get_event_bus
+        from app.services.npc.npc_tick_contracts import NpcTickServices
 
         _npc_svc = NpcTickServices(
             memory_manager=self.memory_manager,
@@ -1161,7 +1165,7 @@ class GameLoop:
             interventions=interventions,  # M1: Внедрение событий игрока
             npc_services=_npc_svc,  # AUDIT-003 §3.3
         )
-        
+
         # Коммит результатов оркестратора (если ядро не сделало это само)
         if result and result.final_scene_state is not None:
             # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
@@ -1234,7 +1238,7 @@ class GameLoop:
             try:
                 _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
                 logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                from app.domain.presentation import PerceptionContext, AvatarPerceptionProfile
+                from app.domain.presentation import AvatarPerceptionProfile, PerceptionContext
                 from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
                 _npc_pos = _scene.get("npc_positions", {})
                 _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
@@ -1458,7 +1462,7 @@ class GameLoop:
                 _scene = state.shared_context.scene_state or {}
                 _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
                 logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
-                from app.domain.presentation import PerceptionContext, AvatarPerceptionProfile
+                from app.domain.presentation import AvatarPerceptionProfile, PerceptionContext
                 from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
                 _npc_pos = _scene.get("npc_positions", {})
                 _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
@@ -1779,9 +1783,9 @@ class GameLoop:
         # Stage 0 Task 0.8: SSOT Economic. Прямая мутация аватара запрещена.
         # Дельта денег применяется через StateApplicator.apply_batch вместе с остальными NPC.
         if _rules_delta and _rules_delta.money_delta != 0.0:
-            from app.models.state_delta import StateDeltas, DeltaDomain
             from app.models.delta_payloads import EconomicPayload
-            
+            from app.models.state_delta import DeltaDomain, StateDeltas
+
             _eco_delta = StateDeltas(
                 npc_id="player",
                 domain=DeltaDomain.ECONOMY,
@@ -1832,7 +1836,7 @@ class GameLoop:
                 # S208 (P0-B): GameLoop — оркестратор, не писатель NPCState.
                 # Каноническая граница мутации — AvatarStateApplicator.
                 from app.services.avatar_state_applicator import AvatarStateApplicator
-                
+
                 AvatarStateApplicator.apply_pipeline_result(
                     _avatar_state, _updated_avatar_dict
                 )
@@ -1908,22 +1912,22 @@ class GameLoop:
             else:
                 _player_data_dict = None
             _raw_action = actions[0].action if actions else ""
-            
+
             # S200: Получаем сессию диалога игрока с целевым NPC для контекстного резолва
             _target_npc = shared_context.player_target_id or "player"
             _dialogue_session = None
             if self.memory_manager and _target_npc != "player":
                 try:
                     _dialogue_session = self.memory_manager.get_dialogue_session(
-                        campaign_id=campaign_id, 
-                        npc_id=_target_npc, 
+                        campaign_id=campaign_id,
+                        npc_id=_target_npc,
                         partner_id="player"
                     )
                 except Exception as _ds_err:
                     logger.warning(f"[S200] Failed to get dialogue session for {_target_npc}: {_ds_err}")
 
             _semantic_field = await self._intent_compressor.compress(
-                raw_text=_raw_action, 
+                raw_text=_raw_action,
                 scene_context=scene_state,
                 dialogue_session=_dialogue_session
             )
@@ -1932,9 +1936,9 @@ class GameLoop:
             _action_val = _semantic_field.action.value if _semantic_field.action else "UNCERTAIN"
             if _action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE"):
                 from app.domain.events import EventDTO
-                from app.services.events.event_types import EventType
                 from app.services.events.event_bus import get_event_bus
-                
+                from app.services.events.event_types import EventType
+
                 _prop = None
                 if _semantic_field.proposition:
                     _prop = {
@@ -1943,7 +1947,7 @@ class GameLoop:
                         "object_id": _semantic_field.proposition.object_id,
                         "polarity": _semantic_field.proposition.polarity
                     }
-                
+
                 _payload = {
                     "action": _action_val,
                     "actor": _semantic_field.actor or "player",
@@ -1955,7 +1959,7 @@ class GameLoop:
                     "social_pressure": _semantic_field.social_pressure,
                     "tick": shared_context.current_tick
                 }
-                
+
                 _event = EventDTO.create_social_action(
                     source=_semantic_field.actor or "player",
                     payload=_payload,
@@ -1996,7 +2000,7 @@ class GameLoop:
                     logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
 
             if self.mvp_controller:
-                # S199: Уничтожен раздвоенный semantic authority. 
+                # S199: Уничтожен раздвоенный semantic authority.
                 # MvpTavernController теперь получает PlayerAction через bridge из расширенного IntentSemanticField.
                 from app.services.player_cognition.legacy_bridge import intent_to_player_action
                 _action = intent_to_player_action(
@@ -2180,10 +2184,10 @@ class GameLoop:
 
             # ТЗ Presentation v2.0: Инициализация BodyTopology игрока
             from app.services.body.body_topology_service import BodyTopologyService
-            
+
             _sheet_str = getattr(_match, "stats", {}) if _match else {}  # noqa: ENIGMA002
             _str_score = _sheet_str.get("STR", 10) if isinstance(_sheet_str, dict) else 10
-            
+
             _topo_data = self.scene_manager._persistence.load_scene(campaign_id)
             if not _topo_data or not _topo_data.get("player_body_topology"):
                 _topo = BodyTopologyService.create_topology("player", strength_score=_str_score)
@@ -2401,7 +2405,7 @@ class GameLoop:
         # ADR-O-146: AdventureLoader удалён. Файлов world_lore/npc.json/locations.json не существует.
         loaded: dict = {"status": "not_found", "files": {}}
         self._campaign_world_index[campaign_id] = world_id
-        
+
         # Дополнение Б (п. Б.12): Детектор старых сейвов
         try:
             from app.services.state.save_format_detector import detect_legacy_saves

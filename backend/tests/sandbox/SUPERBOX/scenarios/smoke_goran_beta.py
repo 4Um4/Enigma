@@ -65,7 +65,7 @@ THIEF, GORAN = "thief_shadow", "merchant_goran"
 # (borko 1.1 м, orm/lusya/tornin ~8 м от вора в конфиге) отодвинуты:
 # single-variable Control — плечи отличаются только позицией Goran.
 POS_THIEF = (11.5, 11.0)
-POS_PLAYER = (50.0, 50.0)
+POS_PLAYER = (4.0, 2.0)
 POS_GORAN_EXP = (10.1, 6.1)    # 5.1 от вора → свидетель (S214-G4: conf≈0.9)
 POS_GORAN_CTRL = (30.0, 31.0)  # 27.7 от вора → не свидетель (S214-G9)
 POS_AWAY = (30.5, 30.5)        # подавление вторичных свидетелей/ораторов
@@ -319,6 +319,10 @@ def run_scenario(goran_in_los: bool, arm: str) -> dict:
         if _delivery_ticks == 1:
             _diag2 = _states_map(world).get(THIEF, {}).get("psyche", {})
             print(f"[DIAG-WILL] post-tick-1 psyche.state={_diag2.get('state', 'MISSING')}")
+            _sc = getattr(world.game_loop._tick_orch, "_shared_context", None)
+            _sq = getattr(_sc, "spatial_query", None) if _sc else None
+            _d = _sq.distance_player(THIEF) if _sq else -1
+            print(f"[DIAG-SQ] post-tick-1 dist_player(thief)={_d:.1f}")
         # β-зонд (ЧАСТЬ VIII.5): различает H-E1 (латентность: records=0, а
         # строки BELIEF_REVISE(player) в логе ещё не появлялись — видно по
         # LineNumber) и H-E2 (чужой store: BELIEF_REVISE(player) в логе ЕСТЬ
