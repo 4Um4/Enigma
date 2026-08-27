@@ -1,8 +1,0 @@
-{"timestamp": "2026-08-17T21:31:11.521809", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
-{"timestamp": "2026-08-17T21:31:11.522420", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
-{"timestamp": "2026-08-17T21:31:12.761331", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
-{"timestamp": "2026-08-17T21:31:12.762030", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
-{"timestamp": "2026-08-17T21:31:36.047628", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
-{"timestamp": "2026-08-17T21:31:36.047904", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
-{"timestamp": "2026-08-17T21:31:59.321030", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
-{"timestamp": "2026-08-17T21:31:59.321409", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}

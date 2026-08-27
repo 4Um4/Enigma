@@ -1,2 +1,0 @@
-{"timestamp": "2026-08-20T20:45:54.914668", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
-{"timestamp": "2026-08-20T20:45:54.915261", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
