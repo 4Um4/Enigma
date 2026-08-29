@@ -9,6 +9,7 @@ import pytest
 from app.models.player_action import ActionType, PlayerAction
 from app.models.player_belief import BeliefValue
 from app.models.social_fabric import RelationshipSnapshot
+from app.services.memory.relationship_store import RelationshipStore
 from app.services.player_cognition.action_consequence_compiler import ActionConsequenceCompiler
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
@@ -106,3 +107,78 @@ class TestActionConsequenceCompiler:
         snap = fabric.get_current("maid_lusya", "player")
         assert snap.trust == -10.0 # 20 - 30 (не -40)
         assert snap.fear == 40.0   # 10 + 30 (не 70)
+
+
+
+# ── M1b.2.2 (ADR-O-371): компилятор через RelationshipWriteGate — сайт-паритет ──
+
+
+class TestCompilerWriteGateParity:
+    """Механическая миграция writer'а (дельты/направления не изменены):
+    значения стора после РЕАЛЬНОГО process_action() == прямому legacy-вызову
+    с теми же дельтами. Честный метод M1b.2.1: реальные объекты
+    (ObservationLog/PlayerBeliefModel/SocialFabricTracker/RelationshipStore),
+    ActionType из enum, никаких двойников моей копии логики.
+
+    Примечание: ACCUSE-кейс пойдёт с epistemic_resolver=None → гейт §18
+    логирует warning и ПРОПУСКАЕТ действие — доверимся существующему
+    тесту accuse в основной сьюте для семантики; здесь паритет стор-записи
+    для безгейтовых действий (BLACKMAIL/HELP), где компилятор пишет всегда."""
+
+    @staticmethod
+    def _make_compiler(tmp_path, campaign="cc_parity"):
+        store = RelationshipStore(data_dir=str(tmp_path / "S"))
+        compiler = ActionConsequenceCompiler(
+            ObservationLog(),
+            PlayerBeliefModel(),
+            SocialFabricTracker(),
+            relationship_store=store,
+        )
+        compiler._campaign_id = campaign  # точка DI продакшена (set в привязке кампании)
+        return compiler, store
+
+    @pytest.mark.parametrize(
+        "action_type,deltas",
+        [
+            (ActionType.BLACKMAIL, {"fear": 30.0, "trust": -30.0}),
+            (ActionType.HELP, {"trust": 20.0, "fear": -10.0}),
+        ],
+    )
+    def test_store_parity_via_real_compiler(self, tmp_path, action_type, deltas):
+        camp = "cc_parity"
+        compiler, store_g = self._make_compiler(tmp_path)
+        action = PlayerAction(
+            action_id=f"act_{action_type.value}",
+            tick=1,
+            actor_id="player",
+            action_type=action_type,
+            target_id="maid_lusya",
+            secret_id="lusya_basement" if action_type == ActionType.BLACKMAIL else None,
+            description="parity",
+        )
+        compiler.process_action(action)
+        # L: прямой legacy-вызов с теми же дельтами и направлением (target→actor)
+        store_l = RelationshipStore(data_dir=str(tmp_path / "L"))
+        store_l.update(camp, "maid_lusya", "player", dict(deltas))
+        got_g = store_g.get_pair(camp, "maid_lusya", "player")
+        want_l = store_l.get_pair(camp, "maid_lusya", "player")
+        assert got_g == want_l, f"PARITY BREAK {action_type.value}: L={want_l} G={got_g}"
+
+    def test_compiler_without_store_writes_nothing(self, tmp_path):
+        """None-DI (существующий прецедент фикстуры setup): без стора компилятор
+        жив, никаких записей (охрана if self._write_gate ...)."""
+        compiler = ActionConsequenceCompiler(
+            ObservationLog(), PlayerBeliefModel(), SocialFabricTracker()
+        )
+        compiler._campaign_id = "cc_parity"
+        compiler.process_action(
+            PlayerAction(
+                action_id="act_nostore",
+                tick=1,
+                actor_id="player",
+                action_type=ActionType.HELP,
+                target_id="maid_lusya",
+                description="no-store",
+            )
+        )
+        assert True  # главное: не упал (гейт None — охрана sites)

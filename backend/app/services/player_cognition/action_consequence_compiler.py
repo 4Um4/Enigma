@@ -5,12 +5,13 @@
 """
 
 import logging
-from typing import Set, Optional, Any
+from typing import Any, Optional, Set
 
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.player_action import ActionType, PlayerAction
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
+from app.services.social.relationship_write_gate import RelationshipWriteGate
 from app.services.social.social_fabric_tracker import SocialFabricTracker
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,12 @@ class ActionConsequenceCompiler:
         self._truth = truth_state
         self._faction_tracker = faction_tracker
         self._relationship_store = relationship_store
+        # M1b.2.2 (ADR-O-371): писатель пяти скаляров переводится на
+        # RelationshipWriteGate — единый write-маршрут (D2). Стор опционален
+        # (DI): без стора гейта нет — охрана сайтов остаётся прежней
+        # (if self._relationship_store ...). На cutover (M1b.4) гейт получит
+        # v2-backend централизованно — компилятор повторно не мигрирует.
+        self._write_gate = RelationshipWriteGate(relationship_store) if relationship_store else None
         # S211: EpistemicContextResolver над EpistemicStore — ЕДИНСТВЕННЫЙ
         # законный путь чтения убеждений игрока (Закон §18). PlayerBeliefModel
         # — legacy projection (DEBT-E1), в гейте НЕ участвует.
@@ -125,15 +132,16 @@ class ActionConsequenceCompiler:
                 cause=f"action:{action.action_type.value}",
                 description=f"{action.target_id} боится {action.actor_id} после шантажа"
             )
-            # P2 FIX: Проброс дельты в SSOT ядра симуляции (RelationshipStore)
-            if self._relationship_store and self._campaign_id:
-                self._relationship_store.update(
-                    campaign_id=self._campaign_id,
-                    source=action.target_id,
-                    target=action.actor_id,
-                    delta={"fear": 30.0, "trust": -30.0}
+            # P2 FIX: Проброс дельты в SSOT ядра симуляции (через WriteGate — M1b.2.2)
+            if self._write_gate and self._campaign_id:
+                self._write_gate.apply(
+                    self._campaign_id,
+                    action.target_id,
+                    action.actor_id,
+                    {"fear": 30.0, "trust": -30.0},
+                    cause=f"action:{action.action_type.value}",
                 )
-            
+
             # M-12 FIX: BLACKMAIL применяет delta к фракциям
             if self._faction_tracker:
                 _faction_id = self._resolve_faction_id(action.target_id)
@@ -162,13 +170,14 @@ class ActionConsequenceCompiler:
                 cause=f"action:{action.action_type.value}",
                 description=f"{action.target_id} благодарен {action.actor_id} за помощь"
             )
-            # P2 FIX: Проброс дельты в SSOT ядра симуляции (RelationshipStore)
-            if self._relationship_store and self._campaign_id:
-                self._relationship_store.update(
-                    campaign_id=self._campaign_id,
-                    source=action.target_id,
-                    target=action.actor_id,
-                    delta={"trust": 20.0, "fear": -10.0}
+            # P2 FIX: Проброс дельты в SSOT ядра симуляции (через WriteGate — M1b.2.2)
+            if self._write_gate and self._campaign_id:
+                self._write_gate.apply(
+                    self._campaign_id,
+                    action.target_id,
+                    action.actor_id,
+                    {"trust": 20.0, "fear": -10.0},
+                    cause=f"action:{action.action_type.value}",
                 )
             # M-12 FIX: HELP применяет delta к фракциям
             if self._faction_tracker:
@@ -190,12 +199,13 @@ class ActionConsequenceCompiler:
                 cause=f"action:{action.action_type.value}",
                 description=f"{action.target_id} обвинён {action.actor_id}"
             )
-            if self._relationship_store and self._campaign_id:
-                self._relationship_store.update(
-                    campaign_id=self._campaign_id,
-                    source=action.target_id,
-                    target=action.actor_id,
-                    delta={"fear": 25.0, "trust": -15.0}
+            if self._write_gate and self._campaign_id:
+                self._write_gate.apply(
+                    self._campaign_id,
+                    action.target_id,
+                    action.actor_id,
+                    {"fear": 25.0, "trust": -15.0},
+                    cause=f"action:{action.action_type.value}",
                 )
             if self._faction_tracker:
                 _faction_id = self._resolve_faction_id(action.target_id)
