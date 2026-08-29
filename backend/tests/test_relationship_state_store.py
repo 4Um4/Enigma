@@ -503,3 +503,87 @@ class TestWriteGateD3Parity:
         store_g = self._fresh_pair(tmp_path / "G", 42.0)
         RelationshipWriteGate(store_g).apply("parity", "a", "b", {"trust": 0.0})
         assert store_l.get_pair("parity", "a", "b") == store_g.get_pair("parity", "a", "b")
+
+
+# ── 9. M1b.2.1: social_subscriber через гейт — сайт-паритет (честный handle) ──
+
+
+class TestSocialSubscriberGateParity:
+    """Механическая миграция writer'а: для каждого intent итоговые значения
+    стора через РЕАЛЬНЫЙ handle() подписчика == прямому legacy-вызову с теми
+    же дельтами. Урок сессии: тест-двойник с ручной копией логики = тест моей
+    копии, не кода (5 красных на M1b.2.1-v1); версия v2 зовёт настоящий
+    handle() с настоящим Phase8Context и настоящим EventDTO."""
+
+    INTENTS = [
+        # (intent, источник события, цель события, ожидаемые пары стора)
+        ("intimidate", "guard_borko", "thief_shadow", [("guard_borko", "thief_shadow", {"fear": 1.0})]),
+        ("gossip", "maid_lusya", "merchant_goran", [("player", "maid_lusya", {"trust": -2.0})]),
+        ("praise", "maid_lusya", "merchant_goran", [("player", "merchant_goran", {"trust": 1.5})]),
+        ("accuse", "guard_borko", "thief_shadow", [("player", "thief_shadow", {"fear": 1.0})]),
+        ("talk", "maid_lusya", "merchant_goran", [("player", "maid_lusya", {"trust": 0.5})]),
+    ]
+
+    @staticmethod
+    def _make_subscriber(tmp_path, campaign):
+        """Подписчик с EventBus-заглушкой (шинный DI — только bus, ни одного
+        события: подаём события напрямую в handle, мимо шины) + фабрикой
+        social_engine (обязательное поле handle(), иначе ранний return)."""
+        from app.services.events.event_bus import EventBus
+        from app.services.events.social_subscriber import SocialSubscriber
+
+        sub = SocialSubscriber(EventBus())
+        sub._social_engine_factory = lambda campaign_id: object()  # не None → не ранний return
+        return sub
+
+    @staticmethod
+    def _make_p8ctx(tmp_path, campaign, store):
+        """Phase8Context реальной структуры: shared_context = настоящий
+        PipelineContext с relationship_store (как в проде — tick.py:103)."""
+        import types as _t
+
+        from app.models.phase8 import Phase8Context
+        from app.models.pipeline_context import PipelineContext
+
+        pc = PipelineContext(campaign_id=campaign, world_id="w", location="tavern")
+        pc.relationship_store = store
+        return Phase8Context(
+            all_npcs_raw=[],
+            all_npc_contexts=[],
+            shared_context=pc,
+            campaign_id=campaign,
+            tick_ctx=_t.SimpleNamespace(tick=0),
+        )
+
+    @staticmethod
+    def _event(source, target, intent):
+        from app.domain.events import EventDTO
+        from app.services.events.event_types import EventType
+
+        # Урок M1b.2.1: значение типа события — ТОЛЬКО из enum (канонический
+        # источник), не строка с потолка: "NPC_SPOKE" != "npc_spoke" — из-за
+        # этого fallback-блок не видел события (3 итерации теста, один корень)
+        return EventDTO.create(
+            event_type=EventType.NPC_SPOKE.value,
+            source=source,
+            payload={"target_id": target, "intent_type": intent},
+        )
+
+    @pytest.mark.parametrize("intent,src,tgt,expected", INTENTS)
+    def test_intent_parity_via_real_handle(self, tmp_path, intent, src, tgt, expected):
+        camp = "gate_parity"
+        # G: подписчик → гейт → стор (реальный handle; propagate_social_rumors
+        # работает с пустым all_npcs_raw — социальный fallback не зависит от него)
+        store_g = RelationshipStore(data_dir=str(tmp_path / "G"))
+        sub = self._make_subscriber(tmp_path, camp)
+        sub.handle([self._event(src, tgt, intent)], self._make_p8ctx(tmp_path, camp, store_g))
+        # L: прямой legacy-вызов с теми же дельтами
+        store_l = RelationshipStore(data_dir=str(tmp_path / "L"))
+        for s, t, deltas in expected:
+            store_l.update(camp, s, t, dict(deltas))
+        # Паритет: пары L ⊆ G и значения равны
+        got_g = store_g.get_all(camp)
+        for key, vals in store_l.get_all(camp).items():
+            assert key in got_g, f"PARITY BREAK {intent}: пара {key} не создана через гейт: {got_g}"
+            assert got_g[key] == vals, f"PARITY BREAK {intent} {key}: L={vals} G={got_g[key]}"
+            

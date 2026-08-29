@@ -19,6 +19,7 @@ propagate_social_rumors() — чистая функция, возвращает 
 """
 
 from __future__ import annotations
+
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
@@ -26,6 +27,7 @@ from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
+from app.services.social.relationship_write_gate import RelationshipWriteGate
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +118,6 @@ class SocialSubscriber:
             return Phase8Result()
 
         from app.services.social.propagation import propagate_social_rumors
-        from app.services.events.event_types import EventType
 
         # 8.1 FIX: Детерминированный fallback для трекинга отношений.
         # Если LLM не парсит семантику, NPC A и B всё равно должны влиять на отношения при разговоре.
@@ -124,7 +125,14 @@ class SocialSubscriber:
         if not hasattr(ctx.shared_context, "relationship_store") or not hasattr(ctx.shared_context, "campaign_id"):
             logger.warning("[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.")
         else:
-            _rel_store = ctx.shared_context.relationship_store
+            # M1b.2.1 (ADR-O-371): писатель переводится на RelationshipWriteGate —
+            # единый write-маршрут (D2). Ленивая инъекция: гейт строится из
+            # доступного стора, если точка сборки его ещё не пробросила; на
+            # cutover (M1b.4) backend гейта меняется централизованно — подписчик
+            # повторно не мигрирует. Дельты/направления НЕ меняются (механика).
+            _gate = getattr(ctx.shared_context, "relationship_write_gate", None)
+            if _gate is None:
+                _gate = RelationshipWriteGate(ctx.shared_context.relationship_store)
             _campaign_id = ctx.shared_context.campaign_id
             for _ev in events:
                 if _ev.type == EventType.NPC_SPOKE.value:
@@ -138,7 +146,7 @@ class SocialSubscriber:
                     _TRUST_DELTA = 0.5
                     _TARGET_TRUST_DELTA = 0.0
                     _TARGET_FEAR_DELTA = 0.0
-                    
+
                     if _intent == "gossip":
                         _TRUST_DELTA = -2.0
                     elif _intent == "praise":
@@ -148,19 +156,19 @@ class SocialSubscriber:
                     if _sp and _tg and _sp != _tg:
                         try:
                             if _intent in ("intimidate", "attack"):
-                                _rel_store.update(_campaign_id, _sp, _tg, {"fear": 1.0})
+                                _gate.apply(_campaign_id, _sp, _tg, {"fear": 1.0}, cause=f"social_sub:{_intent}")
                             elif _intent == "gossip":
                                 # Сплетни разрушают доверие ИГРОКА к сплетнику
-                                _rel_store.update(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA})
+                                _gate.apply(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:gossip")
                             elif _intent == "praise":
                                 # Хвала повышает доверие ИГРОКА к хвалимому
-                                _rel_store.update(_campaign_id, "player", _tg, {"trust": _TARGET_TRUST_DELTA})
+                                _gate.apply(_campaign_id, "player", _tg, {"trust": _TARGET_TRUST_DELTA}, cause="social_sub:praise")
                             elif _intent == "accuse":
                                 # Обвинение повышает страх ИГРОКА к обвиняемому
-                                _rel_store.update(_campaign_id, "player", _tg, {"fear": _TARGET_FEAR_DELTA})
+                                _gate.apply(_campaign_id, "player", _tg, {"fear": _TARGET_FEAR_DELTA}, cause="social_sub:accuse")
                             else:
                                 # Симуляция светской беседы — рост доверия игрока к спикеру
-                                _rel_store.update(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA})
+                                _gate.apply(_campaign_id, "player", _sp, {"trust": _TRUST_DELTA}, cause="social_sub:talk")
                         except Exception as _e:
                             logger.error(f"[SOCIAL_SUB] RelationshipStore fallback failed: {_e}")
 
