@@ -29,14 +29,13 @@ SceneState хранится в:
 
 
 from __future__ import annotations
-import os
 
 import hashlib
 import json
 import logging
 import math
+import os
 import random
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -45,10 +44,10 @@ from app.core.calendar import Calendar
 from app.core.config import settings
 from app.core.log_gate import file_logs_enabled
 from app.services.scene_change import ChangeType, SceneChange
+from app.services.spatial.geometry_kernel import point_in_rect
 
 # ADR-102: load_graph удалён — заменён на SpatialService
 from app.services.spatial.spatial_runtime import euclidean_distance
-from app.services.spatial.geometry_kernel import point_in_rect
 from app.services.state.persistence_port import PersistencePort
 
 logger = logging.getLogger(__name__)
@@ -491,7 +490,7 @@ class SceneStateManager:
             if isinstance(pos_data, dict):
                 if not pos_data.get("name"):
                     pos_data["name"] = _npc_id_to_display(npc_id)
-                
+
                 # SC-3 FIX: Сбрасываем position, если она содержит префикс другой локации.
                 _pos = pos_data.get("position", "")
                 if _pos and ":" in str(_pos):
@@ -543,7 +542,7 @@ class SceneStateManager:
             f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}"
         )
         if self._persistence:
-            # Stage 0 Task 0.3: JSON as runtime truth FORBIDDEN. 
+            # Stage 0 Task 0.3: JSON as runtime truth FORBIDDEN.
             # Делегируем в atomic_commit_all (Устав §4.2.1) — единственный write-path.
             _loc_id = scene_state.get("location_id", "default")
             self._persistence.atomic_commit_all(
@@ -1084,6 +1083,11 @@ class SceneStateManager:
             "active_commitments": {},  # dict[npc_id, commitment_dict] — только активные
             "commitment_history": {},  # dict[npc_id, list] — bounded terminal (cap 10)
             "commitment_ordinals": {},  # dict[npc_id, int] — монотонные счётчики идентичностей
+            # ── ADR-O-370 (RE M1a): субстрат потребностей — ПУСТОЙ корень ──
+            # Заполнение только через RelationshipStateStore (ленивые записи);
+            # загруженные сейвы самовосстанавливаются: ключ отсутствует →
+            # read-дефолты стора (Foundation Freeze, без whitelist).
+            "relationship_state": {},
             # ── ADR-O-146: Новая игра начинается с tick=0, время 12:00 ──
             "tick": 0,
             # ── S139 FIX: SSOT времени — всегда инициализируем game_time_seconds ──
@@ -1359,15 +1363,15 @@ class SceneStateManager:
                 scene_state.setdefault("environment", {})[change.field] = change.value
 
             elif ct == ChangeType.INVENTORY:
-                from app.services.body.body_topology_service import BodyTopologyService
                 from app.domain.body import Item
-                
+                from app.services.body.body_topology_service import BodyTopologyService
+
                 topo_data = scene_state.get("player_body_topology")
                 if not topo_data:
                     topo = BodyTopologyService.create_topology("player")
                 else:
                     topo = BodyTopologyService.deserialize(topo_data)
-                    
+
                 if change.field == "add" and isinstance(change.value, dict):
                     for item_id, slot_id in change.value.items():
                         if item_id.startswith("_"):
@@ -1377,7 +1381,7 @@ class SceneStateManager:
                 elif change.field == "remove" and isinstance(change.value, dict):
                     for item_id, slot_id in change.value.items():
                         BodyTopologyService.remove_item(topo, slot_id, item_id)
-                        
+
                 scene_state["player_body_topology"] = BodyTopologyService.serialize(topo)
 
             elif ct == ChangeType.EFFECT_ADD:
@@ -1755,7 +1759,7 @@ class SceneStateManager:
             # BUG-SPATIAL-004 FIX: Блок пространственного контекста удалён (ADR-O-314).
             # Игрок течёт через тот же path, что и NPC (editor_coords / svc.get_node).
             current_node = entry.get("position", "")
-            
+
             # SC-3 FIX: Если current_node содержит префикс другой локации (например, после load),
             # сбрасываем его, чтобы SpatialService мог пересчитать позицию в текущей локации.
             if current_node and ":" in current_node:
@@ -1914,7 +1918,7 @@ class SceneStateManager:
                             _is_stuck = True
                             _stuck_obj_id = obj.get("id", "unknown")
                             break
-                
+
                 if _is_stuck and svc:
                     # S-03.1: Ищем действительно безопасный узел через SpatialService API
                     _safe_node = svc.get_nearest_safe_node(zone_id=location_id, origin_xy=(_px, _py))

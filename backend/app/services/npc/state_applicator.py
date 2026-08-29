@@ -23,17 +23,18 @@ R2.3 — StateApplicator: единственный модуль с правом 
 import copy
 import logging
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
+    from app.models.npc.beliefs import BeliefDelta
     from app.services.npc.resolution_engine import ResolutionOutcome
 
 from app.core.constants import TRAIT_DECAY_RATE
+from app.domain.relationship_contracts import NeedLevel
 from app.domain.vital_state import LifeStatus, evaluate_vital_state
 from app.models.delta_payloads import (
     EconomicPayload,
     EmotionPayload,
-    IdentityPayload,
     PerceptionPayload,
     PhysiologyPayload,
     SocialPayload,
@@ -61,8 +62,9 @@ from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.kernel_rng import KernelRNG
-from app.services.npc.math_utils import apply_saturation
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from app.services.npc.math_utils import apply_saturation
+from app.services.social.relationship_state_store import RelationshipStateStore
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,7 @@ class StateApplicator:
             _delta["fear"] = fear_delta
         if debt_delta != 0.0:
             _delta["debt"] = debt_delta
-            
+
         if not _delta:
             return
 
@@ -124,6 +126,50 @@ class StateApplicator:
         fresh = self._rel_store.get_pair(campaign_id, state.npc_id, target_id)
         state.relationship_cache.setdefault(target_id, {}).update(fresh)
 
+    def update_needs(
+        self,
+        scene_state: Dict[str, Any],
+        npc_id: str,
+        need_id: str,
+        pressure_delta: float = 0.0,
+        satiation_delta: float = 0.0,
+        frustration_delta: float = 0.0,
+        cause: Optional[Cause] = None,
+    ) -> NeedLevel:
+        """ADR-O-370 (RE M1a): единственный runtime-writer NeedLevel.
+
+        Цепочка (вердикт Мастера): StateApplicator → RelationshipStateStore →
+        scene_state["relationship_state"]. Caller-guard стора пропускает только
+        этот модуль и сам стор. В M1a НЕ вызывается рантаймом (писатели — M2/D
+        и G/H): поведение тика байтово идентично.
+
+        cause: О1-поверхность event-provenance — обязательна для реальных писателей
+        (M2+), в M1a опциональна (тесты субстрата). Полная интеграция — M2:
+        causal_ledger ADR-CAUSAL-SPINE привязан к NPCState, RE-стор scene_state-
+        backed; привязка RE-provenance к NPCState-леджеру была бы сменой владельца
+        (зафиксировано в ADR-O-370 как отклонение от PRE-FLIGHT по археологии).
+        """
+        if cause is not None:
+            logger.info(
+                "[RE_NEEDS] npc=%s need=%s cause=(event=%s, action=%s) "
+                "d_pressure=%.4f d_satiation=%.4f d_frustration=%.4f",
+                npc_id,
+                need_id,
+                getattr(cause, "source_event_id", None),
+                getattr(cause, "source_action_id", None),
+                pressure_delta,
+                satiation_delta,
+                frustration_delta,
+            )
+        return RelationshipStateStore.apply_need_deltas(
+            scene_state,
+            npc_id,
+            need_id,
+            pressure_delta=pressure_delta,
+            satiation_delta=satiation_delta,
+            frustration_delta=frustration_delta,
+        )
+
     def apply(
         self,
         state: NPCState,
@@ -137,8 +183,8 @@ class StateApplicator:
         Применяет DecisionResult атомарно.
         Параметр personality УДАЛЁН — он уже использован в DecisionHub.
         Возвращает новый NPCState — оригинал не мутируется.
-        
-        resolution_outcome: Спящее поле для ResolutionEngine (Фаза 2). 
+
+        resolution_outcome: Спящее поле для ResolutionEngine (Фаза 2).
         None = детерминированный путь (Фаза 0/1).
         cause: Stage 1 Task 1.2 — provenance для CausalLedger.
         """
@@ -306,6 +352,7 @@ class StateApplicator:
         state: NPCState,
         outcome: PhysicalOutcome,
         current_tick: int = 0,
+        cause: Optional[Cause] = None,
     ) -> tuple[NPCState, list[StateChange]]:
         """
         Применяет PhysicalOutcome к NPCState.
@@ -519,6 +566,7 @@ class StateApplicator:
         state: NPCState,
         deltas: StateDeltas,
         campaign_id: str = "",
+        cause: Optional[Cause] = None,
     ) -> NPCState:
         """
         Применяет StateDeltas без DecisionResult.
@@ -594,7 +642,6 @@ class StateApplicator:
         """Применяет числовые дельты к state и RelationshipStore."""
         # --- v2 payload extraction (с фолбэком на v1 поля) ---
         domain = deltas.domain
-        npc_id = state.npc_id
 
         stress_delta = (
             deltas.payload.stress_delta
@@ -643,25 +690,15 @@ class StateApplicator:
         )
 
         # DEEP-015 FIX: Мёртвый код ExpectationStore (Reward Prediction Error) удалён.
-
-        identity_integrity_delta = (
-            deltas.payload.identity_integrity_delta
-            if domain == DeltaDomain.IDENTITY
-            and isinstance(deltas.payload, IdentityPayload)
-            else deltas.identity_integrity_delta
-        )
-        pressure_resistance_delta = (
-            deltas.payload.pressure_resistance_delta
-            if domain == DeltaDomain.IDENTITY
-            and isinstance(deltas.payload, IdentityPayload)
-            else deltas.pressure_resistance_delta
-        )
-        will_state_override = (
-            deltas.payload.will_state_override
-            if domain == DeltaDomain.IDENTITY
-            and isinstance(deltas.payload, IdentityPayload)
-            else deltas.will_state_override
-        )
+        # SANATION-M1a: v2-поля IdentityPayload (identity_integrity_delta /
+        # pressure_resistance_delta / will_state_override) читаются только по
+        # legacy-полям StateDeltas ниже — дублирующие extraction-присваивания
+        # удалены (F841); контракт payload не меняется.
+        # SANATION-M1a (окончание): v2-extraction IdentityPayload-полей удалён как
+        # мёртвый (F841): identity-дельты применяются в apply() напрямую по legacy-
+        # полям collapsed StateDeltas; v2-payload-путь IdentityPayload здесь не
+        # потребляется. Наблюдение (чужая зона, в MUTATIONS): _apply_deltas не
+        # применяет identity-дельты вовсе — путь apply_deltas_only их теряет.
 
         # Physiology Domain: Damage & Stress Propagation System
         hp_delta = (
@@ -780,6 +817,21 @@ class StateApplicator:
 
         self._apply_trauma_and_traits(state, deltas, new_trauma)
 
+        # S2B.1: energy_delta extraction (same v2 pattern as hp_delta etc.)
+        energy_delta = (
+            deltas.payload.energy_delta
+            if domain == DeltaDomain.PHYSIOLOGY
+            and isinstance(deltas.payload, PhysiologyPayload)
+            else 0.0
+        )
+        # S2B.3: hydration_delta extraction
+        hydration_delta = (
+            deltas.payload.hydration_delta
+            if domain == DeltaDomain.PHYSIOLOGY
+            and isinstance(deltas.payload, PhysiologyPayload)
+            else 0.0
+        )
+
         # --- Физиология (Physiology Domain) ---
         if domain == DeltaDomain.PHYSIOLOGY:
             self._apply_physiology_deltas(
@@ -792,6 +844,7 @@ class StateApplicator:
                 add_statuses,
                 remove_statuses,
                 shock_impulse,
+                energy_delta=energy_delta,
             )
 
         self._apply_perception_deltas(
@@ -927,6 +980,8 @@ class StateApplicator:
         add_statuses: list,
         remove_statuses: list,
         shock_impulse: float,
+        energy_delta: float = 0.0,  # S2B.1: default 0.0 (backward compat)
+        hydration_delta: float = 0.0,  # S2B.3: default 0.0
     ) -> None:
         """Применяет дельты физиологии (HP, боль, шок) к body_state."""
         # Инициализация body_state при первом применении
@@ -941,6 +996,9 @@ class StateApplicator:
                 "injuries": [],
                 "modifiers": {},
                 "statuses": [],
+                # S2B.1: energy — proof-of-concept variable.
+                "energy": 100.0,  # 0-100
+                "hydration": 100.0,  # S2B.3: 0-100
             }
 
         if hp_delta != 0.0:
@@ -958,6 +1016,21 @@ class StateApplicator:
             _cur_fat = state.body_state.get("fatigue", 0.0)
             state.body_state["fatigue"] = max(
                 0.0, min(100.0, _cur_fat + fatigue_delta)
+            )
+
+        # S2B.1: energy — artificial variable for pipeline proof.
+        # Same clamp pattern as pain/fatigue (0-100).
+        if energy_delta != 0.0:
+            _cur_energy = state.body_state.get("energy", 100.0)
+            state.body_state["energy"] = max(
+                0.0, min(100.0, _cur_energy + energy_delta)
+            )
+
+        # S2B.3: hydration — same clamp pattern (0-100).
+        if hydration_delta != 0.0:
+            _cur_hydration = state.body_state.get("hydration", 100.0)
+            state.body_state["hydration"] = max(
+                0.0, min(100.0, _cur_hydration + hydration_delta)
             )
 
         if blood_loss_delta != 0.0:
@@ -1319,8 +1392,8 @@ class StateApplicator:
         # L1: Материализация (будет перенесена в Orchestrator на Этапе 5)
         state = NPCStateAdapter.from_legacy(npc_dict)
 
-        # Stage 0 Task 0.8: SSOT Economic. 
-        # Единая точка обработки EconomicPayload. 
+        # Stage 0 Task 0.8: SSOT Economic.
+        # Единая точка обработки EconomicPayload.
         # Пишем прямо в npc_dict, чтобы избежать потери данных при return.
         if deltas.domain == DeltaDomain.ECONOMY and isinstance(deltas.payload, EconomicPayload):
             _money_delta = float(deltas.payload.money_delta or 0.0)
