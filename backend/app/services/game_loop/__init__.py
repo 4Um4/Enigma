@@ -286,6 +286,10 @@ class GameLoop:
         # PhysiologyDecayHandler — leaky integrator (экспоненциальное затухание боли/усталости)
         from app.services.combat.physiology_decay_handler import PhysiologyDecayHandler
         self._tick_orch.add_idle_handler(PhysiologyDecayHandler())
+        # S2B.1: BodyEngine — energy expenditure/recovery (pure calculator;
+        # reads body_state SSOT + activity → PhysiologyPayload + Cause).
+        from app.services.body.body_engine import BodyEngine
+        self._tick_orch.add_idle_handler(BodyEngine())
 
         # S74: Непрерывное время психики. Аффективный интеграл затухает в idle.
         from app.services.affective.affective_decay_handler import AffectiveDecayHandler

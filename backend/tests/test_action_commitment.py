@@ -235,11 +235,40 @@ class TestSweep:
         assert CommitmentRegistry.sweep(ss, tick=4) == 0
         assert CommitmentRegistry.has_active_commitment(ss, "n1") is True
 
-    def test_non_traversal_executor_untouched(self, flag_on):
-        """Контракт: sweep чистит только traversal-executor (windup/task — S203.3/4)."""
+    def test_non_traversal_executor_within_grace(self, flag_on):
+        """S203.4 (Э5-e): sweep не трогает task/windup/sleep в пределах grace
+        (TASK_GRACE_TICKS=25) — даёт время на outbox-дренаж."""
         ss = {}
         CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task")
-        assert CommitmentRegistry.sweep(ss, tick=2) == 0
+        assert CommitmentRegistry.sweep(ss, tick=2) == 0  # 2-1=1 < 25
+
+    def test_non_traversal_executor_after_grace_swept(self, flag_on):
+        """S203.4 (Э5-e): после grace — TASK_VANISHED safety-net (stale=0 гарантия)."""
+        from app.domain.action_commitment import INTERRUPT_TASK_VANISHED
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task")
+        assert CommitmentRegistry.sweep(ss, tick=30) == 1  # 30-1=29 > 25
+        assert (
+            ss["commitment_history"]["n1"][-1]["interrupt_reason"]
+            == INTERRUPT_TASK_VANISHED
+        )
+
+    def test_blocked_timeout_to_failed(self, flag_on):
+        """S203.4 (Ц5): BLOCKED + blocked_since_tick > 10 → FAILED(BLOCKED_TIMEOUT).
+        Dead-but-ready: продюсера BLOCKED нет — создаём вручную для контракта."""
+        from app.domain.action_commitment import FAIL_BLOCKED_TIMEOUT, transition_commitment
+
+        ss = {}
+        CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="EAT", cause="c", executor="task")
+        CommitmentRegistry.mark_executing(ss, "n1", 2)
+        _cm = ss["active_commitments"]["n1"]
+        assert transition_commitment(_cm, "BLOCKED", tick=5)  # EXECUTING→BLOCKED
+        assert _cm["blocked_since_tick"] == 5
+        assert CommitmentRegistry.sweep(ss, tick=10) == 0  # 10-5=5 < 10 (в пределах)
+        assert CommitmentRegistry.sweep(ss, tick=20) == 1  # 20-5=15 > 10
+        assert ss["commitment_history"]["n1"][-1]["status"] == "FAILED"
+        assert ss["commitment_history"]["n1"][-1]["fail_reason"] == FAIL_BLOCKED_TIMEOUT
 
 
 # ── Нейтральность флага ─────────────────────────────────────────────────────
@@ -881,6 +910,64 @@ class TestS2034TaskOutbox:
         sched.drain_commitment_outbox(ss)  # тихий тик: no-op, ничего не создаёт
         assert "active_commitments" not in ss
 
+    def test_expired_by_ref_strict(self, flag_on):
+        import app.services.action.commitment_registry as cr
+
+        saved = cr.S203_4_OWNERSHIP_MIRRORS
+        cr.S203_4_OWNERSHIP_MIRRORS = True
+        try:
+            ss = {}
+            CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "c", "t-1")
+            CommitmentRegistry.mirror_task_committed(ss, 2, "n1", "c", "t-2") is None
+            # активен t-1-владелец не существует: вторая запись — коллизия,
+            # активен t-1. EXPIRED по t-2 (чужой ref) обязан отклонить.
+            assert CommitmentRegistry.mirror_task_expired_by_ref(ss, "n1", "t-2", 3) is False
+            assert CommitmentRegistry.mirror_task_expired_by_ref(ss, "n1", "t-1", 3) is True
+            assert ss["commitment_history"]["n1"][-1]["status"] == "EXPIRED"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_windup_mirror_windowed_priority(self, flag_on):
+        import app.services.action.commitment_registry as cr
+        from app.domain.action_priority import PRIORITY_WINDOWED
+
+        saved = cr.S203_4_OWNERSHIP_MIRRORS
+        cr.S203_4_OWNERSHIP_MIRRORS = True
+        try:
+            ss = {}
+            cm = CommitmentRegistry.mirror_windup_committed(
+                ss, 1, "n1", "attack", "t2", "windup:attack"
+            )
+            assert cm is not None
+            assert cm["executor"] == "windup" and cm["priority"] == PRIORITY_WINDOWED
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+    def test_sleep_reconcile_three_cases(self, flag_on):
+        import app.services.action.commitment_registry as cr
+
+        saved = cr.S203_4_OWNERSHIP_MIRRORS
+        cr.S203_4_OWNERSHIP_MIRRORS = True
+        try:
+            ss = {}
+            _sleepy = {"npc_id": "n1", "body_state": {
+                "life_status": "ALIVE",
+                "coupling_profile": {"coupling_mode": "SLEEPING"}}}
+            CommitmentRegistry.reconcile_sleep_ownership(ss, [_sleepy], 5)
+            assert ss["active_commitments"]["n1"]["executor"] == "sleep"  # Y6 закрыт
+            _awake = {"npc_id": "n1", "body_state": {
+                "life_status": "ALIVE",
+                "coupling_profile": {"coupling_mode": "AWAKE"}}}
+            CommitmentRegistry.reconcile_sleep_ownership(ss, [_awake], 6)
+            assert ss["commitment_history"]["n1"][-1]["status"] == "COMPLETED"
+            # исчезнувший спящий: создан и NPC удалён из мира
+            CommitmentRegistry.reconcile_sleep_ownership(ss, [_sleepy], 7)
+            CommitmentRegistry.reconcile_sleep_ownership(ss, [], 8)
+            assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
+            assert ss["commitment_history"]["n1"][-1]["interrupt_reason"] == "SLEEP_VANISHED"
+        finally:
+            cr.S203_4_OWNERSHIP_MIRRORS = saved
+
     def test_drain_batch_order_preserved(self, flag_on):
         from app.services.game_loop.task_scheduler import TaskScheduler
 
@@ -896,6 +983,352 @@ class TestS2034TaskOutbox:
             assert ss["active_commitments"]["n1"]["status"] == "COMMITTED"
         finally:
             cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+
+class TestS2034WindupSerialization:
+    """Э6: ActionWindup round-trip (§12 WARA)."""
+
+    def test_windup_roundtrip(self):
+        from app.domain.action_windup import ActionWindup, WindupStatus
+
+        _orig = ActionWindup(
+            actor_id="n1", target_id="n2", action_type="steal",
+            started_tick=5, duration_ticks=2,
+            status=WindupStatus.PENDING,
+            held_intent_id="cmt-abc123",
+        )
+        _d = _orig.to_dict()
+        _restored = ActionWindup.from_dict(_d)
+        assert _restored == _orig
+
+    def test_windup_roundtrip_interrupted(self):
+        from app.domain.action_windup import ActionWindup, WindupStatus
+
+        _orig = ActionWindup(
+            actor_id="n1", target_id="n2", action_type="attack",
+            started_tick=3, duration_ticks=2,
+            status=WindupStatus.INTERRUPTED,
+        )
+        _restored = ActionWindup.from_dict(_orig.to_dict())
+        assert _restored == _orig
+        assert _restored.status == WindupStatus.INTERRUPTED
+
+    def test_communication_intent_roundtrip(self):
+        from app.domain.communication import CommunicationIntent, ExposureLevel
+        from app.domain.epistemology import Predicate, Proposition
+
+        _orig = CommunicationIntent(
+            speaker="n1", audience="n2", topic="trade",
+            intent_type="warn", emotional_state="angry",
+            exposure_level=ExposureLevel(semantic="normal"),
+            semantic_action="warn", target_id="n2",
+            thread_id="t-1", priority=0.7,
+            proposition=Proposition(
+                subject_id="n1",
+                predicate=Predicate.STOLE,
+                object_id="gold",
+                polarity=True,
+            ),
+        )
+        _restored = CommunicationIntent.from_dict(_orig.to_dict())
+        assert _restored == _orig
+        assert _restored.exposure_level.semantic == "normal"
+        assert _restored.proposition is not None
+        assert _restored.proposition.predicate == Predicate.STOLE
+
+    def test_communication_intent_roundtrip_no_proposition(self):
+        from app.domain.communication import CommunicationIntent, ExposureLevel
+
+        _orig = CommunicationIntent(
+            speaker="n1", audience="all", topic="gossip",
+            intent_type="talk", emotional_state="нейтрально",
+            exposure_level=ExposureLevel(semantic="whisper"),
+        )
+        _restored = CommunicationIntent.from_dict(_orig.to_dict())
+        assert _restored == _orig
+        assert _restored.proposition is None
+        assert _restored.exposure_level.physical_radius is not None  # __post_init__
+
+
+class TestS2B1BodyEngine:
+    """S2B.1: BodyEngine pipeline proof (energy as artificial variable)."""
+
+    def test_expenditure_when_active(self):
+        from app.services.body.body_engine import BodyEngine
+
+        _engine = BodyEngine()
+        _npc = {"npc_id": "n1", "life_status": "ALIVE",
+                "body_state": {"energy": 100.0, "body_mass": 1.0}, "activity": "working"}
+        _deltas = _engine.handle([_npc], "test", 1)
+        assert len(_deltas) == 1
+        assert _deltas[0].payload.energy_delta == -0.1  # S2B.2: load=0.5 → exp=0.25 rec=0.15 → -0.10
+
+    def test_recovery_when_idle(self):
+        from app.services.body.body_engine import BodyEngine
+
+        _engine = BodyEngine()
+        _npc = {"npc_id": "n1", "life_status": "ALIVE",
+                "body_state": {"energy": 50.0, "body_mass": 1.0}, "activity": ""}
+        _deltas = _engine.handle([_npc], "test", 1)
+        assert len(_deltas) == 1
+        assert _deltas[0].payload.energy_delta == 0.3  # S2B.2: load=0.0 → rec=0.30 exp=0 → +0.30
+
+    def test_skip_dead(self):
+        from app.services.body.body_engine import BodyEngine
+
+        _engine = BodyEngine()
+        _npc = {"npc_id": "n1", "life_status": "DEAD",
+                "body_state": {"energy": 100.0}}
+        assert _engine.handle([_npc], "test", 1) == []
+
+    def test_pipeline_through_applicator(self):
+        """Full: BodyEngine → StateDeltas → StateApplicator → body_state."""
+        from app.services.body.body_engine import BodyEngine
+        from app.services.npc.state_applicator import StateApplicator
+
+        _engine = BodyEngine()
+        _npc = {"npc_id": "n1", "life_status": "ALIVE",
+                "body_state": {"energy": 100.0, "current_hp": 100,
+                               "pain": 0.0, "fatigue": 0.0,
+                               "blood_loss": 0.0, "shock_impulse": 0.0,
+                               "injuries": [], "modifiers": {}, "statuses": []},
+                "activity": "working"}
+        _deltas = _engine.handle([_npc], "test", 1)
+        assert _deltas[0].payload.energy_delta == -0.1  # S2B.2: working load=0.5
+
+        # Apply: mock state (only body_state needed by _apply_physiology_deltas)
+        class _MockState:
+            pass
+        _state = _MockState()
+        _state.body_state = dict(_npc["body_state"])
+        _applicator = object.__new__(StateApplicator)
+        _applicator._apply_physiology_deltas(
+            _state, 0, 0, 0, 0, [], [], [], 0,
+            energy_delta=_deltas[0].payload.energy_delta,
+        )
+        assert _state.body_state["energy"] == 99.9  # 100 - 0.1
+
+    def test_energy_clamp_to_zero(self):
+        """Boundary: energy can't go below 0 (valid range semantics)."""
+        from app.services.npc.state_applicator import StateApplicator
+
+        class _MockState:
+            pass
+        _state = _MockState()
+        _state.body_state = {"energy": 0.5, "current_hp": 100, "pain": 0.0,
+                             "fatigue": 0.0, "blood_loss": 0.0,
+                             "shock_impulse": 0.0, "injuries": [],
+                             "modifiers": {}, "statuses": []}
+        _applicator = object.__new__(StateApplicator)
+        _applicator._apply_physiology_deltas(
+            _state, 0, 0, 0, 0, [], [], [], 0, energy_delta=-1.0,
+        )
+        assert _state.body_state["energy"] == 0.0  # clamped, not -0.5
+
+
+class TestS2B2EnergyDynamics:
+    """S2B.2: energy dynamics — 5 experiments (determinism, monotonicity, recovery, replay, body)."""
+
+    def _engine(self):
+        from app.services.body.body_engine import BodyEngine
+        return BodyEngine()
+
+    def _npc(self, **kw):
+        _d = {"npc_id": "n1", "life_status": "ALIVE",
+              "body_state": {"energy": 100.0, "body_mass": 1.0},
+              "activity": "", "velocity": (0.0, 0.0)}
+        _d.update(kw)
+        return _d
+
+    # A: determinism — same input → same output
+    def test_a_determinism(self):
+        _e = self._engine()
+        _npc = self._npc(activity="working")
+        _d1 = _e.handle([_npc], "t", 1)
+        _d2 = _e.handle([_npc], "t", 1)
+        assert _d1[0].payload.energy_delta == _d2[0].payload.energy_delta
+
+    # B: monotonicity — IDLE < WALK < RUN
+    def test_b_monotonicity(self):
+        _e = self._engine()
+        _idle = self._engine().handle([self._npc(activity="")], "t", 1)[0].payload.energy_delta
+        _walk = _e.handle([self._npc(velocity=(0.3, 0.0))], "t", 1)[0].payload.energy_delta
+        _run = _e.handle([self._npc(velocity=(0.8, 0.0))], "t", 1)[0].payload.energy_delta
+        # expenditure increases → delta decreases (more negative)
+        assert _idle > _walk > _run
+
+    # C: recovery — rest/sleep → positive delta
+    def test_c_recovery(self):
+        _e = self._engine()
+        _idle_delta = _e.handle([self._npc(activity="")], "t", 1)[0].payload.energy_delta
+        assert _idle_delta > 0  # recovery exceeds expenditure at idle
+
+    def test_c_sleep_recovery_bonus(self):
+        _e = self._engine()
+        _awake_idle = _e.handle([self._npc(activity="")], "t", 1)[0].payload.energy_delta
+        _sleeping = _e.handle([self._npc(
+            activity="sleeping",
+            body_state={"energy": 100.0, "body_mass": 1.0,
+                       "coupling_profile": {"coupling_mode": "SLEEPING"}}
+        )], "t", 1)[0].payload.energy_delta
+        assert _sleeping > _awake_idle  # sleep bonus
+
+    # D: replay — pure function → same inputs → same outputs (replay by construction)
+    def test_d_replay_determinism(self):
+        _e = self._engine()
+        _npc = self._npc(activity="guarding_gate", body_state={"energy": 50.0, "body_mass": 1.2})
+        _d1 = _e.handle([_npc], "t", 10)[0].payload.energy_delta
+        _d2 = _e.handle([_npc], "t", 10)[0].payload.energy_delta
+        _d3 = _e.handle([_npc], "t", 10)[0].payload.energy_delta
+        assert _d1 == _d2 == _d3  # no hidden state, no wall-clock → replay-safe
+
+    # E: body sensitivity — same activity, different body_mass → different cost
+    def test_e_body_sensitivity(self):
+        _e = self._engine()
+        _light = _e.handle([self._npc(
+            activity="working", body_state={"energy": 100.0, "body_mass": 0.8}
+        )], "t", 1)[0].payload.energy_delta
+        _heavy = _e.handle([self._npc(
+            activity="working", body_state={"energy": 100.0, "body_mass": 1.2}
+        )], "t", 1)[0].payload.energy_delta
+        # heavier body → more expenditure → lower (more negative) delta
+        assert _heavy < _light
+
+
+class TestS2B3Hydration:
+    """S2B.3: hydration dynamics — one-way loss (no passive recovery)."""
+
+    def _engine(self):
+        from app.services.body.body_engine import BodyEngine
+        return BodyEngine()
+
+    def _npc(self, **kw):
+        _d = {"npc_id": "n1", "life_status": "ALIVE",
+              "body_state": {"energy": 100.0, "body_mass": 1.0, "hydration": 100.0},
+              "activity": "", "velocity": (0.0, 0.0)}
+        _d.update(kw)
+        return _d
+
+    def test_baseline_loss_at_idle(self):
+        """Even at rest, hydration decreases (respiration, basal loss)."""
+        _e = self._engine()
+        _d = _e.handle([self._npc(activity="")], "t", 1)[0].payload
+        assert _d.hydration_delta < 0  # always negative (one-way drain)
+
+    def test_monotonicity_load(self):
+        """IDLE < WALK < RUN → hydration loss increases."""
+        _e = self._engine()
+        _idle = _e.handle([self._npc(activity="")], "t", 1)[0].payload.hydration_delta
+        _walk = _e.handle([self._npc(velocity=(0.3, 0.0))], "t", 1)[0].payload.hydration_delta
+        _run = _e.handle([self._npc(velocity=(0.8, 0.0))], "t", 1)[0].payload.hydration_delta
+        assert _idle > _walk > _run  # more negative = more loss
+
+    def test_determinism(self):
+        _e = self._engine()
+        _npc = self._npc(activity="working")
+        _d1 = _e.handle([_npc], "t", 1)[0].payload.hydration_delta
+        _d2 = _e.handle([_npc], "t", 1)[0].payload.hydration_delta
+        assert _d1 == _d2
+
+    def test_body_sensitivity(self):
+        """Heavier body → more hydration loss."""
+        _e = self._engine()
+        _light = _e.handle([self._npc(
+            activity="working", body_state={"energy": 100.0, "body_mass": 0.8, "hydration": 100.0}
+        )], "t", 1)[0].payload.hydration_delta
+        _heavy = _e.handle([self._npc(
+            activity="working", body_state={"energy": 100.0, "body_mass": 1.2, "hydration": 100.0}
+        )], "t", 1)[0].payload.hydration_delta
+        assert _heavy < _light  # more negative
+
+
+class TestS2B4Nutrition:
+    """S2B.4: nutrition — one-way loss; медленнее hydration (иерархия кризисов).
+    nutrition = STOCK (запас), НЕ hunger: производное давление — S2B.10."""
+
+    def _engine(self):
+        from app.services.body.body_engine import BodyEngine
+        return BodyEngine()
+
+    def _npc(self, **kw):
+        _d = {"npc_id": "n1", "life_status": "ALIVE",
+              "body_state": {"energy": 100.0, "body_mass": 1.0,
+                             "hydration": 100.0, "nutrition": 100.0},
+              "activity": "", "velocity": (0.0, 0.0)}
+        _d.update(kw)
+        return _d
+
+    def test_baseline_loss_at_idle(self):
+        """Покой: delta == -BASE_NUTRITION_LOSS (load=0, body_mass=1.0)."""
+        _e = self._engine()
+        _d = _e.handle([self._npc(activity="")], "t", 1)[0].payload
+        assert _d.nutrition_delta == round(-_e.BASE_NUTRITION_LOSS, 4)
+
+    def test_monotonicity_load(self):
+        """IDLE < WALK < RUN → потеря питания строго растёт."""
+        _e = self._engine()
+        _idle = _e.handle([self._npc(activity="")], "t", 1)[0].payload.nutrition_delta
+        _walk = _e.handle([self._npc(velocity=(0.3, 0.0))], "t", 1)[0].payload.nutrition_delta
+        _run = _e.handle([self._npc(velocity=(0.8, 0.0))], "t", 1)[0].payload.nutrition_delta
+        assert _idle > _walk > _run  # more negative = more loss
+
+    def test_determinism(self):
+        """Pure function: same inputs → same outputs (replay by construction)."""
+        _e = self._engine()
+        _npc = self._npc(activity="working")
+        _d1 = _e.handle([_npc], "t", 1)[0].payload.nutrition_delta
+        _d2 = _e.handle([_npc], "t", 1)[0].payload.nutrition_delta
+        assert _d1 == _d2
+
+    def test_body_sensitivity(self):
+        """Тяжелее тело (body_mass) → больше расход питания."""
+        _e = self._engine()
+        _light = _e.handle([self._npc(
+            activity="working",
+            body_state={"energy": 100.0, "body_mass": 0.8,
+                        "hydration": 100.0, "nutrition": 100.0}
+        )], "t", 1)[0].payload.nutrition_delta
+        _heavy = _e.handle([self._npc(
+            activity="working",
+            body_state={"energy": 100.0, "body_mass": 1.2,
+                        "hydration": 100.0, "nutrition": 100.0}
+        )], "t", 1)[0].payload.nutrition_delta
+        assert _heavy < _light  # more negative
+
+    def test_slower_than_hydration_invariant(self):
+        """Инвариант Мастера (S2B.4 v1 calibration): питание истощается
+        МЕДЛЕННЕЕ воды при ЛЮБЫХ (load, body_mass) — по базовой ставке И по
+        load-коэффициенту ОТДЕЛЬНО. Калибровка не может инвертировать
+        иерархию кризисов молча."""
+        _e = self._engine()
+        assert _e.BASE_NUTRITION_LOSS < _e.BASE_HYDRATION_LOSS  # 0.05 < 0.2
+        assert _e.NUTRITION_LOAD_COEFF < 1.0  # hydration-коэф. в формуле = 1.0
+        for _kw in (
+            {"activity": ""},            # load=0.0
+            {"activity": "working"},     # load=0.5
+            {"velocity": (0.8, 0.0)},    # load=0.9 (RUN)
+        ):
+            _p = _e.handle([self._npc(**_kw)], "t", 1)[0].payload
+            assert _p.nutrition_delta > _p.hydration_delta  # менее отрицательный
+
+
+    def test_nutrition_clamp_to_zero(self):
+        """Boundary (зеркало S2B.1 test_energy_clamp_to_zero): nutrition
+        не уходит ниже 0 — семантика валидного диапазона 0-100, не -0.5."""
+        from app.services.npc.state_applicator import StateApplicator
+
+        class _MockState:
+            pass
+        _state = _MockState()
+        _state.body_state = {"nutrition": 0.5, "current_hp": 100, "pain": 0.0,
+                             "fatigue": 0.0, "blood_loss": 0.0,
+                             "shock_impulse": 0.0, "injuries": [],
+                             "modifiers": {}, "statuses": []}
+        _applicator = object.__new__(StateApplicator)
+        _applicator._apply_physiology_deltas(
+            _state, 0, 0, 0, 0, [], [], [], 0, nutrition_delta=-1.0,
+        )
+        assert _state.body_state["nutrition"] == 0.0  # clamped, not -0.5
 
 
 class TestFlagNeutrality:

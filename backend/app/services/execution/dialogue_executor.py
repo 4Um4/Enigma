@@ -8,14 +8,15 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
-from typing import Callable, Iterable, Optional
 
+from typing import Callable, Iterable, Optional
 from app.domain.communication import DialogueRequest
 from app.domain.execution import Artifact, QueuedTask
 from app.domain.intent_profiles import requires_dialogue_context, requires_llm_materialization
 
 logger = logging.getLogger(__name__)
 
+_L_TIMEOUT_SEC: float = 30.0  # 021 calibration (ARCH-022 timeout)
 
 class DialogueContractViolation(Exception):
     """Нарушение контракта диалоговой системы (например, отсутствие STM)."""
@@ -98,7 +99,6 @@ class DialogueExecutor:
             # Использует существующий cancellation boundary (router._abort_generation).
             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
             import threading
-            _L_TIMEOUT_SEC = 30.0
             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
             
             try:

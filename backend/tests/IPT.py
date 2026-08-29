@@ -1788,6 +1788,7 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
             def execute_pending(self, *args, **kwargs): pass
             def execute_pending_tasks(self, *args, **kwargs): pass
             def drain(self, *args, **kwargs): pass
+            def drain_commitment_outbox(self, *args, **kwargs): pass
             def schedule_task(self, *args, **kwargs): pass
             def get_recent_dialogues(self, *args, **kwargs): return []
         world.game_loop._task_scheduler = _NoOpScheduler()
@@ -1834,6 +1835,99 @@ def inv_tick_cardinality(world: TestWorld) -> InvariantResult:
             ["backend/tests/IPT.py"]
         )
 
+def inv_world_object_topology(world: TestWorld) -> InvariantResult:
+    """INV-WORLD-OBJECT-TOPOLOGY: Структурная онтология объектной топологии
+    (W1, ADR-O-371). Проверяет ОНТОЛОГИЮ, не поведение (вердикт Мастера S226).
+
+    Часть 1 — живая сцена (условная): subtree 'world_objects' отсутствует ->
+    легитимный дефолт (PASS, старые сейвы); присутствует -> каждый объект
+    structure-valid: round-trip, carrier exclusivity, canonical object-цели
+    существуют, SUPPORTED-опора FREE и в той же локации, ноль presentation-
+    полей. Ловит bypass-хирургию dict (DOUBLE TRUTH).
+    Часть 2 — smoke контракта W1: живость инварианта до W3-спавнера."""
+    try:
+        from app.domain.exceptions import OntologyViolationError
+        from app.domain.world_object import (
+            CarrierMode,
+            ObjectRelationKind,
+            WorldObject,
+        )
+        from app.services.world import WorldObjectStore
+
+        _violations: list = []
+        _forbidden = ("sprite", "mesh", "texture", "animation", "model")
+
+        # ── Часть 1: живая сцена (условная) ─────────────────────────
+        _scene = world._get_scene()
+        _subtree = _scene.get("world_objects")
+        _live_checked = 0
+        if _subtree is not None:
+            if not isinstance(_subtree, dict):
+                return InvariantResult(
+                    "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
+                    "scene_state['world_objects'] повреждён (не dict)",
+                    ["backend/app/services/world/world_object_store.py"])
+            for _oid, _raw in _subtree.items():
+                try:
+                    _obj = WorldObject.from_dict(_raw)
+                except (OntologyViolationError, KeyError, TypeError, ValueError) as _e:
+                    _violations.append(f"{_oid}: структура невалидна ({_e})")
+                    continue
+                if WorldObject.from_dict(_obj.to_dict()) != _obj:
+                    _violations.append(f"{_oid}: round-trip нестабилен")
+                for _key in _obj.to_dict():
+                    if any(_f in _key.lower() for _f in _forbidden):
+                        _violations.append(f"{_oid}: presentation-поле '{_key}'")
+                for _ref in (_obj.container_id, _obj.supported_by):
+                    if _ref is not None and _ref not in _subtree:
+                        _violations.append(f"{_oid}: цель '{_ref}' не существует")
+                if _obj.supported_by is not None:
+                    _sup_raw = _subtree.get(_obj.supported_by)
+                    if _sup_raw is not None:
+                        _sup = WorldObject.from_dict(_sup_raw)
+                        if _sup.carrier_mode != CarrierMode.FREE:
+                            _violations.append(
+                                f"{_oid}: опора '{_obj.supported_by}' не FREE")
+                        if _sup.location_id != _obj.location_id:
+                            _violations.append(f"{_oid}: опора в другой локации")
+                _live_checked += 1
+
+        # ── Часть 2: smoke контракта W1 (живость) ──────────────────
+        _scratch: dict = {}
+        WorldObjectStore.spawn(_scratch, "ipt_table_1", "table", "tavern", (5.0, 3.0))
+        WorldObjectStore.spawn(_scratch, "ipt_bowl_1", "bowl", "tavern", (5.3, 3.0))
+        WorldObjectStore.establish_relation(
+            _scratch, "ipt_bowl_1", ObjectRelationKind.SUPPORTED_BY, "ipt_table_1")
+        _bowl = WorldObjectStore.get(_scratch, "ipt_bowl_1")
+        if _bowl is None or _bowl.supported_by != "ipt_table_1":
+            _violations.append("smoke: establish SUPPORTED_BY не сработал")
+        elif WorldObject.from_dict(_bowl.to_dict()) != _bowl:
+            _violations.append("smoke: round-trip нестабилен")
+        try:
+            WorldObjectStore.establish_relation(
+                _scratch, "ipt_bowl_1", ObjectRelationKind.HELD_BY, "npc_ipt")
+            _violations.append("smoke: carrier exclusivity не удержана")
+        except OntologyViolationError:
+            pass
+        _clean: dict = {}
+        WorldObjectStore.get(_clean, "ipt_table_1")
+        if "world_objects" in _clean:
+            _violations.append("smoke: read мутирует scene (lazy-init на read)")
+
+        if not _violations:
+            return InvariantResult(
+                "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", True,
+                f"Топология валидна (live={_live_checked}, smoke OK).", [])
+        return InvariantResult(
+            "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
+            f"Нарушения онтологии объектов: {_violations[:5]}",
+            ["backend/app/domain/world_object.py",
+             "backend/app/services/world/world_object_store.py"])
+    except Exception as _e:
+        return InvariantResult(
+            "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
+            f"Ошибка выполнения: {_e}", ["backend/tests/IPT.py"])
+
 INVARIANTS: List[Callable] = [
     inv_scene_entity_isolation,
     inv_replay_determinism,
@@ -1879,6 +1973,7 @@ INVARIANTS: List[Callable] = [
     inv_pbt_traversal,
     inv_tick_cardinality,
     inv_commit_cardinality,
+    inv_world_object_topology,
 ]
 
 def run_invariants() -> int:

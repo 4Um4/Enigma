@@ -63,9 +63,19 @@ Write-Host "📦 Подготовка кода (копирование исхо�
 if (Test-Path $StagingDir) { Remove-Item -Recurse -Force $StagingDir }
 New-Item -ItemType Directory -Path $StagingDir | Out-Null
 
-# /XD "Models LLM": модели (24 ГБ) в staging не нужны — enigma_setup.iss берёт
-# llama-бинарники из корня, а модели доставляются внутриигровым загрузчиком.
-robocopy . $StagingDir /E /XD .venv .git build logs reports __pycache__ "Models LLM" /XF *.pyc *.log *.spec > $null
+# /XD — личные данные и мусор в staging не нужны: saves/ и saves_census/ —
+# персональные сохранения разработчика, НИКОГДА не должны попадать в релиз;
+# dist, runtime_cache, кэши тестов/линтеров, диагностика — dev-артефакты.
+# /XF *.db* —-runtime БД (в т.ч. saves корневые) не пакуем даже по ошибке пути.
+robocopy . $StagingDir /E `
+    /XD .venv .git .github .vscode .githooks .hypothesis .pytest_cache .mypy_cache .ruff_cache `
+        build dist logs reports __pycache__ "Models LLM" payload `
+        saves saves_census runtime_cache test_data diagnostics _archive `
+        docs architecture scripts tests Tests lint `
+    /XF *.pyc *.log *.spec *.db *.db-shm *.db-wal *_crash.log `
+        arch_out*.txt refs_report.txt deps_*.json drift_logs*.txt `
+        *.iss *.ps1 mypy.ini ruff.toml pytest.ini pyproject.toml `
+        .gitignore .gitattributes .pre-commit-config.yaml > $null
 
 Write-Host "✅ Исходный код скопирован во временную папку" -ForegroundColor Green
 

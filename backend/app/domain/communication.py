@@ -5,6 +5,7 @@
 
 from dataclasses import dataclass
 from typing import Literal, Optional
+
 from app.domain.epistemology import Proposition
 
 # ADR-O-311: Exposure Default Contract — радиус выводится из semantic.
@@ -27,6 +28,21 @@ class ExposureLevel:
 
     semantic: Literal["secret", "whisper", "normal", "shout", "private"]
     physical_radius: Optional[float] = None  # None = derive from semantic
+
+    def to_dict(self) -> dict:
+        """Э6: JSON-сериализация (§12 WARA). physical_radius — явно
+        (не None, т.к. __post_init__ уже вычислил его)."""
+        return {
+            "semantic": self.semantic,
+            "physical_radius": self.physical_radius,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "ExposureLevel":
+        return ExposureLevel(
+            semantic=d["semantic"],
+            physical_radius=d.get("physical_radius"),
+        )
 
     def __post_init__(self) -> None:
         if self.physical_radius is None:
@@ -94,6 +110,46 @@ class CommunicationIntent:
     # S197: Causal Provenance. Утверждение, породившее этот Intent.
     # Пробрасывается из EpistemicContext через DecisionHub в DialogueRequest.
     proposition: Optional[Proposition] = None
+
+    def to_dict(self) -> dict:
+        """Э6 (Н-40): JSON-сериализация для scene_state-персистентности
+        (_pending_intents → scene_state). Все поля — примитивы или
+        сериализуемые доменные объекты (§12 WARA)."""
+        return {
+            "speaker": self.speaker,
+            "audience": self.audience,
+            "topic": self.topic,
+            "intent_type": self.intent_type,
+            "emotional_state": self.emotional_state,
+            "exposure_level": self.exposure_level.to_dict(),
+            "semantic_action": self.semantic_action,
+            "target_id": self.target_id,
+            "thread_id": self.thread_id,
+            "priority": self.priority,
+            "proposition": (
+                self.proposition.to_dict() if self.proposition else None
+            ),
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "CommunicationIntent":
+        from app.domain.epistemology import Proposition
+
+        _exp = ExposureLevel.from_dict(d["exposure_level"])
+        _prop = Proposition.from_dict(d["proposition"]) if d.get("proposition") else None
+        return CommunicationIntent(
+            speaker=d["speaker"],
+            audience=d["audience"],
+            topic=d["topic"],
+            intent_type=d["intent_type"],
+            emotional_state=d["emotional_state"],
+            exposure_level=_exp,
+            semantic_action=d.get("semantic_action"),
+            target_id=d.get("target_id"),
+            thread_id=d.get("thread_id", ""),
+            priority=d.get("priority", 0.5),
+            proposition=_prop,
+        )
 
     def __post_init__(self) -> None:
         # Устав 7.2: пустой topic = LLM плывёт по ассоциациям

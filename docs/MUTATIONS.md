@@ -465,18 +465,263 @@ IPT: 🟡 не прогонялся в сессии (все изменения �
 ⚙️ Backend: инъекция с готовой семантикой (semantic_action/target_reference/target_id, kwargs-проброс фабрики — потребляется и consequence-веткой, и конвертером tick_utils:350→IntentDTO→will-гейт); ветвь HELP/BLACKMAIL/ACCUSE → ctx.mvp_controller.action_compiler (зеркало production write-path: process_action → RelationshipStore.update, идемпотентный детерминированный action_id "interv:tick:ACTION:target"); start() зеркалит P-MVP-1 (init_campaign); S116-фоллбэк насыщен scene_state=scene_state (закрыт краш commit_phase:77; для run()-прогонов no-op — доказано двойным изолированным повтором упавшего теста); LabScreen → плоский ключ "maid_lusya→player" (форма get_all, saturation headroom учтена в тесте дельта-ассертом). Runtime-доказательство: trust None→{20.0,-10.0} на тике 11, 14×ok, идемпотентность держит.
 ⚙️ FE-серия (по приказу Мастера, вне исходного ТЗ — блокеры запуска): current_snapshot-сирота (краш cold-start game_screen:2135 — писатель утерян при рефакторинге; инициализация + восстановление при journal-рендере); K1: get_key двухкандидатный K_<name>/K_<UPPER> — tab/escape/return были мертвы ВСЕГДА (конвенция pygame несимметрична, дефолты lowercase); K2-a: ESC при фокусе ввода закрывает диалог, не паузу (ESC-unfocus TextInput был мёртвым кодом — PAUSE-ветка перехватывала раньше); K2-b: Tab-toggle (было только открытие); опечатка :944 (_end_screen_data → end_screen_data — отложенный показ финала при ошибке API).
 ⚙️ Вердикт «Назад→end_screen» (closed-not-repro, механизм установлен): спавн tavern y=11.91 в 0.59 юнита от порога ExitTrigger 12.5 + WASD pass-through при застрявшем диалоге (дефект-предок = Баг TAB, устранён K2) + опечатка :944 глотала показ финала в run#1 → отложенный end_screen в run#2. Оба звена устранены, невоспроизводимость подтверждена многократным резюмом.
-📁 svc/calibration/experiment_runner (инъекция, init_campaign), svc/tick_orchestrator (_process_player_action ветвь), svc/tick_utils (S116 scene_state), fe/map_editor/ui/lab_screen (SSOT-чтение), fe/game_screen (current_snapshot, K2-a/b, :944), fe/keybindings (K1), tests/calibration_lab/test_m1_trust_intervention.py (новый: дельта trust + N1-регрессия statuses), docs/ADR-O-366*.
+📁 svc/calibration/experiment_runner (инъекция, init_campaign), svc/tick_orchestrator (_process_player_action ветвь), svc/tick_utils (S116 scene_state), fe/map_editor/ui/lab_screen (SSOT-чтение), fe/game_screen (current_snapshot, K2-a/b, :944), fe/keybindings (K1), tests/calibration_lab/test_m1_trust_intervention.py (новый: дельта trust + N1-регрессия statuses), docs/ADR-O-367*.
 ⚠️ Открытое (решения Мастера): N2 INV-FRONTEND-ISOLATION lab_screen:49 (Вариант B vs Устав §1.1 — рекомендовано ADR-исключение «анклав dev-инструмента» + allowlist линтера; блокирует старт Задачи 2 по §3.11); N3 downloader.py ×3 silent-except (зона S217/S218). Долги: DEBT-LLM-SPAWN (двойной спавн llama-server лаунчер-vs-backend, доказано процессами 1376/3696); DEBT-ABORT-404 (POST /abort→404: per-task timeout ADR-O-364 фактически не рвёт генерацию — хозяину O-364); DEBT-INTENT-PASS-THROUGH (WASD двигают при фокусе диалога — геймплейное решение); флак test_golden_run_produces_metrics (класс DEBT-QUIESCE, изолированные повторы зелёные); DEBT-SOC runtime-подтверждён (SOCIAL_SUBSCRIBER каждый тик).
 IPT: 42/44 — 2 красных вне зоны сессии, зарегистрированы. КРАСНЫЕ ИНВАРИАНТЫ: 2 🔴 → 2 🔴 (новых не внесено)
 
+### S221: Лаборатория M1 — ScenarioPlayer (scripted-сценарии) | ✅ pytest 62/1s, SMOKE, lint ✅
+🎯 M1/Задача 2 (мастер-решение S220: «ScenarioPlayer — GO; лаборатория — потребитель production spine, не второй spine»): YAML-таймлайн вмешательств вместо одиночного тестового хука. Контракт мастера принят дословно: scenario_id/seed/events, replay-идентичность протокола, запрет второго оркестратора.
+⚙️ scenario_player.py (новый): load_scenario — строгий валидатор house-style preset_io (неизвестные ключи/действия, tick>=1, BLACKMAIL требует secret_id; SUPPORTED_ACTIONS = реестр production-ветвей ядра: HELP/BLACKMAIL/ACCUSE/ATTACK/MOVE/THREATEN/PERSUADE/GIVE/DIALOGUE; расширение = мини-ADR); ScenarioPlayer.poll(next_tick) — эмит InterventionEvent со структурированной семантикой (ADR-O-367) строго на назначенном тике (1-based, однократность), журнал эмуляций. Единственный контакт с ядром — фабрика InterventionEvent; граница закреплена тестом test_scenario_player_is_not_second_orchestrator (AST-скан исходника на RelationshipStore/DecisionHub/StateApplicator/process_action/delta_buffer).
+⚙️ experiment_runner: ExperimentConfig.scenario_path (валидация в start() ДО мутаций настроек/диска); step() — poll перед idle_tick (суперсессия тестового хука S220); ExperimentResult + scenario_id/scenario_events (не-испущенные при обрыве — emitted=False); ядро: secret_id в consequence-ветвь (M-07/M-08) + лог отклонений компилятора (ACCUSE-гейт §18 наблюдаем). LabScreen: дефолт trust_probe_v1.yaml (побитово воспроизводит S220-прогон: HELP на тике 11 → trust 20.0). test_m1_trust_intervention.py удалён (суперсессия — обе ассерции живут в test_m1_scenario_player.py).
+⚙️ Runtime: SMOKE тик10 None → тик11 {trust 20.0, fear -10.0}, errors NONE; suite 63 items 62 passed/1 skipped (pre-existing SUPERBOX-014).
+📁 svc/calibration/scenario_player (новый), config/calibration/scenarios/trust_probe_v1.yaml (новый), svc/calibration/experiment_runner, svc/tick_orchestrator (secret_id + лог отклонений), fe/map_editor/ui/lab_screen, tests/calibration_lab/test_m1_scenario_player.py (новый, 11 тестов), tests/calibration_lab/test_m1_trust_intervention.py (удалён).
+⚠️ Координация: profile.py в calibration/ — файл НЕ этой сессии (компилируется, конфликт нет, владелец — по хвосту MUTATIONS); IPT-красные: N3 downloader (зона S217/S218) + 2× drain_commitment_outbox (живая коллизия с S203.4/S219-контуром — стаб IPT _NoOpScheduler не реализует новый контракт; мост вправе вводить только S203.4-сессия; эскалация Мастеру); [ECO] Direct write NPCState.stress from domain_phases — guard поймал, зона ядра.
+IPT: наш дифф = 0 новых красных; финальный прогон 43/44 — единственный красный N3 downloader (чужая зона S217/S218); коллизия drain_commitment_outbox×2 самоустранилась (параллельная S203.4-сессия довела стаб IPT до контракта между нашими прогонами). КРАСНЫЕ ИНВАРИАНТЫ: 3 🔴 (чужие) → 1 🔴 (чужой)
+
+### S222: Лаборатория M1 — Native Pygame Graphs (визуализация динамики) | ✅ compileall, SMOKE-drives, F5-подтверждено
+🎯 M1/Задача 3 (мастер-порядок: «графики — после ScenarioPlayer»; легитимность — «график имеет смысл, только когда определён экспериментальный протокол»: протокол теперь есть — сценарии S221 + SSOT-история): заменить текстовые карточки динамической визуализацией строго средствами Pygame (Вариант B, без Next.js/HTML).
+⚙️ ui/graphs.py (новый): LineGraph (линия параметра по тикам, шкала min..max, нулевая линия для двуполярных шкал, сетка+подписи, текущее значение; одинаковые аргументы draw) и BarChart (горизонтальные полосы, русские подписи) — ЧИСТЫЕ рендереры без состояния: история/выбор принадлежат LabScreen (мастер-архитектура «данные отдельно, отрисовка отдельно»). Только pygame.draw; без эмодзи (правило S217).
+⚙️ lab_screen: npc_history (per-NPC trust/stress, cap 300 тиков) — фиксируется в _step_simulation из тех же источников, что карточки (trust из SSOT-ключа "npc→player" — ADR-O-367-контур; stress из psyche); правая панель: LineGraph доверия (-100..100) + LineGraph стресса (0..100) + BarChart драйвов (control/significance/fear/desire, русские подписи); клик по карточке выбирает NPC (хитбоксы _card_rects, зелёная рамка выделения); автодефолт — первый NPC; узкий экран — панель честно не рисуется. Runtime-подтверждение ключа drives (VIII.5): {'control': 0.4, 'significance': 0.3, 'fear': 0.2, 'desire': 0.1}.
+📁 fe/map_editor/ui/graphs.py (новый), fe/map_editor/ui/lab_screen.py.
+⚠️ Наблюдения: MOCK_PROVIDER-warn + L1_CHRONICLE SQLite-teardown в однотиковых SMOKE — класс DEBT-L1-SQLITE; relationship_cache в npc-ключах — наблюдение к DEBT-SOC (L13). IPT-красный по-прежнему один: N3 downloader (чужая зона S217/S218).
+IPT: N/A (frontend UI-слой, ядро не тронуто; финальный профиль 43/44 — единственный красный чужой). КРАСНЫЕ ИНВАРИАНТЫ: 1 🔴 (чужой) → 1 🔴
+
 ---
 
-## 3. СВОДКА ИНВАРИАНТОВ (IPT)
+### S223: Stage 2A / S203.4 — Task/Windup/Sleep Ownership + Arbiter-INTERRUPT + Persistence (ADR-O-365) | ✅ pytest 88/88, IPT 43/1 (единственный красный — чужой)
+🎯 Распространение единого поведенческого владения на всех исполнителей (task/windup/sleep) + приоритетная политика прерывания + персистентность ownership через scene_state. Мастер-вердикты D-1…D-9 (включая verdict B: traversal EXECUTING прерываем — policy, не онтология). Главный результат: **ONE NPC → ONE ACTIVE BEHAVIOR OWNER → ONE EXECUTION PATH → ONE VERIFIABLE RESULT** — инвариант Stage 2A замкнут.
+⚙️ **Э1 (контракт):** `ADR-O-365` [ONTO] + IMPACT-аудит; мини-ADR покрывает reason-реестр {DUPLICATE, INCUMBENT, INCUMBENT_PROTECTED}, INTERRUPT(PRIORITY_SUPERSEDE), fail_reason {BLOCKED_TIMEOUT, TASK_ERROR, TASK_CRASH, TASK_IMPOSSIBLE}, priority_policy_version="s203.4.v1" (D-5: смена без мини-ADR запрещена), шкала v1 (EXPLORATION=1/ROUTINE=2/SOCIAL=3/SLEEP=6/SURVIVAL=6/WINDOWED=7, INTERRUPT_THRESHOLD=3), три разведённые приоритетные семантики (queue TaskPriority | DRF float | arbitration int).
+⚙️ **Э2 (domain):** `dom/action_priority.py` (новый: resolve_candidate_priority pure function, нормализация Enum/str/None через .name); `dom/action_commitment.py` — расширение фабрики (priority, priority_policy_version, executor_ref, blocked_since_tick, fail_reason), transition_commitment hard contract (FAILED без fail_reason = отказ, симметрия INTERRUPTED), frozenset[str] аннотации; `dom/traversal_schema.py` — PRIORITY_SUPERSEDE в _INTERRUPT_TRAVERSAL_REASONS, transition_commitment_preview паритет (fail_reason + INTERRUPTED), __post_init__ → None.
+⚙️ **Э3 (arbiter):** `svc/action/commitment_arbiter.py` — VERDICT_INTERRUPT + REASON_INCUMBENT_PROTECTED + candidate_priority параметр + S203_4_ARBITER_INTERRUPT env-флаг (каскад с ARBITER_ENFORCEMENT); enforce_for_intent() wrapper (arbiter read-only, исполнение interrupt в invocation point); policy table (PROPOSED — прерываем; COMMITTED/BLOCKED — порог; **EXECUTING traversal — прерываем verdict B; task/windup/sleep — INCUMBENT_PROTECTED**); гейты ①② мигрированы на enforce_for_intent; P1 parent-lookup (history-search PRIORITY_SUPERSEDE с terminal_tick==tick, fallback None).
+⚙️ **Э4 (verdict B):** traversal EXECUTING прерываем (снятие защиты только для executor='traversal'; born-EXECUTing Н-50 делает строгий D-4 мёртвым в production; bootstrap-семантика: движение прерывают только SURVIVAL(6)/WINDOWED(7), SOCIAL(3) — нет).
+⚙️ **Э5 (зеркала):** `svc/action/commitment_registry.py` — _commit_nonsuperseding (R2/F12: авто-supersede запрещён в зеркалах = зомби), mirror_task_committed (canonical-only, D-8: produces_claim ∨ has_prop), mirror_task_terminal (EXECUTING/COMPLETED/FAILED/CANCELLED/EXPIRED/INTERRUPTED, executor-мисматч-гвард), mirror_windup_committed (held_intent_id:=commitment_id, D-1), mirror_task_expired_by_ref (M-29 purge → EXPIRED строго по executor_ref), reconcile_sleep_ownership (D-3: state-based Y6-инвариант — coupling∈{SLEEPING,REM}⇒commit; wake⇒COMPLETED; vanish⇒INTERRUPTED(SLEEP_VANISHED)), sweep extension (TASK_GRACE_TICKS=25 safety-net для task/windup/sleep, TASK_VANISHED/WINDUP_STALE_INTENT/SLEEP_VANISHED). `svc/game_loop/task_scheduler.py` — outbox + _record_task_outcome + drain_commitment_outbox (D-2: воркер никогда не пишет реестр; sync-дренаж на входе execute_pending + безусловно из idle_tick), 9 терминальных хуков (PROCESSING/COMPLETED/FAILED-error/FAILED-crash/CANCELLED-no-executor/CANCELLED-reconstruction×3/CANCELLED-DEDUP). `svc/phases/post_decision.py` — canonical task mirror в Фазе 6, M-29 purge → EXPIRED, windup creation mirror (held_id:=commitment_id), Phase 7 terminal hooks (INTERRUPTED→WINDUP_STALE_INTENT, COMPLETED). `svc/tick_orchestrator.py` — sleep reconciliation после Фазы 0.6. `svc/game_loop/__init__.py` — безусловный drain в idle-окне.
+⚙️ **Э6 (персистентность, Н-40):** `dom/action_windup.py` (to_dict/from_dict), `dom/communication.py` (CommunicationIntent + ExposureLevel to_dict/from_dict), `dom/epistemology.py` (Proposition to_dict/from_dict); миграция 11 точек доступа: orchestrator._windup_registry → ctx.scene_state["windup_registry"] (строковый ключ _windup_key, F3: tuple→"campaign::actor"), orchestrator._pending_intents → ctx.scene_state["windup_held_intents"] (CommunicationIntent.to_dict при store, from_dict при load). Round-trip тесты (§12 WARA). Ownership переживает restart.
+⚠️ **Инциденты сессии:** (1) **Дубль S203.3-блока в traversal_schema.py** — попал в HEAD релизного коммита d5d083c6 (вероятно merge-conflict; вторая копия перезаписывала первую → PRIORITY_SUPERSEDE отвергался). Ремедиация: удаление дубликата (−114 строк). Урок: при живых параллельных сессиях — аудит целевого файла на дубликаты определений перед каждым применением патча; (2) **W2 cross-zone hotfix** (DIAGNOSTIC_PROBE_CRASH) — чужой диагностический зонд `_opp_will = state.will_state.value` в npc_tick_pipeline:573 (ADR-O-366) читал несуществующее поле TickState.will_state → TICK_CRASH каждого тика Phase 5 → каскад NPC-MOVE/TRAV-DICT/DIALOGUE-INIT. Санкция Мастера: getattr-деградация до None. Урок в протокол: DIAG-PROBE-SAFETY (failure of diagnostics must never abort simulation phase) — предложен в Устав §11; (3) **[ECO] domain_phases write-guard** — оживление Phase 5 (после W2) вскрыло latent: Direct write to NPCState.stress мимо StateApplicator (чужая зона, non-blocking, guard перехватывает); (4) **ActionWindup F821** — пропуск импорта в Phase 7 при миграции Э6-c → NameError → TICK_CRASH → загрязнённый save → каскад. Fix: restore import + delete corrupted save; (5) **isinstance hotfix** (чужой temporal-commitment код, ADR-O-366) — параллельная сессия добавила loop `for _tc in active_commitments[npc_id]:` ожидая list, но наш реестр хранит single dict (закон №1) → итерация по dict-keys (строкам) → .get() crash. Fix: isinstance-гард (dict→[dict], non-dict→skip). Cross-zone, санкция не требовалась (применено как W2-класс). Эскалация: параллельной сессии — их temporal-commitment модель конфликтует с one-owner-per-NPC (наш закон №1); нужен координационный ADR.
+⚠️ **Координация:** параллельная сессия (ADR-O-366 OpportunityProducer, lab M1 ScenarioPlayer/Graphs S220-S222) активна в общем рабочем дереве; их изменения в npc_tick_pipeline.py, task_scheduler.py (FIX [4] sync fast-path), calibration, frontend — зафиксированы, не откатывались. Наш вклад: action_commitment, action_priority (новый), traversal_schema, commitment_registry, commitment_arbiter, post_decision, tick_orchestrator, task_scheduler, game_loop/__init__, IPT, test_action_commitment — наши зоны, не пересекаются. ruff-auto-fix каскад на tick_orchestrator (63 фиксов, 12 remaining F821/F841 pre-existing легаси) — зафиксирован как CI-долг.
+📁 dom/action_priority (новый), dom/action_commitment, dom/traversal_schema, dom/action_windup (to_dict/from_dict), dom/communication (to_dict/from_dict), dom/epistemology (Proposition to_dict/from_dict), svc/action/commitment_registry, svc/action/commitment_arbiter, svc/phases/post_decision, svc/phases/simulation, svc/phases/movement_bridge, svc/game_loop/task_scheduler, svc/game_loop/__init__, svc/tick_orchestrator, svc/npc/npc_tick_pipeline (W2 hotfix + isinstance hotfix — чужая зона), tests/test_action_commitment (+45: priority 5 + contract 7 + arbiter 9 + mirrors 6 + outbox 3 + windup-serial 2 + intent-serial 2 + sweep 2 - old exempt 1), tests/IPT (_NoOpScheduler.drain_commitment_outbox), tests/sandbox/SUPERBOX/scenarios/action_integrity_test (fail_reason="TASK_IMPOSSIBLE"), docs/ADR (ADR-O-365), docs/audits/ADR-O-365_IMPACT (новый)
+IPT: 43/1 — единственный красный INV-SILENT-FAILURE (downloader.py ×3, чужая зона S217/S218). Наш профиль — полностью зелёный (INV-FRONTEND-ISOLATION ✅ — параллельная сессия починила lab_screen между нашими прогонами). КРАСНЫЕ ИНВАРИАНТЫ: было 2 🔴 → стало 1 🔴 (один чужой устранён параллельной сессией, новых не внесено)
+
+### S224: ТЗ-RE-01 Relationship Engine — Фаза A / M0: онтологический контракт (ADR-O-369) | ✅ IPT 44/44
+🎯 Зафиксировать онтологическую границу Relationship Engine как формально ограниченную область (ТЗ-RE-01 v1.9, §10 фаза A / §8.6 M0) — до единой строчки рантайма: фазы B+ физически не могут незаметно добавить второй SSOT, второго writer'а или новый психологический агрегатор.
+⚙️ Артефакты: architecture/relationship_engine.yaml (45 узлов: 36 строк §5.0 в классах I/II/III/IV/TOMBSTONE/FORBIDDEN + 8 компонентов §4.1 + FrustrationByNeedProjection; 15 edges; 9 constraints; запреты №1-35 с картой enforcement grep/schema/test_deferred/review; tombstone-параметры §6.19: g, k_up/k_down, τ_n, η_s, β/T_half, H_i/ρ, σ, DeprivationHorizon; мораторий №35.2 до закрытия Р18; Р17-INV-1; COLLISION-решение frustration: владелец NeedLevel.frustration, §5.2-поле = read-only проекция — семантическая эскалация в GPT зафиксирована, в ТЗ v1.9 коллизия §5.1/§5.2 жива). scripts/lint_relationship_engine.py: канонический набор узлов ЗАКРЫТ (новый узел = вердикт GPT + ADR); scoped-греп запрещённых классов имён ТОЛЬКО в backend/app (граница механика/контент №35; allowlist канона: truth_state_tavern.json, lusya.json, village_relations.json); ядро имён захардкожено в линтере и сверяется с yaml (стена заморозки не разбирается изнутри); noqa: RE35 для аудируемых исключений. Регистрации: CI-шаг + pre-commit hook. Доки: ADR-O-369 в атласе (DOM-06&09), ADR-O-369_IMPACT.md, секция 13 DTO-реестра. YAML ≠ второй источник истины (вердикт Мастера): формулы §6 и числа не переносятся.
+⚙️ Гейты M0 (все зелёные): ADR-номер = max(368)+1; frustration writers = 0; tombstone-остатки = 0 (24 паттерна); allowlist = ровно 3 файла; build_graph loader — инжекция domain подтверждена кодом, совместимость доказана (RELATIONSHIP в ARCHITECTURE_FLOW_GENERATED, гробницы визуализированы); node-id анти-коллизия; IPT baseline 44/44 == после.
+⚙️ Попутно закрыт незакрытый IPT-гейт S217: downloader.py 3× except:pass → logger.debug (INV-SILENT-FAILURE красный → зелёный) + ruff-долг файла (19 автофиксов + E701). 
+⚠️ Долги, поднятые сессией (чужие зоны, эскалация Мастеру): (1) DEBT-DOC-DRIFT-228 — validate_doc_refs.py: 228 битых file:line-ссылок в pre-existing файлах (ARCHITECTURE_FLOW_GENERATED от чужих yaml code_ref; TZ_Laboratoria; domain_*.md; ENIGMA_TZ_ISPRAVLENIE и др.) — вклад M0 = 0, но CI-гейт уровня 8 у проекта фактически красный; (2) [ECO] guard-отклонение прямой записи NPCState.stress из domain_phases (живой долг в ядре, ловится write-guard'ом); (3) RelationshipStore (существующий) vs RelationshipStateStore (новый контракт) — reconcile при M1.
+📁 architecture/relationship_engine.yaml (новый), scripts/lint_relationship_engine.py (новый), docs/ADR*.md, docs/audits/ADR-O-369_IMPACT.md (новый), docs/DTO Registry*.md, .github/workflows/ci.yml, .pre-commit-config.yaml, backend/app/services/llm/downloader.py
+IPT: ✅ 44/44 (до == после; INV-SILENT-FAILURE красный → зелёный). КРАСНЫЕ ИНВАРИАНТЫ: было 1 🔴 → стало 0 🔴
+
+### S225: SMOKE-GORAN β + Delivery Fix + OpportunityProducer + 021 Calibration + Temporal Runtime | ✅ IPT 44/44, GORAN β GREEN
+
+🎯 Финальная закрытие causal spine до temporal layer: доказана полная
+   причинная цепочка THEFT→OBSERVE→BELIEF→WARN→PLAYER BELIEF→ACCUSE в
+   production path; внедрён OpportunityProducer (world→decision);
+   построена CalibrationProfile (40 калибруемых параметров); построен
+   Temporal Runtime (Phase 4.5/5.5, contract с 6 поправками Мастера).
+
+⚙️ Пять крупных блоков:
+
+**1. SMOKE-GORAN β harness** (smoke_goran_beta.py — полная перезапись):
+   β-hybrid по прецеденту S214: авторинг will_state (psyche["state"]=
+   "deceptive") + G1-DIAG (прямой production-compute с фиксированным
+   OpportunityContext) + инъекция steal-intent в production Фазу 6 →
+   windup → живые тики отпускают THEFT → ObservationSubscriber → belief
+   → epistemic_modifiers → DecisionHub WARN → fast-path delivery →
+   NPC_SPOKE → ClaimEventSubscriber → player belief → ACCUSE gate.
+   Замороженная геометрия (single-variable Control: только позиция
+   Goran отличается). Delivery polling (tick→execute_pending→settle→poll).
+   save_scene_state fix: get_scene_state при _tick_locked=False возвращает
+   свежую копию из persistence; Phase 6 пишет windup в копию, оркестратор
+   грузит другую → windup потерян. Фикс: save_scene_state(CAMPAIGN, _scene)
+   после injection → persistence обновлён → lock_for_tick грузит с windup.
+   7 прогонов: 4 RED (delivery latency / scene_state mismatch) → 3 GREEN
+   (fast-path fix + save_scene_state fix). Метрики M1-M10 + Control.
+
+**2. Delivery fix** (task_scheduler.py:138):
+   Root cause: max_workers=1 (ADR-O-343) + fast-path submit (async, не
+   sync как комментарий обещал) + R4A 300s backoff timer → pool clog →
+   warn tasks ждут за медленными R4A tasks. Недетерминизм: 1 tick (backoff
+   активен) до >12 ticks (backoff истёк). Фикс: `_executor_pool.submit(...)
+   → _process_tasks_async(...)` (прямой вызов, синхронно). LLM-задачи
+   остаются на пуле (ADR-O-343 не нарушен). Non-LLM (warn/steal/spread_
+   rumor) исполняются мгновенно. Verified: runs 6+7 GREEN, tick=1 stable.
+
+**3. ADR-O-366 OpportunityProducer** (npc_tick_pipeline.py):
+   DEBT-OPP-PRODUCER: pipeline:559 не передаёт opportunity_ctx → default
+   OpportunityContext() (attention=1.0, allies=0) → score=0.0 → скрытые
+   действия (STEAL S209 + R6.3 BROKEN-unlocks) недостижимы в живых тиках.
+   Доказано в vivo: thief_shadow intent=IDLE score=0.0 в 7 прогонах.
+   Фикс: inline construction OpportunityContext из state.spatial_query
+   (real distance) + epistemic_ctx.perceived_allies (subjective) + proxy
+   player_attention (proximity, not gaze — Phase 3). INVARIANT: producer
+   = DATA only (no Intent/score/unlocked). Acceptance: A (control, no
+   producer → IDLE) ✅; C (geometry, player close → no STEAL, behavioral
+   change IDLE→OBSERVE) ✅; B (player far → STEAL) ⏳ requires real player
+   movement (frozen sq не доходит до state.spatial_query — оркестратор
+   перетирает shared_context.spatial_query каждый тик).
+   DEBT-OPP-PRODUCER: CLOSED.
+
+**4. 021 CalibrationProfile Phase 1**:
+   calibration/profile.py (новый): CalibrationProfile (frozen dataclass,
+   40 fields). calibration/config_overlay.py: overlay_module_attrs +
+   overlay_profile (extension for non-core/constants modules). 7
+   extractions (inline → module-level, behavior-identical):
+   dialogue_executor _L_TIMEOUT_SEC; task_scheduler _DIALOGUE_TTL /
+   _UI_TTL_SEC / _MAX_TASKS_PER_TICK; npc_tick_pipeline _OPP_ATTENTION_
+   RANGE_M; belief_revision_engine _CLAIM_WEIGHT / _SAME_SOURCE_BOOST.
+   Acceptance A-F: Profile import ✅, overlay applies+restores ✅, no
+   duplicate truth ✅, behavior-identical ✅ (IPT 44/44), GORAN β GREEN ✅.
+   Phase 2 (deferred): ~20 inline literals в decision_hub.py + 2 class
+   attrs в dialogue_queue (MAX_PENDING_TASKS/MAX_RATE_PER_MINUTE).
+
+**5. Temporal Runtime** (Stage 6):
+   Contract (6 поправок Мастера): (1) validity≠success — две отдельные
+   проверки, COMPLETED только на success_check=True; (2) три terminal
+   states (COMPLETED/CANCELLED/EXPIRED) — отдельные, с reason; (3)
+   prediction≠validity≠success — prediction=description (не executed),
+   validity="can continue?", success="did occur?"; (4) HOLD="don't
+   take new proactive", NOT "ignore reactive" — reactive всегда passes
+   BEFORE hold; (5) named rules via registry (not lambdas, replay-safe);
+   (6) intent-specific TemporalSpec — DecisionHub produces Intent →
+   registry lookup → temporal semantics → TemporalCommitment.
+   domain/temporal_specs.py (новый): 4 intent types (STEAL/ATTACK/
+   APPROACH/EAT), VALIDITY_RULES + SUCCESS_RULES registries, REACTIVE_
+   PREEMPTION_EVENTS (narrow: combat+proximity+player, NOT npc_spoke/
+   npc_moved/communication_claim), is_reactive_preemption predicate.
+   Phase 4.5 (Temporal Validation) в npc_tick_pipeline.py: immutable
+   order reactive→success→validity→expiry→HOLD. Reactive suppression
+   (proactive -10, same mechanism as sleep penalty). Phase 5.5 (Temporal
+   Commitment): after DecisionHub, if proactive intent has TemporalSpec →
+   create commitment in scene_state["active_commitments"].
+   Acceptance: STEAL interruption PASS (preemption+validity); EAT
+   completion PASS (success+validity); IPT 44/44; GORAN β GREEN.
+
+📁 Files:
+   - backend/app/domain/temporal_specs.py (новый)
+   - backend/app/services/calibration/profile.py (новый)
+   - backend/app/services/calibration/config_overlay.py (overlay_module_attrs + overlay_profile)
+   - backend/app/services/npc/npc_tick_pipeline.py (OpportunityProducer + Phase 4.5/5.5 + extraction)
+   - backend/app/services/game_loop/task_scheduler.py (fast-path fix + 3 extractions)
+   - backend/app/services/execution/dialogue_executor.py (extraction)
+   - backend/app/services/npc/belief_revision_engine.py (2 extractions)
+   - backend/tests/sandbox/SUPERBOX/scenarios/smoke_goran_beta.py (полная перезапись)
+   - docs/audits/ADR-O-366_IMPACT.md
+   - docs/ADR (Architecture Decision Records).md (+ADR-O-366)
+
+⚠️ Координация: параллельная сессия добавила DIAG-OPP hotfix в
+   npc_tick_pipeline.py (sanctioned by Master W2) — safely degrades
+   to None when state.will_state absent. INV-FRONTEND-ISOLATION
+   (lab_screen.py) и INV-SILENT-FAILURE (downloader.py) исправлены
+   параллельными сессиями → IPT 44/44.
+
+IPT: ✅ 44/44 (ALL GREEN — zero red invariants).
+КРАСНЫЕ ИНВАРИАНТЫ: было 2 🔴 (pre-existing) → стало 0 🔴.
+
+Долги:
+   - DEBT-OPP-PRODUCER: CLOSED (producer wired, A+C proven, B needs gameplay)
+   - DEBT-R4A-BLOCKING: R4A blocks main thread ~3-6s (non-critical post fast-path fix)
+   - Calibration knife-edge: conf=0.50=threshold=0.50 (candidate 021 sweep)
+   - shared_context.spatial_query lifecycle: orchestrator overwrites echelon-5
+   - Phase 2 calibration: ~20 inline literals decision_hub + 2 class attrs
+   - "Фаза 6: 0 intents → EventDTO" при comm_built=True (routing puzzle)
+   - save_scene_state: get_scene_state returns fresh copy when _tick_locked=False
+   - Model config mismatch: Q4_K_M configured, Q5_K_M file present (non-blocking tests)
+
+### S226: W-track Audit + W0 Semantic World | ✅ IPT 44/44, W0-1..W0-5 PASS
+
+🎯 Переход от Temporal Runtime к World/Embodiment Foundation (W-track).
+   Сначала аудит coupling'ов (TZ §18 — обязательный deliverable), затем
+   минимальный семантический substrate: объект существует в симуляции
+   независимо от renderer.
+
+⚙️ **1. AUDIT_W_TRACK_COUPLINGS** (docs/audits/AUDIT_W_TRACK_COUPLINGS.md):
+   8 search patterns из TZ §18.1 (pygame import, sprite_id/model_id в
+   domain/models, sprite/texture/mesh/animation_clip в domain, age→model
+   switch, injury→sprite, object_state→sprite, presentation_firewall,
+   animation в action_commitment). Результат: ALL EMPTY — ZERO hard
+   couplings. Codebase уже следует 4-уровневой архитектуре (World→Embodied
+   →Presentation→Rendering), enforced by CAUSAL CONTRACT §1.1, DTO Registry,
+   presentation_firewall.py (acceptable adapter). W-track proceeds directly
+   to W0 — no cleanup/migration needed.
+
+⚙️ **2. W0 — Semantic World** (domain/world_object.py + semantic_action.py):
+   WorldObject (frozen dataclass): object_id, archetype, location_id,
+   position (метры, не пиксели), state (archetype-specific FSM string),
+   topology_relations, affordances, ownership, containment, occupancy,
+   holder, damage, interaction_history_ref. НИ ОДНОГО поля sprite/model/
+   texture/mesh/animation (INVARIANT W0). WorldObjectState enum (INTACT/
+   DAMAGED/BROKEN/DESTROYED — base damage track; W3 добавит archetype FSMs).
+   WorldObjectRegistry: in-memory store (spawn/get/update/query_by_location/
+   clear). Serialization: to_dict/from_dict (round-trip для scene_state).
+   SemanticAction (frozen dataclass): action_type (OPEN/TAKE/CARRY/PLACE/
+   SIT/STAND/USE/ENTER/EXIT/EQUIP/UNEQUIP/ATTACK), target_object_id,
+   target_location_id, target_attachment_slot, preconditions. Precondition
+   (frozen dataclass): predicate (named rule ID — resolved via W2 registry),
+   args (Tuple). НИ ОДНОГО поля animation_clip/sprite/model (INVARIANT W0).
+
+⚙️ Acceptance: W0-1 (object exists without renderer fields) PASS;
+   W0-2 (state transition CLOSED→OPEN) PASS; W0-3 (serialization
+   round-trip) PASS; W0-4 (SemanticAction renderer-free) PASS;
+   W0-5 (registry query by location) PASS. IPT 44/44 (additive — new
+   domain files, pipeline не затронут).
+
+📁 backend/app/domain/world_object.py (новый)
+📁 backend/app/domain/semantic_action.py (новый)
+📁 docs/audits/AUDIT_W_TRACK_COUPLINGS.md (новый)
+
+IPT: ✅ 44/44 (ALL GREEN). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴.
+
+### S227: Stage 2B.1–2B.3 — Body State Contract + Energy Dynamics + Hydration | ✅ pytest 104/104, IPT 44/0 (ВСЕ ЗЕЛЁНЫЕ)
+🎯 Открытие Stage 2B (Body/Homeostasis) после закрытия Stage 2A (S203.4/S223). Первый кирпич: PhysiologicalTransition контракт — тело как причинная модель, изменяющаяся во времени. Доказан на искусственной переменной (energy), затем расширен до load-dependent dynamics и hydration. Мастер-директива: «тело не обязано быть точной копией человеческой биологии — оно обязано быть достаточной причинной моделью».
+⚙️ S2B.1 (Body State Contract): dom/delta_payloads (+energy_delta, +hydration_delta), models/npc_state (+energy, +hydration, +body_mass в BODY_STATE_HEALTHY), svc/npc/state_applicator (+extraction v2 pattern, +_apply_physiology_deltas energy/hydration clamp 0-100, +signature params), svc/body/body_engine (НОВЫЙ: pure calculator — handle(npcs, campaign_id, tick) → List[StateDeltas]; reads body_state SSOT НЕ top-level полей; NEVER writes; registered в Phase 0.5 через add_idle_handler). Pipeline: BodyEngine → StateDeltas → delta_buffer → StateApplicator → body_state — единый mutation spine. Δt = GAME_TICK_INTERVAL_SECONDS — единственный временной вход. Нет wall-clock, нет RNG.
+⚙️ S2B.2 (Energy Dynamics): BodyEngine расширен от константного к нагрузочной функции: expenditure = BASE_RATE * load * body_mass; recovery = BASE_RATE * (1-load) * sleep_bonus(coupling). Activity load: IDLE(0) < REST(0.1) < WORK(0.5) < WALK(0.7) < RUN(0.9). Sleep bonus: coupling ∈ {SLEEPING, REM} → recovery × 3.0. 5 экспериментов: determinism, monotonicity, recovery+sleep, replay, body-mass sensitivity.
+⚙️ S2B.3 (Hydration): one-way loss (no passive recovery — drinking = action, future). BASE_HYDRATION_LOSS × (1+load) × body_mass. 4 эксперимента: baseline-loss-at-idle, monotonicity, determinism, body sensitivity.
+⚠️ Координация: temporal_specs.py (параллельная сессия ADR-O-366) — комплементарен (читает body_state, не пишет). ruff-auto-fix каскад на state_applicator/game_loop (pre-existing легаси). [ECO] domain_phases write-guard (чужая зона, non-blocking).
+📁 models/delta_payloads, models/npc_state, svc/npc/state_applicator, svc/body/body_engine (НОВЫЙ), svc/game_loop/__init__, tests/test_action_commitment (+14 tests)
+IPT: 44/0 — ВСЕ ЗЕЛЁНЫЕ. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+# Шаг 5 — аутопсия закрыта: гипотеза доказана на 100%, три вывода
+
+1. **Трейсбек:** упал ровно мой `assert not hasattr` — репр в трейсбеке сам показывает `PhysiologyPayload(..., energy_delta=0.0, hydration_delta=0.0, ...)`.
+2. **Дерево:** W-TRACK уже завезла оба поля в `delta_payloads.py` (незакоммичено; их же комментарии «S2B.1 proof-of-concept», «Real hunger/fatigue — после контракта S2B.2+»).
+3. **Коммит `5926e7e5`: 29 passed на чистом checkout** — коммит самодостаточен; красный существует только в живом дереве.
+
+**Итог:** санация (гард) — корректна и нужна была (доказана аутопсией `17930e9f`, где полей нет); дефект — в моём тесте, пинившем отсутствие полей чужого WIP (трипвайр на их прогресс, не на дефект), плюс мой sequencing-промах — коммит ушёл при красном. Исправляю оба.
+
+**Бонус-находка при сверке состава `17930e9f`:** артефакт 4 (DTO-реестр) в коммит **не вошёл** (7 файлов, DTO Registry отсутствует) — как и IMPACT в первый раз, я выдал его сводкой без листинга. Проверяю и закрываю в этом же follow-up.
+
+### S228: ТЗ-RE-01 Phase B / M1a — субстрат потребностей + S225-санация cross-zone (ADR-O-370) | ✅ IPT 44/44, сьюта 29/29, полный pytest 926/3(pre-existing)
+🎯 Первый рантайм-слой RE: RelationshipStateStore (scene_state["relationship_state"], static-сервис по прецеденту CommitmentRegistry; persistence — только atomic_commit, Foundation Freeze) + контракты NeedSlot/NeedLevel/PreferenceModel/HardConstraint/ExclusivityRequirement (домен, frozen, валидаторы, round-trip) + StateApplicator.update_needs (единственный runtime-writer, caller-guard, Cause-поверхность) + SSM-init пустого корня. Красный инвариант Мастера выдержан: МЕСТО ХРАНЕНИЯ без механизма изменения — стор dormant, тик байтово идентичен (IPT 44/44 до==после). Read: frozen DTO, read без мутации, повреждение — громкий отказ. Слоты sexual+intimacy; attachment отсутствует (гейт АТ-1..3); needs-конфиг НЕ заведён (параметризация — фаза M).
+⚙️ Коммиты: 17930e9f (M1a, 7 файлов; 28-сьюта) → 5926e7e5 (S225-санация: getattr-гарды S2B.1/S2B.3 energy/hydration — latent AttributeError подтверждён аутопсией 17930e9f: полей в payload НЕТ, прямой доступ падал бы ДО default-аргумента) → follow-up (тест версионно-агностичный + DTO-статус).
+⚙️ Атрибуция 3 branch-red (test_audit_quick_wins::t5, decision_hub_goal_boost, opportunity_engine::non_broken_will): PROVEN pre-existing бисекцией a5f45048→1ac78fa2→17930e9f (все 3 FAIL) — M0/M1a исключены; эскалация Мастеру как веточный долг.
+⚠️ Инциденты-уроки сессии (мои): (1) патч с «условным применением» не выдаётся — сначала факт сигнатуры (SyntaxError apply_physical, пойман compileall, закрыт в сессии); (2) гейт коммита обязателен и безусловен по зелёному — 5926e7e5 ушёл с красным тестом в живом дереве (самодостаточен на checkout, но sequencing-промах зафиксирован); (3) тест не пинит чужой WIP — hasattr-ассерты на поля параллельной сессии заменены версионно-агностичными; (4) артефакт-листинги выдаются полностью, не сводками (IMPACT и DTO-обновление терялись дважды).
+⚠️ Эскалации: W-TRACK coordination — их S2B-код (extraction energy/hydration + body_state-записи) проехал в 17930e9f (git add целого файла); гард совместимости поставлен, при их коммите полей гард станет мёртвым-не-вредным; поля в рабочем дереве уже есть. DEBT: identity-дельты теряются в apply_deltas_only-пути (чужая зона, наблюдение); 3 pre-existing branch-red; DEBT-DOC-DRIFT-228 (из S224).
+📁 domain/relationship_contracts.py (новый), services/social/relationship_state_store.py (новой), services/npc/state_applicator.py (+update_needs, санация F821×2/F841×4/S2B-гарды), services/scene_state_manager.py (init-ключ), tests/test_relationship_state_store.py (29), docs/ADR (ADR-O-370), docs/audits/ADR-O-370_IMPACT.md, DTO Registry
+IPT: ✅ 44/44. КРАСНЫЕ ИНВАРИАНТЫ: 1 🔴 (S217 downloader) → 0 🔴 (закрыт в S224)
+
+---
+
+### S229: Stage 2B.4 — Nutrition (третья физиологическая переменная BodyEngine) | ✅ pytest 110/110 (commitment-файлы, +6), IPT 44/0
+🎯 Nutrition как one-way stock (0-100) по механическому паттерну S2B.2/S2B.3. Мастер-вердикты сессии: BASE_NUTRITION_LOSS=0.05 — v1 calibration constant, НЕ физиологический закон (иерархия временных масштабов: hydration → быстрый кризис, nutrition → медленный); NUTRITION_LOAD_COEFF=0.5 (< гидратационного 1.0); инварианты иерархии — ДВЕ отдельные проверки (базовая ставка и load-коэффициент порознь + поведенческая на load∈{0, 0.5, 0.9}) — калибровка не инвертирует отношение молча; nutrition = STOCK, НЕ hunger (derived homeostatic pressure — S2B.10; слои: тело → физиологические величины → derived homeostasis → pressure → affordance → decision); Δt-семантика per-tick как в S2B.1-2B.3 (размерная Δt — отдельный калибровочный ADR, вердикт Мастера). ADR не создавался: механическое расширение по прецеденту S2B.1-2B.3, управляющий документ — Master-директива 2026-08-28.
+⚙️ Патчи: models/delta_payloads (+nutrition_delta: float = 0.0 — non-breaking, combat-продюсеры не мутируют физиологию S2B молча); models/npc_state (+"nutrition": 100.0 в BODY_STATE_HEALTHY — все 8 точек инъекции dict(BODY_STATE_HEALTHY) в game_loop/life_engine/npc_loader наследуют автоматически; старые сейвы — через .get(…,100.0) в clamp); svc/npc/state_applicator (4 точки: extraction v2-паттерн / проброс / параметр сигнатуры / init-default + clamp 0-100 — single-writer путь не изменён); svc/body/body_engine (константы + формула nutrition_delta = -BASE_NUTRITION_LOSS × (1 + load×NUTRITION_LOAD_COEFF) × body_mass; эмиссия + payload; pure calculator не тронут — нет wall-clock/RNG/записей). Wiring верифицирован: game_loop/__init__.py:289-292 add_idle_handler(BodyEngine()) — Phase 0.5, nutrition едет в том же handle(). Тесты +6 (TestS2B4Nutrition): baseline-loss-at-idle (== -0.05), monotonicity (IDLE>WALK>RUN), determinism, body sensitivity (mass 0.8 vs 1.2), slower_than_hydration_invariant (инвариант Мастера), nutrition_clamp_to_zero (зеркало S2B.1, applicator-chain).
+⚙️ Гейты: pytest 104→110 (commitment-файлы); RE-сьюта 29/29 (не тронута — общий позвоночник без регрессий в обе стороны); ruff на 5 файлах — 2 pre-existing вне наших строк (npc_state F821 CausalChain:823, F841 ss:1073); IPT 44/0; дубль-аудит V1-V4 — все паттерны ровно 1 раз.
+⚠️ Координация: (1) анти-race отработал: S228 занят RE-сессией (ADR-O-370) между ходами — номер S229 = max+1 по фактическому хвосту на момент записи; (2) модель Мастера зафиксирована: RE M1a/M1b = отдельный домен LOVE/SEX/RELATIONSHIP (tombstones: Infatuation/love_score/RelationshipValue/RomanticMarket/линзы; Р17-INV-1; мораторий readout до Р18) — пересечение S2B×RE только общий позвоночник state_applicator (S2B-точки в physiology-ветке, RE update_needs — отдельная; обе стороны гейтово зелёны) и будущий поведенческий уровень BODY × RELATIONSHIP × SOCIAL CONTEXT → ACTION; из S2B не редактируется ни один RE-артефакт (Patch 6 отменён: version-agnostic редакция владельца сильнее и покрывает nutrition-extraction бесплатно); S2B-код не содержит love/sex-сущностей и агрегаторов (запрещённый список — ноль вхождений); (3) S228-запись RE задокументировала таймлайн S2B-полей (17930e9f вёз S2B-extraction без полей → гарды 5926e7e5 → version-agnostic тест) — совместимо с археологией этой сессии.
+⚠️ Долги: [LEGACY-HUNGER→S2B-track] life_engine.py:476-482 — писатель body_state["hunger"] (8.0/тик, dormanted гардом «hunger in body_state»): stored-hunger умирает при S2B.10 (hunger = derived pressure поверх nutrition stock; закон №11 — единая проекция физиологии); [DUAL-TIME] TICKS_PER_DAY=24 («1 тик=1 час», constants.py:183) vs GAME_TICK_INTERVAL_SECONDS=10 — оси расходятся 360×; потребители календарной оси: models/temporal.py:34-35, svc/temporal/temporal_engine.py:62-63, svc/economy/economy_tracker.py (daily needs / talk-cooldowns), svc/game_loop/scene_init.py:204-209; S2B.4-калибровка безосевая (в тиках: nutrition 100→0 = 2000 тиков покоя / ~1333 при load=1; hydration 500/250; иерархия 4:1 инвариантна выбору оси) — эскалация Мастеру: выбор авторитетной оси физиологических ритмов; [DOC-DRIFT] запись S227 заявляет body_mass в BODY_STATE_HEALTHY — ключа в файле нет (§13.5), body_mass = placeholder-read (реальная масса S2B.7+); [DOC-DRIFT] SANATION-комментарии applicator устарели с S227 (гард мёртв-не-вреден); полный pytest, два независимых прогона — tests/ (1287 collected) и no-arg повтор (1385 collected; W1-верификация: ОБЕ команды collect-only дают 1390 — различия scope НЕТ, разница 1287→1385→1390 = live-tree drift параллельных сессий, дерево горячее; числа полных прогонов = снимки момента, сравнимы только с таймстампом): множество отказов ИДЕНТИЧНО (12=12, одинаковые ID; 11 видимых G2 ⊂ 12 no-arg при равных счётчиках — скрытый идентифицирован математически). 12 failed = 3 main-layer pre-existing (атрибуция S228, бисекция) + 9 tests/sandbox/: (а) hp_double_truth + causal_closure×2 + life_direction_crisis — 4× stale-тесты с прямыми записями NPCState.hp/.perceptual_kernel, красные с ADR-WRITE-GUARD (S212); (б) causal_movement×2 — drift контракта IntentSemanticField (обязательное поле action, тесты шлют action_type/raw_text); (в) observer_out_of_radius_no_belief — убеждение вне радиуса, эпистемика наблюдения (кандидаты S206/S207/S228); (г) boundary_snap — test-pollution: соло-файл и 8-тестовое подмножество ЗЕЛЁНЫЕ при живом S2B.4-диффе, оба полных прогона КРАСНЫЕ; ингредиент не локализован (санационная сессия); (д) superbox_014_second_order_attribution — pre-existing ≤S213, задокументирован и эскалирован в записи S213 («файл не менялся с V.0.5.3.8.1»; кандидаты S206/S211), присутствует в историческом кэше. Метод атрибуции: трейсбеки (A3/A4) + полное имя-множество no-arg-повтора + исторический pytest-кэш backend/.pytest_cache (~65 записей эпохи ~S225–S226 — летопись тест-здоровья, не источник истины; урок кэшей: активный кэш определяется rootdir и верифицируется, а не угадывается по наличию директории — backend/tests/.pytest_cache оказался пустышкой). Stash неприменим: рабочее дерево несёт незакоммиченный вклад S223–S229 — откат = уничтожение чужой работы. Ни один из 12 не пересекается с S2B.4-диффом по механизму. Sandbox-слой не покрывался гейтами сессий (S227 — commitment-файлы; S228 — main+сьюта) — эскалация Мастеру: санационная сессия behavioral-слоя ДО S203-G long-horizon (иначе метрики §27 ТЗ Stage 2 считаются по гнилой базе). НЕ сделано (scope): hunger engine, eating AI, fatigue (S2B.5), потребители nutrition до S2B.10/11, love/sex/RE-сущности.
+📁 models/delta_payloads, models/npc_state, svc/npc/state_applicator, svc/body/body_engine, tests/test_action_commitment (+6)
+IPT: ✅ 44/0. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+### S230: W1 Spatial Topology — Object Relation Substrate (ADR-O-371) | ✅ IPT 44→45/45, pytest 30/30, GORAN β GREEN
+🎯 Первое персистентное звено W-track: объектная топология мира как реляционно-нормализованный субстрат над scene_state["world_objects"]. W0 (orphan PoC, 0 потребителей, 0 тестов) поглощён и нормализован без миграции (subtree никогда не персистился).
+⚙️ Онтология (Мастер GO по D1–D7): семь отношений ТЗ §20 canonical single-side на WorldObject (LOCATED_AT=location_id+position; HELD_BY=holder; OCCUPIED_BY=occupancy; CONTAINED_BY=container_id; SUPPORTED_BY=supported_by; ATTACHED_TO=attachment(host,slot) атомарно; USED_BY=used_by — независимая ось); CarrierMode (FREE|HELD|CONTAINED|ATTACHED) — ровно один, позиция авторитетна только в FREE; МАТРИЦА КОНФЛИКТОВ СВЕРХ CARRIER-РЕЖИМОВ — КАЛИБРУЕМАЯ ПОЛИТИКА, НЕ ОНТОЛОГИЯ (вердикт Мастера, дословно в ADR) — W1 policy-правил не содержит. Domain world_object.py переписан: frozen + __post_init__ guard (safe by construction), pure transitions (apply_relation_transition/relocate_object), STRICT release, NO auto-release (явная цепочка release→establish), фабрика build_world_object; УДАЛЕНЫ topology_relations / containment stored (→ inverse-запрос; mirror=зомби, урок S215) / affordances stored (pure function, вернётся W2 compute_affordances) / WorldObjectRegistry (процесс-глобальный). Services/world/world_object_store.py (новый): stateless стат. фасад над scene_state (прецеденты CommitmentRegistry/M1a) — read без lazy-init + громкий OntologyViolationError на повреждения; write ТОЛЬКО типизированными операциями (spawn/establish/release/relocate; generic update(**changes) отсутствует by construction); межобъектная валидация: циклы single-parent обходом, ghost-цели, опора FREE+та же локация, relocate блокируется SUPPORTED-зависимыми (содержимое следует владельцу). Snapshot-мост: WorldSnapshot.world_objects (deepcopy, конец dataclass, паттерн active_commitments S215) — пассивная фотография, ноль вызовов стора из тика. Persistence: НОЛЬ специального кода — subtree внутри atomic_commit_all/load_scene_at (Foundation Freeze); DoD доказан реальным SqlitePersistenceAdapter (spawn→relation→commit→reload→тот же объект + мутационный цикл). Отклонение от ТЗ §20.2 по археологии: WorldTopologyProvider НЕ расширен (tick-owned ETKE-IK поле, scene_state не видит) — канонический API на сторе; полевой мерж объектов — композиция W2. Runtime-writers: 0 (доктрина M1a — поведение тика байтово идентично); caller-guard отложен до W3 (легальный causal writer). Гейты: test_world_object_topology.py 30/30 (fixtures door/chair/container/carried_item — только тестовые, вердикт Мастера); INV-WORLD-OBJECT-TOPOLOGY (IPT №45, структурная онтология: live-часть условная — включится сама при W3-спавнере; smoke-часть держит контракт); architecture/world.yaml (новый домен WORLD, YAML-First) + build_graph.
+⚙️ Попутно: закрыт залоговый долг S215 (dead imports time/uuid4/field + I001 в world_snapshot.py).
+⚠️ Уроки протокола: (1) номер handoff ≠ номер сессии — верифицировать grep'ом хвост MUTATIONS (handoff был «S226», фактический — S230); (2) ruff auto-fix на untracked-файле невидим в git diff — дисциплина «сначала инвентарь --no-fix, потом точечный --fix»; (3) якорь-патч обязан опираться на факт файла — догадка о декларации INVARIANTS (без суффикса : List[Callable]) сломала бы якорь, поймана вставкой из файла до урона.
+⚠️ Долги новые: DEBT-IPT-RUFF (24 pre-existing в IPT.py, вкл. F821 os undefined :1129 — NameError в error-пути INV-HP-SSOT при срабатывании); doc-drift §3.8 «max 15 инвариантов» vs 45. Параллельные сессии S227–S229 (Stage 2B Body State — W4-территория, вход W2 по ТЗ §21.1 — сверить их BodyState-контракт до проектирования resolver) — конфликтов файлов нет; эскалация S229 (санация sandbox-слоя, 12 pre-existing failed) — чужая зона, учтена.
+📁 domain/world_object.py (переписан), services/world/ (новый пакет), models/world_snapshot.py (+world_objects, +импорт-санация), tests/test_world_object_topology.py (новый), tests/IPT.py (+INV-WORLD-OBJECT-TOPOLOGY), architecture/world.yaml (новый), docs/ADR (ADR-O-371), docs/audits/ADR-O-371_IMPACT.md
+IPT: ✅ 45/45 (новый инвариант green). КРАСНЫЕ: 0 🔴 → 0 🔴
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
 *   **Time/Space:** `WALL-CLOCK`, `KERNEL-RNG`, `SPATIAL-SSOT`, `POSITION-MUTATION`, `TICK-CARDINALITY`, `TEMPORAL-ISOLATION`, `SCENE-ENTITY-ISOLATION` / `NPC-CARDINALITY`
-*   **Architecture:** `SILENT-FAILURE`, `FRONTEND-ISOLATION`, `DOMAIN-PURITY`, `L1-APPEND-ONLY`, `NO-RETRO-SIM`, `COMMIT-CARDINALITY`, `HP-SSOT`
+*   **Architecture:** `SILENT-FAILURE`, `FRONTEND-ISOLATION`, `DOMAIN-PURITY`, `L1-APPEND-ONLY`, `NO-RETRO-SIM`, `COMMIT-CARDINALITY`, `HP-SSOT`, `WORLD-OBJECT-TOPOLOGY` (S230, ADR-O-371)`
 *   **Epistemic/Social:** `EPISTEMIC-BOUNDARY`, `INTENT-EVENT-COMPLETENESS`, `FATE-CRITICAL-BROKEN`
 *   **Infra:** `PBT-ROUNDTRIP`, `ADR-NET`, `REPLAY-STORE`, `REPLAY-DETERMINISM` (WARN), `SAVE-LOAD-INTEGRITY`, `EVENT-CARDINALITY`
 

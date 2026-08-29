@@ -109,6 +109,12 @@ class PhysiologyPayload:
     shock_impulse: float = (
         0.0  # Физический шок / болевой удар (0-1.0) — сигнал для EmotionSubscriber
     )
+    # S2B.1: искусственный physiological variable — proof-of-concept для
+    # pipeline BodyState → transition → StateDelta → Applicator → Cause.
+    # Real hunger/fatigue — после контракта (S2B.2+).
+    energy_delta: float = 0.0  # Энергия (0-100); расход от activity, восстановление от rest
+    hydration_delta: float = 0.0  # S2B.3: Гидратация (0-100); потеря, восстановление = drinking (action)
+    nutrition_delta: float = 0.0  # S2B.4: Питание (0-100); one-way loss, eating = action (future). Stock ≠ hunger (derived pressure — S2B.10)
     add_injuries: Tuple[InjuryDTO, ...] = ()
     add_statuses: Tuple[str, ...] = ()  # bleeding, unconscious, crippled
     remove_statuses: Tuple[str, ...] = ()  # снятие статусов

@@ -29,12 +29,9 @@ from __future__ import annotations
 import logging
 import time
 
-
-
 logger = logging.getLogger(__name__)
-from typing import Any, Dict, List, Optional, Union
-
 import os
+from typing import Any, Dict, List, Optional, Union
 
 # S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
 # default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
@@ -93,6 +90,9 @@ class TickOrchestrator:
         # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
         # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
         # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
+        # S203.4 (Э6, Н-40): _windup_registry перенесён в scene_state (персистентность).
+        # RAM-атрибут сохранён для обратной совместимости (legacy-доступ извне),
+        # но авторитет — scene_state[_KEY_WINDUP_REGISTRY] (читает post_decision).
         self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
         self._replay_recorder: Optional[Any] = None  # Подсистема 2: Replay Recorder
         # S186: World-level Cross-Location Transfer Queue.
@@ -146,7 +146,6 @@ class TickOrchestrator:
         )
         from app.services.npc.crystallized_belief_store import CrystallizedBeliefStore
         from app.services.npc.drive_resolver import DriveResolver
-        from app.models.npc_state import NPCIdentityL1
         from app.services.npc.l1_chronicle import L1Chronicle
         from app.services.npc.pattern_detector import PatternDetector
 
@@ -171,7 +170,6 @@ class TickOrchestrator:
         if self._life_engine is None:
             self._life_engine = get_life_engine()
         # Sprint 1.4: Возвращаем как LifeEngineInterface для будущей DI
-        from app.contracts.life_engine import LifeEngineInterface
         return self._life_engine  # type: ignore[return-value]
 
     def _get_sleep_lifecycle_svc(self):
@@ -267,7 +265,7 @@ class TickOrchestrator:
     def set_epistemic_services(self, store: Any, resolver: Any) -> None:
         """S189: Инъекция EpistemicStore и EpistemicContextResolver (ADR-O-354)."""
         self._epistemic_store = store
-        self._epistemic_context_resolver = resolver        
+        self._epistemic_context_resolver = resolver
 
     def add_idle_handler(self, handler: Any) -> None:
         """Добавляет IdleTickHandler для Фазы 0.5 (DI)."""
@@ -281,7 +279,6 @@ class TickOrchestrator:
         Вызывается на старте каждого тика. Маппит макро-зону (position)
         каждого NPC на канонический ClusterID.
         """
-        import time
 
         start_time = time.perf_counter()  # §15.2: Telemetry (profiling)
 
@@ -293,7 +290,7 @@ class TickOrchestrator:
 
         for npc_id, data in list(npc_positions.items()):
             raw_node = data.get("position")
-            
+
             # SC-3 FIX: Если position содержит префикс другой локации, сбрасываем её.
             # Это происходит при загрузке из персистентности, когда NPC сменил локацию, но сохранил старый node.
             if raw_node and ":" in str(raw_node):
@@ -503,7 +500,7 @@ class TickOrchestrator:
                             _npc["location_id"] = _entry.get("location_id", _scene.get("location_id"))
                             _npc["location"] = _entry.get("location", _scene.get("location_id"))
                             break
-            
+
             # 2. S186 V2: Синхронизация с pending transfers (для NPC, которые в очереди)
             for _target_loc, _pending in self._pending_transfers.items():
                 for _npc_id in _pending.keys():
@@ -526,11 +523,11 @@ class TickOrchestrator:
 
         _tick_results = []
         _final_result = None
-        
+
         # S1-FIX (INV-TICK-CARDINALITY): Продвигаем время ровно 1 раз за тик.
         # Создаём временный контекст для продвижения времени, используя активную локацию (или первую из списка).
         _time_scene = _all_scenes.get(active_location_id) or next(iter(_all_scenes.values()))
-        
+
 
         _time_ctx = create_tick_context(
             campaign_id=campaign_id,
@@ -549,7 +546,7 @@ class TickOrchestrator:
             epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
         )
         self._advance_idle_time(_time_ctx)
-        
+
         # Синхронизируем обновлённое время во все сцены локаций
         _new_game_time = _time_ctx.scene_state.get("game_time_seconds", 0.0)
         _new_tick = _time_ctx.scene_state.get("tick", tick_number)
@@ -561,7 +558,7 @@ class TickOrchestrator:
 
         for _loc_id, _scene in _all_scenes.items():
             _is_active = (_loc_id == active_location_id) if active_location_id else True
-            
+
             ctx = create_tick_context(
                 campaign_id=campaign_id,
                 scene_state=_scene,
@@ -589,7 +586,6 @@ class TickOrchestrator:
 
             def _deobjectify_event(event: "EventDTO") -> None:
                 """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
-                import logging
 
                 from app.models.cfrm import (
                     CausalAxis,
@@ -640,7 +636,7 @@ class TickOrchestrator:
             if not hasattr(self, '_adaptive_loader'):
                 from app.services.adaptive_tick_loader import AdaptiveTickLoader
                 self._adaptive_loader = AdaptiveTickLoader()
-                
+
             # Определяем, должна ли эта локация тикать полностью
             _tick_fully = True
             if self._adaptive_loader.is_lod_active() and active_location_id:
@@ -661,7 +657,7 @@ class TickOrchestrator:
             # Используем Clock протокол (infrastructure metric, §15.2) — не влияет на детерминизм.
             from app.core.clock import get_clock
             _start_perf = get_clock().timestamp()
-            
+
             try:
                 self._run_core_phases(ctx, tick_fully=_tick_fully)
             except Exception as e:
@@ -677,7 +673,7 @@ class TickOrchestrator:
             finally:
                 # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
                 event_bus.detach_cfrm_bridge()
-                
+
                 # M-24 FIX: Вычисляем реальную длительность тика для LOD throttling.
                 _duration_ms = (get_clock().timestamp() - _start_perf) * 1000.0
                 _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
@@ -741,11 +737,11 @@ class TickOrchestrator:
         # S2 FIX (Entity Cardinality): Фильтруем NPC по текущей локации.
         # Это гарантирует, что NPC из tavern не будут обработаны повторно при тике city_gate.
         _current_loc = ctx.scene_state.get("location_id", "")
-        
+
         # S186: Диагностика очереди
         _pending_keys = list(self._pending_transfers.keys())
         logger.info(f"[S186_DEBUG] Ticking loc={_current_loc}, pending_transfers_keys={_pending_keys}")
-        
+
         # S186: Инжектим pending transfers в начале тика локации
         if _current_loc in self._pending_transfers:
             _pending = self._pending_transfers.pop(_current_loc)
@@ -754,7 +750,7 @@ class TickOrchestrator:
                 logger.info(f"[S186_INJECT] Importing NPC={_npc_id} into {_current_loc}")
                 _npc_positions[_npc_id] = _entry
                 self._npc_runtime_locations[_npc_id] = _current_loc
-                
+
                 # S186 FIX: Обновляем только location_id в полном стейте NPC.
                 # Пространственные поля (position, local_position) обновляются через SceneStateManager.
                 _full_npc = next((n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
@@ -794,10 +790,10 @@ class TickOrchestrator:
 
         self._snapshot_positions_before(ctx) # PRE-TICK
         self._phase_0_simulation(ctx) # 0
-        
+
         # BUG-SLEEP-007 FIX: Явная подфаза Phase 0 Sleep Lifecycle
         self._phase_0_6_sleep_lifecycle(ctx) # 0.6
-        
+
         self._phase_0_5_idle_services(ctx) # 0.5
         self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
 
@@ -814,7 +810,7 @@ class TickOrchestrator:
         # ловится sweep'ом следующего тика (явное зеркало — S203.3).
         from app.services.action.commitment_registry import CommitmentRegistry
         CommitmentRegistry.sweep(ctx.scene_state, ctx.tick_number)
-        
+
         # Подсистема 2: Replay Recorder (Этап 2.2)
         _recorder = getattr(self, "_replay_recorder", None)  # noqa: ENIGMA002
         if _recorder:
@@ -827,7 +823,7 @@ class TickOrchestrator:
         if not tick_fully:
             self._phase_10_persistence(ctx) # 10
             return
-            
+
         self._phase_1_npic_normalize(ctx) # 1
         self._phase_1_input_merge(ctx) # 1.1
         self._apply_willpower_gate(ctx) # 4.1
@@ -835,16 +831,16 @@ class TickOrchestrator:
         self._phase_3_memory(ctx) # 3
         self._phase_4_pre_decision(ctx) # 4
         self._phase_5_decision(ctx) # 5
-        
+
         # Подсистема 2: Запись TickMutation после Фазы 5
         if _recorder:
             _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))  # noqa: ENIGMA002
-            
+
         self._phase_6_post_decision(ctx) # 6
         self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
         self._phase_8_drain_secondary(ctx) # 8
 
-        
+
         # AUDIT #7: FrontEngine интегрирован выше по потоку — точка
         # run_npc_orchestration (до ядрового цикла локаций), т.к. маска
         # принадлежит игроку и мутируется один раз за ход.
@@ -861,7 +857,7 @@ class TickOrchestrator:
         # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
         # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
         # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
-        
+
         # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
         # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
         # и Traveller.generate_visits() для спавна странников (торговцев, путников).
@@ -871,22 +867,22 @@ class TickOrchestrator:
 
         self._phase_9_integration(ctx) # 9
         self._run_affective_pipeline(ctx) # 9.1
-        
+
         # Подсистема 2: Запись WorldSnapshot после Фазы 9
         if _recorder:
             _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
-            
+
         self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
         self._phase_10_persistence(ctx) # 10
 
         # Подсистема 3: Causal Probes (real-time invariant monitor)
-        from app.services.probes.probe_runner import ProbeRunner
         from app.services.probes.probe_registry import ProbeContext
-        from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
-        from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+        from app.services.probes.probe_runner import ProbeRunner
         from app.services.probes.probes.death_lock_probe import DeathLockProbe
         from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
-        
+        from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
+        from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+
         _spatial_svc = self._resolve_spatial_service(ctx)
         _probe_ctx = ProbeContext(
             tick_id=ctx.tick_number,
@@ -903,17 +899,16 @@ class TickOrchestrator:
         )
         from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
         from app.services.probes.probes.historical_constraint_probe import HistoricalConstraintProbe
-        from app.services.probes.probes.temporal_isolation_probe import TemporalIsolationProbe
-        from app.services.probes.probes.somatic_gate_probe import SomaticGateProbe
-        
         from app.services.probes.probes.mvp_pipeline_probe import MvpPipelineProbe
+        from app.services.probes.probes.somatic_gate_probe import SomaticGateProbe
+        from app.services.probes.probes.temporal_isolation_probe import TemporalIsolationProbe
         _runner = ProbeRunner(probes=[
             SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe(),
             CausalProvenanceProbe(), HistoricalConstraintProbe(), TemporalIsolationProbe(), SomaticGateProbe(),
             MvpPipelineProbe()  # ENIGMA SELF-HEALING (Level 1)
         ])
         _probe_results = _runner.run_all(_probe_ctx)
-        
+
         # Подсистема 3: Запись результатов в ProbeAlertManager (Этап 3.6)
         from app.services.probes.probe_alerts import probe_alerts
         probe_alerts.record_results(ctx.tick_number, _probe_results)
@@ -947,11 +942,11 @@ class TickOrchestrator:
         _current_loc = ctx.scene_state.get("location_id", "")
         _npc_positions = ctx.scene_state.get("npc_positions", {})
         _ghosts = [
-            (npc_id, entry) 
-            for npc_id, entry in list(_npc_positions.items()) 
+            (npc_id, entry)
+            for npc_id, entry in list(_npc_positions.items())
             if entry.get("location_id", _current_loc) != _current_loc and npc_id != "player"
         ]
-        
+
         if not _ghosts:
             return
 
@@ -959,15 +954,15 @@ class TickOrchestrator:
             _target_loc = entry.get("location_id")
             if not _target_loc:
                 continue
-                
+
             logger.info(f"[S186_TRANSFER] Extracting NPC={npc_id} from {_current_loc} to pending queue for {_target_loc}")
-            
+
             # 1. Кладём NPC в RAM-очередь оркестратора
             self._pending_transfers.setdefault(_target_loc, {})[npc_id] = entry
             if not hasattr(self, "_npc_runtime_locations"):
                 self._npc_runtime_locations = {}
             self._npc_runtime_locations[npc_id] = _target_loc
-            
+
             # S186 FIX: Обновляем location_id в all_npcs_raw, чтобы LifeEngine кэшировал правильную локацию.
             # Без этого _rebuild_cluster_occupancy будет воскрешать призрака в старой локации каждый тик.
             if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
@@ -980,11 +975,11 @@ class TickOrchestrator:
                         n["current_node"] = ""
                         n.pop("position", None)
                         break
-            
+
             # 2. Удаляем NPC из scene_state исходной локации (из RAM)
             if npc_id in _npc_positions:
                 del _npc_positions[npc_id]
-            
+
             # BUG-SLEEP-013 FIX + S203.3 (Stage 2A): транзит NPC в старой локации
             # останавливается легально. Н-46c: был тихий pop (parent-лаг реестра);
             # теперь атомарный interrupt двух рельсов (запись до SSM-GC; TES не
@@ -1002,7 +997,7 @@ class TickOrchestrator:
                 else:
                     _active_traversals.pop(npc_id, None)
                     logger.info(f"[S186_TRANSFER] Cleared stale traversal for NPC={npc_id} in {_current_loc}")
-            
+
             # S186 FIX: Не удаляем NPC из all_npcs_raw, а только обновляем location_id.
             # Это необходимо, чтобы LifeEngine кэшировал правильную локацию и не воскрешал призрака.
             # Фильтрация по локации произойдет естественным образом в _run_core_phases.
@@ -1091,7 +1086,7 @@ class TickOrchestrator:
             _fast_target_xy = None
             _target_id = getattr(_params, "target_id", None) if _params else None  # noqa: ENIGMA001, ENIGMA002
             _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX  # noqa: ENIGMA002
-            
+
             # V8-TICK-1 FIX: определяем семантические переменные для directive_payload
             _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
             _sem_target = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
@@ -1264,9 +1259,19 @@ class TickOrchestrator:
                     actor_id="player",
                     action_type=ActionType(_sem_action.lower()),
                     target_id=_target_id or "",
+                    # S221: секрет для BLACKMAIL / DIALOGUE+secret (M-07/M-08)
+                    # приходит из payload сценария; для остальных — None.
+                    secret_id=_payload.get("secret_id"),
                     description=str(_payload.get("text", ""))[:200],
                 )
-                _compiler.process_action(_consequence)
+                _outcome = _compiler.process_action(_consequence)
+                if _outcome:
+                    # Наблюдаемость сценариев: компилятор вернул причину
+                    # отклонения (например, ACCUSE-гейт §18 без убеждения).
+                    logger.warning(
+                        "[INPUT_MERGE] consequence rejected: "
+                        f"{_sem_action.upper()} -> {_target_id}: {_outcome}"
+                    )
                 logger.info(
                     "[INPUT_MERGE] consequence action applied: "
                     f"{_sem_action.upper()} -> {_target_id} "
@@ -1426,12 +1431,20 @@ class TickOrchestrator:
         Вынесено из LifeEngine для чистоты пайплайна и поддержки BUG-SLEEP-012.
         """
         _svc = self._get_sleep_lifecycle_svc()
-        
+
         for _npc in (ctx.all_npcs_raw or []):
             _changes = _svc.process_sleep_lifecycle(_npc, ctx.tick_number)
             if _changes:
                 # Применяем пробуждение через стандартный механизм SceneChange
                 self._apply_with_shadow_observation(ctx, _changes, "phase_0_6_sleep")
+
+        # S203.4 (ADR-O-365, D-3): state-based сверка Y6 — сон обязан иметь
+        # владельца. Идемпотентно каждый тик; флаг OFF → no-op.
+        from app.services.action.commitment_registry import CommitmentRegistry
+
+        CommitmentRegistry.reconcile_sleep_ownership(
+            ctx.scene_state, ctx.all_npcs_raw or [], ctx.tick_number
+        )
 
     def _process_continuous_motion(
         self, ctx: _TickContext, _spatial_svc: Optional["SpatialService"] = None
@@ -1553,17 +1566,17 @@ class TickOrchestrator:
         ):
             ctx.phase_2_events.extend(_spatial_events)
             logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")
-            
+
             # Дополнение Б: Sound bleed
             try:
-                from app.services.spatial.spatial_runtime import sound_bleeds_to_adjacent
-                from app.domain.events import EventDTO
                 from app.core.config import settings
-                
+                from app.domain.events import EventDTO
+                from app.services.spatial.spatial_runtime import sound_bleeds_to_adjacent
+
                 _loc_id = ctx.scene_state.get("location_id", "")
                 _data_dir = getattr(ctx, "_cached_data_dir", None) or str(settings.data_dir)  # noqa: ENIGMA002
                 ctx._cached_data_dir = _data_dir
-                
+
                 # Находим соседние локации
                 _adjacent_locs = sound_bleeds_to_adjacent(
                     scene_state=ctx.scene_state,
@@ -1571,7 +1584,7 @@ class TickOrchestrator:
                     bleed_threshold=0.5,
                     data_dir=_data_dir
                 )
-                
+
                 # Если есть соседи, пробиваем звук к ним
                 if _adjacent_locs:
                     _event_bus = self._get_event_bus()
@@ -1679,7 +1692,6 @@ class TickOrchestrator:
         Возвращает L3_stable (для DecisionHub), drives_updates и strain_updates (для StateApplicator).
         """
         from app.domain.identity_events import EffectiveDrives
-        from app.services.npc.calibration_engine import CalibrationEngine
 
         effective_drives_map: Dict[str, EffectiveDrives] = {}
         drives_updates: Dict[str, Dict[str, float]] = {}
@@ -1833,12 +1845,12 @@ class TickOrchestrator:
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
-        
+
         # Подсистема 3: Хеширование TickState до pipeline для Инварианта III (Temporal Isolation)
         import json
         # S1 FIX: Хэшируем только данные, исключая сервисные объекты (spatial_service, etc.)
         # Сервисы могут иметь side-effects (кэш) при чтении, что ложно вызывает INV-TEMPORAL-ISOLATION.
-        
+
         _data_fields = {
             "scene_state": _tick_state.scene_state,
             "all_npcs_raw": _tick_state.all_npcs_raw,
@@ -1850,10 +1862,10 @@ class TickOrchestrator:
         # S179 FIX: Хэш по каждому полю отдельно, чтобы точно определить источник мутации
         _hashes_before = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()}
         _ts_hash_before = hash(tuple(sorted(_hashes_before.items())))
-        
+
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
         ctx.tick_mutation = _mutation
-        
+
         _hashes_after = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()}
         _ts_hash_after = hash(tuple(sorted(_hashes_after.items())))
         ctx.tick_state_hash_before = _ts_hash_before
@@ -1918,7 +1930,6 @@ class TickOrchestrator:
         # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS.
         # S1-FIX (INV-TICK-CARDINALITY): Время продвигается один раз в execute(), до цикла по локациям.
         # Ранее вызов находился здесь, внутри цикла, что приводило к умножению времени на N локаций.
-
         # ADR-O-315: TraversalExecutionSystem проецирует TraversalState в local_position.
         from app.services.spatial.traversal_execution_system import (
             TraversalExecutionSystem,
@@ -2071,14 +2082,15 @@ class TickOrchestrator:
         """ФАЗА 10: Persistence (Atomic Commit)."""
         # L1 FIX: Генерируем TraitDriftEvent для всех NPC с дельтами (включая Фазу 8) перед коммитом.
         import dataclasses
+
         from app.domain.identity_events import TraitDriftEvent
-        
+
         _all_delta_npc_ids = set()
         for _d in (ctx.tick_mutation.npc_deltas or []):
             _d_npc_id = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
             if _d_npc_id:
                 _all_delta_npc_ids.add(_d_npc_id)
-        
+
         _l1_events = list(ctx.tick_mutation.l1_drift_events or [])
         _processed_npc_ids = {e.target_id for e in _l1_events}
         for _npc_id in _all_delta_npc_ids:
@@ -2091,7 +2103,7 @@ class TickOrchestrator:
                     observation_weight=0.1
                 ))
                 _processed_npc_ids.add(_npc_id)
-        
+
         ctx.tick_mutation = dataclasses.replace(ctx.tick_mutation, l1_drift_events=_l1_events)
 
         from app.services.phases.commit_phase import execute_persistence

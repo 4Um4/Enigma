@@ -394,19 +394,22 @@ class CommitmentRegistry:
         tick: int,
         outcome: str,
         fail_reason: Optional[str] = None,
+        interrupt_reason: Optional[str] = None,
+        executor: str = "task",
     ) -> bool:
-        """Ц1: терминал task-исполнителя из outbox-дренажа (D-2).
+        """Терминал task/windup-исполнителя (D-2 outbox / Phase 7 sync).
 
-        outcome ∈ {EXECUTING, COMPLETED, FAILED, CANCELLED, EXPIRED}
-        (terminal-mapping v2). FAILED требует fail_reason (D-6). Executor-
-        мисматч = устаревший дренаж (гонка со sweep) → False, без мутации.
+        outcome ∈ {EXECUTING, COMPLETED, FAILED, CANCELLED, EXPIRED, INTERRUPTED}.
+        FAILED требует fail_reason (D-6); INTERRUPTED — interrupt_reason.
+        Executor-мисматч → False без мутации (гонка/сменённый исполнитель).
         """
         if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
             return False
         commitment = CommitmentRegistry.get_active(scene_state, npc_id)
-        if commitment is None or commitment.get("executor") != "task":
+        if commitment is None or commitment.get("executor") != executor:
             logger.info(
-                f"[TASK_MIRROR_STALE] tick={tick} npc={npc_id} outcome={outcome} "
+                f"[{executor.upper()}_MIRROR_STALE] tick={tick} npc={npc_id} "
+                f"outcome={outcome} "
                 f"active_executor={(commitment or {}).get('executor')}"
             )
             return False
@@ -416,11 +419,101 @@ class CommitmentRegistry:
             return CommitmentRegistry.complete(scene_state, npc_id, tick)
         if outcome == "FAILED":
             return CommitmentRegistry.fail(scene_state, npc_id, tick, fail_reason or "")
+        if outcome == "INTERRUPTED":
+            return CommitmentRegistry.interrupt(
+                scene_state, npc_id, tick, interrupt_reason or "UNKNOWN"
+            )
         if outcome == "CANCELLED":
             return CommitmentRegistry.cancel(scene_state, npc_id, tick)
         if outcome == "EXPIRED":
             return CommitmentRegistry.expire(scene_state, npc_id, tick)
         raise ValueError(f"mirror_task_terminal: unknown outcome '{outcome}'")
+
+    @staticmethod
+    def mirror_windup_committed(
+        scene_state: Dict[str, Any],
+        tick: int,
+        npc_id: str,
+        action_type: str,
+        target_id: Optional[str],
+        cause: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Э5-c: windowed-подготовка начата (Фаза 6). Приоритет — WINDOWED
+        (шкала v1); held_intent_id вызывающая сторона берёт = commitment_id
+        (детерминизм ID; Н-31-класс не размножается)."""
+        from app.domain.action_priority import (
+            PRIORITY_POLICY_VERSION,
+            resolve_candidate_priority,
+        )
+
+        return CommitmentRegistry._commit_nonsuperseding(
+            scene_state, tick, npc_id, action=action_type.upper(), cause=cause,
+            executor="windup", executor_ref=None, target_id=target_id,
+            priority=resolve_candidate_priority(intent_type=action_type),
+            priority_policy_version=PRIORITY_POLICY_VERSION,
+        )
+
+    @staticmethod
+    def mirror_task_expired_by_ref(
+        scene_state: Dict[str, Any], npc_id: str, task_id: str, tick: int
+    ) -> bool:
+        """M-29 purge: EXPIRED строго по executor_ref — иначе можно убить
+        чужое (следующее) обязательство того же NPC."""
+        if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
+            return False
+        commitment = CommitmentRegistry.get_active(scene_state, npc_id)
+        if (
+            commitment is None
+            or commitment.get("executor") != "task"
+            or commitment.get("executor_ref") != task_id
+        ):
+            return False
+        return CommitmentRegistry.expire(scene_state, npc_id, tick)
+
+    @staticmethod
+    def reconcile_sleep_ownership(
+        scene_state: Dict[str, Any], npcs: list, tick: int
+    ) -> None:
+        """Э5-d (D-3): state-based сверка инварианта Y6 после Фазы 0.6.
+
+        coupling ∈ {SLEEPING, REM} ∧ нет владельца → sleep-зеркало;
+        sleep-владелец ∧ вышел из сна → COMPLETED; sleep-владелец ∧ NPC
+        мёртв/отсутствует → INTERRUPTED(SLEEP_VANISHED). Идемпотентно;
+        конфликт с чужим инкумбентом → коллизия-телеметрия (S203.6, №19).
+        """
+        if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
+            return
+        _alive = set()
+        for _npc in npcs or []:
+            _nid = _npc.get("npc_id") or _npc.get("id") or ""
+            if not _nid:
+                continue
+            _alive.add(_nid)
+            if (_npc.get("body_state", {}).get("life_status")) == "DEAD":
+                continue
+            _mode = (
+                (_npc.get("body_state", {}) or {})
+                .get("coupling_profile", {})
+                .get("coupling_mode", "")
+            )
+            _cm = CommitmentRegistry.get_active(scene_state, _nid)
+            if _mode in ("SLEEPING", "REM"):
+                if _cm is None:
+                    _created = CommitmentRegistry._commit_nonsuperseding(
+                        scene_state, tick, _nid, action="SLEEP",
+                        cause="sleep:coupling", executor="sleep",
+                    )
+                    if _created is not None:
+                        # Сон = born-EXECUTING (NPC спит СЕЙЧАС, не «обязуется»);
+                        # COMPLETED доступен только из EXECUTING (FSM-закон).
+                        CommitmentRegistry.mark_executing(scene_state, _nid, tick)
+            elif _cm is not None and _cm.get("executor") == "sleep":
+                CommitmentRegistry.complete(scene_state, _nid, tick)
+        for _nid, _cm in list((scene_state.get(_KEY_ACTIVE) or {}).items()):
+            if _cm.get("executor") == "sleep" and _nid not in _alive:
+                CommitmentRegistry.interrupt(
+                    scene_state, _nid, tick, "SLEEP_VANISHED"
+                )
 
     @staticmethod
     def mirror_traversal_interrupted(
@@ -442,19 +535,61 @@ class CommitmentRegistry:
         """
         if not COMMITMENT_REGISTRY_ENABLED:
             return 0
+        from app.domain.action_commitment import (
+            INTERRUPT_SLEEP_VANISHED,
+            INTERRUPT_TASK_VANISHED,
+            INTERRUPT_WINDUP_STALE_INTENT,
+        )
+
+        # S203.4 (Э5-e): grace safety-net для не-traversal исполнителей.
+        # > худшей резиденции canonical в очереди (~20 тиков при pacing 1/тик).
+        _TASK_GRACE_TICKS = 25
+        _GRACE_REASONS = {
+            "task": INTERRUPT_TASK_VANISHED,
+            "windup": INTERRUPT_WINDUP_STALE_INTENT,
+            "sleep": INTERRUPT_SLEEP_VANISHED,
+        }
         active = scene_state.get(_KEY_ACTIVE) or {}
         traversals = scene_state.get("active_traversals") or {}
         swept = 0
         for npc_id in list(active.keys()):
             commitment = active[npc_id]
-            if commitment.get("executor") == "traversal" and npc_id not in traversals:
+            _executor = commitment.get("executor") or ""
+            if _executor == "traversal" and npc_id not in traversals:
                 CommitmentRegistry.interrupt(
                     scene_state, npc_id, tick, _INTERRUPT_VANISHED
                 )
                 swept += 1
+            elif commitment.get("status") == "BLOCKED":
+                # S203.4 (Ц5): BLOCKED → FAILED после BLOCKED_TIMEOUT_TICKS=10.
+                # Dead-but-ready: продюсера BLOCKED пока нет (TZ Scenario C
+                # «impossible» — закроется когда появится mark_blocked producer).
+                _bsince = commitment.get("blocked_since_tick")
+                if _bsince is not None and tick - _bsince > 10:
+                    from app.domain.action_commitment import FAIL_BLOCKED_TIMEOUT
+
+                    CommitmentRegistry.fail(
+                        scene_state, npc_id, tick, FAIL_BLOCKED_TIMEOUT
+                    )
+                    swept += 1
+            elif _executor in _GRACE_REASONS:
+                # Outbox-дренаж — основной путь терминалов; sweep ловит
+                # осиротевших (save/load-потеря очереди, async-гонки,
+                # забытые хуки). Grace > worst-case резиденции → ложных
+                # срабатываний нет при здоровом outbox-дренаже.
+                _last = (
+                    commitment.get("updated_tick")
+                    or commitment.get("created_tick")
+                    or 0
+                )
+                if tick - _last > _TASK_GRACE_TICKS:
+                    CommitmentRegistry.interrupt(
+                        scene_state, npc_id, tick, _GRACE_REASONS[_executor]
+                    )
+                    swept += 1
         if swept:
             logger.warning(
                 f"[COMMITMENT][SWEEP] tick={tick} vanished={swept} "
-                f"(unmirrored bypass paths)"
+                f"(unmirrored bypass paths / grace timeout)"
             )
         return swept

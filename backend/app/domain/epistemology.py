@@ -73,6 +73,26 @@ class Proposition:
     object_id: str  # С чем/кем взаимодействовали
     polarity: bool = True  # True: "B украл X". False: "B НЕ украл X".
 
+    def to_dict(self) -> dict:
+        """Э6: JSON-сериализация (§12 WARA)."""
+        return {
+            "subject_id": self.subject_id,
+            "predicate": self.predicate.value,
+            "object_id": self.object_id,
+            "polarity": self.polarity,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "Proposition":
+        from app.domain.epistemology import Predicate  # forward-ref safe
+
+        return Proposition(
+            subject_id=d["subject_id"],
+            predicate=Predicate(d["predicate"]),
+            object_id=d["object_id"],
+            polarity=d.get("polarity", True),
+        )
+
 
 @dataclass(frozen=True)
 class ClaimEvent:

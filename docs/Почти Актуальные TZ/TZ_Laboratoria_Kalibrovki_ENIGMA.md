@@ -1,7 +1,7 @@
 # ТЗ: Лаборатория калибровки психики ENIGMA
 
-**Версия документа:** `1.1` (актуализация после M0, сессия S213)
-**Статус реализации:** M0 ЗАВЕРШЁН — границы лаборатории, runner, Tap, 5 метрик, контрольные пресеты существуют и протестированы (backend/tests/calibration_lab/, 52 теста; ADR-O-361, docs/audits/ADR-O-361_IMPACT.md). Ключевое открытие M0 — см. раздел 0.3 (ниже).`
+**Версия документа:** `2.0` (актуализация после M1-ядра, сессии S220–S222, Вариант B)
+**Статус реализации:** M0 ЗАВЕРШЁН (S213) + M1-ЯДРО ЗАВЕРШЕНО (S220–S222): Intervention Routing (ADR-O-367), ScenarioPlayer, нативные графики Pygame. UI = полноэкранный режим Map Editor (F5), исключение из §1.1 — ADR-O-368. 62 теста лаборатории. Ключевое открытие M0 — 0.3; ключевые решения M1 — Addendum M1 (раздел 0.4).`
 **Целевая версия ENIGMA:** `0.5.3.8.x` и выше (текущий релиз — `0.5.3.8.3`)
 **Статус:** `IMPLEMENTATION-READY`
 **Связанные артефакты:** `backend/tests/sandbox/SUPERBOX/`, `backend/tests/sandbox/calibration/`, `config/canon/truth_state_tavern.json`, `config/npc/individuals/lusya.json`
@@ -53,7 +53,9 @@ NPC должен вести себя так, чтобы игрок мог под
 - метрики M0: `character_change_rate`, `decision_diversity`, `loop_rate`, `event_responsiveness` (источник — IntentEventAdapter через EventBus, см. 14.2); `causal_depth` = честный `None` до подключения источника цепочек (DEBT-CAUSAL-DEPTH, M2);
 - W-IR: `personality_from_legacy` читает `psyche.identity_rigidity` — параметр калибруем (ранее всегда 0.5).
 
-**По-прежнему не существует:** UI лаборатории; режим DRAMATIC SESSION; реализация `EnigmaPhaseEngine` (M3); WOW Density / ZoneClassifier (M2); ScenarioPlayer (перенесён в M1-границу — см. План, Addendum A).
+**По-прежнему не существует:** режим DRAMATIC SESSION; реализация `EnigmaPhaseEngine` (M3); WOW Density / ZoneClassifier (M2); кнопки игрока в UI, timeline, A/B-режим, сохранение пресета, экспорт (остаток M1 — см. Plan, Addendum B).
+
+**Создано в M1-ядре (S220–S222):** UI Лаборатории — полноэкранный Pygame-режим Map Editor (F5, `lab_screen.py` + `graphs.py`); Intervention Consequence Routing (ADR-O-367); ScenarioPlayer (`scenario_player.py` + дефолтный сценарий `config/calibration/scenarios/trust_probe_v1.yaml`).
 - модуля `settings_psychology.py` — все константы живут в `backend/app/core/constants.py`;
 - реализации `EnigmaPhaseEngine` — заглушка `pass` в `backend/tests/sandbox/calibration/run_sweep.py:10-12`;
 - UI лаборатории калибровки;
@@ -77,6 +79,23 @@ NPC должен вести себя так, чтобы игрок мог под
 2. Сквозной сигнал пресетов уже различим (golden: diversity +68% против mannequin) — ручки калибровки работают.
 3. **Условие существования зоны ENIGMA — событийная накачка** (ScenarioPlayer, раздел 11): поднимается с «удобства» до обязательного условия тестирования зон в M1.
 4. Replay-ядро (statuses / nan / final_npc_state / npc_captures) покадрово детерминировано; rel/l1 — асинхронный слой одного подписчика, наблюдается отдельно до quiesce-границы (DEBT-QUIESCE).
+
+---
+
+### 0.4. Достижения M1-ядра (S220–S222, master-актуализация)
+
+**Вариант B (master-решение):** никакого Next.js — Лаборатория живёт внутри Pygame Map Editor (`frontend/map_editor/ui/lab_screen.py`, вход F5), связь — прямые Python-импорты. Исключение из Устава §1.1 — ADR-O-368 (dev-enclave; allowlist `scripts/lint_frontend_isolation.py`; production UI — под запретом по-прежнему).
+
+**Правило M1 (обязательно для всех следующих сессий):**
+> Лаборатория — потребитель production causal spine, а не второй production spine. Не переписывать causal architecture ради лаборатории.
+
+1. **Intervention Consequence Routing (S220, ADR-O-367):** вмешательства со структурированной семантикой (`semantic_action` ∈ {HELP, BLACKMAIL, ACCUSE} — ядро текст НЕ парсит, L4.1) маршрутизируются в production write-path `ActionConsequenceCompiler` → `RelationshipStore.update` (SSOT). Runtime-доказательство: HELP Люсе на тике 11 → `trust(maid_lusya→player): None → 20.0, fear → −10.0`; идемпотентность (детерминированный action_id).
+2. **ScenarioPlayer (S221):** YAML-таймлайн (`config/calibration/scenarios/*.yaml`; формат: scenario_id/description/seed/events[{tick, action, target, secret_id?}]), строгий валидатор (громкие отказы: неизвестное действие/ключ, tick<1, BLACKMAIL без secret_id). Replay-identity: журнал эмуляций в ExperimentResult (вход/эмуляция/не-испущенные emitted=False) + детерминизм ядра. Граница «не второй оркестратор» — AST-тест.
+3. **Нативные графики (S222):** `frontend/map_editor/ui/graphs.py` (LineGraph/BarChart — чистые рендереры, только pygame.draw, русский UI, без эмодзи); правая панель LabScreen: динамика Доверия (−100..100) и Стресса (0..100) выбранного NPC (клик по карточке) + полосы драйвов.
+
+**Остаток M1 (для Приёмника, детально — Plan, Addendum B):** кнопки игрока в UI (маппинг 11.2 валиден, подставлять семантику в payload), timeline (9), A/B-режим (18), сохранение пресета (23), экспорт CSV/JSON, DRAMATIC SESSION-профили (3.2), DEBT-QUIESCE.
+
+**Открытие M1 (важно для M2):** вмешательство HELP — прямое следствие открытия 0.3: судьбы не возникают из вакуума; scripted-накачка через ScenarioPlayer теперь машинно-воспроизводима. Однако социальный idle-контур по-прежнему глух (SOCIAL_SUBSCRIBER: missing relationship_store, каждый тик — runtime-подтверждение DEBT-SOC) — вероятная первопричина остаточной нулевой динамики social_dialogue-дельт в idle.
 
 ---
 
@@ -667,6 +686,8 @@ UI должен подсвечивать карточку NPC вспышкой (
 
 Каждая кнопка должна вызывать `InterventionEvent.from_player_action(action_text, player_name, tick, **kwargs)` (см. `backend/app/contracts/interventions.py:36`) и скармливать его в `TickOrchestrator.execute(interventions=[...])`.
 
+**M1/S220 (ADR-O-367):** обязательный формат kwargs для действий с последствиями — `semantic_action=<UPPERCASE>`, `target_reference=<npc_id>`, `target_id=<npc_id>` (+ `secret_id` для BLACKMAIL/DIALOGUE). Ядро текст не парсит (L4.1) — text-only payload умирает на guard. Зарегистрированные семантики ядра: HELP, BLACKMAIL, ACCUSE (consequence-ветвь), ATTACK (боевая труба), MOVE, THREATEN, PERSUADE, GIVE (директивы), DIALOGUE. Часть кнопок 11.1 (Соврал/Оскорбил/Похвалил и пр. — speech-act-семантики) потребует мини-ADR на расширение реестра (прецедент ADR-O-362).
+
 Маппинг (часть):
 
 | UI-кнопка (RU) | `ActionType` | `Intent` (после `action_to_intent`) | `secret_id` (если применимо) |
@@ -697,11 +718,11 @@ UI должен подсвечивать карточку NPC вспышкой (
 Все вмешательства **обязаны** идти через production-pipeline ENIGMA:
 
 ```text
-Calibration UI (кнопка)
-    ↓  InterventionEvent.from_player_action(...)
-Experiment Runner
-    ↓  interventions=[...]
-TickOrchestrator.execute(...)
+Calibration UI (кнопка) — НЕ РЕАЛИЗОВАНО (остаток M1); для scripted-событий — ScenarioPlayer
+    ↓  InterventionEvent.from_player_action(..., semantic_action=..., target_id=...)
+Experiment Runner (start/step/stop — РЕАЛИЗОВАНО)
+    ↓  interventions=[...] → idle_tick
+TickOrchestrator.execute(...) — РЕАЛИЗОВАНО (ADR-O-367: consequence-ветвь → ActionConsequenceCompiler)
     ↓  (10 фаз, включая DecisionHub.compute)
 NPC state mutation
     ↓  StateApplicator.atomic_commit()
@@ -963,6 +984,8 @@ class WOWAggregator:
 
 Подписывается на `EventBus`. ВНИМАНИЕ (S213): часть топиков таблицы 15.1 не существует в реестре `EventType` (`RelationshipDeltaEvent`, `BeliefCrystallizationEvent`, `SecretRevealedEvent`, `ProactiveIntentEvent`, `NPCErrorEvent`, события FrontType). Фактический реестр (реализован в ObservabilityTap): NPC_SPOKE, NPC_MOVED, NPC_PROXIMITY_CLOSE/LEAVE, NPC_INTERACTS_NPC, SOCIAL_ACTION, COMMUNICATION_CLAIM, OFFER_JOB, SPREAD_RUMOR, WARN, TRADE, THEFT, COMBAT, FATE_EVENT. Условные «пороговые» сигналы (|Δtrust| ≥ 5 и т.п.) в M2 берутся post-commit диффами RelationshipStore, а не подписками.
 
+**M1/S220-подтверждение:** RelationshipStore-диффы уже собираются вExperimentRunner (`rel_captures` per-tick, плоский ключ `"source→target"`, saturation-headroom семантика) — для M2 WOWAggregator это готовый post-commit-источник; |Δtrust|=20 от HELP уже наблюдаем в данных.
+
 ---
 
 ## 16. Необходимо искать не максимум, а «золотую область»
@@ -1162,6 +1185,8 @@ Zone:               ENIGMA               MANNEQUIN
 ### 18.3. Параллельный запуск
 
 Реализация — через `ExperimentRunner.run_parallel(configs=[A, B], scenario=scenario, seed=seed)`.
+
+**M1-актуализация (S220–S222):** параллельность в одном процессе ЗАПРЕЩЕНА (ADR-O-361: overlay-вложенность и глобальный identity-патч констант). A/B = последовательные `run()` на общем `scenario_path` (контракт S221 даёт идентичный вход обоим прогонам — «абсолютно одинаковая последовательность событий» п.18.1 выполняется по построению). `run_parallel` из старого плана не реализовывать как threads; если нужен сервисный API — последовательная очередь.
 
 Каждый запуск должен использовать **независимый** экземпляр `LifeEngine` и `SqlitePersistenceAdapter` (путь к БД: `:memory:` или временный файл).
 
@@ -2322,3 +2347,20 @@ expected:
 **КОНЕЦ ТЗ.**
 
 > Следующий документ: `План_Разработки_Лаборатории.md` — пошаговый план для архитектора.
+
+
+
+ТЗ АКТУАЛЬНЫЙ:
+Краткая сводка для Приёмника
+Сделано (S220–S222, всё runtime-подтверждено):
+
+S220 / ADR-O-367: Intervention Consequence Routing — структурированная семантика → компилятор → RelationshipStore; trust None→20.0 на scripted-HELP; init_campaign в lab-старте; S116-фоллбэк-фикс; LabScreen читает SSOT (плоский ключ "maid_lusya→player").
+S221: ScenarioPlayer (YAML + строгий валидатор + poll-семантика 1-based + журнал replay-identity + гейт «не оркестратор»); дефолт trust_probe_v1.yaml; ExperimentConfig.scenario_path; ExperimentResult.scenario_id/scenario_events; секрет в consequence-ветви.
+S222: ui/graphs.py (LineGraph/BarChart); панель динамики в LabScreen; клик-выбор NPC; история per-NPC.
+Легализация: ADR-O-368 (dev-enclave + allowlist линтера; INV-FRONTEND-ISOLATION снова зелёный).
+Попутная FE-серия: cold-start game_screen, keybindings-резолвер (tab/escape/return были мертвы всегда), TAB-toggle/ESC-приоритет, опечатка end_screen-данных.
+Осталось (приоритет Приёмнику — в порядке мастера): кнопки игрока в UI (11.1/11.2, формат payload — Замена 4 файла ТЗ) → timeline (9) → A/B sequential (18) → сохранение пресета (23/3.6.2) → экспорт CSV/JSON → DRAMATIC SESSION-профили (3.2) → затем M2 (WOW Density на готовых rel_captures, ZoneClassifier, DEBT-CAUSAL-DEPTH).
+
+Красные/долги вне зоны: N3 downloader (S217/218); DEBT-LLM-SPAWN; DEBT-ABORT-404 (→O-364); DEBT-INTENT-PASS-THROUGH (геймплей, мастер); DEBT-QUIESCE (+ флак-тест его класса); DEBT-SOC (runtime-подтверждён — вероятно главный кандидат на оживление idle-социума в M2).
+
+Обе вставки применяются как обычные .md-правки (по одной уникальной строке поиска на замену; Addendum B — вставка целиком перед ---, отделяющим раздел 3 от раздела 4; раздел 0.4 — вставка перед ---, отделяющим раздел 0 от раздела 1). Если хотите, могу следующим шагом выдать их же как единые PowerShell-скрипты вставки (Add-Content/замены через .NET) — но по РЕЖИМУ для .md ручная вставка в VS Code надёжнее.

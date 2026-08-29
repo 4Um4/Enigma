@@ -34,6 +34,8 @@ from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 
+_OPP_ATTENTION_RANGE_M: float = 10.0  # 021 calibration (ADR-O-366 producer proxy)
+
 def _resolve_proactive_target(
     intent_value: str,
     npc_id: str,
@@ -550,6 +552,62 @@ class NpcTickPipeline:
                 _all_modifiers["flee"] = _all_modifiers.get("flee", 0.0) - 10.0
 
 
+            # Phase 4.5: Temporal Validation — check existing commitments.
+            # Immutable order: reactive → success → validity → expiry → HOLD.
+            # HOLD suppresses proactive (same mechanism as sleep penalty);
+            # reactive events always pass through (not suppressed).
+            _hold_proactive = False
+            from app.domain.temporal_specs import (
+                TemporalContext, check_validity, check_success,
+                is_reactive_preemption,
+            )
+            _temporal_ctx = TemporalContext(
+                spatial_query=state.spatial_query,
+                scene_state=state.scene_state,
+                tick=state.tick_id,
+            )
+            _npc_tc = state.scene_state.get("active_commitments", {}).get(npc_id, [])
+            for _tc in _npc_tc:
+                if not isinstance(_tc, dict):
+                    continue
+                if _tc.get("status") not in ("COMMITTED", "EXECUTING"):
+                    continue
+                if not _tc.get("validity_rule"):
+                    continue  # not a temporal commitment (regular ActionCommitment)
+                _tc["age"] = _tc.get("age", 0) + 1
+                # 1. Reactive preemption (BEFORE hold, BEFORE everything else)
+                _evt = getattr(state.hub_event, "event_type", None)
+                if _evt and is_reactive_preemption(str(_evt)):
+                    _tc["status"] = "CANCELLED"
+                    _tc["cancel_reason"] = "reactive_preemption"
+                    logger.info(f"[TEMPORAL] {npc_id}: CANCELLED (reactive)")
+                    continue
+                # 2. Success
+                if check_success(_tc.get("success_rule", ""), state_l2, _temporal_ctx):
+                    _tc["status"] = "COMPLETED"
+                    logger.info(f"[TEMPORAL] {npc_id}: COMPLETED (success)")
+                    continue
+                # 3. Validity
+                if not check_validity(_tc.get("validity_rule", ""), state_l2, _temporal_ctx):
+                    _tc["status"] = "CANCELLED"
+                    _tc["cancel_reason"] = "validity_failed"
+                    logger.info(f"[TEMPORAL] {npc_id}: CANCELLED (validity)")
+                    continue
+                # 4. Expiry
+                if _tc["age"] >= _tc.get("max_duration_ticks", 999):
+                    _tc["status"] = "EXPIRED"
+                    _tc["cancel_reason"] = "expired"
+                    logger.info(f"[TEMPORAL] {npc_id}: EXPIRED (age={_tc['age']})")
+                    continue
+                # 5. HOLD: suppress proactive (reactive still passes)
+                _hold_proactive = True
+                logger.info(f"[TEMPORAL] {npc_id}: HOLD (age={_tc['age']})")
+            if _hold_proactive:
+                from app.services.npc.decision_hub import PROACTIVE_INTENTS
+                for _p_intent in PROACTIVE_INTENTS:
+                    _p_key = getattr(_p_intent, "value", _p_intent)
+                    _all_modifiers[_p_key] = _all_modifiers.get(_p_key, 0.0) - 10.0
+
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id, salt="decision_hub")
             _all_npc_ids = [
@@ -562,7 +620,6 @@ class NpcTickPipeline:
             # (subjective, per ENIGMA Invariant V); weapon=False (Phase 2).
             # INVARIANT: producer builds DATA only — no Intent/score/unlocked.
             from app.services.economy.opportunity_engine import OpportunityContext as _OppCtx
-            _OPP_ATTENTION_RANGE_M = 10.0  # proxy; calibration candidate (021)
             _opp_dist = state.spatial_query.distance_player(npc_id) if state.spatial_query else 999.0
             _opp_att = max(0.0, min(1.0, 1.0 - _opp_dist / _OPP_ATTENTION_RANGE_M))
             _opp_allies = len(getattr(_epistemic_ctx, "perceived_allies", ())) if _epistemic_ctx else 0
@@ -605,6 +662,34 @@ class NpcTickPipeline:
             )
 
 
+
+            # Phase 5.5: Temporal Commitment — create if proactive intent
+            # selected AND not on HOLD. DecisionHub decides; temporal layer
+            # attaches temporal semantics (validity/success/expiry).
+            _intent_val = decision.intent.value if decision.intent else "idle"
+            if not _hold_proactive:
+                from app.domain.temporal_specs import get_temporal_spec
+                _tspec = get_temporal_spec(_intent_val)
+                if _tspec is not None:
+                    _new_tc = {
+                        "commitment_id": f"tc-{state.tick_id}-{npc_id}-{_intent_val}",
+                        "npc_id": npc_id,
+                        "intent": _intent_val,
+                        "validity_rule": _tspec.validity_rule,
+                        "success_rule": _tspec.success_rule,
+                        "max_duration_ticks": _tspec.max_duration_ticks,
+                        "age": 0,
+                        "status": "COMMITTED",
+                        "prediction_description": _tspec.prediction_description,
+                    }
+                    _active_c = state.scene_state.setdefault(
+                        "active_commitments", {}
+                    ).setdefault(npc_id, [])
+                    _active_c.append(_new_tc)
+                    logger.info(
+                        f"[TEMPORAL] {npc_id}: COMMITTED "
+                        f"({_intent_val}, max={_tspec.max_duration_ticks})"
+                    )
 
             _evt_type = getattr(state.hub_event, "event_type", "unknown")
             logger.info(

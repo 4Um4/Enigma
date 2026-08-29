@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict
+from typing import Dict, Optional
 
 from app.domain.communication import DialogueRequest
 from app.domain.execution import (
@@ -26,6 +26,10 @@ from app.services.execution.dialogue_materializer import DialogueMaterializer
 
 logger = logging.getLogger(__name__)
 
+# 021 Calibration candidates (behavior-identical extraction)
+_DIALOGUE_TTL: float = 180.0
+_UI_TTL_SEC: float = 7.0
+_MAX_TASKS_PER_TICK: int = 1
 
 class TaskScheduler:
     """
@@ -49,7 +53,7 @@ class TaskScheduler:
         self._economy_tracker = economy_tracker
         # BUG-DL-12: Кэш последних реплик для Speech Bubbles (TTL 180 сек игрового времени)
         self._recent_dialogues: list = []
-        self._dialogue_ttl = 180.0  # 3 минуты game_time (чтобы пережить несколько тиков)
+        self._dialogue_ttl = _DIALOGUE_TTL
         # ADR-O-343 FIX: Блокировка для защиты _recent_dialogues от гонки с ThreadPoolExecutor
         import threading
         self._dialogue_lock = threading.Lock()
@@ -113,12 +117,12 @@ class TaskScheduler:
         # так как game_time растёт слишком быстро (60+ сек/тик) и реплики исчезают мгновенно.
         import time
         _now = time.time()
-        _ui_ttl_sec = 7.0  # 7 секунд реального времени для отображения облачка
+        # _UI_TTL_SEC moved to module level (021)
         with self._dialogue_lock:
             self._recent_dialogues = [
                 d
                 for d in self._recent_dialogues
-                if _now - d.get("timestamp", 0.0) < _ui_ttl_sec
+                if _now - d.get("timestamp", 0.0) < _UI_TTL_SEC
             ]
             return list(self._recent_dialogues)
 
@@ -213,10 +217,10 @@ class TaskScheduler:
 
         # ADR-O-343: Жёсткий лимит 1 задача на тик для размеренного пейсинга (Human Pacing).
         # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
-        _max_tasks_per_tick = 1
+        # _MAX_TASKS_PER_TICK moved to module level (021)
         _processed_count = 0
 
-        while _processed_count < _max_tasks_per_tick:
+        while _processed_count < _MAX_TASKS_PER_TICK:
             _eligible = self._dialogue_queue.dequeue_next(game_time_seconds=_game_time)
             if not _eligible:
                 break

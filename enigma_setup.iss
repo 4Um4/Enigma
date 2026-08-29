@@ -49,7 +49,7 @@ Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU)"; Types: fu
 
 [Files]
 ; 1. Ядро игры (Берем из временной папки staging, где лежат .pyc)
-Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
+Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload,saves,saves_census,runtime_cache,dist,*.db,*.db-shm,*.db-wal"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
 
 ; 1.1 Портативный Python — S210: payload-пайплайн не автоматизирован (payload/
 ; не создаётся сборкой). До его реализации установщик — dev-дистрибутив:

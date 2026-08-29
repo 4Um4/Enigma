@@ -247,6 +247,10 @@ def _inject_steal_intent(world) -> None:
         npc_services=None,
         all_npcs_raw=list((_scene.get("npc_positions") or {}).keys()),
     ), world.game_loop._tick_orch)
+    # FIX: get_scene_state at _tick_locked=False returns a FRESH dict from persistence.
+    # Phase 6 writes windup to copy A; orchestrator's idle_tick loads copy B (without windup).
+    # Persist the modified scene so lock_for_tick loads it WITH the windup.
+    world.game_loop.scene_manager.save_scene_state(CAMPAIGN, _scene)
 
 
 def run_scenario(goran_in_los: bool, arm: str) -> dict:
@@ -295,9 +299,15 @@ def run_scenario(goran_in_los: bool, arm: str) -> dict:
 
     # C0: стимул — одинаков в обоих плечах.
     _inject_steal_intent(world)
+    _sc = world.game_loop.scene_manager.get_scene_state(CAMPAIGN, "tavern") or {}
+    _wr = (_sc.get("windup_registry") or {})
+    print(f"[DIAG-INJECT] windups={sum(len(v) for v in _wr.values())}")
 
     for _ in range(3):
-        _tick(world)    # windup(2) → THEFT → наблюдение → belief Goran
+        _tick(world)
+    _sc2 = world.game_loop.scene_manager.get_scene_state(CAMPAIGN, "tavern") or {}
+    _wr2 = (_sc2.get("windup_registry") or {})
+    print(f"[DIAG-TICK3] windups={sum(len(v) for v in _wr2.values())}")
 
     # Доставка с поллингом: каждый тик сабмитит свежие pending_tasks
     # (закрывает и H-D1 — settle каждый цикл, и H-D2 — сабмит поздних

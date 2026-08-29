@@ -1,7 +1,7 @@
 # План разработки: Лаборатория калибровки психики ENIGMA
 
-**Версия плана:** `1.1` (актуализация после M0)
-**Статус:** M0 ЗАВЕРШЁН — сессия S213, ADR-O-361; лаборатория: 51 passed / 1 skipped (skip осознанный: pre-existing красный SUPERBOX-014 — чужая зона), IPT 44/44. Фактические расхождения с планом — Addendum A (конец раздела 2).`
+**Версия плана:** `2.0` (актуализация после M1-ядра, сессии S220–S222)
+**Статус:** M0 ЗАВЕРШЁН (S213) + M1-ЯДРО ЗАВЕРШЕНО (S220–S222: Intervention Routing, ScenarioPlayer, графики; Вариант B — см. Addendum B в конце раздела 3). Лаборатория: 62 passed / 1 skipped, IPT 43/44 (единственный красный — чужой N3 downloader). Фактические расхождения — Addendum A (M0) и Addendum B (M1).`
 **Соответствует ТЗ:** `TZ_Laboratoria_Kalibrovki_ENIGMA.md v1.1` (актуализация после M0; файл: docs/Почти Актуальные TZ/)`
 **Целевая версия ENIGMA:** `0.5.3.8.x` (текущая `0.5.3.8.3`)
 **Расчётный срок реализации MVP:** 6 недель (M0 → M1)
@@ -48,8 +48,11 @@
 M0: Фундамент и репрезентативный слой           (1 неделя)  ✅ S213
     └── CalibratorSkeleton + ConfigOverlay + 5 базовых метрик
             ↓
-M1: MVP — Драматическая сессия 30 мин           (5 недель)
+M1: MVP — Драматическая сессия 30 мин           (5 недель)  🟡 ЯДРО ЗАВЕРШЕНО (S220-S222)
     └── UI + ExperimentRunner + 6 кнопок игрока + A/B + сохранение пресета
+    🟡 Остаток M1: кнопки игрока в UI, timeline, A/B-раннер, сохранение пресета,
+       экспорт, DRAMATIC SESSION-профили времени. Ядро (routing + сценарии +
+       графики) — работает и подтверждено runtime.
             ↓
 M2: Драматические метрики                       (3 недели)
     └── WOW Density + Zone Classifier + все 10 метрик
@@ -342,7 +345,7 @@ def test_overlay_constants_restores_after_exit():
 
 > Соответствует ТЗ раздел 28 (минимальный MVP).
 
-0. (из M0, ПРИОРИТЕТ) **ScenarioPlayer** — перенесён из M0. По открытию ТЗ 0.3 событийная накачка — УСЛОВИЕ дифференциации зон: AC-зоны M1 валидны только на scripted-сценарии. Контракт: `InterventionEvent.from_player_action` → `TickOrchestrator.execute(interventions=[...])` (app/contracts/interventions.py). Вместе с ним — DEBT-QUIESCE (возврат rel/l1 в replay-вердикт).
+0. ~~(из M0, ПРИОРИТЕТ) **ScenarioPlayer**~~ ✅ ЗАВЕРШЕНО (S221): `backend/app/services/calibration/scenario_player.py` — строгий валидатор (house-style preset_io), poll(тик) — эмит строго по расписанию, журнал эмуляций (replay-identity), гейт «не второй оркестратор» (AST-тест). Дефолт: `config/calibration/scenarios/trust_probe_v1.yaml` (побитово воспроизводит S220: HELP на тике 11 → trust 20.0). DEBT-QUIESCE — остаётся открытым (не в S221-скоупе).
 1. Веб-UI на русском языке с 10–15 слайдерами реальных параметров.
 2. Запуск 30-минутной симуляции NPC (через реальный `TickOrchestrator`).
 3. Пауза / пошаговый тик / ускорение (×1, ×5, ×20, ×100).
@@ -361,7 +364,7 @@ def test_overlay_constants_restores_after_exit():
 |---|---|---|
 | Sprint 1 | 1 неделя | ExperimentRunner v2 + REST API + SSE streaming |
 | Sprint 2 | 1 неделя | Next.js UI: layout + слайдеры + карточка NPC |
-| Sprint 3 | 1 неделя | Кнопки игрока + timeline + графики |
+| Sprint 3 | 1 неделя | Кнопки игрока + timeline + графики 🟡 графики — ЗАВЕРШЕНО (S222: LineGraph/BarChart нативным Pygame, правая панель LabScreen); кнопки+timeline — остаток |
 | Sprint 4 | 1 неделя | A/B режим + сохранение пресета |
 | Sprint 5 | 1 неделя | Экспорт + приёмочные тесты + bugfix |
 
@@ -945,6 +948,31 @@ def test_m1_full_user_workflow():
 - [ ] Все acceptance-тесты из 3.5–3.7 проходят;
 - [ ] Документация в `docs/calibration_lab/usage.md`;
 - [ ] Worklog обновлён.
+
+---
+
+## Addendum B: Фактическое состояние M1-ядра (S220–S222) — Вариант B
+
+**ГЛАВНОЕ АРХИТЕКТУРНОЕ РЕШЕНИЕ (мастер-решение, S220):** отказ от Next.js (разделы 0.2/3.3.2–3.5.3 и все Sprint-2-структуры ниже — ИСТОРИЧЕСКИЕ, не к реализации). Лаборатория — полноэкранный режим Pygame Map Editor (`frontend/map_editor/ui/lab_screen.py`, вход F5), связь с бэкендом прямыми Python-импортами. Исключение из Устава §1.1 легализовано ADR-O-368 (dev-enclave, allowlist в `scripts/lint_frontend_isolation.py`).
+
+**Правило M1 (мастер-директива, обязательно для всех следующих сессий):**
+> Не переписывать causal architecture ради лаборатории. Лаборатория — потребитель production spine, а не второй production spine.
+
+**Сделано (runtime-подтверждено):**
+- S220 — Intervention Consequence Routing (ADR-O-367): структурированная семантика (`semantic_action` ∈ HELP/BLACKMAIL/ACCUSE) → `_process_player_action` → `ActionConsequenceCompiler` → RelationshipStore SSOT. Runtime: `trust(maid_lusya→player): None → {20.0, -10.0}`, идемпотентный action_id. Косвенно: init_campaign в lab-старте; S116-фоллбэк scene_state (закрыт латентный TICK_CRASH player-ветки Фазы 10); LabScreen читает SSOT.
+- S221 — ScenarioPlayer (цель 3.1.0 выше). Test: 62/1s; SMOKE-журнал: `[{'tick': 11, 'action': 'HELP', 'target': 'maid_lusya', 'emitted': True}]`.
+- S222 — Native Pygame Graphs: `ui/graphs.py` (LineGraph — шкала −100..100 / 0..100, нулевая линия; BarChart — драйвы); правая панель LabScreen: динамика Trust/Stress + драйвы выбранного NPC (клик по карточке). История — в LabScreen, рендереры чистые.
+
+**Остаток M1 (для Приёмника):**
+1. **Кнопки игрока в UI** (ТЗ 11.1/11.2 — таблица маппинга валидна): панель в LabScreen → `InterventionEvent.from_player_action(..., semantic_action=X, target_reference=Y, target_id=Z)` → `ExperimentRunner.step()` — контракт ADR-O-367, ничего в ядре менять не нужно. Зарегистрированные семантики: HELP/BLACKMAIL/ACCUSE/ATTACK/MOVE/THREATEN/PERSUADE/GIVE/DIALOGUE (реестр `SUPPORTED_ACTIONS` в scenario_player.py; расширение — мини-ADR).
+2. **Timeline** (ТЗ 9): подписки ObservabilityTap уже дают IntentEvent-канал; rest — ТЗ 9.2.
+3. **A/B-раннер** (раздел 3.6.1): sequential-запуск two `ExperimentRunner.run()` (параллель в одном процессе запрещена — ADR-O-361, overlay-вложенность).
+4. **Сохранение пресета** (3.6.2): `preset_io.save()` — валидатор уже строгий.
+5. **Экспорт CSV/JSON** (3.7.1): из `ExperimentResult` (+ сценарные поля S221).
+6. **DRAMATIC SESSION-профили** (ТЗ 3.2): ExperimentConfig расширить `ticks_per_real_minute`.
+7. **DEBT-QUIESCE** (возврат rel/l1 в replay-вердикт) — переносится дальше, не закрыт.
+
+**Координация/долги:** N3 downloader (зона S217/S218); DEBT-LLM-SPAWN; DEBT-ABORT-404 (ADR-O-364); DEBT-INTENT-PASS-THROUGH (геймплей, Мастер); флак test_golden_run_produces_metrics (DEBT-QUIESCE-класс).
 
 ---
 

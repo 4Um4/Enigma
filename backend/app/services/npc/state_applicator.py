@@ -841,6 +841,16 @@ class StateApplicator:
             else 0.0
         )
 
+        # S2B.4: nutrition_delta extraction (v2-паттерн S2B.1/2B.3; поле в
+        # PhysiologyPayload существует с S2B.4, default 0.0 — getattr сохранён
+        # для единства стиля extraction-блока)
+        nutrition_delta = (
+            getattr(deltas.payload, "nutrition_delta", 0.0)
+            if domain == DeltaDomain.PHYSIOLOGY
+            and isinstance(deltas.payload, PhysiologyPayload)
+            else 0.0
+        )
+
         # --- Физиология (Physiology Domain) ---
         if domain == DeltaDomain.PHYSIOLOGY:
             self._apply_physiology_deltas(
@@ -855,6 +865,7 @@ class StateApplicator:
                 shock_impulse,
                 energy_delta=energy_delta,
                 hydration_delta=hydration_delta,
+                nutrition_delta=nutrition_delta,
             )
 
         self._apply_perception_deltas(
@@ -992,6 +1003,7 @@ class StateApplicator:
         shock_impulse: float,
         energy_delta: float = 0.0,  # S2B.1: default 0.0 (backward compat)
         hydration_delta: float = 0.0,  # S2B.3: default 0.0
+        nutrition_delta: float = 0.0,  # S2B.4: default 0.0
     ) -> None:
         """Применяет дельты физиологии (HP, боль, шок) к body_state."""
         # Инициализация body_state при первом применении
@@ -1009,6 +1021,7 @@ class StateApplicator:
                 # S2B.1: energy — proof-of-concept variable.
                 "energy": 100.0,  # 0-100
                 "hydration": 100.0,  # S2B.3: 0-100
+                "nutrition": 100.0,  # S2B.4: 0-100
             }
 
         if hp_delta != 0.0:
@@ -1041,6 +1054,13 @@ class StateApplicator:
             _cur_hydration = state.body_state.get("hydration", 100.0)
             state.body_state["hydration"] = max(
                 0.0, min(100.0, _cur_hydration + hydration_delta)
+            )
+
+        # S2B.4: nutrition — same clamp pattern (0-100).
+        if nutrition_delta != 0.0:
+            _cur_nutrition = state.body_state.get("nutrition", 100.0)
+            state.body_state["nutrition"] = max(
+                0.0, min(100.0, _cur_nutrition + nutrition_delta)
             )
 
         if blood_loss_delta != 0.0:

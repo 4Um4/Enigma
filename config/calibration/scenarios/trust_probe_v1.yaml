@@ -1,0 +1,10 @@
+# M1/Задача 2 (S221): дефолтный сценарий Лаборатории (F5).
+# Побитово воспроизводит S220-верифицированный прогон: HELP Люсе на
+# тике 11 -> trust(maid_lusya->player) None -> {20.0, -10.0}.
+scenario_id: trust_probe_v1
+description: "HELP Люсе на тике 11 — зонд динамической накачки доверия"
+seed: 7331
+events:
+  - tick: 11
+    action: HELP
+    target: maid_lusya

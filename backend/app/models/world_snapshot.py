@@ -14,12 +14,11 @@ Rule 125: Snapshot mutation после создания ЗАПРЕЩЕНА.
 from __future__ import annotations
 
 import copy
-import logging
-import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
-from uuid import UUID, uuid4
 import hashlib
+import logging
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +75,11 @@ class WorldSnapshot:
     spatial_walls: Any = None
     # Мебель / препятствия (LOD0)
     spatial_obstacles: Any = None
+    # W1 (ADR-O-371): семантическая объектная топология тика.
+    # Замораживается deepcopy в build_snapshot (паттерн active_commitments,
+    # S215). {} = объектов нет — легитимно до появления спавнера (W3+).
+    # Presentation-проекция объектов — W7, НЕ здесь.
+    world_objects: Optional[Dict[str, Dict[str, Any]]] = None
 
 
 def build_snapshot(
@@ -97,6 +101,10 @@ def build_snapshot(
     _active_travs = copy.deepcopy(scene_state.get("active_traversals", {}))
     # S203.1 (Stage 2A): заморозка поведенческого владения (shadow-реестр).
     _active_commitments = copy.deepcopy(scene_state.get("active_commitments", {}))
+    # W1 (ADR-O-371): заморозка семантической топологии объектов.
+    # Пассивная фотография subtree: стор не вызывается, ничего не
+    # вычисляется — тот же контракт, что и у остальных deep-copy полей.
+    _world_objects = copy.deepcopy(scene_state.get("world_objects", {}))
 
     # BUG-FB-029 FIX: Детерминированный snapshot_id и created_at (вместо wall-clock и uuid4).
     _seed_str = f"{tick}:{campaign_id}:{location_id}".encode("utf-8")
@@ -114,6 +122,7 @@ def build_snapshot(
         active_commitments=_active_commitments,
         spatial_walls=scene_state.get("spatial_walls"),
         spatial_obstacles=scene_state.get("spatial_obstacles"),
+        world_objects=_world_objects,
         rng_seed=rng_seed,
     )
 

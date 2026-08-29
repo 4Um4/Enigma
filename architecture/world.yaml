@@ -1,0 +1,52 @@
+domain: WORLD
+description: "Семантическая объектная топология мира (W-track Части II, ADR-O-371). W0: WorldObject существует независимо от renderer. W1: реляционная нормализация — семь отношений хранятся canonical single-side; CarrierMode — онтология авторитета позиции (ровно один). Матрица конфликтов сверх carrier-режимов — калибруемая ПОЛИТИКА, не онтология (вердикт Мастера, S226). SSOT — scene_state['world_objects']; стор stateless (прецедент CommitmentRegistry); persistence — только через существующий atomic_commit_all (Foundation Freeze). Мост в тик: build_snapshot замораживает subtree deepcopy-полем WorldSnapshot.world_objects (паттерн active_commitments, S215). W0-коррекция (удалены topology_relations/containment/affordances stored, WorldObjectRegistry) поглощена ADR-O-371 — потребителей не было. Runtime-writers: 0 (доктрина M1a) до W3 causal writer."
+nodes:
+  WorldObject:
+    type: domain
+    layer: Domain
+    label: "WorldObject (Semantic World Entity)"
+    description: "Frozen dataclass. Поля-отношения single-side canonical: holder, container_id, supported_by, attachment (host_id, slot — атомарно), occupancy, used_by. CarrierMode = FREE | HELD | CONTAINED | ATTACHED — ровно один (позиция не может иметь два источника истины). Позиция авторитетна только в FREE. W0-инвариант: ноль presentation-полей."
+  ObjectRelation:
+    type: dto
+    layer: Domain
+    label: "ObjectRelation (Query Projection DTO)"
+    description: "ТЗ §20.2. Projection DTO (kind, target_id, slot) — строится из полей WorldObject по запросу, никогда не хранится. Содержимое контейнера — inverse-запрос по container_id (mirror-поля = зомби-истина, урок S215)."
+  WorldObjectStore:
+    type: service
+    layer: Application
+    label: "World Object Store (Topology Facade)"
+    description: "ADR-O-371: единственный фасад над scene_state['world_objects']. Статический сервис (прецеденты: CommitmentRegistry / RelationshipStateStore). Read: frozen DTO, без lazy-init, повреждённая структура — громкий отказ. Write: ТОЛЬКО типизированные операции (spawn / establish_relation / release_relation / relocate); generic update(**changes) отсутствует by construction; межобъектная валидация (существование object-целей, циклы, опора FREE+та же локация, позиционные зависимые). Caller-guard отложен до W3 (появление легального runtime-writer)."
+edges:
+  - from: WorldObjectStore
+    to: WorldObject
+    label: "typed operations: spawn / establish / release / relocate"
+    condition: "Мутация protected-полей ТОЛЬКО через операции; переходы в domain-слое валидируются конструктором (safe by construction)."
+  - from: WorldObjectStore
+    to: SceneState
+    label: "scene_state['world_objects'] subtree (lazy on write only)"
+    condition: "SSOT — subtree scene_state; стор ничего не держит; на диск — только atomic_commit_all (Foundation Freeze); загрузка — load_scene_at."
+constraints:
+  - source: Any
+    target: world_objects
+    rule: "FORBIDDEN: прямая dict-хирургия scene_state['world_objects'] вне WorldObjectStore (ADR-O-371; ловится INV-WORLD-OBJECT-TOPOLOGY как DOUBLE TRUTH)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-371"
+  - source: Any
+    target: WorldObject
+    rule: "FORBIDDEN: presentation-поля (sprite/mesh/texture/animation/model) в WorldObject или его сериализации (W0-инвариант, ТЗ §17/§19.3)"
+    severity: CRITICAL
+  - source: WorldObjectStore
+    target: WorldObject
+    rule: "REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-371"
+  - source: WorldObject
+    target: CarrierMode
+    rule: "REQUIRED: carrier exclusivity — ровно один из holder/container_id/attachment; SUPPORTED_BY/OCCUPIED_BY совместимы только с FREE; USED_BY — независимая ось"
+    severity: HIGH
+    adr_ref: "ADR-O-371"
+  - source: WorldTopologyProvider
+    target: WorldObjectStore
+    rule: "FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2)"
+    severity: HIGH
+    adr_ref: "ADR-O-371"

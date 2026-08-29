@@ -110,6 +110,7 @@ flowchart TD
         StateInterpreter("State Interpreter (LLM Bridge)"):::application
         DMContractBuilder("DM Contract Builder"):::application
         SceneOutcomeBuilder("Scene Outcome Builder"):::application
+        WorldObjectStore("World Object Store (Topology Facade)"):::application
     end
 
     subgraph DOMAIN[Domain Layer]
@@ -279,6 +280,8 @@ flowchart TD
         NPCResponseValidator("NPC Response Validator"):::domain
         SceneContinuity("Scene Continuity"):::domain
         VerbalStance["Verbal Stance"]:::domain
+        WorldObject("WorldObject (Semantic World Entity)"):::domain
+        ObjectRelation["ObjectRelation (Query Projection DTO)"]:::domain
     end
 
     subgraph INFRASTRUCTURE[Infrastructure Layer]
@@ -602,6 +605,8 @@ flowchart TD
     VerbalStance -->|"stance → prompt_line in context"| VerbalizationContext
     PromptLoader -->|"load system prompts"| DMContractBuilder
     MemoryManager -->|"memory entries → context"| VerbalizationContext
+    WorldObjectStore -->|"typed operations: spawn / establish / release / relocate"| WorldObject
+    WorldObjectStore -->|"scene_state['world_objects'] subtree (lazy on write only)"| SceneState
 
     %% === АРХИТЕКТУРНЫЕ ЗАПРЕТЫ ===
     DecisionHub -.->|"🚫 FORBIDDEN: Use T+0 pressure (Only T-1)"| Raw_Delta:::forbidden
@@ -881,6 +886,11 @@ flowchart TD
     TopicExtractor -.->|"🚫 REQUIRED: Topic must not be empty (Устав §3.2)"| VerbalizationContext:::forbidden
     DMAgent -.->|"🚫 REQUIRED: When npc_movement_summary is empty, inject explicit prohibition against describing NPC movement (Invariant 2, ADR-119)"| DMContractBuilder:::forbidden
     VerbalizationContext -.->|"🚫 REQUIRED: is_moving field must be set from DecisionHub intent (APPROACH/FLEE/RETREAT/FOLLOW/PATROL) + can_move (Invariant 2, ADR-119)"| DMAgent:::forbidden
+    Any -.->|"🚫 FORBIDDEN: прямая dict-хирургия scene_state['world_objects'] вне WorldObjectStore (ADR-O-371; ловится INV-WORLD-OBJECT-TOPOLOGY как DOUBLE TRUTH)"| world_objects:::forbidden
+    Any -.->|"🚫 FORBIDDEN: presentation-поля (sprite/mesh/texture/animation/model) в WorldObject или его сериализации (W0-инвариант, ТЗ §17/§19.3)"| WorldObject:::forbidden
+    WorldObjectStore -.->|"🚫 REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish)"| WorldObject:::forbidden
+    WorldObject -.->|"🚫 REQUIRED: carrier exclusivity — ровно один из holder/container_id/attachment; SUPPORTED_BY/OCCUPIED_BY совместимы только с FREE; USED_BY — независимая ось"| CarrierMode:::forbidden
+    WorldTopologyProvider -.->|"🚫 FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2)"| WorldObjectStore:::forbidden
 ```
 
 ## ⏱ Временные Диаграммы (Sequence Diagrams)
@@ -1647,6 +1657,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | VerbalStance | VerbalizationContext | stance → prompt_line in context | Urgency + emotional nuance shape LLM output | `verbalization/verbal_stance.py:to_prompt_line` | - |
 | PromptLoader | DMContractBuilder | load system prompts | Template files for DM/NPC contracts | `verbalization/prompt_loader.py` | - |
 | MemoryManager | VerbalizationContext | memory entries → context | STM + L2 provide conversation history and beliefs | `memory/memory_manager.py` | - |
+| WorldObjectStore | WorldObject | typed operations: spawn / establish / release / relocate | Мутация protected-полей ТОЛЬКО через операции; переходы в domain-слое валидируются конструктором (safe by construction). | `-` | - |
+| WorldObjectStore | SceneState | scene_state['world_objects'] subtree (lazy on write only) | SSOT — subtree scene_state; стор ничего не держит; на диск — только atomic_commit_all (Foundation Freeze); загрузка — load_scene_at. | `-` | - |
 
 ### Архитектурные запреты (Constraints)
 
@@ -1929,3 +1941,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TopicExtractor | VerbalizationContext | REQUIRED: Topic must not be empty (Устав §3.2) | `npc/topic_extractor.py` |
 | DMAgent | DMContractBuilder | REQUIRED: When npc_movement_summary is empty, inject explicit prohibition against describing NPC movement (Invariant 2, ADR-119) | `agents/dm_agent.py` |
 | VerbalizationContext | DMAgent | REQUIRED: is_moving field must be set from DecisionHub intent (APPROACH/FLEE/RETREAT/FOLLOW/PATROL) + can_move (Invariant 2, ADR-119) | `npc_tick_pipeline.py` |
+| Any | world_objects | FORBIDDEN: прямая dict-хирургия scene_state['world_objects'] вне WorldObjectStore (ADR-O-371; ловится INV-WORLD-OBJECT-TOPOLOGY как DOUBLE TRUTH) | `-` |
+| Any | WorldObject | FORBIDDEN: presentation-поля (sprite/mesh/texture/animation/model) в WorldObject или его сериализации (W0-инвариант, ТЗ §17/§19.3) | `-` |
+| WorldObjectStore | WorldObject | REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish) | `-` |
+| WorldObject | CarrierMode | REQUIRED: carrier exclusivity — ровно один из holder/container_id/attachment; SUPPORTED_BY/OCCUPIED_BY совместимы только с FREE; USED_BY — независимая ось | `-` |
+| WorldTopologyProvider | WorldObjectStore | FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2) | `-` |

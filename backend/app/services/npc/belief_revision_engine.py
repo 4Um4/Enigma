@@ -11,6 +11,10 @@ from app.domain.epistemology import ClaimEvent, EpistemicRecord, Proposition, Pr
 
 logger = logging.getLogger(__name__)
 
+# 021 Calibration candidates (behavior-identical extraction)
+_CLAIM_WEIGHT: float = 1.0
+_SAME_SOURCE_BOOST: float = 0.2
+
 class SourceReliabilityProvider(Protocol):
     """
     Интерфейс для получения надёжности источника.
@@ -52,8 +56,7 @@ class BeliefRevisionEngine:
         )
         
         # Базовый вес утверждения (в будущем может зависеть от speech_act)
-        claim_weight = 1.0
-        incoming_confidence = reliability * claim_weight
+        incoming_confidence = reliability * _CLAIM_WEIGHT
 
         current_tick = claim.tick
 
@@ -76,7 +79,7 @@ class BeliefRevisionEngine:
             if existing_record.source_id == claim.speaker_id:
                 # Подтверждение от того же источника (небольшой буст)
                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
-                updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * 0.2)))
+                updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
             else:
                 # Независимое подтверждение (больший буст)
                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))

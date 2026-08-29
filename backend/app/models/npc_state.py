@@ -76,6 +76,10 @@ BODY_STATE_DISABLED_DATA = {
 # но New Game = свежий мир, где все NPC живы и здоровы.
 BODY_STATE_HEALTHY = {
     "current_hp": 100,
+    # S2B.1: energy — искусственный variable для pipeline proof-of-concept.
+    "energy": 100.0,  # 0-100; расход от activity, восстановление от rest
+    "hydration": 100.0,  # S2B.3: 0-100; потеря от activity + baseline
+    "nutrition": 100.0,  # S2B.4: 0-100; one-way loss (eating = action, future); stock ≠ hunger (S2B.10)
     "max_hp": 100,
     "pain": 0.0,
     "fatigue": 0.0,
@@ -368,7 +372,7 @@ class NPCPersonality:
     # Режиссёрская подсказка — instructions для LLM, не показывается NPC.
     # Пример: "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию."
     author_notes: str = ""
-    
+
     # V8-PSY-1 FIX: Пластичность личности (0.0 - текучая, 1.0 - монолит)
     identity_rigidity: float = 0.5
     # V8-PSY-11 FIX: Социальный гомеостаз (0.0 - отшельник, 1.0 - экстраверт)
@@ -563,9 +567,9 @@ class PerceptualKernel:
 
     @staticmethod
     def can_observe(
-        event: Any, 
-        distance: float, 
-        observer_id: str, 
+        event: Any,
+        distance: float,
+        observer_id: str,
         target_id: Optional[str] = None
     ) -> bool:
         """Stage 1 Task 1.5: Event Visibility filter.
@@ -606,13 +610,13 @@ class NPCState:
     def __setattr__(self, name: str, value: Any) -> None:
         import sys
         _caller = sys._getframe(1).f_globals.get("__name__", "")
-        
+
         for mod, fields in self._ALLOWED_WRITERS.items():
             if _caller == mod or _caller.startswith(mod + "."):
                 if "*" in fields or name in fields:
                     object.__setattr__(self, name, value)
                     return
-        
+
         from app.errors import ArchitecturalViolationError
         raise ArchitecturalViolationError(name, _caller)
 

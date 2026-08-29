@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 
 """
-python backend/map_editor/editor_launcher.py
 map_editor/editor_launcher.py
 Точка входа для редактора карт R4 Spatial
+
+Запуск: python frontend/map_editor/editor_launcher.py
 """
 
 import os

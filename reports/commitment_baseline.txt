@@ -1,10 +1,10 @@
-created=2026-08-25 19:18:45 (wall-clock — метаданные отчёта, §15.2)
+created=2026-08-29 19:33:27 (wall-clock — метаданные отчёта, §15.2)
 ticks=200 real_errors=0
 verdict=TRAVERSAL_FLOW: материализации были, реестр отражает их
 moved=[]
-ticks_with_traversals=198 max_concurrent=6
-terminals=42 actives=2 switch_rate=0.0350
-superseded=4 vanished=0 cross_loc=0
-statuses={'COMPLETED': 38, 'INTERRUPTED': 4}
-reasons={'SUPERSEDED_BY_NEW_MATERIALIZATION': 4}
-causes={'semantic_relocation:proactive_offer_job': 9, 'semantic_relocation:need_driven:shelter_urge=0.56': 4, 'semantic_relocation:schedule:eating': 5, 'semantic_relocation:proactive_change_role': 7, 'semantic_relocation:proactive_request_service': 5, 'semantic_relocation:proactive_call_for_help': 4, 'semantic_relocation:proactive_spread_rumor': 2, 'semantic_relocation:need_driven:social_urge=0.56': 1, 'semantic_relocation:schedule:guarding_gate': 1, 'semantic_relocation:schedule:sleeping': 1, 'semantic_relocation:need_driven:hunger=0.56': 2, 'semantic_relocation:schedule:resting': 1}
+ticks_with_traversals=200 max_concurrent=6
+terminals=42 actives=1 switch_rate=0.0350
+superseded=0 vanished=0 cross_loc=0
+statuses={'COMPLETED': 42}
+reasons={}
+causes={'semantic_relocation:schedule:guarding_gate': 1, 'semantic_relocation:schedule:eating': 15, 'semantic_relocation:proactive_request_service': 6, 'semantic_relocation:proactive_change_role': 4, 'semantic_relocation:need_driven:shelter_urge=0.56': 4, 'semantic_relocation:schedule:sleeping': 1, 'semantic_relocation:need_driven:social_urge=0.56': 4, 'semantic_relocation:need_driven:hunger=0.56': 2, 'dialogue_task:Intent.SPREAD_RUMOR': 1, 'semantic_relocation:schedule:resting': 1, 'semantic_relocation:proactive_call_for_help': 2, 'semantic_relocation:proactive_spread_rumor': 1}

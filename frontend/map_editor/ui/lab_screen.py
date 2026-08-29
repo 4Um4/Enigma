@@ -10,6 +10,7 @@ from typing import Optional
 
 from ui.components import Button, COLORS
 from tools.constants import MODE_LOCAL
+from ui.graphs import BarChart, LineGraph
 
 # Вычисляем абсолютный путь к папке backend и добавляем в sys.path
 _BACKEND_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'backend'))
@@ -41,6 +42,14 @@ class LabScreen:
         self.current_tick = 0
         self.npc_states = []
         self.relationships = {}
+        # Задача 3: история принадлежит LabScreen (graphs.py — чистые
+        # рендереры); выбранный NPC — клик по карточке.
+        self.npc_history: dict = {}
+        self.selected_npc_id: Optional[str] = None
+        self._card_rects: list = []
+        self.graph_trust = LineGraph("Доверие к игроку", -100.0, 100.0, "accent_green")
+        self.graph_stress = LineGraph("Стресс", 0.0, 100.0, "accent_red")
+        self.graph_drives = BarChart("Активные драйвы")
         self.runner = None
         self.experiment_id = "—"
 
@@ -51,13 +60,19 @@ class LabScreen:
         
         # В будущем: брать пресет из настроек UI
         preset_path = "config/calibration/test_presets/enigma_golden.yaml"
-        config = ExperimentConfig(preset_path=preset_path, duration_ticks=300)
+        config = ExperimentConfig(
+            preset_path=preset_path,
+            duration_ticks=300,
+            scenario_path="config/calibration/scenarios/trust_probe_v1.yaml",
+        )
         
         try:
             self.experiment_id = self.runner.start(config)
             self.is_running = True
             self.is_paused = False
             self.current_tick = 0
+            self.npc_history = {}
+            self.selected_npc_id = None
             self.core._show_toast("Симуляция запущена")
         except Exception as e:
             self.core._show_toast(f"Ошибка запуска: {e}")
@@ -111,7 +126,14 @@ class LabScreen:
             self.speed_multiplier = speeds[next_idx]
             self.btn_speed.text = f"Скор x{self.speed_multiplier}"
             return True
-            
+
+        # Задача 3: клик по карточке NPC = выбор для панели графиков
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for _rect, _nid in self._card_rects:
+                if _rect.collidepoint(event.pos):
+                    self.selected_npc_id = _nid
+                    return True
+
         return False
 
     def _step_simulation(self, ticks: int):
@@ -123,6 +145,17 @@ class LabScreen:
             self.current_tick = state.get("tick", 0)
             self.npc_states = state.get("npcs", [])
             self.relationships = state.get("relationships", {})
+            # Задача 3: история на каждый тик (trust из SSOT-ключа
+            # "npc→player", stress из psyche — те же источники, что у карточек)
+            for npc in self.npc_states:
+                _nid = npc.get("id", npc.get("npc_id", "?"))
+                _hist = self.npc_history.setdefault(_nid, {"trust": [], "stress": []})
+                _rel_pair = self.relationships.get(f"{_nid}→player", {})
+                _hist["trust"].append(float(_rel_pair.get("trust", 0.0)))
+                _hist["stress"].append(float(npc.get("psyche", {}).get("stress", 0)))
+                if len(_hist["trust"]) > 300:
+                    _hist["trust"].pop(0)
+                    _hist["stress"].pop(0)
         except Exception as e:
             print(f"Ошибка симуляции: {e}")
             self.is_running = False
@@ -177,12 +210,70 @@ class LabScreen:
         col1_x = 20
         col2_x = 20 + card_w + spacing
         
+        # Задача 3: хитбоксы карточек (клик = выбор NPC для панели графиков)
+        self._card_rects = []
         for i, npc in enumerate(self.npc_states):
             x = col1_x if i % 2 == 0 else col2_x
             if i % 2 == 0 and i > 0:
                 y += card_h + spacing
-                
+            self._card_rects.append(
+                (pygame.Rect(x, y, card_w, card_h),
+                 npc.get("id", npc.get("npc_id", "?")))
+            )
             self._draw_npc_card(x, y, card_w, card_h, npc)
+
+        self._draw_graphs_panel(card_w, spacing)
+
+    def _draw_graphs_panel(self, card_w: int, spacing: int):
+        """Задача 3: правая панель — динамика доверия/стресса и драйвы
+        выбранного NPC (клик по карточке). История — self.npc_history."""
+        if not self.selected_npc_id and self.npc_states:
+            self.selected_npc_id = self.npc_states[0].get(
+                "id", self.npc_states[0].get("npc_id", "?")
+            )
+        if not self.selected_npc_id:
+            return
+        hist = self.npc_history.get(
+            self.selected_npc_id, {"trust": [], "stress": []}
+        )
+        sel_npc = next(
+            (n for n in self.npc_states
+             if n.get("id", n.get("npc_id", "?")) == self.selected_npc_id),
+            None,
+        )
+
+        panel_x = 20 + 2 * card_w + 2 * spacing
+        panel_w = self.screen.get_width() - panel_x - 20
+        if panel_w < 280:
+            return  # узкий экран: карточки приоритетнее, панель не влезает
+
+        header = self.font_bold.render(
+            f"Динамика: {self.selected_npc_id.replace('_', ' ').title()}",
+            True, COLORS["text_highlight"],
+        )
+        self.screen.blit(header, (panel_x, 112))
+        self.graph_trust.draw(
+            self.screen, (panel_x, 138, panel_w, 155),
+            hist["trust"], COLORS, self.font_small, self.font_bold,
+        )
+        self.graph_stress.draw(
+            self.screen, (panel_x, 303, panel_w, 155),
+            hist["stress"], COLORS, self.font_small, self.font_bold,
+        )
+        drives = (sel_npc or {}).get("drives") or {}
+        if drives:
+            items = [
+                ("Контроль", float(drives.get("control", 0.0)), "accent_yellow"),
+                ("Значимость", float(drives.get("significance", 0.0)), "text_highlight"),
+                ("Страх", float(drives.get("fear", 0.0)), "accent_red"),
+                ("Желание", float(drives.get("desire", 0.0)), "accent_green"),
+            ]
+        else:
+            items = []
+        self.graph_drives.draw(
+            self.screen, (panel_x, 468, panel_w, 130),
+            items, COLORS, self.font_small, self.font_bold, max_val=1.0,
+        )
 
     def _draw_npc_card(self, x: int, y: int, w: int, h: int, npc: dict):
         """Рисует карточку состояния NPC."""
@@ -192,7 +283,13 @@ class LabScreen:
         # Фон карточки
         rect = pygame.Rect(x, y, w, h)
         pygame.draw.rect(self.screen, COLORS["bg_panel"], rect, border_radius=6)
-        pygame.draw.rect(self.screen, COLORS["border"], rect, 1, border_radius=6)
+        # Задача 3: выбранная карточка выделена зелёной рамкой
+        _is_sel = npc_id == self.selected_npc_id
+        pygame.draw.rect(
+            self.screen,
+            COLORS["accent_green"] if _is_sel else COLORS["border"],
+            rect, 2 if _is_sel else 1, border_radius=6,
+        )
         
         # Имя NPC
         name_surf = self.font.render(npc_name, True, COLORS["text_highlight"])

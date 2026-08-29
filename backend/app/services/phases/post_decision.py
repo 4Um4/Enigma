@@ -6,6 +6,16 @@ path: /project/backend/app/services/phases/post_decision.py
 """
 from __future__ import annotations
 
+# S203.4 (Э6, Н-40): ключи scene_state для персистентности RAM-структур
+# оркестратора. Tuple-ключ (campaign_id, actor_id) → строковый для JSON.
+_KEY_WINDUP_REGISTRY = "windup_registry"
+_KEY_HELD_INTENTS = "windup_held_intents"  # НЕ "pending_tasks" — разные сущности
+
+
+def _windup_key(campaign_id: str, actor_id: str) -> str:
+    """F3: строковый ключ для JSON-сериализации tuple-ключа."""
+    return f"{campaign_id}::{actor_id}"
+
 import copy
 import dataclasses
 import logging
@@ -93,8 +103,11 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             _prepared_prompt = ""
             if _svc and _svc.memory_manager:
                 try:
+                    from app.services.npc.npc_loader import (
+                        load_l2_state_from_runtime_dict,
+                        load_profile_from_legacy_json,
+                    )
                     from app.services.npc.npc_tick_pipeline import build_verbalization_context
-                    from app.services.npc.npc_loader import load_l2_state_from_runtime_dict, load_profile_from_legacy_json
 
                     _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == intent.speaker or n.get("id") == intent.speaker), None)
                     if _npc_dict:
@@ -116,7 +129,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                             campaign_id=ctx.campaign_id,
                             topic=intent.topic
                         )
-                        
+
                         # V8-DLG-10 FIX: Собираем статическую часть промпта из VerbalizationContext.
                         # Динамическая часть (STM, beliefs) будет добавлена в DialogueExecutor.
                         _prepared_prompt = (
@@ -172,8 +185,20 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
 
             if "pending_tasks" not in ctx.scene_state:
                 ctx.scene_state["pending_tasks"] = []
-            
+
             # M-29 FIX: Очищаем pending_tasks от старых задач (оставляем только текущего тика)
+            # S203.4 (terminal-mapping v2): вычищенные = тихая смерть → EXPIRED
+            # строго по executor_ref (mirror_task_expired_by_ref).
+            from app.services.action.commitment_registry import CommitmentRegistry
+
+            for _old in ctx.scene_state["pending_tasks"]:
+                if _old.get("tick", 0) < ctx.tick_number - 1:
+                    CommitmentRegistry.mirror_task_expired_by_ref(
+                        ctx.scene_state,
+                        _old.get("owner_id", ""),
+                        _old.get("task_id", ""),
+                        ctx.tick_number,
+                    )
             ctx.scene_state["pending_tasks"] = [
                 t for t in ctx.scene_state["pending_tasks"]
                 if t.get("tick", 0) >= ctx.tick_number - 1
@@ -203,6 +228,24 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 "created_tick": _task.created_tick,
             }
             ctx.scene_state["pending_tasks"].append(_task_dict)
+            # S203.4 (Ц1, D-8): canonical-класс = produces_claim ∨ proposition —
+            # получает владельца; ambient — non-ownership Sims-слой (ADR-O-365).
+            from app.domain.intent_profiles import produces_claim
+
+            if produces_claim(_intent_type) or bool(
+                _task_dict["payload"].get("proposition")
+            ):
+                from app.domain.action_priority import resolve_candidate_priority
+                from app.services.action.commitment_registry import CommitmentRegistry
+
+                CommitmentRegistry.mirror_task_committed(
+                    ctx.scene_state,
+                    ctx.tick_number,
+                    intent.speaker,
+                    cause=f"dialogue_task:{_intent_type}",
+                    task_id=_task.task_id,
+                    priority=resolve_candidate_priority(intent_type=_intent_type),
+                )
             continue
 
         event = adapter.to_event(intent)
@@ -216,24 +259,41 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             _target_id = getattr(intent, "target_id", "")  # noqa: ENIGMA002
 
             if _actor_id and _target_id:
-                # B1.5-FIX: Изоляция по campaign_id (ключ - кортеж).
-                _reg_key = (ctx.campaign_id, _actor_id)
-                if _reg_key not in orchestrator._windup_registry:
-                    orchestrator._windup_registry[_reg_key] = []
+                # S203.4 (Э6, Н-40): персистентность через scene_state (строковый
+                # ключ; tuple-ключ не сериализуется в JSON). F3.
+                _wkey = _windup_key(ctx.campaign_id, _actor_id)
+                _windup_store = ctx.scene_state.setdefault(_KEY_WINDUP_REGISTRY, {})
+                _windup_list = _windup_store.setdefault(_wkey, [])
 
                 # B1.5-FIX: Защита от накопления (Deduplication).
                 _has_active = any(
-                    w.target_id == _target_id
-                    and w.action_type == _gate_intent_type
-                    and w.status == WindupStatus.PENDING
-                    for w in orchestrator._windup_registry[_reg_key]
+                    w["target_id"] == _target_id
+                    and w["action_type"] == _gate_intent_type
+                    and w["status"] == WindupStatus.PENDING.value
+                    for w in _windup_list
                 )
 
                 if not _has_active:
 
-                    # DEBT-310.1: Сохраняем сам интент, генерируем ID для него.
-                    _intent_id = uuid.uuid4().hex
-                    orchestrator._pending_intents[_intent_id] = intent
+                    # S203.4 (Э5-c): зеркало владения ДО windup — commitment_id
+                    # становится held_intent_id (детерминизм, закон №4; Н-31 не
+                    # размножается). Коллизия → legacy uuid4-путь без владения.
+                    from app.services.action.commitment_registry import CommitmentRegistry
+
+                    _w_cm = CommitmentRegistry.mirror_windup_committed(
+                        ctx.scene_state,
+                        ctx.tick_number,
+                        _actor_id,
+                        action_type=_gate_intent_type,
+                        target_id=_target_id,
+                        cause=f"windup:{_gate_intent_type}",
+                    )
+                    _intent_id = (
+                        _w_cm["commitment_id"] if _w_cm else uuid.uuid4().hex
+                    )
+                    # S203.4 (Э6): held intent → scene_state (персистентность).
+                    _held_store = ctx.scene_state.setdefault(_KEY_HELD_INTENTS, {})
+                    _held_store[_intent_id] = intent.to_dict()
 
                     from app.core.constants import (
                         ATTACK_WINDUP_DURATION_TICKS,
@@ -254,14 +314,13 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                             else ATTACK_WINDUP_DURATION_TICKS
                         ),
                         status=WindupStatus.PENDING,
-                        held_intent_id=_intent_id,  # DEBT-310.1: Pure temporal gate
+                        held_intent_id=_intent_id,
                     )
-                    # Добавляем в стек подготовок актёра (на уровне Orchestrator)
-                    orchestrator._windup_registry[_reg_key].append(windup)
+                    # S203.4 (Э6): windup → scene_state как dict (персистентность).
+                    _windup_list.append(windup.to_dict())
                     windups_created += 1
 
-                    # ADR-O-310: НЕ публикуем EventDTO сейчас. Он будет опубликован в Фазе 7.
-                    continue  # Пропускаем bus.publish(event) ниже
+                    continue
 
         bus.publish(event)
         converted += 1
@@ -284,7 +343,7 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
     Если windup завершён (started_tick + duration_ticks <= ctx.tick_number),
     реконструирует CommunicationIntent из ActionCommitment и передаёт в IntentEventAdapter.
     """
-    from app.domain.action_windup import WindupStatus
+    from app.domain.action_windup import ActionWindup, WindupStatus
     from app.services.events.event_bus import get_event_bus
     from app.services.events.intent_event_adapter import IntentEventAdapter
 
@@ -292,21 +351,31 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
     adapter = IntentEventAdapter()
     executed_windups = 0
 
-    for _reg_key, windups in list(orchestrator._windup_registry.items()):
-        _campaign_id, _actor_id = _reg_key
+    # S203.4 (Э6, Н-40): чтение из scene_state (персистентность).
+    _windup_store = ctx.scene_state.get(_KEY_WINDUP_REGISTRY) or {}
+    _held_store = ctx.scene_state.get(_KEY_HELD_INTENTS) or {}
+
+    for _wkey, _windup_dicts in list(_windup_store.items()):
+        # F3: обратный трансформ строкового ключа
+        _parts = _wkey.split("::", 1)
+        if len(_parts) != 2:
+            continue
+        _campaign_id, _actor_id = _parts
         if _campaign_id != ctx.campaign_id:
             continue
 
         updated_windups = []
-        for windup in windups:
+        for _wdict in _windup_dicts:
+            windup = ActionWindup.from_dict(_wdict)
             if windup.status == WindupStatus.PENDING:
                 if windup.started_tick + windup.duration_ticks <= ctx.tick_number:
                     # DEBT-310.1: Windup completed! Pure release of held intent.
                     if windup.held_intent_id:
-                        _held_intent = orchestrator._pending_intents.pop(
-                            windup.held_intent_id, None
-                        )
-                        if _held_intent:
+                        _held_dict = _held_store.pop(windup.held_intent_id, None)
+                        if _held_dict:
+                            from app.domain.communication import CommunicationIntent
+
+                            _held_intent = CommunicationIntent.from_dict(_held_dict)
                             _actor_id = getattr(_held_intent, "speaker", "")  # noqa: ENIGMA002
                             _target_id = getattr(_held_intent, "target_id", "")  # noqa: ENIGMA002
 
@@ -396,11 +465,34 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                         windup = dataclasses.replace(
                             windup, status=WindupStatus.COMPLETED
                         )
+            # S203.4 (Э5-c terminals): windup достиг терминала — зеркало.
+            # Одна точка после всего if/else (4 ветки COMPLETED + 1 INTERRUPTED).
+            if windup.status == WindupStatus.INTERRUPTED:
+                from app.domain.action_commitment import INTERRUPT_WINDUP_STALE_INTENT
+                from app.services.action.commitment_registry import CommitmentRegistry
+
+                CommitmentRegistry.mirror_task_terminal(
+                    ctx.scene_state, windup.actor_id, ctx.tick_number,
+                    "INTERRUPTED",
+                    interrupt_reason=INTERRUPT_WINDUP_STALE_INTENT,
+                    executor="windup",
+                )
+            elif windup.status == WindupStatus.COMPLETED:
+                from app.services.action.commitment_registry import CommitmentRegistry
+
+                CommitmentRegistry.mirror_task_terminal(
+                    ctx.scene_state, windup.actor_id, ctx.tick_number,
+                    "COMPLETED", executor="windup",
+                )
+
             if windup.status == WindupStatus.PENDING:
                 updated_windups.append(windup)
 
-        # H-37 FIX: Сохраняем все ветки (PENDING, COMPLETED, INTERRUPTED) для audit trail.
-        orchestrator._windup_registry[_reg_key] = updated_windups
+        # H-37 FIX: Сохраняем PENDING для audit trail (COMPLETED/INTERRUPTED
+        # отфильтрованы выше). S203.4 (Э6): запись в scene_state (персистентность).
+        _windup_store[_wkey] = [w.to_dict() for w in updated_windups] if updated_windups else []
+        if not _windup_store[_wkey]:
+            del _windup_store[_wkey]
 
     if executed_windups > 0:
         logger.info(

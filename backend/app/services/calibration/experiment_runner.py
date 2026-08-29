@@ -33,6 +33,7 @@ from app.services.calibration.preset_io import Preset, load_preset
 from app.services.calibration.metrics import build_metrics_bundle
 from app.services.calibration.observability_tap import ObservabilityTap
 from app.services.calibration.preset_materializer import materialize_preset
+from app.services.calibration.scenario_player import ScenarioPlayer, load_scenario
 from app.services.game_loop_builder import build_game_loop
 from app.services.llm.provider import ProviderType
 
@@ -57,6 +58,9 @@ class ExperimentConfig:
     # Зарезервировано для сценарного слоя (M0-6/M1). Ядро детерминировано
     # KernelRNG(tick, npc_id, salt) и от seed не зависит (ADR-O-301).
     seed: int = 7331
+    # M1/Задача 2 (S221): YAML-сценарий (ADR-O-367 — структурированная
+    # семантика). None = свободная сессия без scripted-вмешательств.
+    scenario_path: Optional[str] = None
 
 
 @dataclass
@@ -71,6 +75,11 @@ class ExperimentResult:
     final_npc_state: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     nan_count: int = 0
     l1_event_count: int = 0
+    # M1/S221: replay-идентичность протокола (мастер-требование S220):
+    # идентификатор сценария и журнал эмуляций (tick/action/target/emitted;
+    # не-испущенные при обрыве — emitted=False).
+    scenario_id: Optional[str] = None
+    scenario_events: List[Dict[str, Any]] = field(default_factory=list)
     # M0-6 (S213): события/тик (ObservabilityTap) и метрики M0.
     # event_responsiveness наследует недетерминизм async-слоя
     # (DEBT-QUIESCE): в replay-вердикт метрики не входят.
@@ -353,6 +362,14 @@ class ExperimentRunner:
 
         self._active_config = config
         self._active_preset = load_preset(config.preset_path)
+        # M1/S221: сценарий валидируется ДО мутаций настроек/диска —
+        # битый таймлайн = громкий отказ без побочных эффектов
+        # (house-style preset_io).
+        self._scenario_player = (
+            ScenarioPlayer(load_scenario(config.scenario_path))
+            if config.scenario_path
+            else None
+        )
         
         from app.services.events.event_bus import get_event_bus
         get_event_bus().clear()
@@ -412,26 +429,16 @@ class ExperimentRunner:
         game_loop = self._active_game_loop
         engine = game_loop._get_life_engine()  # noqa: ENIGMA002
 
-        # M1/Sprint 1: Временная инъекция события для проверки динамики Trust
-        _test_intervention = None
-        if self._ticks_executed == 10:
-            from app.contracts.interventions import InterventionEvent
-            # M1: ядро не парсит текст (L4.1) — семантика передаётся
-            # структурированно, как это делает IntentCompressor на DM-пути.
-            # Контракт _process_player_action: semantic_action + target_reference
-            # (guard) + target_id (резолв цели). Фабрика прокидывает kwargs в payload.
-            _test_intervention = InterventionEvent.from_player_action(
-                action_text="помочь",
-                player_name="player",
-                tick=self._ticks_executed,
-                target_id="maid_lusya",
-                semantic_action="HELP",
-                target_reference="maid_lusya",
-            )
-            logger.info("[CALIB_TEST_INJECT] Внедрено событие: помощь Люсе на тике 10")
-
         for _ in range(ticks):
-            interventions = [_test_intervention] if _test_intervention and self._ticks_executed == 10 else []
+            # M1/Задача 2 (S221): scripted-события по таймлайну.
+            # ScenarioPlayer — только эмиттер (правило M1): семантика
+            # структурирована (ADR-O-367), всю каузальную работу выполняет
+            # production pipeline.
+            interventions = (
+                self._scenario_player.poll(self._ticks_executed + 1)
+                if self._scenario_player is not None
+                else []
+            )
             tick_result = game_loop.idle_tick(config.campaign_id, interventions=interventions)
             self._statuses.append(str(tick_result.get("status", "unknown")))
             self._settle_async_dialogue_layer(game_loop, config)
@@ -499,10 +506,34 @@ class ExperimentRunner:
         _restore_dir(self._sessions_root, self._sessions_snap)
         shutil.rmtree(self._temp_root, ignore_errors=True)
 
+        # M1/S221: не-испущенные события (сценарий длиннее сессии) —
+        # честная запись emitted=False (replay-идентичность протокола).
+        if self._scenario_player is not None:
+            for _ev in self._scenario_player.pending:
+                self._scenario_player.journal.append(
+                    {
+                        "tick": _ev.tick,
+                        "action": _ev.action,
+                        "target": _ev.target,
+                        "secret_id": _ev.secret_id,
+                        "emitted": False,
+                    }
+                )
+
         result = ExperimentResult(
             experiment_id=self._experiment_id,
             config=config,
             preset_id=self._active_preset.preset_id,
+            scenario_id=(
+                self._scenario_player.scenario.scenario_id
+                if self._scenario_player is not None
+                else None
+            ),
+            scenario_events=(
+                list(self._scenario_player.journal)
+                if self._scenario_player is not None
+                else []
+            ),
             ticks_executed=self._ticks_executed,
             statuses=self._statuses,
             npc_captures=self._npc_captures,

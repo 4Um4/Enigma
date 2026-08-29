@@ -9,6 +9,16 @@ from pathlib import Path
 
 ROOT = Path("frontend")
 
+# ADR-O-368: Calibration Lab — изолированный developer/testing enclave.
+# Ограниченное исключение из frontend isolation policy ТОЛЬКО для
+# экспериментального чтения SSOT (Вариант B: Pygame-окно редактора,
+# мастер-решение N2/S220). Исключение НЕ распространяется на production UI
+# и НЕ ослабляет INV-FRONTEND-ISOLATION. Расширение списка — только через
+# новый ADR.
+_ALLOWLIST = {
+    os.path.normpath(os.path.join("frontend", "map_editor", "ui", "lab_screen.py")),
+}
+
 def find_violations(filepath: str) -> list:
     violations = []
     
@@ -40,6 +50,8 @@ def run_lint() -> list:
         for file in files:
             if file.endswith(".py"):
                 filepath = os.path.join(root, file)
+                if os.path.normpath(filepath) in _ALLOWLIST:
+                    continue  # ADR-O-368: dev-enclave исключение (см. шапку)
                 for line, msg in find_violations(filepath):
                     all_violations.append(f"[§1.1 VIOLATION] {filepath}:{line} -> {msg}")
     return all_violations

@@ -195,3 +195,76 @@ def audit_constant_bindings(name: str) -> List[Tuple[str, str]]:
 def overlay_active() -> bool:
     """Активен ли overlay (для runner'а и тестов)."""
     return _ACTIVE
+
+@contextmanager
+def overlay_module_attrs(
+    patches: Sequence[Tuple[str, str, Any]],
+    *,
+    require_loaded: Sequence[str] = (),
+) -> Iterator[None]:
+    """Direct module attribute patching для non-core/constants калибровок.
+    patches: [(module_path, attr_name, new_value), ...]
+    Verify на входе, полный откат с verify на выходе — как overlay_constants."""
+    missing = [p[0] for p in patches if p[0] not in sys.modules]
+    if missing:
+        raise CalibrationOverlayError(f"Модули не загружены: {missing}")
+    patch_log: List[_PatchEntry] = []
+    for module_path, attr_name, new_value in patches:
+        module = sys.modules[module_path]
+        original = getattr(module, attr_name)
+        patch_log.append((module, attr_name, original, new_value))
+        setattr(module, attr_name, new_value)
+    _verify_applied(patch_log)
+    try:
+        yield
+    finally:
+        _restore(patch_log)
+        _verify_restored(patch_log)
+
+
+@contextmanager
+def overlay_profile(
+    profile: CalibrationProfile,
+    *,
+    require_loaded: Sequence[str] = (),
+) -> Iterator[None]:
+    """Единая точка: core/constants (identity overlay) + other modules (direct).
+    Behavior-identical при profile=CalibrationProfile.default()."""
+    core_overrides = {
+        "COMMITMENT_BASE_THRESHOLD": profile.commitment_base_threshold,
+        "COMMITMENT_K": profile.commitment_k,
+        "COMMITMENT_BONUS_K": profile.commitment_bonus_k,
+        "INTENT_DECAY_RATE": profile.intent_decay_rate,
+        "INTENT_EXHAUSTION_RATE": profile.intent_exhaustion_rate,
+        "INTENT_INERTIA_MAX_TICKS": profile.intent_inertia_max_ticks,
+        "INTENT_INERTIA_WEIGHT": profile.intent_inertia_weight,
+        "REACTIVE_URGENCY_THRESHOLD": profile.reactive_urgency_threshold,
+        "IDLE_PRESSURE_ACCUM_RATE": profile.idle_pressure_accum_rate,
+        "IDLE_PRESSURE_DECAY_RATE": profile.idle_pressure_decay_rate,
+        "ATTACK_WINDUP_DURATION_TICKS": profile.attack_windup_duration_ticks,
+        "STEAL_WINDUP_DURATION_TICKS": profile.steal_windup_duration_ticks,
+    }
+    module_patches = [
+        ("app.services.economy.opportunity_engine", "W_ATTENTION", profile.opp_w_attention),
+        ("app.services.economy.opportunity_engine", "W_DISTANCE", profile.opp_w_distance),
+        ("app.services.economy.opportunity_engine", "W_WEAPON", profile.opp_w_weapon),
+        ("app.services.economy.opportunity_engine", "W_ALLIES", profile.opp_w_allies),
+        ("app.services.economy.opportunity_engine", "OPPORTUNITY_THRESHOLD", profile.opp_threshold),
+        ("app.services.economy.opportunity_engine", "MAX_DISTANCE_METERS", profile.opp_max_distance_m),
+        ("app.services.economy.opportunity_engine", "MAX_ALLY_COUNT", profile.opp_max_ally_count),
+        ("app.services.events.observation_subscriber", "_OBSERVATION_SIGHT_RADIUS", profile.observation_sight_radius),
+        ("app.services.events.claim_event_subscriber", "HEARING_RADIUS", profile.hearing_radius),
+        ("app.domain.constants", "_DEFAULT_ACTION_RADIUS", profile.default_action_radius),
+        ("app.services.player_cognition.action_consequence_compiler", "_ACCUSE_CONFIDENCE_THRESHOLD", profile.accuse_confidence_threshold),
+        ("app.services.npc.trust_based_reliability_provider", "_ENEMY_TRUST_THRESHOLD", profile.enemy_trust_threshold),
+        ("app.services.npc.trust_based_reliability_provider", "_UNKNOWN_SOURCE_TRUST", profile.unknown_source_trust),
+        ("app.services.npc.trust_based_reliability_provider", "DIRECT_OBSERVATION_RELIABILITY", profile.direct_observation_reliability),
+        # Phase 2: dialogue_queue MAX_PENDING_TASKS/MAX_RATE_PER_MINUTE — class attrs,
+        # need extraction to module-level first (same pattern as 7 extractions)
+        ("app.domain.vital_state", "_CONSCIOUSNESS_THRESHOLD", profile.consciousness_threshold),
+        ("app.domain.vital_state", "_PAIN_INCAPACITATED", profile.pain_incapacitated),
+        ("app.domain.vital_state", "_SHOCK_INCAPACITATED", profile.shock_incapacitated),
+    ]
+    with overlay_constants(core_overrides, require_loaded=require_loaded):
+        with overlay_module_attrs(module_patches):
+            yield

@@ -339,7 +339,7 @@ def _ensure_servers_running() -> tuple:
             _diag_y = 150
             _diag_text = "⚠ AI не запущен: " + _LLM_REASONS.get(_LLM_DIAG["reason"], _LLM_REASONS["unknown"])
             for _ln in _wrap_ru(_diag_text)[:4]:
-                _status_screen.blit(_font.render(_ln, True, (255, 170, 60)), (50, _diag_y))
+                _status_screen.blit(_status_font.render(_ln, True, (255, 170, 60)), (50, _diag_y))
                 _diag_y += 26
         pygame.display.flip()
 
