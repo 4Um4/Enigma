@@ -412,3 +412,94 @@ class TestM1b1MigrationAdapter:
             assert report["migrated_pairs"] >= 0
             if report["migrated_pairs"]:
                 assert RelationshipStateStore.get_directed_pair(ss, *next(iter(ss["relationship_state"]["directed"])).split("→"))
+
+
+
+
+# ── 8. M1b.2.0: RelationshipWriteGate — D3-паритет против legacy update() ──
+
+
+class TestWriteGateD3Parity:
+    """Ратифицированный принцип: сначала доказать legacy.update == gate(legacy)
+    на ВСЕЙ сетке D3, до переноса первого writer-сайта. Сетка: prior × Δ.
+    Тест инвариантен к cutover: на M1b.4 гейт получит v2-backend, а ЭТОТ тест
+    останется определением эквивалентности (замена backend'а обязана его
+    проходить — SAME INPUT + SAME PRIOR + SAME Δ → SAME RESULT)."""
+
+    GRID_PRIORS = [-100.0, -50.0, -25.0, 0.0, 25.0, 50.0, 90.0, 99.0]
+    GRID_DELTAS = [-50.0, -1.0, -0.5, 0.5, 1.0, 2.0, 30.0, 50.0]
+    SCALARS = ["trust", "fear", "debt", "respect", "attraction"]
+
+    def _fresh_pair(self, tmp_path, prior: float):
+        """Реальная структура legacy-файла (§12.4): prior записан прямо в JSON —
+        объекты реальности, не конструкторы: store читает собственный формат."""
+        camp = "parity"
+        d = tmp_path / camp
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "npc_relationships.json").write_text(
+            json.dumps({"a→b": {s: prior for s in self.SCALARS}}), encoding="utf-8"
+        )
+        return RelationshipStore(data_dir=str(tmp_path))
+
+    @pytest.mark.parametrize("prior", GRID_PRIORS)
+    @pytest.mark.parametrize("delta", GRID_DELTAS)
+    def test_parity_full_grid(self, tmp_path, prior, delta):
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+
+        for scalar in self.SCALARS:
+            # L: прямой legacy-запись
+            store_l = self._fresh_pair(tmp_path / f"L{prior}{delta}{scalar}".replace(".", "_"), prior)
+            store_l.update("parity", "a", "b", {scalar: delta})
+            got_l = store_l.get_pair("parity", "a", "b")[scalar]
+            # G: та же запись через гейт
+            store_g = self._fresh_pair(tmp_path / f"G{prior}{delta}{scalar}".replace(".", "_"), prior)
+            gate = RelationshipWriteGate(store_g)
+            gate.apply("parity", "a", "b", {scalar: delta}, cause="parity_test")
+            got_g = store_g.get_pair("parity", "a", "b")[scalar]
+            assert got_l == got_g, (
+                f"PARITY BREAK {scalar}: prior={prior} Δ={delta} → legacy={got_l} gate={got_g}"
+            )
+
+    def test_parity_composite_delta(self, tmp_path):
+        """Композитная дельта (fear+30/trust−30 — паттерн BLACKMAIL) одним вызовом."""
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+
+        store_l = self._fresh_pair(tmp_path / "L", 10.0)
+        store_l.update("parity", "a", "b", {"fear": 30.0, "trust": -30.0})
+        store_g = self._fresh_pair(tmp_path / "G", 10.0)
+        RelationshipWriteGate(store_g).apply("parity", "a", "b", {"fear": 30.0, "trust": -30.0})
+        for scalar in ("trust", "fear"):
+            assert store_l.get_pair("parity", "a", "b")[scalar] == store_g.get_pair("parity", "a", "b")[scalar]
+
+    def test_gate_rejects_foreign_keys(self, tmp_path):
+        """Ужесточение Мастера: whitelist — посторонние RE-сущности не протекают."""
+        from app.services.social.relationship_write_gate import (
+            SCALAR_WHITELIST,
+            RelationshipWriteGate,
+        )
+
+        assert SCALAR_WHITELIST == frozenset({"trust", "fear", "debt", "respect", "attraction"})
+        store = self._fresh_pair(tmp_path, 0.0)
+        gate = RelationshipWriteGate(store)
+        for bad in ({"love_score": 1.0}, {"infatuation": 0.5}, {"frustration": 0.1}, {"satiation": 0.2}):
+            with pytest.raises(ValueError, match="whitelist"):
+                gate.apply("parity", "a", "b", bad)
+
+    def test_gate_rejects_nan_and_nonnumeric(self, tmp_path):
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+
+        gate = RelationshipWriteGate(self._fresh_pair(tmp_path, 0.0))
+        with pytest.raises(ValueError):
+            gate.apply("parity", "a", "b", {"trust": float("nan")})
+        with pytest.raises(ValueError):
+            gate.apply("parity", "a", "b", {"trust": "много"})
+
+    def test_gate_zero_delta_is_parity_noop(self, tmp_path):
+        """Нулевая дельта: гейт no-op; legacy тоже не меняет значение (0×headroom=0) — паритет."""
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+
+        store_l = self._fresh_pair(tmp_path / "L", 42.0)
+        store_l.update("parity", "a", "b", {"trust": 0.0})
+        store_g = self._fresh_pair(tmp_path / "G", 42.0)
+        RelationshipWriteGate(store_g).apply("parity", "a", "b", {"trust": 0.0})
+        assert store_l.get_pair("parity", "a", "b") == store_g.get_pair("parity", "a", "b")
