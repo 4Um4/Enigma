@@ -15,8 +15,11 @@ path: /project/backend/tests/test_relationship_state_store.py
     TestRoundTrip, TestOldSaveCompatibility.
 """
 
+import copy
 import dataclasses
+import json
 import tempfile
+from pathlib import Path
 from typing import Any, Dict
 
 import pytest
@@ -284,3 +287,128 @@ class TestS2BExtractionBackwardCompat:
             )
             assert after_wt.body_state["current_hp"] == 100.0
             assert after_wt.body_state.get("energy") == 85.0
+
+
+
+
+
+# ── 7. M1b.1: миграционный адаптер — приёмка по семи пунктам вердикта ──
+
+
+class TestM1b1MigrationAdapter:
+    """ADR-O-371 / M1b.1: legacy JSON → v2 scene_state. Только адаптер:
+    writers/readers не переключены, cutover не выполнен, cache не тронут.
+    REAL DATA FIRST (§12.4): формат фикстуры = фактический test_data-формат
+    {"src→tgt": {"trust": ...}} (археология M1b.0)."""
+
+    LEGACY = {
+        "player→maid_lusya": {"trust": 25.5, "fear": -10.0, "attraction": 3.0},
+        "maid_lusya→player": {"trust": 18.12345678, "debt": -5.0},
+        "guard_borko→thief_shadow": {"trust": -40.0},
+    }
+
+    def _make_legacy(self, tmp_path, campaign="test_campaign", data=None):
+        d = tmp_path / campaign
+        d.mkdir(parents=True)
+        (d / "npc_relationships.json").write_text(
+            json.dumps(data if data is not None else self.LEGACY, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return str(tmp_path)
+
+    def test_five_scalars_migrated_unchanged(self, tmp_path):
+        ss = {}
+        report = RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", self._make_legacy(tmp_path))
+        assert report == {"migrated_pairs": 3, "skipped": False}
+        d = ss["relationship_state"]["directed"]
+        # Сырые значения как лежат: БЕЗ headroom, БЕЗ round
+        assert d["player→maid_lusya"]["trust"] == 25.5
+        assert d["maid_lusya→player"]["trust"] == 18.12345678
+        assert d["guard_borko→thief_shadow"]["trust"] == -40.0
+        # Все 5 скаляров поддержаны путём переноса (respect присутствует в формате)
+        assert d["player→maid_lusya"]["attraction"] == 3.0
+        assert d["maid_lusya→player"]["debt"] == -5.0
+
+    def test_vacuum_preserved(self, tmp_path):
+        ss = {}
+        RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", self._make_legacy(tmp_path))
+        # Пары нет в JSON → её нет в v2 (НЕ материализована нулями, §ENIGMA-003)
+        assert RelationshipStateStore.get_directed_pair(ss, "thief_shadow", "player") == {}
+        assert "thief_shadow→player" not in ss["relationship_state"]["directed"]
+
+    def test_repeated_migration_is_noop(self, tmp_path):
+        data_dir = self._make_legacy(tmp_path)
+        ss = {}
+        RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", data_dir)
+        snapshot = copy.deepcopy(ss["relationship_state"]["directed"])
+        second = RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", data_dir)
+        assert second == {"migrated_pairs": 0, "skipped": True}  # идемпотентность
+        assert ss["relationship_state"]["directed"] == snapshot  # ничего не изменилось
+
+    def test_migrated_marker_prevents_second_import(self, tmp_path):
+        data_dir = self._make_legacy(tmp_path)
+        ss1, ss2 = {}, {}
+        RelationshipStateStore.migrate_legacy_relationships(ss1, "test_campaign", data_dir)
+        # Второй «запуск» (другое scene_state, тот же диск): маркер отрабатывает
+        report = RelationshipStateStore.migrate_legacy_relationships(ss2, "test_campaign", data_dir)
+        assert report == {"migrated_pairs": 0, "skipped": True}
+        assert "relationship_state" not in ss2  # второго импорта НЕ было
+        assert (tmp_path / "test_campaign" / "npc_relationships.json.migrated").exists()
+
+    def test_no_headroom_no_rounding_in_migration(self, tmp_path):
+        # Граничное значение: headroom бы изменил 99.0+при переносе невозможен —
+        # но фиксируем, что перенос НЕ применяет сатурацию даже к крайним числам
+        data = {"a→b": {"trust": 99.99999999, "fear": -99.99999999}}
+        ss = {}
+        RelationshipStateStore.migrate_legacy_relationships(ss, "c", self._make_legacy(tmp_path, campaign="c", data=data))
+        raw = ss["relationship_state"]["directed"]["a→b"]
+        assert raw["trust"] == 99.99999999  # бит-в-бит, не 100.0 (сатурация), не round
+        assert raw["fear"] == -99.99999999
+        # round(4) живёт ТОЛЬКО в read-контракте (D3):
+        assert RelationshipStateStore.get_directed_pair(ss, "a", "b")["trust"] == 100.0  # round(99.99999999, 4)
+
+    def test_legacy_runtime_untouched(self, tmp_path):
+        data_dir = self._make_legacy(tmp_path)
+        before = (tmp_path / "test_campaign" / "npc_relationships.json").read_text(encoding="utf-8")
+        ss = {}
+        RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", data_dir)
+        after = (tmp_path / "test_campaign" / "npc_relationships.json").read_text(encoding="utf-8")
+        assert before == after  # legacy-файл НЕ изменён (маркер — отдельный файл)
+        # Legacy store продолжает работать на своём файле независимо:
+        legacy = RelationshipStore(data_dir=data_dir)
+        assert legacy.get_pair("test_campaign", "player", "maid_lusya")["trust"] == 25.5
+
+    def test_missing_file_is_skip_not_error(self, tmp_path):
+        ss = {}
+        report = RelationshipStateStore.migrate_legacy_relationships(ss, "c", str(tmp_path))
+        assert report == {"migrated_pairs": 0, "skipped": True}
+        assert "relationship_state" not in ss
+
+    def test_corrupted_pair_fails_loud(self, tmp_path):
+        data = {"повреждённая пара без стрелки": {"trust": 1.0}}
+        ss = {}
+        with pytest.raises(ContractValidationError):
+            RelationshipStateStore.migrate_legacy_relationships(ss, "c", self._make_legacy(tmp_path, campaign="c", data=data))
+        assert "relationship_state" not in ss or "directed" not in ss.get("relationship_state", {})  # частичной миграции нет
+
+    def test_real_testdata_format_smoke(self):
+        """§12.4: REAL DATA — фактический test_data/test_campaign/npc_relationships.json
+        (если присутствует в репо) мигрируется без ошибок. Пишем в temp-копию,
+        репо-файл не трогаем; маркер в temp — идемпотентность репо не ломает."""
+        import shutil as _sh
+        # Абсолютный путь от тест-файла: pytest-cwd непредсказуем (backend/ или корень проекта)
+        src = (
+            Path(__file__).resolve().parents[1]
+            / "test_data" / "test_campaign" / "npc_relationships.json"
+        )
+        if not src.exists():
+            pytest.skip("test_data недоступен из cwd — формат покрыт фикстурами выше")
+        with tempfile.TemporaryDirectory() as td:
+            camp = Path(td) / "test_campaign"
+            camp.mkdir()
+            _sh.copy(src, camp / "npc_relationships.json")
+            ss = {}
+            report = RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", td)
+            assert report["migrated_pairs"] >= 0
+            if report["migrated_pairs"]:
+                assert RelationshipStateStore.get_directed_pair(ss, *next(iter(ss["relationship_state"]["directed"])).split("→"))

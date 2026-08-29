@@ -60,6 +60,12 @@ _KEY_PREFERENCES: Final[str] = "preferences"
 _KEY_CONSTRAINTS: Final[str] = "constraints"
 _KEY_EXCLUSIVITY: Final[str] = "exclusivity"
 
+# ── M1b.1 (ADR-O-371): константы legacy-формата и v2-поддерева directed ──
+_KEY_DIRECTED: Final[str] = "directed"  # v2-поддерево 5 скаляров (M1b)
+_LEGACY_FILENAME: Final[str] = "npc_relationships.json"
+_MIGRATED_SUFFIX: Final[str] = ".migrated"
+_LEGACY_SCALARS: Final[tuple] = ("trust", "fear", "debt", "respect", "attraction")
+
 # ═══ Caller-guard: единственный writer-маршрут (вердикт Мастера) ═══
 # Мутация scene_state[_KEY_ROOT] разрешена ТОЛЬКО из этих модулей.
 # Расширение списка = отдельный ADR (второй writer = DOUBLE TRUTH, запрет №5).
@@ -268,3 +274,130 @@ class RelationshipStateStore:
         )
         npc_needs[need_id] = need_level_to_dict(updated)
         return updated
+
+    # ── M1b.1: MIGRATION ADAPTER (ADR-O-371; ТЗ-RE-01 §8.6 M1 — режим «Заменить») ──
+    # Контракт (вердикт Мастера): legacy JSON → deterministic transform → v2 scene_state.
+    # Перенос БЕЗ пересчёта: никакой headroom-сатурации, никакого округления — сырые
+    # значения как лежат (D3: migration не преобразует поведение; round(4) остаётся
+    # read-контрактом get_pair, не миграцией). Идемпотентность: маркер .migrated
+    # рядом с legacy-файлом; повторный вызов при живом маркере = no-op (второго
+    # импорта не существует). Cutover НЕ входит в M1b.1: legacy runtime нетронут,
+    # writers/readers не переключаются, cache не трогается.
+
+    @staticmethod
+    def migrate_legacy_relationships(
+        scene_state: Dict[str, Any],
+        campaign_id: str,
+        data_dir: str,
+    ) -> Dict[str, int]:
+        """Однократный перенос npc_relationships.json → scene_state["relationship_state"]["directed"].
+
+        Возвращает отчёт {"migrated_pairs": N, "skipped": bool} — наблюдаемость
+        без молчания (L4). Детерминизм: одинаковый JSON → одинаковое поддерево
+        (никакого wall-clock/RNG в transform). Vacuum сохраняется: пара,
+        отсутствующая в JSON, НЕ материализуется нулями (§ENIGMA-003).
+
+        Идемпотентность по построению: (а) живой .migrated → no-op; (б) даже без
+        маркера повторный перенос перезаписывает те же ключи теми же значениями
+        (transform — чистая функция от файла), но маркер отсекает повторное
+        чтение диска — контракт «.migrated не создаёт второй импорт».
+        """
+        import json
+        import os
+
+        if not campaign_id:
+            raise ContractValidationError("migrate_legacy: campaign_id пуст")
+        # (а) Сначала ВСЕ skip-пути — без мутации scene_state: скип обязан быть
+        # чистым no-op (поймано собственным тестом marker_prevents_second_import:
+        # прежний setdefault-до-скипа создавал пустой корень даже при «skipped»).
+        legacy_path = os.path.join(data_dir, campaign_id, _LEGACY_FILENAME)
+        migrated_path = legacy_path + _MIGRATED_SUFFIX
+        if os.path.exists(migrated_path):
+            return {"migrated_pairs": 0, "skipped": True}
+        if not os.path.exists(legacy_path):
+            # Нет legacy-данных — не ошибка (новые кампании), маркер не ставим:
+            # файл может появиться позже в старой сессии до cutover.
+            return {"migrated_pairs": 0, "skipped": True}
+        root = scene_state.setdefault(_KEY_ROOT, {})
+        if not isinstance(root, dict):
+            raise ContractValidationError(f"scene_state['{_KEY_ROOT}']: повреждён")
+        # (б) Чтение legacy (REAL формат: {"src→tgt": {scalar: num, ...}})
+        try:
+            with open(legacy_path, "r", encoding="utf-8-sig") as f:
+                legacy_data = json.load(f)
+        except (OSError, ValueError) as e:
+            raise ContractValidationError(
+                f"migrate_legacy: повреждённый {legacy_path}: {e}"
+            ) from e
+        if not isinstance(legacy_data, dict):
+            raise ContractValidationError(
+                f"migrate_legacy: {legacy_path} — не dict ({type(legacy_data).__name__})"
+            )
+        # (в) Deterministic transform: сырые числа как лежат — БЕЗ сатурации/round
+        directed: Dict[str, Dict[str, float]] = {}
+        for pair_key, raw in legacy_data.items():
+            if not isinstance(pair_key, str) or "→" not in pair_key or not isinstance(raw, dict):
+                # Повреждённая запись — громкий отказ всего переноса (не тихий скип):
+                # частичная миграция хуже отсутствия (двойная поверхность)
+                raise ContractValidationError(
+                    f"migrate_legacy: повреждённая пара '{pair_key}' в {legacy_path}"
+                )
+            entry: Dict[str, float] = {}
+            for attr, val in raw.items():
+                if attr not in _LEGACY_SCALARS:
+                    continue  # посторонние ключи legacy — не переносим, не падаем
+                try:
+                    entry[attr] = float(val)
+                except (TypeError, ValueError) as e:
+                    raise ContractValidationError(
+                        f"migrate_legacy: '{pair_key}'.{attr} не число: {val!r}"
+                    ) from e
+            if entry:
+                directed[pair_key] = entry
+        # (г) Запись в v2 (существующее поддерево directed не затираем — merge:
+        # миграция добавляет legacy-пары, v2-пары приоритетнее (созданы позже))
+        existing = root.get(_KEY_DIRECTED)
+        if existing is None:
+            existing = {}
+            root[_KEY_DIRECTED] = existing
+        if not isinstance(existing, dict):
+            raise ContractValidationError(f"relationship_state.{_KEY_DIRECTED}: повреждён")
+        for k, v in directed.items():
+            existing.setdefault(k, v)  # merge: v2-пара уже есть → legacy не перезаписывает
+        # (д) Маркер: повторного импорта не существует. Сам legacy-файл НЕ удаляем
+        # (до cutover legacy runtime продолжает его читать — M1b.1 его не трогает).
+        try:
+            with open(migrated_path, "w", encoding="utf-8") as f:
+                f.write("migrated\n")
+        except OSError as e:
+            raise ContractValidationError(
+                f"migrate_legacy: не могу записать маркер {migrated_path}: {e}"
+            ) from e
+        return {"migrated_pairs": len(directed), "skipped": False}
+
+    @staticmethod
+    def get_directed_pair(
+        scene_state: Dict[str, Any], source: str, target: str
+    ) -> Dict[str, float]:
+        """READ v2 (M1b): направленная пара source→target; Vacuum = {} (нет записи —
+        нет знания, §ENIGMA-003); round(4) — read-контракт, унаследован от legacy
+        get_pair (D3: точность — контракт персистентности/чтения)."""
+        if not source or not target:
+            return {}
+        root = scene_state.get(_KEY_ROOT)
+        if root is None:
+            return {}
+        root = _require_dict(root, f"scene_state['{_KEY_ROOT}']")
+        directed = root.get(_KEY_DIRECTED)
+        if directed is None:
+            return {}
+        directed = _require_dict(directed, f"relationship_state.{_KEY_DIRECTED}")
+        raw = directed.get(f"{source}→{target}")
+        if raw is None:
+            return {}  # Vacuum: не материализуем 0.0 из пустоты
+        raw = _require_dict(raw, f"directed[{source}→{target}]")
+        return {
+            attr: round(float(val), 4)
+            for attr, val in raw.items()
+            if attr in _LEGACY_SCALARS
+        }
