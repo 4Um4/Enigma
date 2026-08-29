@@ -88,6 +88,11 @@ flowchart TD
         TimeSkipExecutor("Time Skip (Observation Layer)"):::application
         WorldProjectionBuffer("World Projection Buffer (Shadow Causality)"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
+        RelationshipEvents("Реестр событий §5.5 — 20 типов"):::application
+        RelationshipStateStore("Relationship State Store — SSOT"):::application
+        RelationshipEventSemantics("Relationship Event Semantics"):::application
+        RelationshipModifierResolver("Relationship Modifier Resolver"):::application
+        NeedProviderRelationship("Need Provider — интимная сфера"):::application
         LifeEngine("Life Engine"):::application
         EventCompiler("Event Compiler (Physics Generator)"):::application
         EquivalenceValidator("Equivalence Validator"):::application
@@ -203,6 +208,46 @@ flowchart TD
         MicroEvent["Micro Event"]:::domain
         ReactionResolver("Reaction Resolver"):::domain
         ReactionRules("Reaction Rules"):::domain
+        NeedSystem("Потребности — NeedSlot + NeedLevel"):::domain
+        PreferenceModel("Предпочтения"):::domain
+        HardConstraint("Жёсткие ограничения"):::domain
+        ExclusivityRequirement("Эксклюзивность-требование A→B"):::domain
+        AttractionVector("Влечение-вектор — 6 каналов"):::domain
+        TrustFearScalars("trust, fear — быстрые каналы"):::domain
+        DebtRespectScalars("debt, respect"):::domain
+        TrustDeep("TrustDeep — медленное доверие"):::domain
+        Received("Received — УДАЛЁН"):::domain
+        Satiation("Сатурация — NeedLevel.satiation"):::domain
+        CurrentArousal("Текущее возбуждение — эфемер L3"):::domain
+        Frustration("Фрустрация — NeedLevel.frustration"):::domain
+        FrustrationByNeedProjection("frustration_by_need — read-only проекция"):::domain
+        AdaptationCost("Цена адаптации + стратегия"):::domain
+        ReciprocityBalance("Баланс взаимности A→B"):::domain
+        Infatuation("Влюблённость — УНИЧТОЖЕНА как состояние"):::domain
+        Attachment("Привязанность A→B"):::domain
+        Intimacy("Интимность A→B"):::domain
+        Bond("Bond — УДАЛЁН окончательно"):::domain
+        SharedHistory("Общая история — парные факты"):::domain
+        NegotiatedAgreements("Договорённости — факты"):::domain
+        Investment("Инвестиции — парный факт"):::domain
+        ObservedRelationshipState("Наблюдаемое состояние отношений"):::domain
+        BeliefPredicates("Предикаты о партнёре — LOVES, DESIRES, TRUSTS_ME, FAITHFUL, COMMITTED, SATISFIED_WITH_ME"):::domain
+        Satisfaction("Удовлетворённость per need"):::domain
+        PartnerDesire("PartnerDesire — адресный readout"):::domain
+        ContextualFactors("Новизна, депривация, аффект-фактор"):::domain
+        Compatibility("Совместимость"):::domain
+        Jealousy("Ревность — условная фаза L"):::domain
+        RelationshipUtility("RU — derived DECISION readout"):::domain
+        ExclusivityCompatibility("Совместимость эксклюзивности"):::domain
+        LoveAggregates("LOVE/DESIRE-агрегаты — ЗАПРЕЩЕНЫ"):::domain
+        RelationshipValue("RelationshipValue — ЗАПРЕЩЕНА"):::domain
+        ScenarioEvaluations("Сценарные оценки Stay/Exit"):::domain
+        AlternativeValue("AlternativeValue — операция fold"):::domain
+        ScenarioLocalTerms("ExpectDelta, candidate_score, uncertainty_penalty, LossInvest"):::domain
+        IdealizationReadout("Идеализация — read-only диагностика"):::domain
+        RelationshipDynamics("Relationship Dynamics — чистые функции"):::domain
+        RelationshipBeliefs("Relationship Beliefs — предикаты"):::domain
+        ExitStayIntents("Интенты DISTANCE/BREAK_BOND/NEGOTIATE"):::domain
         SpatialService("Spatial Query Service v1.2"):::domain
         SpatialQueryService("Spatial Query Service (Read Authority)"):::domain
         TraversalDict("Traversal Dict (LOD1)"):::domain
@@ -480,6 +525,21 @@ flowchart TD
     EventBus -->|"EventDTO → micro events classification"| ReactionRules
     ReactionRules -->|"List[MicroEvent] → resolve"| ReactionResolver
     ReactionResolver -->|"immediate reaction → EmotionPayload"| DeltaBuffer
+    RelationshipEvents -->|"события сферы через EventBus"| RelationshipEventSemantics
+    RelationshipEventSemantics -->|"дельты через delta_buffer и StateApplicator"| RelationshipStateStore
+    RelationshipDynamics -->|"медленный контур дня, писатель StateApplicator"| RelationshipStateStore
+    RelationshipStateStore -->|"read-only проекция состояния"| RelationshipModifierResolver
+    RelationshipModifierResolver -->|"apply_modifiers — Modifier Contract v1"| DecisionHub
+    NeedSystem -->|"срочность дефицита"| NeedProviderRelationship
+    NeedProviderRelationship -->|"общий контур мотивации"| DecisionHub
+    RelationshipStateStore -->|"ленивое вычисление по требованию"| RelationshipUtility
+    Attachment -->|"компонент внутри RU — Т1"| RelationshipUtility
+    RelationshipUtility -->|"вход ContinueValue"| ScenarioEvaluations
+    AlternativeValue -->|"вход ExitValue"| ScenarioEvaluations
+    Investment -->|"только LossInvest в ExitCost — СВ4"| ScenarioEvaluations
+    ScenarioEvaluations -->|"сравнение — intent выбирает DecisionHub"| DecisionHub
+    BeliefPredicates -->|"модификаторы из confidence предикатов"| RelationshipModifierResolver
+    RelationshipStateStore -->|"read-only диагностика — mutation-нуль"| IdealizationReadout
     DriveVector -->|"resolve(drive, body, affordance)"| SteeringResolver
     SteeringResolver -->|"produces velocity"| KinematicProfile
     KinematicProfile -->|"integrate(position, velocity)"| MotionIntegrator
@@ -746,6 +806,15 @@ flowchart TD
     RecognitionLayer -.->|"🚫 REQUIRED: Unknown NPC MUST have generic description"| NPCName:::forbidden
     ReactionResolver -.->|"🚫 REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117)"| AffectivePipeline:::forbidden
     ReactionResolver -.->|"🚫 FORBIDDEN: Reactions must NOT bypass DecisionHub for movement"| DecisionHub:::forbidden
+    DecisionHub -.->|"🚫 FORBIDDEN обратная причинность — решение не меняет RU — №26"| RelationshipUtility:::forbidden
+    ScenarioEvaluations -.->|"🚫 FORBIDDEN сценарный слой не переписывает RU — №26"| RelationshipUtility:::forbidden
+    DecisionHub -.->|"🚫 FORBIDDEN обратные пути запрещены — матрица знаний 9.10.7"| AlternativeValue:::forbidden
+    Frustration -.->|"🚫 FORBIDDEN прямого входа нет — только через аффект — ПД5 и Фр4"| PartnerDesire:::forbidden
+    Satiation -.->|"🚫 FORBIDDEN сатурация не меняет давление и Satisfaction — №21"| NeedSystem:::forbidden
+    AlternativeValue -.->|"🚫 FORBIDDEN альтернатива не читает RU текущей связи — аксиома 23"| RelationshipUtility:::forbidden
+    RelationshipDynamics -.->|"🚫 TOMBSTONE воскрешение под любым именем запрещено — №35.1"| Infatuation:::forbidden
+    RelationshipDynamics -.->|"🚫 TOMBSTONE Bond удалён окончательно — РУ3"| Bond:::forbidden
+    ObservedRelationshipState -.->|"🚫 FORBIDDEN derived-сводка не пишется в парные факты — №16"| SharedHistory:::forbidden
     MovementEngine -.->|"🚫 FORBIDDEN: Direct mutation (ADR-066)"| SceneState:::forbidden
     GraphCompiler -.->|"🚫 FORBIDDEN: Добавлять orphan rooms в навигационный граф при наличии nodes (жёсткая двухслойная топология ADR-121)"| SpatialService:::forbidden
     MovementEngine -.->|"🚫 FORBIDDEN: Генерировать кросс-локационный SceneChange напрямую, минуя boundary node (ДОЛГ 6.2)"| SceneChange:::forbidden
@@ -1501,6 +1570,21 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | EventBus | ReactionRules | EventDTO → micro events classification | Every published event. _is_threat_event check. | `reaction/reaction_rules.py` | - |
 | ReactionRules | ReactionResolver | List[MicroEvent] → resolve | Filtered by type, distance, visibility | `reaction/reaction_resolver.py` | - |
 | ReactionResolver | DeltaBuffer | immediate reaction → EmotionPayload | Bypasses affective accumulator. Sets emotion directly (ADR-117). | `reaction/reaction_resolver.py` | ADR-117 |
+| RelationshipEvents | RelationshipEventSemantics | события сферы через EventBus | - | `-` | - |
+| RelationshipEventSemantics | RelationshipStateStore | дельты через delta_buffer и StateApplicator | - | `-` | - |
+| RelationshipDynamics | RelationshipStateStore | медленный контур дня, писатель StateApplicator | - | `-` | - |
+| RelationshipStateStore | RelationshipModifierResolver | read-only проекция состояния | - | `-` | - |
+| RelationshipModifierResolver | DecisionHub | apply_modifiers — Modifier Contract v1 | - | `-` | - |
+| NeedSystem | NeedProviderRelationship | срочность дефицита | - | `-` | - |
+| NeedProviderRelationship | DecisionHub | общий контур мотивации | - | `-` | - |
+| RelationshipStateStore | RelationshipUtility | ленивое вычисление по требованию | - | `-` | - |
+| Attachment | RelationshipUtility | компонент внутри RU — Т1 | - | `-` | - |
+| RelationshipUtility | ScenarioEvaluations | вход ContinueValue | - | `-` | - |
+| AlternativeValue | ScenarioEvaluations | вход ExitValue | - | `-` | - |
+| Investment | ScenarioEvaluations | только LossInvest в ExitCost — СВ4 | - | `-` | - |
+| ScenarioEvaluations | DecisionHub | сравнение — intent выбирает DecisionHub | - | `-` | - |
+| BeliefPredicates | RelationshipModifierResolver | модификаторы из confidence предикатов | - | `-` | - |
+| RelationshipStateStore | IdealizationReadout | read-only диагностика — mutation-нуль | - | `-` | - |
 | DriveVector | SteeringResolver | resolve(drive, body, affordance) | - | `-` | - |
 | SteeringResolver | KinematicProfile | produces velocity | - | `-` | - |
 | KinematicProfile | MotionIntegrator | integrate(position, velocity) | - | `-` | - |
@@ -1770,6 +1854,15 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | RecognitionLayer | NPCName | REQUIRED: Unknown NPC MUST have generic description | `-` |
 | ReactionResolver | AffectivePipeline | REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117) | `tick_orchestrator.py:_run_affective_pipeline` |
 | ReactionResolver | DecisionHub | FORBIDDEN: Reactions must NOT bypass DecisionHub for movement | `-` |
+| DecisionHub | RelationshipUtility | FORBIDDEN обратная причинность — решение не меняет RU — №26 | `-` |
+| ScenarioEvaluations | RelationshipUtility | FORBIDDEN сценарный слой не переписывает RU — №26 | `-` |
+| DecisionHub | AlternativeValue | FORBIDDEN обратные пути запрещены — матрица знаний 9.10.7 | `-` |
+| Frustration | PartnerDesire | FORBIDDEN прямого входа нет — только через аффект — ПД5 и Фр4 | `-` |
+| Satiation | NeedSystem | FORBIDDEN сатурация не меняет давление и Satisfaction — №21 | `-` |
+| AlternativeValue | RelationshipUtility | FORBIDDEN альтернатива не читает RU текущей связи — аксиома 23 | `-` |
+| RelationshipDynamics | Infatuation | TOMBSTONE воскрешение под любым именем запрещено — №35.1 | `-` |
+| RelationshipDynamics | Bond | TOMBSTONE Bond удалён окончательно — РУ3 | `-` |
+| ObservedRelationshipState | SharedHistory | FORBIDDEN derived-сводка не пишется в парные факты — №16 | `-` |
 | MovementEngine | SceneState | FORBIDDEN: Direct mutation (ADR-066) | `ADR-066` |
 | GraphCompiler | SpatialService | FORBIDDEN: Добавлять orphan rooms в навигационный граф при наличии nodes (жёсткая двухслойная топология ADR-121) | `S91.1` |
 | MovementEngine | SceneChange | FORBIDDEN: Генерировать кросс-локационный SceneChange напрямую, минуя boundary node (ДОЛГ 6.2) | `S91.1` |

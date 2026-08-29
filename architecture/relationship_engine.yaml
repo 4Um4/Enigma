@@ -1,0 +1,683 @@
+# path: architecture/relationship_engine.yaml
+# Назначение: Онтологический контракт Relationship Engine — фаза A / M0 (ТЗ-RE-01 v1.9 §10; §8.6 M0).
+#   РАНТАЙМ НЕ МЕНЯЕТСЯ. Это архитектурный атлас ГРАНИЦ (класс/владелец/писатель/запреты),
+#   а НЕ второй источник истины: вся семантика и формулы — в ТЗ (spec.doc), узлы ссылаются построчно (ref).
+#   Ключевой критерий (вердикт Мастера): контракт фиксирует онтологическую границу так, чтобы фазы B+
+#   физически не могли незаметно добавить второй SSOT, второго writer'а или новый психологический агрегатор.
+# Зависимости: build_graph.py (читает domain/nodes/edges/constraints — служебные ключи игнорирует);
+#   scripts/lint_relationship_engine.py (валидатор + CI/pre-commit гейт).
+# Основные сущности: 37 узлов онтологии §5.0 (I–IV / TOMBSTONE / FORBIDDEN), 8 компонентов §4.1,
+#   запреты №1–35 с картой enforcement, tombstone-параметры §6.19, мораторий №35.2, Р17-INV-1.
+
+domain: "RELATIONSHIP"
+description: "Relationship Engine — домен любви, сексуальности и отношений как частный случай общей динамики NPC. Онтологический контракт фазы A: классы бытия I-IV, владельцы, табу №1-35, tombstone-отрицательная онтология. Рантайм не меняется (M0)."
+
+spec:
+  doc: "docs/Почти Актуальные TZ/ТЗ_RE-01_Relationship_Engine_v1.9.md"
+  version: "1.9"
+  phase: "A (M0)"
+  adr: "ADR-O-369"
+  ontology_gate: "§5.0 — вердикт GPT раунд 3; гейты раундов 4-17 пройдены; активный раунд 18 (адаптация)"
+
+scales:
+  domain_range: "[0,1]"
+  legacy_scalars: "trust/fear/debt/respect — [-100,100], не нормализуются (вердикт №1)"
+  conversion: "только в read-проекциях resolver'а, никогда мутацией хранимых значений"
+  normalization: "отложено до доказанной необходимости"
+
+update_phases:
+  decay: "Фаза 0.5 — медленные затухания нового домена"
+  events: "Фаза 8 — RelationshipEventSemantics → delta_buffer (SOCIAL|RELATIONSHIP, ADDITIVE)"
+  decision: "Фаза 5 — RelationshipModifierResolver → apply_modifiers (Modifier Contract v1)"
+  slow_loop: "раз в игровой день, от замороженных снимков дня (Temporal Isolation)"
+  fast_loop: "возбуждение/ревность-триггеры — событийно, per tick"
+  on_demand: "лениво, в момент сравнения/запроса — не хранится"
+  rng: "KernelRNG(tick, npc_id, salt=relationship_<component>) — №14"
+
+nodes:
+  # ═══ ОНТОЛОГИЯ — 36 строк таблицы §5.0 + инженерная проекция ═══
+  NeedSystem:                                # строка 1
+    type: contract
+    layer: Domain
+    label: "Потребности — NeedSlot + NeedLevel"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events + slow_loop"
+    invariant: "current_intensity ∈ [0,1]; давление — единственная первичная правда (№20); слот frozen (Н1); sexual+intimacy в MVP, attachment-слот — гейт АТ-1..3 (№17)"
+    provenance: event_provenance
+    ref: "§5.0:1, §5.1, §6.1"
+  PreferenceModel:                           # строка 2
+    type: contract
+    layer: Domain
+    label: "Предпочтения"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events — обучение §6.17"
+    invariant: "strength ∈ [-1,1]; предпочтение = ранжирование СПОСОБОВ (Н5); η_s без ускорителей (Р17-Р2)"
+    provenance: event_provenance
+    ref: "§5.0:2, §5.1, §6.17"
+  HardConstraint:                            # строка 3
+    type: contract
+    layer: Domain
+    label: "Жёсткие ограничения"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: authoring
+    update_phase: "authoring + медленное обучение"
+    invariant: "жёсткость определяется авторингом NPC, не архитектурой"
+    provenance: authoring
+    ref: "§5.0:3, §5.1"
+  ExclusivityRequirement:                   # строка 4
+    type: contract
+    layer: Domain
+    label: "Эксклюзивность-требование A→B"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events — negotiation_*"
+    invariant: "направленная норма индивида, НЕ свойство пары (вердикт №3); две независимые модели A→B и B→A"
+    provenance: event_provenance
+    ref: "§5.0:4, §5.2"
+  AttractionVector:                          # строка 5
+    type: contract
+    layer: Domain
+    label: "Влечение-вектор — 6 каналов"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events + slow_loop decay"
+    invariant: "каналы [0,1], веса Σ=1 обучаются; partner_specific растёт только от shared_history; гендерных аксиом нет (№3)"
+    provenance: event_provenance
+    ref: "§5.0:5, §5.2, §6.8"
+  TrustFearScalars:                          # строка 6
+    type: contract
+    layer: Domain
+    label: "trust, fear — быстрые каналы"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStore
+    writable: state_applicator_only
+    update_phase: "events — SocialDeltaEngine"
+    invariant: "[-100,100], не нормализуются (вердикт №1); миграция в v2-схему M1"
+    provenance: event_provenance
+    ref: "§5.0:6, §5.2"
+  DebtRespectScalars:                        # строка 7
+    type: contract
+    layer: Domain
+    label: "debt, respect"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStore
+    writable: state_applicator_only
+    update_phase: "events; respect активируется M2"
+    invariant: "[-100,100]; миграция M1"
+    provenance: event_provenance
+    ref: "§5.0:7, §5.2"
+  TrustDeep:                                 # строка 8
+    type: contract
+    layer: Domain
+    label: "TrustDeep — медленное доверие"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: slow_loop
+    invariant: "[0,1]; накопитель доказательств, path-dependent (О1); слова ≠ действия — отрицательный evidence"
+    provenance: event_provenance
+    ref: "§5.0:8, §6.6"
+  Received:                                  # строка 9 — ГРОБНИЦА
+    type: contract
+    layer: Domain
+    label: "Received — УДАЛЁН"
+    kind: ontology
+    ont_class: TOMBSTONE
+    reason: "двойная правда удовлетворения — раунд 6, вариант A"
+    replacement: "NeedLevel.current_intensity — единственный аккумулятор потребности"
+    resurrection: forbidden
+    ref: "§5.0:9, №20"
+  Satiation:                                 # строка 10
+    type: contract
+    layer: Domain
+    label: "Сатурация — NeedLevel.satiation"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events рост + slow_loop спад"
+    invariant: "[0,1]; ортогональна давлению (№21); рост satiation_capacity × качество; пер-объектная — только по данным (Сат3)"
+    provenance: event_provenance
+    ref: "§5.0:10, §5.1, §6.1 п.6"
+  CurrentArousal:                            # строка 11
+    type: contract
+    layer: Domain
+    label: "Текущее возбуждение — эфемер L3"
+    kind: ontology
+    ont_class: I
+    owner: none
+    writable: ephemeral
+    update_phase: fast_loop
+    invariant: "per tick, не персистится, не кэшируется (№6); переиспользование arousal сонного контура запрещено (№8)"
+    provenance: none
+    ref: "§5.0:11, §6.7 п.9"
+  Frustration:                               # строка 12
+    type: contract
+    layer: Domain
+    label: "Фрустрация — NeedLevel.frustration"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "slow_loop фон + events попытки"
+    invariant: "[0,1]; самостоятельная ось (№23): один аккумулятор, два пути изменения (Фр1=C); разрядка не обнуляет (Фр2); в поведении только через аффект (Фр4)"
+    provenance: event_provenance
+    ref: "§5.0:12, §5.1, §6.2"
+  FrustrationByNeedProjection:               # §5.2 — COLLISION-решение (вердикт Мастера)
+    type: contract
+    layer: Domain
+    label: "frustration_by_need — read-only проекция"
+    kind: ontology
+    ont_class: IV
+    role: derived_projection
+    owner: Frustration
+    writable: read_only
+    update_phase: on_demand
+    invariant: "НЕ хранимое состояние; проекция NeedLevel.frustration для читателей v2-схемы; второй writer запрещён"
+    provenance: inherited_from_owner
+    ref: "§5.2 (COLLISION: владелец NeedLevel.frustration; семантическая эскалация в GPT)"
+  AdaptationCost:                            # строка 13
+    type: contract
+    layer: Domain
+    label: "Цена адаптации + стратегия"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: slow_loop
+    invariant: "первичный аккумулятор (О1); Р18 АКТИВЕН — динамика §6.3 исторический эскиз, не реализуется до вердикта"
+    provenance: event_provenance
+    ref: "§5.0:13, §6.3, §12.2"
+  ReciprocityBalance:                        # строка 14
+    type: contract
+    layer: Domain
+    label: "Баланс взаимности A→B"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events + slow_loop decay"
+    invariant: "[-1,1]; индивидуальное направленное (О3)"
+    provenance: event_provenance
+    ref: "§5.0:14, §6.12"
+  Infatuation:                               # строка 15 — ГРОБНИЦА Р17
+    type: contract
+    layer: Domain
+    label: "Влюблённость — УНИЧТОЖЕНА как состояние"
+    kind: ontology
+    ont_class: TOMBSTONE
+    reason: "агрегат: 2 writers / 0 provenance / память-дубль / outputs — readers других механизмов (Р17-Р5)"
+    replacement: "интерпретация траектории утверждённых состояний — аксиома 26"
+    resurrection: forbidden
+    ref: "§5.0:15, §6.9, §12.2, №35"
+  Attachment:                                # строка 16
+    type: contract
+    layer: Domain
+    label: "Привязанность A→B"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: slow_loop
+    invariant: "состояние существует (О3, пер-объектное); как ПОТРЕБНОСТЬ — гипотеза C, слот только после АТ-1..3 (№19); глобальный аккумулятор запрещён; сюда перешла роль Bond"
+    provenance: event_provenance
+    ref: "§5.0:16, §6.10"
+  Intimacy:                                  # строка 17
+    type: contract
+    layer: Domain
+    label: "Интимность A→B"
+    kind: ontology
+    ont_class: I
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events + slow_loop"
+    invariant: "индивидуальная направленная, НЕ парная истина (Т5): Intimacy(A→B) существует, Intimacy(pair) — нет"
+    provenance: event_provenance
+    ref: "§5.0:17, §6.11"
+  Bond:                                      # строка 18 — ГРОБНИЦА
+    type: contract
+    layer: Domain
+    label: "Bond — УДАЛЁН окончательно"
+    kind: ontology
+    ont_class: TOMBSTONE
+    reason: "парная истина не проходит Т5 (раунд 3); удалён окончательно (раунд 12, РУ3)"
+    replacement: "Attachment A→B + RelationshipUtility (derived)"
+    resurrection: forbidden
+    ref: "§5.0:18, §6.5"
+  SharedHistory:                             # строка 19
+    type: contract
+    layer: Domain
+    label: "Общая история — парные факты"
+    kind: ontology
+    ont_class: II
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: events
+    invariant: "event-sourced лог фактов с provenance (О1); только объективные факты (№16)"
+    provenance: event_provenance
+    ref: "§5.0:19, §5.3"
+  NegotiatedAgreements:                      # строка 20
+    type: contract
+    layer: Domain
+    label: "Договорённости — факты"
+    kind: ontology
+    ont_class: II
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: "events — negotiation_*"
+    invariant: "объективный факт что реально согласовано, отдельно от субъективных требований (строка 4)"
+    provenance: event_provenance
+    ref: "§5.0:20, §5.3"
+  Investment:                                # строка 22
+    type: contract
+    layer: Domain
+    label: "Инвестиции — парный факт"
+    kind: ontology
+    ont_class: II
+    owner: RelationshipStateStore
+    writable: state_applicator_only
+    update_phase: events
+    invariant: "в индивидуальную оценку — ТОЛЬКО через стоимость потери для A (СВ4); аддитивный +Investment мёртв; членство ExitCost фиксировать явно (№30)"
+    provenance: event_provenance
+    ref: "§5.0:22, §5.3"
+  ObservedRelationshipState:                 # строка 21
+    type: contract
+    layer: Domain
+    label: "Наблюдаемое состояние отношений"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "derived-сводка из договорённостей + истории; убеждения третьих лиц — Класс III"
+    provenance: derived
+    ref: "§5.0:21"
+  BeliefPredicates:                          # строка 23
+    type: contract
+    layer: Domain
+    label: "Предикаты о партнёре — LOVES, DESIRES, TRUSTS_ME, FAITHFUL, COMMITTED, SATISFIED_WITH_ME"
+    kind: ontology
+    ont_class: III
+    owner: EpistemicStore
+    writable: epistemic_revision_only
+    update_phase: "events — ClaimEvent/наблюдение, существующий движок ревизии"
+    invariant: "ТОЛЬКО эпистемические пропозиции (ЗЛ1): убеждение A о B, не чтение и не репликация истины B; confidence ≥ 0"
+    provenance: claim_or_observation
+    ref: "§5.0:23, §5.4"
+  Satisfaction:                              # строка 24
+    type: contract
+    layer: Domain
+    label: "Удовлетворённость per need"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "состояние потребности, не оценка события (№22); нормированное расстояние давления до target; не хранится"
+    provenance: derived
+    ref: "§5.0:24, §6.1"
+  PartnerDesire:                             # строка 25
+    type: contract
+    layer: Domain
+    label: "PartnerDesire — адресный readout"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "ядро wanting_capacity × directed_evaluation(B) × situational_affordance; модуляторы без права обнуления (№24); читает beliefs_A, не истину B (ПД6); не действие автоматически"
+    provenance: derived
+    ref: "§5.0:25, §6.7"
+  ContextualFactors:                         # строка 26
+    type: contract
+    layer: Domain
+    label: "Новизна, депривация, аффект-фактор"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "пересчитываются на лету; новизна — НЕ примитив (ПД3)"
+    provenance: derived
+    ref: "§5.0:26"
+  Compatibility:                             # строка 27
+    type: contract
+    layer: Domain
+    label: "Совместимость"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: "on_demand; кэш DERIVED с еженедельной инвалидацией (№6)"
+    invariant: "derived, ≠ similarity (вердикт №4)"
+    provenance: derived
+    ref: "§5.0:27, §6.14"
+  Jealousy:                                  # строка 28
+    type: contract
+    layer: Domain
+    label: "Ревность — условная фаза L"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: fast_loop
+    invariant: "только из Belief (№10); не хранится; эфемерный транзиент допустим"
+    provenance: derived
+    ref: "§5.0:28, §6.13"
+  RelationshipUtility:                       # строка 29 — RU
+    type: contract
+    layer: Domain
+    label: "RU — derived DECISION readout"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "ленивый (№32); единая каноническая точка (№31); не хранится/не сериализуется; ⟂ кандидатам (аксиома 22); CurrentCost вне RU; веса архитектурные (№33); не читает Stay/Exit (№26)"
+    provenance: derived
+    ref: "§5.0:29, §6.15"
+  ExclusivityCompatibility:                 # строка 30
+    type: contract
+    layer: Domain
+    label: "Совместимость эксклюзивности"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "пересечение двух направленных требований + факты договорённостей"
+    provenance: derived
+    ref: "§5.0:30, §6.14"
+  LoveAggregates:                            # строка 31 — ЗАПРЕЩЕНО
+    type: contract
+    layer: Domain
+    label: "LOVE/DESIRE-агрегаты — ЗАПРЕЩЕНЫ"
+    kind: ontology
+    ont_class: FORBIDDEN
+    reason: "LOVE — не узел графа (аксиома 13); любой composite обязан декомпозироваться"
+    replacement: "семантический ярлык контента над набором утверждённых состояний"
+    resurrection: forbidden
+    ref: "§5.0:31, №25"
+  RelationshipValue:                         # строка 32 — ЗАПРЕЩЕНО
+    type: contract
+    layer: Domain
+    label: "RelationshipValue — ЗАПРЕЩЕНА"
+    kind: ontology
+    ont_class: FORBIDDEN
+    reason: "= RU (РУ4); попытка дать бывшему Bond новое имя"
+    replacement: "RelationshipUtility"
+    resurrection: forbidden
+    ref: "§5.0:32, №26"
+  ScenarioEvaluations:                       # строка 33
+    type: contract
+    layer: Domain
+    label: "Сценарные оценки Stay/Exit"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "не состояния, без writer'а и аккумуляторов (№27); инлайн в цикле сравнения; ExpectDelta(status_quo)=0 (И5); интенты — решения DecisionHub (СВ3)"
+    provenance: derived
+    ref: "§5.0:33, §6.16"
+  AlternativeValue:                          # строка 34
+    type: contract
+    layer: Domain
+    label: "AlternativeValue — операция fold"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "max над конечным эпистемически доступным множеством кандидатов; SOLO обязателен (аксиома 18); реестр запрещён (№28); не читает RU/ExitCost/LossInvest (И4)"
+    provenance: derived
+    ref: "§5.0:34, §6.16 п.8"
+  ScenarioLocalTerms:                        # строка 35
+    type: contract
+    layer: Domain
+    label: "ExpectDelta, candidate_score, uncertainty_penalty, LossInvest"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: on_demand
+    update_phase: on_demand
+    invariant: "локальные члены вычисления, НЕ readout'ы; штраф только внутри candidate_score (Т3); правило одного чтения (№30)"
+    provenance: derived
+    ref: "§5.0:35, §6.16 п.9"
+  IdealizationReadout:                       # строка 36
+    type: contract
+    layer: Domain
+    label: "Идеализация — read-only диагностика"
+    kind: ontology
+    ont_class: IV
+    owner: none
+    writable: read_only
+    update_phase: on_demand
+    invariant: "mutation-нуль: не пишет ни в веса свидетельств, ни в learning rate, ни в causal graph (№34); только отчётность полигона"
+    provenance: derived
+    ref: "§5.0:36, §11.2 п.16"
+
+  # ═══ КОМПОНЕНТЫ §4.1 (планируемые; рантайма в M0 нет) ═══
+  RelationshipEvents:
+    type: service
+    layer: Application
+    label: "Реестр событий §5.5 — 20 типов"
+    kind: component
+    role: "flirt_attempt...infidelity_observed — расширение реестра социальных событий"
+    implementation_phase: "M2"
+    ref: "§5.5"
+  RelationshipStateStore:
+    type: service
+    layer: Application
+    label: "Relationship State Store — SSOT"
+    kind: component
+    role: "хранилище домена: направленные A→B + парные факты; единственный писатель — StateApplicator (№5); write-guard по образцу существующих"
+    implementation_phase: "M1"
+    ref: "§4.1, §8.6 M1"
+  RelationshipDynamics:
+    type: service
+    layer: Domain
+    label: "Relationship Dynamics — чистые функции"
+    kind: component
+    role: "Satisfaction, фрустрация, TrustDeep, RU, сценарный слой; без IO/LLM; KernelRNG"
+    implementation_phase: "G, H, K"
+    ref: "§4.1, §6"
+  RelationshipEventSemantics:
+    type: service
+    layer: Application
+    label: "Relationship Event Semantics"
+    kind: component
+    role: "подписчик EventBus: события §5.5 → дельты delta_buffer (фаза 8)"
+    implementation_phase: "M2 / D"
+    ref: "§4.1, §8.1"
+  RelationshipModifierResolver:
+    type: service
+    layer: Application
+    label: "Relationship Modifier Resolver"
+    kind: component
+    role: "read-only проекция в Dict[intent,float] для DecisionHub через apply_modifiers (фаза 5)"
+    implementation_phase: "M3 / K"
+    ref: "§4.1, §8.2"
+  RelationshipBeliefs:
+    type: service
+    layer: Domain
+    label: "Relationship Beliefs — предикаты"
+    kind: component
+    role: "расширение закрытого реестра Predicate (§5.4); ревизия существующим движком по надёжности"
+    implementation_phase: "M4 / E"
+    ref: "§4.1, §5.4, §8.3"
+  NeedProviderRelationship:
+    type: service
+    layer: Application
+    label: "Need Provider — интимная сфера"
+    kind: component
+    role: "потребности sexual/intimacy в общий контур мотивации; экономический NeedEngine не трогается"
+    implementation_phase: "B"
+    ref: "§4.1"
+  ExitStayIntents:
+    type: service
+    layer: Domain
+    label: "Интенты DISTANCE/BREAK_BOND/NEGOTIATE"
+    kind: component
+    role: "расширение Intent enum через ADR; решения DecisionHub, без скрытого ExitGate (№4)"
+    implementation_phase: "K"
+    ref: "§4.1, §8.2"
+
+edges:
+  - {from: "RelationshipEvents", to: "RelationshipEventSemantics", label: "события сферы через EventBus"}
+  - {from: "RelationshipEventSemantics", to: "RelationshipStateStore", label: "дельты через delta_buffer и StateApplicator"}
+  - {from: "RelationshipDynamics", to: "RelationshipStateStore", label: "медленный контур дня, писатель StateApplicator"}
+  - {from: "RelationshipStateStore", to: "RelationshipModifierResolver", label: "read-only проекция состояния"}
+  - {from: "RelationshipModifierResolver", to: "DecisionHub", label: "apply_modifiers — Modifier Contract v1"}
+  - {from: "NeedSystem", to: "NeedProviderRelationship", label: "срочность дефицита"}
+  - {from: "NeedProviderRelationship", to: "DecisionHub", label: "общий контур мотивации"}
+  - {from: "RelationshipStateStore", to: "RelationshipUtility", label: "ленивое вычисление по требованию"}
+  - {from: "Attachment", to: "RelationshipUtility", label: "компонент внутри RU — Т1"}
+  - {from: "RelationshipUtility", to: "ScenarioEvaluations", label: "вход ContinueValue"}
+  - {from: "AlternativeValue", to: "ScenarioEvaluations", label: "вход ExitValue"}
+  - {from: "Investment", to: "ScenarioEvaluations", label: "только LossInvest в ExitCost — СВ4"}
+  - {from: "ScenarioEvaluations", to: "DecisionHub", label: "сравнение — intent выбирает DecisionHub"}
+  - {from: "BeliefPredicates", to: "RelationshipModifierResolver", label: "модификаторы из confidence предикатов"}
+  - {from: "RelationshipStateStore", to: "IdealizationReadout", label: "read-only диагностика — mutation-нуль"}
+
+constraints:
+  - {source: "DecisionHub", target: "RelationshipUtility", rule: "FORBIDDEN обратная причинность — решение не меняет RU — №26"}
+  - {source: "ScenarioEvaluations", target: "RelationshipUtility", rule: "FORBIDDEN сценарный слой не переписывает RU — №26"}
+  - {source: "DecisionHub", target: "AlternativeValue", rule: "FORBIDDEN обратные пути запрещены — матрица знаний 9.10.7"}
+  - {source: "Frustration", target: "PartnerDesire", rule: "FORBIDDEN прямого входа нет — только через аффект — ПД5 и Фр4"}
+  - {source: "Satiation", target: "NeedSystem", rule: "FORBIDDEN сатурация не меняет давление и Satisfaction — №21"}
+  - {source: "AlternativeValue", target: "RelationshipUtility", rule: "FORBIDDEN альтернатива не читает RU текущей связи — аксиома 23"}
+  - {source: "RelationshipDynamics", target: "Infatuation", rule: "TOMBSTONE воскрешение под любым именем запрещено — №35.1"}
+  - {source: "RelationshipDynamics", target: "Bond", rule: "TOMBSTONE Bond удалён окончательно — РУ3"}
+  - {source: "ObservedRelationshipState", target: "SharedHistory", rule: "FORBIDDEN derived-сводка не пишется в парные факты — №16"}
+
+prohibitions:
+  - {id: N1, rule: "love/quality/jealousy/compatibility — только derived", enforcement: test_deferred, phase: K, ref: "§7 №1"}
+  - {id: N2, rule: "чтение состояния партнёра — только эпистемический слой", enforcement: existing_ipt, phase: E, ref: "§7 №2"}
+  - {id: N3, rule: "моногамия/гендерные паттерны — не аксиомы ядра", enforcement: review, phase: "-", ref: "§7 №3"}
+  - {id: N4, rule: "никакого монолитного LoveSystem", enforcement: review, phase: "-", ref: "§7 №4"}
+  - {id: N5, rule: "мутации только через StateApplicator, write-guard", enforcement: schema, phase: M1, ref: "§7 №5"}
+  - {id: N6, rule: "эфемерные величины не кэшируются; Compat-кэш DERIVED", enforcement: test_deferred, phase: M2, ref: "§7 №6"}
+  - {id: N7, rule: "LLM не в детерминированном ядре", enforcement: existing_ipt, phase: "-", ref: "§7 №7"}
+  - {id: N8, rule: "arousal сонного контура ≠ сексуальное возбуждение", enforcement: test_deferred, phase: C, ref: "§7 №8"}
+  - {id: N9, rule: "срок влюблённости не фиксируется; динамики её нет", enforcement: grep, phase: "-", ref: "§7 №9"}
+  - {id: N10, rule: "ревность только из Belief", enforcement: test_deferred, phase: L, ref: "§7 №10"}
+  - {id: N11, rule: "логика полигона не в движке", enforcement: review, phase: M, ref: "§7 №11"}
+  - {id: N12, rule: "content_profile фильтрует выражение, не математику", enforcement: test_deferred, phase: M2, ref: "§7 №12"}
+  - {id: N13, rule: "никаких примитивов на будущее", enforcement: review, phase: "-", ref: "§7 №13"}
+  - {id: N14, rule: "стохастика только KernelRNG с salt", enforcement: existing_ipt, phase: "-", ref: "§7 №14"}
+  - {id: N15, rule: "формулы §6 заморожены; числа — плейсхолдеры", enforcement: schema, phase: G-K, ref: "§7 №15"}
+  - {id: N16, rule: "парный уровень — только объективные факты", enforcement: schema, phase: M1, ref: "§7 №16"}
+  - {id: N17, rule: "новая потребность — высокий порог доказательств", enforcement: review, phase: "-", ref: "§7 №17"}
+  - {id: N18, rule: "боль ≠ доказательство потребности", enforcement: review, phase: АТ, ref: "§7 №18"}
+  - {id: N19, rule: "глобальный аккумулятор привязанности запрещён", enforcement: review, phase: АТ, ref: "§7 №19"}
+  - {id: N20, rule: "Received не возвращать; три механизма раздельно", enforcement: schema, phase: G, ref: "§7 №20"}
+  - {id: N21, rule: "сатурация ортогональна давлению", enforcement: test_deferred, phase: G, ref: "§7 №21"}
+  - {id: N22, rule: "Satisfaction — состояние потребности, не оценка события", enforcement: test_deferred, phase: G, ref: "§7 №22"}
+  - {id: N23, rule: "давление/фрустрация/желание не смешивать", enforcement: test_deferred, phase: H, ref: "§7 №23"}
+  - {id: N24, rule: "формула PartnerDesire не фиксируется", enforcement: review, phase: C, ref: "§7 №24"}
+  - {id: N25, rule: "LOVE/DESIRE-агрегаты запрещены", enforcement: grep, phase: M2-M4, ref: "§7 №25"}
+  - {id: N26, rule: "RU не сущность; обратная причинность запрещена", enforcement: grep, phase: K, ref: "§7 №26"}
+  - {id: N27, rule: "exit_intention/stay_preference запрещены", enforcement: grep, phase: K, ref: "§7 №27"}
+  - {id: N28, rule: "реестр альтернатив — рынок — запрещён", enforcement: grep, phase: K, ref: "§7 №28"}
+  - {id: N29, rule: "max по всем фьючерсам — оракул — запрещён", enforcement: test_deferred, phase: K, ref: "§7 №29"}
+  - {id: N30, rule: "правило одного чтения; двойной вычет запрещён", enforcement: test_deferred, phase: K, ref: "§7 №30"}
+  - {id: N31, rule: "одна каноническая точка RU", enforcement: test_deferred, phase: K, ref: "§7 №31"}
+  - {id: N32, rule: "RU ленивый, не хранится", enforcement: test_deferred, phase: K, ref: "§7 №32"}
+  - {id: N33, rule: "веса RU архитектурные, не психика NPC", enforcement: test_deferred, phase: K, ref: "§7 №33"}
+  - {id: N34, rule: "линзовые механизмы запрещены", enforcement: grep, phase: E, ref: "§7 №34"}
+  - {id: N35, rule: "влюблённость не воскрешается; 35.1 агрегаторы, 35.2 мораторий readout", enforcement: grep, phase: I-J, ref: "§7 №35"}
+
+tombstone_params:
+  g: {reason: "duplicate epistemic writer", replacement: "existing epistemic machinery §5.4", round: 16, ref: "§6.19"}
+  k_up: {reason: "параметр расформированного черновика I(t)", replacement: "интерпретация траектории — аксиома 26", round: 17, ref: "§6.19"}
+  k_down: {reason: "параметр расформированного черновика I(t)", replacement: "интерпретация траектории — аксиома 26", round: 17, ref: "§6.19"}
+  tau_n: {reason: "новизна — производный фактор ПД3, не примитив", replacement: "контекстный фактор", round: 17, ref: "§6.19"}
+  eta_s_booster: {reason: "I → learning_rate не доказан (Р17-Р2)", replacement: "PreferenceModel.learning_rate", round: 17, ref: "§6.17"}
+  H_i_rho: {reason: "черновик Gap/H/ρ заменён Фр1-Фр6", replacement: "ставки фрустрации — параметризация", round: 9, ref: "§6.19"}
+  sigma_i: {reason: "Received исключён — вариант A", replacement: "NeedLevel.current_intensity", round: 6, ref: "§6.19"}
+  sigma_dec: {reason: "Received исключён — вариант A", replacement: "NeedLevel.current_intensity", round: 6, ref: "§6.19"}
+  T_half: {reason: "Bond удалён — РУ3", replacement: "Attachment A→B", round: 12, ref: "§6.19"}
+  beta1_5: {reason: "Bond удалён — РУ3", replacement: "Attachment A→B", round: 12, ref: "§6.19"}
+  DeprivationHorizon: {reason: "владелец DesireModel распущен — ЗЛ3", replacement: "читатель NeedLevel", round: 11, ref: "§6.19"}
+
+forbidden:
+  love_aggregates:
+    names: [love_score, love_level, is_in_love]
+    grep: true
+    verdict: "№25 / аксиома 13"
+  market_registry:
+    names: [RomanticMarket, PartnerPool, AvailableOptions, BestPartner]
+    grep: true
+    verdict: "№28 / аксиома 17"
+  exit_intention:
+    names: [exit_intention, stay_preference]
+    grep: true
+    verdict: "№27 / аксиома 15"
+  infatuation_class:
+    names: [infatuation, Infatuation, falling_in_love, crush_level, passion_index, romantic_arousal, chemistry, k_up, k_down, tau_n]
+    grep: true
+    verdict: "№35 / аксиома 26"
+  lens_class:
+    names: [hope_bias, romantic_filter, positive_attribution, attachment_lens, romantic_attention]
+    grep: true
+    verdict: "№34 / аксиома 25"
+  relationship_value:
+    names: [RelationshipValue]
+    grep: true
+    verdict: "№26 / РУ4 — равно RU"
+
+moratorium:
+  id: "N35.2"
+  rule: "Class IV readout влюблённости не регистрируется до закрытия Р18"
+  until: "раунд 18 (адаптация) закрыт вердиктом GPT"
+  exception: "имя Infatuation исключено навсегда — даже после снятия моратория"
+  ref: "§7 №35.2, §12.2"
+
+invariants:
+  R17_INV_1:
+    statement: "Attachment HIGH + PartnerDesire HIGH + Infatuation отсутствует — забота/инициатива/желание/продолжение/высокая RU возможны"
+    enforcement: test_deferred
+    phase: "J"
+    ref: "§6.10, §11.2 п.17(б)"
+  O2_differential_test:
+    statement: "диф-тест раннего внимания — единственный открытый хвост Р17; закрывается прогоном, не декларацией"
+    enforcement: test_deferred
+    phase: "полигон"
+    ref: "§12.2, §11.2 п.17(в)"
+
+collisions:
+  frustration_by_need:
+    status: "RESOLVED_ENGINEERING — вердикт Мастера"
+    resolution: "владелец NeedLevel.frustration; поле §5.2 = derived read-only проекция"
+    evidence: "кодовый аудит M0: 0 writers 'frustration' в backend/app"
+    escalation: "семантическая эскалация в GPT (Р18+): в ТЗ v1.9 коллизия §5.1/§5.2 жива на уровне документа"
+    ref: "§5.1, §5.2"
+
+content_allowlist:
+  note: "контент-канон легален; линтер сканирует ТОЛЬКО механику backend/app/**/*.py — граница механика/контент по №35"
+  files:
+    - "config/canon/truth_state_tavern.json"
+    - "config/npc/individuals/lusya.json"
+    - "config/npc/social/village_relations.json"
+
+consumers:
+  - "DecisionHub — модификаторы, фаза 5 (M3/K)"
+  - "EpistemicStore — предикаты §5.4 (M4/E)"
+  - "Калибровочный полигон RE — фаза M"
+  - "scripts/lint_relationship_engine.py — CI и pre-commit гейт"

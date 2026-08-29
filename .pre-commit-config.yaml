@@ -32,6 +32,12 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: enigma-relationship-engine
+        name: ENIGMA Relationship Engine (Phase A / ADR-O-369)
+        entry: python scripts/lint_relationship_engine.py
+        language: system
+        pass_filenames: false
+
       - id: enigma-ast-arch
         name: ENIGMA AST Architecture Rules (§1)
         entry: python scripts/lint_enigma_ast.py

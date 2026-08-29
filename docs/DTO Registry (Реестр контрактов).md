@@ -531,6 +531,28 @@
 
 ---
 
+## 13. 🔗 RELATIONSHIP ENGINE — Phase A Contract (ADR-O-369) ⭐ НОВАЯ СЕКЦИЯ
+
+**Поток (M0 — ТОЛЬКО контракт; рантайм не меняется):** `RELATIONSHIP_EVENTS` → `RelationshipEventSemantics` (фаза 8) → `RelationshipStateStore` (SSOT, писатель — StateApplicator, №5) → `RelationshipModifierResolver` (фаза 5) → `DecisionHub.apply_modifiers`. Медленный контур — раз в игровой день. Полный контракт: `architecture/relationship_engine.yaml` (45 узлов §5.0/§4.1, запреты №1–35, tombstones).
+
+### 📦 Планируемые DTO (реализация — по фазам §10; контракты — ТЗ-RE-01 §5.1–5.5)
+- **`NeedSlot`** (frozen, фаза B) — конфиг автора: target_pressure, deficit_threshold, importance, rigidity, substitutability, adaptability, satiation_capacity, object_binding, homeostatic, change_rate.
+- **`NeedLevel`** (фаза B) — аккумулятор: current_intensity / satiation / frustration, каждый ∈ [0,1], event-provenance (О1).
+- **`PreferenceModel` / `HardConstraint` / `AdaptationRecord`** (фаза B/I) — §5.1.
+- **`DirectedRelationshipState`** (M1) — v2-схема: скаляры −100..100 + доменная часть [0,1]; `frustration_by_need` — read-only проекция NeedLevel.frustration (ADR-O-369 COLLISION).
+- **`PairState`** (M1) — ТОЛЬКО объективные факты: shared_history, negotiated_agreements, investment.
+- **`ExclusivityRequirement` / `AttractionVector`** (§5.2).
+- **`RELATIONSHIP_PREDICATES`** (M4/E) — LOVES, DESIRES, TRUSTS_ME, FAITHFUL, COMMITTED, SATISFIED_WITH_ME — ТОЛЬКО эпистемические пропозиции (ЗЛ1).
+- **`RELATIONSHIP_EVENTS`** (M2) — 20 событий §5.5.
+- 📁 svc/social/relationship_state_store.py (PLANNED M1); полная карта — yaml.
+
+🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Секция 13):**
+- ❌ Tombstone-сущности не воскрешаются: Received (№20), Bond (РУ3), Infatuation (№35/аксиома 26), g и линз-класс (№34), k_up/k_down/τ_n, η_s-ускоритель.
+- ❌ love_score/love_level/is_in_love, RomanticMarket/PartnerPool, exit_intention/stay_preference, RelationshipValue — grep-гейт линтера (backend/app).
+- ❌ Сатурация не меняет давление/Satisfaction (№21); фрустрация — без прямого входа в PartnerDesire (ПД5); RU ленивый/канонический/⟂ кандидатам (№31/№32/аксиома 22); решение не меняет RU (№26).
+- ❌ Формулы §6 и числа — НЕ в yaml и НЕ в реализации до гейтов фаз (№15); мораторий №35.2 до закрытия Р18.
+- Проверка: `python scripts/lint_relationship_engine.py` (CI + pre-commit).
+
 ## 🧪 СПИСОК ПЕСОЧНИЦ (Fail Conditions)
 
 Каждый запрет из этого реестра должен быть покрыт тестом. Ключевые инварианты:

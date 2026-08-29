@@ -29,6 +29,8 @@ jobs:
         run: python scripts/lint_kernel_rng.py
       - name: ENIGMA Epistemic Boundary lint
         run: python scripts/lint_epistemic_boundary.py
+      - name: ENIGMA Relationship Engine lint
+        run: python scripts/lint_relationship_engine.py
       - name: ENIGMA AST Architecture Rules (§1)
         run: python scripts/lint_enigma_ast.py
 

@@ -33,7 +33,7 @@ def _get_vram_mb() -> int:
     global _VRAM_CACHE
     if _VRAM_CACHE > 0:
         return _VRAM_CACHE
-        
+
     import subprocess
     try:
         result = subprocess.run(
@@ -43,16 +43,18 @@ def _get_vram_mb() -> int:
         if result.returncode == 0:
             _VRAM_CACHE = int(result.stdout.strip().split("\n")[0])
             return _VRAM_CACHE
-    except Exception:
-        pass
+    except Exception as e:
+        # nvidia-smi отсутствует/недоступен — легальная деградация до VRAM=0,
+        # но отказ обязан быть наблюдаемым (L4 / ADR-O-308, INV-SILENT-FAILURE)
+        logger.debug(f"[LLM-VRAM] nvidia-smi недоступен, VRAM=0: {e}")
     return 0
 
 def _get_remote_size(url: str, key: str) -> int:
     """Определяет размер файла через HF Tree API (JSON, без CDN-редиректов).
     Кэширует результат на 5 минут. PowerShell-HEAD работал, а urllib-HEAD — нет:
     CDN HuggingFace по-разному отвечает им; Tree API даёт размеры надёжно."""
-    import time
     import json as _json
+    import time
     _now = time.time()
     if key in _REMOTE_SIZE_CACHE and _now - _REMOTE_SIZE_CACHE_TIME.get(key, 0) < 300:
         return _REMOTE_SIZE_CACHE[key]
@@ -116,8 +118,9 @@ def _get_remote_size(url: str, key: str) -> int:
                 _REMOTE_SIZE_CACHE[key] = _size
                 _REMOTE_SIZE_CACHE_TIME[key] = _now
                 return _size
-    except Exception:
-        pass
+    except Exception as e:
+        # HEAD-проба не удалась (CDN/сеть) — наблюдаемо, управление уходит в Range-fallback (L4)
+        logger.debug(f"[LLM-SIZE] HEAD-проба не удалась, Range-fallback: {url}: {e}")
     # Fallback: запрос 1 байта через Range — полный размер в Content-Range ("bytes 0-0/4683073920")
     try:
         _req = urllib.request.Request(url, headers={"User-Agent": "Bloodloom/0.5.3", "Range": "bytes=0-0"})
@@ -128,8 +131,10 @@ def _get_remote_size(url: str, key: str) -> int:
                 _REMOTE_SIZE_CACHE[key] = _size
                 _REMOTE_SIZE_CACHE_TIME[key] = _now
                 return _size
-    except Exception:
-        pass
+    except Exception as e:
+        # Обе пробы размера не дали результат — размер UNKNOWN (0), отказ наблюдаем (L4);
+        # «скачано» на пустом/битом файле останется невозможным: валидация требует размер >1 МБ
+        logger.debug(f"[LLM-SIZE] размер не определён (HEAD и Range не удались): {url}: {e}")
     return 0
 
 def _update_remote_sizes_once() -> None:
@@ -189,16 +194,15 @@ def get_llm_sources() -> Dict:
 
 def get_model_status() -> Dict:
     """Возвращает статус: скачаны ли требуемые модели, прогресс и ошибки. + Сканирует ручные модели."""
-    from pathlib import Path
     from app.core.config import settings
     _ensure_background_workers()  # ленивый старт: модуль гарантированно загружен целиком
-    
+
     sources = get_llm_sources()
     status = {}
     _active_path = Path(settings.llama_cpp_model_path)
     _vram_mb = _get_vram_mb()
     _vram_80_limit = _vram_mb * 0.8 if _vram_mb > 0 else 0
-    
+
     for key, info in sources.items():
         _t_path = info["target_path"].replace("\\", "/")
         target = (BASE_DIR / _t_path).resolve()
@@ -206,7 +210,7 @@ def get_model_status() -> Dict:
         progress = _DOWNLOAD_STATUS.get(key)
         is_downloading = progress is not None and progress >= 0
         is_error = progress is not None and progress < 0
-        
+
         # Сплит-модели: file_size = сумма всех частей, существование = все части на диске
         _split_parts = int(info.get("split_parts", 1) or 1)
         if _split_parts > 1:
@@ -224,7 +228,7 @@ def get_model_status() -> Dict:
             _file_exists = target.exists()
             _file_size = target.stat().st_size if _file_exists else 0
         _remote_size = _REMOTE_SIZE_CACHE.get(key, 0)  # Читаем из кэша, обновляемого в фоне
-        
+
         # Файл считается валидным, только если мы знаем его размер на сервере и он совпадает
         # Для ручных моделей (без URL) — просто больше 1 МБ
         if url:
@@ -235,7 +239,7 @@ def get_model_status() -> Dict:
             ) and (_split_parts <= 1 or _file_exists)
         else:
             _file_valid = _file_size > 1024 * 1024
-            
+
         _r_size_mb = int(_remote_size / 1024 / 1024)
         status[key] = {
             "display_name": info.get("display_name", key),
@@ -253,10 +257,10 @@ def get_model_status() -> Dict:
             "gated": info.get("gated", False),
             "recommended": _vram_80_limit > 0 and _r_size_mb > 0 and _r_size_mb <= _vram_80_limit
         }
-        
+
     # Собираем пути файлов, которые уже есть в статусе, чтобы не дублировать
     _existing_files = {Path(v.get("target_path", "")).name.lower() for v in status.values() if isinstance(v, dict)}
-    
+
     # Сканируем папку Models LLM на наличие ручных .gguf файлов
     _llm_dir = BASE_DIR / "Models LLM"
     if _llm_dir.exists():
@@ -265,7 +269,7 @@ def get_model_status() -> Dict:
                 continue  # Файл уже есть в списке, пропускаем
             if "-of-" in _f.stem:
                 continue  # Сплит-часть большой модели — не самостоятельная модель
-                
+
             _key = _f.stem
             _file_size = _f.stat().st_size
             _manual_valid = _file_size > 1024 * 1024  # Больше 1 МБ
@@ -384,7 +388,7 @@ def download_model(model_key: str, force: bool = False) -> bool:
         return _download_split_model(model_key, info, target_path, url, _split_parts, force)
 
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Удаляем старый файл, если включён force или если он слишком мал (повреждён)
     if target_path.exists() and (force or target_path.stat().st_size < 1024 * 1024):
         target_path.unlink(missing_ok=True)
@@ -392,19 +396,19 @@ def download_model(model_key: str, force: bool = False) -> bool:
 
     logger.info(f"Начало скачивания модели '{model_key}' из {url}...")
     _DOWNLOAD_STATUS[model_key] = 0.0
-    
+
     try:
         _existing_size = target_path.stat().st_size if target_path.exists() else 0
         _headers = {"User-Agent": "Bloodloom/0.5.3"}
         if _existing_size > 0:
             _headers["Range"] = f"bytes={_existing_size}-"
-            
+
         # Поддержка HF_TOKEN для лицензионных моделей (gemma и т.п.)
         import os as _os
         _hf_token = _os.environ.get("HF_TOKEN", "")
         if _hf_token:
             _headers["Authorization"] = f"Bearer {_hf_token}"
-            
+
         _req = urllib.request.Request(url, headers=_headers)
         with urllib.request.urlopen(_req, timeout=30) as _response:
             _total_size = int(_response.info().get('Content-Length', 0))
@@ -413,7 +417,7 @@ def download_model(model_key: str, force: bool = False) -> bool:
             elif _existing_size > 0 and _response.status == 200:  # Сервер не поддерживает докачку — начинаем сначала
                 _existing_size = 0
                 target_path.unlink(missing_ok=True)
-                
+
             _cancelled = False
             with open(target_path, 'ab' if _existing_size > 0 else 'wb') as _f:
                 _downloaded = _existing_size
@@ -422,13 +426,14 @@ def download_model(model_key: str, force: bool = False) -> bool:
                         _cancelled = True
                         break
                     _chunk = _response.read(8192)
-                    if not _chunk: break
+                    if not _chunk:
+                        break
                     _f.write(_chunk)
                     _downloaded += len(_chunk)
                     if _total_size > 0:
                         _progress = min(100.0, (_downloaded / _total_size) * 100.0)
                         _DOWNLOAD_STATUS[model_key] = round(_progress, 1)
-                        
+
         if _cancelled:
             # Отмена: удаляем недокачанный файл, фиксируем ошибку для UI
             target_path.unlink(missing_ok=True)
@@ -437,7 +442,7 @@ def download_model(model_key: str, force: bool = False) -> bool:
             _DOWNLOAD_CANCEL[model_key] = False
             logger.info(f"Скачивание модели '{model_key}' отменено пользователем")
             return False
-        
+
         logger.info(f"Модель '{model_key}' успешно скачана в {target_path}")
         if model_key in _DOWNLOAD_STATUS:
             del _DOWNLOAD_STATUS[model_key]
