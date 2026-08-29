@@ -818,15 +818,24 @@ class StateApplicator:
         self._apply_trauma_and_traits(state, deltas, new_trauma)
 
         # S2B.1: energy_delta extraction (same v2 pattern as hp_delta etc.)
+        # SANATION-S2B1 (S225, cross-zone W2): см. SANATION-S2B3 ниже —
+        # energy_delta ещё не в PhysiologyPayload текущего коммита.
         energy_delta = (
-            deltas.payload.energy_delta
+            getattr(deltas.payload, "energy_delta", 0.0)
             if domain == DeltaDomain.PHYSIOLOGY
             and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
         # S2B.3: hydration_delta extraction
+        # SANATION-S2B3 (S225, cross-zone W2-класс по прецеденту S223): полей
+        # hydration/energy в PhysiologyPayload текущего коммита НЕТ — прямой
+        # доступ давал latent AttributeError на любом PHYSIOLOGY-пейлоаде
+        # (extraction падает ДО default-аргумента _apply_physiology).
+        # getattr-гард = backward-compatible boundary: 0.0, пока поле не
+        # завезено владельцем (W-TRACK S2B); когда поле появится — значение
+        # подхватится без изменения этой строки.
         hydration_delta = (
-            deltas.payload.hydration_delta
+            getattr(deltas.payload, "hydration_delta", 0.0)
             if domain == DeltaDomain.PHYSIOLOGY
             and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
@@ -845,6 +854,7 @@ class StateApplicator:
                 remove_statuses,
                 shock_impulse,
                 energy_delta=energy_delta,
+                hydration_delta=hydration_delta,
             )
 
         self._apply_perception_deltas(

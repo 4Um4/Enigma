@@ -230,3 +230,46 @@ class TestSubstrateIsDormant:
 
         src = inspect.getsource(scene_state_manager)
         assert '"relationship_state": {}' in src
+
+
+
+
+# ── 6. Cross-zone санация S225: S2B-extraction на payload БЕЗ новых полей ──
+
+class TestS2BExtractionBackwardCompat:
+    """S225 autopsy: state_applicator несёт S2B.1/S2B.3 extraction-блоки
+    (energy/hydration), чьих полей в PhysiologyPayload текущего коммита НЕТ.
+    Прямой доступ = latent AttributeError на любом PHYSIOLOGY-пейлоаде
+    (extraction падает ДО default-аргумента _apply_physiology). Гард
+    getattr(..., 0.0) обязан держать payload старого контракта живым."""
+
+    def test_physiology_payload_without_energy_hydration_fields(self, applicator):
+        import dataclasses
+
+        from app.models.delta_payloads import PhysiologyPayload
+        from app.models.npc_state import NPCStateAdapter
+        from app.models.state_delta import DeltaDomain, StateDeltas
+
+        payload = PhysiologyPayload(hp_delta=-10.0, pain_delta=5.0)
+        assert not hasattr(payload, "energy_delta"), (
+            "W-TRACK завезли energy_delta в PhysiologyPayload — санация S225 "
+            "(getattr-гард) должна быть пересмотрена владельцем: гард станет "
+            "мёртвым (не вредным), тест обновить в их зоне"
+        )
+        assert not hasattr(payload, "hydration_delta"), (
+            "W-TRACK завезли hydration_delta в PhysiologyPayload — см. выше"
+        )
+        real = NPCStateAdapter.from_legacy(
+            {"npc_id": "sanation_probe", "psyche": {"state": "free"}, "social_stats": {}}
+        )
+        real = dataclasses.replace(real, body_state={"current_hp": 100.0, "max_hp": 100.0})
+        deltas = StateDeltas(
+            domain=DeltaDomain.PHYSIOLOGY,
+            payload=payload,
+            source="s2b_compat_check",
+        )
+        # До фикса: AttributeError 'PhysiologyPayload' object has no attribute
+        # 'energy_delta' (extraction в _apply_deltas). После: extraction
+        # безопасен, HP-дельта применяется.
+        after = applicator.apply_deltas_only(real, deltas)
+        assert after.body_state["current_hp"] == 90.0
