@@ -237,39 +237,50 @@ class TestSubstrateIsDormant:
 # ── 6. Cross-zone санация S225: S2B-extraction на payload БЕЗ новых полей ──
 
 class TestS2BExtractionBackwardCompat:
-    """S225 autopsy: state_applicator несёт S2B.1/S2B.3 extraction-блоки
-    (energy/hydration), чьих полей в PhysiologyPayload текущего коммита НЕТ.
-    Прямой доступ = latent AttributeError на любом PHYSIOLOGY-пейлоаде
-    (extraction падает ДО default-аргумента _apply_physiology). Гард
-    getattr(..., 0.0) обязан держать payload старого контракта живым."""
+    """S225: PHYSIOLOGY-extraction обязан пережить payload ЛЮБОЙ версии —
+    без полей W-TRACK (getattr-гард → 0.0; мир коммитов до их миграции) и
+    с ними (гард обязан ПРОПУСТИТЬ значение, не подавить). Урок S225:
+    тест не пинит чужой WIP — прежняя редакция (assert not hasattr полей)
+    срабатывала на ПРОГРЕСС параллельной сессии, а не на дефект."""
 
-    def test_physiology_payload_without_energy_hydration_fields(self, applicator):
+    def test_physiology_extraction_survives_any_payload_version(self, applicator):
         import dataclasses
 
         from app.models.delta_payloads import PhysiologyPayload
         from app.models.npc_state import NPCStateAdapter
         from app.models.state_delta import DeltaDomain, StateDeltas
 
+        def _real_state():
+            return dataclasses.replace(
+                NPCStateAdapter.from_legacy(
+                    {"npc_id": "sanation_probe", "psyche": {"state": "free"}, "social_stats": {}}
+                ),
+                body_state={"current_hp": 100.0, "max_hp": 100.0},
+            )
+
+        # Оба мира обязаны проходить PHYSIOLOGY-путь без AttributeError,
+        # HP-дельта обязана применяться (ядро санации S225).
         payload = PhysiologyPayload(hp_delta=-10.0, pain_delta=5.0)
-        assert not hasattr(payload, "energy_delta"), (
-            "W-TRACK завезли energy_delta в PhysiologyPayload — санация S225 "
-            "(getattr-гард) должна быть пересмотрена владельцем: гард станет "
-            "мёртвым (не вредным), тест обновить в их зоне"
+        after = applicator.apply_deltas_only(
+            _real_state(),
+            StateDeltas(
+                domain=DeltaDomain.PHYSIOLOGY,
+                payload=payload,
+                source="s2b_compat_check",
+            ),
         )
-        assert not hasattr(payload, "hydration_delta"), (
-            "W-TRACK завезли hydration_delta в PhysiologyPayload — см. выше"
-        )
-        real = NPCStateAdapter.from_legacy(
-            {"npc_id": "sanation_probe", "psyche": {"state": "free"}, "social_stats": {}}
-        )
-        real = dataclasses.replace(real, body_state={"current_hp": 100.0, "max_hp": 100.0})
-        deltas = StateDeltas(
-            domain=DeltaDomain.PHYSIOLOGY,
-            payload=payload,
-            source="s2b_compat_check",
-        )
-        # До фикса: AttributeError 'PhysiologyPayload' object has no attribute
-        # 'energy_delta' (extraction в _apply_deltas). После: extraction
-        # безопасен, HP-дельта применяется.
-        after = applicator.apply_deltas_only(real, deltas)
         assert after.body_state["current_hp"] == 90.0
+
+        # Мир W-TRACK (поля в payload): гард пропускает легальные значения.
+        if hasattr(payload, "energy_delta"):
+            payload_wt = dataclasses.replace(payload, hp_delta=0.0, energy_delta=-15.0)
+            after_wt = applicator.apply_deltas_only(
+                _real_state(),
+                StateDeltas(
+                    domain=DeltaDomain.PHYSIOLOGY,
+                    payload=payload_wt,
+                    source="s2b_compat_check_wt",
+                ),
+            )
+            assert after_wt.body_state["current_hp"] == 100.0
+            assert after_wt.body_state.get("energy") == 85.0

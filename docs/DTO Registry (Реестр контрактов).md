@@ -544,7 +544,7 @@
 - **`ExclusivityRequirement` / `AttractionVector`** (§5.2).
 - **`RELATIONSHIP_PREDICATES`** (M4/E) — LOVES, DESIRES, TRUSTS_ME, FAITHFUL, COMMITTED, SATISFIED_WITH_ME — ТОЛЬКО эпистемические пропозиции (ЗЛ1).
 - **`RELATIONSHIP_EVENTS`** (M2) — 20 событий §5.5.
-- 📁 svc/social/relationship_state_store.py (PLANNED M1); полная карта — yaml.
+- 📁 svc/social/relationship_state_store.py (IMPLEMENTED — M1a substrate, dormant: ADR-O-370; scene_state["relationship_state"], single-writer update_needs, frozen-DTO read; писатели — M2/D, G/H); полная карта — yaml.
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Секция 13):**
 - ❌ Tombstone-сущности не воскрешаются: Received (№20), Bond (РУ3), Infatuation (№35/аксиома 26), g и линз-класс (№34), k_up/k_down/τ_n, η_s-ускоритель.
