@@ -37,7 +37,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def apply_npc_state_updates(  # noqa: RETODO — M1b.5: кандидат на удаление
+def apply_npc_state_updates(
     memory_manager: Any,
     updates: list,
     npc_dicts: list | None = None,
