@@ -5,7 +5,12 @@
 """
 
 import logging
-from typing import Any, Optional, Set
+from typing import TYPE_CHECKING, Any, Optional, Set
+
+if TYPE_CHECKING:
+    # SANATION-M1b.2.2: forward-ref Optional["TruthState"] жил без импорта
+    # (F821, pre-existing) — TYPE_CHECKING-блок; рантайм не тронут.
+    from app.models.truth_state import TruthState
 
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.player_action import ActionType, PlayerAction
