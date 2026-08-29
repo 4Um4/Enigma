@@ -15,23 +15,20 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_query_service import SpatialQueryService
-    from app.models.npc.beliefs import BeliefType, BeliefFragment
 
 from app.core.constants import DECAY_EVERY, NARRATIVE_CACHE_MAX
 from app.domain.events import CONTRACT_TAGS, EventDTO
 from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage, NPCState
 from app.services.memory import LayeredMemory
 from app.services.memory.contradiction_resolver import resolve_all
-from app.services.memory.dialogue_session import DialogueSession
 from app.services.memory.dialogue_consolidator import DialogueConsolidator
+from app.services.memory.dialogue_session import DialogueSession
 from app.services.memory.importance_engine import score_event
 from app.services.memory.promotion_engine import MemoryPromotionEngine
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.resonance_engine import ResonanceEngine
 from app.services.memory.working_memory import WorkingMemory
 from app.services.npc.perception_filter import calculate_clarity
-from app.models.npc_state import MemoryStage
-
 
 
 class MemoryManager:
@@ -44,6 +41,11 @@ class MemoryManager:
         self._identity_lock = threading.RLock()
         self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
         self._relationships = RelationshipStore(data_dir=data_dir)
+        # M1b.2.3 (ADR-O-371): write-фасад стора — единый write-маршрут (D2):
+        # все обёрточные записи отношений идут через RelationshipWriteGate;
+        # на cutover (M1b.4) гейт централизованно получит v2-backend.
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+        self._relationship_write_gate = RelationshipWriteGate(self._relationships)
         self._tick_counters: Dict[str, int] = {}
         self._resonance = ResonanceEngine()
         # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
@@ -57,11 +59,11 @@ class MemoryManager:
             self._identity_cache: Dict[str, Dict[str, float]] = {}
         # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
         self._dialogue_sessions: Dict[str, DialogueSession] = {}
-        
+
         # BUG-DL-06: Буфер отложенных диалоговых событий для записи в L2 (narrative_cache).
         # Заполняется в Фазе 6 (NpcDialogueSubscriber), опустошается в Фазе 3 следующего тика.
         self._pending_dialogue_memories: List[EventDTO] = []
-        
+
         # BUG-DL-07: Экземпляр DialogueConsolidator для суммаризации STM перед очисткой.
         self._dialogue_consolidator = DialogueConsolidator()
 
@@ -106,7 +108,7 @@ class MemoryManager:
         session = self._dialogue_sessions.get(key)
         if session is None:
             return
-        
+
         # BUG-DL-07: Consolidation в EventMemory перед discard
         if summary := self._dialogue_consolidator.consolidate(session):
             self._pending_dialogue_memories.append(
@@ -125,7 +127,7 @@ class MemoryManager:
                     persistence_level="session",
                 )
             )
-        
+
         session.clear()
         self._dialogue_sessions.pop(key, None)
 
@@ -684,7 +686,10 @@ class MemoryManager:
         target: str,
         delta: Dict[str, float],
     ) -> None:
-        self._relationships.update(campaign_id, source, target, delta)
+        # M1b.2.3: делегация гейту (D2). Поведение идентично — гейт валидирует
+        # вход (whitelist/NaN) и зовёт тот же backend update(); сатурация
+        # выполняется стором (D3-паритет доказан сеткой M1b.2.0).
+        self._relationship_write_gate.apply(campaign_id, source, target, delta, cause="memory_manager:update_relationship")
 
     def get_relationships(self, campaign_id: str) -> Dict[str, Any]:
         return self._relationships.get_all(campaign_id)
@@ -800,7 +805,7 @@ class MemoryManager:
             for trait, delta in weights:
                 current = cache.get(trait, 0.0)
                 cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
-            
+
             # V8-MEM-7 FIX: Персистируем обновлённый identity_cache
             self._layered.store.save_state("identity_cache", self._identity_cache)
 

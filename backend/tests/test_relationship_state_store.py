@@ -586,4 +586,46 @@ class TestSocialSubscriberGateParity:
         for key, vals in store_l.get_all(camp).items():
             assert key in got_g, f"PARITY BREAK {intent}: пара {key} не создана через гейт: {got_g}"
             assert got_g[key] == vals, f"PARITY BREAK {intent} {key}: L={vals} G={got_g[key]}"
-            
+
+
+
+
+
+# ── 10. M1b.2.3: MemoryManager-фасад через гейт — сайт-паритет ──
+
+
+class TestMemoryManagerGateParity:
+    """Обёртка memory_manager.update_relationship делегирует гейту (D2).
+    Паритет: значение стора через фасад == прямому legacy store.update().
+    MemoryManager строится реальный (LayeredMemory + SqliteMemoryStore не нужны
+    для этого пути — но по §12.4 строим как прод: см. game_loop_builder;
+    если конструктор тяжёлый, fallback: гейт+стор напрямую, а фасадный метод
+    вызываем через __new__ — НЕТ: §12.3 запрещает. Решение по факту конструктора
+    ниже в _make_mm()."""
+
+    def test_facade_parity_with_legacy_update(self, tmp_path):
+        from app.services.memory.memory_manager import MemoryManager
+
+        # Фасад: если конструктор требует layered_memory — собираем минимум
+        try:
+            mm = MemoryManager(layered_memory=None, data_dir=str(tmp_path / "G"))
+        except TypeError:
+            mm = MemoryManager(data_dir=str(tmp_path / "G"))
+        mm.update_relationship("mm_parity", "player", "maid_lusya", {"trust": 5.0})
+        # L: прямой legacy-вызов с той же дельтой
+        store_l = RelationshipStore(data_dir=str(tmp_path / "L"))
+        store_l.update("mm_parity", "player", "maid_lusya", {"trust": 5.0})
+        got_g = mm._relationships.get_pair("mm_parity", "player", "maid_lusya")
+        want_l = store_l.get_pair("mm_parity", "player", "maid_lusya")
+        assert got_g == want_l, f"PARITY BREAK facade: L={want_l} G={got_g}"
+
+    def test_facade_rejects_foreign_keys(self, tmp_path):
+        """Whitelist гейта виден и через фасад (защита от протекания RE-сущностей)."""
+        from app.services.memory.memory_manager import MemoryManager
+
+        try:
+            mm = MemoryManager(layered_memory=None, data_dir=str(tmp_path))
+        except TypeError:
+            mm = MemoryManager(data_dir=str(tmp_path))
+        with pytest.raises(ValueError, match="whitelist"):
+            mm.update_relationship("mm_parity", "player", "x", {"love_score": 1.0})
