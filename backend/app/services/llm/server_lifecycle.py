@@ -53,8 +53,11 @@ def acquire_llama_server_lock(port: int, health_url: str) -> tuple:
         with urllib.request.urlopen(health_url, timeout=1.0) as resp:
             if resp.status == 200:
                 return ("reuse", f"health ok: {health_url}")
-    except Exception:
-        pass  # не готов ИЛИ грузится — решает линия 2
+    except Exception as e:
+        # Не готов ИЛИ грузится — решает линия 2; отказ наблюдаем (L4,
+        # INV-SILENT-FAILURE: наш собственный P0-код не имеет права на
+        # тихие except — тот же класс, что чинили в downloader.py, S224)
+        logger.debug(f"[LLM_LOCK] health silent ({health_url}): {e}")
     # Линия 2: порт занят кем-то → идёт загрузка/битый процесс → НЕ спавнить
     # (битый процесс — зона kill_llama_server/ручного вмешательства; спавн
     # третьего процесса поверх занятого порта никогда не был решением)
@@ -62,8 +65,8 @@ def acquire_llama_server_lock(port: int, health_url: str) -> tuple:
     try:
         _sock.settimeout(0.5)
         _sock.bind(("127.0.0.1", port))
-    except OSError:
-        return ("reuse", f"port {port} occupied (loading or alive)")
+    except OSError as e:
+        return ("reuse", f"port {port} occupied (loading or alive): {e}")
     finally:
         _sock.close()
     return ("spawn", f"port {port} free, health silent")

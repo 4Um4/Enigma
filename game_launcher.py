@@ -210,7 +210,7 @@ def _draw_llm_diag_screen(seconds: float = 10.0) -> None:
 
 def _ensure_llm_running() -> subprocess.Popen:
     """Запускает llama-server.exe локально, если он ещё не запущен.
-    
+
     ИНЦИДЕНТ 2026-08-30: спавн через канонический процессный лок
     acquire_llama_server_lock — health-проверка одна не отличает
     «сервер грузится» (порт занят) от «сервера нет»; дубль на порт =
