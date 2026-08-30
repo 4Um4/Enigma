@@ -690,8 +690,12 @@ class TestDecayRouteThroughGate:
         assert d.fear_delta == pytest.approx(-0.1)  # fear → 0: (0−10)×0.01
 
         # Точка применения (как Фаза 10): Applicator применяет SOCIAL-дельту —
-        # М1b.2.4 маршрут: update_relationships → гейт → стор
+        # М1b.2.4 маршрут: update_relationships → гейт → стор.
+        # Vacuum-урок: значения снапшота (30/10) обязаны ЖИТЬ в сторе до
+        # применения дельт — иначе дельты ложатся на нулевой prior (0.2/−0.1),
+        # а тест ждал 30.2/9.9. Кэш хендлера — проекция стора, не его замена.
         store = RelationshipStore(data_dir=str(tmp_path))
+        store.update("decay_route", "maid_lusya", "player", {"trust": 30.0, "fear": 10.0})
         sa = StateApplicator(relationship_store=store)
         real = NPCStateAdapter.from_legacy(
             {"npc_id": d.npc_id, "psyche": {"state": "free"}, "social_stats": {}}
@@ -700,8 +704,13 @@ class TestDecayRouteThroughGate:
             real, "decay_route", d.social_target,
             trust_delta=d.trust_delta, fear_delta=d.fear_delta,
         )
-        # Стор получил значения (через гейт — гарантировано M1b.2.4-паритетом;
-        # здесь доказываем саму достижимость):
+        # Стор получил значения (через гейт — гарантировано M1b.2.4-паритетом).
+        # Ожидание считаем ПО КАНОНИЧЕСКОЙ ФОРМУЛЕ стора (ADR-121 headroom),
+        # не хардкодом: effective = Δ × (100−|prior|)/100; result = prior+effective.
+        # Урок: prior=30, Δ=0.2 → 30.14 (НЕ 30.2 линейно); prior=10, Δ=−0.1 → 9.91.
+        def _saturated(prior: float, delta: float) -> float:
+            return prior + delta * (100.0 - abs(prior)) / 100.0
+
         pair = store.get_pair("decay_route", "maid_lusya", "player")
-        assert pair["trust"] == pytest.approx(30.2)  # 30 + 0.2 (сатурация ~1.0 headroom)
-        assert pair["fear"] == pytest.approx(9.9)  # 10 − 0.1
+        assert pair["trust"] == pytest.approx(_saturated(30.0, d.trust_delta))
+        assert pair["fear"] == pytest.approx(_saturated(10.0, d.fear_delta))
