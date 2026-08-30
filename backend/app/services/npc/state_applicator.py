@@ -88,6 +88,12 @@ class StateApplicator:
         l1_chronicle: Optional[Any] = None, # V8-PSY-1 FIX
     ) -> None:
         self._rel_store = relationship_store
+        # M1b.2.4 (ADR-O-371): SOCIAL-маршрут DecisionResult идёт через
+        # RelationshipWriteGate — единый write-маршрут (D2) со всеми
+        # остальными писателями; на cutover (M1b.4) backend гейта меняется
+        # централизованно. Кэш-гидратация ниже — read-проекция, не write.
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+        self._rel_write_gate = RelationshipWriteGate(relationship_store) if relationship_store else None
         # ReputationEngine — опциональная зависимость (DI)
         self._reputation_engine = reputation_engine
         self._l1_chronicle = l1_chronicle # V8-PSY-1 FIX
@@ -115,11 +121,11 @@ class StateApplicator:
         if not _delta:
             return
 
-        self._rel_store.update(
-            campaign_id=campaign_id,
-            source=state.npc_id,
-            target=target_id,
-            delta=_delta,
+        # M1b.2.4: делегация гейту (D2). Сатурация в backend'е — D3-паритет
+        # доказан сеткой M1b.2.0; поведение идентично.
+        self._rel_write_gate.apply(
+            campaign_id, state.npc_id, target_id, _delta,
+            cause="state_applicator:social_deltas",
         )
         # P1 ARCH: Заполнение read-cache из SSOT (RelationshipStore).
         # Мутация допустима только как проекция из единственного владельца.

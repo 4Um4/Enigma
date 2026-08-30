@@ -623,3 +623,33 @@ class TestMemoryManagerGateParity:
         mm = self._make_mm(tmp_path)
         with pytest.raises(ValueError, match="whitelist"):
             mm.update_relationship("mm_parity", "player", "x", {"love_score": 1.0})
+
+
+
+# ── 11. M1b.2.4: Applicator SOCIAL-маршрут через гейт — сайт-паритет ──
+
+
+class TestApplicatorGateParity:
+    """update_relationships делегирует гейту (D2). Паритет: значения стора
+    через РЕАЛЬНЫЙ Applicator (существующая ssm-сборка из M1a-тестов:
+    StateApplicator(relationship_store=RelationshipStore(tmp))) == прямому
+    legacy store.update() с теми же дельтами; кэш-гидратация сохранена."""
+
+    def test_social_route_parity(self, tmp_path):
+
+        from app.models.npc_state import NPCStateAdapter
+        from app.services.npc.state_applicator import StateApplicator
+
+        store_g = RelationshipStore(data_dir=str(tmp_path / "G"))
+        sa = StateApplicator(relationship_store=store_g)
+        real = NPCStateAdapter.from_legacy(
+            {"npc_id": "maid_lusya", "psyche": {"state": "free"}, "social_stats": {}}
+        )
+        sa.update_relationships(real, "app_parity", "player", trust_delta=3.0, fear_delta=-1.0)
+        store_l = RelationshipStore(data_dir=str(tmp_path / "L"))
+        store_l.update("app_parity", "maid_lusya", "player", {"trust": 3.0, "fear": -1.0})
+        got_g = store_g.get_pair("app_parity", "maid_lusya", "player")
+        want_l = store_l.get_pair("app_parity", "maid_lusya", "player")
+        assert got_g == want_l, f"PARITY BREAK applicator: L={want_l} G={got_g}"
+        # Кэш-гидратация сохранена (read-проекция из SSOT — не тронута):
+        assert real.relationship_cache["player"]["trust"] == got_g["trust"]
