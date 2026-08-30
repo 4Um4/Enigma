@@ -778,3 +778,72 @@ class TestDirectionalComplimentSemantics:
         assert pair_tp == {}, pair_tp
         # 3) Кэш-хирургия удалена: подписчик не тронул кэш NPC
         assert npc_raw["relationship_cache"] == {}, npc_raw["relationship_cache"]
+
+
+# ── 14. M1b.2.7: ARCHITECTURAL PROOF — вечный греп-инвариант единственного writer'а ──
+
+
+class TestSingleWriterInvariant:
+    """D2-инвариант (ADR-O-371, вердикт Мастера): ALL RELATIONSHIP STATE
+    WRITES → RelationshipWriteGate → backend. Греп по исходникам app/:
+    ни один модуль, кроме гейта, не вызывает backend.update() пяти скаляров.
+    Разовый аудит M1b.2.7 увековечен тестом — регрессия (новый прямой
+    writer) роняет сьюту, а не ждёт следующего человека с грепом.
+    Decay-маршрут покрыт архитектурно (M1b.2.5): handler = produce Δ,
+    применение — через Applicator → гейт."""
+
+    # Легальные точки: сам гейт (делегирование), легаси-стор (ОПРЕДЕЛЕНИЕ
+    # update, не вызов). Мёртвый npc_state_helpers (M1b.5-кандидат) внутри
+    # memory_manager-обёртки — уже на гейте.
+    _ALLOWED = {
+        "relationship_write_gate.py",
+        "relationship_store.py",
+    }
+    _WRITER_PATTERNS = (
+        r"\.update\(\s*campaign_id",
+        r"_rel_store\.update\(",
+        r"relationship_store\.update\(",
+        r"_relationships\.update\(",
+    )
+
+    def test_no_direct_store_writers_outside_gate(self):
+        import re as _re
+        from pathlib import Path as _P
+
+        app_root = _P(__file__).resolve().parents[1] / "app"
+        violations = []
+        for py in app_root.rglob("*.py"):
+            if py.name in self._ALLOWED:
+                continue
+            try:
+                text = py.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for lineno, line in enumerate(text.splitlines(), start=1):
+                if any(_re.search(p, line) for p in self._WRITER_PATTERNS):
+                    violations.append(f"{py.name}:{lineno}: {line.strip()[:80]}")
+        assert not violations, (
+            "D2 VIOLATION — прямой writer мимо RelationshipWriteGate "
+            "(все записи 5 скаляров обязаны идти через гейт; миграция сайта "
+            "или расширение allowlist = только через ADR):\n  " + "\n  ".join(violations)
+        )
+
+    def test_no_attraction_cache_surgery_outside_applicator(self):
+        """§8.6 / M1b.2.6: кэш-хирургия attraction запрещена (обходной путь
+        вокруг SSOT закрыт; гидратация кэша — StateApplicator, M1b.3-зона)."""
+        import re as _re
+        from pathlib import Path as _P
+
+        app_root = _P(__file__).resolve().parents[1] / "app"
+        violations = []
+        for py in app_root.rglob("*.py"):
+            if py.name == "npc_state.py":  # поле-определение — не хирургия
+                continue
+            try:
+                lines = py.read_text(encoding="utf-8", errors="replace").splitlines()
+            except OSError:
+                continue
+            for lineno, line in enumerate(lines, start=1):
+                if _re.search(r'attraction["\']?\]?\s*=\s*[^=]', line) and "relationship_cache" in "".join(lines[max(0, lineno - 5):lineno]):
+                    violations.append(f"{py.name}:{lineno}: {line.strip()[:80]}")
+        assert not violations, "attraction-хирургия кэша: " + "\n  ".join(violations)
