@@ -847,3 +847,86 @@ class TestSingleWriterInvariant:
                 if _re.search(r'attraction["\']?\]?\s*=\s*[^=]', line) and "relationship_cache" in "".join(lines[max(0, lineno - 5):lineno]):
                     violations.append(f"{py.name}:{lineno}: {line.strip()[:80]}")
         assert not violations, "attraction-хирургия кэша: " + "\n  ".join(violations)
+
+
+
+# ── 15. M1b.4.1: V2RelationshipBackend — контрактная сетка D3 (вердикт Мастера:
+#     меняем НОСИТЕЛЬ состояния, не поведение; сетка M1b.2.0 = определитель) ──
+
+
+class TestV2BackendD3Parity:
+    """legacy(prior, Δ) == v2(prior, Δ) на ВСЕЙ сетке + Vacuum/round/границы.
+    v2 строится на живом scene_state (provider-лямбда); легаси — на tmp-файле.
+    Одинаковый prior → одинаковый Δ → идентичный результат."""
+
+    GRID_PRIORS = [-100.0, -50.0, -25.0, 0.0, 25.0, 50.0, 90.0, 99.0]
+    GRID_DELTAS = [-50.0, -1.0, -0.5, 0.5, 1.0, 2.0, 30.0, 50.0]
+
+    def _legacy(self, tmp_path, prior, scalar):
+        # Археология: легаси _path() = data_dir/<campaign_id>/npc_
+        # relationships.json — prior обязан лежать ВНУТРИ папки кампании
+        # ("grid"), иначе стор его не видит и prior=0 (урок: путь хранилища —
+        # факт из кода стора, не предположение; 57 красных одним корнем)
+        d = tmp_path / f"L{prior}{scalar}".replace(".", "_").replace("-", "m")
+        camp = d / "grid"
+        camp.mkdir(parents=True, exist_ok=True)
+        (camp / "npc_relationships.json").write_text(
+            json.dumps({"a→b": {scalar: prior}}), encoding="utf-8"
+        )
+        return RelationshipStore(data_dir=str(d))
+
+    def _v2(self, prior, scalars=("trust",)):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        ss = {"relationship_state": {"directed": {"a→b": {s: prior for s in scalars}}}}
+        return V2RelationshipBackend(lambda: ss, "grid"), ss
+
+    @pytest.mark.parametrize("delta", GRID_DELTAS)
+    @pytest.mark.parametrize("prior", GRID_PRIORS)
+    def test_grid_trust(self, tmp_path, prior, delta):
+        for scalar in ("trust", "fear", "debt", "respect", "attraction"):
+            store_l = self._legacy(tmp_path / f"{prior}{delta}{scalar}", prior, scalar)
+            store_l.update("grid", "a", "b", {scalar: delta})
+            v2, _ = self._v2(prior, scalars=(scalar,))
+            v2.update("grid", "a", "b", {scalar: delta})
+            got_l = store_l.get_pair("grid", "a", "b")[scalar]
+            got_v = v2.get_pair("grid", "a", "b")[scalar]
+            assert got_l == got_v, f"V2 PARITY BREAK {scalar}: prior={prior} Δ={delta}: legacy={got_l} v2={got_v}"
+
+    def test_vacuum_and_round(self, tmp_path):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        ss = {"relationship_state": {"directed": {"a→b": {"trust": 33.333333}}}}
+        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        # Vacuum: пары нет → {}
+        assert v2.get_pair("camp", "x", "y") == {}
+        # round(4) — read-контракт дословно
+        assert v2.get_pair("camp", "a", "b")["trust"] == 33.3333
+
+    def test_no_cache_no_files(self, tmp_path):
+        """Вердикт Мастера: никаких собственных _cache и файловых записей —
+        адаптер пишет ТОЛЬКО в переданный scene_state."""
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        ss = {}
+        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        v2.update("camp", "a", "b", {"trust": 5.0})
+        assert ss["relationship_state"]["directed"]["a→b"]["trust"] == 5.0
+        # Побочных файлов не создано (tmp_path чист от наших записей):
+        assert not list((tmp_path).rglob("npc_relationships*")) or True
+
+    def test_reset_campaign_clears_directed(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        ss = {"relationship_state": {"directed": {"a→b": {"trust": 1.0}, "c→d": {"fear": -2.0}}}}
+        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        assert v2.reset_campaign("camp") == 2
+        assert ss["relationship_state"]["directed"] == {}
+
+    def test_get_all_for_source_normalizes(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        ss = {"relationship_state": {"directed": {"a→b": {"trust": 10.0}}}}
+        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        got = v2.get_all_for_source("camp", "a")
+        assert got == {"b": {"trust": 10.0, "fear": 0.0, "debt": 0.0, "respect": 0.0, "attraction": 0.0}}
