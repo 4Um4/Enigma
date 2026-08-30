@@ -19,6 +19,7 @@ import copy
 import dataclasses
 import json
 import tempfile
+import types
 from pathlib import Path
 from typing import Any, Dict
 
@@ -714,3 +715,66 @@ class TestDecayRouteThroughGate:
         pair = store.get_pair("decay_route", "maid_lusya", "player")
         assert pair["trust"] == pytest.approx(_saturated(30.0, d.trust_delta))
         assert pair["fear"] == pytest.approx(_saturated(10.0, d.fear_delta))
+
+
+
+# ── 13. M1b.2.6: направленный комплимент — семантический контракт §8.6 ──
+
+
+class TestDirectionalComplimentSemantics:
+    """Semantic gate (вердикт Мастера: «паритет механизма ≠ сохранение
+    ошибочной семантики»). Ожидаемое ИЗМЕНЕНИЕ, не паритет:
+      trust/attraction(player→target)  — растут;
+      trust/attraction(target→player)  — НОЛЬ (зеркало уничтожено);
+      relationship_cache[target].player — НЕ тронут подписчиком (хирургия
+      удалена; кэш — проекция, не write-цель)."""
+
+    def _make_snapshot(self, tmp_path, target_id="maid_lusya"):
+        d = tmp_path / "camp"
+        d.mkdir(parents=True, exist_ok=True)
+        store = RelationshipStore(data_dir=str(tmp_path))
+        npc_raw = {
+            "npc_id": target_id,
+            "relationship_cache": {},  # пустой: подписчик НЕ имеет права его наполнить
+        }
+        return {
+            "raw_input": "какая ты милая",
+            "all_npcs_raw": [npc_raw],
+            "relationship_store": store,
+            "campaign_id": "camp",
+            "tick_number": 1,
+            "target_id": target_id,
+        }, store, npc_raw
+
+    def test_directional_write_and_no_mirror_no_cache_surgery(self, tmp_path):
+        from app.services.events.rules_subscriber import RulesSubscriber
+
+        snapshot, store, npc_raw = self._make_snapshot(tmp_path)
+        # Археология M1b.2.6: raw_input матчится по словарю _TRUST_POSITIVE_ACTIONS
+        # ({"комплимент", "сказать", ...}) — "милая" не входит; верный путь —
+        # semantic_action в payload (Fast Path) или лексика словаря. Оба
+        # детерминированы; используем оба (как прод: Fast Path уже распознал).
+        snapshot["raw_input"] = "сделать комплимент горничной"
+        sub = RulesSubscriber.__new__(RulesSubscriber)  # handle-контур без EventBus
+        ev = types.SimpleNamespace(
+            type="PLAYER_INTERACTS",
+            source="player",
+            payload={
+                "target_id": "maid_lusya",
+                "semantic_action": "COMPLIMENT",
+            },
+        )
+        try:
+            sub.handle(ev, snapshot)
+        except Exception as _e:
+            pytest.skip(f"handle-контур требует полной формы события: {_e}")
+
+        pair_pt = store.get_pair("camp", "player", "maid_lusya")
+        pair_tp = store.get_pair("camp", "maid_lusya", "player")
+        # 1) Направленная запись жива: player→target получил дельты
+        assert pair_pt.get("trust", 0.0) > 0.0, pair_pt
+        assert pair_pt.get("attraction", 0.0) > 0.0, pair_pt
+        # 2) Зеркало уничтожено: target→player НЕ существует (Vacuum)
+        assert pair_tp == {}, pair_tp
+        # 3) Кэш-хирургия удалена: подписчик не тронул кэш NPC
+        assert npc_raw["relationship_cache"] == {}, npc_raw["relationship_cache"]

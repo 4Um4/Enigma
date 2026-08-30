@@ -238,36 +238,27 @@ class RulesSubscriber:
             _rel_store = snapshot.get("relationship_store")
             _campaign_id = snapshot.get("campaign_id")
             if _rel_store and _campaign_id:
-                # Запись в SSOT (оба направления)
-                _rel_store.update(
-                    _campaign_id,
-                    "player",
-                    target_id,
-                    {"trust": trust_delta, "attraction": attraction_delta},
-                )
-                _rel_store.update(
-                    _campaign_id,
-                    target_id,
-                    "player",
-                    {"trust": trust_delta, "attraction": attraction_delta},
+                # M1b.2.6 (ADR-O-371; ТЗ-RE-01 §8.6 «зеркальный комплимент
+                # заменяется направленной семантикой»; вердикт Мастера —
+                # semantic gate, не миграция): ОДНА направленная запись
+                # player→target. СТОП-условия: зеркальная target→player
+                # удалена (комплимент игрока меняет отношение ИГРОКА к цели —
+                # мнение цели о игроке формируется её собственным восприятием,
+                # не автозеркалом); кэш-хирургия attraction/trust удалена —
+                # кэш есть read-проекция стора (P1 ARCH), его наполняет
+                # StateApplicator-гидратация, не подписчик (обходной путь
+                # вокруг SSOT закрыт; M1b.3 доведёт fallback-чтения DecisionHub).
+                from app.services.social.relationship_write_gate import (
+                    RelationshipWriteGate,
                 )
 
-                # Инжект в target_npc.relationship_cache для DecisionHub
-                _target_npc = next(
-                    (
-                        n
-                        for n in snapshot.get("all_npcs_raw", [])
-                        if n.get("npc_id") == target_id or n.get("id") == target_id
-                    ),
-                    None,
+                RelationshipWriteGate(_rel_store).apply(
+                    _campaign_id,
+                    "player",
+                    target_id,
+                    {"trust": trust_delta, "attraction": attraction_delta},
+                    cause=f"rules:compliment:{_semantic_action}",
                 )
-                if _target_npc:
-                    _rc = _target_npc.setdefault("relationship_cache", {})
-                    _player_rc = _rc.setdefault("player", {})
-                    _player_rc["trust"] = _player_rc.get("trust", 0.0) + trust_delta
-                    _player_rc["attraction"] = (
-                        _player_rc.get("attraction", 0.0) + attraction_delta
-                    )
 
         return RulesDelta(
             target_id=target_id,
