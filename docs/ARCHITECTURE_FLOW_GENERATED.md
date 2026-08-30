@@ -111,6 +111,7 @@ flowchart TD
         DMContractBuilder("DM Contract Builder"):::application
         SceneOutcomeBuilder("Scene Outcome Builder"):::application
         WorldObjectStore("World Object Store (Topology Facade)"):::application
+        AffordanceResolver("AffordanceResolver (W2 Pure Affordance Projection)"):::application
     end
 
     subgraph DOMAIN[Domain Layer]
@@ -607,6 +608,7 @@ flowchart TD
     MemoryManager -->|"memory entries → context"| VerbalizationContext
     WorldObjectStore -->|"typed operations: spawn / establish / release / relocate"| WorldObject
     WorldObjectStore -->|"scene_state['world_objects'] subtree (lazy on write only)"| SceneState
+    WorldObjectStore -->|"read-only composition (query_objects_at -> resolve)"| AffordanceResolver
 
     %% === АРХИТЕКТУРНЫЕ ЗАПРЕТЫ ===
     DecisionHub -.->|"🚫 FORBIDDEN: Use T+0 pressure (Only T-1)"| Raw_Delta:::forbidden
@@ -886,6 +888,7 @@ flowchart TD
     TopicExtractor -.->|"🚫 REQUIRED: Topic must not be empty (Устав §3.2)"| VerbalizationContext:::forbidden
     DMAgent -.->|"🚫 REQUIRED: When npc_movement_summary is empty, inject explicit prohibition against describing NPC movement (Invariant 2, ADR-119)"| DMContractBuilder:::forbidden
     VerbalizationContext -.->|"🚫 REQUIRED: is_moving field must be set from DecisionHub intent (APPROACH/FLEE/RETREAT/FOLLOW/PATROL) + can_move (Invariant 2, ADR-119)"| DMAgent:::forbidden
+    AffordanceResolver -.->|"🚫 FORBIDDEN: stored affordances на WorldObject; LLM/IO/мутации в resolver и предикатах; расширение реестра предикатов или WorldActionType без мини-ADR; скрытые гейты вне precondition-кортежей"| WorldObject:::forbidden
     Any -.->|"🚫 FORBIDDEN: прямая dict-хирургия scene_state['world_objects'] вне WorldObjectStore (ADR-O-371; ловится INV-WORLD-OBJECT-TOPOLOGY как DOUBLE TRUTH)"| world_objects:::forbidden
     Any -.->|"🚫 FORBIDDEN: presentation-поля (sprite/mesh/texture/animation/model) в WorldObject или его сериализации (W0-инвариант, ТЗ §17/§19.3)"| WorldObject:::forbidden
     WorldObjectStore -.->|"🚫 REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish)"| WorldObject:::forbidden
@@ -1659,6 +1662,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | MemoryManager | VerbalizationContext | memory entries → context | STM + L2 provide conversation history and beliefs | `memory/memory_manager.py` | - |
 | WorldObjectStore | WorldObject | typed operations: spawn / establish / release / relocate | Мутация protected-полей ТОЛЬКО через операции; переходы в domain-слое валидируются конструктором (safe by construction). | `-` | - |
 | WorldObjectStore | SceneState | scene_state['world_objects'] subtree (lazy on write only) | SSOT — subtree scene_state; стор ничего не держит; на диск — только atomic_commit_all (Foundation Freeze); загрузка — load_scene_at. | `-` | - |
+| WorldObjectStore | AffordanceResolver | read-only composition (query_objects_at -> resolve) | W2 НЕ расширяет WorldTopologyProvider (ADR-O-371 taboo); объекты — только через стор/снапшот-поле; resolver pure, без IO/LLM/мутаций | `-` | - |
 
 ### Архитектурные запреты (Constraints)
 
@@ -1941,6 +1945,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TopicExtractor | VerbalizationContext | REQUIRED: Topic must not be empty (Устав §3.2) | `npc/topic_extractor.py` |
 | DMAgent | DMContractBuilder | REQUIRED: When npc_movement_summary is empty, inject explicit prohibition against describing NPC movement (Invariant 2, ADR-119) | `agents/dm_agent.py` |
 | VerbalizationContext | DMAgent | REQUIRED: is_moving field must be set from DecisionHub intent (APPROACH/FLEE/RETREAT/FOLLOW/PATROL) + can_move (Invariant 2, ADR-119) | `npc_tick_pipeline.py` |
+| AffordanceResolver | WorldObject | FORBIDDEN: stored affordances на WorldObject; LLM/IO/мутации в resolver и предикатах; расширение реестра предикатов или WorldActionType без мини-ADR; скрытые гейты вне precondition-кортежей | `-` |
 | Any | world_objects | FORBIDDEN: прямая dict-хирургия scene_state['world_objects'] вне WorldObjectStore (ADR-O-371; ловится INV-WORLD-OBJECT-TOPOLOGY как DOUBLE TRUTH) | `-` |
 | Any | WorldObject | FORBIDDEN: presentation-поля (sprite/mesh/texture/animation/model) в WorldObject или его сериализации (W0-инвариант, ТЗ §17/§19.3) | `-` |
 | WorldObjectStore | WorldObject | REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish) | `-` |

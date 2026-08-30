@@ -16,6 +16,11 @@ nodes:
     layer: Application
     label: "World Object Store (Topology Facade)"
     description: "ADR-O-371: единственный фасад над scene_state['world_objects']. Статический сервис (прецеденты: CommitmentRegistry / RelationshipStateStore). Read: frozen DTO, без lazy-init, повреждённая структура — громкий отказ. Write: ТОЛЬКО типизированные операции (spawn / establish_relation / release_relation / relocate); generic update(**changes) отсутствует by construction; межобъектная валидация (существование object-целей, циклы, опора FREE+та же локация, позиционные зависимые). Caller-guard отложен до W3 (появление легального runtime-writer)."
+  AffordanceResolver:
+    type: service
+    layer: Application
+    label: "AffordanceResolver (W2 Pure Affordance Projection)"
+    description: "ADR-O-372: pure (WorldObject, BodyStateView, npc_position) -> Tuple[SemanticAction, ...]; возвращает действия с выполненными предусловиями, кортежи — для ревалидации W3. Stored-поля affordances нет (ADR-O-371). Реестр предикатов v1 закрыт (7); WorldActionType — закрытый enum (19, ТЗ §19.2). Вход тела — BodyStateView (frozen read-model, оси через vital_state). Substrate-only: 0 runtime-потребителей; wiring — W3."
 edges:
   - from: WorldObjectStore
     to: WorldObject
@@ -25,7 +30,16 @@ edges:
     to: SceneState
     label: "scene_state['world_objects'] subtree (lazy on write only)"
     condition: "SSOT — subtree scene_state; стор ничего не держит; на диск — только atomic_commit_all (Foundation Freeze); загрузка — load_scene_at."
+  - from: WorldObjectStore
+    to: AffordanceResolver
+    label: "read-only composition (query_objects_at -> resolve)"
+    condition: "W2 НЕ расширяет WorldTopologyProvider (ADR-O-371 taboo); объекты — только через стор/снапшот-поле; resolver pure, без IO/LLM/мутаций"
 constraints:
+  - source: AffordanceResolver
+    target: WorldObject
+    rule: "FORBIDDEN: stored affordances на WorldObject; LLM/IO/мутации в resolver и предикатах; расширение реестра предикатов или WorldActionType без мини-ADR; скрытые гейты вне precondition-кортежей"
+    severity: CRITICAL
+    adr_ref: "ADR-O-372"
   - source: Any
     target: world_objects
     rule: "FORBIDDEN: прямая dict-хирургия scene_state['world_objects'] вне WorldObjectStore (ADR-O-371; ловится INV-WORLD-OBJECT-TOPOLOGY как DOUBLE TRUTH)"

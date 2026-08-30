@@ -48,6 +48,13 @@ ACTION_PERCEPTION_RADIUS: dict[str, float] = {
 # пробивает слуховые мембраны). Неизвестное действие слышно как обычное (major).
 _DEFAULT_ACTION_RADIUS: float = 15.0
 
+# W2 (ADR-O-372): порог смежности объектных affordances (IS_ADJACENT_TO).
+# Евклидова дистанция NPC↔объект, метры. Calibration v1 (прецедент S2B.4 —
+# константа калибровки, не физический закон). Смежность вычисляется ТОЛЬКО
+# в CarrierMode.FREE: в HELD/CONTAINED/ATTACHED позиция объекта
+# неавторитетна (ADR-O-371) → предикат честно False (§ENIGMA-003).
+AFFORDANCE_ADJACENCY_RADIUS_M: float = 1.5
+
 
 def action_perception_radius(action_type: str) -> float:
     """S210: единая точка резолва радиуса действия. Неизвестное → дефолт."""
