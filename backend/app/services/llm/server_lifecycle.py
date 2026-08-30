@@ -66,6 +66,10 @@ def acquire_llama_server_lock(port: int, health_url: str) -> tuple:
         _sock.settimeout(0.5)
         _sock.bind(("127.0.0.1", port))
     except OSError as e:
+        # L4 (детектор «except: return without logging»): вердикт лока
+        # каузально значим (порт занят → спавн запрещён) — обязан быть в
+        # логах, а не только в возвращённом tuple, который могут игнорировать
+        logger.debug(f"[LLM_LOCK] port {port} occupied — reuse (loading or alive): {e}")
         return ("reuse", f"port {port} occupied (loading or alive): {e}")
     finally:
         _sock.close()
