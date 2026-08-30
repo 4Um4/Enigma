@@ -2,13 +2,19 @@
 path: /project/backend/app/services/social/v2_relationship_backend.py
 Назначение: V2RelationshipBackend — единственный runtime-носитель пяти
     скаляров отношений после cutover (ADR-O-371 / M1b.4; вердикт Мастера:
-    «один субстрат — один хозяин»). Максимально тупой адаптер:
+    «один субстрат — один хозяин»; RAM-GO: «RAM — runtime authority,
+    сцена — persistence projection»):
       - внешний интерфейс = legacy RelationshipStore (update/get_pair/
         get_all/get_all_for_source/reset_campaign) — все существующие
         инъекции и гейт работают без единой правки вызовов;
-      - scene_state["relationship_state"]["directed"] — ЕДИНСТВЕННОЕ
-        хранилище; собственных _cache НЕТ; файловых записей НЕТ; новых
-        relationship-семантик НЕТ;
+      - RAM-dict (self._directed_ram) — RUNTIME AUTHORITY: рабочий
+        носитель, переживает пред-сценовое состояние (инварианты IPT,
+        direct-API, boot — паритет-контракт легаси, IPT-инцидент
+        friend==enemy=50); НЕ кэш (кэш = копия истины; RAM = сама истина);
+      - scene_state["relationship_state"]["directed"] — PERSISTENCE
+        PROJECTION: sync_into() на update + подъём (hydrate) при bind;
+        disk-on-update ЗАПРЕЩЁН (Foundation Freeze: диск — только
+        atomic_commit_all Фазы 10);
       - write: headroom-сатурация Δ×(100−|v|)/100 + clamp [-100,100]
         ДОСЛОВНО по legacy (не улучшать поведение при адаптации);
       - read: Vacuum (нет пары = {}) + round(4) — legacy-контракт;
@@ -27,7 +33,7 @@ path: /project/backend/app/services/social/v2_relationship_backend.py
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -46,52 +52,74 @@ def _clamp(value: float, lo: float = -100.0, hi: float = 100.0) -> float:
 
 
 class V2RelationshipBackend:
-    """Тупой адаптер над scene_state.directed. Interface == legacy store.
+    """RAM-authoritative бэкенд пяти скаляров. Interface == legacy store.
 
-    Не является SSOT сам по себе: истина — scene_state; адаптер — единственный
-    легальный runtime-доступ к directed-поддереву для legacy-совместимого API.
+    Инварианты RAM-GO (вердикт Мастера): (1) один runtime owner — RAM;
+    сцена — проекция; после bind читается ТОЛЬКО RAM (hydrate однократен);
+    (2) никакого disk-on-update; (3) sync_into идемпотентен.
     """
 
     def __init__(
         self,
-        scene_state_provider: Callable[[], Dict[str, Any]],
-        campaign_id: str,
+        scene_state_provider: Optional[Callable[[], Dict[str, Any]]] = None,
+        campaign_id: Optional[str] = None,
     ) -> None:
-        """scene_state_provider — лямбда, возвращающая АКТУАЛЬНЫЙ scene_state
-        dict (сцена пересоздаётся при смене локации — держать старую ссылку
-        нельзя, иначе адаптер станет читателем призрака)."""
-        if not campaign_id:
-            raise ValueError("V2RelationshipBackend: campaign_id обязателен")
+        """RAM-GO: _directed_ram — runtime authority (см. класс-докстринг).
+        scene_state_provider — vestigial (удержан до доказательства
+        pre-scene-теста; после — кандидат на удаление M1b.5): сцена нужна
+        только как sync-цель проекции, доступная после bind.
+        late-bind: конструирование без кампании легально (GameLoop строится
+        до известности campaign_id); первый осмысленный API-вызов
+        привязывает (см. _ensure_lazy_bind)."""
         self._scene_state_provider = scene_state_provider
         self._campaign_id = campaign_id
+        self._directed_ram: Dict[str, Dict[str, float]] = {}
 
-    # ── внутренняя навигация по поддереву ──
+    def bind(self, campaign_id: str, scene_state: Optional[Dict[str, Any]] = None) -> None:
+        """Закрепление кампании (однократно; повторный bind той же кампании —
+        идемпотент; чужой — громкий отказ, не тихая подмена).
+
+        RAM-GO hydrate: при переданной сцене и ПУСТОМ RAM — подъём directed
+        из сцены (загрузка сохранения: сцена → RAM, не параллельное чтение).
+        Пред-сценовые записи RAM-носителя (IPT-контракт) НЕ затираются:
+        hydrate только наполняет пустой, pre-scene values приоритетны
+        (они были записаны раньше сцены)."""
+        if self._campaign_id is None:
+            self._campaign_id = campaign_id
+            if isinstance(scene_state, dict):
+                _rs = scene_state.get(_KEY_ROOT)
+                _d = _rs.get(_KEY_DIRECTED) if isinstance(_rs, dict) else None
+                if isinstance(_d, dict) and _d and not self._directed_ram:
+                    self._directed_ram = {k: dict(v) for k, v in _d.items()}
+                    logger.info(f"[V2_REL] bind: hydrate из сцены ({len(_d)} пар)")
+            logger.info(f"[V2_REL] bind: campaign={campaign_id}")
+        elif self._campaign_id != campaign_id:
+            raise ValueError(
+                f"V2RelationshipBackend уже привязан к '{self._campaign_id}', "
+                f"запрошен bind('{campaign_id}') — смена кампании инстансом "
+                f"запрещена (создавайте новый адаптер на кампанию)"
+            )
+
+    def _ensure_lazy_bind(self, campaign_id: str) -> None:
+        """Lazy-привязка: непривязанный адаптер + осмысленный вызов → bind.
+        RAM-GO: сцена НЕ требуется (RAM-носитель жив без сцены — именно
+        это закрыло IPT-инцидент: update до первого тика обязан работать)."""
+        if self._campaign_id is None and campaign_id:
+            self.bind(campaign_id)
+
+    # ── внутренняя навигация: RAM = runtime authority ──
 
     def _directed(self, create: bool = False) -> Dict[str, Dict[str, float]]:
-        """Навигация к directed-поддереву. create=True (write-путь): лениво
-        создаёт relationship_state.directed по цепочке (паттерн M1a
-        apply_need_deltas — иначе update на пустом scene_state писал бы в
-        выброшенный локальный dict, тест no_cache поймал ровно это).
-        create=False (read): отсутствие = {} без мутации."""
-        scene_state = self._scene_state_provider()
-        if not isinstance(scene_state, dict):
-            return {}
-        if create:
-            root = scene_state.setdefault(_KEY_ROOT, {})
-            if not isinstance(root, dict):
-                return {}
-            return root.setdefault(_KEY_DIRECTED, {})
-        root = scene_state.get(_KEY_ROOT)
-        if not isinstance(root, dict):
-            return {}
-        directed = root.get(_KEY_DIRECTED)
-        if not isinstance(directed, dict):
-            return {}
-        return directed
+        """RAM-носитель (runtime authority). create-параметр сохранён для
+        сигнатурной совместимости; RAM существует всегда — ленивая
+        инициализация сцены более не нужна (сцена — проекция, не истина)."""
+        return self._directed_ram
 
     def _campaign_guard(self, campaign_id: str) -> bool:
-        """Легаси-семантика: один инстанс — одна кампания (адаптер построен
-        на кампанию; чужой campaign_id = программная ошибка вызывающего)."""
+        """Легаси-семантика: один инстанс — одна кампания. Непривязанный
+        адаптер → lazy-bind (RAM не требует сцены)."""
+        if self._campaign_id is None:
+            self._ensure_lazy_bind(campaign_id)
         return campaign_id == self._campaign_id
 
     # ── WRITE: headroom + clamp ДОСЛОВНО по legacy ──
@@ -139,7 +167,21 @@ class V2RelationshipBackend:
             headroom = (100.0 - abs(current_val)) / 100.0
             effective = _change * headroom
             current[attr] = _clamp(current_val + effective)
-        # Персистенции здесь НЕТ: scene_state уедет в atomic_commit (Фаза 10)
+        # RAM-GO: немедленная проекция в живую сцену (если есть) — сцена
+        # актуальна для Фазы 10 без отдельного sync-вызова; идемпотентна
+        # (полная замена ключа пары); disk-on-update ЗАПРЕЩЁН.
+        self.sync_into_scene()
+
+    def sync_into_scene(self) -> None:
+        """RAM → сцена-проекция (если провайдер жив и сцена непуста).
+        Идемпотентен: directed := копия RAM (полная замена, не merge).
+        RAM-GO инвариант 3: sync∘sync == sync."""
+        _scene = self._scene_state_provider() if self._scene_state_provider else None
+        if not isinstance(_scene, dict) or not _scene:
+            return
+        _rs = _scene.setdefault(_KEY_ROOT, {})
+        if isinstance(_rs, dict):
+            _rs[_KEY_DIRECTED] = {k: dict(v) for k, v in self._directed_ram.items()}
 
     # ── READ: Vacuum + round(4) ДОСЛОВНО ──
 
@@ -201,17 +243,9 @@ class V2RelationshipBackend:
         npc_relationships.json). Возвращает число сброшенных пар."""
         if not self._campaign_guard(campaign_id):
             return 0
-        scene_state = self._scene_state_provider()
-        if not isinstance(scene_state, dict):
-            return 0
-        root = scene_state.get(_KEY_ROOT)
-        if not isinstance(root, dict):
-            return 0
-        directed = root.get(_KEY_DIRECTED)
-        if not isinstance(directed, dict):
-            return 0
-        count = len(directed)
-        root[_KEY_DIRECTED] = {}  # очистка in-place: scene_state — единственный носитель
+        count = len(self._directed_ram)
+        self._directed_ram = {}  # RAM-authority: сброс носителя
+        self.sync_into_scene()   # проекция сброса в живую сцену
         if count:
             logger.info(f"[V2_REL] reset_campaign: сброшено {count} пар ({campaign_id})")
         return count

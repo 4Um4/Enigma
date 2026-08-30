@@ -9,34 +9,31 @@ path: backend/app/services/dto.py
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 from app.domain.identity_events import EffectiveDrives
 from app.domain.intent import IntentDTO
 from app.models.cfrm import ClusterOccupancy, EventBuffer
-from app.models.state_delta import DeltaDomain
+from app.models.state_delta import (
+    DELTA_POLICY_REGISTRY as DELTA_POLICY_REGISTRY,
+)
+from app.models.state_delta import (
+    ReductionPolicy as ReductionPolicy,
+)
 from app.models.will import IntentPressureProfile
 from app.services.drf_bus import DRFBus
 from app.services.npc.kernel_rng import KernelRNG
 
-
-class ReductionPolicy(Enum):
-    """Политика редукции дельт при агрегации"""
-
-    ADDITIVE = "additive"
-    BOUNDED_ADDITIVE = "bounded_additive"
-    OVERWRITE = "overwrite"
-    PHYSICS_COMPOSITE = "physics_composite"
-
-
-DELTA_POLICY_REGISTRY = {
-    DeltaDomain.SOCIAL: ReductionPolicy.ADDITIVE,
-    DeltaDomain.EMOTION: ReductionPolicy.BOUNDED_ADDITIVE,
-    DeltaDomain.REPUTATION: ReductionPolicy.ADDITIVE,
-    DeltaDomain.IDENTITY: ReductionPolicy.OVERWRITE,
-    DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
-}
+# ADR-O-373 (вердикт Мастера): ONE POLICY TYPE / ONE POLICY REGISTRY /
+# ONE ENUM IDENTITY. Дубликат enum и реестра УДАЛЁН — единственный владелец
+# app/models/state_delta.py; dto.py ре-экспортирует канонические объекты
+# (импорт в голове модуля; redundant alias «X as X» — PEP 484 explicit
+# re-export, единственная форма, которую fix=true-автофикс не съедает как
+# F401). Урок S231: комментарии ВНУТРИ import-блока держат I001 живым —
+# документация дубля живёт здесь, не между импортами. Дубль определений
+# = Enum Identity Split: aggregate_deltas сравнивал политики РАЗНЫХ классов
+# → PHYSIOLOGY молча падала в algebraic-редукцию (last-wins), вклад одного
+# из продюсеров терялся на слое агрегации.
 
 
 @dataclass
@@ -108,7 +105,7 @@ class _TickContext:
     spatial_query: Optional[Any] = None
     # ADR-O-313: Проброс TaskScheduler для чтения свежих реплик (S128 FIX)
     task_scheduler: Optional[Any] = None
-    
+
     # S151: Экономический профиль игрока для сборки EmbodiedStatusDTO в Фазе 9
     eco_profile: Optional[Any] = None
     # ENIGMA SELF-HEALING (Level 1): For MvpPipelineProbe (N1, M-03)
@@ -151,7 +148,7 @@ class _TickContext:
             _rng = KernelRNG(tick=self.tick_number, npc_id=npc_id, salt="dto_fallback_rng")
         else:
             _rng = self.rng_factory(npc_id)
-        
+
         self._rng_cache[npc_id] = _rng
         return _rng
 

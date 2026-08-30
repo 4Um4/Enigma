@@ -146,7 +146,7 @@ def compile_graph(
     # Комнаты — bounding boxes для LOS, коллизий, контейнмента.
     # Добавляются в граф ТОЛЬКО если не представлены навигационными узлами.
     # Комнаты с навигационным представлением обогащают alias_map своими именами.
-    rooms: Dict[str, dict] = {}
+    rooms: Dict[str, Dict[str, Any]] = {}
     if _has_rooms:
         if isinstance(rooms_raw, list):
             for item in rooms_raw:
@@ -363,7 +363,7 @@ def compile_graph(
     # ── Layer 3: Boundary Nodes (ДОЛГ 6.2) ──────────────────────────
     # Читаем adjacency и создаём виртуальные узлы выхода из чанка.
     # Boundary node — семантическая точка перехода в соседний чанк.
-    boundary_map: Dict[str, dict] = {}
+    boundary_map: Dict[str, Dict[str, Any]] = {}
     adjacency = editor_data.get("adjacency")
     if isinstance(adjacency, dict) and adjacency and graph:
         _create_boundary_nodes(
@@ -400,7 +400,7 @@ def compile_graph(
 
 def _validate_navigation_geometry(
     graph: Dict[str, Any],
-    connections: Dict[str, set],
+    connections: Dict[str, Set[str]],
     spatial_walls: List[Dict[str, Any]],
     spatial_obstacles: List[Dict[str, Any]],
     location_id: str,
@@ -590,15 +590,15 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
     ADR-O-324: Перенесено из SceneStateManager для обеспечения Single Spatial Authority.
     SpatialService теперь владеет геометрией стен и может валидировать сегменты пути.
     """
-    spatial_walls: list[dict] = []
-    spatial_obstacles: list[dict] = []
+    spatial_walls: List[Dict[str, Any]] = []
+    spatial_obstacles: List[Dict[str, Any]] = []
 
     if not editor_data:
         return spatial_walls, spatial_obstacles
 
     # Разрезаем стены проёмами (двери)
     # S143 FIX §1: Дверь разрезает ВСЕ стены, проходящие через её координаты (решает проблему дубликатов стен)
-    wall_openings: dict[str, list[dict]] = {}
+    wall_openings: Dict[str, List[Dict[str, Any]]] = {}
     
     # 1. Читаем проёмы из objects (двери-переходы между локациями)
     for obj in editor_data.get("objects", []):
@@ -693,7 +693,7 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
     return spatial_walls, spatial_obstacles
 
 
-def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
+def _split_wall_by_openings(wall: Dict[str, Any], openings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Разрезает сегмент стены на части, исключая проёмы (двери, проходы)."""
     if not openings:
         return [
@@ -882,7 +882,7 @@ def _create_boundary_nodes(
     graph: Dict[str, NodeRef],
     connections: Dict[str, Set[str]],
     alias_map: Dict[str, str],
-    boundary_map: Dict[str, dict],
+    boundary_map: Dict[str, Dict[str, Any]],
     location_id: str,
     adjacency: Dict[str, Any],
     origin: Dict[str, float],
@@ -996,8 +996,8 @@ def _create_boundary_nodes(
 
 
 def _infer_connections_from_adjacency(
-    rooms: Dict[str, dict], tolerance: float = 0.5
-) -> List[dict]:
+        rooms: Dict[str, Dict[str, Any]], tolerance: float = 0.5
+) -> List[Dict[str, Any]]:
     """Выводит связи между комнатами на основе смежности их bounding box.
     Если две комнаты имеют общую стену (пересечение по оси > tolerance),
     между ними создаётся passage."""

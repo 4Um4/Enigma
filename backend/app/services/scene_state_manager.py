@@ -38,7 +38,7 @@ import os
 import random
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from app.core.calendar import Calendar
 from app.core.config import settings
@@ -277,10 +277,17 @@ class SceneStateManager:
             # S1-FIX (INV-COMMIT-CARDINALITY): 1 атомарный коммит для всех локаций.
             _valid_scenes = {k: v for k, v in self._tick_scenes.items() if v is not None}
             if self._persistence and _valid_scenes:
+                # M1b.4.2: directed-поддерево обязано быть идентичным во всех
+                # локациях кампании (отношения переживают смену локации) —
+                # синхронизация ДО транзакции, консистентность — транзакцией.
+                self._sync_relationship_directed(_valid_scenes)
                 self._persistence.atomic_commit_all(
                     campaign_id=campaign_id,
                     all_scenes=_valid_scenes,
                 )
+                # M1b.4.2: маркер .migrated только ПОСЛЕ успешного коммита
+                # (ратифицировано: истина cutover — сохранённый v2, не маркер)
+                self._confirm_v2_migration(campaign_id)
             # Диагностика: round-trip проверка — пережил ли traversal save→load?
             if self._persistence and self._tick_scenes:
                 # Проверяем первую попавшуюся сцену из кэша
@@ -2170,6 +2177,45 @@ class SceneStateManager:
         )
 
         return "\n".join(lines)
+
+
+    def _sync_relationship_directed(self, scenes: Dict[str, Dict[str, Any]]) -> None:
+        """M1b.4.2: копия directed-поддерева из сцены-источника во все сцены.
+        Источник: первая сцена с непустым relationship_state.directed
+        (все копии идентичны транзакцией — выбор источника детерминирован
+        порядком dict, самосогласован внутри тика)."""
+
+        def _get_directed(scene: Dict[str, Any]) -> Any:
+            _rs = scene.get("relationship_state") if isinstance(scene, dict) else None
+            if not isinstance(_rs, dict):
+                return None
+            _d = _rs.get("directed")
+            return _d if isinstance(_d, dict) and _d else None
+
+        _source = next((_get_directed(s) for s in scenes.values() if _get_directed(s)), None)
+        if _source is None:
+            return
+        import copy as _copy
+
+        for scene in scenes.values():
+            if isinstance(scene, dict):
+                _rs = scene.setdefault("relationship_state", {})
+                if isinstance(_rs, dict):
+                    _rs["directed"] = _copy.deepcopy(_source)
+
+    def _confirm_v2_migration(self, campaign_id: str) -> None:
+        """M1b.4.2: .migrated после успешного atomic_commit_all. Безопасный
+        no-op при отсутствии legacy-файла (новые кампании)."""
+        try:
+            from app.services.social.relationship_state_store import (
+                RelationshipStateStore,
+            )
+
+            _saves = getattr(self, "_saves_dir", None)
+            if _saves:
+                RelationshipStateStore.confirm_migration(campaign_id, str(_saves))
+        except Exception as e:
+            logger.warning(f"[M1b.4.2] confirm_migration: {e}")
 
 
 def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:

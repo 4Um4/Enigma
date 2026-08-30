@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+# Phase-0 debt (mypy-strict): Optional/Tuple/UUID использовались в аннотациях,
+# но не были импортированы — под from __future__ import annotations это
+# молча работало, но ломало любой runtime-интроспекцию типов (get_type_hints).
+from typing import Optional, Tuple
+from uuid import UUID
+
 """
 path: backend/app/models/psychological.py
 Назначение: Централизованные типы психологического слоя ENIGMA.

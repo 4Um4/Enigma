@@ -1,4 +1,4 @@
-# ТЗ: Лаборатория калибровки психики ENIGMA
+﻿# ТЗ: Лаборатория калибровки психики ENIGMA
 
 **Версия документа:** `2.0` (актуализация после M1-ядра, сессии S220–S222, Вариант B)
 **Статус реализации:** M0 ЗАВЕРШЁН (S213) + M1-ЯДРО ЗАВЕРШЕНО (S220–S222): Intervention Routing (ADR-O-367), ScenarioPlayer, нативные графики Pygame. UI = полноэкранный режим Map Editor (F5), исключение из §1.1 — ADR-O-368. 62 теста лаборатории. Ключевое открытие M0 — 0.3; ключевые решения M1 — Addendum M1 (раздел 0.4).`
@@ -684,7 +684,7 @@ UI должен подсвечивать карточку NPC вспышкой (
 
 ### 11.2. Маппинг кнопок → `ActionType` → `Intent`
 
-Каждая кнопка должна вызывать `InterventionEvent.from_player_action(action_text, player_name, tick, **kwargs)` (см. `backend/app/contracts/interventions.py:36`) и скармливать его в `TickOrchestrator.execute(interventions=[...])`.
+Каждая кнопка должна вызывать `InterventionEvent.from_player_action(action_text, player_name, tick, **kwargs)` (см. `backend/app/contracts/interventions.py:27`) и скармливать его в `TickOrchestrator.execute(interventions=[...])`.
 
 **M1/S220 (ADR-O-367):** обязательный формат kwargs для действий с последствиями — `semantic_action=<UPPERCASE>`, `target_reference=<npc_id>`, `target_id=<npc_id>` (+ `secret_id` для BLACKMAIL/DIALOGUE). Ядро текст не парсит (L4.1) — text-only payload умирает на guard. Зарегистрированные семантики ядра: HELP, BLACKMAIL, ACCUSE (consequence-ветвь), ATTACK (боевая труба), MOVE, THREATEN, PERSUADE, GIVE (директивы), DIALOGUE. Часть кнопок 11.1 (Соврал/Оскорбил/Похвалил и пр. — speech-act-семантики) потребует мини-ADR на расширение реестра (прецедент ADR-O-362).
 

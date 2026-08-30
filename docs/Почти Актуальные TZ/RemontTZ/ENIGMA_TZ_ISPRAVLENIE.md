@@ -1,4 +1,4 @@
-# ТЗ: ПОЛНОЕ ВОССТАНОВЛЕНИЕ РАБОТОСПОСОБНОСТИ ENIGMA V.0.5.3.6.7
+﻿# ТЗ: ПОЛНОЕ ВОССТАНОВЛЕНИЕ РАБОТОСПОСОБНОСТИ ENIGMA V.0.5.3.6.7
 
 > **Документ:** Техническое задание на исправление дефектов кода
 > **Версия проекта:** Enigma-V.0.5.3.6.7
@@ -266,7 +266,7 @@
   Лучше: вызывать `self.scene_manager.lock_for_tick(campaign_id, _loc_id, force=True)` — единый SSOT.
 
 #### BUG-CORE-009 — `phase_2_world_tick.py` деструктурирует proactive NPC tuple неправильно
-- **Файл:строка:** `backend/app/services/game_loop/phase_2_world_tick.py:149`
+- **Файл:строка:** `backend/app/services/game_loop/phase_2_world_tick.py (BUG-CORE-009 устранён: файл теперь заглушка Stage 0 Task 0.10)`
 - **Severity:** Medium
 - **Симптом:** `NeedEngine.tick` получает `current_activity=""` для каждого NPC, потому что `_wt_npc_raw` на самом деле `NPCState`-объект, а не raw dict. Recovery и need decay считаются против неправильной activity, вызывая ложные голод/усталость во время сна и отдыха.
 - **Причина:** `_proactive_npc_data` строится как список `(_pid, _p_l2, _p_l0)` tuples (где `_p_l2 = load_l2_state_from_runtime_dict(_n)` — NPCState-объект). Но потребитель на строке 149 деструктурирует как `for _pid, _wt_npc_raw, _ in _proactive_npc_data:` → `_wt_npc_raw = _p_l2` (NPCState). Затем `isinstance(_wt_npc_raw, dict)` = `False`, ветка `hasattr(_wt_npc_raw, "routine")` обращается к `_p_l2.routine` — это скорее всего строка/enum, не dict.
@@ -1137,7 +1137,7 @@
   Также вызывать `lock_all_for_tick` по `_location_ids` из `SpatialRegistry.get_all_location_ids()` вместо `lock_for_tick(campaign_id, "")` — sleep должен обрабатывать все локации.
 
 #### BUG-FB-003 — Двойной `/api/api/` prefix на `/api/debug/llm/restart`
-- **Файл:строка:** `backend/app/api/routes.py:160` + `backend/app/main.py:487`
+- **Файл:строка:** `backend/app/api/routes.py:160` + `backend/app/main.py:401`
 - **Severity:** High
 - **Фикс:** `@router.post("/debug/llm/restart")` (router уже смонтирован с `prefix="/api"`).
 
@@ -1471,7 +1471,7 @@
 
 | # | Bug IDs | Что делать |
 |---|---------|------------|
-| 2.1 | BUG-CORE-009 | Деструктурировать tuple правильно в `phase_2_world_tick.py:149` — lookup raw dict из `tick_ctx.all_npcs_raw` |
+| 2.1 | BUG-CORE-009 | Деструктурировать tuple правильно в `phase_2_world_tick.py (BUG-CORE-009 устранён: файл теперь заглушка Stage 0 Task 0.10)` — lookup raw dict из `tick_ctx.all_npcs_raw` |
 | 2.2 | BUG-CORE-011 + BUG-CORE-012 | Заменить `random.choice` / `random.Random(seed)` на `KernelRNG(...)` в `task_scheduler.py:171,199` и `resolution_engine.py:127,145` |
 | 2.3 | BUG-CORE-013 | Собирать `l1_drift_events` из `BreakProgressEngine.calculate()` и аппендить `TraitDriftEvent` в `npc_tick_pipeline.py` per-NPC цикле |
 | 2.4 | BUG-CORE-015 | DRF scoring overlay — использовать `getattr(_intent, "speaker", None) or getattr(_intent, "npc_id", None) or ...` |

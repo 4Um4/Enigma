@@ -164,6 +164,13 @@ class GameLoop:
         from app.services.social.mvp_tavern_controller import MvpTavernController
         _canon_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
         if _canon_path.exists():
+            # M1b.4.2 (ADR-O-371): V2 cutover — ДО первого захвата _relationships
+            # подписчиками ниже. Все захватчики (mvp_controller, applicator,
+            # reliability, npc_dialogue, shared_context) получат v2-адаптер
+            # с late-bind; provider питается от _v2_scene_ref, который
+            # наполняется в init_scene_state (первая сцена = первый bind).
+            if memory_manager is not None:
+                memory_manager.switch_to_v2_relationships()
             # P2 FIX: Проброс RelationshipStore в MVP-контроллер для эмерджентной драмы.
             _rel_store = memory_manager._relationships if memory_manager else None  # noqa: ENIGMA001
             self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus(), relationship_store=_rel_store)

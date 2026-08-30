@@ -39,21 +39,17 @@ TICK ARCHITECTURE (Блок 1):
 """
 from __future__ import annotations
 
-import copy
 import json
 import logging
-import math
-import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from app.domain.movement import MovementIntent
+    pass
 
 from app.core.config import settings
 from app.domain.movement import PRIORITY_RANDOM, IntentDomain, MacroMovementGoal
-from app.models.npc_state import Intent
 from app.services.drf_bus import DRFBus
 from app.services.npc.kernel_rng import KernelRNG
 from app.services.scene_change import (
@@ -76,7 +72,6 @@ MOTION_ROUTING_THRESHOLD = 5.0  # единиц координат (для loggin
 # ──────────────────────────────────────────────────────────────────────────────
 
 from app.core.constants import (
-    CAMPAIGN_TTL_SECONDS,
     DEFAULT_LOCATION_ID,
     MACRO_SIM_THRESHOLD_SECONDS,
     MAX_CACHED_CAMPAIGNS,
@@ -474,18 +469,16 @@ class LifeEngine:
             # ADR-S96.3: Унификация скорости роста потребностей. _NEED_DECAY_PER_TICK = 0.08 (шкала 0.0-1.0).
             # Для body_state (шкала 0-100) умножаем на 100.
             hunger_rate = _NEED_DECAY_PER_TICK * 100.0  # 8.0 за тик
-            fatigue_rate = _NEED_DECAY_PER_TICK * 100.0
+            # ADR-O-373: fatigue-reconcile DORMANT — skip-семантика усталости
+            # уходит в BodyEngine-контур; catch-up физиологии = S2B.6/S2B.8.
 
             if "hunger" in body_state:
                 body_state["hunger"] = min(
                     100.0,
                     body_state.get("hunger", 0.0) + hunger_rate * ticks_equivalent,
                 )
-            if "fatigue" in body_state:
-                body_state["fatigue"] = min(
-                    100.0,
-                    body_state.get("fatigue", 0.0) + fatigue_rate * ticks_equivalent,
-                )
+            # ADR-O-373: блок fatigue-reconcile удалён (см. комментарий выше);
+            # hunger-строка жива до S2B.10 (LEGACY-HUNGER, не трогать).
 
         logger.info(
             f"[LIFE_ENGINE] Аналитическое согласование для '{campaign_id}': {elapsed_seconds:.1f}s ({ticks_equivalent:.1f} тиков)"
@@ -557,7 +550,7 @@ class LifeEngine:
                         _resolved_loc = _pos_loc
                     elif _ss_loc:
                         _resolved_loc = _ss_loc
-                
+
                 if _resolved_loc:
                     if npc.get("location_id") != _resolved_loc:
                         npc["location_id"] = _resolved_loc
@@ -923,7 +916,7 @@ class LifeEngine:
         """
         if cached := self._npc_cache.get(campaign_id):
             return cached
-        
+
         # COLD RECOVERY: Возвращаем пустой список, если кэш пуст.
         # Загрузка из БД будет выполнена при следующем вызове _load_npcs.
         return []
@@ -1801,7 +1794,7 @@ class LifeEngine:
             # NPC остаётся на месте. Лог уже записан в _resolve_position.
             return [], None
         new_location, new_position, activity_display = resolved
-        
+
         # BUG-DRIFT-010 FIX: Нормализуем target_node_id, добавляя префикс локации.
         # Без этого movement_engine в исходной локации не может однозначно определить target_loc
         # и гоняет NPC по boundary-узлам бесконечно ("батут" S186_TRANSFER).
@@ -2164,7 +2157,7 @@ class LifeEngine:
 
         recovery = STRESS_RECOVERY_SLEEPING if _is_sleeping else STRESS_RECOVERY_SAFE
         psyche["stress"] = max(0, current_stress - recovery)
-        
+
         # BUG-SLEEP-002 FIX: Sleep restores fatigue 7x faster than waking rest.
         # Без этого сон бесполезен функционально — усталость убывает одинаково быстро и днём, и ночью.
         _fatigue_rate = 0.20 if _is_sleeping else 0.03

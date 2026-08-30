@@ -14,7 +14,7 @@ path: backend/app/models/idle_tick.py
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Protocol, TypedDict
+from typing import Any, Dict, List, Protocol, Tuple, TypedDict
 
 from app.models.state_delta import StateDeltas
 
@@ -47,6 +47,14 @@ class NPCStateSnapshot(TypedDict):
     base_abilities: Dict[str, float]  # Базовые характеристики (из body_profile)
     modifiers: Dict[str, float]  # Модификаторы (травмы/баффы/экипировка, из body_state)
     statuses: List[str]  # Активные статусы (stagger, unconscious, bleeding и т.д.)
+
+    # S2B.5 / ADR-O-373: плоская READ-ONLY проекция для BodyEngine (Phase 0.5).
+    # Заполняется билдером снапшотов; mutable-ссылки на body_state ЗАПРЕЩЕНЫ
+    # (projection, не alias). combat-билдеры заполняют для единообразия контракта.
+    velocity: Tuple[float, float]  # Скорость — детекция WALK/RUN в BodyEngine
+    activity: str  # Активность (activity || routine.current — резолвит билдер)
+    coupling_mode: str  # AWAKE/DROWSY/SLEEPING/REM (из coupling_profile)
+    body_mass: float  # Масса тела (placeholder 1.0 до S2B.7)
 
     # Affective Domain: Psyche LOD Macro (S74: Temporal Mind)
     affective_load: float  # Аффективный интеграл (0-1.0) — затухает в idle

@@ -30,7 +30,6 @@ from app.models.idle_tick import NPCStateSnapshot
 from app.models.state_delta import DeltaDomain
 from app.services.combat.physiology_decay_handler import (
     BLOOD_LOSS_DECAY_LAMBDA,
-    FATIGUE_DECAY_LAMBDA,
     PAIN_DECAY_LAMBDA,
     PHYSIOLOGY_DECAY_EPSILON,
     STAGGER_PAIN_THRESHOLD,
@@ -104,19 +103,18 @@ class TestPainDecay:
 
 
 class TestFatigueDecay:
-    """Усталость экспоненциально затухает."""
+    """ADR-O-373: fatigue-ветка DecayHandler DORMANT — восстановление
+    усталости консолидировано в BodyEngine (S2B.5). Вторая per-tick
+    fatigue-проекция = нарушение закона №6."""
 
-    def test_fatigue_decays_exponentially(self):
-        """Fatigue_t = Fatigue_{t-1} * exp(-lambda)."""
+    def test_fatigue_branch_dormant(self):
+        """fatigue=40 без прочей физиологии → НИ ОДНОЙ дельты."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot(fatigue=40.0)
 
         results = handler.handle([npc], "test", 0)
-        assert len(results) == 1
 
-        delta = results[0]
-        expected = 40.0 * math.exp(-FATIGUE_DECAY_LAMBDA) - 40.0
-        assert abs(delta.payload.fatigue_delta - round(expected, 4)) < 0.01
+        assert results == []
 
 
 class TestBloodLossDecay:

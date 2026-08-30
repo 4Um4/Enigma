@@ -20,7 +20,12 @@ path: backend/app/services/combat/combat_subscriber.py
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    # ADR-O-373 (вердикт Q7): аннотации контракта снапшота — только типизация;
+    # runtime-импорт NPCStateSnapshot остаётся function-local в билдерах
+    from app.models.idle_tick import NPCStateSnapshot
 
 from app.domain.constants import ACTION_INTENSITY
 from app.models.impact import ImpactIntentDTO
@@ -304,7 +309,9 @@ class CombatSubscriber:
         )
 
     @staticmethod
-    def _build_snapshot(npc_id: str, npc_by_id: dict[str, dict]) -> Optional[dict]:
+    def _build_snapshot(
+        npc_id: str, npc_by_id: dict[str, dict]
+    ) -> Optional["NPCStateSnapshot"]:
         """Строит NPCStateSnapshot из npc_dict.
 
         Использует ту же логику проекции, что и _build_npc_snapshots
@@ -338,6 +345,23 @@ class CombatSubscriber:
 
         return NPCStateSnapshot(
             npc_id=npc_id,
+            # S2B.5 / ADR-O-373: единая плоская проекция контракта снапшота
+            velocity=(
+                (float(npc["velocity"][0]), float(npc["velocity"][1]))
+                if isinstance(npc.get("velocity"), (tuple, list))
+                and len(npc["velocity"]) >= 2
+                else (0.0, 0.0)
+            ),
+            activity=str(
+                npc.get("activity", "")
+                or npc.get("routine", {}).get("current", "")
+                or ""
+            ),
+            coupling_mode=str(
+                (body_state.get("coupling_profile") or {}).get("coupling_mode", "")
+                or ""
+            ),
+            body_mass=float(body_state.get("body_mass", 1.0)),
             stress=float(psyche.get("stress", 0.0)),
             relationship_cache=npc.get("relationship_cache", {}),
             base_values=npc.get("base_values", {}),
@@ -351,6 +375,13 @@ class CombatSubscriber:
             blood_loss=float(body_state.get("blood_loss", 0.0)),
             consciousness=float(body_state.get("consciousness", 1.0)),
             shock_impulse=float(body_state.get("shock_impulse", 0.0)),
+            life_status=str(body_state.get("life_status", "ALIVE")),
+            # ADR-O-373 (вердикт Q7): единый shape снапшота. life_status /
+            # affective_load / emotion — обязательные ключи TypedDict, ранее
+            # отсутствовавшие в combat-билдере (pre-existing contract
+            # violation, всплыл через Pylance при A3).
+            affective_load=float(npc.get("affective_load", 0.0)),
+            emotion=str(npc.get("emotion", "neutral") or "neutral"),
             injuries_by_zone=injuries_by_zone,
             base_abilities=_base_abilities,
             modifiers=_modifiers,
@@ -358,7 +389,7 @@ class CombatSubscriber:
         )
 
     @staticmethod
-    def _make_player_snapshot(player_dict: Optional[dict] = None) -> dict:
+    def _make_player_snapshot(player_dict: Optional[dict] = None) -> "NPCStateSnapshot":
         """Снапшот игрока для Combat Resolution (ADR-O-112, ADR-128).
 
         P1 FIX: Если player_dict доступен из all_npcs_raw — читаем живой body_state.
@@ -402,6 +433,37 @@ class CombatSubscriber:
             consciousness=float(_body.get("consciousness", 1.0)),
             shock_impulse=float(_body.get("shock_impulse", 0.0)),
             life_status=_body.get("life_status", "ALIVE"),
+            # ADR-O-373 (вердикт Q7): обязательные ключи TypedDict, ранее
+            # отсутствовавшие в player-билдере (pre-existing).
+            affective_load=float(
+                player_dict.get("affective_load", 0.0) if player_dict else 0.0
+            ),
+            emotion=str(
+                (player_dict.get("emotion", "neutral") or "neutral")
+                if player_dict
+                else "neutral"
+            ),
+            # S2B.5 / ADR-O-373: единая плоская проекция контракта снапшота
+            velocity=(
+                (float(player_dict["velocity"][0]), float(player_dict["velocity"][1]))
+                if player_dict
+                and isinstance(player_dict.get("velocity"), (tuple, list))
+                and len(player_dict["velocity"]) >= 2
+                else (0.0, 0.0)
+            ),
+            activity=str(
+                (player_dict.get("activity", "") if player_dict else "")
+                or (
+                    player_dict.get("routine", {}).get("current", "")
+                    if player_dict
+                    else ""
+                )
+                or ""
+            ),
+            coupling_mode=str(
+                (_body.get("coupling_profile") or {}).get("coupling_mode", "") or ""
+            ),
+            body_mass=float(_body.get("body_mass", 1.0)),
             injuries_by_zone=injuries_by_zone,
             base_abilities=_base_abilities,
             modifiers=_modifiers,

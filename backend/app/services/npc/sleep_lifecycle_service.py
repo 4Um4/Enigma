@@ -8,14 +8,14 @@ path: /project/backend/app/services/npc/sleep_lifecycle_service.py
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from app.domain.body import DreamSignal
 from app.domain.events import EventDTO
-from app.services.scene_change import ChangeType, SceneChange
-from app.services.npc.sleep_states import is_sleeping
 from app.services.npc.coupling_resolver import CouplingResolver
 from app.services.npc.dream_generation_service import DreamGenerationService
+from app.services.npc.sleep_states import is_sleeping
+from app.services.scene_change import ChangeType, SceneChange
 
 if TYPE_CHECKING:
     from app.services.events.event_bus import EventBus
@@ -193,7 +193,8 @@ class SleepLifecycleService:
         return []
 
     def _apply_sleep_recovery(self, npc: Dict[str, Any]) -> None:
-        """Восстановление стресса, усталости и сброс sleep_pressure/arousal во сне."""
+        """Восстановление стресса и сброс sleep_pressure/arousal во сне
+        (fatigue — BodyEngine, ADR-O-373)."""
         from app.core.constants import STRESS_RECOVERY_SLEEPING
 
         psyche = npc.setdefault("psyche", {})
@@ -202,10 +203,10 @@ class SleepLifecycleService:
             psyche["stress"] = max(0, current_stress - STRESS_RECOVERY_SLEEPING)
 
         _body = npc.setdefault("body_state", {})
-        # BUG-SLEEP-002 FIX: Sleep restores fatigue 7x faster
-        _fatigue_rate = 0.20
-        _body["fatigue"] = max(0.0, float(_body.get("fatigue", 0.0)) - _fatigue_rate)
-        
+        # ADR-O-373: fatigue-восстановление во сне консолидировано в BodyEngine
+        # (S2B.5: recovery × SLEEP_RECOVERY_MULTIPLIER через coupling_mode).
+        # Прямая запись в body_state мимо StateApplicator устранена (закон №6).
+
         # S188 ARCH-SLEEP Phase A: Сброс телесных осей во сне.
         # sleep_pressure убывает (50 тиков до полного восстановления), arousal = 0 (глубокий сон).
         _curr_pressure = float(_body.get("sleep_pressure", 0.0))
@@ -219,18 +220,18 @@ class SleepLifecycleService:
         arousal затухает в покое, но взлетает при наличии стимулов.
         """
         _body = npc.setdefault("body_state", {})
-        
+
         # 1. Накопление sleep_pressure (0.005 за тик -> 200 тиков до полного истощения)
         _curr_pressure = float(_body.get("sleep_pressure", 0.0))
         _body["sleep_pressure"] = min(1.0, _curr_pressure + 0.005)
-        
+
         # 2. Модуляция arousal
         _curr_arousal = float(_body.get("arousal", 0.0))
-        
+
         # S189 ARCH-SLEEP Phase D: Аккумуляция от стимулов
         self._accumulate_arousal_from_stimuli(npc)
         _new_arousal = float(_body.get("arousal", 0.0))
-        
+
         # Если стимулы не вызвали роста, применяем базовое затухание
         if _new_arousal <= _curr_arousal:
             _body["arousal"] = max(0.0, _curr_arousal - 0.05)
@@ -244,14 +245,14 @@ class SleepLifecycleService:
         _body = npc.get("body_state")
         if not _body:
             return
-            
+
         _curr_arousal = float(_body.get("arousal", 0.0))
         _kernel = npc.get("perceptual_kernel")
         _threat = 0.0
         _uncertainty = 0.0
         _anomaly = 0.0
         _directive_salience = 0.0
-        
+
         if isinstance(_kernel, dict):
             _threat = float(_kernel.get("threat_gradient", 0.0))
             _uncertainty = float(_kernel.get("uncertainty", 0.0))
@@ -269,7 +270,7 @@ class SleepLifecycleService:
 
         # Внешние стимулы накапливают возбуждение.
         _stimuli_pressure = max(_threat, _uncertainty * 0.5, _anomaly * 0.5, _directive_salience)
-        
+
         if _stimuli_pressure > 0.1:
             _body["arousal"] = min(1.0, _curr_arousal + _stimuli_pressure * 0.15)
 

@@ -122,8 +122,18 @@ class SocialSubscriber:
         # 8.1 FIX: Детерминированный fallback для трекинга отношений.
         # Если LLM не парсит семантику, NPC A и B всё равно должны влиять на отношения при разговоре.
         # Явная проверка атрибутов без скрытых дефолтов (§1.2 Silent Failure Eradication)
-        if not hasattr(ctx.shared_context, "relationship_store") or not hasattr(ctx.shared_context, "campaign_id"):
-            logger.warning("[SOCIAL_SUBSCRIBER] shared_context missing relationship_store or campaign_id. Social deltas skipped.")
+        if not hasattr(ctx.shared_context, "campaign_id"):
+            # S116-fallback (tick_utils SimpleNamespace) — известно пустой
+            # контекст idle/world-tick пути; не ошибка, debug.
+            logger.debug(
+                "[SOCIAL_SUBSCRIBER] S116-fallback shared_context (без campaign_id) "
+               "— trust-fallback пропущен."
+            )
+        elif not hasattr(ctx.shared_context, "relationship_store"):
+            logger.warning(
+                "[SOCIAL_SUBSCRIBER] shared_context missing relationship_store. "
+                "Social deltas skipped."
+            )
         else:
             # M1b.2.1 (ADR-O-371): писатель переводится на RelationshipWriteGate —
             # единый write-маршрут (D2). Ленивая инъекция: гейт строится из
@@ -131,9 +141,21 @@ class SocialSubscriber:
             # cutover (M1b.4) backend гейта меняется централизованно — подписчик
             # повторно не мигрирует. Дельты/направления НЕ меняются (механика).
             _gate = getattr(ctx.shared_context, "relationship_write_gate", None)
-            if _gate is None:
-                _gate = RelationshipWriteGate(ctx.shared_context.relationship_store)
-            _campaign_id = ctx.shared_context.campaign_id
+            _store = getattr(ctx.shared_context, "relationship_store", None)
+            if _gate is None and _store is None:
+                # M1b.2.1-fix: стор ещё не собран (lazy-сборка game_loop) —
+                # детерминированный trust-fallback честно пропускается с
+                # наблюдаемым логом (§1.2 Silent Failure Eradication).
+                # Раньше здесь строился RelationshipWriteGate(None) →
+                # "'NoneType' object has no attribute 'update'" каждый тик.
+                logger.warning(
+                    "[SOCIAL_SUBSCRIBER] relationship_store отсутствует (None) — "
+                    "trust-fallback пропущен; social deltas (rumors) не затронуты."
+                )
+            else:
+                if _gate is None:
+                    _gate = RelationshipWriteGate(_store)
+                _campaign_id = ctx.shared_context.campaign_id
             for _ev in events:
                 if _ev.type == EventType.NPC_SPOKE.value:
                     _sp = _ev.source

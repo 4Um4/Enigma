@@ -44,7 +44,11 @@ class TestTemporalReconciliation:
         assert npc["psyche"]["stress"] < 80.0
         assert npc["psyche"]["stress"] == pytest.approx(47.9, abs=0.5)
 
-    def test_hunger_fatigue_linear_growth(self):
+    def test_hunger_grows_fatigue_frozen_on_skip(self):
+        """ADR-O-373 (вердикт Q2): hunger-reconcile жив (LEGACY до S2B.10);
+        fatigue-reconcile DORMANT — вторая временная шкала усталости
+        (+8.0/тик при skip) устранена, catch-up физиологии = S2B.6/S2B.8.
+        Прежний ассерт «fatigue растёт линейно» кодировал удалённую шкалу."""
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 0.0, "fatigue": 0.0}}
         self.engine._npc_cache["camp"] = [npc]
 
@@ -53,7 +57,8 @@ class TestTemporalReconciliation:
         self.engine.reconcile_state("camp", 100.0)
 
         assert npc["body_state"]["hunger"] == pytest.approx(80.0, abs=1.0)
-        assert npc["body_state"]["fatigue"] == pytest.approx(80.0, abs=1.0)
+        # fatigue заморожена на skip: per-tick проекция — только BodyEngine
+        assert npc["body_state"]["fatigue"] == 0.0
 
     def test_hunger_capped_at_100(self):
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 99.9, "fatigue": 0.0}}

@@ -178,12 +178,19 @@ def compute_economy(
     eco_profile: Any,
     state_l2: Any,
     current_activity: str = "",
+    relationship_store: Any = None,
 ) -> Dict[str, Any]:
     """Фаза 2.4-ECO: экономические модификаторы от потребностей.
 
     Вынесено из inline-блока в npc_tick_pipeline.py.
-    Возвращает dict с ключами: modifiers (dict), stress (float), reason (str).
-    Мутирует state_l2.stress при экономическом стрессе.
+    Возвращает dict с ключами: modifiers (dict), stress (float), reason (str),
+    state_l2 (NPCState | None — обновлённый, если был eco-стресс).
+
+    FIX (Phase-0 0.3): прямая запись state_l2.stress отсюда запрещена гардом
+    NPCState (_ALLOWED_WRITERS — только StateApplicator). Раньше guard кидал
+    ArchitecturalViolationError каждый тик → eco-стресс молча терялся
+    ([ECO] Error non-blocking). Теперь дельта проводится через
+    StateApplicator.apply_deltas_only — легальный единственный L2 writer.
     """
     _result: Dict[str, Any] = {"modifiers": {}, "stress": 0.0, "reason": ""}
     if not eco_profile:
@@ -208,10 +215,29 @@ def compute_economy(
         # Стресс от экономики/потребностей (единый расчёт)
         _eco_stress, _eco_reason = calculate_economic_stress(eco_profile, _ne)
         if _eco_stress > 0:
-            state_l2.stress = min(100.0, state_l2.stress + _eco_stress)
-            logger.warning(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
-            _result["stress"] = _eco_stress
-            _result["reason"] = _eco_reason
+            from app.models.state_delta import StateDeltas
+            from app.services.npc.state_applicator import StateApplicator
+
+            if relationship_store is None:
+                logger.warning(
+                    "[ECO] %s: relationship_store недоступен — eco-стресс не "
+                    "применён (SSOT-маршрут StateApplicator требует стор).",
+                    npc_id,
+                )
+            else:
+                _sa = StateApplicator(relationship_store)
+                state_l2 = _sa.apply_deltas_only(
+                    state_l2,
+                    StateDeltas(
+                        npc_id=npc_id,
+                        stress_delta=float(_eco_stress),
+                        source="economy_stress",
+                    ),
+                )
+                _result["state_l2"] = state_l2
+                logger.info(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
+                _result["stress"] = _eco_stress
+                _result["reason"] = _eco_reason
     except Exception as _eco_e:
         logger.warning(f"[ECO] Error (non-blocking): {_eco_e}")
 

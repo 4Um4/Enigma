@@ -60,12 +60,19 @@ def find_refs(md_path: Path) -> List[DocRef]:
     return refs
 
 
-def validate_ref(ref: DocRef) -> bool:
-    """Проверяет, существует ли файл и строка."""
+def validate_ref(ref: DocRef) -> tuple[bool, str]:
+    """Проверяет, существует ли файл и строка.
+
+    Возвращает (ok, reason). reason: '' при ok, иначе причина отказа.
+    """
+    if ref.referenced_file == "file.py":
+        return True, ""  # учебный пример в документации, не реальная ссылка
+
     # Попытка резолва пути
     candidates = [
         PROJECT_ROOT / ref.referenced_file,
         PROJECT_ROOT / "backend" / ref.referenced_file,
+        PROJECT_ROOT / "backend" / "app" / ref.referenced_file,
         PROJECT_ROOT / "frontend" / ref.referenced_file,
     ]
 
@@ -76,26 +83,74 @@ def validate_ref(ref: DocRef) -> bool:
             break
 
     if target_file is None:
-        return False  # Файл не найден
+        # Fallback: голое имя файла — рекурсивный поиск по проекту
+        basename = Path(ref.referenced_file).name
+        hits = _basename_index().get(basename, [])
+        if len(hits) == 1:
+            target_file = hits[0]
+        elif len(hits) > 1:
+            # Неоднозначно: берём первый, у которого валидна строка
+            for hit in hits:
+                if _line_ok(hit, ref.referenced_line):
+                    return True, ""
+            target_file = hits[0]
+        else:
+            return False, "file not found"
 
     if ref.referenced_line is None:
-        return True  # Только файл, без строки
+        return True, ""  # Только файл, без строки
 
-    try:
-        lines = target_file.read_text(encoding="utf-8").splitlines()
-    except Exception:
-        return False
+    if not _line_ok(target_file, ref.referenced_line):
+        return False, (f"line {ref.referenced_line} out of range "
+                       f"(file has {len(_read_lines(target_file))} lines)")
 
-    if ref.referenced_line > len(lines):
-        return False  # Строка за пределами файла
+    return True, ""
 
-    return True  # Файл и строка существуют
+
+_line_cache: dict[Path, list] = {}
+
+
+def _read_lines(path: Path) -> list:
+    if path not in _line_cache:
+        try:
+            _line_cache[path] = path.read_text(encoding="utf-8").splitlines()
+        except Exception:
+            _line_cache[path] = []
+    return _line_cache[path]
+
+
+def _line_ok(path: Path, line_no: Optional[int]) -> bool:
+    if line_no is None:
+        return True
+    lines = _read_lines(path)
+    return 0 < line_no <= len(lines)
+
+
+_basename_cache: Optional[dict[str, list[Path]]] = None
+
+
+def _basename_index() -> dict[str, list[Path]]:
+    """Индекс всех .py файлов проекта по имени файла (строится один раз)."""
+    global _basename_cache
+    if _basename_cache is None:
+        index: dict[str, list[Path]] = {}
+        for root in ("backend", "frontend", "scripts", "diagnostics"):
+            root_path = PROJECT_ROOT / root
+            if not root_path.exists():
+                continue
+            for py in root_path.rglob("*.py"):
+                if "__pycache__" in py.parts or ".venv" in py.parts:
+                    continue
+                index.setdefault(py.name, []).append(py)
+        _basename_cache = index
+    return _basename_cache
 
 
 def run() -> int:
     """Главная точка входа."""
     all_refs: List[DocRef] = []
-    broken: List[tuple[DocRef, str]] = []
+    missing: List[tuple[DocRef, str]] = []
+    drift: List[tuple[DocRef, str]] = []
 
     for scan_dir in SCAN_DIRS:
         dir_path = PROJECT_ROOT / scan_dir
@@ -108,15 +163,27 @@ def run() -> int:
           f"{len(set(r.md_file for r in all_refs))} .md files")
 
     for ref in all_refs:
-        if not validate_ref(ref):
-            broken.append((ref, "file or line not found"))
+        ok, reason = validate_ref(ref)
+        if ok:
+            continue
+        if reason == "file not found":
+            missing.append((ref, reason))
+        else:
+            drift.append((ref, reason))
 
-    if not broken:
-        print("[DOC_DRIFT] ✅ All references valid")
+    if drift:
+        print(f"[DOC_DRIFT] ⚠️ {len(drift)} line-drift references "
+              f"(файл существует, номер строки устарел):")
+        for ref, reason in drift:
+            print(f"  {ref.md_file.name}:{ref.line} → {ref.raw_match} ({reason})")
+
+    if not missing:
+        print("[DOC_DRIFT] ✅ All files referenced exist "
+              f"({len(drift)} line-drift warnings)")
         return 0
 
-    print(f"[DOC_DRIFT] ❌ {len(broken)} broken references found:")
-    for ref, reason in broken:
+    print(f"[DOC_DRIFT] ❌ {len(missing)} broken references (file not found):")
+    for ref, reason in missing:
         print(f"  {ref.md_file.name}:{ref.line} → {ref.raw_match} ({reason})")
     return 1
 

@@ -1,8 +1,8 @@
 # ENIGMA RECOVERY PROTOCOL
 
-## Version 3.0
+## Version 3.1
 
-Status: MANDATORY ARCHITECTURAL RESET — EPISTEMIC CORE PROVEN IN PRODUCTION
+Status: MANDATORY ARCHITECTURAL RESET — EPISTEMIC CORE PROVEN, SECOND-ORDER + GAME CLOSURE LAYERED ON TOP
 
 ---
 
@@ -24,11 +24,25 @@ Status: MANDATORY ARCHITECTURAL RESET — EPISTEMIC CORE PROVEN IN PRODUCTION
 4. доказать или опровергнуть центральную гипотезу ENIGMA;
 5. только после этого продолжать развитие архитектуры.
 
-## Текущий статус (S207)
+## Текущий статус (S270+, v0.5.3.9.2)
 
 Эпистемическое ядро (Epistemic Core) полностью доказано и интегрировано в production-рантайм.
 Каузальная петля первого порядка замкнута и проверена через реальный `GameLoop` и `TaskScheduler`.
 Добавлен второй канал убеждений: прямое наблюдение (S207, ADR-O-360).
+
+**Прогресс после S207 (эпистемический слой не остановился, а расширился по доказанной причине):**
+
+1. **Second-Order ToM доказан (S211+, SUPERBOX-021/022).** Каузальный каскад второго порядка: NPC наблюдает действие другого NPC (или его утверждение) и обновляет собственную модель вышедшего — `Second-Order Observation` (B видит, что A acted) и `Second-Order Attribution` (B верит, что A *утверждает* P, а не просто перенимает P как истину). Это первый реальный шаг в §11 (social epistemic causality), который протокол ранее оставлял недоказанным. *(Прим.: в файлах сценариев эти тесты маркированы внутренними SUPERBOX-013/014 — здесь, в таблице протокола, им присвоены свободные 021/022, чтобы не конфликтовать с протокольными номерами 013/014, что соответствует Rule 22.)*
+
+2. **Игровое замыкание эпистемики — Accusation Gate (S211, слой 4 §18).** Убеждение игрока = способность действовать: `belief → ACCUSE`. Гейт проверяет *веру*, не *истину* — ложное обвинение проходит (персона «поверил — и ошибся»), а истинность решают NPC-реакции эмерджентно, не флаг движка. Последствия каузально уходят в `RelationshipStore` (fear+25, trust−15). Это первая реализация «First Real Secret»-механики из §17.2.
+
+3. **Relationship Engine v2 (M0/M1a/M1b, ADR-O-369/370/371).** Отношения переведены под единый SSOT — `RelationshipStateStore` + `RelationshipWriteGate` (single-writer, caller-guard): миграционный адаптер legacy→v2 (`53183000`), сам сегодняшний routing-слой (`73e0539f`), перевод writer-сайтов (social_subscriber, action_consequence_compiler, MemoryManager-фасад). Рантайм байтово идентичен; по δеталям — `architecture/relationship_engine.yaml`.
+
+4. **Стабилизация закрыта (STABILIZATION_ROADMAP, v0.5.3.7.2→v0.5.3.9.2).** IPT **45/45**; техдолг: mypy --strict в spatial **79→0**, `print()`→logger **36→0**, DEBT-IPT-RUFF **24→0**. LOG-GATE/LOG-GATE-UI (диагностика «почему LLM молчит» на splash).
+
+5. **W-TRACK (World Embodiment, ADR-O-371).** Субстрат WORLD-домена положен (WorldObjectStore, `architecture/world.yaml`, 30 тестов) — dormant, рантайм-потребителей нет.
+
+6. **Фаза 0 — разморозка симуляции (S260+).** «0 decisions» оказался артефактом player-turn пути и счётчика [R3_DIRECT]; 3 реальных бага устранены (`social_subscriber` None-стор→WriteGate, `mvp_tavern_controller` DEATH по `life_status==DEAD`, `domain_phases` eco-стресс через `StateApplicator`).
 
 Доказана полная причинная цепь:
 
@@ -45,9 +59,10 @@ Status: MANDATORY ARCHITECTURAL RESET — EPISTEMIC CORE PROVEN IN PRODUCTION
 
 Доказано: production-интеграция (EpistemicStore подключён к NpcTickPipeline.run()),
 интеграция игрока (Player Epistemic Closure), каноническая надёжность доверия (S206: TrustBasedReliabilityProvider),
-и прямое наблюдение событий мира (S207: ObservationSubscriber).
+прямое наблюдение событий мира (S207: ObservationSubscriber), второй порядок наблюдения и атрибуции, игровое замыкание ACCUSE.
 
-Следующий шаг: EPISTEMIC-004 (полноценный тест противоречивых показаний) и завершение LLM-интеграции Proposition.
+Следующие шаги: EPISTEMIC-004 (полноценный тест противоречивых показаний — по-прежнему не доказано),
+полное логирование LLM-интеграции Proposition (частично в S205), и первая сквозная кампания-тайна крепко связывает эпистемику, отношения и действие.
 
 ---
 
@@ -109,13 +124,14 @@ Evidence = executable code + execution trace + validation.
 
 ## Rule 5 — No new epistemic layer before the epistemic core is proven
 
-До прохождения EPISTEMIC CORE GATE запрещены:
+Core proven (S202, first order) + расширен доказанным вторым порядком (S211+, SUPERBOX-021/022).
+До полного замыкания EPISTEMIC-004/expectation по-прежнему запрещены:
 
-- Prophecy Engine;
-- predictive perception;
+- Prophecy Engine — пока не доказаны EPISTEMIC-004 (contradiction) и expectation;
+- predictive perception — только после expectation/prediction error;
 - Active Inference;
-- 4D ToM;
-- second-order ToM;
+- 4D ToM — (детерминированный second-order ToM доказан; 4D/нейро-слой — нет);
+- ~~second-order ToM~~ — **доказан** (детерминированный, SUPERBOX-021/022); запрет снят именно на доказанной узкой форме;
 - self-model;
 - counterfactual cognition;
 - cultural propagation.
@@ -181,9 +197,9 @@ Evidence = executable code + execution trace + validation.
 - identity pressure;
 - drift analysis.
 
-## 4.1. Эксперименты EPISTEMIC (S186-S207)
+## 4.1. Эксперименты EPISTEMIC (S186-S211+)
 
-Проведено 20 экспериментов, доказывающих эпистемическую причинность:
+Проведено 23 эксперимента (20 — S186-S207, +3 — S211+), доказывающих эпистемическую причинность и её расширение на второй порядок и игровое замыкание:
 
 | SUPERBOX | Статус | Доказано |
 |----------|--------|----------|
@@ -207,6 +223,9 @@ Evidence = executable code + execution trace + validation.
 | 018 | PASS | Canonical Testimony Reliability (S206): TrustBasedReliabilityProvider вживлён, инлайн удалён |
 | 019 | PASS | Direct Observation (S207): ObservationSubscriber фильтрует свидетелей через LOS+дистанция |
 | 020 | PASS | Source-Weighted Reliability (S207): DIRECT_OBSERVATION_RELIABILITY < 1.0, единый движок ревизии |
+| 021 | PASS | Second-Order Observation (S211+): NPC наблюдает действие другого NPC и обновляет собственную модель (каскад A→C→B) |
+| 022 | PASS | Second-Order Attribution (S211+): B верит, что A *утверждает* P, а не перенимает P как истину (ToM-двухуровневость) |
+| 023 | PASS | Accusation Gate (S211, слой 4 §18): belief игрока → ACCUSE проходит/отклоняется по вере, не по истине; последствие fear+25/trust−15 в RelationshipStore |
 
 ## 4.2. Доказанные Epistemic Primitives
 
@@ -229,6 +248,11 @@ Evidence = executable code + execution trace + validation.
 | COMMUNICATION_CLAIM | `app/services/events/event_types.py` | 🟢 Доказан (S003) |
 | epistemic_modifiers | `app/services/npc/decision_hub.py` | 🟢 Доказан (S010-S013) |
 | apply_modifiers (pure) | `app/services/npc/decision_hub.py` | 🟢 Доказан (S013) |
+| Second-Order Observation | `app/domain/epistemology.py` (`ASSERTS`), second-order tests | 🟢 Доказан (S211+, SUPERBOX-021) |
+| Second-Order Attribution | `epistemic_second_order_attribution_test.py` | 🟢 Доказан (S211+, SUPERBOX-022) |
+| Epistemic→Action Gate (ACCUSE) | `app/services/player_cognition/action_consequence_compiler.py` | 🟢 Доказан (S211+, SUPERBOX-023) |
+| Epistemic→Relationship delta | accusation gate → `RelationshipStore` (fear+25/trust−15) | 🟢 Доказан (S211+) |
+| RelationshipWriteGate (single-writer) | `app/services/social/relationship_write_gate.py` | 🟢 Доказан (M1b, ADR-O-371, D3-parity) |
 
 ## 4.3. Modifier Contract v1
 
@@ -546,24 +570,36 @@ SUPERBOX-EPISTEMIC-001 passes only if:
 - В S207 (ADR-O-360) внедрен `ObservationSubscriber`, который слушает мировые события (THEFT) и фильтрует свидетелей через мембрану LOS+дистанция.
 - Прямое наблюдение использует `DIRECT_OBSERVATION_RELIABILITY` (калибруемый параметр < 1.0). Движок ревизии един для обоих каналов (`testimony` и `direct_observation`). SUPERBOX-OBSERVATION 5/5 пройдены.
 
+## [x] нижние критерии Second-Order / Game Closure (добавлены после S207)
+
+**Было (S207):** второй порядок и игровое замыкание не доказаны; числились «требуется EPISTEMIC-005/First Secret».
+**Стало (S211+): частично доказано доказательно, в строгом соответствии с протоколом «сначала эксперимент, потом слой».**
+
+- **[x] Second-Order Observation** — NPC видит действие Другого и обновляет собственную модель вышедшего (каскад A→C→B). Доказано SUPERBOX-021.
+- **[x] Second-Order Attribution** — B верит, что A *утверждает* P, а не перенимает P как истину. Доказано SUPERBOX-022 (`Predicate.ASSERTS`).
+- **[x] Belief → Action (игровое замыкание)** — убеждение игрока конвертируется в действие ACCUSE; гейт решает по вере, не по истине; последствие (fear+25, trust−15) каузально уходит в RelationshipStore. Доказано SUPERBOX-023.
+- **[x] Epistemic → Relationship канал** — следствие эпистемического вывода завершается в слое отношений под единым SSOT (RelationshipWriteGate). Доказано S211+ / M1b.
+
 ---
 
 # 17.2 ЧТО ОСТАЛОСЬ СДЕЛАТЬ (REAL NEXT STEPS)
 
-Архитектурное ядро Epistemic Core полностью замкнуто и доказано. Дальнейшее развитие требует перехода от детерминированных fallback-маппингов к реальной семантике и конфликтам.
+Архитектурное ядро Epistemic Core полностью замкнуто и доказано. После S211 эпистемика вышла на второй порядок и игровое замыкание. Дальнейшее развитие требует перехода от детерминированных fallback-маппингов к реальной семантике и конфликтам.
 
 ### 1. LLM-интеграция Proposition (Phase 9)
 - **Проблема:** Сейчас `proposition` в `COMMUNICATION_CLAIM` создаётся детерминированным fallback-маппингом в `ClaimEventSubscriber.on_npc_spoke` (например, `accuse` -> `STOLE`).
 - **Задача:** Расширить LLM-промпты в `DialogueExecutor` так, чтобы LLM возвращала JSON-структуру `proposition` вместе с текстом реплики. `DialogueMaterializer` должен пробрасывать эту структуру в `EventDTO`.
+- **Статус (после S207):** Частично продвинуто в S205 — 26 Few-Shot Examples в `LLMCompressorClient`, `PropositionMatcher` на `SequenceMatcher`. Полное JSON-prop-возвращение ещё не замкнуто; LLM остаётся второстепенным каналом (детерминированный fallback — основная семантика).
 
 ### 2. SUPERBOX-017: Contradictory Claims (EPISTEMIC-004)
 - **Проблема:** Доказано формирование убеждений из одного источника, но не разрешена коллизия.
 - **Задача:** Создать тест, где NPC_A (высокий trust) и NPC_B (низкий trust) сообщают игроку взаимоисключающие `Proposition` (P и ¬P). Доказать, что `BeliefRevisionEngine` корректно ревизирует `confidence` и не создаёт две независимые "истины".
-
+- **Статус (после S207):** По-прежнему **не доказано** (нет SUPERBOX-024). Это главный недоказанный эпистемический примитив. Родственная ткань — cognitive dissonance (P7-09) — существует отдельно, но каузальная коллизия `reliability × claim` не замкнута.
 
 ### 4. First Real Secret (Gameplay Mechanics)
 - **Проблема:** Эпистемический слой существует, но пока не завязан на конкретный игровой секрет.
-- **Задача:** Реализовать первый квест, где `WORLD_TRUTH` скрыт. Игрок должен собрать противоречивые убеждения от NPC, сопоставить их с прямым наблюдением и сделать каузальный вывод, который приведёт к игровому действию (например, обвинению NPC перед стражей).
+- **Статус (после S207): Частично реализовано (S211, Accusation Gate).** Убеждение игрока теперь завязано на способность действовать: `belief → ACCUSE`, исход решают NPC-реакции, а последствия уходят в `RelationshipStore`. Это первый сквозной «секрет-в-действии».
+- **Что осталось:** Полноценная кампания-тайна (WORLD_TRUTH скрыт на старте, игрок собирает противоречивые показания, сопоставляет с прямым наблюдением и делает каузальный вывод, который приводит к обвинению перед стражей) — **не выполнено**.
 ```
 
 ---
@@ -618,47 +654,52 @@ The deterministic architecture has not been demonstrated.
 
 ---
 
-# 19. NEXT STEPS (после S207)
+# 19. NEXT STEPS (после S207, S211+/S270+)
 
-## Фаза 9: LLM-интеграция Proposition (частично выполнена в S205)
+## Фаза 9: LLM-интеграция Proposition (частично выполнена в S205; статус после S211+ неизменен)
 
 Была начата интеграция LLM для извлечения семантики:
 1. В S205 `LLMCompressorClient` промпт расширен 26 Few-Shot Examples для стабилизации извлечения `social_intent` (вместо хардкода keyword-matching).
 2. `PropositionMatcher` переведен на `SequenceMatcher` (Embedding Similarity stub).
 
-Оставшаяся задача:
+Оставшаяся задача (продвинута, но не замкнута):
 1. Расширить промпты LLM (через `_generate_with_router` в `DialogueExecutor`) для возвращения JSON-структуры `proposition` вместе с текстом реплики.
 2. `DialogueExecutor` должен парсить этот JSON от LLM и передавать его в `Artifact.data` (вместо использования `_proposition` из `req`).
 
-*(Примечание: Шаги 3 и 4 уже реализованы в текущем коде — `DialogueMaterializer` публикует `COMMUNICATION_CLAIM`, а `ClaimEventSubscriber` обрабатывает его с приоритетом над fallback).*
+*(Примечание: Шаги 3 и 4 уже реализованы — `DialogueMaterializer` публикует `COMMUNICATION_CLAIM`, а `ClaimEventSubscriber` обрабатывает его с приоритетом над fallback).*
 
-## После Phase 9:
+## Статус после S211+ — что из "предследующего" уже доказано:
+
+- **EPISTEMIC-005 (second-order / ToM)** — **ДОКАЗАН** (SUPERBOX-021/022: second-order observation + attribution). Это снимает часть бывшего блокера "No second-order ToM".
+- **First Real Secret (действие-из-убеждения)** — **ЧАСТИЧНО** (SUPERBOX-023, Accusation Gate) — belief игрока → ACCUSE → каузальный RelationshipStore-дельта.
+
+## Что осталось главным (приоритет после S270+):
+
+- **EPISTEMIC-004 multi-source contradiction** — по-прежнему **не доказано**. Главный недостроенный эпистемический примитив.
+- **Полная LLM-интеграция Proposition** — не замкнута.
+- **Первая сквозная кампания-тайна** — всего (сбор противоречивых показаний + прямое наблюдение + обвинение) — не выполнена.
+
+После Phase 9 (когда LLM-prop замкнёт):
 
     EPISTEMIC-004
     multi-source belief formation & contradiction
 
-    EPISTEMIC-005
-    second-order belief (ToM)
+    EPISTEMIC-005 (прежний второй остаток)
+    expectation  (первый порядок уже сделан; expectation — следующий шаг к Пророчеству)
 
     EPISTEMIC-006
-    expectation
-
-    EPISTEMIC-007
     prediction error
-
-Only after these are demonstrated should a predictive perception architecture
-be considered.
 
 ---
 
 # 20. WHAT NOT TO DO
 
-Do NOT:
+Do NOT (остаётся в силе после S270+):
 
-- write ProphecyEngine now;
+- write ProphecyEngine now — даже несмотря на доказанный второй порядок, Prophecy (пророческая честность через expectation/prediction error) требует сначала EPISTEMIC-004/expectation;
 - implement FAISS now;
 - add BGE now;
-- create a 4D ToM model now;
+- create a 4D ToM model now — (second-order ToM уже доказан детерминированно в SUPERBOX-021/022; 4D/нейро-модель по-прежнему запрещена без новой доказанной необходимости);
 - add neural ADR-Net;
 - create another 2000-line TZ;
 - add another metric;
@@ -671,6 +712,8 @@ The architecture is incomplete.
 That is acceptable.
 
 What is unacceptable is pretending it is complete.
+
+**Актуализация после S211+:** запреты на second-order ToM и Prophecy мягко смягчены только в том объёме, в котором они уже *доказаны доказательно* (second-order) — но это расширение сделано строго в рамках протокола: сначала эксперимент, потом слой. Ни один из пунктов выше не отменён без опоры на executable evidence.
 
 ---
 

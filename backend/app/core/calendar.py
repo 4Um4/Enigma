@@ -127,15 +127,6 @@ class Calendar:
         pt = Calendar.decompose(total_seconds)
         return f"{time_str} | {date_str}, Год {pt.year}"
 
-    @staticmethod
-    def format_time_of_day(total_seconds: int) -> str:
-        """
-        Совместимость: возвращает 'HH:MM' как раньше хранилось в environment.
-        Используется для _select_time_variant в scene_state_manager.
-        TODO: удалить после миграции scene_state_manager на total_seconds
-        """
-        return Calendar.format_time(total_seconds)
-
     # ── Утилиты ───────────────────────────────────────────────────
 
     @staticmethod

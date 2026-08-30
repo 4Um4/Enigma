@@ -65,32 +65,34 @@ class SpatialService:
         if editor_data_override is not None:
             editor_data = editor_data_override
         else:
-            editor_data: Optional[Dict[str, Any]] = load_editor_json(campaign_id, location_id)
-            if not editor_data:
+            _loaded = load_editor_json(campaign_id, location_id)
+            if not _loaded:
                 logger.warning(
                     f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}"
                 )
                 return None
+            editor_data = _loaded
 
         result = compile_graph(editor_data, location_id)
         # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
         # ETKE-IK v1: compile_graph возвращает 5 элементов (добавлен rooms_geometry)
         # ADR-O-324: compile_graph возвращает 7 элементов (добавлены spatial_walls, spatial_obstacles)
-        _result_list = list(result)
-        if len(_result_list) == 8:
-            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = _result_list
-        elif len(_result_list) == 7:
-            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = _result_list
+        # Phase-0 debt (mypy-strict): паддинг до 8 слотов вместо каскада len-веток —
+        # легаси-возвраты (3/4/5/7 элементов) получают явные дефолты, поведение идентично.
+        _result_list: List[Any] = list(result)
+        while len(_result_list) < 8:
+            _result_list.append(None)
+        graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = _result_list
+        if boundary_map is None:
+            boundary_map = {}
+        if rooms_geometry is None:
+            rooms_geometry = {}
+        if spatial_walls is None:
+            spatial_walls = []
+        if spatial_obstacles is None:
+            spatial_obstacles = []
+        if affordance_objects is None:
             affordance_objects = []
-        elif len(_result_list) == 5:
-            graph, connections, alias_map, boundary_map, rooms_geometry = _result_list
-            spatial_walls, spatial_obstacles, affordance_objects = [], [], []
-        elif len(result) == 4:
-            graph, connections, alias_map, boundary_map = result
-            rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = {}, [], [], []
-        else:
-            graph, connections, alias_map = result
-            boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = {}, {}, [], [], []
         overlay = build_overlay_from_scene(scene_state)
 
         return SpatialService(
@@ -114,7 +116,7 @@ class SpatialService:
         overlay: SpatialOverlay,
         location_id: str = "",  # Сохраняем принадлежность к локации для динамического резолва
         boundary_map: Optional[
-            Dict[str, dict]
+            Dict[str, Dict[str, Any]]
         ] = None,  # ДОЛГ 6.2: boundary node → neighbor info
         rooms_geometry: Optional[
             Dict[str, List[Tuple[float, float]]]
@@ -222,7 +224,7 @@ class SpatialService:
     # ── Boundary Nodes (ДОЛГ 6.2) ────────────────────────────────────
 
     @property
-    def boundary_map(self) -> Dict[str, dict]:
+    def boundary_map(self) -> Dict[str, Dict[str, Any]]:
         """Карта граничных узлов: boundary_node_id → {direction, neighbor_chunk, entry_direction, entry_node_hint}."""
         return self._boundary_map
 

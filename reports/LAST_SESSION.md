@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-08-28 06:40
+# ENIGMA Session State — 2026-08-30 23:24
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,25 +16,25 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 2.6 мин | Тиков: 30 | LLM-вызовов: 46_
+_Сессия: 3.1 мин | Тиков: 13 | LLM-вызовов: 36_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
 | **SHI** (Simulation Health) | 100% | → +0.0% | ✅ норма: NPC активно принимают решения |
-| **NPI** (NPC Pipeline) | 86% | ↓ -14.3% | ⚠️ 6/7 NPC с координатами: есть потери в traversal |
+| **NPI** (NPC Pipeline) | 86% | → +0.0% | ⚠️ 6/7 NPC с координатами: есть потери в traversal |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 17.72/мин | ↑ +7.6 | ✅ 17.72/мин: активная сессия |
+| **CVS** (Causal Velocity) | 11.58/мин | ↓ -15.3 | ✅ 11.58/мин: активная сессия |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
-| **Tracebacks** | 21 (AttrErr=0, TypeErr=0) | → | ⚠️ КРИТИЧНО: невидимые регрессии (Tracebacks) |
-| **BCI** (Belief Crystallization) | 12 (idx=0.40) | → | ✅ Убеждения формируются |
-| **BPI** (Break Progress) | 60 (broken=0) | → | ✅ Давление доходит |
+| **Tracebacks** | 1 (AttrErr=1, TypeErr=0) | → | ⚠️ КРИТИЧНО: невидимые регрессии (Tracebacks) |
+| **BCI** (Belief Crystallization) | 22 (idx=1.69) | → | ✅ Убеждения формируются |
+| **BPI** (Break Progress) | 94 (broken=0) | → | ✅ Давление доходит |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
-| **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
+| **DRI** (Response Integrity) | 100% | ↑ +97.6% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1110 записей_
+_История: `reports/dna_history.jsonl` — 1113 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,17 +54,16 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - a5f45048 V.0.5.3.9.1_ДОВОДКА_2: LOG-GATE-UI — диагноз «почему AI не работает» на экране загрузки (модель/CUDA/VRAM/антивирус/порт); игроку не нужны логи
-  - 6e92febe V.0.5.3.9.1_ДОВОДКА_2: LOG-GATE — гейт файловых runtime-логов (ENIGMA_DISABLE_FILE_LOGS); git-хуки запускают тесты без записи в data/logs
-  - c7052f49 V.0.5.3.9.1_ДОВОДКА_2: новая сессия — scene_changes.jsonl пересоздан игрой
-  - acf69fc9 V.0.5.3.9.1_ДОВОДКА_2: завершение сессии — runtime-лог scene_changes.jsonl очищен (пересоздаётся при новом запуске)
-  - 435bd407 V.0.5.3.9.1_ДОВОДКА_2: обновление scene_changes.jsonl
+  - 600d89e0 M1b.4.1 ADR-O-371: V2RelationshipBackend — тупой адаптер над scene_state.directed (legacy-интерфейс; headroom+clamp+Vacuum+round(4) дословно; без _cache/файлов/новых семантик; provider-лямбда сцены) + контрактная сетка D3 legacy==v2 (8x8x5) 186 тестов; ленивая навигация create=True; L4-чист; попутно mypy-дефект M1a: дубль _KEY_SUBSTITUTABILITY → _KEY_HC_SUBSTITUTABILITY
+  - 2afdb89d S232 W2 Affordances ADR-O-372: pure resolver (WorldObject, BodyStateView, npc_position) -> Tuple[SemanticAction, ...]; substrate-only, 0 runtime-потребителей; IPT 45/45, W2 24/24, W1 30/30
+  - 5d879987 M1b.2.7 ADR-O-371: ARCHITECTURAL PROOF — вечные греп-инварианты: (1) ноль прямых writer'ов 5 скаляров вне RelationshipWriteGate (D2-инвариант, разовый аудит увековечен тестом); (2) attraction-хирургия кэша запрещена (§8.6). Лестница M1b.2 замкнута: 2.0 гейт+D3-сетка 8x8x5 → 2.1-2.5 пять механических миграций (соц-подписчик/компилятор/фасад/Applicator/decay-доказательство) → 2.6 semantic gate §8.6 → 2.7 proof
+  - 5c2db815 M1b.2.6 ADR-O-371 (semantic gate, вердикт Мастера): комплимент — ОДНА направленная запись player→target через гейт (§8.6 'зеркальный комплимент заменяется направленной семантикой'); зеркальная target→player и кэш-хирургия attraction/trust УДАЛЕНЫ (обход SSOT закрыт); тест-контракт ожидаемого изменения (не паритет): player→target растут / target→player Vacuum / кэш не тронут подписчиком
+  - 5ae7792f M1b.2.5 ADR-O-371: decay-маршрут ЗАМКНУТ доказательством (археология: SocialDecayHandler=produce Δ → delta_buffer → apply_batch → update_relationships → Gate M1b.2.4; ноль изменений поведения) + интеграционный тест цепочки с канонической headroom-формулой (урок: ассерты по формуле стора, не линейный хардкод)
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
 
 ### Файлы с активными TODO/FIXME:
-  - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\calendar.py
   - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\constants.py
   - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\constants.py
   - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\domain\decision_context.py
@@ -74,6 +73,7 @@ _(баги не обнаружены в этой сессии)_
   - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\cfrm.py
   - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\locomotion.py
   - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py
+  - C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\phase8.py
 
 ---
 
@@ -85,13 +85,13 @@ _(баги не обнаружены в этой сессии)_
 ### Состояние рендеринга (из последней сессии игры):
 - NPC с известными координатами (6):
   - `guard_borko`: x=11.0 y=10.0
-  - `merchant_goran`: x=10.5 y=3.0
-  - `maid_lusya`: x=13.5 y=3.0
-  - `blacksmith_orm`: x=6.5 y=5.5
+  - `merchant_goran`: x=5.5 y=6.0
+  - `maid_lusya`: x=10.5 y=3.0
+  - `blacksmith_orm`: x=5.5 y=6.0
   - `thief_shadow`: x=8.1 y=13.0
-  - `tavern_keeper_tornin`: x=10.5 y=3.0
+  - `tavern_keeper_tornin`: x=10.5 y=6.5
 - NPC без координат (lerp не работает, 1):
-  - `player` (intent=spread_rumor)
+  - `player` (intent=seek_ally)
 - Граф-fallback локаций: нет
 
 ### Визуальные аномалии:
@@ -111,36 +111,32 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 30 | Decisions > 0: 4/30 | LLM: 46 вызовов / 44 ответов | Симуляция: ❌ МЕРТВА
+Тиков: 13 | Decisions > 0: 4/13 | LLM: 36 вызовов / 34 ответов | Симуляция: ✅ живёт
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
-- LLM сервер: ❌ (не доступен при старте)
+- LLM сервер: ✅
 
 **Предупреждения:**
-  - ⚠️ КРИТИЧНО: все тики вернули 0 decisions — симуляция заморожена
+  - _(нет)_
 
 **Movement Pipeline (по NPC):**
 | NPC | Intent | Score | Traversal | Координаты | Виден игроку |
 |-----|--------|-------|-----------|------------|--------------|
-| blacksmith_orm | request_service | 0.683 | ✅ | x=6.5 y=5.5 | ❌ |
-| guard_borko | block_path | 0.536 | ⏸ | x=11.0 y=10.0 | ❌ |
-| maid_lusya | flee | 0.627 | ✅ | x=13.5 y=3.0 | ❌ |
-| merchant_goran | request_service | 0.666 | ✅ | x=10.5 y=3.0 | ❌ |
-| player | spread_rumor | 0.284 | ✅ | None | ❌ |
-| tavern_keeper_tornin | call_for_help | 0.330 | ✅ | x=10.5 y=3.0 | ❌ |
-| thief_shadow | warn | 0.387 | ⏸ | x=8.1 y=13.0 | ❌ |
+| blacksmith_orm | idle | 0.000 | ✅ | x=5.5 y=6.0 | ❌ |
+| guard_borko | block_path | 0.485 | ✅ | x=11.0 y=10.0 | ❌ |
+| maid_lusya | flee | 0.575 | ✅ | x=10.5 y=3.0 | ❌ |
+| merchant_goran | offer_job | 0.746 | ✅ | x=5.5 y=6.0 | ❌ |
+| player | seek_ally | 0.312 | ✅ | None | ❌ |
+| tavern_keeper_tornin | call_for_help | 0.352 | ✅ | x=10.5 y=6.5 | ❌ |
+| thief_shadow | warn | 0.360 | ✅ | x=8.1 y=13.0 | ❌ |
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
-  - `guard_borko`: intent=block_path, traversal=❌, coords=None
-  - `thief_shadow`: intent=warn, traversal=❌, coords=None
+  - _(нет разрывов в movement pipeline)_
 
 ### Каузальные разрывы:
 
-#### [BREAK-1] Симуляция заморожена
-**Симптом:** все тики вернули 0 decisions
-**Файл для проверки:** `backend/app/services/npc/decision_hub.py`
-**PowerShell:** `Select-String -Path "backend/app/services/npc/decision_hub.py" -Pattern "def compute"`
+_Каузальных разрывов не обнаружено_
 
 ### Архитектурный долг (не трогать без обсуждения):
 - Stale Cognition: DecisionHub работает на state T-1. Требует ADR-059.

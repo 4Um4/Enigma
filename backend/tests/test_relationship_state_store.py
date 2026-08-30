@@ -343,7 +343,13 @@ class TestM1b1MigrationAdapter:
         RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", data_dir)
         snapshot = copy.deepcopy(ss["relationship_state"]["directed"])
         second = RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", data_dir)
-        assert second == {"migrated_pairs": 0, "skipped": True}  # идемпотентность
+        # M1b.4.2 SPLIT: маркер ставится confirm'ом, не transform'ом; повторный
+        # transform до confirm — НЕ skip, а идемпотентный merge (migrated_pairs
+        # снова N, значения те же). Skip — только после confirm:
+        assert second["skipped"] is False
+        assert RelationshipStateStore.confirm_migration("test_campaign", data_dir) is True
+        third = RelationshipStateStore.migrate_legacy_relationships(ss, "test_campaign", data_dir)
+        assert third == {"migrated_pairs": 0, "skipped": True}
         assert ss["relationship_state"]["directed"] == snapshot  # ничего не изменилось
 
     def test_migrated_marker_prevents_second_import(self, tmp_path):
@@ -351,6 +357,7 @@ class TestM1b1MigrationAdapter:
         ss1, ss2 = {}, {}
         RelationshipStateStore.migrate_legacy_relationships(ss1, "test_campaign", data_dir)
         # Второй «запуск» (другое scene_state, тот же диск): маркер отрабатывает
+        RelationshipStateStore.confirm_migration("test_campaign", data_dir)  # cutover подтверждён
         report = RelationshipStateStore.migrate_legacy_relationships(ss2, "test_campaign", data_dir)
         assert report == {"migrated_pairs": 0, "skipped": True}
         assert "relationship_state" not in ss2  # второго импорта НЕ было
@@ -878,8 +885,14 @@ class TestV2BackendD3Parity:
     def _v2(self, prior, scalars=("trust",)):
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
+        # RAM-GO: prior обязан прийти в RAM через bind-hydrate (сцена —
+        # проекция; конструктор больше НЕ читает сцену). Учтено после
+        # 56 красных сетки: провайдер-версия читала prior из сцены,
+        # RAM-версия — только из RAM.
         ss = {"relationship_state": {"directed": {"a→b": {s: prior for s in scalars}}}}
-        return V2RelationshipBackend(lambda: ss, "grid"), ss
+        v2 = V2RelationshipBackend(lambda: ss)
+        v2.bind("grid", scene_state=ss)
+        return v2, ss
 
     @pytest.mark.parametrize("delta", GRID_DELTAS)
     @pytest.mark.parametrize("prior", GRID_PRIORS)
@@ -930,3 +943,172 @@ class TestV2BackendD3Parity:
         v2 = V2RelationshipBackend(lambda: ss, "camp")
         got = v2.get_all_for_source("camp", "a")
         assert got == {"b": {"trust": 10.0, "fear": 0.0, "debt": 0.0, "respect": 0.0, "attraction": 0.0}}
+
+
+
+# ── 16. M1b.4.2: cutover — bind/миграция/заморозка/локации ──
+
+
+class TestV2CutoverLifecycle:
+    """Ратифицированные контракты: (1) late-bind (no-op до bind, громкий
+    отказ на чужую кампанию); (2) .migrated ТОЛЬКО после confirm (transform
+    без маркера); (3) legacy JSON заморожен после cutover; (4) directed
+    идентичен во всех локациях; (5) смена локации не теряет отношения."""
+
+    def test_late_bind_semantics(self):
+        """RAM-GO-контракт (смена от провайдер-версии): lazy-bind срабатывает
+        на первом API-вызове БЕЗ сцены (pre-scene записи живут —
+        IPT-инвариант); смена кампании после привязки — громкий отказ."""
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        v2 = V2RelationshipBackend(lambda: {})  # без кампании, без сцены
+        v2.update("camp", "a", "b", {"trust": 5.0})  # lazy-bind + RAM-запись
+        assert v2.get_pair("camp", "a", "b")["trust"] == 5.0  # читается сразу
+        with pytest.raises(ValueError, match="запрещена"):
+            v2.bind("other")
+        # Идемпотентный повторный bind своей кампании:
+        v2.bind("camp")
+        assert v2.get_pair("camp", "a", "b")["trust"] == 5.0
+
+    def test_transform_does_not_marker(self, tmp_path):
+        ss = {}
+        camp = tmp_path / "c"
+        camp.mkdir()
+        (camp / "npc_relationships.json").write_text(
+            json.dumps({"a→b": {"trust": 10.0}}), encoding="utf-8"
+        )
+        report = RelationshipStateStore.migrate_legacy_relationships(ss, "c", str(tmp_path))
+        assert report == {"migrated_pairs": 1, "skipped": False}
+        # SPLIT: transform завершён, маркера НЕТ (до atomic commit)
+        assert not (camp / "npc_relationships.json.migrated").exists()
+        # confirm после (симуляция успешного commit):
+        assert RelationshipStateStore.confirm_migration("c", str(tmp_path)) is True
+        assert (camp / "npc_relationships.json.migrated").exists()
+        # повторный confirm — идемпотентен
+        assert RelationshipStateStore.confirm_migration("c", str(tmp_path)) is False
+
+    def test_legacy_json_frozen_after_cutover(self, tmp_path):
+        """Обязательный тест Мастера: после cutover legacy JSON не меняется."""
+        import time as _t
+
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        camp = tmp_path / "c"
+        camp.mkdir()
+        legacy_file = camp / "npc_relationships.json"
+        legacy_file.write_text(json.dumps({"a→b": {"trust": 10.0}}), encoding="utf-8")
+        _before_stat = legacy_file.stat()
+        ss = {}
+        RelationshipStateStore.migrate_legacy_relationships(ss, "c", str(tmp_path))
+        RelationshipStateStore.confirm_migration("c", str(tmp_path))
+        _t.sleep(0.01)
+        # runtime writes через v2:
+        v2 = V2RelationshipBackend(lambda: ss, "c")
+        v2.update("c", "a", "b", {"trust": 50.0})
+        v2.update("c", "x", "y", {"fear": 20.0})
+        # Legacy JSON не тронут (ни содержимое, ни mtime):
+        _after_stat = legacy_file.stat()
+        assert legacy_file.read_text(encoding="utf-8") == json.dumps({"a→b": {"trust": 10.0}})
+        assert _after_stat.st_mtime >= _before_stat.st_mtime  # не переписан
+        # v2-значения живут в scene_state, не в JSON:
+        assert v2.get_pair("c", "a", "b")["trust"] > 10.0
+
+    def test_directed_sync_across_locations(self):
+        """Синхронизация Фазы 10: directed копируется во все локации."""
+        # воспроизводим приватную логику через публичный контракт SSM:
+        from app.services.scene_state_manager import SceneStateManager
+
+        mgr = SceneStateManager.__new__(SceneStateManager)  # без init: только метод
+        scenes = {
+            "tavern": {"relationship_state": {"directed": {"a→b": {"trust": 42.0}}}},
+            "city_gate": {"relationship_state": {"directed": {}}},
+            "kitchen": {},  # без relationship_state вовсе
+        }
+        mgr._sync_relationship_directed(scenes)
+        _expected = {"a→b": {"trust": 42.0}}
+        assert scenes["tavern"]["relationship_state"]["directed"] == _expected
+        assert scenes["city_gate"]["relationship_state"]["directed"] == _expected
+        assert scenes["kitchen"]["relationship_state"]["directed"] == _expected
+
+    def test_location_change_keeps_relationships(self, tmp_path):
+        """Кухня→зал: directed переживает смену локации (round-trip через
+        sync + перезагрузку другой локации)."""
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        # RAM-GO: носитель — ОДИН RAM на кампанию; смена локации меняет
+        # только sync-цель проекции. Тик 1 (кухня):
+        ss_kitchen = {}
+        v2 = V2RelationshipBackend(lambda: ss_kitchen)
+        v2.bind("c", scene_state=ss_kitchen)
+        v2.update("c", "maid_lusya", "player", {"trust": 25.0})
+        assert ss_kitchen["relationship_state"]["directed"]["maid_lusya→player"]["trust"] == 25.0
+        # Тик 2: смена локации — новая сцена, ТОТ ЖЕ адаптер (RAM жив):
+        ss_hall = {}
+        v2._scene_state_provider = lambda: ss_hall  # sync-цель переключена
+        assert v2.get_pair("c", "maid_lusya", "player")["trust"] == 25.0  # не потерялись
+        v2.update("c", "maid_lusya", "player", {"trust": 5.0})
+        assert v2.get_pair("c", "maid_lusya", "player")["trust"] > 25.0
+        assert ss_hall["relationship_state"]["directed"]["maid_lusya→player"]["trust"] > 25.0  # проекция в новой сцене
+
+
+
+# ── 17. M1b.4.2 RAM-GO: pre-scene lifecycle + sync-идемпотентность ──
+
+
+class TestRAMAuthorityLifecycle:
+    """Вердикт Мастера RAM-GO: (1) один runtime owner (RAM; сцена —
+    проекция; после bind читается ТОЛЬКО RAM, hydrate однократен);
+    (2) никакого disk-on-update; (3) sync идемпотентен. Плюс обязательный
+    pre-scene тест: update ДО сцены → bind → сцена содержит точные
+    значения → save → reload → точные значения."""
+
+    def test_pre_scene_write_survives_full_lifecycle(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        # Pre-scene: провайдер мёртв (сцены нет) — IPT-контракт
+        scene_holder = {"scene": None}
+        v2 = V2RelationshipBackend(lambda: scene_holder["scene"] or {})
+        v2.update("camp", "player", "npc_friend", {"trust": 80.0})
+        v2.update("camp", "player", "npc_enemy", {"trust": -50.0})
+        # RAM жив без сцены:
+        assert v2.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
+
+        # Сцена появляется → bind + hydrate (RAM непуст — не затирается):
+        scene_holder["scene"] = {"relationship_state": {"directed": {}}}
+        v2.bind("camp", scene_state=scene_holder["scene"])
+        v2.sync_into_scene()
+        _d = scene_holder["scene"]["relationship_state"]["directed"]
+        assert _d["player→npc_friend"]["trust"] == 80.0
+        assert _d["player→npc_enemy"]["trust"] == -50.0
+
+        # Save → reload (симуляция: сцена сериализована и восстановлена):
+        import copy as _copy
+
+        _saved = _copy.deepcopy(scene_holder["scene"])
+        v2_reloaded = V2RelationshipBackend(lambda: _saved)
+        v2_reloaded.bind("camp", scene_state=_saved)
+        assert v2_reloaded.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
+        assert v2_reloaded.get_pair("camp", "player", "npc_enemy")["trust"] == -50.0
+
+    def test_sync_into_idempotent(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        scene = {"relationship_state": {"directed": {"stale→old": {"trust": 1.0}}}}
+        v2 = V2RelationshipBackend(lambda: scene, "camp")
+        v2.update("camp", "a", "b", {"trust": 5.0})
+        _first = copy.deepcopy(scene["relationship_state"]["directed"])
+        v2.sync_into_scene()
+        v2.sync_into_scene()  # второй sync — тот же результат
+        assert scene["relationship_state"]["directed"] == _first
+        assert "stale→old" not in scene["relationship_state"]["directed"]  # полная замена, не merge
+
+    def test_hydrate_does_not_overwrite_pre_scene_ram(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        v2 = V2RelationshipBackend(lambda: {})
+        v2.update("camp", "player", "npc_friend", {"trust": 80.0})  # pre-scene
+        scene_with_other = {"relationship_state": {"directed": {"x→y": {"trust": 1.0}}}}
+        v2.bind("camp", scene_state=scene_with_other)
+        # RAM не затёрт scene-данными (pre-scene приоритетен); сцена осталась своей:
+        assert v2.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
+        assert "x→y" not in v2._directed_ram

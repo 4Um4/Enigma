@@ -153,11 +153,21 @@ class MvpTavernController:
                 _is_leaving = npc_id in _traversals
                 
                 # 8.1 FIX: Судьбы разрешаются на основе физиологии и пространства
-                if _status == "DEAD" or _hp <= 0:
+                if _status == "DEAD":
                     self.fate_tracker.trigger_fate(
                         npc_id=npc_id, outcome=FateOutcome.DEATH, 
                         tick=ctx.get("tick", 0), cause="vital_failure",
                         description=f"{npc_id} погиб из-за физиологического отказа."
+                    )
+                elif _hp <= 0:
+                    # FIX (Phase-0 0.3): hp<=0 без life_status==DEAD — не основание
+                    # для DEATH (architecture/physiology.yaml: hp<=0 как источник
+                    # смерти ЗАПРЕЩЁН, ADR-123). Раньше ValueError каждый тик
+                    # убивал event handler → DLQ (traceback в cds-логе).
+                    logger.warning(
+                        "[FATE] %s: hp<=0 без life_status==DEAD — DEATH не "
+                        "триггерится (SSOT — VitalStateEvaluator), траектория=%s",
+                        npc_id, _fate_state.fate_trajectory,
                     )
                 elif _is_leaving:
                     self.fate_tracker.trigger_fate(

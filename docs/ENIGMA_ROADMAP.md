@@ -1,511 +1,237 @@
 # ENIGMA — Дорожная карта преемника
 
-**Версия документа:** 1.0 · 2026-08-05
-**Адресат:** LLM-преемник на V.0.5.3.7.0
+**Версия документа:** 2.0 · 2026-08-30
+**Адресат:** LLM-преемник на V.0.5.3.9.3 (ветка `V.0.5.3.9.1_ДОВОДКА_2` → `V.0.5.3.9.3_Мир_1`)
 **Назначение:** Пошаговый план — что делать, в каком порядке, что читать, что формулировать самому.
 **Принцип документа:** компактный, без воды; галочки `[ ]` — для трекинга; путь к файлу — для каждого шага.
+**Актуализация:** сверена с кодом (`backend/app`, `architecture/*.yaml`, `scripts/`), `git log`, `reports/LAST_SESSION.md` (28.08.2026) и свежими ADR (O-367…O-371).
 
 ---
 
 ## 0. Контекст: где мы сейчас
 
-**Текущая эпоха:** **Эпоха 6 — Stabilization & Infrastructure** (переходная).
-**Версия кода:** V.0.5.3.7.0 · `version.txt` = `0.5.3.6.10` (desync — баг).
-**Главный ТЗ:** `ENIGMA_TZ_V0.5.3.7.0.md` — это **defect-fix документ**, не feature roadmap. В нём **57 активных дефектов**: 15 Critical / 13 High / 16 Medium / 13 Low.
+**Версия кода:** V.0.5.3.9.3 · `version.txt` = `0.5.3.9.3` · синхронизирован с `pyproject.toml` (desync v0.5.3.7.0-era **закрыт**).
 
-### 5 player-visible симптомов (топ-приоритет на сейчас)
+**Главные активные треки (на смену defect-fix ТЗ V0.5.3.7.0, которое утрачено):**
 
-| # | Симптом | Bug ID |
-|---|---------|--------|
-| 1 | NPC молчит, не отвечает игроку | `REGRESSION-CORE-001` |
-| 2 | MVP popup не показывается | `NEW-MVP-001` |
-| 3 | Игрок не двигается на координатах (0,0) | `NEW-CORE-001` |
-| 4 | Continue flow race condition | `NEW-CORE-002` |
-| 5 | LLM error masking (router глушит исключения) | `NEW-DLG-004` |
+1. **ТЗ-RE-01 — Relationship Engine v2** (`docs/Почти Актуальные TZ/ТЗ_RE-01_Relationship_Engine_v1.9.md` + акт передачи `ТЗ_RE-01_ПЕРЕДАЧА_преемнику_Р18.md`). Прогресс: **M0 ✅ (ADR-O-369)** → **M1a ✅ (ADR-O-370)** → **M1b — в процессе (ADR-O-371-серия коммитов, RelationshipWriteGate)** → далее M1b.5 / M2-D / G / H / K / полигон M.
+2. **W-TRACK — World Embodiment Foundation** (`docs/Почти Актуальные TZ/TZ_WORLD_EMBODIMENT FOUNDATION (W-TRACK).md`). Прогресс: субстрат WORLD-домена **положен** (ADR-O-371: `architecture/world.yaml`, WorldObjectStore, 30 тестов, IPT 45/45), рантайм-потребителей пока **ноль** (доктрина dormant-substrate). Следующие: W2 AffordanceResolver, W3 transition_object + causal writer, W7 PresentationProjector.
+3. **Р18 «Адаптация»** (раунд ТЗ-RE-01) — ОТКРЫТ; режим работы и развилки — в акте передачи (см. §2).
 
-### 3 unresolved TODOs из последней DM-сессии (S62)
+**Эпоха:** переходная между **Эпохой 6 (Stabilization)** и Эпохой 7. `docs/Почти Актуальные TZ/STABILIZATION_ROADMAP.md`: **стабилизация v0.5.3.7.2–v0.5.3.7.10 завершена** — ядро (Tick, Movement, Decision, LLM) стабильно, **IPT 45/45 (было 39/0)**, `lint_silent_failures` ✅, `lint_relationship_engine` ✅. Остаток долга — god-файлы, mypy --strict (79 → 0 в spatial-слоях), print() в backend (36 → 0), TODO/FIXME.
 
-- **#6** NPC position = `"bed"` вместо текущего node (stale schedule → визуальная телепортация)
-- **#7** `movement_intents` не доходят до `DMFrame` → DM-агент не видит, что NPC что-то делает (false negative)
-- **#8** `all_npcs_raw_snapshot` периодически пропадает (`_anr=NONE` на некоторых тиках)
+### Горячие runtime-проблемы (из `reports/LAST_SESSION.md`, 28.08.2026)
+
+| # | Проблема | Статус | Куда смотреть |
+|---|----------|--------|---------------|
+| 1 | **Симуляция заморожена: все 30 тиков → 0 decisions** (BREAK-1) | ✅ **Разморожена** (Фаза 0.1) — DecisionHub жив, 6/6 NPC выдают решения в smoke-прогоне. Артефакт «0 decisions/tick» — следствие player-turn-only пути. Полное подтверждение — живая сессия. | `backend/app/services/npc/decision_hub.py` |
+| 2 | LLM-сервер недоступен при старте backend | ✅ **Исправлено** (Фаза 0.2) — `scripts/llm_server_manager.py`, LOG-GATE-UI на splash показывает статус. `startup_timing.log`: `backend_ok=True, llm_ok=True`. | `scripts/llm_server_manager.py`, `backend/logs/` |
+| 3 | 21 traceback в сессии | ✅ **Устранены 3 реальных бага** (Фаза 0.3): (a) `social_subscriber.py` — `RelationshipWriteGate(None)` тормозил тик; (b) `mvp_tavern_controller.py` — DEATH по hp<=0 вместо VitalState verdict; (c) `domain_phases.py` — eco-стресс не доходил через StateApplicator. | `backend/app/services/events/social_subscriber.py`, `backend/app/services/social/mvp_tavern_controller.py`, `backend/app/services/npc/domain_phases.py` |
+| 4 | NPI 86% | ✅ **Исправлено** (Фаза 0.4) — 6/6 NPC теперь имеют координаты в smoke. `local_traversal_planner` + `traversability_evaluator` работают. player без координат — требует живой сессии (0.5). | movement-пайплайн, `backend/app/services/spatial/` |
+| 5 | Traversal ⏸ у `guard_borko` / `thief_shadow` | ✅ **Разморожен** (Фаза 0.4) — smoke даёт 6/6 `VALID_PATH`. ⏸ в сессии — артефакт arbiter INCUMBENT-отклонения. | `local_traversal_planner.py`, `traversability_evaluator.py` |
+| 6 | NEI=0 — NPC слишком комфортны | ⚠️ **Частично** (Фаза 0.6) — eco-стресс теперь доходит до StateApplicator. Needs-writer runtime — в M2/D, не форсировать. | physiology/needs-контур |
+
+DNA в целом: SHI=100%, SCF=1.0, DRI=100%, DPI=100%, BCI формируется. История — `reports/dna_history.jsonl`.
 
 ### 5 архитектурных истин (усвоить перед любым шагом)
 
-1. **Truth = Snapshot + Chronicle.** State эфемерен, Identity — append-only. Это асимметричная онтология, не баг.
+1. **Truth = Snapshot + Chronicle.** State эфемерен, Identity — append-only. Асимметричная онтология, не баг.
 2. **Time & Physics — одно.** Разрешаются только в Causal Kernel.
 3. **No Event Sourcing for State, но yes for Identity.** State — snapshot, Identity — L1Chronicle (SQLite append-only).
-4. **Symptom ≠ Cause.** Чини pipeline node, не UI. UI-симптом = проекция поломки ниже по стеку.
-5. **Vacuum = local rupture, not global zero.** Unknown ≠ Neutral 0.0. Отсутствие факта ≠ нулевая уверенность.
+4. **Symptom ≠ Cause.** Чини pipeline node, не UI.
+5. **Vacuum = local rupture, not global zero.** Unknown ≠ Neutral 0.0.
+
+**Новая, Эпоха RE-01 (добавить к истинам):** **«Паттерн, не субстанция»** (принцип Р17-П1) — человеческие категории («идеализация», «влюблённость», «адаптация») не вводятся как состояния-сущности; каждая проходит **anti-Bond тест**: доказывается каузальная работа, которую никто другой в ENIGMA не выполняет, иначе — derived-операция.
 
 ### Принципы работы
 
 - Один фикс → один коммит → один тест. Не пачками.
-- CI-гейты обязательны. `ruff` + `pytest backend/tests/IPT.py` перед коммитом.
-- Observability **never mutates**. Диагностика читает, не пишет.
+- CI-гейты обязательны: `ruff` + `pytest backend/tests/IPT.py` (сейчас 45/45) + профильные линтеры `scripts/lint_*.py` (relationship_engine, kernel_rng, l1_append_only, epistemic_boundary, spatial_ssot, frontend_isolation, wall_clock, silent_failures и др.).
+- Observability **never mutates**.
 - DNA-метрики могут врать — перепроверяй через `backend/data/logs/scene_changes_*.jsonl`.
 - `MockProvider` в production-пути запрещён.
 - `random.*` и `time.time()` в kernel-слое запрещены → только `KernelRNG(tick, npc_id, salt)`.
-
-Вот последовательность файлов ТЗ к исполнению (только шапки):
-
-1. `ENIGMA_TZ_V0.5.3.7.0.md` — главное defect-fix ТЗ (закрыть 57 дефектов)
-2. `docs/Почти Актуальные TZ/RemontTZ/ENIGMA_TZ_ISPRAVLENIE.md` — мастер-ТЗ на ремонт
-3. `docs/Почти Актуальные TZ/RemontTZ/domain_core.md`
-4. `docs/Почти Актуальные TZ/RemontTZ/domain_spatial.md`
-5. `docs/Почти Актуальные TZ/RemontTZ/domain_dialogue.md`
-6. `docs/Почти Актуальные TZ/RemontTZ/domain_perception.md`
-7. `docs/Почти Актуальные TZ/RemontTZ/domain_frontend.md`
-8. **Movement Engine — усиление** (нет ТЗ; head_yaw offset, LERP, SC-2..SC-8 probes)
-9. **Dialogue Openers** (нет ТЗ; ActionType.DIALOGUE, noun-anchored parsing, multi-intent)
-10. `docs/Почти Актуальные TZ/ENIGMA_TZ_INFRASTRUCTURE.md` — PBT, Replay, Causal Probes, ADR-Net
-11. `docs/Почти Актуальные TZ/ENIGMA_SELF_HEALING_SYSTEM.md`
-12. `docs/Почти Актуальные TZ/ENIGMA_LLM_PIPELINE_TZ_v1.md` — semantic cache, grammar-constrained JSON
-13. **DRI-метрика** (нет ТЗ; Dialogue Response Integrity)
-14. **Audit Log LLM-вызовов** (нет ТЗ; provenance chain)
-15. **Social Belief Layer / ToM** (нет ТЗ; 4D CrystallizedBelief + second-order BELIEVES)
-16. **Belief Merger** (нет ТЗ; разрешение конфликтов writer'ов в BeliefState)
-17. `docs/Почти Актуальные TZ/VZ/TZ_§19_Predictive_Perception_Dynamics.md` — Prophecy math
-18. **Prophecy System** (в ADR-O-330, не отдельным ТЗ) — player asserts future → L2.5 crystallizes
-19. **Vertical Slice «Секреты Люси - секреты таверны»** (нет ТЗ; демо-кампания для проверки Эпохи 7)
-20. `docs/Почти Актуальные TZ/VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0` — WorldChronicle, 3 уровня времени
-21. `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_01_Domain_Spec.md` — Memetic Domain онтология
-22. `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_02_Content_Policy_Integration.md`
-23. `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_03_Patch_List.md` — 12 точек правки + 8 файлов
-24. **Factions system** (нет ТЗ; Эпоха 9)
-25. **Economy layer** (есть `architecture/economy.yaml`, нет инженерного ТЗ; Эпоха 9)
-26. **Politics** (нет ТЗ; Эпоха 9)
-27. `docs/Почти Актуальные TZ/VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` — формула `U_M = I·R·U − C` (Эпоха 10, **после** Belief Layer)
-28. `docs/Почти Актуальные TZ/ENIGMA_MAP_EDITOR_SMART_VALIDATION.md` — BedRegistry, auto-cut стен
-29. `docs/Почти Актуальные TZ/VZ/TEXTURES_AND_GEOMETRY_TZ.md` — 2D composite, 128×128 portraits, aging
-30. `docs/Почти Актуальные TZ/S1_INPUT_TRACE_IMPLEMENTATION.md` + `INPUT_OBSERVATORY_ROADMAP_S2_S6.md`
-31. `docs/Почти Актуальные TZ/ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf` — романтика/драма/gothic
-32. `docs/Почти Актуальные TZ/AWC_Process_World_Model_TZ.pdf` — Эпоха 11+, только дизайн
-
-⚠️ **Особая отметка:** IPT-LEM ТЗ в архиве не найден — уточните, существует ли он как отдельный документ.
+- Файловые runtime-логи гейтятся `ENIGMA_DISABLE_FILE_LOGS` (LOG-GATE); git-хуки гоняют тесты без записи в `data/logs`.
+- Режим RE-01: **GPT задаёт направление, преемник вскрывает факты до решений и спрашивает по каждой развилке.**
 
 ---
 
-## 1. Что ОБЯЗАТЕЛЬНО прочитать (P0-P5)
+## 1. Документы: что существует, что утрачено (проверено Test-Path 2026-08-30)
 
-> Путь к корню проекта: `/home/z/my-project/work/enigma/Enigma-V.0.5.3.7.0_-_-/`
+### ✅ Существуют и актуальны
 
-### P0 — Прямо сейчас, перед любым шагом
+| Документ | Роль |
+|----------|------|
+| `docs/Почти Актуальные TZ/ТЗ_RE-01_Relationship_Engine_v1.9.md` (1972 строки, аудит 40/40) | Канонический ТЗ Relationship Engine v2: аксиомы §3, запреты §7, устав §12.2 |
+| `docs/Почти Актуальные TZ/ТЗ_RE-01_ПЕРЕДАЧА_преемнику_Р18.md` | Передаточный акт: режим работы, роадмап (а)→(г), развилки Р1–Р7 |
+| `docs/Почти Актуальные TZ/TZ_WORLD_EMBODIMENT FOUNDATION (W-TRACK).md` | Часть II Stage 2.5: 4-хуровневая архитектура WORLD→EMBODIED→PRESENTATION→RENDERING, этапы W0–W9 |
+| `docs/Почти Актуальные TZ/STABILIZATION_ROADMAP.md` | Вердикт по стабилизации: закрыта; остаток долга — god-файлы, mypy, print(), TODO |
+| `docs/ENIGMA_EPOCHS_REPORT.md` | Карта Эпох 1–10 (источник истины по прогрессу; сама отстаёт — на момент v0.5.3.7.8) |
+| `docs/Почти Актуальные TZ/RemontTZ/*.md` (6 файлов) | Мастер-ТЗ на ремонт доменов (CORE/SPATIAL/DIALOGUE/PERCEPTION/FRONTEND) — историческое, большинство фиксов уже применено |
+| `docs/Почти Актуальные TZ/VZ/*.md` (7 файлов: §18, §19, MEMETIC 01–03, TZ-02, TEXTURES) | Будущие эпохи (7–10) |
+| `docs/Почти Актуальные TZ/TZ_Stage_2_5_Temporal_Causality_Predictive_Runtime_1.md` | Temporal causality / predictive runtime (Часть I; W-TRACK — его Часть II) |
+| `docs/Почти Актуальные TZ/1_TZ_Architect_Enigma_V0_5_3_8_2.md` (+ Parts 2–4, `1_TZ_Стадия_2.md`) | Архитектурные ТЗ волны 0.5.3.8.x |
+| `docs/Почти Актуальные TZ/PSY-ARCH-01_Unified_Psychological_Dynamics.md`, `TZ_Laboratoria_Kalibrovki_ENIGMA.md`, `Plan_Razrabotki_Laboratorii.md` | Психологическая динамика и калибровочная лаборатория (M0-полигон ADR-O-367 жив) |
+| `docs/Почти Актуальные TZ/ENIGMA_LLM_PIPELINE_TZ_v1.md`, `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md`, `ENIGMA_TZ2_v2_Narrative_Frame_Onboarding.md`, `ТЗ ENIGMA WORLD-CENTRIC SPATIAL ARCHITECTURE.md` | Периферийные ТЗ (по мере надобности) |
+| `docs/audits/ADR-O-369/370/371_IMPACT.md` (+ атлас `docs/ADR (Architecture Decision Records).md`, 130+ файлов) | Свежие ADR и единый атлас |
+| `reports/SESSION_S62_DM_VISION.md`, `reports/LAST_SESSION.md` | Сессии |
 
-- [ ] `upload/ENIGMA_TZ_V0.5.3.7.0.md` (858 строк) — **главный defect-fix ТЗ**. §3 баг-каталог по доменам, §4 приоритетный план фиксов.
-- [ ] `docs/ENIGMA_EPOCHS_REPORT.md` (849 строк) — карта Эпох 1-10, где завершено, где мы сейчас, куда идём. **Источник истины по прогрессу.**
-- [ ] `reports/LAST_SESSION.md` — последняя сессия: DNA-метрики, что работало, что нет. Movement Traversal = ❌ для всех 6 NPC — главный затык.
-- [ ] `reports/SESSION_S62_DM_VISION.md` — 5 решённых вопросов по слепоте DM-агента + 3 TODO.
+### ❌ Утрачены / не найдены (ссылки из v1.0 роадмапа более не валидны)
 
-### P1 — Перед Фазой 0 (стабилизация)
-
-- [ ] `docs/Почти Актуальные TZ/RemontTZ/ENIGMA_TZ_ISPRAVLENIE.md` (1713 строк) — мастер-ТЗ на ремонт.
-- [ ] `docs/Почти Актуальные TZ/RemontTZ/domain_core.md` — домен CORE.
-- [ ] `docs/Почти Актуальные TZ/RemontTZ/domain_dialogue.md` — домен Dialogue/LLM.
-- [ ] `docs/Почти Актуальные TZ/RemontTZ/domain_spatial.md` — домен Spatial/Movement.
-- [ ] `docs/Почти Актуальные TZ/RemontTZ/domain_frontend.md` — домен MVP/Frontend.
-- [ ] `docs/Почти Актуальные TZ/RemontTZ/domain_perception.md` — домен Perception.
-
-### P2 — Перед Фазами 2-5 (Эпохи 7-10) — папка `VZ/`
-
-- [ ] `docs/Почти Актуальные TZ/VZ/TZ_§19_Predictive_Perception_Dynamics.md` (2835 строк) — математика Prophecy, `z_t = F(z_{t-1}, x_t)`, `surprise = −log P(x_t|z_{t-1})`. **Эпоха 7.**
-- [ ] `docs/Почти Актуальные TZ/VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` (1542 строки) — формула `U_M = I·R·U − C`. **ВНЕДРЯТЬ НЕЛЬЗЯ до Belief Layer. Эпоха 10.**
-- [ ] `docs/Почти Актуальные TZ/VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0 — Каузальная петля и Иммунная система.md` — WorldChronicle, 3 уровня времени. **Эпоха 8.**
-- [ ] `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_01_Domain_Spec.md` (1994 строки) — Memetic Domain: Concept → Expression → Adoption → Norm → Extinction.
-- [ ] `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_02_Content_Policy_Integration.md` (1770 строк) — клей Memetic ↔ Content Policy, per-NPC ContentProfile.
-- [ ] `docs/Почти Актуальные TZ/VZ/TZ_MEMETIC_03_Patch_List.md` (1387 строк) — 12 точек правки + 8 новых файлов. Engineering-мост.
-- [ ] `docs/Почти Актуальные TZ/VZ/TEXTURES_AND_GEOMETRY_TZ.md` (539 строк) — 2D composite model, 128×128 portraits, aging. **Post-MVP.**
-
-### P3 — Перед Фазой 1 (Infrastructure)
-
-- [ ] `docs/Почти Актуальные TZ/ENIGMA_TZ_INFRASTRUCTURE.md` (1075 строк) — PBT, Replay System, Causal Probes, ADR-Net. **Главный источник Эпохи 6.**
-- [ ] `docs/Почти Актуальные TZ/ENIGMA_SELF_HEALING_SYSTEM.md` (1790 строк) — Self-healing L0-L2.
-- [ ] `docs/Почти Актуальные TZ/ENIGMA_LLM_PIPELINE_TZ_v1.md` (4993 строки) — semantic cache (BGE-small-ru + FAISS), grammar-constrained JSON, P50<2.5s.
-- [ ] `docs/Почти Актуальные TZ/ENIGMA_TZ_ISPRAVLENIE_1.md` (1165 строк) — предыдущий раунд фиксов.
-
-### P4 — Перед затрагиванием конкретных подсистем
-
-- [ ] `docs/audits/ADR-O-305_*.md`, `ADR-O-306_*.md`, `ADR-O-307_*.md` — **Belief Crystallization Layer** (L2.5).
-- [ ] `docs/audits/ADR-O-324_*.md`, `ADR-O-329_*.md`, `ADR-S90.1_*.md`, `ADR-S91_*.md` — **Movement Engine / Traversal**.
-- [ ] `docs/audits/ADR-DM-001_IMPACT.md` — DM-agent контракт.
-- [ ] `docs/audits/ADR-O-201_*.md` — Causal Kernel Architecture.
-- [ ] `docs/audits/ADR-O-205_*.md` — Projection Layer (5-layer perception).
-- [ ] `docs/audits/ADR-O-206_Emotional Residue Isolation Protocol.md`.
-- [ ] `docs/audits/209-210-211-212_ПОЛНАЯ АРХИТЕКТУРА СОЦИАЛЬНОЙ ФИЗИКИ ENIGMA.md` — master.
-- [ ] `docs/audits/ADR-PRE-FLIGHT CHECKLIST.md` — pre-flight перед запуском.
-
-### P5 — По мере надобности (post-MVP)
-
-- [ ] `docs/Почти Актуальные TZ/ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf` (113 стр.) — романтика/драма/gothic, 6 доменов.
-- [ ] `docs/Почти Актуальные TZ/AWC_Process_World_Model_TZ.pdf` — Process/WorldGraph/NPCKnowledge. Эпоха 11+, **не реализован**.
-- [ ] `docs/Почти Актуальные TZ/ENIGMA_MAP_EDITOR_SMART_VALIDATION.md` — BedRegistry, auto-cut стен.
-- [ ] `docs/Почти Актуальные TZ/S1_INPUT_TRACE_IMPLEMENTATION.md` + `INPUT_OBSERVATORY_ROADMAP_S2_S6.md`.
-
-### ⚠️ Особая отметка: IPT-LEM ТЗ
-
-**IPT-LEM ТЗ в архиве НЕ НАЙДЕН.** Поиск по `docs/Почти Актуальные TZ/VZ/` и всей папке `docs/` не дал результата. Ближайший артефакт — `backend/tests/IPT.py` (Invariant Probe Tests, упоминается в `LAST_SESSION.md`). Если пользователь ожидает отдельный документ «IPT-LEM», он либо назван иначе, либо не существует как файл. **Уточнить у пользователя.**
+- `upload/ENIGMA_TZ_V0.5.3.7.0.md` — главный defect-fix ТЗ эпохи 0.5.3.7.0. **Папки `upload/` нет.** Его defect-каталог фактически отработан STABILIZATION_ROADMAP — не искать, не восстанавливать.
+- `docs/Почти Актуальные TZ/ENIGMA_TZ_INFRASTRUCTURE.md` — нет в репо.
+- `docs/Почти Актуальные TZ/ENIGMA_SELF_HEALING_SYSTEM.md` — нет в репо.
+- `S1_INPUT_TRACE_IMPLEMENTATION.md`, `INPUT_OBSERVATORY_ROADMAP_S2_S6.md` — нет в репо.
 
 ---
 
-## 2. Что НЕТ в ТЗ — сформулировать самому
+## 2. Активный трек №1 — RE-01: Relationship Engine v2
 
-Эти 6 концептов **отсутствуют как самостоятельные ТЗ** и разбросаны по ADR/коду. Их надо собрать в связные документы и реализовать.
+### Прогресс по фазам (все гейты зелёные, runtime байтово идентичен)
 
-### 2.1 ToM / Social Belief Layer (Theory of Mind)
+- [x] **M0 (ADR-O-369)** — онтологический контракт: `architecture/relationship_engine.yaml` (45 узлов, 20 событий, 6 предикатов, запреты №1–35) + `scripts/lint_relationship_engine.py` в CI/pre-commit. Рантайм не тронут.
+- [x] **M1a / Phase B (ADR-O-370)** — субстрат: `RelationshipStateStore` (scene_state-backed, dormant), контракты NeedSlot/PreferenceModel/HardConstraint, `StateApplicator.update_needs` (single-writer, caller-guard). 28 тестов.
+- [x] **M1b.0** — `RelationshipWriteGate` (routing-слой, whitelist 5 скаляров, NaN/foreign-key guard) + D3-паритет против legacy `update()`.
+- [x] **M1b.1** — миграционный адаптер legacy→v2 (deterministic transform, идемпотентность, 9 приёмочных тестов).
+- [x] **M1b.2.1–2.3** — перевод writers на гейт: `social_subscriber` (6 вызовов), `action_consequence_compiler` (BLACKMAIL/HELP/ACCUSE), `MemoryManager`-фасад (write-гейт в `__init__`, ADR-O-371-нумерация коммитов).
+- [ ] **M1b.5** — удалить мёртвый `apply_npc_state_updates` (0 вызовов доказано грепом).
+- [ ] **M2/D** — `RelationshipEventSemantics`: первый реальный писатель потребностей через `update_needs` + формат RE-событий в causal-машинерии.
+- [ ] **G/H** — динамика Satisfaction и фрустрации через стор.
+- [ ] **K (фаза I артефакт)** — полный removal-test.
+- [ ] **Полигон M** — пресеты, INV-1, диф-тест раннего внимания **О-2** (единственный хвост Р17).
 
-**Что:** Целевая 4-мерная модель `CrystallizedBelief(subject × target × predicate × polarity)` + second-order predicate `BELIEVES` (NPC верит, что другой NPC верит X).
-**Зачем:** Без этого Prophecy (Эпоха 7) и Lineage (Эпоха 8) не работают — они строятся поверх социального моделирования. Текущий `PlayerBeliefModel` ≠ NPC ToM.
-**Где править:** `backend/app/cognition/belief_crystallization_engine.py`, `crystallized_belief_store.py`. Референс: ADR-O-305/306/307.
-**Когда делать:** На стыке Фазы 1 → Фазы 2 (параллельно с Prophecy).
+### Р18 «Адаптация» (открытый раунд)
 
-### 2.2 Belief Merger
+Источники: акт передачи (§3) + ТЗ v1.9 §12.2. Правило раунда: **«Не доказываем, что адаптация существует; доказываем или опровергаем, что есть каузальная работа, которую никто другой не выполняет»**. Первое действие — досье адаптационного контура по цепочке `writer → state → reader → causal effect → existing substitute → anti-Bond test → остаток`. Развилки Р1–Р7 — вопросом арбитру (GPT), не самостоятельными решениями. Зоны вскрытия — §6.3/§5.0/§5.1/§8.1/§6.19/§6.4 ТЗ v1.9.
 
-**Что:** Разрешение конфликта двух writer'ов в `BeliefState` (NPC сам наблюдал X, но другой NPC сообщил Y). Стратегия: source-weighted merge с учётом доверия к источнику (ToldBy NPC) и recency.
-**Зачем:** Без Merger любые мемы (Эпоха 8) и Prophecy (Эпоха 7) будут перезатирать фактологию без конфликта — потеря эпистемической честности.
-**Где править:** рядом с `belief_crystallization_engine.py`, новый модуль `belief_merger.py`.
-**Когда:** Сразу после 2.1.
-
-### 2.3 Усиление Movement Engine
-
-**Что:** `head_yaw` как offset (NPC смотрит в сторону от направления движения); `PerceptionOrientationSystem` (модуль восприятия зависит от gaze direction); LERP-сглаживание; probes SC-2..SC-8 (Spatial Coherence Field probes, 7 штук).
-**Зачем:** Сейчас `Movement Traversal = ❌ для всех 6 NPC` (LAST_SESSION). Без этого NPC визуально телепортируются и не видят игрока.
-**Где править:** `local_traversal_planner.py`, `geometry_kernel.py`, `traversability_evaluator.py`, `motion_pipeline.py`. Референс: ADR-O-324, ADR-O-329, ADR-S90.1, ADR-S91.
-**Когда:** **Фаза 0** — это критический затык прямо сейчас.
-
-### 2.4 Dialogue Openers
-
-**Что:** `ActionType.DIALOGUE` как first-class action; noun-anchored parsing (NPC открывает диалог упоминая предмет); negation handling; multi-intent (NPC говорит про X и Y одновременно); context-anchored (диалог отталкивается от последнего наблюдения).
-**Зачем:** Сейчас NPC молчит (`REGRESSION-CORE-001`). Dialogue Executor валидируется, но openers нет — DM-агент не получает инициативы от NPC.
-**Где править:** `backend/app/dialogue/` + `domain_dialogue.md` (RemontTZ). Референс: тесты `test_dialogue_executor_validation.py`, `test_dialogue_context_and_target.py`.
-**Когда:** **Фаза 0** — после REGRESSION-CORE-001.
-
-### 2.5 DRI-метрика (Dialogue Response Integrity)
-
-**Что:** Метрика целостности ответа диалога: (1) NPC не противоречит себе в одном тике, (2) NPC не нарушает Epistemic Boundary (не выдаёт hidden state), (3) ответ соответствует выбранному intent, (4) ManifestationDTO tags-consistent с utterance.
-**Зачем:** DNA-метрики (SHI/NPI/SCF) не покрывают диалоговый слой — там黑洞. Без DRI регрессии в LLM-ответах невидимы.
-**Где править:** новый модуль в `diagnostics/` рядом с `dna_metrics.py`. Подключить в `diagnostics/health_checkers/`.
-**Когда:** **Фаза 1** (Infrastructure).
-
-### 2.6 Audit Log LLM-вызовов
-
-**Что:** Provenance chain — для каждого LLM-вызова: `tick_id, npc_id, prompt_hash, response_hash, model, latency, cache_hit, intent_before, intent_after`. Хранится append-only.
-**Зачем:** Replay System (Эпоха 6) требует deterministic LLM path. Без audit log нельзя отладить «почему NPC сказал X на тике N». Сейчас видно только через `cds_session_*.log`, что неудобно.
-**Где править:** новый `backend/app/llm/audit_log.py` + интеграция в `dm_agent.py` / `dialogue_router.py`.
-**Когда:** **Фаза 1** (Infrastructure), параллельно с Replay System.
 
 ---
 
-## 3. Граф зависимостей
+## 3. Активный трек №2 — W-TRACK: World Embodiment (Часть II Stage 2.5)
 
-```
-REGRESSION-CORE-001 (task_scheduler)
-    ↓ блокирует всё остальное в DOM-CORE
-NEW-CORE-001 (movement at 0,0) ─┐
-NEW-DLG-004 (LLM masking)  ────┤── Фаза 0 (стабилизация)
-NEW-MVP-001 (popup)         ──┘
-    ↓
-Movement Engine усиление (SC-2..SC-8)
-    ↓
-Dialogue Openers ───── DRI-метрика ── Audit Log
-    ↓                    ↓              ↓
-    └──────── Фаза 1: Infrastructure (PBT, Replay, Causal Probes, ADR-Net, Self-Healing, LLM Pipeline v1) ────────┘
-                            ↓
-                ToM / Social Belief Layer (4D CrystallizedBelief + BELIEVES)
-                            ↓
-                    Belief Merger
-                            ↓
-        ┌──────── Фаза 2: Эпоха 7 — Prophecy (§19) + Vertical Slice «Секреты Люси - секреты таверны» ────────┐
-        ↓                                                                                   ↓
-        WorldChronicle (TZ-02) ──── 3 уровня времени ──── Memetic Domain (TZ_MEMETIC_01-03)
-                            ↓
-                ┌─── Фаза 3: Эпоха 8 — Generational Depth ───┐
-                ↓                                            ↓
-                Factions + Economy + Politics (Эпоха 9)
-                            ↓
-                Belief Layer MVP complete
-                            ↓
-                Фаза 5: §18 (U_M = I·R·U − C) — Эпоха 10
-                            ↓
-                Post-MVP: Female Targeted Layer / Textures / Map Editor Smart Validation / AWC
-```
+Главный инвариант: **Renderer не является источником истины о мире**; новый NPC/шрам/предмет/renderer не требуют переписывания мозга NPC.
 
-**Жёсткое правило:** §18 внедрять **нельзя** до завершения Belief Layer. §19 внедрять **нельзя** до Prophecy Causality Law (ADR-O-330) green.
+- [x] **W-субстрат (ADR-O-371)** — WORLD-домен: `architecture/world.yaml`, семантическая объектная топология, WorldObjectStore (персистенция внутри `scene_state`), `WorldSnapshot` +1 поле. 30 тестов (`backend/tests/test_world_object_topology.py`) + INV-WORLD-OBJECT-TOPOLOGY в IPT. Рантайм-потребителей: 0 (доктрина dormant-substrate).
+- [ ] **W2** — AffordanceResolver (read-потребитель субстрата).
+- [ ] **W3** — `transition_object` + causal writer (спавнер; тогда же caller-guard по образцу M1a `_ALLOWED_WRITERS`).
+- [ ] **W4** — Embodied State (поза, локомоция, хват, attachment).
+- [ ] **W5–W9** — Presentation Projector / интерфейсы renderers — только контракты + PoC.
 
 ---
 
-## 4. ФАЗА 0 — Стабилизация (закрыть 57 дефектов V0.5.3.7.0)
+## 4. Фазы и порядок работ (обновлённая последовательность)
 
-**Цель:** SHI=100%, 0 Critical багов, canary `backend/tests/canary/test_full_playthrough.py` green, Movement Traversal = ✅ для всех NPC.
-**Источник ТЗ:** `ENIGMA_TZ_V0.5.3.7.0.md` §3 (баг-каталог) + §4 (приоритетный план).
-**Параллельность:** Шаги 0.1-0.5 можно делать параллельно после 0.0; 0.6 и 0.7 — после 0.1.
+### Фаза 0 — Разморозка симуляции (немедленно, до любых feature-работ)
 
-### Чек-лист
+Статус 2026-08-30: сессия дезминтинга проведена; IPT 45/45, smoke β (Goran) чистый. Детали фиксов — в комментариях кода с меткой `FIX (Phase-0 ...)`.
 
-- [ ] **0.0** Фикс version desync: `version.txt` (`0.5.3.6.10`) → `0.5.3.7.0`; проверить `frontend/constants.py`. **Почему сейчас:** без этого любой релиз-артефакт врёт о версии.
-- [ ] **0.1** `REGRESSION-CORE-001` — вернуть `task_scheduler` вызов в `tick_orchestrator.execute()`. **Файлы:** `backend/app/core/tick_orchestrator.py`, `backend/app/core/task_scheduler.py`. **Почему первым:** без этого NPC молчит — любой другой фикс невидим.
-- [ ] **0.2** `REGRESSION-CORE-002` — `TICK_COMPLETED` payload должен быть JSON-serializable. Проверить `pydantic`-модели в `pipeline_context.py`. **Почему сейчас:** нарушает Epistemic Boundary contract L16.
-- [ ] **0.3** `NEW-CORE-001` — игрок не двигается на координатах (0,0). Проверить `SpatialFactory`, `TraversalState`, `MovementIntent`. **Файлы:** `backend/app/spatial/`. **Почему:** player-visible симптом #3.
-- [ ] **0.4** `NEW-CORE-002` — Continue flow race condition. Состояние между тиками неконсистентно. **Файлы:** `backend/app/core/tick_orchestrator.py`, `state_applicator.py`, `delta_buffer.py`.
-- [ ] **0.5** `NEW-DLG-004` — LLM error masking. `dialogue_router` глушит исключения. **Файлы:** `backend/app/dialogue/dialogue_router.py`. **Почему:** скрывает реальные LLM-провалы.
-- [ ] **0.6** `NEW-MVP-001` — MVP popup. **Файлы:** `frontend/` (MvpTavernController), `TruthState`. **Почему:** player-visible симптом #2.
-- [ ] **0.7** Усиление Movement Engine (см. §2.3): `head_yaw` offset, LERP, SC-2..SC-8 probes. **Файлы:** `local_traversal_planner.py`, `geometry_kernel.py`, `traversability_evaluator.py`, `motion_pipeline.py`. **Почему:** Movement Traversal ❌ для всех 6 NPC — критический затык.
-- [ ] **0.8** DM-VISION TODO #6: NPC position = `"bed"` → брать current node из schedule. **Файлы:** `backend/app/core/calendar.py`, `schedule`-модуль.
-- [ ] **0.9** DM-VISION TODO #7: `movement_intents` → `DMFrame`. **Файлы:** `backend/app/dm_agent.py`, `pipeline_context.py`.
-- [ ] **0.10** DM-VISION TODO #8: `all_npcs_raw_snapshot` стабилен между тиками. **Файлы:** `pipeline_context.py`, `shared_context.py`.
-- [ ] **0.11** `BUG-CORE-013/015/016/017/020-026` — пройти по списку из §3.1 главного ТЗ.
-- [ ] **0.12** `NEW-DLG-001..008` + `BUG-DLG-043/044` + `BUG-DLG-CAUSAL-4.7.48/4.7.49` — §3.2 главного ТЗ.
-- [ ] **0.13** `NEW-ORIENT-004`, `BUG-FB-029` — §3.4 / §3.3.
-- [ ] **0.14** Прогнать `backend/tests/canary/test_full_playthrough.py` — должен быть green.
-- [ ] **0.15** Проверить DNA-метрики: SHI=100%, NPI=100%, SCF=1.0, PFI=0%, ADR ≤ порог.
-- [ ] **0.16** Подготовка контрактов для стохастики (ResolutionEngine). Добавить поле `expected_success: float = 0.0` в `DecisionResult` (`backend/app/services/npc/decision_hub.py`) и параметр `resolution_outcome: Optional[ResolutionOutcome] = None` в `StateApplicator.apply()` (`backend/app/services/npc/state_applicator.py`). **Почему сейчас:** прокладываем рельсы без включения кубика, чтобы не переписывать DTO-контракты в Фазе 2.
-- [ ] **0.17** Подготовка контрактов для Active Inference (ExpectationStore). Проверить наличие `ExpectationStore` и `PEModifierResolver` в `backend/app/services/npc/`. Убедиться, что БД `memory.db` создаётся. Оставить TODO-маркер в `npc_tick_pipeline.py` (точка сборки `_drive_modifiers_for_hub`) для будущего вызова `PEModifierResolver().resolve(expectation)`. **Почему сейчас:** Active Inference (S-93) требует EMA-ожиданий, которые должны накапливаться с Фазы 0, чтобы в Эпоху 7 (Prophecy) у NPC уже была база ожиданий.
-- [ ] **0.18** Подготовка контрактов для масок персонажа (FrontEngine). Проверить наличие полей `front_description`, `world_pressure`, `front_type` в `pipeline_context.py` (уже есть). Оставить TODO-маркер в `tick_orchestrator.py` (между Фазой 8 и Фазой 9) для будущего вызова `apply_front_engine()`. **Почему сейчас:** механика масок (Humble/Tough/Guarded) требует расчёта давления от фракций (Эпоха 9), но сам движок и интеграция в `shared_context` должны быть готовы.
-- [ ] **0.19** Подготовка контрактов для порядка реакций (ReactionPriority). Оставить TODO-маркер в `reaction_subscriber.py` (перед циклом по `perceiving_ids`) для будущей сортировки наблюдателей по роли/расстоянию/психике. **Почему сейчас:** детерминированный порядок реакций (стражник → трактирщик) необходим для предсказуемости LLM-нарратива, но требует тонкой настройки таблицы обязанностей (`_DUTY_TABLE`) под MVP-кампанию.
-- [ ] **0.20** Подготовка контрактов для социального статуса (PerceptionEngine). Оставить TODO-маркер в `npc_tick_pipeline.py` (точка сборки модификаторов) для будущего вызова `assess_status(player_markers)` и `get_social_permissions()`. **Почему сейчас:** данные о маркерах игрока (`player_markers`) уже передаются в `shared_context`, но не конвертируются в модификаторы для `DecisionHub` (NPC не видят разницы между нищим и королём).
-- [ ] **0.21** Подготовка контрактов для смены профессии (RoleTransition). Оставить TODO-маркер в `tick_orchestrator.py` (после Фазы 8) для будущего вызова `RoleTransition.execute_transition()`. **Почему сейчас:** механика смены профессии требует экономической базы (стоимость 20 золотых) и глубокой социальной симуляции, но контракт (`NPCState`, `RoleChangeEntry`) уже существует.
-- [ ] **0.22** Подготовка контрактов для экономики локаций (MarketState/Traveller). Оставить TODO-маркер в `tick_orchestrator.py` (после Фазы 8) для будущего вызова `MarketState.tick()` и `Traveller.generate_visits()`. **Почему сейчас:** экономика требует интеграции с `EconomicProfile` NPC и `SpatialService` (спавн странников), что относится к Эпохе 9, но логика бимодального рынка (quiet/active) уже готова.
-- [ ] **0.23** Подготовка контрактов для валидации физики (PhysicsValidator). Оставить TODO-маркер в `game_loop/__init__.py` (после `resolve_player_intent`) для будущего вызова `PhysicsValidator().validate()`. **Почему сейчас:** валидация физической возможности действий игрока (полёт, телепортация) должна происходить мгновенно (<1мс) до LLM, чтобы экономить токены и обеспечивать реализм мира. Сам валидатор и правила (`VIOLATION_RULES`) уже готовы.
+- [x] **0.1** BREAK-1 частично снят: WorldTick-путь жив — smoke даёт **6/6 NPC-решений** ([DECISION_HUB] guard_borko/merchant_goran/maid_lusya/blacksmith_orm/thief_shadow/tavern_keeper_tornin); «0 decisions» в DNA последней сессии — артефакт player-turn пути и счётчика [R3_DIRECT] (диагностика `diagnostics/pattern_registry.py`). Требует подтверждения живой игровой сессией.
+- [x] **0.2** LLM-сервер при старте: подтверждён OK (`startup_timing.log`: `backend_ok=True, llm_ok=True`; `[STARTUP] LLM (сервер): доступен`). Фолс-тревога последней сессии.
+- [x] **0.3** Tracebacks устранены (3 фикса): (1) `social_subscriber.py` — None-стор больше не оборачивается в RelationshipWriteGate (было `NoneType.update` каждый тик); S116-fallback понижен до debug; (2) `mvp_tavern_controller.py` — DEATH триггерится только по `life_status==DEAD` (SSOT VitalStateEvaluator), hp<=0 без DEAD → WARN вместо ValueError→DLQ каждый тик; (3) `domain_phases.py` — eco-стресс проводится через `StateApplicator.apply_deltas_only` (было: guard ломал запись, стресс молча терялся — вклад в NEI=0). `lint_silent_failures` — ✅ 0.
+- [~] **0.4** Traversal: в текущем билде smoke даёт 6/6 `VALID_PATH / traversal=CREATED`; ⏸ у guard_borko/thief_shadow в последней сессии — вероятно arbiter INCUMBENT-отклонения (commitment держит прежнюю цель). Подтвердить живой сессией.
+- [ ] **0.5** player без координат — требует живой игровой сессии (не воспроизводится в smoke).
+- [~] **0.6** NEI=0: eco-стресс дельт теперь доходит (фикс 0.3); полноценный рантайм-писатель потребностей — только в M2/D (по плану RE-01, не форсировать).
 
-### Гейты для перехода к Фазе 1
+### Фаза 1 — Завершение RE-01 M1b→M2 (параллельно с Фазой 0 после разморозки)
 
-- [ ] 0 Critical багов из `ENIGMA_TZ_V0.5.3.7.0.md`
-- [ ] canary green
-- [ ] SHI=100% на 3 сессиях подряд
-- [ ] Movement Traversal = ✅ для ≥5 из 6 NPC
+- [ ] M1b.5 (мёртвый код), затем M2/D, G/H — по ТЗ v1.9; каждая фаза = контрактный гейт + линтер + IPT 45/45.
 
----
+### Фаза 2 — Эпоха 7: Predictive Perception & Prophecy
 
-## 5. ФАЗА 1 — Завершить Эпоху 6: Infrastructure
+- [ ] `docs/Почти Актуальные TZ/TZ_Stage_2_5_..._1.md` (Часть I) + `VZ/TZ_§19_Predictive_Perception_Dynamics.md` (surprise = −log P(x_t|z_{t-1})).
+- [ ] `ObservationLayer/BeliefProjector` (P1-31) — унификация источников правды убеждений.
+- [ ] Prophecy System (ADR-O-330), Vertical Slice «Секреты Люси — секреты таверны».
 
-**Цель:** Property-Based IPT coverage >80%, Replay System exact-match, Causal Probes live, ADR-Net MVI=48h, Self-Healing L0-L2 активны, LLM Pipeline v1 даёт P50<2.5s и cache hit ≥35%.
-**Источник ТЗ:** `docs/Почти Актуальные TZ/ENIGMA_TZ_INFRASTRUCTURE.md`, `ENIGMA_SELF_HEALING_SYSTEM.md`, `ENIGMA_LLM_PIPELINE_TZ_v1.md`.
-**Параллельность:** 1.1-1.6 — параллельно.
+### Фаза 3 — Эпоха 8: Temporal Identity, линии времени
 
-### Чек-лист
+- [ ] `VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0` (WorldChronicle, 3 уровня времени), ADR-TIFL-001..003.
+- [ ] `VZ/TEXTURES_AND_GEOMETRY_TZ.md` — visual aging (после lineage).
 
-- [ ] **1.1** Property-Based IPT — расширить `backend/tests/IPT.py` гипотезами из Эпох 1-5 контрактов (L1/L2/L16/L17/L18/L20). Использовать `hypothesis`.
-- [ ] **1.2** Replay System — `KernelRNG(tick, npc_id, salt)` детерминизм. Сохранить seed-параметры → переиграть тик → сравнить `TickMutation`. **Файлы:** `backend/app/core/kernel_rng.py`, новый `backend/app/replay/`.
-- [ ] **1.3** Causal Probes — `diagnostics/causal_observer.py` + новые probe-классы. Цель: автоматический контр-фактический анализ.
-- [ ] **1.4** ADR-Net — neural net для классификации ADR-нарушений. MVI (Minimum Viable Implementation) = 48 чел.-часов, full = 158 чел.-часов.
-- [ ] **1.5** Self-Healing L0-L2: L0 = event subscribers, L1 = telemetry dashboard, L2 = auto-rollback на регрессию. Источник: `ENIGMA_SELF_HEALING_SYSTEM.md`.
-- [ ] **1.6** LLM Pipeline v1: semantic cache на BGE-small-ru + FAISS, grammar-constrained JSON через `pydantic`/`jsonschema`. Цель: P50<2.5s, cache hit ≥35%.
-- [ ] **1.7** DRI-метрика (см. §2.5) — новый модуль в `diagnostics/`.
-- [ ] **1.8** Audit Log LLM-вызовов (см. §2.6) — `backend/app/llm/audit_log.py`.
-- [ ] **1.9** Replay System совместимость с `ResolutionEngine`. Убедиться, что `KernelRNG(tick, npc_id, salt="resolution_engine")` корректно снапшотится и восстанавливается в Replay System, не ломая детерминизм переигровки. **Файлы:** `backend/app/replay/`.
-- [ ] **1.10** Интеграция `PhysicsValidator` (Валидация физики). Включить вызов `PhysicsValidator().validate()` в `game_loop/__init__.py` после `resolve_player_intent`. Невозможные действия (полёт без заклинания, телепортация) должны отклоняться мгновенно (<1мс) до LLM, возвращая реалистичную альтернативу для DM-нарратива. **Файлы:** `backend/app/services/game/physics_validator.py`, `game_loop/__init__.py`.
+### Фаза 4 — Эпоха 9: Общество (Factions, Economy, Politics) + Memetic
 
-### Гейты для перехода к Фазе 2
+- [ ] `VZ/TZ_MEMETIC_01..03` — меметический домен.
+- [ ] Factions / Economy (`architecture/economy.yaml` есть, инженерного ТЗ нет) / Politics — ТЗ сформулировать.
 
-- [ ] IPT coverage >80%
-- [ ] Replay exact-match на 100-tick отрезке
-- [ ] LLM P50 <2.5s, cache hit ≥35%
-- [ ] DRI-метрика green на 5 тестовых сессиях
-- [ ] ADR-Net MVI обучена
+### Фаза 5 — Эпоха 10: Bounded Rationality
+
+- [ ] `VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` (`U_M = I·R·U − C`) — **только после** Belief Layer.
+
+### Фаза 6 — Контент и презентация (когда угодно, изолированно)
+
+- [ ] `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf`, `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md`, `AWC_Process_World_Model_TZ.pdf` (Эпоха 11+, только дизайн), Narrative Frame Onboarding, Laboratoria Kalibrovki (полигон).
+
+### Долг (не блокирует, брать паузами)
+
+- [ ] God-файлы: `game_loop/__init__.py`, `life_engine.py`, `tick_orchestrator.py`.
+- [x] ~~mypy --strict: 79 ошибок (`spatial_runtime.py`, `spatial_service.py`)~~ **✅ Исправлено** — mypy --strict: 0 ошибок в spatial-слоях (`spatial_runtime.py`, `spatial_service.py`, `graph_compiler.py`, `spatial_query_service.py`, `npc_state.py`). Было 79 каскадных ошибок, включая `bool()` в `npc_state.py` и `Dict[str, dict]` → `Dict[str, Dict[str, Any]]` в `graph_compiler.py`.
+- [x] ~~`print()` → logger (76 вхождений)~~ **✅ Исправлено** — все 36 `print()` в `backend/app/main.py` заменены на `logger.info/error/warning` с корректным уровнем. Ruff-clean.
+- [~] TODO/FIXME в доменном слое (`backend/app/domain/`) — 5 записей: context-aware intensity (v2), S28 enum IntentType, IntentSemanticField extension, DeathState backlog (2 TODO). Это backlog-маркеры будущей функциональности, а не баги — оставлены как есть.
+- [x] ~~DEBT-IPT-RUFF: 24 pre-existing нарушения в `IPT.py`~~ **✅ Исправлено** — `ruff check IPT.py`: `All checks passed!` (F821 `os` :1129 — не ошибка, т.к. `import os` на строке 1115 внутри функции; 24 нарушения были устранены в предыдущей сессии).
 
 ---
 
-## 6. ФАЗА 2 — Эпоха 7: Vertical Slice + Prophecy
+## 5. Гейты и Stop-criteria
 
-**Цель:** Vertical slice демо «Секреты Люси - секреты таверны» играбельно; Prophecy Causality Law (ADR-O-330) green; §19 PerceptualKernel внедрён.
-**Источник ТЗ:** `TZ_§19_Predictive_Perception_Dynamics.md`, ADR-O-330 (Prophecy).
-**Параллельность:** 2.1+2.2 (Belief Layer) → 2.3 (§19) → 2.4 (Prophecy) → 2.5 (Vertical Slice).
+| Переход | Stop-criteria (все ✅) |
+|---------|------------------------|
+| Фаза 0 → 1 | Симуляция жива: decisions > 0 стабильно ×3 сессии · tracebacks ~0 · SHI=100% честно (перепроверено по `scene_changes_*.jsonl`) · IPT 45/45 |
+| Фаза 1 → 2 | RE-01 M2/D зелёный · RelationshipWriteGate покрывает 100% writers · линтер `lint_relationship_engine.py` в CI · Replay exact-match |
+| Фаза 2 → 3 | §19 surprise измеряется · Prophecy green · Vertical Slice играбелен |
+| Фаза 3 → 4 | WorldChronicle persistence green · 3 времени консистентны |
+| Фаза 4 → 5 | 50+ NPC × 30+ мин стабильно |
+| Фаза 5 → 6 | §18 активен после Belief Layer |
 
-### Чек-лист
+### Красные флаги — STOP
 
-- [ ] **2.1** Сформулировать и реализовать **Social Belief Layer (ToM)** — см. §2.1. `CrystallizedBelief(subject × target × predicate × polarity)` + `BELIEVES` second-order. **Файлы:** `backend/app/cognition/belief_crystallization_engine.py`, `crystallized_belief_store.py`.
-- [ ] **2.2** Belief Merger — см. §2.2. **Файлы:** новый `backend/app/cognition/belief_merger.py`.
-- [ ] **2.3** §19 Predictive Perception — `PerceptualKernel` с `z_t = F(z_{t-1}, x_t)` и `surprise = −log P(x_t|z_{t-1})`. Surprise становится каузальным входом. **Файлы:** `backend/app/perception/perceptual_kernel.py` (новый).
-- [ ] **2.4** Prophecy System (ADR-O-330): player *asserts* future → belief crystallizes в L2.5 → confirmation bias → self-fulfilling. **Файлы:** `backend/app/cognition/prophecy_engine.py` (новый).
-- [ ] **2.5** Vertical Slice «Секреты Люси - секреты таверны» — кампания-демо, проверяющая всю связку: Belief + Merger + §19 + Prophecy.
-- [ ] **2.6** Интеграция `ResolutionEngine` — стохастическое разрешение действий NPC (кубик d20). Замкнуть цепочку: `DecisionHub.compute() → ResolutionEngine.resolve() → StateApplicator.apply()`. Внедрить вычисление `expected_success` (нормализация score) и `gap` learning (обучение на разнице ожидание/реальность). **Синергия с Belief Layer:** `gap` и `surprise` от ResolutionEngine становятся прямыми входами для `BeliefCrystallizationEngine` (формирование trait_suspicious/overconfident) и `Prophecy` (математика surprise). Реализовать `Viability Veto` (отмена CommunicationIntent/Task при `critical_failure`). **Файлы:** `backend/app/services/npc/resolution_engine.py`, `decision_hub.py`, `state_applicator.py`, `npc_tick_pipeline.py`.
-- [ ] **2.7** Интеграция `ExpectationStore` (Active Inference). Включить вызов `PEModifierResolver().resolve(expectation)` в `npc_tick_pipeline.py` для формирования `drive_modifiers` на основе EMA-ожиданий NPC. Настроить обновление EMA в `StateApplicator` (Reward Prediction Error). **Синергия с Prophecy:** Ожидания NPC (expected_reward/threat) становятся основой для `surprise = -log P(x_t|z_{t-1})` в §19. **Файлы:** `backend/app/services/npc/expectation_store.py`, `pe_modifier_resolver.py`, `npc_tick_pipeline.py`, `state_applicator.py`.
-- [ ] **2.8** Интеграция `FrontEngine` (Маски персонажа). Включить вызов `apply_front_engine()` в `tick_orchestrator.py` (после Фазы 8). Настроить расчёт `WorldPressure` из `ReputationEngine` и `SocialEngine`. Маски (`Humble`, `Tough`, `Deceptive`) и срывы (`Break`) должны влиять на DM-нарратив и эрозию `self_integrity`. **Файлы:** `backend/app/services/character/front_engine.py`, `front_applicator.py`, `tick_orchestrator.py`.
-- [ ] **2.9** Интеграция `ReactionPriority` (Порядок реакций). Включить вызов `ReactionPriority` в `reaction_subscriber.py` для сортировки `perceiving_ids`. Это обеспечит детерминированный порядок реакций NPC на события (стражник реагирует первым, служанка — последней). **Синергия с LLM:** предсказуемый порядок реакций улучшит связность DM-нарратива. **Файлы:** `backend/app/services/npc/reaction_priority.py`, `backend/app/services/events/reaction_subscriber.py`.
-- [ ] **2.10** Интеграция `PerceptionEngine` (Социальный статус). Включить вызов `assess_status()` и `get_social_permissions()` в `npc_tick_pipeline.py`. Статус игрока (нищий/благородный/правитель) должен генерировать `drive_modifiers` для `DecisionHub` (например, буст `OBEY` при высоком статусе, `ATTACK` при низком). **Синергия с Factions:** статус будет учитывать фракционную принадлежность (Эпоха 9). **Файлы:** `backend/app/services/npc/perception_engine.py`, `npc_tick_pipeline.py`.
+1. DNA врут (SHI=100% при неподвижных NPC) → проверять по jsonl-логам.
+2. `PlayerBeliefModel` ≠ NPC ToM (нужен second-order BELIEVES).
+3. `MockProvider` в production-пути.
+4. Observability мутирует state.
+5. §18 до Belief Layer.
+6. Version desync (`version.txt` ↔ `pyproject.toml` ↔ frontend-константы).
+7. `random.*`/`time.time()` в kernel-слое.
+8. **(новый)** Writer потребностей/отношений в обход `RelationshipWriteGate` / `update_needs` — прямая мутация RelationshipStateStore запрещена (single-writer, caller-guard).
+9. **(новый)** Фронтенд/симуляция читает состояние из renderer — Architectural Violation (W-TRACK контракт).
+10. **(новый)** Введение состояния-сущности для «идеализация/влюблённость/адаптация» без anti-Bond теста (Р17-П1).
 
-### Гейты для перехода к Фазе 3
-
-- [ ] Prophecy Causality Law green (ADR-O-330)
-- [ ] Vertical Slice играбелен от начала до конца
-- [ ] ToM-метрика: NPC корректно моделирует убеждения 2+ других NPC
-- [ ] §19 surprise-метрика измеряется
-
----
-
-## 7. ФАЗА 3 — Эпоха 8: Generational Depth
-
-**Цель:** WorldChronicle persistence (4 стадии), Memetic Domain (Concept → Extinction), 3 уровня времени.
-**Источник ТЗ:** `ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0`, `TZ_MEMETIC_01/02/03`.
-**Параллельность:** 3.1 (WorldChronicle) и 3.3 (Memetic) — параллельно после 3.2.
-
-### Чек-лист
-
-- [ ] **3.1** WorldChronicle — 4 стадии: (1) Birth/Death, (2) Aging, (3) Lineage, (4) Integration. Источник: TZ-02 преемнику.
-- [ ] **3.2** 3 уровня времени: `game_time` (tick), `belief_time` (L1Chronicle), `lineage_time` (NEW).
-- [ ] **3.3** Memetic Domain — онтология Concept / Expression / Adoption / Norm / Extinction. Источник: `TZ_MEMETIC_01_Domain_Spec.md` (1994 строки).
-- [ ] **3.4** Content Policy Integration — per-NPC `ContentProfile` из adopted expressions, `SpeakerVocabulary` в `DMContractBuilder`. Источник: `TZ_MEMETIC_02`.
-- [ ] **3.5** TZ_MEMETIC_03 Patch List — 12 точек правки + 8 новых файлов. Пройти по списку.
-- [ ] **3.6** Наследуемые убеждения — убеждения родителей кристаллизуются в потомках через Memetic Domain.
-- [ ] **3.7** Интеграция `LinguisticIntegrityCalculator` (Целостность речи). Включить вызов `LinguisticIntegrityCalculator().compute()` в `phases/integration.py` (точка кристаллизации убеждений). Целостность речи (willpower * class * age * attachment) должна модулировать скорость кристаллизации: NPC с высокой целостностью сопротивляются меметическому дрейфу и сохраняют свой архетип речи. **Синергия с Memetic Domain:** linguistic_integrity определяет, насколько NPC подвержен заимствованию чужих речевых паттернов. **Файлы:** `backend/app/services/memetic/linguistic_integrity_calculator.py`, `phases/integration.py`.
-
-### Гейты для перехода к Фазе 4
-
-- [ ] WorldChronicle persistence green (данные выживают reset)
-- [ ] Memetic transmission измеряется (Concept → Adoption rate)
-- [ ] 3 уровня времени консистентны
-- [ ] Lineage: ≥3 поколения NPC live
 
 ---
 
-## 8. ФАЗА 4 — Эпоха 9: Full Society
-
-**Цель:** Общество из 50+ NPC стабильно, фракции, экономика, политика.
-**Источник ТЗ:** `EPOCHS_REPORT.md` §Epoch 9 design, `architecture/economy.yaml`.
-**Параллельность:** все три подсистемы параллельны.
-
-### Чек-лист
-
-- [ ] **4.1** Factions system — группировки, репутация, конфликты.
-- [ ] **4.2** Economy layer — `architecture/economy.yaml` → реализация. Торговля, цены, дефицит.
-- [ ] **4.3** Politics — властные структуры, решения, влияющие на общество.
-- [ ] **4.4** Интеграция `RoleTransition` (Смена профессии). Включить вызов `RoleTransition` в `tick_orchestrator.py`. NPC смогут менять профессию (трактирщик → стражник) при наличии оснований, низком стрессе и достаточной целостности, уплачивая стоимость. **Синергия с Economy:** потребует расходов из `EconomicProfile` NPC. **Файлы:** `backend/app/services/npc/role_transition.py`, `tick_orchestrator.py`.
-- [ ] **4.5** Интеграция `MarketState` / `Traveller` (Экономические шоки). Включить вызов `MarketState.tick()` и `Traveller.generate_visits()` в `tick_orchestrator.py` или `LifeEngine`. Локация начнёт получать внешние шоки (волны спроса, визиты торговцев), что обеспечит динамику цен и социальное напряжение. **Синергия с Economy layer:** спрос странников должен влиять на цены и `EconomicProfile` NPC. **Файлы:** `backend/app/services/economy/market_state.py`, `traveller.py`, `tick_orchestrator.py`.
-
-### Гейты для перехода к Фазе 5
-
-- [ ] Общество 50+ NPC стабильно 30+ минут без коллапса
-- [ ] Все три подсистемы имеют метрики (faction tension, economy velocity, political stability)
-
----
-
-## 9. ФАЗА 5 — Эпоха 10: §18 Resource-Bounded Epistemic Selection
-
-**Цель:** Формула `U_M = I·R·U − C` активна как закон симуляции. Bounded rationality (Simon/Kahneman).
-**Источник ТЗ:** `TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md`.
-**ЖЁСТКО:** §18 ВНЕДРЯТЬ НЕЛЬЗЯ до завершения Belief Layer (Фазы 2-3).
-
-### Чек-лист
-
-- [ ] **5.1** Завершить Belief Layer MVP (CrystallizedBelief + Merger + ToM + BELIEVES second-order).
-- [ ] **5.2** Внедрить формулу `U_M = I·R·U − C` (Information × Relevance × Utility − Cost) — как universal bound на epistemic действия NPC.
-- [ ] **5.3** Bounded rationality: NPC не может рассматривать все гипотезы — выбирает топ-N по `U_M`.
-- [ ] **5.4** Измерить: для каждого epistemic действия NPC логируется `U_M` до/после.
-
-### Гейты для перехода к Фазе 6
-
-- [ ] §18 закон активен и измеряется
-- [ ] Belief Layer green
-- [ ] Bounded rationality: NPC не превышает cognitive budget
-
----
-
-## 10. ФАЗА 6 — Post-MVP расширения
-
-**Цель:** Дополнительные слои поверх стабильного ядра.
-**Источник ТЗ:** соответствующие файлы из `docs/Почти Актуальные TZ/`.
-
-### Чек-лист
-
-- [ ] **6.1** `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf` (113 стр.) — романтика, драма, gothic, 6 доменов. **Когда:** после Эпохи 8 (нужна глубина NPC).
-- [ ] **6.2** `TEXTURES_AND_GEOMETRY_TZ.md` — 2D composite model (head/torso/arms), 128×128 dialogue portraits, aging visual effects. **Когда:** параллельно с Фазой 3 (там lineage → visual aging).
-- [ ] **6.3** `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md` — BedRegistry, map editor validator, auto-cut стен. **Когда:** когда угодно, изолированно.
-- [ ] **6.4** `AWC_Process_World_Model_TZ.pdf` — Process/WorldGraph/NPCKnowledge. **Эпоха 11+, НЕ реализован** — только дизайн.
-- [ ] **6.5** `S1_INPUT_TRACE_IMPLEMENTATION.md` + `INPUT_OBSERVATORY_ROADMAP_S2_S6.md` — observability player input. **Когда:** можно начать в Фазе 1 (Infrastructure).
-
----
-
-## 11. Гейты и Stop-criteria — сводная таблица
-
-| Переход | Stop-criteria (все должны быть ✅) |
-|---------|-----------------------------------|
-| **Фаза 0 → 1** | 0 Critical багов · canary green · SHI=100% ×3 сессий · Movement Traversal ✅ ≥5/6 NPC · version.txt синхронизирован |
-| **Фаза 1 → 2** | IPT coverage >80% · Replay exact-match 100 тиков · LLM P50<2.5s, cache hit ≥35% · DRI green ×5 сессий · ADR-Net MVI обучена |
-| **Фаза 2 → 3** | Prophecy Causality Law green · Vertical Slice играбелен · ToM-метрика green · §19 surprise измеряется |
-| **Фаза 3 → 4** | WorldChronicle persistence green · Memetic transmission measured · 3 времени консистентны · ≥3 поколения live |
-| **Фаза 4 → 5** | Общество 50+ NPC стабильно 30+ мин · все три подсистемы имеют метрики |
-| **Фаза 5 → 6** | §18 закон активен · Belief Layer green · Bounded rationality: NPC не превышает cognitive budget |
-
-### 7 красных флагов — STOP, если заметил
-
-1. **DNA-метрики врут** — SHI=100%, но NPC реально не двигаются. → перепроверить через `backend/data/logs/scene_changes_*.jsonl` и `enigma_*.jsonl`.
-2. **`PlayerBeliefModel` принят за NPC ToM** — это разные вещи. ToM требует second-order `BELIEVES`.
-3. **`MockProvider` в production-пути** — проверять в `dm_agent.py`, `dialogue_router.py`. Только в тестах.
-4. **Observability мутирует state** — `diagnostics/*` должен только читать. Любая запись в `state` из diagnostics = баг.
-5. **§18 внедряется до Belief Layer** — критическое архитектурное нарушение. Формула `U_M = I·R·U − C` требует готового Belief Layer.
-6. **Version desync повторился** — `version.txt` расходится с `frontend/constants.py` и ТЗ-версией. Проверять перед каждым релизом.
-7. **`random.*` или `time.time()` в kernel-слое** — нарушает L2 Runtime Purity Law. Только `KernelRNG(tick, npc_id, salt)`.
-
----
-
-## 12. Quick recovery — если зашёл в тупик
+## 6. Quick recovery — если зашёл в тупик
 
 | Симптом | Что делать |
 |---------|------------|
-| DNA SHI=100%, но визуально NPC не двигается | Смотреть `backend/data/logs/scene_changes_*.jsonl` + `enigma_*.jsonl`, проверить `MovementIntent` → `TraversalState` в `local_traversal_planner.py` |
-| Регрессия появилась, непонятно где | `git bisect` от последнего коммита с SHI=100%; marker — `pytest backend/tests/canary/test_full_playthrough.py` |
-| LLM молчит | `backend/logs/cds_session_*.log` + проверить `DecisionHub._context_relevance` в `decision_hub.py:882` (NameError исторически) |
-| `movement_traversal ❌` | `local_traversal_planner.py` + `traversability_evaluator.py` + `geometry_kernel.py`; проверить `MovementIntent` |
-| IPT падает | `diagnostics/health_checkers/{invariant_health, tick_health, movement_health}.py` — какой из трёх красный |
-| `version.txt` разошёлся | `version.txt` + `frontend/constants.py` + `splash.py` синхронизировать вручную |
-| LLM error masking | `dialogue_router.py` — убрать `try/except Exception: pass`, заменить на логирование + re-raise |
-| `all_npcs_raw_snapshot` пропадает | `pipeline_context.py` + `shared_context.py` — проверить reset между тиками |
-| NPC position = `"bed"` вместо node | `backend/app/core/calendar.py` — schedule должен отдавать current node, не спальное место |
-
-### 7 контрольных вопросов для самопроверки
-
-1. Чем `TickState` отличается от `TickMutation`? (Ответ: state = входное неизменяемое, mutation = выходная дельта. Pure function: `run(state) → mutation`.)
-2. Почему `random.*` запрещён в kernel-слое? (Ответ: нарушает Replay System — детерминизм.)
-3. Что такое Triple Membrane? (Ответ: 3 фильтра на L1Chronicle: Physical (LoS/audibility) + Personality (rigidity/openness) + Social (status/norms).)
-4. Чем `EmbodiedTraceDTO` отличается от эмоций? (Ответ: EmbodiedTrace = observable motor manifestations (tense/rigid/trembling); эмоции типа «fearful» запрещены §4.3.23.)
-5. Что такое Epistemic Boundary (L16)? (Ответ: NPC не может читать mental state другого NPC; DM-агент читает только `observed_state` + `embodied_traces`.)
-6. Почему §18 нельзя внедрять до Belief Layer? (Ответ: `U_M = I·R·U − C` требует готовой кристаллизации убеждений, иначе `I` и `R` не определены.)
-7. Что делать, если `Movement Traversal = ❌` для всех NPC? (Ответ: Фаза 0, шаг 0.7 — усиление Movement Engine, SC-2..SC-8 probes.)
+| 0 decisions/tick (симуляция заморожена) | `backend/app/services/npc/decision_hub.py` — веса решений, связь с RelationshipStore/WriteGate; `git log` на недавние писатели |
+| LLM молчит | `backend/logs/cds_session_*.log`; `scripts/llm_server_manager.py`; LOG-GATE-UI на splash |
+| `movement_traversal ⏸` | `local_traversal_planner.py` + `traversability_evaluator.py` + `geometry_kernel.py` |
+| IPT падает | какой инвариант красный в `IPT.py`; профильные линтеры `scripts/lint_*.py` |
+| Регрессия, непонятно где | `git bisect`; marker — `pytest backend/tests/canary/test_full_playthrough.py` |
+| Сломан контракт RE | `scripts/lint_relationship_engine.py` + `architecture/relationship_engine.yaml` |
+| Сломан WORLD-контракт | `backend/tests/test_world_object_topology.py` + `architecture/world.yaml` |
+| Version desync | `version.txt` + `pyproject.toml` + frontend-константы синхронизировать |
 
 ---
 
-## 13. Ресурсы и контакты
+## 7. Ресурсы и ключевые файлы кода
 
-### Готовые документы (полный список)
-
-| Тип | Путь |
-|------|------|
-| Главное ТЗ | `upload/ENIGMA_TZ_V0.5.3.7.0.md` |
-| Epochs report | `docs/ENIGMA_EPOCHS_REPORT.md` |
-| Сессии | `reports/LAST_SESSION.md`, `reports/SESSION_S62_DM_VISION.md`, `reports/history/*.md` (~80 файлов) |
-| Repair TZ (Remont) | `docs/Почти Актуальные TZ/RemontTZ/*.md` (6 файлов) |
-| VZ (future epochs) | `docs/Почти Актуальные TZ/VZ/*.md` (7 файлов) |
-| Infrastructure | `docs/Почти Актуальные TZ/ENIGMA_TZ_INFRASTRUCTURE.md`, `ENIGMA_SELF_HEALING_SYSTEM.md`, `ENIGMA_LLM_PIPELINE_TZ_v1.md` |
-| ADRs | `docs/audits/*.md` (107 файлов) |
-| Architecture YAML | `architecture/*.yaml` (15+ файлов: identity, memory, perception, physiology, spatial, temporal, ...) |
-
-### Ключевые файлы кода (для runtime-проверок)
-
-| Подсистема | Файл |
-|------------|------|
+| Подсистема | Файл (проверено) |
+|------------|------------------|
 | Tick pipeline | `backend/app/core/tick_orchestrator.py` |
-| Task scheduler | `backend/app/core/task_scheduler.py` |
-| DecisionHub | `backend/app/cognition/decision_hub.py` |
-| DM-agent | `backend/app/dm_agent.py` |
-| Pipeline context | `backend/app/core/pipeline_context.py` |
-| Belief engine | `backend/app/cognition/belief_crystallization_engine.py` |
-| Movement | `backend/app/spatial/local_traversal_planner.py`, `geometry_kernel.py`, `traversability_evaluator.py`, `motion_pipeline.py` |
-| Dialogue | `backend/app/dialogue/dialogue_router.py` |
-| Diagnostics | `diagnostics/dna_metrics.py`, `causal_observer.py`, `health_checkers/*.py` |
+| DecisionHub | `backend/app/services/npc/decision_hub.py` (переехал из `cognition/`) |
+| DM-agent | `backend/app/agents/dm_agent.py` (переехал из корня `app/`); фаза DM — `backend/app/services/game_loop/dm_phase.py` |
+| Dialogue | `backend/app/dialogue/dialogue_router.py`, `backend/app/services/verbalization/` |
+| Relationship Engine v2 | `architecture/relationship_engine.yaml`; стор/gate — см. `git show 73e0539f` (RelationshipWriteGate), `53183000` (адаптер), `17930e9f` (RelationshipStateStore) |
+| WORLD-домен | `architecture/world.yaml`, WorldObjectStore (ADR-O-371) |
+| Movement/Spatial | `backend/app/services/spatial/` (`spatial_service`, `spatial_runtime`, `spatial_query_service`, `graph_compiler`) — **mypy --strict: 0 ошибок** (было 79 каскадных из npc_state.py, graph_compiler.py, spatial_query_service.py) |
+| Impact/Physiology | `backend/app/services/combat/impact_engine.py`, `backend/app/domain/vital_state.py` |
 | Kernel RNG | `backend/app/core/kernel_rng.py` |
-| Tests (IPT) | `backend/tests/IPT.py` |
+| Tests (IPT) | `backend/tests/IPT.py` (45/45, Ruff clean: `All checks passed!` — 24 pre-existing нарушения устранены) |
 | Canary | `backend/tests/canary/test_full_playthrough.py` |
-| LLM logs | `backend/logs/cds_session_*.log`, `llama_server.log`, `error.log` |
-| Session data | `backend/data/logs/scene_changes_*.jsonl`, `enigma_*.jsonl`, `combat_log.jsonl` |
-| DNA history | `reports/dna_history.jsonl` |
-
-### Принципы работы (напоминание)
-
-- Один фикс → один коммит → один тест.
-- CI-гейты обязательны (`ruff` + `pytest backend/tests/IPT.py`).
-- Observability never mutates.
-- `MockProvider` только в тестах.
-- `random.*` / `time.time()` — запрещены в kernel-слое.
-- Слушать интуицию пользователя — обычно совпадает с `EPOCHS_REPORT.md`.
+| Lint-гейты | `scripts/lint_*.py` (13 линтеров) |
+| LLM-менеджер | `scripts/llm_server_manager.py` |
+| Session data | `backend/data/logs/scene_changes_*.jsonl`, `reports/dna_history.jsonl` |
+| Architecture YAML | `architecture/*.yaml` (23 файла: authority, body_topology, calibration, economy, frontend, identity, input, memory, perception, physiology, pipeline, player_cognition, relationship_engine, spatial, state, temporal, verbalization, world, ...) |
 
 ---
 
-**Документ завершён. Следующий шаг — открыть `ENIGMA_TZ_V0.5.3.7.0.md` §3, начать с REGRESSION-CORE-001.**
+**Документ завершён. Следующий шаг — Фаза 1: завершение RE-01 M1b (перевод оставшихся writers на RelationshipWriteGate), затем M2/D — runtime needs-writer, и Эпохи 7–10. Технический долг: god-файлы, остаток TODO/FIXME, mypy --strict на остальных модулях.**

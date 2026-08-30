@@ -34,6 +34,7 @@ path: /project/backend/app/services/social/relationship_state_store.py
 
 from __future__ import annotations
 
+import logging
 import sys
 from typing import Any, Dict, Final, FrozenSet
 
@@ -51,6 +52,8 @@ from app.domain.relationship_contracts import (
     preference_from_dict,
 )
 from app.errors import ArchitecturalViolationError
+
+logger = logging.getLogger(__name__)
 
 # ═══ Ключи scene_state — КОНСТАНТЫ (Устав §12.1: inline-строки в адаптерах запрещены) ═══
 
@@ -364,16 +367,28 @@ class RelationshipStateStore:
             raise ContractValidationError(f"relationship_state.{_KEY_DIRECTED}: повреждён")
         for k, v in directed.items():
             existing.setdefault(k, v)  # merge: v2-пара уже есть → legacy не перезаписывает
-        # (д) Маркер: повторного импорта не существует. Сам legacy-файл НЕ удаляем
-        # (до cutover legacy runtime продолжает его читать — M1b.1 его не трогает).
-        try:
-            with open(migrated_path, "w", encoding="utf-8") as f:
-                f.write("migrated\n")
-        except OSError as e:
-            raise ContractValidationError(
-                f"migrate_legacy: не могу записать маркер {migrated_path}: {e}"
-            ) from e
+        # (д) M1b.4.2 SPLIT (ратифицировано: «.migrated — только после успешного
+        # atomic commit; истина cutover — сохранённый v2, не маркер»): transform
+        # завершён БЕЗ маркера; маркер ставит отдельный confirm-вызов после
+        # первого успешного atomic_commit_all. Повторный transform до confirm —
+        # безопасен: merge-семантика (setdefault) идемпотентна; после confirm —
+        # no-op (защита от второго импорта сохранена, но ИСТИНА — v2 на диске).
         return {"migrated_pairs": len(directed), "skipped": False}
+
+    @staticmethod
+    def confirm_migration(campaign_id: str, data_dir: str) -> bool:
+        """M1b.4.2: маркер .migrated ПОСЛЕ успешного atomic_commit_all.
+        Возвращает True если маркер создан, False если уже существовал."""
+        import os as _os
+
+        legacy_path = _os.path.join(data_dir, campaign_id, _LEGACY_FILENAME)
+        migrated_path = legacy_path + _MIGRATED_SUFFIX
+        if _os.path.exists(migrated_path):
+            return False
+        with open(migrated_path, "w", encoding="utf-8") as _f:
+            _f.write("migrated\n")
+        logger.info(f"[MIGRATE] cutover подтверждён (v2 закоммичен): {migrated_path}")
+        return True
 
     @staticmethod
     def get_directed_pair(

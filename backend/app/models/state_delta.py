@@ -77,11 +77,11 @@ DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
 
 # Union тип — IDE знает все варианты, autocomplete работает
 DeltaPayload = Union[
-    SocialPayload, 
-    EmotionPayload, 
-    ReputationPayload, 
-    IdentityPayload, 
-    PhysiologyPayload, 
+    SocialPayload,
+    EmotionPayload,
+    ReputationPayload,
+    IdentityPayload,
+    PhysiologyPayload,
     EconomicPayload,
     PerceptionPayload,
     WillConflictPayload,

@@ -162,7 +162,8 @@ class WorldObjectStore:
         """ТЗ §20.2: все отношения объекта (projection DTO).
         None = объект не существует (легитимное отсутствие на read)."""
         obj = WorldObjectStore.get(scene_state, object_id)
-        return obj.project_relations() if obj is not None else None
+        # Легитимный read: None = объект не существует (см. docstring выше)
+        return obj.project_relations() if obj is not None else None  # noqa: ENIGMA001
 
     @staticmethod
     def query_container_contents(

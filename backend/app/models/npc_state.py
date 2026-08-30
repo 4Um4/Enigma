@@ -39,6 +39,7 @@ from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 
 if TYPE_CHECKING:
     from app.models.physical import Condition, Wound
+    from app.models.psychological import CausalChain
 import logging
 
 from app.domain.traversal import BodyCapabilities
@@ -576,11 +577,11 @@ class PerceptualKernel:
         Проверяет, может ли NPC воспринять событие.
         """
         if event.visibility == "private":
-            return observer_id == event.source
+            return bool(observer_id == event.source)
         if event.visibility == "whisper":
-            return observer_id == event.source or observer_id == target_id
+            return bool(observer_id == event.source or observer_id == target_id)
         # public
-        return distance <= event.radius
+        return bool(distance <= event.radius)
 
 
 @dataclass

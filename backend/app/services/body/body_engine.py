@@ -16,9 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class BodyEngine:
-    """S2B.1+S2B.2: PhysiologicalTransition + Energy Dynamics.
+    """S2B.1–S2B.5: PhysiologicalTransition (energy/hydration/nutrition/fatigue).
 
-    energy(t+Δt) = energy(t) + recovery(Δt, coupling, load) - expenditure(Δt, load, body_mass)
+    ADR-O-373: вход — ПЛОСКИЙ NPCStateSnapshot (idle-проекция Phase 0.5), не
+    сырой npc-дикт: raw-форма в рантайме не существует (S2B.1–2B.4 были
+    production-мёртвыми — тихий no-op на body_state-чтении).
+    fatigue — two-way износ (0=свеж, 100=истощён, инверсия energy); единственная
+    per-tick fatigue-проекция (combat — event-продюсер; PHYSICS_COMPOSITE =
+    pass-through на агрегации, аддитивность возникает в StateApplicator).
     One World Tick → one physiology projection. Pure function, no state.
     """
 
@@ -36,6 +41,12 @@ class BodyEngine:
     # v1 calibration constant (S2B.4, вердикт Мастера), не физиологический закон.
     BASE_NUTRITION_LOSS: float = 0.05  # per tick at rest
     NUTRITION_LOAD_COEFF: float = 0.5  # < hydration-коэф. (1.0): слабее реагирует на load
+    # S2B.5 (ADR-O-373): fatigue — two-way износ. Иерархия масштабов (закон №11-
+    # аналог): износ медленнее топлива — 0.25 < 0.5 (BASE_EXPENDITURE_RATE);
+    # инвариант кодируется ОТДЕЛЬНЫМ тестом. v1 calibration constants
+    # (вердикт Мастера), не физиологический закон.
+    BASE_FATIGUE_RATE: float = 0.25  # износ per tick at load=1.0
+    BASE_FATIGUE_RECOVERY: float = 0.1  # пассивный отдых per tick at load=0.0
 
     # Physiological load map (NOT occupational — body cost, not job title)
     _ACTIVITY_LOADS = {
@@ -55,8 +66,7 @@ class BodyEngine:
 
         Priority: coupling (sleep overrides) > velocity (movement) > activity string.
         """
-        _body = npc.get("body_state") or {}
-        _coupling = (_body.get("coupling_profile") or {}).get("coupling_mode", "")
+        _coupling = str(npc.get("coupling_mode", "") or "")
 
         # Sleep overrides — very low load (body at rest)
         if _coupling in ("SLEEPING", "REM"):
@@ -71,8 +81,8 @@ class BodyEngine:
             if _speed > 0.1:
                 return 0.7  # WALK
 
-        # Activity string → load
-        _activity = npc.get("activity", "") or npc.get("routine", {}).get("current", "")
+        # Activity string → load (ADR-O-373: плоское поле; routine-резолв — в билдере)
+        _activity = str(npc.get("activity", "") or "")
         return self._ACTIVITY_LOADS.get(_activity, 0.3)  # default: light activity
 
     def _get_body_modifier(self, npc: dict) -> float:
@@ -80,9 +90,9 @@ class BodyEngine:
 
         body_mass: heavier body spends proportionally more.
         Default 1.0 (no modifier). S2B.2: proof that body affects cost.
+        ADR-O-373: плоское поле снапшота (placeholder до S2B.7).
         """
-        _body = npc.get("body_state") or {}
-        return max(0.5, float(_body.get("body_mass", 1.0)))
+        return max(0.5, float(npc.get("body_mass", 1.0)))
 
     def handle(
         self,
@@ -111,13 +121,11 @@ class BodyEngine:
             if npc.get("life_status", "ALIVE") == "DEAD":
                 continue
 
-            body = npc.get("body_state") or {}
-            if not body:
-                continue
-
+            # ADR-O-373: вход — плоский снапшот; вложенного body_state ЗДЕСЬ НЕТ
+            # (поля спроецированы билдером). Гейт живости — life_status (DEAD-skip).
             _load = self._get_activity_load(npc)
             _modifier = self._get_body_modifier(npc)
-            _coupling = (body.get("coupling_profile") or {}).get("coupling_mode", "")
+            _coupling = str(npc.get("coupling_mode", "") or "")
 
             # Expenditure: load-dependent, body-mass-scaled
             _expenditure = self.BASE_EXPENDITURE_RATE * _load * _modifier
@@ -143,10 +151,22 @@ class BodyEngine:
             )
             nutrition_delta = round(-_nutrition_loss, 4)
 
+            # S2B.5 (ADR-O-373): fatigue — two-way износ, «плохо вверх»
+            # (0=свеж, 100=истощён; инверсия energy). Единственная per-tick
+            # fatigue-проекция: combat (ImpactEngine) — event-продюсер;
+            # PHYSICS_COMPOSITE = pass-through на агрегации, вклады
+            # применяются последовательно единым StateApplicator (clamp).
+            _fatigue_wear = self.BASE_FATIGUE_RATE * _load * _modifier
+            _fatigue_recovery = self.BASE_FATIGUE_RECOVERY * (1.0 - _load)
+            if _coupling in ("SLEEPING", "REM"):
+                _fatigue_recovery *= self.SLEEP_RECOVERY_MULTIPLIER
+            fatigue_delta = round(_fatigue_wear - _fatigue_recovery, 4)
+
             if (
                 abs(energy_delta) > 0.001
                 or abs(hydration_delta) > 0.001
                 or abs(nutrition_delta) > 0.001
+                or abs(fatigue_delta) > 0.001
             ):
                 results.append(
                     StateDeltas(
@@ -156,6 +176,7 @@ class BodyEngine:
                             energy_delta=energy_delta,
                             hydration_delta=hydration_delta,
                             nutrition_delta=nutrition_delta,
+                            fatigue_delta=fatigue_delta,
                         ),
                         source=f"body_engine:load={_load:.1f}:mod={_modifier:.1f}",
                     )

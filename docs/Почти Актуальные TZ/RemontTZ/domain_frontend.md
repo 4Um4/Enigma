@@ -1,4 +1,4 @@
-# ENIGMA — Frontend/Backend Contract, API Routes, Persistence & World Continuity Audit
+﻿# ENIGMA — Frontend/Backend Contract, API Routes, Persistence & World Continuity Audit
 
 **Scope:** `backend/app/api/*`, `backend/app/services/state/*`, `backend/app/services/integration/world_snapshot_builder.py`, `backend/app/services/world/*`, `backend/app/services/game_loop*`, `backend/app/services/{player_avatar,player_session,campaign_state,character}_service.py`, `backend/app/services/dto.py`, `backend/app/models/{world_snapshot,world_state_diff,world_continuity,schemas,npc_state,truth_state,end_screen,scene_mode,front,character}.py`, `backend/app/core/*`, `frontend/{api_client,game_loop_bridge,game_screen,scene_renderer,game_types,constants,world_context,presentation_firewall,perceptual_momentum,narrative_renderer,narrative_beat,end_screen_renderer,display_manager,game_menu,settings_screen,text_input,i18n,ui_theme,campaign_select,character_select,npc_name_resolver,spatial_compilation_gateway,spatial_compilation_orchestrator}.py`.
 
@@ -54,7 +54,7 @@ The codebase shows a clear architectural intent (backend = source of truth, fron
 - **Suggested fix:** In `skip_time` finally block, add `self.scene_manager.commit_tick_result(campaign_id, result.final_state)` followed by `self.scene_manager.unlock_tick(campaign_id)`. Also call `lock_all_for_tick` over `_location_ids` from `SpatialRegistry.get_all_location_ids()` instead of `lock_for_tick(campaign_id, "")` — sleep must process every location.
 
 ### BUG-FB-003 — Double `/api/api/` prefix on `/api/debug/llm/restart`
-- **File:line:** `backend/app/api/routes.py:160` (`@router.post("/api/debug/llm/restart")`) + `backend/app/main.py:487` (`app.include_router(router, prefix="/api")`)
+- **File:line:** `backend/app/api/routes.py:160` (`@router.post("/api/debug/llm/restart")`) + `backend/app/main.py:401` (`app.include_router(router, prefix="/api")`)
 - **Symptom:** Effective URL becomes `/api/api/debug/llm/restart`. The launcher's recovery path that calls this endpoint will get 404.
 - **Root cause:** Route path includes `/api/` but the router is mounted with `prefix="/api"`.
 - **Severity:** High

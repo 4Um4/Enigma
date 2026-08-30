@@ -27,7 +27,7 @@ class SpatialQueryService:
 
     def __init__(
         self,
-        npc_positions: Dict[str, dict],
+        npc_positions: Dict[str, Dict[str, Any]],
         cluster_occupancy: Optional[ClusterOccupancy] = None,
         scene_state: Optional[Dict[str, Any]] = None,
     ) -> None:

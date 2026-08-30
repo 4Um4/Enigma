@@ -1058,7 +1058,7 @@ class TestS2B1BodyEngine:
 
         _engine = BodyEngine()
         _npc = {"npc_id": "n1", "life_status": "ALIVE",
-                "body_state": {"energy": 100.0, "body_mass": 1.0}, "activity": "working"}
+                "activity": "working", "body_mass": 1.0}
         _deltas = _engine.handle([_npc], "test", 1)
         assert len(_deltas) == 1
         assert _deltas[0].payload.energy_delta == -0.1  # S2B.2: load=0.5 → exp=0.25 rec=0.15 → -0.10
@@ -1068,7 +1068,7 @@ class TestS2B1BodyEngine:
 
         _engine = BodyEngine()
         _npc = {"npc_id": "n1", "life_status": "ALIVE",
-                "body_state": {"energy": 50.0, "body_mass": 1.0}, "activity": ""}
+                "activity": "", "body_mass": 1.0}
         _deltas = _engine.handle([_npc], "test", 1)
         assert len(_deltas) == 1
         assert _deltas[0].payload.energy_delta == 0.3  # S2B.2: load=0.0 → rec=0.30 exp=0 → +0.30
@@ -1077,8 +1077,7 @@ class TestS2B1BodyEngine:
         from app.services.body.body_engine import BodyEngine
 
         _engine = BodyEngine()
-        _npc = {"npc_id": "n1", "life_status": "DEAD",
-                "body_state": {"energy": 100.0}}
+        _npc = {"npc_id": "n1", "life_status": "DEAD"}
         assert _engine.handle([_npc], "test", 1) == []
 
     def test_pipeline_through_applicator(self):
@@ -1088,11 +1087,7 @@ class TestS2B1BodyEngine:
 
         _engine = BodyEngine()
         _npc = {"npc_id": "n1", "life_status": "ALIVE",
-                "body_state": {"energy": 100.0, "current_hp": 100,
-                               "pain": 0.0, "fatigue": 0.0,
-                               "blood_loss": 0.0, "shock_impulse": 0.0,
-                               "injuries": [], "modifiers": {}, "statuses": []},
-                "activity": "working"}
+                "activity": "working", "body_mass": 1.0}
         _deltas = _engine.handle([_npc], "test", 1)
         assert _deltas[0].payload.energy_delta == -0.1  # S2B.2: working load=0.5
 
@@ -1100,7 +1095,10 @@ class TestS2B1BodyEngine:
         class _MockState:
             pass
         _state = _MockState()
-        _state.body_state = dict(_npc["body_state"])
+        _state.body_state = {"energy": 100.0, "current_hp": 100,
+                             "pain": 0.0, "fatigue": 0.0,
+                             "blood_loss": 0.0, "shock_impulse": 0.0,
+                             "injuries": [], "modifiers": {}, "statuses": []}
         _applicator = object.__new__(StateApplicator)
         _applicator._apply_physiology_deltas(
             _state, 0, 0, 0, 0, [], [], [], 0,
@@ -1134,9 +1132,10 @@ class TestS2B2EnergyDynamics:
         return BodyEngine()
 
     def _npc(self, **kw):
-        _d = {"npc_id": "n1", "life_status": "ALIVE",
-              "body_state": {"energy": 100.0, "body_mass": 1.0},
-              "activity": "", "velocity": (0.0, 0.0)}
+        # ADR-O-373: вход BodyEngine — ПЛОСКИЙ NPCStateSnapshot (Phase 0.5)
+        _d = {"npc_id": "n1", "life_status": "ALIVE", "stress": 0.0,
+              "velocity": (0.0, 0.0), "activity": "", "coupling_mode": "",
+              "body_mass": 1.0}
         _d.update(kw)
         return _d
 
@@ -1167,16 +1166,14 @@ class TestS2B2EnergyDynamics:
         _e = self._engine()
         _awake_idle = _e.handle([self._npc(activity="")], "t", 1)[0].payload.energy_delta
         _sleeping = _e.handle([self._npc(
-            activity="sleeping",
-            body_state={"energy": 100.0, "body_mass": 1.0,
-                       "coupling_profile": {"coupling_mode": "SLEEPING"}}
+            activity="sleeping", coupling_mode="SLEEPING"
         )], "t", 1)[0].payload.energy_delta
         assert _sleeping > _awake_idle  # sleep bonus
 
     # D: replay — pure function → same inputs → same outputs (replay by construction)
     def test_d_replay_determinism(self):
         _e = self._engine()
-        _npc = self._npc(activity="guarding_gate", body_state={"energy": 50.0, "body_mass": 1.2})
+        _npc = self._npc(activity="guarding_gate", body_mass=1.2)
         _d1 = _e.handle([_npc], "t", 10)[0].payload.energy_delta
         _d2 = _e.handle([_npc], "t", 10)[0].payload.energy_delta
         _d3 = _e.handle([_npc], "t", 10)[0].payload.energy_delta
@@ -1186,10 +1183,10 @@ class TestS2B2EnergyDynamics:
     def test_e_body_sensitivity(self):
         _e = self._engine()
         _light = _e.handle([self._npc(
-            activity="working", body_state={"energy": 100.0, "body_mass": 0.8}
+            activity="working", body_mass=0.8
         )], "t", 1)[0].payload.energy_delta
         _heavy = _e.handle([self._npc(
-            activity="working", body_state={"energy": 100.0, "body_mass": 1.2}
+            activity="working", body_mass=1.2
         )], "t", 1)[0].payload.energy_delta
         # heavier body → more expenditure → lower (more negative) delta
         assert _heavy < _light
@@ -1203,9 +1200,10 @@ class TestS2B3Hydration:
         return BodyEngine()
 
     def _npc(self, **kw):
+        # ADR-O-373: вход BodyEngine — ПЛОСКИЙ NPCStateSnapshot (Phase 0.5)
         _d = {"npc_id": "n1", "life_status": "ALIVE",
-              "body_state": {"energy": 100.0, "body_mass": 1.0, "hydration": 100.0},
-              "activity": "", "velocity": (0.0, 0.0)}
+              "activity": "", "velocity": (0.0, 0.0),
+              "coupling_mode": "", "body_mass": 1.0}
         _d.update(kw)
         return _d
 
@@ -1234,10 +1232,10 @@ class TestS2B3Hydration:
         """Heavier body → more hydration loss."""
         _e = self._engine()
         _light = _e.handle([self._npc(
-            activity="working", body_state={"energy": 100.0, "body_mass": 0.8, "hydration": 100.0}
+            activity="working", body_mass=0.8
         )], "t", 1)[0].payload.hydration_delta
         _heavy = _e.handle([self._npc(
-            activity="working", body_state={"energy": 100.0, "body_mass": 1.2, "hydration": 100.0}
+            activity="working", body_mass=1.2
         )], "t", 1)[0].payload.hydration_delta
         assert _heavy < _light  # more negative
 
@@ -1251,10 +1249,10 @@ class TestS2B4Nutrition:
         return BodyEngine()
 
     def _npc(self, **kw):
+        # ADR-O-373: вход BodyEngine — ПЛОСКИЙ NPCStateSnapshot (Phase 0.5)
         _d = {"npc_id": "n1", "life_status": "ALIVE",
-              "body_state": {"energy": 100.0, "body_mass": 1.0,
-                             "hydration": 100.0, "nutrition": 100.0},
-              "activity": "", "velocity": (0.0, 0.0)}
+              "activity": "", "velocity": (0.0, 0.0),
+              "coupling_mode": "", "body_mass": 1.0}
         _d.update(kw)
         return _d
 
@@ -1284,14 +1282,10 @@ class TestS2B4Nutrition:
         """Тяжелее тело (body_mass) → больше расход питания."""
         _e = self._engine()
         _light = _e.handle([self._npc(
-            activity="working",
-            body_state={"energy": 100.0, "body_mass": 0.8,
-                        "hydration": 100.0, "nutrition": 100.0}
+            activity="working", body_mass=0.8
         )], "t", 1)[0].payload.nutrition_delta
         _heavy = _e.handle([self._npc(
-            activity="working",
-            body_state={"energy": 100.0, "body_mass": 1.2,
-                        "hydration": 100.0, "nutrition": 100.0}
+            activity="working", body_mass=1.2
         )], "t", 1)[0].payload.nutrition_delta
         assert _heavy < _light  # more negative
 
@@ -1329,6 +1323,212 @@ class TestS2B4Nutrition:
             _state, 0, 0, 0, 0, [], [], [], 0, nutrition_delta=-1.0,
         )
         assert _state.body_state["nutrition"] == 0.0  # clamped, not -0.5
+
+
+class TestS2B5ProjectionContract:
+    """ADR-O-373: регрессионный тест класса FLAT — снапшот Phase 0.5 обязан
+    нести плоские поля BodyEngine. До S2B.5 S2B.1–2B.4 были production-мёртвыми
+    (unit-фикстуры кормили raw-формой, которой рантайм не существует)."""
+
+    RAW = {
+        "id": "n1",  # билдер читает npc.get("id") (tick_utils:70), не npc_id
+        "npc_id": "n1",
+        "life_status": "ALIVE",
+        "body_state": {
+            "current_hp": 100, "energy": 100.0, "hydration": 100.0,
+            "nutrition": 100.0, "fatigue": 0.0, "body_mass": 1.1,
+            "coupling_profile": {"coupling_mode": "AWAKE"},
+        },
+        "routine": {"current": "working"},
+    }
+
+    def test_snapshot_carries_flat_body_fields(self):
+        from app.services.tick_utils import build_npc_snapshots
+
+        _snap = build_npc_snapshots([dict(self.RAW)])[0]
+        assert _snap["npc_id"] == "n1"  # источник id пиннится: билдер берёт "id"
+        assert _snap["activity"] == "working"  # routine-резолв — в билдере
+        assert _snap["body_mass"] == 1.1
+        assert _snap["coupling_mode"] == "AWAKE"
+        assert _snap["velocity"] == (0.0, 0.0)
+        assert _snap["fatigue"] == 0.0  # flat SSOT-проекция читается
+
+    def test_engine_emits_on_real_projection(self):
+        """THE FLAT-regression: снапшот → BodyEngine → дельты ЕСТЬ."""
+        from app.services.body.body_engine import BodyEngine
+        from app.services.tick_utils import build_npc_snapshots
+
+        _snaps = build_npc_snapshots([dict(self.RAW)])
+        _deltas = BodyEngine().handle(_snaps, "t", 1)
+        assert len(_deltas) == 1
+        assert _deltas[0].payload.energy_delta != 0.0
+
+
+class TestS2B5Fatigue:
+    """S2B.5 (ADR-O-373): fatigue — two-way износ, единственная per-tick
+    проекция. Шкала: 0=свеж, 100=истощён («плохо вверх», инверсия energy).
+    Фикстуры — ПЛОСКИЙ снапшот (миграция S2B.1–2B.4 тем же ADR)."""
+
+    def _engine(self):
+        from app.services.body.body_engine import BodyEngine
+        return BodyEngine()
+
+    def _snap(self, **kw):
+        _d = {"npc_id": "n1", "life_status": "ALIVE", "stress": 0.0,
+              "velocity": (0.0, 0.0), "activity": "", "coupling_mode": "",
+              "body_mass": 1.0}
+        _d.update(kw)
+        return _d
+
+    def test_run_accumulates_wear(self):
+        """RUN (load 0.9): wear 0.225 − recovery 0.01 = +0.215/тик."""
+        _p = self._engine().handle([self._snap(velocity=(0.8, 0.0))], "t", 1)[0].payload
+        assert _p.fatigue_delta == 0.215
+
+    def test_idle_recovery_strictly_negative(self):
+        """Пассивный отдых слабый: idle → −0.1 (~1000 тиков без сна)."""
+        _p = self._engine().handle([self._snap()], "t", 1)[0].payload
+        assert _p.fatigue_delta == -0.1
+
+    def test_sleep_recovery_beats_idle(self):
+        """Сон (load 0.1, ×3): −0.245; строго глубже idle-восстановления."""
+        _e = self._engine()
+        _idle = _e.handle([self._snap()], "t", 1)[0].payload.fatigue_delta
+        _sleep = _e.handle(
+            [self._snap(coupling_mode="SLEEPING")], "t", 1
+        )[0].payload.fatigue_delta
+        assert _sleep == -0.245
+        assert _sleep < _idle
+
+    def test_monotonicity_load_inverted_sign(self):
+        """Знак ОБРАТЕН energy-тестам: износ растёт с нагрузкой —
+        delta(RUN) > delta(WALK) > delta(IDLE) (кодирование по формуле §4.2)."""
+        _e = self._engine()
+        _idle = _e.handle([self._snap()], "t", 1)[0].payload.fatigue_delta
+        _walk = _e.handle(
+            [self._snap(velocity=(0.3, 0.0))], "t", 1
+        )[0].payload.fatigue_delta
+        _run = _e.handle(
+            [self._snap(velocity=(0.8, 0.0))], "t", 1
+        )[0].payload.fatigue_delta
+        assert _run > _walk > _idle
+
+    def test_wear_slower_than_fuel_invariant(self):
+        """Инвариант Мастера (закон №11-аналог): износ медленнее топлива —
+        0.25 < 0.5. Отдельный тест: калибровка не инвертирует иерархию молча."""
+        _e = self._engine()
+        assert _e.BASE_FATIGUE_RATE < _e.BASE_EXPENDITURE_RATE
+
+    def test_body_sensitivity(self):
+        """Тяжелее тело → больше износ → delta более положительный."""
+        _e = self._engine()
+        _light = _e.handle(
+            [self._snap(activity="working", body_mass=0.8)], "t", 1
+        )[0].payload.fatigue_delta
+        _heavy = _e.handle(
+            [self._snap(activity="working", body_mass=1.2)], "t", 1
+        )[0].payload.fatigue_delta
+        assert _heavy > _light
+
+    def test_determinism(self):
+        _e = self._engine()
+        _npc = self._snap(activity="guarding_gate")
+        _d1 = _e.handle([_npc], "t", 7)[0].payload.fatigue_delta
+        _d2 = _e.handle([_npc], "t", 7)[0].payload.fatigue_delta
+        assert _d1 == _d2
+
+    def test_composition_with_combat_producer(self):
+        """Двух-продюсерная модель (вердикт Мастера: два producer'а допустимы,
+        два per-tick physiological engines — нет). PHYSICS_COMPOSITE =
+        PASS-THROUGH на агрегации (не «складывает»): дельты сохраняются как
+        отдельные StateDeltas, аддитивность возникает при последовательном
+        применении единым StateApplicator. Ассерты: структура/сохранность/порядок."""
+        from app.models.delta_payloads import PhysiologyPayload
+        from app.models.state_delta import DeltaDomain, StateDeltas
+        from app.services.npc.state_applicator import StateApplicator
+        from app.services.tick_utils import aggregate_deltas
+
+        _combat = StateDeltas(
+            npc_id="n1", domain=DeltaDomain.PHYSIOLOGY,
+            payload=PhysiologyPayload(fatigue_delta=5.0),
+            source="impact_resolution",
+        )
+        _engine_d = StateDeltas(
+            npc_id="n1", domain=DeltaDomain.PHYSIOLOGY,
+            payload=PhysiologyPayload(fatigue_delta=0.215),
+            source="body_engine",
+        )
+
+        # (i) СТРУКТУРА: PHYSICS_COMPOSITE = pass-through — обе дельты
+        # переживают агрегацию как отдельные StateDeltas (split давал 1)
+        _agg = aggregate_deltas([_combat, _engine_d])
+        _phys = [d for d in _agg if d.domain == DeltaDomain.PHYSIOLOGY]
+        assert len(_phys) == 2
+
+        # (ii) СОХРАННОСТЬ: вклад combat'а не теряется (при split было 0.215)
+        _sum = sum(d.payload.fatigue_delta for d in _phys)
+        assert abs(_sum - 5.215) < 1e-9
+
+        # (iii) ПОРЯДОК: correctness не зависит от порядка продюсеров
+        _agg_rev = aggregate_deltas([_engine_d, _combat])
+        _phys_rev = [d for d in _agg_rev if d.domain == DeltaDomain.PHYSIOLOGY]
+        assert len(_phys_rev) == 2
+        assert abs(sum(d.payload.fatigue_delta for d in _phys_rev) - 5.215) < 1e-9
+
+        # (iv) single-writer применяет обе последовательно; clamp 0–100 держит
+        class _MockState:
+            pass
+
+        _state = _MockState()
+        _state.body_state = {"fatigue": 98.0, "current_hp": 100, "pain": 0.0,
+                             "blood_loss": 0.0, "shock_impulse": 0.0,
+                             "injuries": [], "modifiers": {}, "statuses": []}
+        _applicator = object.__new__(StateApplicator)
+        # слоты: (state, hp, pain, fatigue, blood, inj, add_st, rm_st, shock)
+        _applicator._apply_physiology_deltas(_state, 0, 0, 5.0, 0, [], [], [], 0)
+        _applicator._apply_physiology_deltas(_state, 0, 0, 0.215, 0, [], [], [], 0)
+        assert _state.body_state["fatigue"] == 100.0  # 103.215 → clamp
+
+        _state2 = _MockState()
+        _state2.body_state = {"fatigue": 0.1, "current_hp": 100, "pain": 0.0,
+                              "blood_loss": 0.0, "shock_impulse": 0.0,
+                              "injuries": [], "modifiers": {}, "statuses": []}
+        _applicator._apply_physiology_deltas(_state2, 0, 0, -0.245, 0, [], [], [], 0)
+        assert _state2.body_state["fatigue"] == 0.0  # −0.145 → clamp
+
+
+class TestDeltaPolicyIdentity:
+    """ADR-O-373 (вердикт Мастера): ONE POLICY TYPE / ONE POLICY REGISTRY /
+    ONE ENUM IDENTITY. Enum Identity Split (дубль в dto.py) ломал сравнение
+    policy == ReductionPolicy.PHYSICS_COMPOSITE в aggregate_deltas: PHYSIOLOGY
+    молча падала в algebraic-группировку, вклад одного из продюсеров терялся
+    (last-wins). Пиннится IDENTITY объектов (is), не равенство значений:
+    два одинаковых enum'а — разные классы — снова дадут тихий split."""
+
+    def test_single_policy_and_registry_identity(self):
+        from app.models.state_delta import (
+            DELTA_POLICY_REGISTRY as CanonicalRegistry,
+        )
+        from app.models.state_delta import (
+            ReductionPolicy as CanonicalPolicy,
+        )
+        from app.services.dto import DELTA_POLICY_REGISTRY as DtoRegistry
+        from app.services.dto import ReductionPolicy as DtoPolicy
+
+        assert DtoPolicy is CanonicalPolicy  # identity, не ==
+        assert DtoRegistry is CanonicalRegistry
+
+    def test_physiology_policy_is_physics_composite(self):
+        from app.models.state_delta import (
+            DELTA_POLICY_REGISTRY,
+            DeltaDomain,
+            ReductionPolicy,
+        )
+
+        assert (
+            DELTA_POLICY_REGISTRY[DeltaDomain.PHYSIOLOGY]
+            is ReductionPolicy.PHYSICS_COMPOSITE
+        )
 
 
 class TestFlagNeutrality:

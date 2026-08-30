@@ -22,8 +22,12 @@ from app.models.delta_payloads import (
     SocialPayload,
 )
 from app.models.idle_tick import NPCStateSnapshot
-from app.models.state_delta import DeltaDomain, ReductionPolicy, StateDeltas
-from app.services.dto import DELTA_POLICY_REGISTRY
+from app.models.state_delta import (
+    DELTA_POLICY_REGISTRY,
+    DeltaDomain,
+    ReductionPolicy,
+    StateDeltas,
+)
 from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
@@ -115,6 +119,20 @@ def build_npc_snapshots(all_npcs_raw: list) -> list:
         _modifiers = body_state.get("modifiers", {})
         _statuses = body_state.get("statuses", [])
 
+        # S2B.5 / ADR-O-373: плоская READ-ONLY проекция полей BodyEngine.
+        _vel_raw = npc.get("velocity")
+        if isinstance(_vel_raw, (tuple, list)) and len(_vel_raw) >= 2:
+            _velocity = (float(_vel_raw[0]), float(_vel_raw[1]))
+        else:
+            _velocity = (0.0, 0.0)
+        _activity = str(
+            npc.get("activity", "") or npc.get("routine", {}).get("current", "") or ""
+        )
+        _coupling_mode = str(
+            (body_state.get("coupling_profile") or {}).get("coupling_mode", "") or ""
+        )
+        _body_mass = float(body_state.get("body_mass", 1.0))
+
         _raw_injuries = body_state.get("injuries", [])
         injuries_by_zone: Dict[str, list] = {}
         for inj in _raw_injuries:
@@ -145,6 +163,10 @@ def build_npc_snapshots(all_npcs_raw: list) -> list:
                 base_abilities=_base_abilities,
                 modifiers=_modifiers,
                 statuses=_statuses,
+                velocity=_velocity,
+                activity=_activity,
+                coupling_mode=_coupling_mode,
+                body_mass=_body_mass,
                 affective_load=_affective_load,
                 emotion=_emotion,
             )
@@ -379,7 +401,7 @@ def create_tick_context(
         tick_number=tick_number,
         interventions=interventions,
         npc_services=npc_services,
-        drf_bus=drf_bus,    
+        drf_bus=drf_bus,
         rng_factory=_rng_factory,
         task_scheduler=task_scheduler,
         player_intent=_player_intent,

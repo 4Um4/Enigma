@@ -234,6 +234,7 @@ def _load_or_create_scene(
     """Загружает scene_state или создаёт новую сцену с сохранением времени."""
     scene_state = loop.scene_manager.get_scene_state(campaign_id, location)
     if scene_state is not None:
+        _migrate_and_bind_v2_relationships(loop, campaign_id, scene_state)
         return scene_state
 
     # Новая сцена — не сбрасываем время (БАГ H FIX)
@@ -254,7 +255,50 @@ def _load_or_create_scene(
     _materialize_npc_inventory(loop, scene_state)
     loop.scene_manager.save_scene_state(campaign_id, scene_state)
     logger.info(f"[GAME_LOOP] Новая сцена: {location}")
+    _migrate_and_bind_v2_relationships(loop, campaign_id, scene_state)
     return scene_state
+
+
+def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state: dict) -> None:
+    """M1b.4.2: bind v2-адаптера к кампании + однократный transform legacy JSON
+    → scene_state.directed. Маркер .migrated НЕ здесь — только после первого
+    успешного atomic_commit_all (confirm_migration в commit_tick_result).
+    Порядок ратифицирован: load scene → migrate → atomic persist → mount."""
+    from app.services.social.relationship_state_store import RelationshipStateStore
+
+    _mm = getattr(loop, "memory_manager", None)
+    _rel = getattr(_mm, "_relationships", None) if _mm else None
+    if _rel is None or not hasattr(_rel, "bind"):
+        return  # легаси-инстанс (не v2) — миграция не применима, M1b.1-режим
+    try:
+        # RAM-GO: bind с hydrate (сцена→RAM при пустом RAM; пред-сценовые
+        # записи RAM приоритетны — не затираются)
+        _rel.bind(campaign_id, scene_state=scene_state)
+    except ValueError as e:
+        logger.warning(f"[M1b.4.2] bind отклонён: {e}")
+        return
+    # provider-источник: сцена этого тика (обновляется при каждой смене
+    # локации; vestigial после pre-scene-теста — кандидат на удаление M1b.5)
+    if _mm is not None and isinstance(getattr(_mm, "_v2_scene_ref", None), dict):
+        _mm._v2_scene_ref["scene"] = scene_state
+    # Однократный transform (идемпотентен; маркер — отдельно, после коммита)
+    _saves_dir = str(getattr(loop, "_saves_dir", ""))
+    if _saves_dir:
+        try:
+            _report = RelationshipStateStore.migrate_legacy_relationships(
+                scene_state, campaign_id, _saves_dir
+            )
+            if not _report.get("skipped") and _report.get("migrated_pairs"):
+                logger.info(f"[M1b.4.2] legacy→v2 transform: {_report}")
+                # RAM-GO: transform лёг в сцену — поднимаем в RAM-носитель
+                # (merge: v2-RAM-пары приоритетнее legacy)
+                _rs = scene_state.get("relationship_state", {})
+                _d = _rs.get("directed", {}) if isinstance(_rs, dict) else {}
+                for _k, _v in _d.items():
+                    _rel._directed_ram.setdefault(_k, dict(_v))
+                _rel.sync_into_scene()
+        except Exception as e:
+            logger.warning(f"[M1b.4.2] migrate transform failed: {e}")
 
 
 # ── Публичные функции ─────────────────────────────────────────────────

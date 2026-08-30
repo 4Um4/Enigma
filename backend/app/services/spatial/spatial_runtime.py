@@ -315,7 +315,7 @@ def extract_scene_for_npc(
     location_id = scene_state.get("location_id", "")
 
     # --- Другие NPC в радиусе восприятия ---
-    nearby: list[dict] = []
+    nearby: list[Dict[str, Any]] = []
     for other_id in npc_ids:
         if other_id == npc_id:
             continue

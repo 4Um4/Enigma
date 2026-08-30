@@ -1,4 +1,4 @@
-# ENIGMA — Core Tick Pipeline Deep Analysis Report
+﻿# ENIGMA — Core Tick Pipeline Deep Analysis Report
 
 **Scope**: Core tick pipeline (TickOrchestrator → NpcTickPipeline → StateApplicator → TickMutation)
 **Project root**: `/home/z/my-project/analysis/Enigma-V.0.5.3.6.7_-_-_-/`
@@ -198,7 +198,7 @@ self.scene_manager._tick_campaign_id = campaign_id
 
 | Field | Value |
 |---|---|
-| **File:line** | `backend/app/services/game_loop/phase_2_world_tick.py:149` |
+| **File:line** | `backend/app/services/game_loop/phase_2_world_tick.py (BUG-CORE-009 устранён: файл теперь заглушка Stage 0 Task 0.10)` |
 | **Severity** | Medium |
 | **Symptom** | NeedEngine.tick receives `current_activity=""` for every NPC because the variable `_wt_npc_raw` is actually an `NPCState` object (not the raw dict). Recovery and need decay calculations run against the wrong activity, causing spurious hunger/fatigue during sleep and rest. |
 | **Root cause** | `_proactive_npc_data` is built at line 41-52 as a list of `(_pid, _p_l2, _p_l0)` tuples (where `_p_l2 = load_l2_state_from_runtime_dict(_n)` is an NPCState object). But the consumer at line 149 destructures as `for _pid, _wt_npc_raw, _ in _proactive_npc_data:` — so `_wt_npc_raw = _p_l2` (the NPCState). Then `isinstance(_wt_npc_raw, dict)` is False, and the elif branch `hasattr(_wt_npc_raw, "routine")` accesses `_p_l2.routine` which is likely a string/enum, not a dict. Result: `_wt_current_activity = ""`. |

@@ -90,7 +90,7 @@ def _get_remote_size(url: str, key: str) -> int:
                 _REMOTE_SIZE_CACHE[key] = _total
                 _REMOTE_SIZE_CACHE_TIME[key] = _now
                 return _total
-            print(f"[REMOTE_SIZE] split parts not in tree: key={key} fname={_fname}")
+            logger.debug(f"[REMOTE_SIZE] split parts not in tree: key={key} fname={_fname}")
             return 0
         for _f in _files:
             if _f.get("path") == _fname:
@@ -99,9 +99,9 @@ def _get_remote_size(url: str, key: str) -> int:
                     _REMOTE_SIZE_CACHE[key] = _size
                     _REMOTE_SIZE_CACHE_TIME[key] = _now
                     return _size
-        print(f"[REMOTE_SIZE] file not in tree: key={key} fname={_fname}")
+        logger.debug(f"[REMOTE_SIZE] file not in tree: key={key} fname={_fname}")
     except Exception as _e:
-        print(f"[REMOTE_SIZE] tree api fail: key={key} err={_e}")
+        logger.debug(f"[REMOTE_SIZE] tree api fail: key={key} err={_e}")
     return 0
     """Делает HEAD запрос для получения размера файла. Кэширует на 5 минут."""
     import time
@@ -139,7 +139,7 @@ def _get_remote_size(url: str, key: str) -> int:
 
 def _update_remote_sizes_once() -> None:
     """Один проход по всем моделям: определяет размеры на сервере.
-    Печатает результат для диагностики (ЧАСТЬ VIII.5: print, не logger)."""
+    Результат — в лог (Phase-0 debt: print → logger, stdout чист для SSE/UI)."""
     sources = get_llm_sources()
     for key, info in sources.items():
         _url = info.get("url", "")
@@ -149,9 +149,9 @@ def _update_remote_sizes_once() -> None:
         # поэтому ретраятся только модели с неизвестным размером
         _size = _get_remote_size(_url, key)
         if _size > 0:
-            print(f"[REMOTE_SIZE] OK key={key} size_mb={int(_size / 1024 / 1024)}")
+            logger.info(f"[REMOTE_SIZE] OK key={key} size_mb={int(_size / 1024 / 1024)}")
         else:
-            print(f"[REMOTE_SIZE] FAIL key={key} url={_url}")
+            logger.debug(f"[REMOTE_SIZE] FAIL key={key} url={_url}")
 
 def _remote_sizes_worker() -> None:
     """Периодический воркер: обновляет размеры каждые 60 сек, живёт вечно.
@@ -161,7 +161,7 @@ def _remote_sizes_worker() -> None:
         try:
             _update_remote_sizes_once()
         except Exception as _e:
-            print(f"[REMOTE_SIZE] worker iteration failed: {_e}")
+            logger.warning(f"[REMOTE_SIZE] worker iteration failed: {_e}")
         _time.sleep(60)
 
 # Ленивый запуск воркеров: при импорте ПОРОЖДАТЬ потоки нельзя — модуль ещё

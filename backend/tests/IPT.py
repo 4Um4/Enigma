@@ -255,8 +255,8 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
     scheduler = getattr(world.game_loop, "_task_scheduler", None) or getattr(world.game_loop, "task_scheduler", None)
     if not scheduler:
         return InvariantResult(
-            "INV-DIALOGUE-INIT", "CRITICAL", False, 
-            "TaskScheduler не найден в GameLoop.", 
+            "INV-DIALOGUE-INIT", "CRITICAL", False,
+            "TaskScheduler не найден в GameLoop.",
             ["backend/app/services/game_loop/__init__.py"]
         )
 
@@ -325,9 +325,8 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
     )
 
     # 2. Проверка Игрок→NPC: Симулируем вмешательство игрока
-    from app.contracts.interventions import InterventionEvent
-    from app.services.game_loop.phase_1_input import resolve_player_intent
     from app.models.schemas import PlayerAction
+    from app.services.game_loop.phase_1_input import resolve_player_intent
     
     # Находим первого живого NPC
     target_npc = None
@@ -374,8 +373,8 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     
     Проверяет полную каузальную цепь: EventBus -> NpcDialogueSubscriber -> MemoryManager.add_dialogue_turn.
     """
-    from app.services.events.event_types import EventType
     from app.domain.events import EventDTO
+    from app.services.events.event_types import EventType
     
     mm = world.game_loop.memory_manager
     bus = world.game_loop._tick_orch._get_event_bus()
@@ -474,7 +473,7 @@ def inv_dialogue_scheduler_fail(world: TestWorld) -> InvariantResult:
     _failed = getattr(scheduler, "failed_tasks", 0)
     _processed = getattr(scheduler, "total_processed_tasks", 0)
     
-    # ADR-O-343: LLM может падать (возвращать success=False). Это не "тихий отказ" системы, 
+    # ADR-O-343: LLM может падать (возвращать success=False). Это не "тихий отказ" системы,
     # а честная обработка сбоя инфраструктуры. Тихим отказом считается только если задачи вообще не доходят до исполнителя.
     if _failed > 0 and _processed == 0:
         return InvariantResult(
@@ -526,7 +525,6 @@ def inv_domain_purity(world: TestWorld) -> InvariantResult:
 
 def inv_llm_exile(world: TestWorld) -> InvariantResult:
     """INV-LLM-EXILE: Запрет вызовов LLM в ядре симуляции (L7)."""
-    import os
     import sys
     from pathlib import Path
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
@@ -560,7 +558,6 @@ def inv_llm_exile(world: TestWorld) -> InvariantResult:
 
 def inv_position_mutation(world: TestWorld) -> InvariantResult:
     """INV-POSITION-MUTATION: Запрет прямой мутации позиции вне SceneStateManager (§4.1)."""
-    import os
     import sys
     from pathlib import Path
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
@@ -595,6 +592,7 @@ def inv_position_mutation(world: TestWorld) -> InvariantResult:
 def inv_semantic_unification(world: TestWorld) -> InvariantResult:
     """INV-SEMANTIC-UNIFICATION: Проверка, что ActionSemanticResolver не вызывается из production path (S199)."""
     import inspect
+
     from app.services.game_loop import GameLoop
     
     src = inspect.getsource(GameLoop)
@@ -612,6 +610,7 @@ def inv_semantic_unification(world: TestWorld) -> InvariantResult:
 def inv_dialogue_context_binding(world: TestWorld) -> InvariantResult:
     """INV-DIALOGUE-CONTEXT-BINDING: Проверка, что IntentCompressor имеет доступ к DialogueSession (S200)."""
     import inspect
+
     from app.services.input.intent_compressor import IntentCompressor
     
     src = inspect.getsource(IntentCompressor)
@@ -635,8 +634,10 @@ def inv_time_freezer(world: TestWorld) -> InvariantResult:
         sys.path.insert(0, _backend_dir)
         
     try:
+        import datetime
+        import time
+
         from app.services.replay.time_freezer import frozen_time
-        import time, datetime
         
         _game_time = 12345.6
         
@@ -668,8 +669,8 @@ def inv_time_freezer(world: TestWorld) -> InvariantResult:
 def inv_replay_store(world: TestWorld) -> InvariantResult:
     """INV-REPLAY-STORE: ReplayStore записывает и читает тики (Подсистема 2)."""
     import os
-    import tempfile
     import sys
+    import tempfile
     from pathlib import Path
     _backend_dir = str(Path(__file__).resolve().parents[1])
     if _backend_dir not in sys.path:
@@ -731,8 +732,8 @@ def inv_adr_net(world: TestWorld) -> InvariantResult:
         sys.path.insert(0, _backend_dir)
         
     try:
-        from app.services.adr_net.adr_graph import ADRGraphBuilder
         from app.services.adr_net.adr_conflict_detector import ADRConflictDetector
+        from app.services.adr_net.adr_graph import ADRGraphBuilder
         _root_dir = str(Path(__file__).resolve().parents[2])
         _audits_dir = os.path.join(_root_dir, "docs", "audits")
         _master_idx = os.path.join(_root_dir, "docs", "ADR (Architecture Decision Records).md")
@@ -794,7 +795,6 @@ def inv_adr_net(world: TestWorld) -> InvariantResult:
 
 def inv_no_retro_sim(world: TestWorld) -> InvariantResult:
     """INV-NO-RETRO-SIM: Запрет циклов с вызовами tick/execute (Rule 25)."""
-    import os
     import sys
     from pathlib import Path
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
@@ -828,7 +828,6 @@ def inv_no_retro_sim(world: TestWorld) -> InvariantResult:
 
 def inv_l1_append_only(world: TestWorld) -> InvariantResult:
     """INV-L1-APPEND-ONLY: Запрет удаления событий из L1Chronicle (Rule 28)."""
-    import os
     import sys
     from pathlib import Path
     _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
@@ -1113,6 +1112,7 @@ def inv_silent_failure(world: TestWorld) -> InvariantResult:
 
 def inv_hp_ssot(world: TestWorld) -> InvariantResult:
     """INV-HP-SSOT: Запрет прямого присваивания state.hp (ADR-HP-UNIFICATION)."""
+    import os
     import sys
     from pathlib import Path
     # Добавляем scripts/ в path для импорта линтера
@@ -1222,9 +1222,8 @@ def inv_pbt_traversal(world: TestWorld) -> InvariantResult:
 
 def inv_player_epistemic_closure(world: TestWorld) -> InvariantResult:
     """INV-PLAYER-EPISTEMIC-CLOSURE: NPC_SPOKE -> EpistemicStore[player] update."""
-    from app.services.events.event_types import EventType
     from app.domain.events import EventDTO
-    from app.domain.epistemology import Predicate
+    from app.services.events.event_types import EventType
 
     _epistemic_store = getattr(world.game_loop._tick_orch, "_epistemic_store", None)
     if not _epistemic_store:
@@ -1307,8 +1306,8 @@ def inv_epistemic_trust_monotonicity(world: TestWorld) -> InvariantResult:
 
 def inv_epistemic_truth_immutability(world: TestWorld) -> InvariantResult:
     """INV-EPISTEMIC-TRUTH-IMMUTABILITY: ClaimEvent не должен мутировать поля World Truth в scene_state."""
-    from app.services.events.event_types import EventType
     from app.domain.events import EventDTO
+    from app.services.events.event_types import EventType
 
     _scene = world._get_scene()
     if not _scene:
@@ -1505,15 +1504,14 @@ def inv_intent_event_completeness(world: TestWorld) -> InvariantResult:
     Проверяет, что IntentEventAdapter не возвращает 'unknown' тип события.
     """
     try:
-        from app.services.events.intent_event_adapter import IntentEventAdapter
         from app.domain.communication import CommunicationIntent, ExposureLevel
-        from app.models.npc_state import Intent
+        from app.services.events.intent_event_adapter import IntentEventAdapter
         
         _violations = []
         # Проверяем все интенты, которые могут стать CommunicationIntent
         _communicative_intents = [
-            "talk", "warn", "intimidate", "attack", "help", "report", 
-            "trade", "explain", "offer_job", "request_service", 
+            "talk", "warn", "intimidate", "attack", "help", "report",
+            "trade", "explain", "offer_job", "request_service",
             "spread_rumor", "call_for_help", "change_role"
         ]
         

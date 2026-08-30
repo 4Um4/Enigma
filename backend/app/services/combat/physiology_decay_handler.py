@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # Мастер Тай: разные физические процессы имеют разные постоянные времени
 
 PAIN_DECAY_LAMBDA: float = 0.05  # Боль затухает ~5% за тик
-FATIGUE_DECAY_LAMBDA: float = 0.03  # Усталость медленнее (восстановление)
+FATIGUE_DECAY_LAMBDA: float = 0.03  # DORMANT (ADR-O-373): fatigue-восстановление — в BodyEngine
 BLOOD_LOSS_DECAY_LAMBDA: float = 0.01  # Кровопотеря ещё медленнее (свертывание)
 CONSCIOUSNESS_RECOVERY: float = 0.02  # Восстановление сознания
 SHOCK_DECAY_LAMBDA: float = 0.08  # Шок затухает быстрее боли (~8% за тик)
@@ -132,9 +132,11 @@ class PhysiologyDecayHandler:
             pain_after_decay = current_pain * math.exp(-PAIN_DECAY_LAMBDA)
             pain_delta = _closing_drift(pain_after_decay, 0.0) - current_pain
 
-            # Усталость восстанавливается
-            fatigue_after_decay = current_fatigue * math.exp(-FATIGUE_DECAY_LAMBDA)
-            fatigue_delta = _closing_drift(fatigue_after_decay, 0.0) - current_fatigue
+            # ADR-O-373: fatigue-ветка DORMANT — восстановление усталости
+            # консолидировано в BodyEngine (S2B.5: линейный recovery + sleep_mult).
+            # Вторая per-tick fatigue-проекция = нарушение закона №6
+            # (один World Tick → одна физиологическая проекция).
+            fatigue_delta = 0.0
 
             # Кровопотеря медленно снижается (свертывание крови)
             blood_after_decay = current_blood_loss * math.exp(-BLOOD_LOSS_DECAY_LAMBDA)

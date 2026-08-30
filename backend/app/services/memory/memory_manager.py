@@ -41,6 +41,13 @@ class MemoryManager:
         self._identity_lock = threading.RLock()
         self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
         self._relationships = RelationshipStore(data_dir=data_dir)
+        # M1b.4.2 (ADR-O-371): v2-cutover держателя. Легаси-инстанс выше
+        # создаётся для М1b.1-совместимости (существующие сейвы читаются
+        # мигратором); переключение на v2 — switch_to_v2_relationships()
+        # из конструктора GameLoop (когда существует provider-источник сцены).
+        # До switch: runtime на легаси (M1b.2-гейт); после: единственный
+        # носитель — scene_state.directed (легаси-инстанс теряет владельца).
+        self._v2_scene_ref: Dict[str, Any] = {"scene": None}
         # M1b.2.3 (ADR-O-371): write-фасад стора — единый write-маршрут (D2):
         # все обёрточные записи отношений идут через RelationshipWriteGate;
         # на cutover (M1b.4) гейт централизованно получит v2-backend.
@@ -66,6 +73,19 @@ class MemoryManager:
 
         # BUG-DL-07: Экземпляр DialogueConsolidator для суммаризации STM перед очисткой.
         self._dialogue_consolidator = DialogueConsolidator()
+
+    def switch_to_v2_relationships(self, campaign_id_hint: Optional[str] = None) -> None:
+        """M1b.4.2 cutover: memory_manager._relationships := V2RelationshipBackend
+        с late-bind. Вызывается ИЗ GameLoop.__init__ (до захвата подписчиками).
+        campaign_id_hint не используется для bind (кампания узнаётся при первом
+        init_scene_state) — параметр сохранён для читаемости call-site."""
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731
+        self._relationships = V2RelationshipBackend(_provider)
+        self._relationship_write_gate = RelationshipWriteGate(self._relationships)
+        logger.info("[M1b.4.2] V2 cutover: _relationships := V2RelationshipBackend (late-bind)")
 
     @property
     def working_memory(self) -> WorkingMemory:

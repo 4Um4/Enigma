@@ -359,8 +359,13 @@ class NpcTickPipeline:
             _eco_profile = state.economic_profiles_map.get(npc_id)
             _current_activity = npc.get("routine", {}).get("current", "")
             _eco_result = compute_economy(
-                npc_id, _eco_profile, state_l2, _current_activity
+                npc_id, _eco_profile, state_l2, _current_activity,
+                relationship_store=state.relationship_store,
             )
+            # FIX (Phase-0 0.3): eco-стресс применяется через StateApplicator
+            # внутри compute_economy — забираем обновлённый NPCState.
+            if _eco_result.get("state_l2") is not None:
+                state_l2 = _eco_result["state_l2"]
             _all_modifiers = {**interpretation.score_modifiers}
             if _eco_modifiers := _eco_result["modifiers"]:
                 for _intent, _mod in _eco_modifiers.items():
@@ -637,7 +642,9 @@ class NpcTickPipeline:
                 if hasattr(_opp_will_state, "value")
                 else str(_opp_will_state)
             )
-            print(f"[DIAG-OPP] npc={npc_id} will={_opp_will} dist={_opp_dist:.1f} att={_opp_att:.2f} allies={_opp_allies}")
+            logger.debug(
+                f"[DIAG-OPP] npc={npc_id} will={_opp_will} dist={_opp_dist:.1f} att={_opp_att:.2f} allies={_opp_allies}"
+            )
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
