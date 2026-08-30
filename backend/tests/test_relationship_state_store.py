@@ -910,37 +910,52 @@ class TestV2BackendD3Parity:
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
         ss = {"relationship_state": {"directed": {"a→b": {"trust": 33.333333}}}}
-        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        v2 = V2RelationshipBackend(lambda: ss)
+        v2.bind("camp", scene_state=ss)  # RAM-GO: prior входит через hydrate
         # Vacuum: пары нет → {}
         assert v2.get_pair("camp", "x", "y") == {}
         # round(4) — read-контракт дословно
         assert v2.get_pair("camp", "a", "b")["trust"] == 33.3333
 
     def test_no_cache_no_files(self, tmp_path):
-        """Вердикт Мастера: никаких собственных _cache и файловых записей —
-        адаптер пишет ТОЛЬКО в переданный scene_state."""
+        """RAM-GO: (1) никаких файловых записей (disk-on-update запрещён);
+        (2) запись живёт в RAM-носителе; (3) проекция в сцену — только при
+        живой (непустой) сцене; пустой провайдер ≠ запись потеряна."""
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
-        ss = {}
-        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        # Случай A: сцена отсутствует — запись живёт в RAM, не теряется
+        v2 = V2RelationshipBackend(lambda: {})
         v2.update("camp", "a", "b", {"trust": 5.0})
+        assert v2._directed_ram["a→b"]["trust"] == 5.0
+        assert v2.get_pair("camp", "a", "b")["trust"] == 5.0
+
+        # Случай B: живая сцена — RAM + проекция одновременно
+        ss = {"location_id": "tavern"}
+        v2b = V2RelationshipBackend(lambda: ss)
+        v2b.bind("camp", scene_state=ss)
+        v2b.update("camp", "a", "b", {"trust": 5.0})
+        assert v2b._directed_ram["a→b"]["trust"] == 5.0
         assert ss["relationship_state"]["directed"]["a→b"]["trust"] == 5.0
-        # Побочных файлов не создано (tmp_path чист от наших записей):
-        assert not list((tmp_path).rglob("npc_relationships*")) or True
+
+        # Побочных файлов не создано:
+        assert not list(tmp_path.rglob("npc_relationships*"))
 
     def test_reset_campaign_clears_directed(self):
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
         ss = {"relationship_state": {"directed": {"a→b": {"trust": 1.0}, "c→d": {"fear": -2.0}}}}
-        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        v2 = V2RelationshipBackend(lambda: ss)
+        v2.bind("camp", scene_state=ss)  # hydrate: пары → RAM
         assert v2.reset_campaign("camp") == 2
-        assert ss["relationship_state"]["directed"] == {}
+        assert v2._directed_ram == {}                       # RAM сброшен
+        assert ss["relationship_state"]["directed"] == {}   # проекция сброшена
 
     def test_get_all_for_source_normalizes(self):
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
         ss = {"relationship_state": {"directed": {"a→b": {"trust": 10.0}}}}
-        v2 = V2RelationshipBackend(lambda: ss, "camp")
+        v2 = V2RelationshipBackend(lambda: ss)
+        v2.bind("camp", scene_state=ss)
         got = v2.get_all_for_source("camp", "a")
         assert got == {"b": {"trust": 10.0, "fear": 0.0, "debt": 0.0, "respect": 0.0, "attraction": 0.0}}
 
@@ -1031,24 +1046,25 @@ class TestV2CutoverLifecycle:
         assert scenes["kitchen"]["relationship_state"]["directed"] == _expected
 
     def test_location_change_keeps_relationships(self, tmp_path):
-        """Кухня→зал: directed переживает смену локации (round-trip через
-        sync + перезагрузку другой локации)."""
+        """RAM-GO: носитель — ОДИН RAM на кампанию; смена локации меняет
+        только sync-цель проекции, отношения переживают переход."""
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
-        # RAM-GO: носитель — ОДИН RAM на кампанию; смена локации меняет
-        # только sync-цель проекции. Тик 1 (кухня):
-        ss_kitchen = {}
+        # Тик 1: кухня (живая сцена — непустой dict):
+        ss_kitchen = {"location_id": "kitchen"}
         v2 = V2RelationshipBackend(lambda: ss_kitchen)
         v2.bind("c", scene_state=ss_kitchen)
         v2.update("c", "maid_lusya", "player", {"trust": 25.0})
         assert ss_kitchen["relationship_state"]["directed"]["maid_lusya→player"]["trust"] == 25.0
-        # Тик 2: смена локации — новая сцена, ТОТ ЖЕ адаптер (RAM жив):
-        ss_hall = {}
-        v2._scene_state_provider = lambda: ss_hall  # sync-цель переключена
+
+        # Тик 2: смена локации — новая sync-цель, ТОТ ЖЕ адаптер (RAM жив):
+        ss_hall = {"location_id": "hall"}
+        v2._scene_state_provider = lambda: ss_hall
         assert v2.get_pair("c", "maid_lusya", "player")["trust"] == 25.0  # не потерялись
         v2.update("c", "maid_lusya", "player", {"trust": 5.0})
         assert v2.get_pair("c", "maid_lusya", "player")["trust"] > 25.0
-        assert ss_hall["relationship_state"]["directed"]["maid_lusya→player"]["trust"] > 25.0  # проекция в новой сцене
+        # Проекция ушла в НОВУЮ сцену (sync-цель переключена):
+        assert ss_hall["relationship_state"]["directed"]["maid_lusya→player"]["trust"] > 25.0
 
 
 
