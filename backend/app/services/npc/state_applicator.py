@@ -93,7 +93,7 @@ class StateApplicator:
         # остальными писателями; на cutover (M1b.4) backend гейта меняется
         # централизованно. Кэш-гидратация ниже — read-проекция, не write.
         from app.services.social.relationship_write_gate import RelationshipWriteGate
-        self._rel_write_gate = RelationshipWriteGate(relationship_store) if relationship_store else None
+        self._rel_write_gate = RelationshipWriteGate(relationship_store)
         # ReputationEngine — опциональная зависимость (DI)
         self._reputation_engine = reputation_engine
         self._l1_chronicle = l1_chronicle # V8-PSY-1 FIX

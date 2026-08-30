@@ -3,13 +3,11 @@ path: backend/app/services/llm/server_lifecycle.py
 Назначение: Управление жизненным циклом llama-server (start/stop/restart).
 Вынесено из app.main.py для разрыва циклической зависимости (routes -> main -> routes).
 """
-import logging
-import subprocess
-import time
-import urllib.request
 import atexit
+import logging
+import urllib.request
 
-from app.core.config import settings, BASE_DIR
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,3 +30,40 @@ def restart_llama_server() -> bool:
         return False
 
 atexit.register(kill_llama_server)
+
+
+def acquire_llama_server_lock(port: int, health_url: str) -> tuple:
+    """ИНЦИДЕНТ 2026-08-30 (двойной llama-server → VRAM 96% → 503 на всех
+    NARRATIVE): оба стартовых пути (game_launcher._ensure_llm_running,
+    main._background_llm_startup) проверяли ТОЛЬКО /health — пока первый
+    сервер грузит модель (30–60 сек), health молчит, и второй путь спавнит
+    дубль на тот же порт.
+
+    ЕДИНСТВЕННЫЙ процессный лок (обязателен для обоих спавнеров ДО Popen):
+      ("reuse", reason) — НЕ спавнить: /health отвечает (сервер готов) ИЛИ
+                          порт занят живым процессом (сервер грузится);
+      ("spawn", reason) — порт свободен: спавнить можно.
+    Bind-проба порта — вторая сигнальная линия, отличающая «грузится» от
+    «никого нет». Возврат tuple, не bool: reason обязателен для наблюдаемости (L4).
+    """
+    import socket
+
+    # Линия 1: /health отвечает → сервер готов → переиспользуем
+    try:
+        with urllib.request.urlopen(health_url, timeout=1.0) as resp:
+            if resp.status == 200:
+                return ("reuse", f"health ok: {health_url}")
+    except Exception:
+        pass  # не готов ИЛИ грузится — решает линия 2
+    # Линия 2: порт занят кем-то → идёт загрузка/битый процесс → НЕ спавнить
+    # (битый процесс — зона kill_llama_server/ручного вмешательства; спавн
+    # третьего процесса поверх занятого порта никогда не был решением)
+    _sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        _sock.settimeout(0.5)
+        _sock.bind(("127.0.0.1", port))
+    except OSError:
+        return ("reuse", f"port {port} occupied (loading or alive)")
+    finally:
+        _sock.close()
+    return ("spawn", f"port {port} free, health silent")

@@ -653,3 +653,55 @@ class TestApplicatorGateParity:
         assert got_g == want_l, f"PARITY BREAK applicator: L={want_l} G={got_g}"
         # Кэш-гидратация сохранена (read-проекция из SSOT — не тронута):
         assert real.relationship_cache["player"]["trust"] == got_g["trust"]
+
+
+
+# ── 12. M1b.2.5: decay-маршрут замкнут через гейт — доказательство ──
+
+
+class TestDecayRouteThroughGate:
+    """АРХЕОЛОГИЯ M1b.2.5 (дословный маршрут): SocialDecayHandler →
+    delta_buffer.extend → Фаза 10 apply_batch → _apply_deltas SOCIAL-ветка →
+    update_relationships → RelationshipWriteGate (M1b.2.4). Хендлер — чистый
+    produce Δ (П3-вердикт); точка применения — через гейт. Тест доказывает
+    ЦЕПОЧКУ на реальных объектах: decay-дельта реально доходит до стора
+    через Applicator (и значит — через гейт M1b.2.4)."""
+
+    def test_decay_delta_reaches_store_via_applicator(self, tmp_path):
+
+        from app.models.npc_state import NPCStateAdapter
+        from app.services.npc.state_applicator import StateApplicator
+        from app.services.social.social_decay_handler import SocialDecayHandler
+
+        # Реальный хендлер на реальном снапшоте (§12.4): base_trust=50,
+        # current=30 → drift = (50-30)*0.01 = +0.2 trust к базе
+        snapshots = [
+            {
+                "npc_id": "maid_lusya",
+                "relationship_cache": {"player": {"trust": 30.0, "fear": 10.0}},
+                "base_values": {"player": 50.0},
+            }
+        ]
+        deltas = SocialDecayHandler().handle(snapshots, "decay_route", 1)
+        assert deltas, "decay-хендлер не произвёл дельт"
+        d = deltas[0]
+        assert d.source == "social_decay"
+        assert d.trust_delta == pytest.approx(0.2)  # (50−30)×0.01
+        assert d.fear_delta == pytest.approx(-0.1)  # fear → 0: (0−10)×0.01
+
+        # Точка применения (как Фаза 10): Applicator применяет SOCIAL-дельту —
+        # М1b.2.4 маршрут: update_relationships → гейт → стор
+        store = RelationshipStore(data_dir=str(tmp_path))
+        sa = StateApplicator(relationship_store=store)
+        real = NPCStateAdapter.from_legacy(
+            {"npc_id": d.npc_id, "psyche": {"state": "free"}, "social_stats": {}}
+        )
+        sa.update_relationships(
+            real, "decay_route", d.social_target,
+            trust_delta=d.trust_delta, fear_delta=d.fear_delta,
+        )
+        # Стор получил значения (через гейт — гарантировано M1b.2.4-паритетом;
+        # здесь доказываем саму достижимость):
+        pair = store.get_pair("decay_route", "maid_lusya", "player")
+        assert pair["trust"] == pytest.approx(30.2)  # 30 + 0.2 (сатурация ~1.0 headroom)
+        assert pair["fear"] == pytest.approx(9.9)  # 10 − 0.1

@@ -6,7 +6,6 @@
 # 5. Migrated from @app.on_event to lifespan (FastAPI best practice)
 
 import os
-import sys
 
 # Принудительно включаем UTF-8 для всего процесса бэкенда, чтобы не падать на символах типа ✓
 os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -19,23 +18,18 @@ os.environ["PYTHONUTF8"] = "1"
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 os.environ["no_proxy"] = "localhost,127.0.0.1"
 
+import asyncio
+import logging
+import subprocess
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
+from app.services.llm.server_lifecycle import _llama_state
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-
-import atexit
-import subprocess
-import time
-
-from app.services.llm.server_lifecycle import _llama_state, kill_llama_server, restart_llama_server as _restart_llama_server
-
-import asyncio
-import logging
-from datetime import datetime
 
 # CDS: Подключаем Uvicorn-подпроцесс к записи в общий лог-файл
 _CDS_LOG_PATH = (
@@ -161,7 +155,7 @@ async def lifespan(app: FastAPI):
     try:
         app.state.game_loop = build_game_loop(DATA_DIR)
         print("✓ GameLoop initialized (app.state)")
-        
+
         # ENIGMA SELF-HEALING (Level 5): Startup Schema Validation (Passive Audit)
         from app.core.schema_validator import validate_all_schemas
         try:
@@ -187,14 +181,28 @@ async def lifespan(app: FastAPI):
         if settings.llama_cpp_server_url:
             app.state.startup_status["llm_server"] = "starting"
             try:
-                import urllib.request
-
-                urllib.request.urlopen(
-                    f"{settings.llama_cpp_server_url}/health", timeout=2
+                # ПРОЦЕССНЫЙ ЛОК (инцидент 2026-08-30: два llama-server на 8181
+                # → VRAM 96% → 503 на NARRATIVE → DRI 2%). Health-проверка одна
+                # не отличает «сервер грузится» от «сервера нет»: пока первый
+                # грузит модель (30–60с), health молчит — второй путь спавнил
+                # дубль. Лок: reuse = health жив ИЛИ порт занят; spawn = порт
+                # свободен. Канонический примитив — server_lifecycle (обе точки).
+                from app.services.llm.server_lifecycle import (
+                    acquire_llama_server_lock,
                 )
-                print(f"✓ llama-server уже запущен ({settings.llama_cpp_server_url})")
-                app.state.startup_status["llm_server"] = "ready"
-            except Exception:
+
+                _verdict, _why = acquire_llama_server_lock(
+                    settings.llama_cpp_port,
+                    f"{settings.llama_cpp_server_url}/health",
+                )
+                if _verdict == "reuse":
+                    print(f"✓ llama-server уже запущен/грузится ({_why})")
+                    app.state.startup_status["llm_server"] = "ready"
+                else:
+                    # Порт свободен — имитируем health-промах оригинала:
+                    # исполнение уходит в except-ветку со спавн-блоком ниже
+                    raise ConnectionError(_why)
+            except ConnectionError:
                 # Не запущен — стартуем
                 # Фикс C: Жёсткая проверка наличия файла модели перед Popen
                 import os

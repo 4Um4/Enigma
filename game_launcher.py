@@ -209,25 +209,26 @@ def _draw_llm_diag_screen(seconds: float = 10.0) -> None:
 
 
 def _ensure_llm_running() -> subprocess.Popen:
-    """Запускает llama-server.exe локально, если он ещё не запущен."""
-    import urllib.request
+    """Запускает llama-server.exe локально, если он ещё не запущен.
     
+    ИНЦИДЕНТ 2026-08-30: спавн через канонический процессный лок
+    acquire_llama_server_lock — health-проверка одна не отличает
+    «сервер грузится» (порт занят) от «сервера нет»; дубль на порт =
+    два процесса, VRAM-голод, 503 на NARRATIVE."""
+
     # Локальный импорт конфига
     from app.core.config import settings as _enigma_settings  # type: ignore
+    from app.services.llm.server_lifecycle import acquire_llama_server_lock
     _llm_port = getattr(_enigma_settings, "llama_cpp_port", 8181)
     _llm_url = f"http://127.0.0.1:{_llm_port}/health"
-    
-    # Проверяем — уже запущен? timeout=0.5: после _kill_zombies() LLM почти
-    # всегда мёртв, 2с ожидания были гарантированной потерей на каждом старте.
-    # 0.5с достаточно для ответа живого localhost-сервера.
-    try:
-        with urllib.request.urlopen(_llm_url, timeout=0.5) as resp:
-            if resp.status == 200:
-                print("  ✓ LLM сервер уже запущен")
-                return None
-    except Exception:
-        pass # LLM не запущен, это норма
-        
+
+    # ПРОЦЕССНЫЙ ЛОК (единственный): reuse = не спавнить (готов ИЛИ грузится)
+    _verdict, _why = acquire_llama_server_lock(_llm_port, _llm_url)
+    if _verdict == "reuse":
+        print(f"  ✓ LLM сервер уже запущен или грузится ({_why})")
+        return None
+    # spawn: порт свободен — единственный легальный Popen ниже
+
     # Ищем исполняемый файл llama-server
     _llm_exe = os.path.join(_ROOT, "Models LLM", "llama", "llama-server.exe")
     if not os.path.exists(_llm_exe):
@@ -238,7 +239,7 @@ def _ensure_llm_running() -> subprocess.Popen:
             _LLM_DIAG["reason"] = "exe_missing"
             _LLM_DIAG["detail"] = _llm_exe
             return None
-      
+
     # Берем путь к модели из настроек бэкенда
     _model_path = getattr(_enigma_settings, "llama_cpp_model_path", os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"))
     _file_exists = os.path.exists(_model_path)
@@ -255,7 +256,7 @@ def _ensure_llm_running() -> subprocess.Popen:
     _creation_flags = 0
     if sys.platform == 'win32':
         _creation_flags = 0x08000000  # CREATE_NO_WINDOW
-        
+
     # Лог для LLM
     _llm_log_path = Path(_ROOT) / "backend" / "logs" / "llama_server.log"
     _llm_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -272,7 +273,7 @@ def _ensure_llm_running() -> subprocess.Popen:
         _gpu_layers = getattr(_enigma_settings, "gpu_layers", 35)
     except Exception:
         _gpu_layers = 35
-        
+
     proc = subprocess.Popen(
         [
             _llm_exe,
@@ -295,9 +296,8 @@ def _ensure_llm_running() -> subprocess.Popen:
 def _ensure_servers_running() -> tuple:
     """Запускает LLM и FastAPI, рисует экран загрузки и ждёт готовности обоих."""
     import urllib.request
-    import time
-    import pygame
 
+    import pygame
     from app.core.config import settings as _enigma_settings  # type: ignore
     _api_host = _enigma_settings.api_host
     _api_port = _enigma_settings.api_port
@@ -509,6 +509,7 @@ def _init_menu_display():
 def _kill_zombies():
     """Убивает зомби-процессы (uvicorn, llama-server) перед стартом."""
     import subprocess
+
     from app.core.config import settings as _enigma_settings  # type: ignore
 
     # 1. Убиваем по портам (самый надежный способ найти висящие сокеты)
@@ -532,7 +533,7 @@ def _kill_zombies():
                     )
     except Exception:
         pass
-        
+
     # 2. Убиваем все экземпляры llama-server.exe (фоллбэк)
     try:
         subprocess.run("taskkill /F /IM llama-server.exe", shell=True, capture_output=True)
@@ -546,8 +547,8 @@ def _wait_backend_ready(max_attempts: int = 5, timeout: float = 2.0) -> bool:
     НЕ запускает процесс (это делает _ensure_servers_running один раз при старте) —
     лишь подтверждает HTTP-готовность. Молчит при успехе с первой попытки:
     визуально в логе не должно быть 'второго ожидания'."""
-    import urllib.request
     import time as _t
+    import urllib.request
     for _attempt in range(max_attempts):
         try:
             with urllib.request.urlopen(f"{_BACKEND_URL}/api/health", timeout=timeout) as _hr:
@@ -598,15 +599,15 @@ def main() -> None:
     _boot_text = _boot_font.render("Идёт загрузка мира...", True, (200, 200, 200))
     _boot_screen.blit(_boot_text, (50, 50))
     pygame.display.flip()
-    
+
     print("\n=== Enigma Startup ===")
     _dt("main() start")
     _kill_zombies()
     _dt("zombie-kill done")
-    
+
     backend_proc, llm_proc = _ensure_servers_running()
     _dt("servers ready")
-    
+
     # Проверка наличия модели LLM перед стартом меню
     import importlib
     from pathlib import Path
@@ -617,7 +618,7 @@ def main() -> None:
         settings_screen = SettingsScreen(screen, clock)
         settings_screen.run(initial_tab="llm")
         # После закрытия настроек — продолжаем работу (бэкенд уже запущен)
-    
+
     screen, clock, menu = _init_menu_display()
     _dt("menu display created — START-TO-MENU TOTAL")
 
@@ -674,7 +675,7 @@ def main() -> None:
                         # за время, пока игрок был в меню. Тишина = успех.
                         _backend_ok = _wait_backend_ready(5)
                         print(f"  [DIAG_LAUNCH] Backend OK: {_backend_ok}", flush=True)
-                        
+
                         _reset_ok = False
                         if _backend_ok:
                             import os as _os
@@ -682,7 +683,7 @@ def main() -> None:
                             try:
                                 from api_client import create_game_gateway
                                 _gateway, _ = create_game_gateway(base_url=_BACKEND_URL)
-                                
+
                                 _result = _gateway.new_game(
                                     campaign_id=selected_folder,
                                     continuity_mode=selected_data.get("continuity_mode", "isolated"),
@@ -699,7 +700,7 @@ def main() -> None:
                                 print(f"  ⚠ Gateway initialization failed: {e}")
                         else:
                             print(f"  ⚠ Backend не отвечает {_BACKEND_STARTUP_TIMEOUT}с, сброс пропущен")
-                        
+
                         # Запускаем игру только если сброс мира прошёл успешно
                         if _reset_ok:
                             screen = pygame.display.get_surface()
@@ -741,7 +742,7 @@ def main() -> None:
                                         break
                             except Exception:
                                 _time.sleep(0.5)
-                        
+
                         if _backend_ok:
                             import os as _os
                             _os.environ.setdefault("ENIGMA_BACKEND_URL", _BACKEND_URL)
@@ -792,7 +793,7 @@ def main() -> None:
     print("\n[CLEANUP] Завершение процессов backend и LLM...")
     if sys.platform == "win32":
         from app.core.config import settings as _enigma_settings  # type: ignore
-        
+
         # 1. Убиваем деревья процессов uvicorn и LLM напрямую по их PID
         for _proc in [backend_proc, llm_proc]:
             if _proc is not None and _proc.poll() is None:
@@ -800,7 +801,7 @@ def main() -> None:
                     subprocess.run(["taskkill", "/T", "/F", "/PID", str(_proc.pid)], capture_output=True, timeout=5)
                 except Exception:
                     pass
-            
+
         # 2. Убиваем всё, что слушает порты (фоллбэк для зомби без Popen-ссылки)
         for _port in [_enigma_settings.api_port, _enigma_settings.llama_cpp_port]:
             try:
