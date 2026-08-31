@@ -43,3 +43,13 @@
 {"ts": "2026-08-30T23:41:14", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
 {"ts": "2026-08-30T23:41:14", "event": "roll", "desc": "1d6", "rolls": [1], "total": 1}
 {"ts": "2026-08-30T23:41:14", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": true, "critical": false, "fumble": false, "damage": 1.0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC6.0 → попадание | урон: 1d6=[1] + mod(+0.0) + bonus(+0) = 1.0", "target_ac": 6.0}
+{"ts": "2026-08-31T20:13:24", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
+{"ts": "2026-08-31T20:13:24", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": false, "critical": false, "fumble": false, "damage": 0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC50.0 → промах | урон: промах", "target_ac": 50.0}
+{"ts": "2026-08-31T20:13:24", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
+{"ts": "2026-08-31T20:13:24", "event": "roll", "desc": "1d6", "rolls": [1], "total": 1}
+{"ts": "2026-08-31T20:13:24", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": true, "critical": false, "fumble": false, "damage": 1.0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC6.0 → попадание | урон: 1d6=[1] + mod(+0.0) + bonus(+0) = 1.0", "target_ac": 6.0}
+{"ts": "2026-08-31T22:24:15", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
+{"ts": "2026-08-31T22:24:15", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": false, "critical": false, "fumble": false, "damage": 0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC50.0 → промах | урон: промах", "target_ac": 50.0}
+{"ts": "2026-08-31T22:24:15", "event": "roll", "desc": "attack d20", "rolls": [4], "total": 4}
+{"ts": "2026-08-31T22:24:15", "event": "roll", "desc": "1d6", "rolls": [1], "total": 1}
+{"ts": "2026-08-31T22:24:15", "event": "attack", "d20": 4, "attack_total": 6.0, "hit": true, "critical": false, "fumble": false, "damage": 1.0, "breakdown": "d20=4 + strength(+0.0) + prof(+2) + env(+0) = 6.0 vs AC6.0 → попадание | урон: 1d6=[1] + mod(+0.0) + bonus(+0) = 1.0", "target_ac": 6.0}

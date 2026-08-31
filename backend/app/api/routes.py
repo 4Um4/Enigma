@@ -2,7 +2,8 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import List, Literal, Optional, Dict, Any
+from typing import Any, Dict, List, Literal, Optional
+
 from app.core.config import settings
 
 # A2-FIX: snapshot_npc_positions_to_dict удалён (canonical Dict)
@@ -76,6 +77,7 @@ def get_ports() -> dict:
 
 
 from fastapi.responses import HTMLResponse
+
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
@@ -339,28 +341,30 @@ async def restart_llm():
         return {"restarted": False, "error": str(e)}
 
 # --- LLM Downloader API ---
-from app.services.llm.downloader import get_model_status, download_model
+from app.services.llm.downloader import download_model, get_model_status
+
 
 @router.get("/llm/status")
 async def llm_status() -> dict:
     """Возвращает статус LLM-сервера, моделей и причин ошибок."""
     import os
+
     from app.core.config import settings
     _status = get_model_status()
-    
+
     # Фикс D: Добавляем явную причину отсутствия LLM для UI
     _model_exists = os.path.exists(settings.llama_cpp_model_path)
     _status["model_path"] = settings.llama_cpp_model_path
     _status["model_exists"] = _model_exists
     _status["server_executable_exists"] = os.path.exists(settings.llama_cpp_server_executable)
-    
+
     if not _model_exists:
         _status["error_reason"] = "model_file_missing"
     elif not _status.get("is_running", False):
         _status["error_reason"] = "server_not_running"
     else:
         _status["error_reason"] = None
-        
+
     return _status
 
 @router.post("/llm/download/{model_key}")
@@ -379,11 +383,11 @@ async def llm_cancel(model_key: str) -> dict:
 @router.post("/llm/select/{model_key}")
 async def llm_select(model_key: str) -> dict:
     """Меняет активную модель, перезапускает LLM-сервер и отправляет тестовый промпт."""
+
+    from app.core.config import BASE_DIR, settings
     from app.services.llm.downloader import get_llm_sources
-    from app.core.config import settings, BASE_DIR
-    from app.services.llm.server_lifecycle import restart_llama_server, kill_llama_server
+    from app.services.llm.server_lifecycle import kill_llama_server, restart_llama_server
     from fastapi import HTTPException
-    from pathlib import Path
 
     sources = get_llm_sources()
     target_path = None
@@ -398,25 +402,25 @@ async def llm_select(model_key: str) -> dict:
             target_path = _manual_file
         else:
             raise HTTPException(status_code=404, detail="Model not found in config or folder")
-            
+
     if not target_path.exists():
         raise HTTPException(status_code=400, detail="Model is not downloaded yet")
-        
+
     # Обновляем путь к модели в конфиге
     settings.llama_cpp_model_path = str(target_path)
     settings.default_model = model_key
-    
+
     # Принудительно убиваем старую модель, выгрузить её из VRAM и запустить новую
     kill_llama_server()
-    
+
     import time
     time.sleep(2)  # Даём Windows время освободить порт 8181
-    
+
     success = restart_llama_server()
     if not success:
         # Вместо 500 ошибки, возвращаем текстовое сообщение для UI
         return {"test_prompt": "", "test_response": "ОШИБКА: LLM сервер не смог запуститься с этой моделью. Возможно, не хватает VRAM или файл повреждён."}
-        
+
     # Отправляем реальный игровой промпт с профилем NPC (Борко), чтобы проверить качество модели
     test_response = ""
     try:
@@ -439,7 +443,7 @@ async def llm_select(model_key: str) -> dict:
             f"Твоя манера речи: {voice} "
             f"Психология: {notes}"
         )
-        
+
         # Провокационный промпт, требующий отыгрыша роли
         user_prompt = "Игрок подходит к тебе и шепчет: 'Борко, я знаю, ты пропустил караван, после которого нашли труп. Кого ты покрыл?'. Ответь одной короткой фразой."
 
@@ -450,10 +454,10 @@ async def llm_select(model_key: str) -> dict:
             system_prompt=sys_prompt
         )
         return {"test_prompt": user_prompt, "test_response": test_response}
-    
+
     except Exception as e:
         test_response = f"[Ошибка тестового запроса]: {e}"
-        
+
     return {"status": "restarted", "model": model_key, "test_response": test_response}
 
 
@@ -661,7 +665,7 @@ def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> Dict[s
     """Возвращает финальный экран оценки игрока (MVP Mini-game). Чистое чтение."""
     if not game_loop.mvp_controller:
         return {"error": "MVP controller not initialized"}
-    
+
     # V8-MVP-3: Сериализация вынесена в MvpTavernController
     # 8.1 FIX: Теперь отдаёт текстовые поля для UI
     return game_loop.mvp_controller.serialize_end_screen()
@@ -671,19 +675,110 @@ def finalize_campaign(campaign_id: str, game_loop=Depends(get_game_loop)) -> dic
     """Финализирует кампанию: собирает WorldStateDiff и сохраняет его в GameLoop для будущей кампании."""
     if not game_loop.mvp_controller:
         return {"error": "MVP controller not initialized"}
-    
+
     diff = game_loop.mvp_controller.build_world_diff()
     game_loop._campaign_diffs[campaign_id] = diff
     game_loop._save_diff_to_disk(campaign_id, diff)
-    
+
     return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True}
 
 # NEW-MEM-002 FIX: API endpoint для просмотра таблиц воспоминаний NPC
+def _xray_memory(game_loop, campaign_id: str, npc_id: str) -> Dict[str, Any]:
+    """Фаза A Шаг 9: рентген памяти NPC — все ветки рядом, одним запросом.
+
+    Секции: SQLite-кэш (EventMemory), recall/suppressed (чистые функции),
+    identity traits, отношения к игроку, JSON-ветка (beliefs/affect/кэш),
+    статус персистентности (расхождение веток).
+    """
+    _mm = getattr(game_loop, "memory_manager", None)
+    if _mm is None:
+        return {"xray_error": "memory_manager недоступен"}
+
+    xray: Dict[str, Any] = {}
+
+    # — SQLite-ветка (путь решений с Шага 7) —
+    _cache = _mm.load_narrative_from_sqlite(campaign_id, npc_id)
+    if _cache:
+        xray["narrative_cache_sqlite"] = [
+            {
+                "summary": m.summary,
+                "importance": m.importance,
+                "day": m.day,
+                "stage": m.stage.value if hasattr(m.stage, "value") else str(m.stage),
+                "is_secret": m.is_secret,
+            }
+            for m in _cache
+        ]
+    else:
+        xray["narrative_cache_sqlite"] = None  # нет данных → JSON-fallback активен
+
+    # — Recall / suppressed (чистые функции от кэша) —
+    if _cache:
+        _recalled = _mm.recall(_cache, hidden_from_id="player", limit=5)
+        xray["recalled"] = [
+            {"summary": m.summary, "importance": m.importance}
+            for m in _recalled
+        ]
+        _suppressed = _mm.get_suppressed_secrets(_cache)
+        xray["suppressed_secrets"] = [
+            {"summary": m.summary, "importance": m.importance}
+            for m in _suppressed
+        ]
+    else:
+        xray["recalled"] = []
+        xray["suppressed_secrets"] = []
+
+    # — Identity traits (L3, Шаг 2) —
+    xray["identity_traits"] = _mm.get_identity_traits(campaign_id, npc_id)
+
+    # — Отношения к игроку (Vacuum: нет записи = пустой dict) —
+    _rel = _mm._relationships.get_pair(campaign_id, npc_id, "player")
+    xray["relationship_to_player"] = _rel if _rel else None
+
+    # — JSON-ветка (npc_runtime.json — канонический путь tick_utils) —
+    _json_state: Dict[str, Any] = {}
+    try:
+        from app.services.tick_utils import get_npc_runtime_path
+
+        _rt_path = get_npc_runtime_path(campaign_id)
+        if _rt_path.exists():
+            import json as _json
+
+            with open(_rt_path, "r", encoding="utf-8") as _f:
+                _runtime_list = _json.load(_f)
+            _npc_dict = next(
+                (n for n in _runtime_list if n.get("id") == npc_id), None
+            )
+            if _npc_dict:
+                _json_state["beliefs"] = _npc_dict.get("psyche", {}).get(
+                    "beliefs", {}
+                )
+                _json_state["affective_load"] = _npc_dict.get("affective_load")
+                _json_state["narrative_cache_len"] = len(
+                    _npc_dict.get("narrative_cache", [])
+                )
+                _json_state["stress"] = _npc_dict.get("psyche", {}).get("stress")
+        else:
+            _json_state["runtime_file"] = "not_found"
+    except Exception as _xray_err:  # noqa: ENIGMA001
+        # Рентген не роняет API: падение наблюдаемо, но эндпоинт жив
+        _json_state["error"] = str(_xray_err)
+    xray["json_state"] = _json_state
+
+    # — Статус персистентности: расхождение веток —
+    xray["persistence_status"] = {
+        "sqlite_rows": len(_cache) if _cache else 0,
+        "sqlite_available": _cache is not None,
+    }
+
+    return xray
+
+
 @router.get("/debug/memories/{campaign_id}/{npc_id}")
 def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_loop)) -> Dict[str, Any]:
-    """Возвращает crystallized_beliefs и event_memories для NPC."""
+    """Возвращает crystallized_beliefs, event_memories и рентген памяти NPC."""
     result: Dict[str, Any] = {"crystallized_beliefs": [], "event_memories": []}
-    
+
     # 1. Crystallized Beliefs
     _tick_orch = getattr(game_loop, "_tick_orch", None)  # noqa: ENIGMA002
     if _tick_orch and hasattr(_tick_orch, "crystallized_belief_store"):
@@ -705,14 +800,25 @@ def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_l
         if _sqlite_store:
             _mems = _sqlite_store.load_event_memories(campaign_id, npc_id)
             if _mems:
+                # Аудит №30 + Фаза A Шаг 9: load_event_memories возвращает
+                # List[Dict] (dict(row) в sqlite_store) — getattr на dict
+                # всегда даёт дефолт, эндпоинт был слеп. Полей text/tick в
+                # SQL-схеме нет; канонические — summary/day.
                 result["event_memories"] = [
                     {
-                        "text": getattr(m, "text", ""),  # noqa: ENIGMA002
-                        "importance": getattr(m, "importance", 0.0),
-                        "tick": getattr(m, "tick", 0),
+                        "summary": m.get("summary", ""),
+                        "importance": m.get("importance", 0.0),
+                        "day": m.get("day", 0),
+                        "stage": m.get("stage", ""),
+                        "event_type": m.get("event_type", ""),
+                        "target_id": m.get("target_id", ""),
+                        "is_secret": bool(m.get("is_secret", False)),
                     } for m in _mems
                 ]
 
+    # 3. Рентген памяти (Фаза A Шаг 9): SQLite-ветка + JSON-ветка + отношения.
+    # Read-only, детерминированно, без обхода приватных недр game_loop.
+    result.update(_xray_memory(game_loop, campaign_id, npc_id))
     return result
 
 @router.post("/game/action")
@@ -1115,8 +1221,9 @@ def get_player_session(campaign_id: str) -> PlayerSessionResponse:
         return PlayerSessionResponse(player=None, active=False)
 
 
-from pydantic import BaseModel
 from app.models.world_continuity import WorldContinuityMode
+from pydantic import BaseModel
+
 
 class NewGameRequest(BaseModel):
     """Контракт команды начала новой игры."""
@@ -1201,15 +1308,15 @@ async def spatial_observatory_inspect(payload: dict = Body(...)):
     прогоняет их через канонический Spatial Kernel и возвращает ObservatoryDTO.
     """
     from dataclasses import asdict
-    
+
     campaign_id = payload.get("campaign_id", "Open_road")
     location_id = payload.get("location_id", "tavern_silver_wolf")
     editor_data = payload.get("editor_data", {})
     agents_data = payload.get("agents_data", {}) # Опционально, для topology-only inspection
-    
+
     if not editor_data:
         raise HTTPException(status_code=400, detail="editor_data is required")
-        
+
     try:
         result_dto = observatory_service.inspect(
             campaign_id=campaign_id,

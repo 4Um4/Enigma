@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any, List
 
+from app.domain.body import is_sleep_coupling
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +71,7 @@ class BodyEngine:
         _coupling = str(npc.get("coupling_mode", "") or "")
 
         # Sleep overrides — very low load (body at rest)
-        if _coupling in ("SLEEPING", "REM"):
+        if is_sleep_coupling(_coupling):
             return 0.1
 
         # Velocity → WALK/RUN (movement is expensive)
@@ -132,7 +134,7 @@ class BodyEngine:
 
             # Recovery: inverse to load; sleep bonus via coupling (NOT via activity string)
             _recovery = self.BASE_RECOVERY_RATE * (1.0 - _load)
-            if _coupling in ("SLEEPING", "REM"):
+            if is_sleep_coupling(_coupling):
                 _recovery *= self.SLEEP_RECOVERY_MULTIPLIER
 
             # Net: energy_delta = recovery - expenditure
@@ -158,7 +160,7 @@ class BodyEngine:
             # применяются последовательно единым StateApplicator (clamp).
             _fatigue_wear = self.BASE_FATIGUE_RATE * _load * _modifier
             _fatigue_recovery = self.BASE_FATIGUE_RECOVERY * (1.0 - _load)
-            if _coupling in ("SLEEPING", "REM"):
+            if is_sleep_coupling(_coupling):
                 _fatigue_recovery *= self.SLEEP_RECOVERY_MULTIPLIER
             fatigue_delta = round(_fatigue_wear - _fatigue_recovery, 4)
 

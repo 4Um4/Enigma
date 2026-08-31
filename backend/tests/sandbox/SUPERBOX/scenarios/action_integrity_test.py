@@ -25,6 +25,10 @@ import tempfile
 import types
 from pathlib import Path
 
+# S2B6-A (вердикт Мастера Q1-B): канонический предикат вместо фантомных
+# литералов ("SLEEPING" не производит CouplingMode — ветки B1/Y6 были мертвы).
+from app.domain.body import is_sleep_coupling
+
 _PROJECT_ROOT = Path(__file__).resolve().parents[5]
 _CAMPAIGN = "Open_road"
 _LOCATION = "tavern"
@@ -300,13 +304,13 @@ def run_scenario_b() -> dict:
                 _YELLOW.append("B: B3 повторный sleep-intent post-terminal (loop?)")
             else:
                 _YELLOW.append(f"B: B2 новый movement post-terminal: cause={cause}")
-        elif coupling_mode in ("SLEEPING", "REM"):
+        elif is_sleep_coupling(coupling_mode):
             _YELLOW.append(f"B: B1 stable sleep (coupling={coupling_mode})")
         else:
-            _YELLOW.append("B: B4 idle (нет активного, coupling != SLEEPING)")
+            _YELLOW.append("B: B4 idle (нет активного, coupling не сон)")
 
         # Y6: сон как executor без commitment
-        if coupling_mode in ("SLEEPING", "REM") and not has_active:
+        if is_sleep_coupling(coupling_mode) and not has_active:
             _YELLOW.append("Y6: сон исполняется БЕЗ commitment (executor=SleepLifecycle)")
         return {"timeline": timeline, "coupling_mode": coupling_mode}
     finally:
@@ -400,7 +404,6 @@ def run_replay_check() -> None:
 
 
 def main() -> int:
-    import logging
 
     _quiet_loggers()
     _log("=" * 64)
@@ -411,6 +414,7 @@ def main() -> int:
     # Enforcement обязателен (аудит рабочей связки) — тройная верификация
     os.environ["ARBITER_ENFORCEMENT"] = "1"
     import importlib
+
     import app.services.action.commitment_arbiter as _ca
 
     importlib.reload(_ca)

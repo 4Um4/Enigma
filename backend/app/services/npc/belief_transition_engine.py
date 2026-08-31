@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from app.models.npc_state import NPCState
     from app.services.npc.decision_hub import EventContext
 
-from app.models.npc.beliefs import BeliefDelta, BeliefFragment, BeliefType
+from app.models.npc.beliefs import BeliefDelta, BeliefType
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,6 @@ _THREAT_TYPES: frozenset = frozenset(
         "player_threatens",
         "player_cast_spell",
         "weapon_drawn",
-        "player_spoke",
         "combat_started",
     }
 )
@@ -112,7 +111,7 @@ class BeliefTransitionEngine:
             )
             if _d_hostile:
                 deltas.append(_d_hostile)
-                
+
         return deltas
 
     # ──────────────────────────────────────────────────────────────────────

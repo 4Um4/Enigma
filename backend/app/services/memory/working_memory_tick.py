@@ -119,6 +119,8 @@ def run_decay_and_resonance(
         temporal.current_tick,
     )
     if identity_weights:
-        resonance = memory_manager.detect_resonance(campaign_id, actor_id="player")
         for npc_id in active_npc_ids or []:
+            resonance = memory_manager.detect_resonance(campaign_id, npc_id, actor_id="player")
+            if not resonance:
+                continue
             memory_manager.apply_identity_weights(campaign_id, npc_id, resonance)

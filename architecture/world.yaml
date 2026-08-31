@@ -64,3 +64,73 @@ constraints:
     rule: "FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2)"
     severity: HIGH
     adr_ref: "ADR-O-371"
+  ObjectFSMs:
+    type: domain
+    layer: Domain
+    label: "ObjectFSMs (W3 Pure Transitions)"
+    description: "ADR-O-376: transition_object/damage_object — ЧИСТЫЕ переходы (ТЗ §22.1: door/container state-FSM, chair — ПОЛИТИКА над операциями отношений W1). TransitionResult (PASS|NO_OP|REJECT + reason, не bool — L4) несёт old_state + topology_effect (О8: door-PASS → potential passability change; invalidation — W5). damage>=1.0 → archetype-терминал (container DESTROYED терминален). Не знает стор/IO."
+  WorldObjectSpawner:
+    type: service
+    layer: Application
+    label: "WorldObjectSpawner (Production Spawn: editor→runtime)"
+    description: "ADR-O-376: editor objects → WorldObject через SpawnMapping-реестр (door+door_transition→door, chair; расширение=мини-запись). object_id=wo_<md5(campaign:spawn_loc:editor_id)> — IDENTITY≠LOCATION. State-проекция locked/open. Presentation-поля отбрасываются (W0). Только initialize_scene (сейв выигрывает). Fault isolation per-object."
+  WorldObjectProjection:
+    type: service
+    layer: Application
+    label: "WorldObjectProjection (W1→W2 Snapshot Bridge)"
+    description: "ADR-O-376: frozen snapshot.world_objects → Tuple[WorldObject] + location-фильтр. Мост между W1-снапшотом и W2-резолвером (resolver в storage не лезет; представление заменимо без переписывания W2 — вердикт Q1a). Повреждённые записи: warning + skip (чистота наблюдателя)."
+  AffordanceShadow:
+    type: service
+    layer: Application
+    label: "AffordanceShadow (Gate-1 Discovery Shadow)"
+    description: "ADR-O-376 G1: snapshot → projection → resolver → [W3_SHADOW] log/metric. Точка: после build_snapshot, ДО PRE-TICK/Фаз 0+ (affordances ДО решений — Q2). Discovery читает ТОЛЬКО фотографию тика. env W3_SHADOW_ENABLED default OFF=no-op. Ноль writers/decisions/events. ShadowMetrics = discovery-статистика (≠ G3-execution-причины). GORAN β G1: GREEN + ambient qualification (AB {2,6,2,2} vs фон {4,7}). G2/G3 — КОНТРАКТ, не реализовано."
+edges:
+  - from: WorldObjectStore
+    to: ObjectFSMs
+    label: "apply_transition / apply_damage (коммит ТОЛЬКО на PASS)"
+    condition: "«FSM определяет семантический переход; Store определяет, где переход становится World State». Стор FSM-логики не содержит; домен стора не знает."
+  - from: ObjectFSMs
+    to: WorldObject
+    label: "TransitionResult → новый объект (safe by construction)"
+    condition: "Все переходы через конструктор → __post_init__-валидация онтологии неизбежна."
+  - from: SceneState
+    to: WorldObjectSpawner
+    label: "initialize_scene (новая сцена; editor_data)"
+    condition: "Сейв выигрывает: загруженная сцена возвращается без спавна — идемпотентность контуром вызова."
+  - from: WorldObjectSpawner
+    to: WorldObjectStore
+    label: "spawn (единственный путь записи)"
+    condition: "Второго пути рождения нет; дубль id — STRICT-отказ стора, fault isolation спавнера."
+  - from: TickOrchestrator
+    to: AffordanceShadow
+    label: "G1-врезка после build_snapshot (до PRE-TICK)"
+    condition: "Ноль decision-input: результат НЕ кладётся в ctx; флаг OFF=no-op; отказ наблюдателя не роняет тик (§11)."
+  - from: AffordanceShadow
+    to: WorldObjectProjection
+    label: "discovery по проекции снапшота"
+    condition: "Позиции NPC — только snapshot.npc_positions; живой scene_state discovery не читает."
+  - from: WorldObjectProjection
+    to: AffordanceResolver
+    label: "Tuple[WorldObject] → resolve (pure)"
+    condition: "W2 остаётся pure; хранилище не трогается; замена представления не требует переписывания W2."
+constraints:
+  - source: ObjectFSMs
+    target: WorldObjectStore
+    rule: "FORBIDDEN: доменный переход вызывает стор; стор содержит FSM-логику; except→REJECT (тихая конверсия доменного исключения)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-376"
+  - source: AffordanceShadow
+    target: SceneState
+    rule: "FORBIDDEN: discovery читает живой scene_state (только проекция замороженного снапшота тика); результат тени входит в decision-вход"
+    severity: CRITICAL
+    adr_ref: "ADR-O-376"
+  - source: WorldObjectSpawner
+    target: WorldObject
+    rule: "FORBIDDEN: identity содержит локацию как семантику; спавн вне initialize_scene; presentation-поля в проекции; расширение SpawnMapping без мини-записи"
+    severity: CRITICAL
+    adr_ref: "ADR-O-376"
+  - source: Any
+    target: AffordanceShadow
+    rule: "REQUIRED: G2 (AffordanceSet → DecisionHub read-only вход) и G3 (исполнение: ревалидация precondition-кортежей → transition → мутация → Fact) — отдельные гейты; STEAL = W5-интерпретация TAKE; TRANSFER = атомарный W6-примитив; async-шум не SSOT"
+    severity: HIGH
+    adr_ref: "ADR-O-376"

@@ -362,7 +362,7 @@ class CouplingProfile:
     motor_output_mult: float  # 0.0-1.0
     memory_activation_mult: float  # 0.0-1.0
     imagination_mult: float  # 0.0-1.0
-    coupling_mode: CouplingMode  # Enum: AWAKE, DROWSY, SLEEPING, REM
+    coupling_mode: CouplingMode  # Enum: FULL_WAKE, DROWSY, SLEEP, DEEP_SLEEP, REM (S2B6-A: фантомные AWAKE/SLEEPING удалены)
 ```
 
 ### 5.3. Запреты сна

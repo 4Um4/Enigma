@@ -925,6 +925,19 @@ class NPCState:
             if isinstance(state.trauma_markers, (set, list, tuple))
             else []
         )
+        # Фаза A Шаг 8 (аудит P0 №3): beliefs не пережив границу тика, инерция
+        # (0.70/0.75) работала с old=0 каждый тик. Сериализация: тип (значение
+        # str-Enum) → [value, confidence, source, timestamp].
+        if state.beliefs is not None:
+            _beliefs_out: Dict[str, List[Any]] = {}
+            for _bt, _frag in state.beliefs.all().items():
+                _beliefs_out[_bt.value] = [
+                    _frag.value,
+                    _frag.confidence,
+                    _frag.source,
+                    _frag.timestamp,
+                ]
+            psyche["beliefs"] = _beliefs_out
 
         # Социальные статы (из relationship_cache → player entry)
         rc = state.relationship_cache

@@ -483,6 +483,11 @@ class CommitmentRegistry:
         """
         if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
             return
+        # S2B6-A (вердикт Мастера Q1-B): канонический предикат вместо
+        # строкового свитча — литерал "SLEEPING" не существует в CouplingMode,
+        # sleep-зеркало было мёртво в production (string-identity split).
+        from app.domain.body import is_sleep_coupling
+
         _alive = set()
         for _npc in npcs or []:
             _nid = _npc.get("npc_id") or _npc.get("id") or ""
@@ -497,7 +502,7 @@ class CommitmentRegistry:
                 .get("coupling_mode", "")
             )
             _cm = CommitmentRegistry.get_active(scene_state, _nid)
-            if _mode in ("SLEEPING", "REM"):
+            if is_sleep_coupling(_mode):
                 if _cm is None:
                     _created = CommitmentRegistry._commit_nonsuperseding(
                         scene_state, tick, _nid, action="SLEEP",

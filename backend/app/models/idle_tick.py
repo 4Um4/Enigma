@@ -53,7 +53,7 @@ class NPCStateSnapshot(TypedDict):
     # (projection, не alias). combat-билдеры заполняют для единообразия контракта.
     velocity: Tuple[float, float]  # Скорость — детекция WALK/RUN в BodyEngine
     activity: str  # Активность (activity || routine.current — резолвит билдер)
-    coupling_mode: str  # AWAKE/DROWSY/SLEEPING/REM (из coupling_profile)
+    coupling_mode: str  # FULL_WAKE/DROWSY/SLEEP/DEEP_SLEEP/REM (из coupling_profile; S2B6-A: фантомные AWAKE/SLEEPING удалены)
     body_mass: float  # Масса тела (placeholder 1.0 до S2B.7)
 
     # Affective Domain: Psyche LOD Macro (S74: Temporal Mind)

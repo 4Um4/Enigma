@@ -788,6 +788,22 @@ class TickOrchestrator:
             logger.warning(f"[STAGE_1] Failed to build tick snapshot: {e}")
             ctx.tick_snapshot = None
 
+        # ── W3/ADR-O-373 Gate-1: shadow affordance evaluation ──────
+        # Discovery-тень (Q2: до PRE-TICK/Фаз 0+ — affordances раньше
+        # решения). Ноль writers/decisions/events; OFF (default) =
+        # no-op; отказ наблюдателя не роняет тик (§11). Результат
+        # логируется только — НЕ кладётся в ctx (ноль decision-input).
+        try:
+            from app.services.world.affordance_shadow import run_affordance_shadow_guarded
+            run_affordance_shadow_guarded(
+                tick=ctx.tick_number,
+                snapshot=ctx.tick_snapshot,
+                all_npcs_raw=ctx.all_npcs_raw,
+                location_id=ctx.scene_state.get("location_id", ""),
+            )
+        except Exception as _shadow_e:
+            logger.warning(f"[W3_SHADOW] gate-1 fault: {_shadow_e}")
+
         self._snapshot_positions_before(ctx) # PRE-TICK
         self._phase_0_simulation(ctx) # 0
 
@@ -1431,9 +1447,30 @@ class TickOrchestrator:
         Вынесено из LifeEngine для чистоты пайплайна и поддержки BUG-SLEEP-012.
         """
         _svc = self._get_sleep_lifecycle_svc()
+        # S2B6-B (В2/B2): eligibility-контекст — BED-валидация позиции
+        # (мир говорит «здесь можно спать»; ADR-O-326: JSON-role SSOT)
+        # + settled (нет активного traversal — прибытие предшествует onset).
+        from app.models.spatial_contracts import NodeRole
+        from app.services.npc.sleep_onset_resolver import SleepOnsetResolver
+
+        _spatial = self._resolve_spatial_service(ctx)
+        _active_traversals = ctx.scene_state.get("active_traversals", {})
 
         for _npc in (ctx.all_npcs_raw or []):
-            _changes = _svc.process_sleep_lifecycle(_npc, ctx.tick_number)
+            _bed_ok = False
+            if _spatial is not None:
+                _pos = str(_npc.get("position", "") or "")
+                if _pos:
+                    _node = _spatial.get_node(_pos)
+                    _bed_ok = _node is not None and _node.role == NodeRole.BED
+            _nid = _npc.get("npc_id") or _npc.get("id") or ""
+            _settled = not (
+                isinstance(_active_traversals, dict) and _nid in _active_traversals
+            )
+            _eligibility = SleepOnsetResolver.resolve(
+                _npc, ctx.tick_number, bed_ok=_bed_ok, settled=_settled
+            )
+            _changes = _svc.process_sleep_lifecycle(_npc, ctx.tick_number, _eligibility)
             if _changes:
                 # Применяем пробуждение через стандартный механизм SceneChange
                 self._apply_with_shadow_observation(ctx, _changes, "phase_0_6_sleep")

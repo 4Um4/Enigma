@@ -184,10 +184,15 @@ class L1Chronicle:
         if event.target_id not in self._events:
             self._events[event.target_id] = []
 
-        # Idempotency Guard: предотвращаем дублирование событий
-        # с одинаковым tick_id, target_id и event_type.
+        # Idempotency Guard — Фаза A 10.0: ключ приведён к SQL-констрейнту
+        # (campaign, target, tick, source, event_type). Прежний guard без
+        # source_id пропускал события, которые БД отвергала по пятёрке —
+        # INSERT падал, тик умирал в Фазе 9. Разные source на одном тике —
+        # легальны (федерация писателей), дубль пятёрки — нет.
         _exists = any(
-            e.tick_id == event.tick_id and e.event_type == event.event_type
+            e.tick_id == event.tick_id
+            and e.event_type == event.event_type
+            and e.source_id == event.source_id
             for e in self._events[event.target_id]
         )
         if _exists:
@@ -195,11 +200,17 @@ class L1Chronicle:
 
         self._events[event.target_id].append(event)
 
-        # Персистентная запись
+        # Персистентная запись — Фаза A 10.0:
+        # OR IGNORE = выравнивание с историей, не заглушка: строка с этой
+        # пятёркой уже в SQLite (прошлый процесс/прогон/параллельный писатель
+        # при не синхронизированном RAM-кэше). Данные не теряются и не
+        # меняются — повтор идентичной записи молча признаётся. Дубль из
+        # живого RAM ловит Патч 1; расхождение effect_value при той же
+        # пятёрке — отдельный вопрос аудита (лог ниже), не смерти тика.
         if self._store is not None:
             try:
                 self._store.execute(
-                    "INSERT INTO l1_chronicle_events "
+                    "INSERT OR IGNORE INTO l1_chronicle_events "
                     "(campaign_id, target_id, tick_id, source_id, effect_value, observation_weight, event_type) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (

@@ -118,8 +118,12 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                 ctx.campaign_id, ctx.tick_number
             )
             if _identity_weights:
-                _resonance = memory_manager.detect_resonance(ctx.campaign_id, actor_id="player")
+                # V8-MEM-13: резонанс per-NPC из буфера campaign:npc —
+                # один общий резонанс = контаминация всех NPC чужими паттернами
                 for npc_id in _active_npc_ids:
+                    _resonance = memory_manager.detect_resonance(ctx.campaign_id, npc_id, actor_id="player")
+                    if not _resonance:
+                        continue
                     memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
         except Exception as e:
             logger.error(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}. Пробрасываем исключение.", exc_info=True)

@@ -8,9 +8,9 @@ path: /project/backend/app/services/npc/sleep_lifecycle_service.py
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from app.domain.body import DreamSignal
+from app.domain.body import DreamSignal, SleepOnsetEligibility
 from app.domain.events import EventDTO
 from app.services.npc.coupling_resolver import CouplingResolver
 from app.services.npc.dream_generation_service import DreamGenerationService
@@ -22,6 +22,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# S2B6-B (вердикт В3; Q3: не калибруются до DUAL-TIME):
+# _SLEEP_PRESSURE_WAKE_RATE — существующая скорость (0.005/тик), именована;
+# FATIGUE_PRESSURE_MOD_COEFF — НОВЫЙ v1 (на ревью Мастера, закон №13):
+# модулятор скорости накопления sleep_pressure от fatigue
+# (fatigue=100 → рост ×2.0 при coeff=1.0). НЕ sp += fatigue (В3(i)).
+_SLEEP_PRESSURE_WAKE_RATE: float = 0.005
+FATIGUE_PRESSURE_MOD_COEFF: float = 1.0
+
 
 class SleepLifecycleService:
     """Управляет переходами сна, восстановлением и генерацией событий (DreamSignal)."""
@@ -31,7 +39,10 @@ class SleepLifecycleService:
         self._coupling_resolver = CouplingResolver()
 
     def process_sleep_lifecycle(
-        self, npc: Dict[str, Any], tick: int
+        self,
+        npc: Dict[str, Any],
+        tick: int,
+        eligibility: Optional["SleepOnsetEligibility"] = None,
     ) -> List[SceneChange]:
         """Основная точка входа Фазы 0.6. Обрабатывает состояние сна для одного NPC.
 
@@ -42,12 +53,39 @@ class SleepLifecycleService:
         Returns:
             Список SceneChange, если произошёл переход (пробуждение). Пустой список, если изменений нет.
         """
+        _body = npc.get("body_state")
+        if not isinstance(_body, dict):
+            _body = npc.setdefault("body_state", {})
+
+        # S2B6-B (вердикт В1): ветвление — по ФИЗИОЛОГИЧЕСКОМУ ФАКТУ
+        # body_state["sleep_onset_tick"] (None = сон не начат), НЕ по
+        # routine. Закрывает инверсию Phase A: behavioral sleep ≠ сон.
+        # Строго is not None: onset на тике 0 — валидный факт (falsy-ловушка).
+        if _body.get("sleep_onset_tick") is None:
+            # S188 Phase A/D + S2B6-B В3: динамика бодрствования.
+            self._process_wake_lifecycle(npc)
+
+            # S2B6-B (В2/B3): решающий переход eligibility → ФАКТ
+            # (condition ≠ state; писатель факта — только Phase 0.6).
+            if eligibility is not None and eligibility.eligible:
+                _body["sleep_onset_tick"] = tick
+                _body["wake_duration"] = 0
+                logger.info(
+                    f"[SLEEP_ONSET] {npc.get('id', 'unknown')}: "
+                    f"физиологический сон начат (tick={tick})"
+                )
+
+            self._update_coupling_profile(npc)
+            return []
+
+        # S2B6-B (В4): intent withdrawal — вторая разрешённая причина
+        # пробуждения (расписание покинуло sleep-строки): факт сна не
+        # переживает отмену поведенческого интента.
         _routine = npc.get("routine", {})
         _current = _routine.get("current", "")
-
         if not is_sleeping(_current):
-            # S188 ARCH-SLEEP Phase A/D: Накопление sleep_pressure и затухание arousal во время бодрствования.
-            self._process_wake_lifecycle(npc)
+            self._wake_from_sleep(npc, tick)
+            self._publish_sleep_event("sleep_end", npc, tick)
             self._update_coupling_profile(npc)
             return []
 
@@ -145,8 +183,11 @@ class SleepLifecycleService:
         wake_pressure = _arousal
 
         # Расчёт sleep_resistance
-        _sleep_start = _routine.get("_sleep_start_tick", tick)
-        _depth = min(1.0, max(0.0, (tick - _sleep_start) / 20.0))
+        # S2B6-B: depth — из ФАКТА сна; legacy routine._sleep_start_tick
+        # девальвирован (не читается; writer в LifeEngine остаётся до
+        # подтверждения мёртвости, затем удаление).
+        _onset = _body.get("sleep_onset_tick")
+        _depth = min(1.0, max(0.0, (tick - (_onset if _onset is not None else tick)) / 20.0))
         sleep_resistance = _fatigue * 0.4 + 0.05 + _depth * 0.1
 
         if wake_pressure > sleep_resistance:
@@ -163,22 +204,7 @@ class SleepLifecycleService:
             _routine.pop("_sleep_start_tick", None)
 
             # S189 ARCH-SLEEP Phase F: Конвертация DreamResidue в фоновое аффективное давление.
-            _residue = npc.pop("dream_residue", None)
-            if _residue and _residue.get("salience", 0.0) > 0.3:
-                _salience = float(_residue["salience"])
-                # Повышаем affective_load (он будет естественно затухать в последующие тики).
-                _curr_load = float(npc.get("affective_load", 0.0))
-                npc["affective_load"] = min(1.0, _curr_load + _salience * 0.5)
-                # Если это был кошмар (salience > 0.7), оставляем лёгкий осадок паранойи (threat_gradient).
-                if _salience > 0.7:
-                    _kernel = npc.get("perceptual_kernel")
-                    if isinstance(_kernel, dict):
-                        _curr_threat = float(_kernel.get("threat_gradient", 0.0))
-                        _kernel["threat_gradient"] = min(1.0, _curr_threat + _salience * 0.3)
-                logger.info(
-                    f"[DREAM_RESIDUE] {npc_id}: Woke up with residue "
-                    f"(salience={_salience:.2f}, perception={_residue.get('perception')})"
-                )
+            self._wake_from_sleep(npc, tick)
 
             return [
                 SceneChange(
@@ -191,6 +217,32 @@ class SleepLifecycleService:
             ]
 
         return []
+
+    def _wake_from_sleep(self, npc: Dict[str, Any], tick: int) -> None:
+        """S2B6-B (В4): общие эффекты обеих wake-причин (arousal-гейт /
+        intent withdrawal): очистка ФАКТА сна + сброс wake_duration +
+        конвертация DreamResidue (S189 Phase F, дословно). Поведенческая
+        часть (routine/SceneChange) — у вызывающих веток; sleep_end
+        публикует вызывающая ветка. Никакого sleep_end-SSOT (вердикт §8):
+        истории — будущий SleepEpisode в memory, не runtime-истина."""
+        _body = npc.setdefault("body_state", {})
+        _body.pop("sleep_onset_tick", None)
+        _body["wake_duration"] = 0
+
+        _residue = npc.pop("dream_residue", None)
+        if _residue and _residue.get("salience", 0.0) > 0.3:
+            _salience = float(_residue["salience"])
+            _curr_load = float(npc.get("affective_load", 0.0))
+            npc["affective_load"] = min(1.0, _curr_load + _salience * 0.5)
+            if _salience > 0.7:
+                _kernel = npc.get("perceptual_kernel")
+                if isinstance(_kernel, dict):
+                    _curr_threat = float(_kernel.get("threat_gradient", 0.0))
+                    _kernel["threat_gradient"] = min(1.0, _curr_threat + _salience * 0.3)
+            logger.info(
+                f"[DREAM_RESIDUE] {npc.get('id', 'unknown')}: Woke up with residue "
+                f"(salience={_salience:.2f}, perception={_residue.get('perception')})"
+            )
 
     def _apply_sleep_recovery(self, npc: Dict[str, Any]) -> None:
         """Восстановление стресса и сброс sleep_pressure/arousal во сне
@@ -221,9 +273,18 @@ class SleepLifecycleService:
         """
         _body = npc.setdefault("body_state", {})
 
-        # 1. Накопление sleep_pressure (0.005 за тик -> 200 тиков до полного истощения)
+        # S2B6-B (В3): wake_duration — первичный homeostatic аккумулятор
+        # (без clamp: «40 часов без сна» представимы — вердикт Мастера).
+        _body["wake_duration"] = float(_body.get("wake_duration", 0.0)) + 1.0
+
+        # 1. Накопление sleep_pressure: base × fatigue-модулятор
+        # (В3(i): dSp/dt = base_wake_drive × fatigue_modifier; НЕ sp += fatigue)
         _curr_pressure = float(_body.get("sleep_pressure", 0.0))
-        _body["sleep_pressure"] = min(1.0, _curr_pressure + 0.005)
+        _fatigue = float(_body.get("fatigue", 0.0))
+        _mod = 1.0 + (_fatigue / 100.0) * FATIGUE_PRESSURE_MOD_COEFF
+        _body["sleep_pressure"] = min(
+            1.0, _curr_pressure + _SLEEP_PRESSURE_WAKE_RATE * _mod
+        )
 
         # 2. Модуляция arousal
         _curr_arousal = float(_body.get("arousal", 0.0))

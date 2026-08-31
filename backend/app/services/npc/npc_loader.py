@@ -121,10 +121,10 @@ def reload_archetype_for(npc_dict: Dict[str, Any], new_archetype: str) -> Dict[s
     Эта функция перезагружает статические данные (schedule, activity_map) из нового архетипа,
     но сохраняет все runtime-поля (stress, relationship_cache, body_state и т.д.).
     """
-    # Stage 0: Упразднён whitelist _RUNTIME_TOP_LEVEL_KEYS. 
+    # Stage 0: Упразднён whitelist _RUNTIME_TOP_LEVEL_KEYS.
     # Сохраняем ВЕСЬ текущий словарь как overlay, затем накладываем его поверх новой статики.
     _runtime_overlay = npc_dict.copy()
-    
+
     # Удаляем метаданные, чтобы они не затёрли новые
     _runtime_overlay.pop("_archetype", None)
     _runtime_overlay.pop("_mixins", None)
@@ -263,7 +263,7 @@ def _enrich_with_social_relations(
 
 # Поля, которые являются RUNTIME и перезаписываются из npc_runtime.json
 # Static поля (willpower, breakpoint, drives, description и т.д.) НЕ перезаписываются
-# Stage 0: Упразднены whitelist'ы _RUNTIME_PSYCHE_KEYS, _RUNTIME_TOP_LEVEL_KEYS, 
+# Stage 0: Упразднены whitelist'ы _RUNTIME_PSYCHE_KEYS, _RUNTIME_TOP_LEVEL_KEYS,
 # _RUNTIME_FLAGS_KEYS, _RUNTIME_ROUTINE_KEYS (ADR-118 DOUBLE TRUTH fix).
 # Теперь мерж выполняется рекурсивно через _deep_merge, сохраняя все runtime-поля.
 
@@ -278,13 +278,13 @@ def _apply_runtime_overlay(
     Stage 0: Упразднён whitelist _RUNTIME_TOP_LEVEL_KEYS (DOUBLE TRUTH fix).
     """
     result = _deep_merge(static_npc, runtime_npc)
-    
+
     # Возвращаем метаданные static, если они были затёрты runtime-дампом
     if "_archetype" in static_npc:
         result["_archetype"] = static_npc["_archetype"]
     if "_mixins" in static_npc:
         result["_mixins"] = static_npc["_mixins"]
-        
+
     return result
 
 
@@ -530,24 +530,74 @@ def _restore_narrative_cache(cache_list: List[Dict]) -> Tuple[Any, ...]:
 
     _result = []
     for _d in cache_list:
-        _type_name = _d.pop("_memory_type", None)
-        if _type_name == "EventMemory":
-            # JSON даёт list, модель требует tuple (frozen dataclass)
-            if "tags" in _d and isinstance(_d["tags"], list):
-                _d["tags"] = tuple(_d["tags"])
-            if "known_by" in _d and isinstance(_d["known_by"], list):
-                _d["known_by"] = tuple(_d["known_by"])
-            if "hidden_from" in _d and isinstance(_d["hidden_from"], list):
-                _d["hidden_from"] = tuple(_d["hidden_from"])
-            _mem = EventMemory(**_d)
-            # Decay при загрузке — NPC загружается раз в тик
-            _mem = _mem.decayed(game_days=1.0)
-            if not _mem.is_forgotten:
-                _result.append(_mem)
+        # §12.2 WARA: адаптер НЕ мутирует вход и НЕ меняет данные.
+        # Раньше: pop выедал _memory_type из живого npc_dict (вторая
+        # загрузка без write-back теряла ВСЮ narrative_cache), а
+        # decayed(1.0) при каждой загрузке (5-8 загрузок за тик) выедал
+        # до ~25% важности за тик — память умирала за 3-5 тиков.
+        # Распад живёт в игровых механизмах (WorkingMemory.apply_decay),
+        # не в десериализации. Честный распад по возрасту — контур памяти.
+        _type_name = _d.get("_memory_type")
+        if _type_name != "EventMemory":
+            continue
+        _payload = {k: v for k, v in _d.items() if k != "_memory_type"}
+        # JSON даёт list, модель требует tuple (frozen dataclass) —
+        # нормализация в копии, не во входном словаре
+        for _key in ("tags", "known_by", "hidden_from", "compressed_from"):
+            if isinstance(_payload.get(_key), list):
+                _payload[_key] = tuple(_payload[_key])
+        _mem = EventMemory(**_payload)
+        if not _mem.is_forgotten:
+            _result.append(_mem)
     return tuple(_result)
 
 
-def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
+def _beliefs_from_persistence(
+    raw: Any,
+) -> Optional["BeliefState"]:
+    """Шаг 8: восстановление BeliefState из psyche["beliefs"].
+
+    Формат зеркален сериализатору to_persistence_dict: {type_str:
+    [value, confidence, source, timestamp]}. Повреждённые записи
+    пропускаются (не роняют загрузку), ключа нет → None (мягкая миграция).
+    """
+    if not isinstance(raw, Dict):
+        return None
+    from app.models.npc.beliefs import BeliefFragment, BeliefState, BeliefType
+
+    result = BeliefState()
+    restored = 0
+    for _bt_str, _frag_raw in raw.items():
+        try:
+            _bt = BeliefType(_bt_str)
+        except ValueError:
+            # L4: тихий пропуск запрещён — повреждённые данные наблюдаемы
+            logger.warning(f"[NPC_LOADER] beliefs: неизвестный тип '{_bt_str}' — пропущен")
+            continue
+        if not isinstance(_frag_raw, (list, tuple)) or len(_frag_raw) != 4:
+            continue
+        try:
+            result.update(
+                _bt,
+                BeliefFragment(
+                    value=float(_frag_raw[0]),
+                    confidence=float(_frag_raw[1]),
+                    source=str(_frag_raw[2]),
+                    timestamp=int(_frag_raw[3]),
+                ),
+            )
+            restored += 1
+        except (TypeError, ValueError):
+            # L4: тихий пропуск запрещён
+            logger.warning(f"[NPC_LOADER] beliefs: повреждённая запись '{_bt_str}' — пропущена")
+            continue
+    return result if restored else None
+
+
+def load_l2_state_from_runtime_dict(
+    raw_data: Dict[str, Any],
+    narrative_cache_override: Any = None,
+) -> NPCState:
     """
     Извлекает ДИНАМИЧЕСКОЕ состояние из runtime-словаря (SceneState / JSON).
     В отличие от L0 (который immutable), это меняется каждый тик.
@@ -601,8 +651,20 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
         perceptual_kernel=_pk_from_dict(raw_data.get("perceptual_kernel", {})),
     )
 
-    # Восстановление narrative_cache: из runtime-дампа или из origin_events
+    # Фаза A Шаг 8: beliefs переживают границу тика (аудит P0 №3).
+    # Единственный адаптер — _beliefs_from_persistence (§12: без мутации
+    # входа, повреждённые записи логируются и не роняют загрузку).
+    # object.__setattr__ — канонический путь persistence-слоя (ADR-WRITE-GUARD).
+    _restored_beliefs = _beliefs_from_persistence(psyche.get("beliefs"))
+    if _restored_beliefs is not None:
+        object.__setattr__(state, "beliefs", _restored_beliefs)
+    # Шаг 7 (Фаза A): narrative_cache_override — preloaded SQLite-кэш
+    # (Tuple[EventMemory], контракт load_narrative_from_sqlite; None = нет
+    # данных → JSON-fallback). Загрузчик — единая точка гидратации L2:
+    # пайплайн передаёт данные, но не владеет полем; WRITE-GUARD не трогается.
     _cache = _restore_narrative_cache(raw_data.get("narrative_cache", []))
+    if narrative_cache_override is not None:
+        _cache = narrative_cache_override
     if not _cache:
         _npc_id = raw_data.get("id", "unknown")
         _cache = _convert_origin_events(raw_data.get("origin_events", []), _npc_id)

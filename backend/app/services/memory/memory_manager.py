@@ -286,9 +286,17 @@ class MemoryManager:
             decay_rate=decay_rate,
             stage=MemoryStage.FRESH,
             # Сохраняем сырую реальность (raw_text), смысл кристаллизуется в LLM
-            summary=payload.get("summary")
-            or payload.get("raw_input")
-            or payload.get("content", ""),
+            summary=(
+                payload.get("summary")
+                or payload.get("raw_input")
+                or payload.get("content")
+                or payload.get("text")
+                # Фаза A Шаг 4.5: бес-текстовые события (npc_moved,
+                # npc_proximity_*) раньше давали записи-пустышки (12/13 строк
+                # живой БД). Дефолт из event_type: память остаётся читаемой
+                # для recall/DM, число перестаёт быть содержанием.
+                or f"[{event.type}] {event.source or 'мир'}"
+            ),
             npc_id=npc_id,
             tags=tuple(_tags),
             is_secret=payload.get("is_secret", False),
@@ -309,12 +317,27 @@ class MemoryManager:
         object.__setattr__(npc_state, "narrative_cache", tuple(cache[:NARRATIVE_CACHE_MAX]))
 
         # 8. SQLite persistence — runtime truth (Закон 4.2.1)
-        # event.id как mem_id — трассируемая связь EventDTO → EventMemory
+        # Фаза A Шаг 9.6: BUG-FB-037 делает event.id детерминированным по
+        # (type, source, timestamp), а timestamp у продюсеров всегда 0.0 —
+        # все события одной пары (тип, источник) имели ОДИН mem_id, и
+        # INSERT OR REPLACE каннибализировал память (одна строка на пару —
+        # подтверждено дампом: 13 строк = 13 пар). Суффикс из длины кэша
+        # NPC: монотонный, replay-детерминированный, без uuid.
         _store = self._layered.store
         _save_mem = getattr(_store, "save_event_memory", None)  # noqa: ENIGMA002
         if callable(_save_mem):
+            # Шаг 9.6 (финал): len(cache) не глобально монотонен — подписчик
+            # строит свежий npc_state на каждое событие (репетиция: 2 реплики
+            # одного спикера → одинаковый суффикс → REPLACE съел первую).
+            # Дискриминатор — контент: уникален per (event, npc, текст),
+            # не зависит от состояния, детерминирован (INV-REPLAY-DETERMINISM);
+            # идентичный контент схлопывается — анти-шум для [npc_moved]-спама.
+            import hashlib as _hl
+
+            _content_digest = _hl.md5((mem.summary or "").encode("utf-8")).hexdigest()[:12]
+            _mem_id = f"{event.id}:{npc_id}:{_content_digest}"
             _save_mem(
-                mem_id=str(event.id),
+                mem_id=_mem_id,
                 campaign_id=campaign_id,
                 mem_data=mem,
             )
@@ -359,8 +382,11 @@ class MemoryManager:
 
             try:
                 _mem = EventMemory(**_d)
-                # Decay при загрузке — NPC загружается раз в тик
-                _mem = _mem.decayed(game_days=1.0)
+                # Фаза A (Шаг 6/7, аудит P0 «искусственный decay»): распад
+                # при десериализации запрещён — он привязан к игровым
+                # механизмам, а не к частоте загрузок. Иначе SQLite-ветка
+                # (путь решений после Шага 7) теряла бы ~5% важности
+                # каждый тик — память умирала за 3-5 тиков.
                 if not _mem.is_forgotten:
                     _result.append(_mem)
             except Exception as e:

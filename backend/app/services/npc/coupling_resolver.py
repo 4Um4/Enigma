@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from app.domain.body import CouplingProfile, CouplingMode
+from app.domain.body import CouplingMode, CouplingProfile
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class CouplingResolver:
         # Внешние связи затухают по мере ухода в сон
         external_vision_mult = max(0.05, wakefulness)  # Минимум 5% (сны могут иметь визуал)
         external_hearing_mult = max(0.2, wakefulness * 0.8 + arousal * 0.2)  # Слух последним отключается
-        
+
         # Моторика блокируется сном
         motor_output_mult = max(0.0, 1.0 - sleep_pressure * 1.2)
 
@@ -61,6 +61,26 @@ class CouplingResolver:
 
         # Вычисление диагностической метки CouplingMode
         coupling_mode = self._resolve_mode(sleep_pressure, arousal)
+
+        # S2B6-B (вердикт В1): coupling_mode — ПРОИЗВОДНОЕ факта сна.
+        # Факт = body_state["sleep_onset_tick"] (int | None; None = сон
+        # физиологически не начат). Двусторонний инвариант:
+        #   нет факта  → максимум DROWSY: давление продолжает рестрикцию
+        #                по непрерывным осям S189 (коэффициенты не тронуты),
+        #                но сон-физиология ×3 и sleep-ownership не
+        #                включаются. Закрывает «сон на ногах» (инверсия
+        #                Phase A) у источника истины.
+        #   факт жив  → сон-семейство (SLEEP/DEEP_SLEEP/REM) независимо от
+        #                decay sleep_pressure: ×3-окно = весь эпизод сна,
+        #                не самогасится через sp→0 (класс F2).
+        # Проверка строго `is not None`: onset на тике 0 — валидный факт
+        # (ловушка falsy).
+        _onset = body_state.get("sleep_onset_tick")
+        if _onset is None:
+            if coupling_mode not in (CouplingMode.FULL_WAKE, CouplingMode.DROWSY):
+                coupling_mode = CouplingMode.DROWSY
+        elif coupling_mode in (CouplingMode.FULL_WAKE, CouplingMode.DROWSY):
+            coupling_mode = CouplingMode.REM if arousal > 0.6 else CouplingMode.SLEEP
 
         return CouplingProfile(
             external_vision_mult=external_vision_mult,

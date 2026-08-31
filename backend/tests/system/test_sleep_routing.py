@@ -6,12 +6,8 @@
 Запуск: cd backend; python -m pytest tests/system/test_sleep_routing.py -v; cd ..
 """
 import sys
-import os
 from pathlib import Path
-from types import SimpleNamespace
-from typing import List, Dict, Any
-
-import pytest
+from typing import Any, Dict
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 _BACKEND_ROOT = _PROJECT_ROOT / "backend"
@@ -19,6 +15,7 @@ sys.path.insert(0, str(_BACKEND_ROOT))
 
 from app.services.npc.sleep_lifecycle_service import SleepLifecycleService
 from app.services.npc.sleep_states import is_sleeping
+
 
 class MockEventBus:
     """Мок EventBus для перехвата событий сна."""
@@ -38,6 +35,10 @@ def _make_sleeping_npc(npc_id: str) -> Dict[str, Any]:
             "_sleep_start_tick": 0
         },
         "body_state": {
+            # S2B6-B (вердикт В1): фикстура спящего NPC несёт физиологический
+            # факт onset — без него Wave 1-гейт даёт максимум DROWSY
+            # (тест гоняет сервис напрямую, минуя eligibility-контур).
+            "sleep_onset_tick": 0,
             "sleep_pressure": 0.8,
             "arousal": 0.0,
             "fatigue": 50.0,
@@ -96,10 +97,10 @@ def test_sleep_lifecycle_phases():
     _goran_residue = goran.get("dream_residue")
     
     assert _borko_residue is not None, "guard_borko не увидел сон"
-    assert _borko_residue["perception"] in ("monster", "shadow"), f"guard_borko поймал неверный сон"
+    assert _borko_residue["perception"] in ("monster", "shadow"), "guard_borko поймал неверный сон"
     
     assert _lusya_residue is not None, "maid_lusya не увидела сон"
-    assert _lusya_residue["perception"] in ("falling", "strange_sound"), f"maid_lusya поймала неверный сон"
+    assert _lusya_residue["perception"] in ("falling", "strange_sound"), "maid_lusya поймала неверный сон"
     
     assert _goran_residue is None, "merchant_goran не должен был видеть сны"
     

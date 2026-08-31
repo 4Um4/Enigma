@@ -141,3 +141,5 @@ FAILED tests/test_npc_state_r6.py::test_r6_value_clamping - AssertionError: asse
 FAILED tests/test_npc_state_r6.py::test_r6_snapshot_contains_fields - assert 100.0 == 1.0
 FAILED tests/test_npc_state_r6.py::test_r6_legacy_adapter_defaults - AssertionError: assert 100.0 == 1.0
 ================================================================================================================= 3 failed, 1 passed, 1 warning in 0.09s =======================================================================================
+
+«Фаза A Шаг 9.6 (финал): digest-суффикс mem_id; 22/22 замков, IPT 45/45; дамп: уникальные id, одинаковый контент дедупится, Торнин imp=0.8; PROBE 9.7: подписчик NPC_SPOKE не зарегистрирован в run_turn-wiring — цель финального фикса».

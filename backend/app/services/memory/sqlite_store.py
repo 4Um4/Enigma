@@ -87,6 +87,15 @@ class SqliteMemoryStore:
             CREATE INDEX IF NOT EXISTS idx_entries_collection
             ON entries(collection, timestamp DESC)
         """)
+        # KV-хранилище state-коллекций — контракт JsonMemoryStore.save_state/load_state.
+        # Одна строка на коллекцию (identity_cache и другие state-кэши).
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS state_collections (
+                collection TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
         # Структурированные EventMemory — для поиска по полям (Этап 11.2)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS event_memories (
@@ -133,22 +142,28 @@ class SqliteMemoryStore:
         timestamp = datetime.now(timezone.utc).isoformat()
         payload_json = json.dumps(payload, ensure_ascii=False, cls=_SafeEncoder)
         try:
-            self._conn.execute(
-                "INSERT INTO entries (id, collection, timestamp, payload_json) VALUES (?, ?, ?, ?)",
-                (entry_id, collection, timestamp, payload_json),
-            )
-            self._conn.commit()
+            # S210 (P0 L1): execute+commit — атомарная пара под Lock;
+            # rollback в except — тоже операция соединения, под Lock
+            with self._lock:
+                self._conn.execute(
+                    "INSERT INTO entries (id, collection, timestamp, payload_json) VALUES (?, ?, ?, ?)",
+                    (entry_id, collection, timestamp, payload_json),
+                )
+                self._conn.commit()
         except sqlite3.Error as e:
             logger.error(f"[SQLITE] append to {collection} failed: {e}")
-            self._conn.rollback()
+            with self._lock:
+                self._conn.rollback()
         return entry_id
 
     def recent(self, collection: str, limit: int = 25) -> List[Dict[str, Any]]:
         try:
-            rows = self._conn.execute(
-                "SELECT id, timestamp, payload_json FROM entries WHERE collection = ? ORDER BY timestamp DESC LIMIT ?",
-                (collection, limit),
-            ).fetchall()
+            # S210: чтение по общему соединению — под Lock
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT id, timestamp, payload_json FROM entries WHERE collection = ? ORDER BY timestamp DESC LIMIT ?",
+                    (collection, limit),
+                ).fetchall()
             result = []
             for row in rows:
                 entry = json.loads(row["payload_json"])
@@ -159,6 +174,46 @@ class SqliteMemoryStore:
         except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error(f"[SQLITE] recent from {collection} failed: {e}")
             return []
+
+    def save_state(self, collection: str, payload: Dict[str, Any]) -> None:
+        """Перезаписывает состояние коллекции (контракт JsonMemoryStore).
+
+        KV-семантика: одна строка на коллекцию, INSERT OR REPLACE.
+        Сбой логируется и не поднимается — паритет с JSON-стором:
+        identity_cache не должен убивать тик (L4: громкость = лог).
+        """
+        try:
+            payload_json = json.dumps(payload, ensure_ascii=False, cls=_SafeEncoder)
+        except TypeError as e:
+            logger.error(f"[SQLITE] save_state serialize {collection} failed: {e}")
+            return
+        try:
+            with self._lock:
+                self._conn.execute(
+                    """INSERT OR REPLACE INTO state_collections
+                       (collection, payload_json, updated_at) VALUES (?, ?, ?)""",
+                    (collection, payload_json, datetime.now(timezone.utc).isoformat()),
+                )
+                self._conn.commit()
+        except sqlite3.Error as e:
+            logger.error(f"[SQLITE] save_state to {collection} failed: {e}")
+            with self._lock:
+                self._conn.rollback()
+
+    def load_state(self, collection: str) -> Dict[str, Any]:
+        """Загружает состояние коллекции. {} если записи нет (контракт JsonMemoryStore)."""
+        try:
+            with self._lock:
+                row = self._conn.execute(
+                    "SELECT payload_json FROM state_collections WHERE collection = ?",
+                    (collection,),
+                ).fetchone()
+            if row is None:
+                return {}
+            return json.loads(row["payload_json"])
+        except (sqlite3.Error, json.JSONDecodeError) as e:
+            logger.error(f"[SQLITE] load_state from {collection} failed: {e}")
+            return {}
 
     # ── EventMemory — структурированное API ───────────────────────────
 
@@ -183,92 +238,8 @@ class SqliteMemoryStore:
         compressed_from = d.get("compressed_from", ())
 
         try:
-            self._conn.execute(
-                """INSERT OR REPLACE INTO event_memories (
-                    id, npc_id, campaign_id, event_type, target_id, emotion_tag,
-                    summary, day, importance, accessibility, clarity, confidence,
-                    decay_rate, stage, sequence_id, tags_json, is_secret,
-                    known_by_json, hidden_from_json, fulfilled, contract_ref,
-                    is_compressed, compressed_from_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    mem_id,
-                    d.get("npc_id", ""),
-                    campaign_id,
-                    d.get("event_type", ""),
-                    d.get("target_id", ""),
-                    d.get("emotion_tag", ""),
-                    d.get("summary", ""),
-                    d.get("day", 0),
-                    d.get("importance", 0.0),
-                    d.get("accessibility", 1.0),
-                    d.get("clarity", 1.0),
-                    d.get("confidence", 1.0),
-                    d.get("decay_rate", 0.05),
-                    d.get("stage", "FRESH"),
-                    d.get("sequence_id", 0),
-                    json.dumps(list(tags)),
-                    int(d.get("is_secret", False)),
-                    json.dumps(list(known_by)),
-                    json.dumps(list(hidden_from)),
-                    int(d.get("fulfilled", False)),
-                    d.get("contract_ref", ""),
-                    int(d.get("is_compressed", False)),
-                    json.dumps(list(compressed_from)),
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
-            self._conn.commit()
-        except (sqlite3.Error, json.JSONDecodeError, TypeError) as e:
-            logger.error(f"[SQLITE] save_event_memory failed: {e}")
-            self._conn.rollback()
-
-    def load_event_memories(
-        self,
-        campaign_id: str,
-        npc_id: str,
-    ) -> List[Dict[str, Any]]:
-        """Загружает все EventMemory для NPC из SQLite."""
-        try:
-            rows = self._conn.execute(
-                """SELECT * FROM event_memories
-                   WHERE campaign_id = ? AND npc_id = ?
-                   ORDER BY importance DESC""",
-                (campaign_id, npc_id),
-            ).fetchall()
-            result = []
-            for row in rows:
-                d = dict(row)
-                d["tags"] = tuple(json.loads(d.pop("tags_json")))
-                d["known_by"] = tuple(json.loads(d.pop("known_by_json")))
-                d["hidden_from"] = tuple(json.loads(d.pop("hidden_from_json")))
-                d["compressed_from"] = tuple(json.loads(d.pop("compressed_from_json")))
-                d["is_secret"] = bool(d["is_secret"])
-                d["fulfilled"] = bool(d["fulfilled"])
-                d["is_compressed"] = bool(d["is_compressed"])
-                result.append(d)
-            return result
-        except (sqlite3.Error, json.JSONDecodeError) as e:
-            logger.error(f"[SQLITE] load_event_memories failed: {e}")
-            return []
-
-    def save_event_memories_batch(
-        self,
-        campaign_id: str,
-        npc_id: str,
-        memories: List[Dict[str, Any]],
-    ) -> None:
-        """Atomic commit: все записи NPC за тик — одна транзакция (Закон 4.2.1)."""
-        try:
-            for i, d in enumerate(memories):
-                # Закон 4.2.1: Откат всей транзакции при невалидных данных (None вместо dict)
-                if not isinstance(d, dict):
-                    raise TypeError(f"Invalid memory data: expected dict, got {type(d)}")
-                mem_id = f"{npc_id}_seq_{d.get('sequence_id', i)}"
-                tags = d.get("tags", ())
-                known_by = d.get("known_by", ())
-                hidden_from = d.get("hidden_from", ())
-                compressed_from = d.get("compressed_from", ())
+            # S210: execute+commit — атомарная пара под Lock
+            with self._lock:
                 self._conn.execute(
                     """INSERT OR REPLACE INTO event_memories (
                         id, npc_id, campaign_id, event_type, target_id, emotion_tag,
@@ -279,7 +250,7 @@ class SqliteMemoryStore:
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         mem_id,
-                        npc_id,
+                        d.get("npc_id", ""),
                         campaign_id,
                         d.get("event_type", ""),
                         d.get("target_id", ""),
@@ -304,23 +275,118 @@ class SqliteMemoryStore:
                         datetime.now(timezone.utc).isoformat(),
                     ),
                 )
-            self._conn.commit()
+                self._conn.commit()
+        except (sqlite3.Error, json.JSONDecodeError, TypeError) as e:
+            logger.error(f"[SQLITE] save_event_memory failed: {e}")
+            with self._lock:
+                self._conn.rollback()
+
+    def load_event_memories(
+        self,
+        campaign_id: str,
+        npc_id: str,
+    ) -> List[Dict[str, Any]]:
+        """Загружает все EventMemory для NPC из SQLite."""
+        try:
+            # S210: чтение по общему соединению — под Lock
+            with self._lock:
+                rows = self._conn.execute(
+                    """SELECT * FROM event_memories
+                       WHERE campaign_id = ? AND npc_id = ?
+                       ORDER BY importance DESC""",
+                    (campaign_id, npc_id),
+                ).fetchall()
+            result = []
+            for row in rows:
+                d = dict(row)
+                d["tags"] = tuple(json.loads(d.pop("tags_json")))
+                d["known_by"] = tuple(json.loads(d.pop("known_by_json")))
+                d["hidden_from"] = tuple(json.loads(d.pop("hidden_from_json")))
+                d["compressed_from"] = tuple(json.loads(d.pop("compressed_from_json")))
+                d["is_secret"] = bool(d["is_secret"])
+                d["fulfilled"] = bool(d["fulfilled"])
+                d["is_compressed"] = bool(d["is_compressed"])
+                result.append(d)
+            return result
+        except (sqlite3.Error, json.JSONDecodeError) as e:
+            logger.error(f"[SQLITE] load_event_memories failed: {e}")
+            return []
+
+    def save_event_memories_batch(
+        self,
+        campaign_id: str,
+        npc_id: str,
+        memories: List[Dict[str, Any]],
+    ) -> None:
+        """Atomic commit: все записи NPC за тик — одна транзакция (Закон 4.2.1)."""
+        try:
+            # S210: весь батч — одна транзакция под Lock: чужой commit
+            # посреди цикла разорвал бы атомарность (Закон 4.2.1)
+            with self._lock:
+                for i, d in enumerate(memories):
+                    # Закон 4.2.1: Откат всей транзакции при невалидных данных (None вместо dict)
+                    if not isinstance(d, dict):
+                        raise TypeError(f"Invalid memory data: expected dict, got {type(d)}")
+                    mem_id = f"{npc_id}_seq_{d.get('sequence_id', i)}"
+                    tags = d.get("tags", ())
+                    known_by = d.get("known_by", ())
+                    hidden_from = d.get("hidden_from", ())
+                    compressed_from = d.get("compressed_from", ())
+                    self._conn.execute(
+                        """INSERT OR REPLACE INTO event_memories (
+                            id, npc_id, campaign_id, event_type, target_id, emotion_tag,
+                            summary, day, importance, accessibility, clarity, confidence,
+                            decay_rate, stage, sequence_id, tags_json, is_secret,
+                            known_by_json, hidden_from_json, fulfilled, contract_ref,
+                            is_compressed, compressed_from_json, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            mem_id,
+                            npc_id,
+                            campaign_id,
+                            d.get("event_type", ""),
+                            d.get("target_id", ""),
+                            d.get("emotion_tag", ""),
+                            d.get("summary", ""),
+                            d.get("day", 0),
+                            d.get("importance", 0.0),
+                            d.get("accessibility", 1.0),
+                            d.get("clarity", 1.0),
+                            d.get("confidence", 1.0),
+                            d.get("decay_rate", 0.05),
+                            d.get("stage", "FRESH"),
+                            d.get("sequence_id", 0),
+                            json.dumps(list(tags)),
+                            int(d.get("is_secret", False)),
+                            json.dumps(list(known_by)),
+                            json.dumps(list(hidden_from)),
+                            int(d.get("fulfilled", False)),
+                            d.get("contract_ref", ""),
+                            int(d.get("is_compressed", False)),
+                            json.dumps(list(compressed_from)),
+                            datetime.now(timezone.utc).isoformat(),
+                        ),
+                    )
+                self._conn.commit()
         except (sqlite3.Error, json.JSONDecodeError, TypeError) as e:
             logger.error(f"[SQLITE] batch save failed for {npc_id}: {e}")
-            self._conn.rollback()
+            with self._lock:
+                self._conn.rollback()
 
     def delete_campaign(self, campaign_id: str) -> int:
         """Удаляет все записи кампании из обеих таблиц.
         Вызывается из new_game() для полной очистки памяти."""
-        cur = self._conn.cursor()
-        cur.execute("DELETE FROM event_memories WHERE campaign_id = ?", (campaign_id,))
-        deleted_events = cur.rowcount
-        cur.execute(
-            "DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",)
-        )
-        deleted_entries = cur.rowcount
-        self._conn.commit()
-        return deleted_events + deleted_entries
+        # S210: каскад из двух DELETE + commit — под Lock (атомарность пары)
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("DELETE FROM event_memories WHERE campaign_id = ?", (campaign_id,))
+            deleted_events = cur.rowcount
+            cur.execute(
+                "DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",)
+            )
+            deleted_entries = cur.rowcount
+            self._conn.commit()
+            return deleted_events + deleted_entries
 
     def execute(self, sql: str, params: Tuple[Any, ...] = ()) -> int:
         """

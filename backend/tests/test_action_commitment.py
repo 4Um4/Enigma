@@ -952,12 +952,12 @@ class TestS2034TaskOutbox:
             ss = {}
             _sleepy = {"npc_id": "n1", "body_state": {
                 "life_status": "ALIVE",
-                "coupling_profile": {"coupling_mode": "SLEEPING"}}}
+                "coupling_profile": {"coupling_mode": "SLEEP"}}}
             CommitmentRegistry.reconcile_sleep_ownership(ss, [_sleepy], 5)
             assert ss["active_commitments"]["n1"]["executor"] == "sleep"  # Y6 закрыт
             _awake = {"npc_id": "n1", "body_state": {
                 "life_status": "ALIVE",
-                "coupling_profile": {"coupling_mode": "AWAKE"}}}
+                "coupling_profile": {"coupling_mode": "FULL_WAKE"}}}
             CommitmentRegistry.reconcile_sleep_ownership(ss, [_awake], 6)
             assert ss["commitment_history"]["n1"][-1]["status"] == "COMPLETED"
             # исчезнувший спящий: создан и NPC удалён из мира
@@ -983,6 +983,311 @@ class TestS2034TaskOutbox:
             assert ss["active_commitments"]["n1"]["status"] == "COMMITTED"
         finally:
             cr.S203_4_OWNERSHIP_MIRRORS = saved
+
+
+class TestS2B6CanonicalCoupling:
+    """S2B6-A (вердикт Мастера Q1-B): канонические предикаты coupling-сна.
+
+    Гварды против рецидива string-identity split: фантомные литералы
+    ("SLEEPING"/"AWAKE" — doc-drift) не должны возвращаться ни в код,
+    ни в фикстуры. Прецедент вечных греп-инвариантов — S231 (M1b.2.7).
+    """
+
+    def test_predicate_truth_table(self):
+        from app.domain.body import CouplingMode, is_sleep_coupling
+
+        # Реальные сон-режимы (enum и строки)
+        for _mode in (CouplingMode.SLEEP, CouplingMode.DEEP_SLEEP, CouplingMode.REM):
+            assert is_sleep_coupling(_mode)
+        for _lit in ("SLEEP", "DEEP_SLEEP", "REM"):
+            assert is_sleep_coupling(_lit)
+        # Не-сон
+        for _mode in (CouplingMode.DROWSY, CouplingMode.FULL_WAKE):
+            assert not is_sleep_coupling(_mode)
+        for _lit in ("DROWSY", "FULL_WAKE", "", None):
+            assert not is_sleep_coupling(_lit)
+        # Фантомные литералы doc-drift'а + case-ловушка поведенческой строки
+        for _lit in ("SLEEPING", "AWAKE", "sleeping", "awake"):
+            assert not is_sleep_coupling(_lit)
+
+    def test_coupling_enum_membership_pinned(self):
+        """Реестр CouplingMode заморожен: новый член = явное решение —
+        он обязан пройти через предикат, иначе получит молчаливый
+        default-False (класс тихой смерти)."""
+        from app.domain.body import CouplingMode
+
+        assert {m.value for m in CouplingMode} == {
+            "FULL_WAKE",
+            "DROWSY",
+            "SLEEP",
+            "DEEP_SLEEP",
+            "REM",
+        }
+
+    def test_no_phantom_coupling_literals_in_app(self):
+        """Вечный греп-гвард: tuple-членство/сравнение по фантомным
+        coupling-литералам в backend/app запрещено — только канонический
+        предикат is_sleep_coupling (domain/body.py)."""
+        from pathlib import Path
+
+        _root = Path(__file__).resolve().parents[1] / "app"
+        _patterns = (
+            'in ("SLEEPING"',
+            'in ("AWAKE"',
+            'in ("DEEP_SLEEPING"',
+            '== "SLEEPING"',
+            '== "AWAKE"',
+            '== "DEEP_SLEEPING"',
+        )
+        _violations = []
+        for _p in sorted(_root.rglob("*.py")):
+            try:
+                _src = _p.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            for _pat in _patterns:
+                if _pat in _src:
+                    _violations.append(f"{_p.relative_to(_root)}: {_pat}")
+        assert not _violations, (
+            f"Фантомные coupling-литералы в production: {_violations}"
+        )
+
+
+class TestS2B6OnsetGatedCoupling:
+    """S2B6-B (вердикт В1): сон-режимы coupling — производное факта onset.
+
+    Двусторонний инвариант: без body_state["sleep_onset_tick"] максимум
+    DROWSY; с фактом — сон-семейство, переживающее decay pressure.
+    Непрерывные оси (motor/vision) от факта не зависят (поправка Мастера:
+    measurable restriction, не иммобилизация).
+    """
+
+    def _resolver(self):
+        from app.services.npc.coupling_resolver import CouplingResolver
+
+        return CouplingResolver()
+
+    def test_no_onset_caps_sleep_modes(self):
+        """Инверсия Phase A закрыта: без факта SLEEP/DEEP/REM недостижимы."""
+        _r = self._resolver()
+        assert _r.resolve({"sleep_pressure": 0.95, "arousal": 0.0}).coupling_mode.value == "DROWSY"
+        assert _r.resolve({"sleep_pressure": 0.8, "arousal": 0.7}).coupling_mode.value == "DROWSY"
+        assert _r.resolve({"sleep_pressure": 0.8, "arousal": 0.0}).coupling_mode.value == "DROWSY"
+
+    def test_onset_unlocks_sleep_modes(self):
+        _r = self._resolver()
+        _on = {"sleep_onset_tick": 42}
+        assert _r.resolve({"sleep_pressure": 0.95, "arousal": 0.0, **_on}).coupling_mode.value == "DEEP_SLEEP"
+        assert _r.resolve({"sleep_pressure": 0.8, "arousal": 0.7, **_on}).coupling_mode.value == "REM"
+        assert _r.resolve({"sleep_pressure": 0.8, "arousal": 0.0, **_on}).coupling_mode.value == "SLEEP"
+
+    def test_onset_survives_pressure_decay(self):
+        """Факт сна переживает decay sp: ×3-окно = весь эпизод (класс F2).
+        Также пол-инвариант: низкое давление при живом факте — не бодрство."""
+        _r = self._resolver()
+        assert _r.resolve({"sleep_pressure": 0.05, "arousal": 0.0, "sleep_onset_tick": 42}).coupling_mode.value == "SLEEP"
+        assert _r.resolve({"sleep_pressure": 0.05, "arousal": 0.7, "sleep_onset_tick": 42}).coupling_mode.value == "REM"
+
+    def test_onset_tick_zero_is_valid_fact(self):
+        """Тик 0 — валидный факт (ловушка falsy: строго is not None)."""
+        _r = self._resolver()
+        assert _r.resolve({"sleep_pressure": 0.8, "arousal": 0.0, "sleep_onset_tick": 0}).coupling_mode.value == "SLEEP"
+
+    def test_axes_independent_of_onset(self):
+        """Оси S189 не зависят от факта: рестрикция без сна-физиологии."""
+        _r = self._resolver()
+        _no = _r.resolve({"sleep_pressure": 0.95, "arousal": 0.0})
+        _yes = _r.resolve({"sleep_pressure": 0.95, "arousal": 0.0, "sleep_onset_tick": 42})
+        assert _no.motor_output_mult == _yes.motor_output_mult
+        assert _no.external_vision_mult == _yes.external_vision_mult
+        assert _no.motor_output_mult < 1.0  # рестрикция есть; не критерий иммобилизации
+
+    def test_bidirectional_invariant_no_awake_label_with_fact(self):
+        _r = self._resolver()
+        assert _r.resolve({"sleep_pressure": 0.2, "arousal": 0.0}).coupling_mode.value == "FULL_WAKE"
+        assert _r.resolve({"sleep_pressure": 0.2, "arousal": 0.0, "sleep_onset_tick": 42}).coupling_mode.value == "SLEEP"
+
+
+class TestS2B6OnsetEligibility:
+    """S2B6-B (вердикт В2/B2): eligibility = УСЛОВИЕ, не факт.
+
+    Резолвер не пишет body_state; no_bed ≠ resting (вердикт §9 —
+    чем заняться при отказе, решает поведение, не физиология).
+    """
+
+    def _npc(self, **kw):
+        _d = {
+            "npc_id": "n1",
+            "routine": {"current": "sleeping"},
+            "body_state": {"life_status": "ALIVE"},
+            "psyche": {"stress": 0.0},
+            "perceptual_kernel": {"threat_gradient": 0.0, "initiative_suppression": 0.0},
+        }
+        _d.update(kw)
+        return _d
+
+    def _resolve(self, npc, tick=10, bed_ok=True, settled=True):
+        from app.services.npc.sleep_onset_resolver import SleepOnsetResolver
+
+        return SleepOnsetResolver.resolve(npc, tick, bed_ok, settled)
+
+    def test_eligible_when_all_conditions_met(self):
+        _e = self._resolve(self._npc())
+        assert _e.eligible and _e.reason == "" and _e.tick == 10
+
+    def test_no_intent_blocks(self):
+        _e = self._resolve(self._npc(routine={"current": "working"}))
+        assert not _e.eligible and _e.reason == "no_intent"
+
+    def test_no_bed_blocks(self):
+        _e = self._resolve(self._npc(), bed_ok=False)
+        assert not _e.eligible and _e.reason == "no_bed"
+
+    def test_travelling_blocks(self):
+        _e = self._resolve(self._npc(), settled=False)
+        assert not _e.eligible and _e.reason == "travelling"
+
+    def test_dead_blocks(self):
+        _e = self._resolve(self._npc(body_state={"life_status": "DEAD"}))
+        assert not _e.eligible and _e.reason == "dead"
+
+    def test_gap9_threat_blocks(self):
+        _e = self._resolve(self._npc(perceptual_kernel={
+            "threat_gradient": 0.4, "initiative_suppression": 0.0}))
+        assert not _e.eligible and _e.reason == "blocked_threat"
+
+    def test_gap9_stress_blocks(self):
+        _e = self._resolve(self._npc(psyche={"stress": 60.0}))
+        assert not _e.eligible and _e.reason == "blocked_stress"
+
+    def test_paralysis_blocks(self):
+        _e = self._resolve(self._npc(perceptual_kernel={
+            "threat_gradient": 0.0, "initiative_suppression": 0.8}))
+        assert not _e.eligible and _e.reason == "blocked_paralysis"
+
+
+class TestS2B6OnsetTransition:
+    """S2B6-B: eligibility → ФАКТ; обе wake-причины; В3-динамика."""
+
+    class _Bus:
+        def __init__(self):
+            self.events = []
+
+        def publish(self, e):
+            self.events.append(e)
+
+    def _svc(self):
+        from app.services.npc.sleep_lifecycle_service import SleepLifecycleService
+
+        return SleepLifecycleService(self._Bus())
+
+    def _awake(self, **kw):
+        _d = {
+            "npc_id": "n1", "id": "n1",
+            "routine": {"current": "sleeping"},
+            "body_state": {"life_status": "ALIVE", "sleep_pressure": 0.0, "arousal": 0.0, "fatigue": 0.0},
+            "psyche": {"stress": 0.0},
+            "perceptual_kernel": {"threat_gradient": 0.0, "initiative_suppression": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
+        }
+        _d.update(kw)
+        return _d
+
+    def _elig(self, eligible=True, tick=5):
+        from app.domain.body import SleepOnsetEligibility
+
+        return SleepOnsetEligibility(eligible=eligible, tick=tick)
+
+    def test_eligible_onset_writes_fact(self):
+        _svc = self._svc()
+        _n = self._awake()
+        _svc.process_sleep_lifecycle(_n, 7, self._elig(tick=7))
+        assert _n["body_state"]["sleep_onset_tick"] == 7
+        assert _n["body_state"]["wake_duration"] == 0
+        assert _n["body_state"]["coupling_profile"]["coupling_mode"] in ("SLEEP", "DEEP_SLEEP", "REM")
+
+    def test_no_eligibility_no_onset(self):
+        _svc = self._svc()
+        _n = self._awake()
+        _svc.process_sleep_lifecycle(_n, 7)
+        assert "sleep_onset_tick" not in _n["body_state"]
+        assert _n["body_state"]["wake_duration"] == 1  # wd растёт
+
+    def test_ineligible_blocks_onset(self):
+        _svc = self._svc()
+        _n = self._awake()
+        _svc.process_sleep_lifecycle(_n, 7, self._elig(eligible=False))
+        assert "sleep_onset_tick" not in _n["body_state"]
+
+    def test_intent_withdrawal_wakes(self):
+        _svc = self._svc()
+        _n = self._awake(routine={"current": "working"},
+                         body_state={"life_status": "ALIVE", "sleep_pressure": 0.8,
+                                     "arousal": 0.0, "fatigue": 50.0, "sleep_onset_tick": 3})
+        _res = _svc.process_sleep_lifecycle(_n, 10)
+        assert _res == []  # поведение уже у расписания; физиология только чистится
+        # Отсутствие факта = отсутствие ключа (pop; None-зомби нет).
+        # dict[missing] бросает KeyError ДО or — старое выражение было багом теста.
+        assert "sleep_onset_tick" not in _n["body_state"]
+        assert _n["body_state"]["wake_duration"] == 0
+        assert any(getattr(e, "type", "") == "sleep_end" for e in _svc._event_bus.events)
+
+    def test_arousal_wake_clears_fact(self):
+        _svc = self._svc()
+        _n = self._awake(body_state={"life_status": "ALIVE", "sleep_pressure": 0.8,
+                                     "arousal": 1.0, "fatigue": 50.0, "sleep_onset_tick": 0})
+        _n["perceptual_kernel"]["threat_gradient"] = 1.0
+        _res = _svc.process_sleep_lifecycle(_n, 10)
+        assert _res != []  # SceneChange пробуждения (архаичная ветка жива)
+        assert "sleep_onset_tick" not in _n["body_state"]
+        assert _n["body_state"]["wake_duration"] == 0
+        assert not _n["routine"]["current"]  # routine сброшен гейтом
+
+    def test_fatigue_doubles_pressure_rate(self):
+        _svc = self._svc()
+        _a = self._awake()
+        _b = self._awake()
+        _b["body_state"]["fatigue"] = 100.0
+        _svc.process_sleep_lifecycle(_a, 1)
+        _svc.process_sleep_lifecycle(_b, 1)
+        assert _a["body_state"]["sleep_pressure"] == 0.005
+        assert _b["body_state"]["sleep_pressure"] == 0.01  # ×2 при coeff=1.0
+
+    def test_wake_duration_accumulates(self):
+        _svc = self._svc()
+        _n = self._awake()
+        _svc.process_sleep_lifecycle(_n, 1)
+        _svc.process_sleep_lifecycle(_n, 2)
+        assert _n["body_state"]["wake_duration"] == 2
+
+    def test_differential_positive_onset_to_x3_chain(self):
+        """S2B6-B: ПОЛОЖИТЕЛЬНАЯ половина дифференциального теста (Мастер,
+        §13 вердикта): факт onset → coupling SLEEP → BodyEngine ×3.
+        Отрицательная половина доказана production-зондом Wave 5
+        (elig=True=0/1200 → фактов 0 → ×3-тиков 0): BED-контекст в
+        кампании отсутствует — эскалация данных, не обход в тесте."""
+        from app.services.body.body_engine import BodyEngine
+        from app.services.npc.coupling_resolver import CouplingResolver
+
+        _mode = CouplingResolver().resolve(
+            {"sleep_pressure": 0.8, "arousal": 0.0, "sleep_onset_tick": 5}
+        ).coupling_mode
+        assert _mode.value == "SLEEP"  # факт → режим (Wave 1)
+        _p = BodyEngine().handle(
+            [{
+                "npc_id": "n1", "life_status": "ALIVE",
+                "activity": "sleeping", "velocity": (0.0, 0.0),
+                "coupling_mode": _mode.value, "body_mass": 1.0,
+            }],
+            "t", 6,
+        )[0].payload
+        assert _p.fatigue_delta == -0.245  # режим → ×3 (Phase A)
+        assert _p.energy_delta == 0.76
+
+    def test_wara_body_state_keys_survive_json_roundtrip(self):
+        import json
+
+        _bs = {"sleep_onset_tick": 42, "wake_duration": 17.0, "sleep_pressure": 0.5}
+        assert json.loads(json.dumps(_bs)) == _bs  # dict-путь персистенции
 
 
 class TestS2034WindupSerialization:
@@ -1166,7 +1471,7 @@ class TestS2B2EnergyDynamics:
         _e = self._engine()
         _awake_idle = _e.handle([self._npc(activity="")], "t", 1)[0].payload.energy_delta
         _sleeping = _e.handle([self._npc(
-            activity="sleeping", coupling_mode="SLEEPING"
+            activity="sleeping", coupling_mode="SLEEP"
         )], "t", 1)[0].payload.energy_delta
         assert _sleeping > _awake_idle  # sleep bonus
 
@@ -1337,7 +1642,7 @@ class TestS2B5ProjectionContract:
         "body_state": {
             "current_hp": 100, "energy": 100.0, "hydration": 100.0,
             "nutrition": 100.0, "fatigue": 0.0, "body_mass": 1.1,
-            "coupling_profile": {"coupling_mode": "AWAKE"},
+            "coupling_profile": {"coupling_mode": "FULL_WAKE"},
         },
         "routine": {"current": "working"},
     }
@@ -1349,7 +1654,7 @@ class TestS2B5ProjectionContract:
         assert _snap["npc_id"] == "n1"  # источник id пиннится: билдер берёт "id"
         assert _snap["activity"] == "working"  # routine-резолв — в билдере
         assert _snap["body_mass"] == 1.1
-        assert _snap["coupling_mode"] == "AWAKE"
+        assert _snap["coupling_mode"] == "FULL_WAKE"
         assert _snap["velocity"] == (0.0, 0.0)
         assert _snap["fatigue"] == 0.0  # flat SSOT-проекция читается
 
@@ -1395,7 +1700,7 @@ class TestS2B5Fatigue:
         _e = self._engine()
         _idle = _e.handle([self._snap()], "t", 1)[0].payload.fatigue_delta
         _sleep = _e.handle(
-            [self._snap(coupling_mode="SLEEPING")], "t", 1
+            [self._snap(coupling_mode="SLEEP")], "t", 1
         )[0].payload.fatigue_delta
         assert _sleep == -0.245
         assert _sleep < _idle

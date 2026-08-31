@@ -369,7 +369,14 @@ class GameLoop:
             _subscriber = NpcDialogueSubscriber(
                 memory_manager=memory_manager,
                 relationship_store=rel_store,
-                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],  # noqa: ENIGMA002
+                # Фаза A 9.12: _shared_context на _tick_orch НЕ существует —
+                # getattr возвращал None, .all_npcs_raw бросал AttributeError,
+                # глотавшийся try/except подписчика: eavesdrop и память речи
+                # NPC молча умирали с самой регистрации. Провайдер зовёт
+                # публичные загрузчики (прецедент npc_orchestration.py:83).
+                npc_states_provider=lambda: (
+                    self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+                ),  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 avatar_service=self.avatar_service,
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
@@ -382,7 +389,11 @@ class GameLoop:
             from app.services.events.dialogue_memory_subscriber import DialogueMemorySubscriber
             _mem_subscriber = DialogueMemorySubscriber(
                 memory_manager=memory_manager,
-                npc_states_provider=lambda: getattr(self._tick_orch, "_shared_context", None).all_npcs_raw if hasattr(self._tick_orch, "_shared_context") else [],  # noqa: ENIGMA002
+                # Фаза A 9.12: тот же мёртвый атрибут — тот же тихий глоток.
+                # Провод речь→память NPC оживает здесь.
+                npc_states_provider=lambda: (
+                    self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+                ),  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 spatial_query_provider=self._get_spatial_query_for_subscriber
             )

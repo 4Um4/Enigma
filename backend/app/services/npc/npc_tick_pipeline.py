@@ -138,7 +138,7 @@ class NpcTickPipeline:
 
         _is_player_turn = state.hub_event is not None
         _idle_pressure_updates: Dict[Any, float] = {} # V8-SOC-5 FIX
-        
+
         # V8-SOC-5 FIX: Константы для аккумуляции давления
         from app.core.constants import IDLE_PRESSURE_ACCUM_RATE, IDLE_PRESSURE_DECAY_RATE
         _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
@@ -146,7 +146,7 @@ class NpcTickPipeline:
         # S198 DIAGNOSTIC: Неопровержимый маркер входа в цикл
         _npc_ids_in_pipeline = [n.get("npc_id") or n.get("id") for n in (_npcs_to_process or [])]
         logger.warning(f"[S198_PIPELINE_ENTER] is_player_turn={_is_player_turn} count={len(_npc_ids_in_pipeline)} ids={_npc_ids_in_pipeline}")
-        
+
         logger.debug(
             f"[SHI_TRACE_2] NpcTickPipeline.run ENTERED. is_player_turn={_is_player_turn} npcs_to_process={len(_npcs_to_process or [])} nearby_npcs={len(state.nearby_npcs or [])} all_npcs={len(state.all_npcs_raw or [])}"
         )
@@ -213,12 +213,20 @@ class NpcTickPipeline:
             # Deep copy замороженного снимка для безопасной мутации легаси-кодом
             _npc_dict_for_write = copy.deepcopy(dict(_npc_profile))
             profile_l0 = load_profile_from_legacy_json(_npc_dict_for_write)
-            state_l2 = load_l2_state_from_runtime_dict(_npc_dict_for_write)
 
-            # TZ-10: Чтение preloaded narrative_cache из TickState (ADR-WRITE-GUARD safe)
+            # TZ-10 / Фаза A Шаг 7: preloaded narrative_cache инъектится через
+            # загрузчик ДО построения state_l2. Раньше инъект шёл в dict после
+            # load_l2 — решения читали JSON-копию, SQLite-ветка выбрасывалась
+            # (мёртвый I/O на каждом тике на каждого NPC).
+            # None = нет данных в SQLite → JSON-fallback (контракт
+            # load_narrative_from_sqlite).
             _sqlite_cache = state.narrative_cache_map.get(npc_id)
-            if _sqlite_cache is not None:
-                _npc_dict_for_write["narrative_cache"] = _sqlite_cache
+            state_l2 = load_l2_state_from_runtime_dict(
+                _npc_dict_for_write,
+                narrative_cache_override=_sqlite_cache,
+            )
+
+            state_l2 = load_l2_state_from_runtime_dict(_npc_dict_for_write)
 
             age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
 
@@ -434,7 +442,6 @@ class NpcTickPipeline:
                 else:
                     _drive_modifiers_for_hub = _belief_layer_mods
 
-            from app.services.npc.topic_extractor import extract_topic
 
             # S129: Bridge 7 — Если Фаза 4 уже сформировала тему ответа, используем её.
             _topic = state.npc_topics.get(npc_id)
@@ -499,7 +506,7 @@ class NpcTickPipeline:
             )
 
             _effective_drives = state.effective_drives_map.get(npc_id)
-            
+
             # S189: Epistemic Core Integration (ADR-O-354).
             # Редюсер читает EpistemicStore (read-only) и преобразует в нейтральные модификаторы.
             # DecisionHub остаётся изолирован от эпистемической семантики.
@@ -533,9 +540,9 @@ class NpcTickPipeline:
             # ДОЛЖЕН спать по расписанию. Используем тот же алгоритм, что и
             # LifeEngine (хелперы _parse_game_time, _time_to_minutes, _in_time_range).
             from app.services.npc.life_engine import (
+                _in_time_range,
                 _parse_game_time,
                 _time_to_minutes,
-                _in_time_range,
             )
             _game_time_str = _parse_game_time(state.scene_state)
             _game_minutes = _time_to_minutes(_game_time_str)
@@ -557,61 +564,14 @@ class NpcTickPipeline:
                 _all_modifiers["flee"] = _all_modifiers.get("flee", 0.0) - 10.0
 
 
-            # Phase 4.5: Temporal Validation — check existing commitments.
-            # Immutable order: reactive → success → validity → expiry → HOLD.
-            # HOLD suppresses proactive (same mechanism as sleep penalty);
-            # reactive events always pass through (not suppressed).
-            _hold_proactive = False
-            from app.domain.temporal_specs import (
-                TemporalContext, check_validity, check_success,
-                is_reactive_preemption,
-            )
-            _temporal_ctx = TemporalContext(
-                spatial_query=state.spatial_query,
-                scene_state=state.scene_state,
-                tick=state.tick_id,
-            )
-            _npc_tc = state.scene_state.get("active_commitments", {}).get(npc_id, [])
-            for _tc in _npc_tc:
-                if not isinstance(_tc, dict):
-                    continue
-                if _tc.get("status") not in ("COMMITTED", "EXECUTING"):
-                    continue
-                if not _tc.get("validity_rule"):
-                    continue  # not a temporal commitment (regular ActionCommitment)
-                _tc["age"] = _tc.get("age", 0) + 1
-                # 1. Reactive preemption (BEFORE hold, BEFORE everything else)
-                _evt = getattr(state.hub_event, "event_type", None)
-                if _evt and is_reactive_preemption(str(_evt)):
-                    _tc["status"] = "CANCELLED"
-                    _tc["cancel_reason"] = "reactive_preemption"
-                    logger.info(f"[TEMPORAL] {npc_id}: CANCELLED (reactive)")
-                    continue
-                # 2. Success
-                if check_success(_tc.get("success_rule", ""), state_l2, _temporal_ctx):
-                    _tc["status"] = "COMPLETED"
-                    logger.info(f"[TEMPORAL] {npc_id}: COMPLETED (success)")
-                    continue
-                # 3. Validity
-                if not check_validity(_tc.get("validity_rule", ""), state_l2, _temporal_ctx):
-                    _tc["status"] = "CANCELLED"
-                    _tc["cancel_reason"] = "validity_failed"
-                    logger.info(f"[TEMPORAL] {npc_id}: CANCELLED (validity)")
-                    continue
-                # 4. Expiry
-                if _tc["age"] >= _tc.get("max_duration_ticks", 999):
-                    _tc["status"] = "EXPIRED"
-                    _tc["cancel_reason"] = "expired"
-                    logger.info(f"[TEMPORAL] {npc_id}: EXPIRED (age={_tc['age']})")
-                    continue
-                # 5. HOLD: suppress proactive (reactive still passes)
-                _hold_proactive = True
-                logger.info(f"[TEMPORAL] {npc_id}: HOLD (age={_tc['age']})")
-            if _hold_proactive:
-                from app.services.npc.decision_hub import PROACTIVE_INTENTS
-                for _p_intent in PROACTIVE_INTENTS:
-                    _p_key = getattr(_p_intent, "value", _p_intent)
-                    _all_modifiers[_p_key] = _all_modifiers.get(_p_key, 0.0) - 10.0
+            # Phase 4.5 (Фаза A, P0): Temporal Validation — УДАЛЁНА целиком.
+            # Легаси-читатель list[dict] из active_commitments конфликтовал с
+            # каноничным CommitmentRegistry (S215/ADR-O-363, dict[npc_id →
+            # commitment_dict]): итерация dict перебирала ключи, а after
+            # удаления писателя (Phase 5.5) источник _npc_tc исчез.
+            # Валидация/эволюция обязательств — обязанность CommitmentRegistry
+            # и S203.x-исполнителей; TemporalSpec-домен остаётся для их
+            # будущей интеграции (не легаси-веткой в редюсере).
 
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id, salt="decision_hub")
@@ -670,33 +630,14 @@ class NpcTickPipeline:
 
 
 
-            # Phase 5.5: Temporal Commitment — create if proactive intent
-            # selected AND not on HOLD. DecisionHub decides; temporal layer
-            # attaches temporal semantics (validity/success/expiry).
-            _intent_val = decision.intent.value if decision.intent else "idle"
-            if not _hold_proactive:
-                from app.domain.temporal_specs import get_temporal_spec
-                _tspec = get_temporal_spec(_intent_val)
-                if _tspec is not None:
-                    _new_tc = {
-                        "commitment_id": f"tc-{state.tick_id}-{npc_id}-{_intent_val}",
-                        "npc_id": npc_id,
-                        "intent": _intent_val,
-                        "validity_rule": _tspec.validity_rule,
-                        "success_rule": _tspec.success_rule,
-                        "max_duration_ticks": _tspec.max_duration_ticks,
-                        "age": 0,
-                        "status": "COMMITTED",
-                        "prediction_description": _tspec.prediction_description,
-                    }
-                    _active_c = state.scene_state.setdefault(
-                        "active_commitments", {}
-                    ).setdefault(npc_id, [])
-                    _active_c.append(_new_tc)
-                    logger.info(
-                        f"[TEMPORAL] {npc_id}: COMMITTED "
-                        f"({_intent_val}, max={_tspec.max_duration_ticks})"
-                    )
+            # Phase 5.5 (Фаза A, P0): Temporal Commitment — УДАЛЁН.
+            # Легаси-писатель list[dict] в active_commitments конфликтовал
+            # с каноничным CommitmentRegistry (S215, ADR-O-363, dict[npc_id →
+            # commitment_dict], COMMITMENT_REGISTRY_ENABLED=True):
+            # setdefault(npc_id, []).append поверх dict реестра → AttributeError
+            # → TICK_CRASH → фазы 6-10 мертвы. Владение обязательствами
+            # унифицировано за реестром; TemporalSpec-слой — домен, его
+            # интеграция — будущий S203.x, не легаси-ветка.
 
             _evt_type = getattr(state.hub_event, "event_type", "unknown")
             logger.info(
@@ -738,8 +679,7 @@ class NpcTickPipeline:
 
             if _is_move_command and decision.intent.value != "approach":
                 import dataclasses
-                from app.services.npc.state_applicator import StateApplicator as state_applicator
-                from app.models.npc_state import MovementIntent
+
 
                 new_result = dataclasses.replace(
                     decision.decision, intent=Intent.APPROACH, intent_target="player"
@@ -759,7 +699,7 @@ class NpcTickPipeline:
             _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "change_role"} # V8-SOC-8 FIX: убран "talk"
             # S-143 FIX: Sleep non-interruptible. Если NPC спит, блокируем реактивные движения.
             _current_routine = _npc_dict_for_write.get("routine", {})
-            
+
             if _intent_value == "attack":
                 from app.domain.communication import CommunicationIntent, ExposureLevel
 
@@ -786,6 +726,7 @@ class NpcTickPipeline:
                     logger.info(f"[SLEEP_GUARD] npc={npc_id} scheduled=sleeping, blocking reactive movement={_intent_value}")
                     _intent_value = "idle"
                     import dataclasses
+
                     from app.models.npc_state import Intent
                     decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE))
 
@@ -830,7 +771,7 @@ class NpcTickPipeline:
             # S1 FIX (Pure Reducer): Сборка npc_deltas напрямую из DecisionResult.
             # StateApplicator удалён из ядра. Мутация relationship_store и l1_chronicle
             # будет выполнена TickOrchestrator'ом при применении TickMutation.
-            
+
             # TODO (Фаза 2 / Эпоха 7): Интеграция ResolutionEngine.
             # Здесь будет вызов ResolutionEngine().resolve(state, profile, expected_success)
             # и передача ResolutionOutcome в формирование TickMutation (вместо applicator.apply).
@@ -845,7 +786,7 @@ class NpcTickPipeline:
                     effect_value=0.0,
                     observation_weight=0.1
                 ))
-            
+
             # S189: Сохраняем scores_trace для SUPERBOX-005
             _scores_trace_map[npc_id] = decision.decision.scores_trace
 
@@ -866,7 +807,7 @@ class NpcTickPipeline:
                     memory_events.append(_mem_evt)
             except Exception as e:
                 logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
-        
+
         return TickMutation(
             npc_deltas=npc_deltas,
             communication_intents=communication_intents,

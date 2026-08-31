@@ -15,11 +15,18 @@ path: backend/app/services/world/world_object_store.py
     повреждённая структура — громкий отказ (маскировка дефолтом =
     DOUBLE TRUTH). READ возвращает frozen DTO в свежих коллекциях.
     WRITE-контракт: только типизированные операции (spawn /
-    establish_relation / release_relation / relocate); generic-мутации
-    нет — protected-поля меняются исключительно переходами domain-слоя.
+    establish_relation / release_relation / relocate / apply_transition /
+    apply_damage); generic-мутации нет — protected-поля меняются
+    исключительно переходами domain-слоя. W3 (ADR-O-373):
+    apply_transition/apply_damage — FSM-переход: семантика в домене
+    (object_fsms, pure), стор коммитит результат в scene_state;
+    runtime-потребителей пока 0 (wiring — финал W3), caller-guard
+    вводится вместе с первым легальным writer (enforcement ради
+    enforcement запрещён, ADR-O-371).
     Error-поверхность W1 — OntologyViolationError (классификация в
     сообщении; новый тип не вводим — Two-Domain Rule).
-Зависимости: app.domain.world_object, app.domain.exceptions
+Зависимости: app.domain.world_object, app.domain.exceptions,
+    app.domain.object_fsms, app.domain.semantic_action
 Основные сущности: WorldObjectStore
 """
 from __future__ import annotations
@@ -28,6 +35,13 @@ import math
 from typing import Any, Dict, Optional, Tuple
 
 from app.domain.exceptions import OntologyViolationError
+from app.domain.object_fsms import (
+    TransitionResult,
+    TransitionVerdict,
+    damage_object,
+    transition_object,
+)
+from app.domain.semantic_action import WorldActionType
 from app.domain.world_object import (
     CarrierMode,
     ObjectRelation,
@@ -325,5 +339,50 @@ class WorldObjectStore:
                 f"позиционные зависимые {dependents}; сначала явный "
                 f"release SUPPORTED_BY для каждого")
         new_obj = relocate_object(obj, location_id, position)
+        _write_subtree(scene_state)[object_id] = new_obj.to_dict()
+        return new_obj
+
+    @staticmethod
+    def apply_transition(
+        scene_state: Dict[str, Any],
+        object_id: str,
+        action: WorldActionType,
+        actor_id: Optional[str] = None,
+    ) -> TransitionResult:
+        """W3 (ADR-O-373): применение доменного FSM-перехода.
+
+        Разделение уровней (вердикт Мастера): FSM определяет
+        семантический переход (domain: object_fsms.transition_object,
+        pure), стор определяет, где переход становится World State
+        (коммит в scene_state). FSM-логики в сторе НЕТ.
+
+        Коммит ТОЛЬКО на PASS: REJECT и NO_OP не мутируют subtree
+        (REJECT — гейт не прошёл; NO_OP — каузального изменения нет).
+        Ревалидация precondition-кортежей W2 — долг ВЫЗЫВАЮЩЕГО
+        (гейт исполнения), не стора.
+        """
+        subtree = _read_subtree(scene_state)
+        obj = _load_required(subtree, object_id)
+        result = transition_object(obj, action, actor_id)
+        if (result.verdict is TransitionVerdict.PASS
+                and result.new_obj is not None):
+            _write_subtree(scene_state)[object_id] = result.new_obj.to_dict()
+        return result
+
+    @staticmethod
+    def apply_damage(
+        scene_state: Dict[str, Any],
+        object_id: str,
+        amount: float,
+    ) -> WorldObject:
+        """W3 (ADR-O-373, О6): применение физики повреждения.
+
+        Доменный закон (damage >= 1.0 -> BROKEN) — в
+        object_fsms.damage_object (pure); стор только коммитит.
+        Кинетика урона (сколько наносит удар) — combat-wiring W4+.
+        """
+        subtree = _read_subtree(scene_state)
+        obj = _load_required(subtree, object_id)
+        new_obj = damage_object(obj, amount)
         _write_subtree(scene_state)[object_id] = new_obj.to_dict()
         return new_obj

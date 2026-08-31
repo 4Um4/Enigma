@@ -1095,12 +1095,29 @@ class SceneStateManager:
             # загруженные сейвы самовосстанавливаются: ключ отсутствует →
             # read-дефолты стора (Foundation Freeze, без whitelist).
             "relationship_state": {},
+            # ── W1/W3 (ADR-O-373): семантическая объектная топология ──
+            # Пустой корень; заполнение — WorldObjectSpawner через
+            # WorldObjectStore.spawn (единственный путь записи), ниже.
+            # Загруженные сейвы не перезатираются (сейв выигрывает).
+            "world_objects": {},
             # ── ADR-O-146: Новая игра начинается с tick=0, время 12:00 ──
             "tick": 0,
             # ── S139 FIX: SSOT времени — всегда инициализируем game_time_seconds ──
             "game_time_seconds": Calendar.parse_hhmm(time_of_day),
             # ─────────────────────────────────────────────────────────────────
         }
+
+        # ── W3 (ADR-O-373): production-spawn семантических объектов ──
+        # editor objects → WorldObject (SpawnMapping; вердикт Мастера:
+        # door+door_transition→door, chair; state-проекция locked/open).
+        # Только НОВЫЕ сцены: загруженные сейвы возвращаются выше без
+        # спавна — сейв выигрывает. Локальный импорт — прецедент
+        # _build_spatial_data (нулевое влияние на import-граф SSM).
+        from app.services.world.world_object_spawner import WorldObjectSpawner
+        _spawn_report = WorldObjectSpawner.spawn_from_editor(
+            scene_state, campaign_id, location_id, editor_data)
+        if _spawn_report.spawned or _spawn_report.faults:
+            logger.info(f"[W3_SPAWN] {_spawn_report.summary()}")
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
