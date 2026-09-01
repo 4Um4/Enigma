@@ -177,11 +177,12 @@ class AgentAction:
                 if _val is not None:
                     return float(_val)
 
-        # Fallback на relationship_cache (для legacy/test сред без SSOT)
-        _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
-        if _graph_val is not None:
-            return float(_graph_val)
-
+        # M1b.3.1 (ADR-RE-M1b.3): fallback на relationship_cache УДАЛЁН —
+        # кэш есть projection, не источник истины (shadow-truth-дверь
+        # закрыта; ратифицированная лестница post-cutover). SSOT жив всегда
+        # (V2 RAM-authoritative, зонд S234) —Vacuum каноничен при отсутствии
+        # записи. См. M1b.2.7-инвариант: чтение пяти скаляров из кэша
+        # вне allowlist запрещено.
         # Vacuum (Нет знания об отношении)
         return None
 
@@ -322,12 +323,10 @@ class DecisionHub:
             # Мы НЕ падаем в relationship_cache, чтобы избежать stale shadow truth.
             return None
 
-        # 2. Fallback на relationship_cache (только если SSOT недоступен)
-        _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
-        if _graph_val is not None:
-            return float(_graph_val)
-
-        # 3. Vacuum (Нет знания об отношении)
+        # 2. M1b.3.1: fallback УДАЛЁН — SSOT недоступным больше не бывает
+        #    (V2 RAM-authoritative; store инъектирован при построении).
+        #    Vacuum (Нет знания об отношении) — единственный исход
+        #    при отсутствии записи.
         return None
 
     def _build_communication(

@@ -1128,3 +1128,43 @@ class TestRAMAuthorityLifecycle:
         # RAM не затёрт scene-данными (pre-scene приоритетен); сцена осталась своей:
         assert v2.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
         assert "x→y" not in v2._directed_ram
+
+
+# ── 18. M1b.3.1: fallback DecisionHub удалён — кэш не источник истины ──
+
+
+class TestDecisionHubFallbackRemoved:
+    """Пост-cutover контракт: DecisionHub НЕ читает relationship_cache
+    как fallback пяти скаляров. Vacuum — единственный исход при
+    отсутствии записи в V2-store. Доказательство архитектурное:
+    греп-инвариант по исходнику decision_hub (fallback-фразы удалены)."""
+
+    def test_no_fallback_phrases_in_decision_hub(self):
+        import re as _re
+        from pathlib import Path as _P
+
+        src = (_P(__file__).resolve().parents[1] / "app" / "services" / "npc" / "decision_hub.py").read_text(encoding="utf-8", errors="replace")
+        # Запрещённые паттерны (двух удалённых веток + страховка новых):
+        for pattern in (
+            r"Fallback\s+на\s+relationship_cache",
+            r"Fallback\s+на\s+relationship_cache\s+\(только если SSOT недоступен\)",
+            r"_graph_val\s*=\s*state\.relationship_cache",
+        ):
+            assert not _re.search(pattern, src), (
+                f"M1b.3.1 VIOLATION: decision_hub содержит fallback-чтение "
+                f"кэша ({pattern!r}) — кэш обязан быть projection-only"
+            )
+
+    def test_vacuum_when_no_record_in_store(self, tmp_path):
+        """Функциональный свидетель: Vacuum (None/{}), не кэш, при
+        отсутствии пары в V2-store. Проверяем на канонических
+        ридерах стора (fallback-кода больше не существует)."""
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        v2 = V2RelationshipBackend(lambda: {})
+        v2.bind("camp")
+        # Пары нет — Vacuum:
+        assert v2.get_pair("camp", "a", "unknown") == {}
+        # Запись существует — читается (Vacuum ≠ «пусто навсегда»):
+        v2.update("camp", "a", "b", {"trust": 10.0})
+        assert v2.get_pair("camp", "a", "b")["trust"] == 10.0

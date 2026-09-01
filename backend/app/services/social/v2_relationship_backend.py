@@ -203,15 +203,21 @@ class V2RelationshipBackend:
         }
 
     def get(self, campaign_id: str, source: str) -> Dict[str, Any]:
-        """Все отношения от source → {target: {scalars}} (legacy get)."""
+        """Все отношения от source → {"src→tgt": {scalars}} (legacy get
+        ДОСЛОВНО: ключи со стрелками — M1b.3.1-фикс: V2 возвращал таргет-
+        ключи, ридер DecisionHub :317 ищет полный ключ f"{npc}→{target}" →
+        всегда Vacuum. Сетка D3 не ловила (грела только update/get_pair).
+        Легаси-факт: `return {k: v for k, v in data.items() if k.startswith(
+        f"{source}→")}` — полные ключи; нормализованная форма — отдельный
+        метод get_all_for_source, его контракт не тронут)."""
         if not self._campaign_guard(campaign_id) or not source:
             return {}
         prefix = f"{source}→"
-        result: Dict[str, Any] = {}
-        for key, raw in self._directed().items():
-            if key.startswith(prefix):
-                result[key.split("→")[1]] = dict(raw)
-        return result
+        return {
+            key: dict(raw)
+            for key, raw in self._directed().items()
+            if key.startswith(prefix)
+        }
 
     def get_all(self, campaign_id: str) -> Dict[str, Any]:
         """Весь граф кампании (legacy get_all — для end_screen/memory API)."""

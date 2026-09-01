@@ -231,16 +231,28 @@ class TestRelationshipCalibration:
             actor_id="player",
             intensity=0.8,
         )
-        state_trusted = NPCState(
-            npc_id="control_npc",
-            relationship_cache={"player": {"trust": 80.0, "fear": 0.0, "debt": 0.0}},
+        state_trusted = NPCState(npc_id="control_npc")
+        state_neutral = NPCState(npc_id="control_npc")
+        # M1b.3.1: fallback удалён. ПАРАМЕТРЫ compute — единственный прод-путь
+        # (:425-426: relationship_store/campaign_id при вызове; pipeline:624
+        # так и передаёт). Trusted = 80.0 в V2; Neutral = Vacuum (reset).
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        _v2 = V2RelationshipBackend(lambda: {})
+        _v2.bind("test_calib")
+        _v2.update("test_calib", "control_npc", "player", {"trust": 80.0})
+        result_trusted = hub.compute(
+            state_trusted, control_personality, event,
+            effective_drives=_MOCK_DRIVES,
+            relationship_store=_v2, campaign_id="test_calib",
         )
-        state_neutral = NPCState(
-            npc_id="control_npc",
-            relationship_cache={"player": {"trust": 0.0, "fear": 0.0, "debt": 0.0}},
+        # neutral-прогон: Vacuum (запись удалена — reset-семантика)
+        _v2.reset_campaign("test_calib")
+        result_neutral = hub.compute(
+            state_neutral, control_personality, event,
+            effective_drives=_MOCK_DRIVES,
+            relationship_store=_v2, campaign_id="test_calib",
         )
-        result_trusted = hub.compute(state_trusted, control_personality, event, effective_drives=_MOCK_DRIVES)
-        result_neutral = hub.compute(state_neutral, control_personality, event, effective_drives=_MOCK_DRIVES)
 
         trusted_help = result_trusted.scores_trace.get(Intent.HELP.value, 0.0)
         neutral_help = result_neutral.scores_trace.get(Intent.HELP.value, 0.0)
