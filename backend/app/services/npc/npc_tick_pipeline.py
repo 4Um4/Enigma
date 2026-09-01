@@ -22,6 +22,7 @@ from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
 
 if TYPE_CHECKING:
+    from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
     from app.services.npc.kernel_rng import KernelRNG
 from app.services.npc.domain_phases import (
     age_temporary_drives,
@@ -588,9 +589,20 @@ class NpcTickPipeline:
             _opp_dist = state.spatial_query.distance_player(npc_id) if state.spatial_query else 999.0
             _opp_att = max(0.0, min(1.0, 1.0 - _opp_dist / _OPP_ATTENTION_RANGE_M))
             _opp_allies = len(getattr(_epistemic_ctx, "perceived_allies", ())) if _epistemic_ctx else 0
+            # ADR-O-377 (G2 v1, b1′ producer-facts): производный факт доступности
+            # оружия из замороженного снапшота тика. Пустая карта (флаг OFF или
+            # оружия в сцене нет) -> False, байт-идентично легаси-литералу.
+            # DecisionHub остаётся object-agnostic: факт приходит данными.
+            # ADR-O-377: поле ЗАЯВЛЕНО в TickState (tick.py, P2) и заполняется
+            # оркестратором (P4); getattr-гвард (вставка параллельной сессии)
+            # оставлен как защита частичного отката P3-без-P2: отсутствует =
+            # оружие недоступно (консервативно).
+            _weapon_access_fact = bool(
+                getattr(state, "affordance_facts_map", {}).get(npc_id, False)
+            )
             _opp_ctx = _OppCtx(
                 player_attention=_opp_att, distance=_opp_dist,
-                weapon_access=False, allies=_opp_allies,
+                weapon_access=_weapon_access_fact, allies=_opp_allies,
             )
             # [HOTFIX-FOR-ADR-O-366, санкция Мастера W2, DIAGNOSTIC_PROBE_CRASH]:
             # TickState не несёт will_state (DTO Registry §11; воля живёт per-NPC
@@ -1100,7 +1112,7 @@ def _resolve_reactive_movement(
     drf_ctx: Optional[
         Any
     ] = None,  # DRF: scoped causal execution context (DRFExecutionContext)
-) -> Optional["MovementIntent"]:
+) -> Optional["MacroMovementGoal | LocalSteeringGoal"]:
     """Конвертирует пространственный intent в MovementIntent.
 
     DecisionHub решает ЧТО (approach), эта функция решает КУДА (целевой узел графа).

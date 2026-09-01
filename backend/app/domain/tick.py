@@ -65,6 +65,8 @@ def create_tick_state(
     # S189: Epistemic Core (ADR-O-354). Read-only проекция убеждений для DecisionHub.
     epistemic_store: Optional[Any] = None,
     epistemic_context_resolver: Optional[Any] = None,
+    # ADR-O-377 (G2 v1): per-NPC факты W2 (v1: weapon_access) для редюсера
+    affordance_facts_map: Optional[Dict[str, bool]] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -112,6 +114,10 @@ def create_tick_state(
         # S189: Epistemic Core
         epistemic_store=epistemic_store,
         epistemic_context_resolver=epistemic_context_resolver,
+        # ADR-O-377 (G2 v1): заморозка по паттерну соседних preloaded-карт
+        affordance_facts_map=frozen(affordance_facts_map)
+        if affordance_facts_map
+        else {},
     )
 
 
@@ -165,6 +171,11 @@ class TickState:
     identity_traits_map: Any = field(
         default_factory=dict
     )  # MappingProxyType: npc_id -> traits
+    # ADR-O-377 (G2 v1, канал b1′): per-NPC производные факты W2
+    # (v1: weapon_access) из замороженного снапшота тика. Пустая карта
+    # (флаг OFF / фактов нет) -> потребители читают честный False,
+    # байт-идентично легаси. Заполняет оркестратор ДО build_tick_state.
+    affordance_facts_map: Any = field(default_factory=dict)
 
     # Read-only services (не выполняют I/O, безопасны для редюсера)
     relationship_store: Optional[Any] = None

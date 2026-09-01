@@ -1,6 +1,6 @@
 """
 path: backend/tests/test_affordance_shadow.py
-Назначение: Тесты Gate-1 shadow (ADR-O-373): флаг-OFF no-op, вход =
+Назначение: Тесты Gate-1 shadow (ADR-O-376): флаг-OFF no-op, вход =
     deepcopy-фото, ноль mutation scene/snapshot, ноль decision-input,
     метрики discovery ≠ execution, отказ наблюдателя не роняет вызов.
 Зависимости: pytest, app.services.world.affordance_shadow

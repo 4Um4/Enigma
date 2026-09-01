@@ -37,6 +37,7 @@ def build_tick_state(
     idle_pressure_map: Optional[Any] = None, # V8-SOC-5 FIX: Инъекция idle_pressure
     epistemic_store: Optional[Any] = None, # S189: Инъекция EpistemicStore
     epistemic_context_resolver: Optional[Any] = None, # S189: Инъекция EpistemicContextResolver
+    affordance_facts_map: Optional[Dict[str, bool]] = None, # ADR-O-377 (G2 v1): preloaded факты W2
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
     
@@ -86,6 +87,7 @@ def build_tick_state(
         idle_pressure_map=idle_pressure_map, # V8-SOC-5 FIX
         epistemic_store=epistemic_store, # S189: Epistemic Core
         epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
+        affordance_facts_map=affordance_facts_map, # ADR-O-377 (G2 v1): pass-through
     )
     return _tick_state
 
@@ -266,7 +268,10 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         _intent_type_str = getattr(_intent, "intent_type", "диалог").lower()
         _npc_intent = NpcIntent.TALK
         if "угроз" in _intent_type_str or "threat" in _intent_type_str:
-            _npc_intent = NpcIntent.THREATEN
+            # Intent.THREATEN в closed-world реестре нет (ADR: Intent enum
+            # npc_state) — семантика угрозы = INTIMIDATE (мост
+            # action_intent_bridge: THREATEN -> INTIMIDATE).
+            _npc_intent = NpcIntent.INTIMIDATE
         elif "atan" in _intent_type_str or "attack" in _intent_type_str:
             _npc_intent = NpcIntent.ATTACK
         elif "бег" in _intent_type_str or "flee" in _intent_type_str:
@@ -335,7 +340,6 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         _adapter = _DecisionResultAdapter(
             npc_id=_npc_id,
             intent=NpcIntent.IDLE,
-            intent_target=None,
             score=0.0,
             deltas=_empty_deltas,
             communication=None,

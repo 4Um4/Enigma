@@ -1,6 +1,6 @@
 """
 path: backend/app/services/world/world_objects_projection.py
-Назначение: W3/ADR-O-373 — World-object projection: мост W1-snapshot →
+Назначение: W3/ADR-O-376 — World-object projection: мост W1-snapshot →
     W2-resolver. Контракт (вердикт Мастера): типизированная READ-проекция
     замороженного WorldSnapshot.world_objects; сам resolver в storage
     НЕ лезет (Q1a) — внутреннее представление заменяемо без

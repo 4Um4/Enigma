@@ -6,6 +6,10 @@
 чистый DTO ResolvedSpatialTarget. Это позволит нам начать использовать новую онтологию без поломки старого движка.
 """
 from typing import Dict, Optional, Tuple
+
+import logging
+
+logger = logging.getLogger(__name__)
 from app.domain.spatial_target import (
     SpatialTargetIntent, ResolvedSpatialTarget, TargetResolutionStatus, SpatialTargetType, SpatialResolutionMode
 )

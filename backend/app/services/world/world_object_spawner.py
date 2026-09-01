@@ -1,6 +1,6 @@
 """
 path: backend/app/services/world/world_object_spawner.py
-Назначение: W3 (ADR-O-373) — production-spawner семантических объектов
+Назначение: W3 (ADR-O-376) — production-spawner семантических объектов
     из editor-данных локации. Спавн = CREATE-операция lifecycle в
     контуре «editor — фабрика, runtime — истина» (вердикт Мастера):
     EditorType → SpawnMapping → WorldArchetype (реестр, не прямая
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 # affordances) × W3 (FSM). door_transition → door: graph_compiler уже
 # обрабатывает оба типа одним механизмом wall-opening — единая механика
 # OPEN, переход в граф — свойство ребра, не объекта. Расширение реестра
-# = мини-запись в ADR-O-373 (класс ADR-O-349). НЕ в реестре: table/bar/
+# = мини-запись в ADR-O-376 (класс ADR-O-349). НЕ в реестре: table/bar/
 # stool/bed (нет W2-таблицы, О4), wall/decoration (статика), portals[]
 # и их type (spatial-рёбра, не объекты).
 _EDITOR_TYPE_TO_ARCHETYPE: Dict[str, str] = {
@@ -82,7 +82,7 @@ def _deterministic_object_id(
 ) -> str:
     """Identity предмета: wo_<hash(campaign:spawn_location:editor_id)>.
 
-    Закон identity (ADR-O-373): object_id — immutable identity на всю
+    Закон identity (ADR-O-376): object_id — immutable identity на всю
     жизнь мира, НЕ содержит локацию как семантику. Перенос в другую
     локацию не меняет identity (location_id — mutable поле объекта).
     Прецеденты детерминизма: commitment_id (ADR-O-363), snapshot_id

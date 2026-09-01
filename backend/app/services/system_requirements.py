@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    import psutil  # type: ignore
+    import psutil
 except Exception:  # pragma: no cover - fallback path
     psutil = None
 

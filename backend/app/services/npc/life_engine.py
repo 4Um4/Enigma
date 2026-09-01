@@ -823,7 +823,7 @@ class LifeEngine:
         campaign_file = self.sessions_dir / campaign_id / "major_npcs.json"
         if campaign_file.exists():
             try:
-                return self._extracted_from__load_npcs_14(campaign_file, campaign_id)  # type: ignore[no-untyped-call]
+                return self._extracted_from__load_npcs_14(campaign_file, campaign_id)
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[LIFE_ENGINE] Ошибка чтения campaign NPC: {e}")
 
@@ -831,7 +831,7 @@ class LifeEngine:
         global_file = self._npcs_file()
         if global_file.exists():
             try:
-                return self._extracted_from__load_npcs_14(global_file, campaign_id)  # type: ignore[no-untyped-call]
+                return self._extracted_from__load_npcs_14(global_file, campaign_id)
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[LIFE_ENGINE] Ошибка чтения global NPC: {e}")
 
@@ -2124,7 +2124,7 @@ class LifeEngine:
             return [], None
 
         events = self._make_random_events(npc, tick)
-        event_id, changes, movement_intent = rng.choice(events)  # type: ignore[no-untyped-call]
+        event_id, changes, movement_intent = rng.choice(events)
 
         if event_id == "minor_argument":
             psyche = npc.setdefault("psyche", {})

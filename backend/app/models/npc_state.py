@@ -249,6 +249,11 @@ class EventMemory:
     # R8: субъект действия — онтологическая полнота наблюдения (кто совершил)
     actor_id: str = ""  # event.source при создании; "" если неизвестен
 
+    # EMRL E1.0: ссылка на ExperienceTrace вычисляется динамически из
+    # mem_id (см. memory_manager.apply: _mem_id = f"{event.id}:{npc_id}:{digest}")
+    # и НЕ хранится в NPCState: трейс — проекция интерпретации над памятью,
+    # не состояние. Существование трейса — вопрос E2-резолвера.
+
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
         object.__setattr__(self, "importance", max(0.0, min(1.0, self.importance)))
@@ -259,12 +264,24 @@ class EventMemory:
             self, "accessibility", max(0.0, min(1.0, self.accessibility))
         )
 
-    def decayed(self, game_days: float = 1.0) -> "EventMemory":
+    def decayed(self, game_days: float = 1.0, mode: str = "episodic") -> "EventMemory":
         """
         Возвращает новый EventMemory с применённым decay по игровым дням.
         Используется WorkingMemory.apply_decay() — не мутирует оригинал.
         Формула (Этап 8): importance × exp(-decay_rate × game_days)
+
+        EMRL E1.1 — режимы распада:
+        episodic — доступность деталей. Инвариант «был разговор» не умирает:
+                   ниже floor к эпизоду прикрепляется минимальная
+                   доступность (ABSTRACT остаётся в recall как факт встречи).
+        semantic — используется MemoryCrystal.decayed (не здесь): confidence
+                   снижается, знание не удаляется (см. e1.2 контракт).
         """
+        # EMRL E1.1: episodic-режим — распад доступности, не знания
+        if mode != "episodic":
+            # fallback: старое поведение (совместимость; semantic обрабатывается
+            # кристаллом, сюда не должен попадать)
+            mode = "episodic"
         # Экспоненциальное затухание важности
         new_importance = self.importance * (_math.exp(-self.decay_rate * game_days))
         # Уверенность снижается медленнее — детали теряются постепенно

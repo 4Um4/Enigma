@@ -22,7 +22,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator, Optional
 from app.services.npc.kernel_rng import KernelRNG
 
 from app.core.config import settings

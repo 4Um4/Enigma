@@ -15,7 +15,7 @@ path: /backend/app/services/economy/economy_tracker.py
 
 
 import logging
-from typing import Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from app.core.constants import DAILY_EXPENSES_MIN, TICKS_PER_DAY
 from app.models.economy import EconomicProfile, NeedType

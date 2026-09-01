@@ -31,7 +31,13 @@ import time
 
 logger = logging.getLogger(__name__)
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+
+if TYPE_CHECKING:
+    from app.domain.events import EventDTO
+    from app.domain.identity_events import EffectiveDrives
+    from app.models.npc_state import NPCIdentityL1
+
 
 # S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
 # default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
@@ -170,7 +176,7 @@ class TickOrchestrator:
         if self._life_engine is None:
             self._life_engine = get_life_engine()
         # Sprint 1.4: Возвращаем как LifeEngineInterface для будущей DI
-        return self._life_engine  # type: ignore[return-value]
+        return self._life_engine
 
     def _get_sleep_lifecycle_svc(self):
         """S188: Возвращает инстанс SleepLifecycleService (DI)."""
@@ -788,7 +794,7 @@ class TickOrchestrator:
             logger.warning(f"[STAGE_1] Failed to build tick snapshot: {e}")
             ctx.tick_snapshot = None
 
-        # ── W3/ADR-O-373 Gate-1: shadow affordance evaluation ──────
+        # ── W3/ADR-O-376 Gate-1: shadow affordance evaluation ──────
         # Discovery-тень (Q2: до PRE-TICK/Фаз 0+ — affordances раньше
         # решения). Ноль writers/decisions/events; OFF (default) =
         # no-op; отказ наблюдателя не роняет тик (§11). Результат
@@ -1729,6 +1735,7 @@ class TickOrchestrator:
         Возвращает L3_stable (для DecisionHub), drives_updates и strain_updates (для StateApplicator).
         """
         from app.domain.identity_events import EffectiveDrives
+        from app.models.npc_state import NPCIdentityL1
 
         effective_drives_map: Dict[str, EffectiveDrives] = {}
         drives_updates: Dict[str, Dict[str, float]] = {}
@@ -1861,6 +1868,22 @@ class TickOrchestrator:
         _life_engine = self._get_life_engine()
         _idle_pressure_map = _life_engine.get_idle_pressure_map() if _life_engine else {}
 
+        # ADR-O-377 (G2 v1, канал b1′): продюсер per-NPC фактов W2 из
+        # замороженного снапшота тика — тот же вход, что у G1-тени (:797).
+        # OFF (W3_G2_ENABLED, default) = пустая карта без вычислений;
+        # отказ продюсера = пустая карта (D5) — деградация канала, не тика.
+        # Pure read: снапшот заморожен до Фазы 0 (INV-III: редюсер и
+        # продюсер читают одно прошлое, никто не мутирует вход друг друга).
+        from app.services.world.affordance_facts import (
+            run_affordance_facts_guarded,
+        )
+        _affordance_facts_map = run_affordance_facts_guarded(
+            tick=ctx.tick_number,
+            snapshot=ctx.tick_snapshot,
+            all_npcs_raw=ctx.all_npcs_raw,
+            location_id=ctx.scene_state.get("location_id", ""),
+        )
+
         _tick_state = build_tick_state(
             ctx=ctx,
             alive_npcs=_alive_npcs,
@@ -1879,6 +1902,7 @@ class TickOrchestrator:
             idle_pressure_map=_idle_pressure_map, # V8-SOC-5 FIX
             epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core  # noqa: ENIGMA002
             epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core  # noqa: ENIGMA002
+            affordance_facts_map=_affordance_facts_map, # ADR-O-377 (G2 v1): preloaded факты W2
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)

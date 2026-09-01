@@ -1,6 +1,6 @@
 """
 path: backend/tests/test_world_object_spawner.py
-Назначение: Тесты W3 production-spawner (ADR-O-373). Гварды:
+Назначение: Тесты W3 production-spawner (ADR-O-376). Гварды:
     SpawnMapping-фильтр, identity-детерминизм (вердикт Мастера),
     state-проекция В-2, W0-фильтр presentation-полей, fault isolation,
     fallback editor-id, запись через стор.

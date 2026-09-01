@@ -79,7 +79,7 @@ class PhysicsValidator:
         ),
         (
             r"поднимаю (\d+) кг|поднимаю (\d+) килограмм|несу (\d+) кг",
-            lambda char, _: self._check_lifting_capacity(char, 500),  # пример 500 кг
+            lambda char, _: PhysicsValidator._check_lifting_capacity(char, 500),  # пример 500 кг
             "Слишком тяжёлый вес. Максимум — Сила × 15 фунтов (примерно Сила × 7 кг)",
         ),
         (

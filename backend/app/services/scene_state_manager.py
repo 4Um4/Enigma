@@ -1095,7 +1095,7 @@ class SceneStateManager:
             # загруженные сейвы самовосстанавливаются: ключ отсутствует →
             # read-дефолты стора (Foundation Freeze, без whitelist).
             "relationship_state": {},
-            # ── W1/W3 (ADR-O-373): семантическая объектная топология ──
+            # ── W1/W3 (ADR-O-371/O-376): семантическая объектная топология ──
             # Пустой корень; заполнение — WorldObjectSpawner через
             # WorldObjectStore.spawn (единственный путь записи), ниже.
             # Загруженные сейвы не перезатираются (сейв выигрывает).
@@ -1107,7 +1107,7 @@ class SceneStateManager:
             # ─────────────────────────────────────────────────────────────────
         }
 
-        # ── W3 (ADR-O-373): production-spawn семантических объектов ──
+        # ── W3 (ADR-O-376): production-spawn семантических объектов ──
         # editor objects → WorldObject (SpawnMapping; вердикт Мастера:
         # door+door_transition→door, chair; state-проекция locked/open).
         # Только НОВЫЕ сцены: загруженные сейвы возвращаются выше без

@@ -8,7 +8,7 @@ path: backend/app/services/motion/motion_pipeline.py
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from app.core.constants import ETKE_IK_SUBSTEP_DT
 from app.domain.motion_core import AffordanceVector, BodySchema, DriveVector

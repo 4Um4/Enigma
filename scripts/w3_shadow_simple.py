@@ -1,6 +1,6 @@
 """
 path: scripts/w3_shadow_simple.py
-Назначение: GORAN beta G1 (ADR-O-373) — упрощённый A/B/C-контур.
+Назначение: GORAN beta G1 (ADR-O-376) — упрощённый A/B/C-контур.
     Прецедент scripts/test_sleep_routing.py: фабрика build_game_loop()
     + публичный idle_tick(). Изоляция профилей — отдельные ПРОЦЕССЫ
     (свежие синглтоны/кэши на каждый прогон) + свежий temp-saves.

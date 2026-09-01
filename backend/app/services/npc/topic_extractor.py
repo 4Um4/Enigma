@@ -16,7 +16,10 @@ path: /backend/app/services/npc/topic_extractor.py
 Основные сущности: extract_topic
 """
 
+import logging
 from typing import Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # T-01: Маппинги для генерации тем из состояния NPC
 _DRIVE_TO_TOPIC: dict[str, str] = {

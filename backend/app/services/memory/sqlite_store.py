@@ -22,7 +22,7 @@ import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,54 @@ class SqliteMemoryStore:
                 collection TEXT PRIMARY KEY,
                 payload_json TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            )
+        """)
+        # EMRL E1.2: кристаллы смысла — LTM-знания NPC. PK = триплет +
+        # origin_reference (два одинаковых триплета от разных источников —
+        # ДВЕ записи, анти-каннибализация урока 9.6).
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS memory_crystals (
+                campaign_id TEXT NOT NULL,
+                owner_id TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                predicate TEXT NOT NULL,
+                origin_reference TEXT NOT NULL,
+                object TEXT NOT NULL,
+                source TEXT NOT NULL,
+                related_episodes_json TEXT DEFAULT '[]',
+                confidence REAL DEFAULT 0.5,
+                retrieval_strength REAL DEFAULT 0.5,
+                emotional_weight REAL DEFAULT 0.0,
+                last_reinforced INTEGER DEFAULT 0,
+                times_recalled INTEGER DEFAULT 0,
+                PRIMARY KEY (campaign_id, owner_id, subject, predicate, origin_reference)
+            )
+        """)
+        # EMRL E1.0: проекции интерпретации над EventMemory (не SSOT).
+        # PK = (campaign, owner, content_reference, source_id): trace_id.
+        # E1: заполняется только diagnostic-резолвером; production-дельты — E2.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS experience_traces (
+                campaign_id TEXT NOT NULL,
+                owner_id TEXT NOT NULL,
+                content_reference TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                actor_id TEXT NOT NULL,
+                meaning_json TEXT,
+                valence REAL DEFAULT 0.0,
+                arousal REAL DEFAULT 0.0,
+                novelty REAL DEFAULT 0.0,
+                personal_relevance REAL DEFAULT 0.0,
+                social_relevance REAL DEFAULT 0.0,
+                identity_relevance REAL DEFAULT 0.0,
+                belief_relevance REAL DEFAULT 0.0,
+                confidence REAL DEFAULT 0.5,
+                retrieval_strength REAL DEFAULT 0.5,
+                timestamp INTEGER DEFAULT 0,
+                diagnostic INTEGER DEFAULT 0,
+                applied_consumers_json TEXT DEFAULT '[]',
+                PRIMARY KEY (campaign_id, owner_id, content_reference, source_id)
             )
         """)
         # Структурированные EventMemory — для поиска по полям (Этап 11.2)
@@ -214,6 +262,131 @@ class SqliteMemoryStore:
         except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error(f"[SQLITE] load_state from {collection} failed: {e}")
             return {}
+
+    def save_trace(self, campaign_id: str, trace: Any) -> None:
+        """EMRL E1.0: upsert проекции трейса. PK стабилен (trace_id)."""
+        import json as _json
+
+        try:
+            with self._lock:
+                self._conn.execute(
+                    """INSERT OR REPLACE INTO experience_traces
+                       (campaign_id, owner_id, content_reference, source_id,
+                        source_type, actor_id, meaning_json, valence, arousal,
+                        novelty, personal_relevance, social_relevance,
+                        identity_relevance, belief_relevance, confidence,
+                        retrieval_strength, timestamp, diagnostic,
+                        applied_consumers_json)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        campaign_id,
+                        trace.owner_id,
+                        trace.content_reference,
+                        trace.source_id,
+                        trace.source_type.value,
+                        trace.actor_id,
+                        _json.dumps(trace.meaning, ensure_ascii=False)
+                        if trace.meaning is not None
+                        else None,
+                        max(-1.0, min(1.0, trace.valence)),
+                        max(0.0, min(1.0, trace.arousal)),
+                        max(0.0, min(1.0, trace.novelty)),
+                        max(0.0, min(1.0, trace.personal_relevance)),
+                        max(0.0, min(1.0, trace.social_relevance)),
+                        max(0.0, min(1.0, trace.identity_relevance)),
+                        max(0.0, min(1.0, trace.belief_relevance)),
+                        max(0.0, min(1.0, trace.confidence)),
+                        max(0.0, min(1.0, trace.retrieval_strength)),
+                        int(trace.timestamp),
+                        int(trace.diagnostic),
+                        _json.dumps(list(trace.applied_consumers)),
+                    ),
+                )
+                self._conn.commit()
+        except sqlite3.Error as e:
+            logger.error(f"[SQLITE] save_trace failed: {e}")
+            with self._lock:
+                self._conn.rollback()
+
+    def load_traces(self, campaign_id: str, owner_id: str) -> List[Dict[str, Any]]:
+        """EMRL E1.0: все трейсы NPC кампании (проекции, не SSOT)."""
+        import json as _json
+
+        try:
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT * FROM experience_traces WHERE campaign_id = ? AND owner_id = ?",
+                    (campaign_id, owner_id),
+                ).fetchall()
+            result: List[Dict[str, Any]] = []
+            for row in rows:
+                d = dict(row)
+                d["meaning"] = _json.loads(d.pop("meaning_json")) if d.get("meaning_json") else None
+                d["applied_consumers"] = tuple(_json.loads(d.pop("applied_consumers_json")))
+                d["diagnostic"] = bool(d["diagnostic"])
+                result.append(d)
+            return result
+        except (sqlite3.Error, _json.JSONDecodeError) as e:
+            logger.error(f"[SQLITE] load_traces failed: {e}")
+            return []
+
+    def save_crystal(self, campaign_id: str, crystal: Any) -> None:
+        """EMRL E1.2: upsert кристалла. PK стабилен (триплет+origin)."""
+        import json as _json
+
+        try:
+            with self._lock:
+                self._conn.execute(
+                    """INSERT OR REPLACE INTO memory_crystals
+                       (campaign_id, owner_id, subject, predicate,
+                        origin_reference, object, source,
+                        related_episodes_json, confidence,
+                        retrieval_strength, emotional_weight,
+                        last_reinforced, times_recalled)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        campaign_id,
+                        crystal.owner_id,
+                        crystal.subject,
+                        crystal.predicate,
+                        crystal.origin_reference,
+                        crystal.object,
+                        crystal.source,
+                        _json.dumps(list(crystal.related_episodes)),
+                        max(0.0, min(1.0, crystal.confidence)),
+                        max(0.0, min(1.0, crystal.retrieval_strength)),
+                        max(-1.0, min(1.0, crystal.emotional_weight)),
+                        int(crystal.last_reinforced),
+                        int(crystal.times_recalled),
+                    ),
+                )
+                self._conn.commit()
+        except sqlite3.Error as e:
+            logger.error(f"[SQLITE] save_crystal failed: {e}")
+            with self._lock:
+                self._conn.rollback()
+
+    def load_crystals(self, campaign_id: str, owner_id: str) -> List[Dict[str, Any]]:
+        """EMRL E1.2: все кристаллы NPC кампании."""
+        import json as _json
+
+        try:
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT * FROM memory_crystals WHERE campaign_id = ? AND owner_id = ?",
+                    (campaign_id, owner_id),
+                ).fetchall()
+            result: List[Dict[str, Any]] = []
+            for row in rows:
+                d = dict(row)
+                d["related_episodes"] = tuple(
+                    _json.loads(d.pop("related_episodes_json"))
+                )
+                result.append(d)
+            return result
+        except (sqlite3.Error, _json.JSONDecodeError) as e:
+            logger.error(f"[SQLITE] load_crystals failed: {e}")
+            return []
 
     # ── EventMemory — структурированное API ───────────────────────────
 

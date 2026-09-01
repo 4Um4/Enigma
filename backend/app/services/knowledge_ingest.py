@@ -5,7 +5,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING, Literal
 
 try:
-    from pypdf import PdfReader  # type: ignore
+    from pypdf import PdfReader
 except Exception:  # pragma: no cover
     PdfReader = None
 

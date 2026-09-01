@@ -1,6 +1,6 @@
 """
 path: backend/app/services/world/affordance_shadow.py
-Назначение: W3/ADR-O-373 Gate-1 — shadow affordance evaluation.
+Назначение: W3/ADR-O-376 Gate-1 — shadow affordance evaluation.
     Discovery-тень В2-резолвера: snapshot → projection → resolver →
     [W3_SHADOW] log/metric; НОЛЬ decision-input, НОЛЬ mutation, НОЛЬ
     writers, НОЛЬ events. Флаг W3_SHADOW_ENABLED (env, default OFF) —

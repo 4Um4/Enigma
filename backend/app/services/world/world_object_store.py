@@ -17,7 +17,7 @@ path: backend/app/services/world/world_object_store.py
     WRITE-контракт: только типизированные операции (spawn /
     establish_relation / release_relation / relocate / apply_transition /
     apply_damage); generic-мутации нет — protected-поля меняются
-    исключительно переходами domain-слоя. W3 (ADR-O-373):
+    исключительно переходами domain-слоя. W3 (ADR-O-376):
     apply_transition/apply_damage — FSM-переход: семантика в домене
     (object_fsms, pure), стор коммитит результат в scene_state;
     runtime-потребителей пока 0 (wiring — финал W3), caller-guard
@@ -349,7 +349,7 @@ class WorldObjectStore:
         action: WorldActionType,
         actor_id: Optional[str] = None,
     ) -> TransitionResult:
-        """W3 (ADR-O-373): применение доменного FSM-перехода.
+        """W3 (ADR-O-376): применение доменного FSM-перехода.
 
         Разделение уровней (вердикт Мастера): FSM определяет
         семантический переход (domain: object_fsms.transition_object,
@@ -375,7 +375,7 @@ class WorldObjectStore:
         object_id: str,
         amount: float,
     ) -> WorldObject:
-        """W3 (ADR-O-373, О6): применение физики повреждения.
+        """W3 (ADR-O-376, О6): применение физики повреждения.
 
         Доменный закон (damage >= 1.0 -> BROKEN) — в
         object_fsms.damage_object (pure); стор только коммитит.

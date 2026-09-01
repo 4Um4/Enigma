@@ -13,7 +13,10 @@ NPC Profile Loader (Config -> L0 Profile).
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from app.models.npc.beliefs import BeliefState
 
 from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.models.npc_state import NPCState, WillState, _emotion_from_str, _pk_from_dict

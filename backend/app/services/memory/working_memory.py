@@ -72,9 +72,31 @@ class WorkingMemory:
                     if weight is not None:
                         identity_weights.append(weight)
 
+                # EMRL E1.1 floor: событие, ставшее сутью ДО входа в цикл,
+                # не выпускается в FORGOTTEN. Маркер сути — семантический,
+                # не стадийный: stage ABSTRACT (зона <0.30 важности) ИЛИ
+                # флаг is_compressed (реальная консолидация — «несколько
+                # похожих сжаты в абстракцию»). Голая stage-зона COMPRESSED
+                # без флага — просто стареющее событие, не суть (шум обязан
+                # умирать — замок test_fresh_noise поймал захват зоны в
+                # первое чтение контракта).
+                # Проверка по входу (prev), не по updated.stage: ABSTRACT-окно
+                # одного тика распада иначе проскакивается.
+                # E1.1-финал: ЕДИНСТВЕННЫЙ маркер сути — is_compressed
+                # (эпизод реально сжат консолидацией). Стадия ABSTRACT как
+                # зона важности (<0.30) присваивается любому стареющему
+                # событию — включая шум, который входил в цикл распада
+                # с prev_stage=ABSTRACT и спасался floor'ом (замок
+                # test_fresh_noise, третья итерация).
+                _is_essence_on_entry = bool(event.is_compressed)
+                if _is_essence_on_entry and updated.is_forgotten:
+                    object.__setattr__(updated, "importance", 0.1)
+                    object.__setattr__(updated, "accessibility", 0.2)
+                    object.__setattr__(updated, "stage", MemoryStage.ABSTRACT)
                 if not updated.is_forgotten:
                     decayed.append(updated)
-                # FORGOTTEN — удаляем молча
+                # Всё прочее ниже порога — молча умирает (как раньше):
+                # событие не оставило следа смысла
             else:
                 # Legacy dict — без decay
                 decayed.append(event)
