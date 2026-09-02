@@ -1,0 +1,11 @@
+{
+  "tag": "W2",
+  "inject": true,
+  "crash": "OntologyViolationError: world_objects: дубликат object_id 'wo_g2_probe_weapon' — рождение уже рождённого",
+  "real_errors": 0,
+  "first_error": null,
+  "g2_hits": 0,
+  "weapon_persisted": null,
+  "injected_near": null,
+  "steal_mentions": 0
+}

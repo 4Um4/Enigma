@@ -17,8 +17,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from app.models.thick_scene_change import TraversalContract
 
 logger = logging.getLogger(__name__)
 

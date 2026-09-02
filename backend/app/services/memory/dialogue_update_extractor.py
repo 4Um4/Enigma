@@ -73,7 +73,14 @@ class DialogueUpdateExtractor:
             if isinstance(e, RuntimeError) and "недоступны" in str(e).lower():
                 logger.debug(f"Dialogue update skipped (LLM unavailable): {e}")
             else:
-                logger.warning(f"Dialogue update failed: {e}")
+                # AG1-D2 (L4): деградация допустима, слепота — нет. Контекст:
+                # partner + длина реплики (сам текст не логируем — PII-объём);
+                # repr(e) — пустые message таймаутов остаются видимыми как класс
+                logger.warning(
+                    f"[DIALOGUE_UPDATE] extraction failed: {e!r} | "
+                    f"partner={partner} | turn_len={len(new_turn)} | "
+                    f"stm_len={len(stm_before)}"
+                )
             return DialogueUpdate()
     
     def _build_extraction_prompt(self, stm_before: str, new_turn: str, partner: str) -> str:

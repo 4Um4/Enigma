@@ -29,9 +29,12 @@ from __future__ import annotations
 import sys
 import types
 from contextlib import contextmanager
-from typing import Any, Dict, Iterator, List, Mapping, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Sequence, Tuple
 
 from app.core import constants as _constants
+
+if TYPE_CHECKING:
+    from app.services.calibration.profile import CalibrationProfile
 
 # Флаг вложенности (ADR-O-361: вложенный overlay = архитектурная ошибка)
 _ACTIVE: bool = False

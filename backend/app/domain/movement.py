@@ -11,7 +11,10 @@ from __future__ import annotations
 import enum
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from app.domain.spatial_target import SpatialTargetIntent
 
 from app.domain.traversal import BodyCapabilities
 

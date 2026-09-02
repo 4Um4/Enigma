@@ -1251,3 +1251,63 @@ class TestBootstrapFromNpcDicts:
         v2.bootstrap_from_npc_dicts(self.ENRICHED)
         for _entry in v2._directed_ram.values():
             assert set(_entry.keys()) <= {"trust", "fear", "debt", "respect", "attraction"}
+
+
+
+
+# ── 20. M1b.3.3+3.4: снапшот-гидратация из V2 (decay/BehaviorMask на каноне) ──
+
+
+class TestSnapshotV2Hydration:
+    """Кэш-слой снапшота = проекция V2. Decay дрейфует к V2-current
+    (не к кэш-призраку); sticky-гидратация phases/decision закрыта тем же
+    разрезом; base_values/nature остаются drift-конфигом на дикте."""
+
+    def _npc(self):
+        return {
+            "id": "maid_lusya",
+            "social_stats": {"trust": 1.0, "fear_of_player": 2.0},
+            "psyche": {},
+            "relationship_cache": {"stale_ghost": {"trust": 99.0}},  # призрак
+            "base_values": {"player": 50.0},
+        }
+
+    def test_snapshot_cache_hydrates_from_v2(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+        from app.services.tick_utils import build_npc_snapshots
+
+        v2 = V2RelationshipBackend(lambda: {})
+        v2.bind("camp")
+        v2.update("camp", "maid_lusya", "player", {"trust": 80.0})
+        v2.update("camp", "maid_lusya", "merchant_goran", {"trust": 30.0})
+        snaps = build_npc_snapshots([self._npc()], relationship_store=v2, campaign_id="camp")
+        rc = snaps[0]["relationship_cache"]
+        assert rc["player"]["trust"] == 80.0        # канон перекрыл stale/дефолт
+        assert rc["merchant_goran"]["trust"] == 30.0 # V2-пара поднята
+        assert "stale_ghost" in rc  # merge, не затирание (дicts-остатки — фолбэк-данные)
+        # base_values НЕ из V2 (drift-конфиг):
+        assert snaps[0]["base_values"]["player"] == 50.0
+
+    def test_snapshot_without_store_legacy_path(self):
+        from app.services.tick_utils import build_npc_snapshots
+
+        snaps = build_npc_snapshots([self._npc()])
+        rc = snaps[0]["relationship_cache"]
+        assert rc["stale_ghost"]["trust"] == 99.0   # легаси-путь (смоуки/тесты)
+        assert rc["player"]["trust"] == 1.0          # social_stats-дефолт
+
+    def test_decay_drifts_to_v2_current(self):
+        """Интеграционный: decay-дельта дрейфует к V2-base, снапшот-текущее
+        = V2-значение (не кэш-призрак 99.0)."""
+        from app.services.social.social_decay_handler import SocialDecayHandler
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+        from app.services.tick_utils import build_npc_snapshots
+
+        v2 = V2RelationshipBackend(lambda: {})
+        v2.bind("camp")
+        v2.update("camp", "maid_lusya", "player", {"trust": 40.0})  # current=40
+        # base (drift-цель) на дикте = 50 → дрейф +0.1 (rate 0.01)
+        snaps = build_npc_snapshots([self._npc()], relationship_store=v2, campaign_id="camp")
+        deltas = SocialDecayHandler().handle(snaps, "camp", 1)
+        _d = next(d for d in deltas if d.social_target == "player")
+        assert _d.trust_delta == pytest.approx((50.0 - 40.0) * 0.01)  # от V2-текущего

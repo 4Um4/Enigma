@@ -1,0 +1,48 @@
+{
+  "tag": "B1",
+  "inject": false,
+  "crash": null,
+  "real_errors": 0,
+  "first_error": null,
+  "g2_hits": 200,
+  "weapon_persisted": null,
+  "injected_near": null,
+  "steal_mentions": 0,
+  "positions": {
+    "maid_lusya": [
+      11.22,
+      4.82
+    ],
+    "blacksmith_orm": [
+      10.5,
+      3.0
+    ],
+    "tavern_keeper_tornin": [
+      11.22,
+      4.82
+    ],
+    "merchant_goran": [
+      11.22,
+      4.82
+    ],
+    "guard_borko": [
+      11.22,
+      4.82
+    ],
+    "player": [
+      6.0,
+      8.0
+    ],
+    "thief_shadow": [
+      11.0,
+      10.0
+    ]
+  },
+  "ticks_with_traversals": 199,
+  "terminals_total": 65,
+  "status_counts": {
+    "COMPLETED": 30,
+    "INTERRUPTED": 35
+  },
+  "world_objects": 19
+}

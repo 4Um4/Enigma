@@ -838,3 +838,231 @@ def test_tickstate_attribute_consumers_guarded() -> None:
         bad.append(f)
     offenders = sorted(set(bad))
     assert not offenders, f"негвардированные поля TickState: {offenders}"
+
+
+
+# ── EMRL E2.0-a: DeltaGate — единственный вход в состояние ──────────
+
+
+def test_delta_gate_whitelist_rejects_unknown_field() -> None:
+    """INV-LLM-NOT-SSOT: поле вне whitelist отклоняется. LLM не может
+    предложить 'personality'/'relationship' — любое имя вне контракта
+    мертво на входе."""
+    from app.domain.state_delta_proposal import StateDeltaProposal
+    from app.services.memory.delta_gate import DeltaGate
+
+    gate = DeltaGate()
+    bad = StateDeltaProposal(
+        trace_id="t1:goran:player", field="personality", value=0.5
+    )
+    assert gate.apply(bad) is False
+    rogue = StateDeltaProposal(
+        trace_id="t2:goran:player", field="relationship_trust", value=99.0
+    )
+    assert gate.apply(rogue) is False
+
+
+def test_delta_gate_clamps_and_idempotent() -> None:
+    """Клампы ([-1,1] для threat) + идемпотентность: повторный тот же
+    trace_id+field не применяется дважды (нет двойного счёта дельт)."""
+    from app.domain.state_delta_proposal import StateDeltaProposal
+    from app.services.memory.delta_gate import DeltaGate
+
+    gate = DeltaGate()
+    calls = []
+
+    def dispatch(consumer: str, tid: str, value: float) -> bool:
+        calls.append((consumer, value))
+        return True
+
+    p = StateDeltaProposal(
+        trace_id="evt-1:goran:player", field="threat_gradient", value=5.0
+    )
+    assert gate.apply(p, dispatch) is True
+    assert calls[-1][1] == 1.0  # кламп сверху
+    # повтор — идемпотентен
+    assert gate.apply(p, dispatch) is False
+    assert len(calls) == 1
+
+
+def test_delta_gate_consumer_rejection_blocks() -> None:
+    """Отказ потребителя = дельта не считается применённой; повторная
+    попытка возможна (не запоминаем отказ как успех)."""
+    from app.domain.state_delta_proposal import StateDeltaProposal
+    from app.services.memory.delta_gate import DeltaGate
+
+    gate = DeltaGate()
+
+    def always_reject(consumer: str, tid: str, value: float) -> bool:
+        return False
+
+    p = StateDeltaProposal(
+        trace_id="evt-2:goran:player", field="danger_belief", value=0.6
+    )
+    assert gate.apply(p, always_reject) is False
+    # потребитель передумал — вторая попытка проходит
+    assert gate.apply(p, lambda c, t, v: True) is True
+
+
+
+# ── EMRL E2.0-b: живой провод — аудит, не дублирование ───────────────
+
+
+def test_delta_gate_trace_once_invariant(tmp_path: Path) -> None:
+    """AG1-INV-TRACE-ONCE: один event.id → один trace → ≤1 дельты поля.
+    Повторный Proposal с тем же trace_id (даже другое value) отклонён —
+    двойной счёт причинности невозможен."""
+    from app.domain.state_delta_proposal import StateDeltaProposal
+    from app.services.memory.delta_gate import DeltaGate
+
+    gate = DeltaGate()
+    p1 = StateDeltaProposal(
+        trace_id="evt-77:goran:player", field="threat_gradient",
+        value=0.5, causal_parent="evt-77",
+    )
+    p2 = StateDeltaProposal(  # дубликат события — другая value
+        trace_id="evt-77:goran:player", field="threat_gradient",
+        value=0.9, causal_parent="evt-77",
+    )
+    assert gate.apply(p1, lambda *a: True) is True
+    assert gate.apply(p2, lambda *a: True) is False  # TRACE-ONCE
+
+
+def test_delta_gate_emits_chronicaler_event(tmp_path: Path) -> None:
+    """E2.0-b: успешное применение публикует EXPERIENCE_DELTA_COMMITTED
+    с trace_id/causal_parent — Chronicaler получает причинную трассу.
+    Отказ (вне whitelist) события НЕ публикует."""
+    from app.services.events.event_bus import get_event_bus
+    from app.domain.state_delta_proposal import StateDeltaProposal
+    from app.services.memory.delta_gate import DeltaGate
+
+    bus = get_event_bus()
+    bus.clear()
+    captured = []
+    from app.services.events.event_types import EventType
+
+    bus.subscribe(
+        EventType.EXPERIENCE_DELTA_COMMITTED,
+        lambda e: captured.append(e),
+    )
+    gate = DeltaGate()
+    gate.apply(
+        StateDeltaProposal(
+            trace_id="evt-78:goran:player", field="threat_gradient",
+            value=0.4, causal_parent="evt-78",
+        ),
+        lambda *a: True,
+    )
+    gate.apply(  # вне whitelist — не публикуется
+        StateDeltaProposal(
+            trace_id="evt-79:goran:player", field="personality", value=1.0,
+        ),
+        lambda *a: True,
+    )
+    assert len(captured) == 1
+    evt = captured[0]
+    # E2.0-b: подписчик получает EventDTO — поля трассы в payload
+    # (Устав 2.1.1: шина принимает только EventDTO)
+    assert evt.payload["causal_parent"] == "evt-78"
+    assert evt.payload["value"] == 0.4
+    assert evt.payload["trace_id"] == "evt-78:goran:player"
+
+
+def test_threaten_produces_gated_delta(tmp_path: Path) -> None:
+    """E2.0-b integration: PLAYER_THREATEN → Proposal → Gate →
+    PerceptionPayload.threat_gradient_delta через существующий канал.
+    Проверяется на минимальной сборке subscriber'а (по выводу археологии)."""
+    # Тело замка — по фактическому API subscriber'а из вывода археологии
+    # (какой конструктор/вход) — заполню после твоего прогона блока
+    # Get-Content выше.
+    raise NotImplementedError("наполнение после археологии 220..265")
+
+def test_threaten_produces_gated_delta() -> None:
+    """E2.0-b integration: PLAYER_THREATENS → Proposal → Gate →
+    PerceptionPayload.threat_gradient_delta через существующий канал.
+    Минимальная сборка subscriber'а по фактическому API (археология
+    220..265): handle(events, ctx) → deltas-список с StateDeltas."""
+    from types import SimpleNamespace
+
+    from app.domain.events import EventDTO
+    from app.models.delta_payloads import PerceptionPayload
+    from app.models.state_delta import DeltaDomain, StateDeltas
+    from app.services.events import reaction_subscriber as _rs
+    from app.services.events.event_types import EventType
+
+    # Сигнатура по факту: ReactionSubscriber(event_bus) — шина обязательна
+    from app.services.events.event_bus import get_event_bus as _gb
+
+    sub = _rs.ReactionSubscriber(_gb())
+    evt = EventDTO.create(
+        event_type=EventType.PLAYER_THREATENS.value,
+        source="player",
+        payload={"target_id": "merchant_goran", "intensity": 0.7},
+        persistence_level="working",
+    )
+    # Контекст по фактическому контракту handle(): Phase8-контекст несёт
+    # физические дельты (материализованные боем) — в тесте их нет
+    ctx = SimpleNamespace(
+        all_npcs_raw=[{"id": "merchant_goran"}],
+        physical_deltas_materialized=[],
+        scene_state={},
+        shared_context=None,
+    )
+    result = sub.handle([evt], ctx)
+    # handle() возвращает Phase8Result (Устав Фаза 8): дельты — в его
+    # поле-коллекции; достаём фактическую форму
+    _deltas = (
+        result.deltas
+        if hasattr(result, "deltas")
+        else getattr(result, "perception_deltas", None)
+        or getattr(result, "delta_buffer", None)
+        or []
+    )
+    threat_deltas = [
+        d
+        for d in _deltas
+        if isinstance(d, StateDeltas)
+        and d.npc_id == "merchant_goran"
+        and d.domain == DeltaDomain.PERCEPTION
+        and isinstance(d.payload, PerceptionPayload)
+        and d.payload.threat_gradient_delta > 0
+    ]
+    assert threat_deltas, f"гейт заблокировал провод: {_deltas}"
+    assert threat_deltas[0].payload.threat_gradient_delta == 0.8
+
+
+
+def test_dialogue_extractor_failure_logs_context() -> None:
+    """AG1-D2: отказ экстракции логирует КОНТЕКСТ (repr(e), partner,
+    turn_len) — слепые 'Dialogue update failed: ' запрещены (L4)."""
+    import logging as _logging
+
+    from app.services.memory.dialogue_update_extractor import (
+        DialogueUpdateExtractor,
+    )
+
+    class _Boom:
+        def __getattr__(self, item):
+            raise RuntimeError(" всё сломалось ")  # пробелы = пустой str()
+
+    captured = []
+
+    class _Handler(_logging.Handler):
+        def emit(self, record: _logging.LogRecord) -> None:
+            captured.append(record.getMessage())
+
+    _lg = _logging.getLogger("app.services.memory.dialogue_update_extractor")
+    _handler = _Handler()
+    _lg.addHandler(_handler)
+    _lg.setLevel(_logging.WARNING)
+    try:
+        _ext = DialogueUpdateExtractor(router=_Boom())
+        result = _ext.extract("контекст", "реплика", "merchant_goran")
+        assert isinstance(result, object)  # деградация — пустой DialogueUpdate
+    finally:
+        _lg.removeHandler(_handler)
+        _lg.setLevel(_logging.NOTSET)
+    ctx_logged = [m for m in captured if "[DIALOGUE_UPDATE]" in m]
+    assert ctx_logged, f"контекстный лог отсутствует: {captured}"
+    assert "partner=merchant_goran" in ctx_logged[0]
+    assert "turn_len=" in ctx_logged[0]

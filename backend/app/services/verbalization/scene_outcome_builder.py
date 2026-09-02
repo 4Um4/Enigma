@@ -19,7 +19,11 @@ logger = logging.getLogger(__name__)
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from app.models.psychological import DistortionProfile
+    from app.services.verbalization.verbal_stance import VerbalStance
 
 from app.models.npc_profile import NPCProfileL0
 from app.services.npc.decision_hub import DecisionResult

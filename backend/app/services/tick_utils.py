@@ -51,7 +51,11 @@ def resolve_affected_npcs(event) -> list[str]:
     return [n for n in affected if n]
 
 
-def build_npc_snapshots(all_npcs_raw: list) -> list:
+def build_npc_snapshots(
+    all_npcs_raw: list,
+    relationship_store: Any = None,
+    campaign_id: str = "",
+) -> list:
     """Проецирует all_npcs_raw → List[NPCStateSnapshot] для handlers.
 
     Handlers работают только с контрактом, не с внутренностями scene_state.
@@ -83,6 +87,26 @@ def build_npc_snapshots(all_npcs_raw: list) -> list:
             relationship_cache = dict(existing_rc)
         else:
             relationship_cache = {}
+
+        # M1b.3.3+3.4 (ADR-RE-M1b.3): каноническая гидратация из V2-RAM.
+        # Кэш-слой снапшота = ПРОЕКЦИЯ; decay/BehaviorMask читают свежий
+        # канон (sticky-кэш закрыт). base_values/nature НЕ переносятся:
+        # drift-конфиг decay-домена (loyalty_true ≠ trust). Player-дефолты
+        # social_stats — фолбэк только при Vacuum в V2.
+        _v2_cache = None
+        if (
+            relationship_store is not None
+            and npc_id
+            and campaign_id
+            and getattr(relationship_store, "_campaign_id", None) == campaign_id
+        ):
+            try:
+                _v2_cache = relationship_store.get_all_for_source(campaign_id, npc_id)
+            except Exception as _e:
+                logger.warning(f"[SNAPSHOT_V2] hydrate failed npc={npc_id}: {_e}")
+                _v2_cache = None
+        if _v2_cache:
+            relationship_cache = {**relationship_cache, **_v2_cache}
 
         _player_trust = float(ss.get("trust", 0.0))
         _player_fear = float(ss.get("fear_of_player", 0.0))

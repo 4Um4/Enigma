@@ -50,6 +50,9 @@ class EventType(str, Enum):
     # ── Мир ───────────────────────────────────────────────────────────────
     TIME_PASSED = "time_passed"
     TICK_COMPLETED = "tick_completed"  # N2 FIX: Событие завершения тика для подписки трекеров (M-03)
+    # EMRL E2.0-b: трасса причинного изменения состояния — потребляется
+    # Chronicaler'ом (cross-cutting); observation-only (Закон XI)
+    EXPERIENCE_DELTA_COMMITTED = "experience_delta_committed"
     WEATHER_CHANGED = "weather_changed"
     FACTION_EVENT = "faction_event"
     WORLD_TICK = "world_tick"  # проактивный тик мира (Фаза 3.4)

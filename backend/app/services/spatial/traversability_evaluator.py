@@ -6,7 +6,12 @@ from __future__ import annotations
 
 import logging
 
-from app.domain.traversal import TraversalFeasibility, TraversalMode, TraversalQuery
+from app.domain.traversal import (
+    LocalGeometry,
+    TraversalFeasibility,
+    TraversalMode,
+    TraversalQuery,
+)
 from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
 
 logger = logging.getLogger(__name__)

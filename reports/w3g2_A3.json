@@ -1,0 +1,48 @@
+{
+  "tag": "A3",
+  "inject": false,
+  "crash": null,
+  "real_errors": 0,
+  "first_error": null,
+  "g2_hits": 0,
+  "weapon_persisted": null,
+  "injected_near": null,
+  "steal_mentions": 0,
+  "positions": {
+    "maid_lusya": [
+      9.17,
+      6.17
+    ],
+    "blacksmith_orm": [
+      10.5,
+      6.5
+    ],
+    "tavern_keeper_tornin": [
+      9.17,
+      6.17
+    ],
+    "merchant_goran": [
+      9.17,
+      6.17
+    ],
+    "guard_borko": [
+      9.17,
+      6.17
+    ],
+    "player": [
+      6.0,
+      8.0
+    ],
+    "thief_shadow": [
+      11.0,
+      10.0
+    ]
+  },
+  "ticks_with_traversals": 199,
+  "terminals_total": 65,
+  "status_counts": {
+    "COMPLETED": 35,
+    "INTERRUPTED": 30
+  },
+  "world_objects": 19
+}

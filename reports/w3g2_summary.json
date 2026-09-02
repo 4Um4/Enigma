@@ -1,0 +1,148 @@
+{
+  "background_diffs_off_off": [
+    5,
+    4,
+    3
+  ],
+  "zero_diffs_off_vs_on": [
+    5,
+    5,
+    5,
+    0,
+    5,
+    3
+  ],
+  "honest_zero_ok": true,
+  "b_silent": true,
+  "w_delivery_ok": false,
+  "structural_ok": false,
+  "verdict": "RED | proof не доставлен (hits/weapon_persisted) | структурный гвард",
+  "profiles": {
+    "A1": {
+      "tag": "A1",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 61,
+      "status_counts": {
+        "COMPLETED": 24,
+        "INTERRUPTED": 37
+      },
+      "world_objects": 18
+    },
+    "A2": {
+      "tag": "A2",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 62,
+      "status_counts": {
+        "COMPLETED": 26,
+        "INTERRUPTED": 36
+      },
+      "world_objects": 18
+    },
+    "A3": {
+      "tag": "A3",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 63,
+      "status_counts": {
+        "COMPLETED": 27,
+        "INTERRUPTED": 36
+      },
+      "world_objects": 18
+    },
+    "B1": {
+      "tag": "B1",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 64,
+      "status_counts": {
+        "INTERRUPTED": 38,
+        "COMPLETED": 26
+      },
+      "world_objects": 18
+    },
+    "B2": {
+      "tag": "B2",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 65,
+      "status_counts": {
+        "COMPLETED": 29,
+        "INTERRUPTED": 36
+      },
+      "world_objects": 18
+    },
+    "W1": {
+      "tag": "W1",
+      "inject": true,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": false,
+      "injected_near": "maid_lusya",
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 65,
+      "status_counts": {
+        "COMPLETED": 29,
+        "INTERRUPTED": 36
+      },
+      "world_objects": 18
+    },
+    "W2": {
+      "tag": "W2",
+      "inject": true,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": false,
+      "injected_near": "maid_lusya",
+      "steal_mentions": 0,
+      "ticks_with_traversals": 199,
+      "terminals_total": 65,
+      "status_counts": {
+        "INTERRUPTED": 34,
+        "COMPLETED": 31
+      },
+      "world_objects": 18
+    }
+  }
+}

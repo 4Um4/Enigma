@@ -19,7 +19,10 @@ ADR-TIFL-003: Двигатель Кристаллизации Идентично
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from app.domain.identity_events import EffectiveDrives, TraitDriftEvent
 
 from app.core.constants import (
     BREAK_DELTA_ADAPTATION,

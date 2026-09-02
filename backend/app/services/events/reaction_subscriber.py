@@ -231,6 +231,12 @@ class ReactionSubscriber:
 
             # S115 FIX: Цель прямой угрозы/атаки получает threat_gradient_delta.
             # Без этого affective_load остаётся 0, и BreakProgressEngine не фиксирует давление.
+            # EMRL E2.0-b: обвязка DeltaGate — причинная дельта авторизуется
+            # (whitelist/клампы/TRACE-ONCE), публикует трассу для Chronicaler
+            # (EXPERIENCE_DELTA_COMMITTED) и только затем едет в существующий
+            # PerceptionPayload-канал. Gate — аудит, НЕ второй писатель:
+            # belief-проекция остаётся на тиковой ветке BeliefTransitionEngine,
+            # связанной тем же event.id (causal_parent).
             _event_target_id = event.payload.get("target_id")
             if _event_target_id and rule_key in (
                 "player_threatens",
@@ -238,16 +244,37 @@ class ReactionSubscriber:
                 "player_attack",
             ):
                 _threat_delta_target = 0.8 if rule_key == "player_threatens" else 0.6
-                deltas.append(
-                    StateDeltas(
-                        npc_id=_event_target_id,
-                        domain=DeltaDomain.PERCEPTION,
-                        payload=PerceptionPayload(
-                            threat_gradient_delta=round(_threat_delta_target, 3),
-                        ),
-                        source="reaction_perception_target",
-                    )
+                from app.domain.state_delta_proposal import StateDeltaProposal
+                from app.services.memory.delta_gate import DeltaGate
+
+                _gate = DeltaGate()  # per-subscriber stateless аудит (TRACE-ONCE
+                # по ключу события — см. замок test_threaten_produces_gated_delta)
+                _proposal = StateDeltaProposal(
+                    trace_id=f"{event.id}:{_event_target_id}:player",
+                    field="threat_gradient",
+                    value=_threat_delta_target,
+                    causal_parent=str(event.id),
+                    source="mechanical",
+                    rationale=f"rule_key={rule_key}",
                 )
+                _authorized_value = _gate.validate(_proposal)
+                if _authorized_value is None:
+                    logger.info(
+                        "[REACTION_SUB] дельта угрозы не авторизована gate'ом "
+                        f"({_proposal.trace_id}) — событие {event.id}"
+                    )
+                else:
+                    _gate.apply(_proposal)  # dry-dispatch: публикация трассы
+                    deltas.append(
+                        StateDeltas(
+                            npc_id=_event_target_id,
+                            domain=DeltaDomain.PERCEPTION,
+                            payload=PerceptionPayload(
+                                threat_gradient_delta=round(_authorized_value, 3),
+                            ),
+                            source="reaction_perception_target",
+                        )
+                    )
 
             stress_base, fear_base, trust_actor_base = rule
             intensity = _get_event_intensity(event)

@@ -1,512 +1,314 @@
-# ENIGMA
+﻿# ENIGMA (Bloodloom)
 
-> A deterministic causal simulation engine for agents, world state, memory,
-> perception, belief, decision and emergent narrative.
+> Детерминированный каузальный движок симуляции: агенты, состояние мира, восприятие,
+> память, убеждения, решения и нарратив, возникающий из их рассогласования.
 
-**Status: Experimental / Research Prototype**
-
-ENIGMA is not currently a finished autonomous-world simulator.
-
-It is an evolving simulation architecture whose central research question is:
-
-> Can a deterministic game simulation produce meaningful emergent behavior
-> when agents act not directly on objective world truth, but on their own
-> incomplete and potentially incorrect models of that world?
-
-This distinction is the core of the project.
+**Статус:** экспериментальный исследовательский прототип · **Версия:** `0.5.3.9.6` · Ветка `V.0.5.3.9.6_Память_3`
 
 ---
 
-# 1. What ENIGMA actually is
+## 1. Два лица проекта
 
-ENIGMA is a Python-based simulation/game engine built around a causal tick loop.
+ENIGMA — одновременно научный проект и игра.
 
-The currently implemented system contains real infrastructure for:
+### Научное лицо
 
-- deterministic world ticks;
-- NPC state;
-- needs and drives;
-- decision scoring;
-- movement;
-- spatial state;
-- relationships;
-- trust / attraction;
-- memory;
-- identity events;
-- L1 chronicle persistence;
-- belief-related state;
-- state mutation;
-- recovery / decay;
-- economic simulation;
-- combat;
-- player actions;
-- LLM-assisted dialogue;
-- replay / drift experiments;
-- causal validation;
-- long-horizon sandbox simulation.
+ENIGMA исследует один центральный вопрос:
 
-The project does **not** currently claim that all planned epistemic or predictive systems are implemented.
+> Может ли детерминированная игровая симуляция порождать осмысленное
+> эмерджентное поведение, если агенты действуют не на основе объективной
+> истины мира, а на основе собственных неполных и потенциально ошибочных
+> моделей этого мира?
 
----
+Традиционный игровой AI:
 
-# 2. The central hypothesis
+    WORLD STATE → PERCEPTION → DECISION → ACTION → WORLD CHANGE
 
-Traditional game AI generally follows:
+ENIGMA исследует более глубокую модель:
 
-    WORLD STATE
-        ↓
-    NPC PERCEPTION
-        ↓
-    NPC DECISION
-        ↓
-    ACTION
-        ↓
-    WORLD CHANGE
+    WORLD TRUTH → PERCEPTION → OBSERVATION → MEMORY → BELIEF →
+    → EXPECTATION → MOTIVATION → DECISION → ACTION → WORLD CHANGE
 
-ENIGMA is investigating a deeper model:
-
-    WORLD TRUTH
-        ↓
-    PERCEPTION
-        ↓
-    OBSERVATION
-        ↓
-    MEMORY
-        ↓
-    BELIEF
-        ↓
-    EXPECTATION
-        ↓
-    MOTIVATION
-        ↓
-    DECISION
-        ↓
-    ACTION
-        ↓
-    WORLD CHANGE
-
-The critical property is:
+Критическое свойство:
 
     WORLD TRUTH ≠ AGENT BELIEF
-
-and, more importantly:
-
     AGENT A BELIEF ≠ AGENT B BELIEF
 
-if their observations, memories, trust relationships or inference histories
-differ.
+Это свойство не считается реализованным лишь потому, что существует класс
+с именем «Belief». Оно доказано исполняемыми сценариями (см. §5).
 
-This property is not considered implemented merely because a class called
-"Belief" exists.
+### Игровое лицо — эпистемологический симулятор
 
-It must be demonstrated experimentally.
+ENIGMA — это игра, в которой главный ресурс — **знание**, а главная драма —
+рассогласование между тем, что произошло, тем, что видели агенты, и тем,
+во что они в итоге верят.
 
----
+Игроку противостоит не «скриптованный босс», а сообщество NPC, у каждого
+из которого есть:
 
-# 3. Objective truth vs subjective model
+- собственное восприятие мира (и только того, что он реально видел);
+- собственная память, которая накапливается, тускнеет и консолидируется;
+- собственные убеждения — в том числе **ложные**;
+- отношения, доверие и недоверие к конкретным персонажам;
+- потребности, тело, усталость, сон и смерть.
 
-The intended long-term architecture distinguishes at least three categories:
+Из этого следует геймплей, которого нет в классических RPG:
 
-## World truth
+- **можно лгать** — и ложь работает как каузальный механизм, а не как текст:
+  солганный факт становится убеждением NPC, меняет его решения и судьбу мира;
+- **можно управлять информацией**: сказать одному, скрыть от другого,
+  позволить свидетелю увидеть правду или не позволить;
+- **слухи и свидетельства распространяются** с искажениями и зависят от доверия
+  к источнику;
+- **последствия отложены и эмерджентны**: «победа» над NPC — это изменение его
+  убеждений, памяти и отношений, а не полоска HP;
+- **мир не сбрасывается**: Chronicle мира append-only, память NPC переживает
+  сохранение/загрузку и рестарт сессии.
 
-What actually happened in the simulation.
-
-Example:
-
-    A stole the ring from B.
-
-## Agent observation
-
-What an agent actually had access to.
-
-Example:
-
-    B saw A near the ring.
-
-    C was not present.
-
-## Agent belief
-
-What the agent currently considers true.
-
-Example:
-
-    B believes A stole the ring.
-
-    C believes B stole the ring.
-
-The engine must never silently collapse these into one state.
+Цель в игровой плоскости — не «пройти игру», а проживать **разные каузальные
+фьючерсы одного и того же мира**, управляя не только действиями, но и тем,
+кто что знает.
 
 ---
 
-# 4. Current implementation
+## 2. Онтология: истина, наблюдение, убеждение
 
-The current codebase contains a functioning causal simulation substrate.
+Движок никогда не схлопывает три категории в одно состояние:
 
-The strongest currently demonstrated areas are:
+| Категория | Что это | Пример |
+|---|---|---|
+| **World truth** | Что произошло в симуляции | A украл кольцо у B |
+| **Observation** | К чему агент имел доступ | B видел A рядом с кольцом; C не присутствовал |
+| **Belief** | Во что агент верит сейчас | B верит, что украл A; C — что украл B |
 
-- tick orchestration;
-- state mutation;
-- NPC decision scoring;
-- needs;
-- drives;
-- relationships;
-- spatial behavior;
-- combat effects;
-- stress / affect;
-- identity pressure;
-- persistence;
-- economic modifiers;
-- long-horizon sandbox execution;
-- causal validation;
-- **epistemic divergence** (three-agent «Double Truth» scenario);
-- **epistemic causal chain** (Belief → Decision);
-- **observation divergence** (different agents observe different events);
-- **decision divergence** (different beliefs produce different decisions);
-- **second-order observation** (NPC_A's action cascades to NPC_B's belief);
-- **second-order Theory of Mind attribution** (NPC_B believes NPC_A asserts P);
-- **epistemic persistence** (beliefs survive save/load and GameLoop restart);
-- **perception membrane hardening** (agents cannot bypass the perception layer);
-- **modifier composition** (additive, layer-stacked decision deformation);
-- **modifier commutativity** (order-independent scoring);
-- **action / world-event causation** (Belief → Task → Scheduled World Event).
+Доказанный эталонный сценарий (SUPERBOX, «Double Truth»):
 
-The `backend/tests/sandbox/SUPERBOX` directory contains dedicated research
-tools for NPC simulation, causal validation, drift analysis, behavior
-experiments and stress testing.
+    WORLD TRUTH:  A украл X у B.
+    B:            видел кражу → верит, что украл A.
+    C:            не видел. A говорит C: «X украл B». C доверяет A.
+    РЕЗУЛЬТАТ:    B и C действуют по-разному в одном и том же мире:
+                  C действует против B из-за ложного убеждения,
+                  B считает виновником A.
 
-The `backend/tests/sandbox/SUPERBOX/scenarios` directory holds the executable
-evidence scenarios for the epistemic architecture. Each `SUPERBOX-NNN` scenario
-proves one causal contract of the belief→decision→action→world-change chain.
-These scenarios are part of the project's evidence layer and double as the
-acceptance gate for epistemic claims.
+Разные убеждения → разные решения → разные фьючерсы. Это доказано, а не
+предположено.
 
 ---
 
-# 5. What is NOT currently claimed as implemented
+## 3. Игровой контур: как это выглядит для игрока
 
-The following are research targets unless directly backed by executable code
-and a passing validation scenario:
+- **Клиент:** pygame (`frontend/`, точка входа `game_launcher.py`) — сцена таверны
+  и окрестностей, кампания `Open_road`, рендер, speech bubbles, карты персонажей,
+  встроенный редактор карт (`frontend/map_editor/`).
+- **Ввод:** свободный текст; локальный LLM-сервер (`scripts/llm_server_manager.py`,
+  llama-server) интерпретирует реплику игрока в структурированное действие.
+- **Embodiment:** игрок подчиняется тем же законам, что и NPC: HP, сон, смерть —
+  через единый SSOT (`VitalStateEvaluator`), никаких «игроков вне физики».
+- **Мембрана восприятия:** NPC знает только то, что прошло через его восприятие;
+  обойти слой восприятия нельзя (архитектурный запрет, линтер + тесты).
+- **Слова становятся памятью:** сказанная NPC реплика попадает в его
+  `ExperienceTrace` → `WorkingMemory` и переживает рестарт сессии (доказано в
+  живом прогоне: proposition «Надеюсь, они не придут сюда» пережил рестарт).
+- **Между интерпретацией и состоянием стоит шлюз:** ни одна сгенерированная LLM
+  фраза не становится фактом мира без детерминированной авторизации
+  (`DeltaGate`, доктрина «LLM — медленный консультант, не SSOT»).
 
-- predictive perception kernel;
-- information-theoretic surprise;
-- full predictive-processing loop;
-- 4D belief representation;
-- BELIEVES predicates;
-- prophecy causality;
-- self-fulfilling prophecy;
-- semantic LLM cache;
-- BGE / FAISS semantic retrieval;
-- formal Dialogue Response Integrity;
-- neural ADR classifier;
-- Active Inference integration;
-- full self-model;
-- counterfactual reasoning.
-
-> Note: Second-order Theory of Mind is no longer in this list — it has been
-> proven by `SUPERBOX-014` (Second-Order Attribution). First-order epistemic
-> divergence, observation divergence, decision divergence, persistence and
-> the full Belief → Decision → Action → World-Event causal chain are likewise
-> proven by the `SUPERBOX-NNN` scenarios under
-> `backend/tests/sandbox/SUPERBOX/scenarios`.
-
-A roadmap entry is not evidence of implementation.
-
-A class name is not evidence of semantics.
-
-A metric is not evidence unless its computation is traceable to the claimed
-property.
+Игровой прогресс здесь измеряется не уровнем персонажа, а **изменением эпистемического
+ландшафта мира**: что NPC помнят, во что верят, кому доверяют и как это меняет
+их поведение.
 
 ---
 
-# 6. Evidence standard
+## 4. Что реально реализовано (по коду, V.0.5.3.9.5)
 
-ENIGMA follows a strict rule:
+| Подсистема | Что делает | Доказательство |
+|---|---|---|
+| Tick-оркестрация | `tick_orchestrator` (13 фаз), `npc_tick_pipeline` — pure reducer, единственный execution kernel | 10/10 фаз тика живы (Фаза A AG1), IPT 45/45 |
+| Решения NPC | `decision_hub` — utility-скоринг интентов; Behavioral Closure в работе | Smoke: 6/6 NPC выдают решения |
+| Восприятие | Мембрана восприятия, topology-тесты | `SUPERBOX` perception-сценарии |
+| Отношения | Relationship Engine v2, RAM-authoritative runtime (writers+readers+bootstrap) | 202 теста, RelationshipWriteGate |
+| Память | `ExperienceTrace` (провенанс TESTIMONY), `WorkingMemory` (decay, floor=is_compressed), `MemoryCrystal` (EMRL E1) | 40 замков `backend/tests/test_phase_a_memory_fixes.py` |
+| Каузальный шлюз | `DeltaGate` + `StateDeltaProposal`: whitelist, клампы, идемпотентность, `EXPERIENCE_DELTA_COMMITTED` (EMRL E2.0-a/b) | 40/40 тестов, живой провод в `reaction_subscriber` |
+| Мир-субстрат | `architecture/world.yaml`, `WorldObjectStore`, топология объектов (W-TRACK, dormant-substrate) | 30 тестов + INV в IPT |
+| Идентичность | `L1Chronicle` — append-only SQLite; `BeliefCrystallizationEngine` (L2.5, травма ×6); `EffectiveDrives` (L3) | `lint_l1_append_only`, ADR-O-208/307 |
+| Тело | Потребности, сон (sleep-машина верифицирована), действие/Commitment, `ActionWindup`, смерть | S235/S236, IPT |
+| Экономика/бой | Модификаторы экономики, бой, вердикты VitalState | SUPERBOX-инварианты |
+| Диалоги | LLM-диалоги, DialogueQueue, локальный llama-server | `startup_timing.log: backend_ok=True, llm_ok=True` |
+| Наблюдаемость | CDS: DNA-метрики (SHI, NPI, SCF, DRI, BCI), `reports/LAST_SESSION.md`, DriftLab (replay/дрейф) | `backend/tests/sandbox/SUPERBOX/run` |
+| Клиент/инструменты | pygame-клиент, Map Editor, терминальный кокпит памяти (`terminal_cockpit.py`) | запускаются штатно |
 
-> A system is implemented only when its behavior is observable and
-> reproducibly testable.
-
-For every architectural claim there must eventually exist:
-
-    CLAIM
-      ↓
-    CODE
-      ↓
-    CALL PATH
-      ↓
-    TEST
-      ↓
-    OBSERVABLE RESULT
-
-For example:
-
-Bad:
-
-    "Belief Layer implemented."
-
-Good:
-
-    "NPC A and NPC B receive different observations of the same event.
-     Their persisted beliefs diverge.
-     Their subsequent decisions diverge because of those beliefs.
-     The divergence survives at least N ticks and survives save/load."
+Ключевые константы качества: **IPT 45/45** (инвариантные пробы ядра, ~5 сек),
+профильные линтеры `scripts/lint_*.py` (silent failures, relationship engine,
+kernel RNG, L1 append-only, epistemic boundary, spatial SSOT, wall clock,
+frontend isolation — все зелёные).
 
 ---
 
-# 7. Current architectural layers
+## 5. Сценарии-доказательства (SUPERBOX)
 
-The currently implemented architecture should be understood approximately as:
+`backend/tests/sandbox/SUPERBOX/scenarios` — исполняемый слой доказательств,
+одновременно являющийся acceptance-гейтом для эпистемических утверждений.
+Каждый сценарий доказывает один каузальный контракт цепочки
+Belief → Decision → Action → World Event:
+
+- эпистемическая дивергенция («Double Truth», три агента);
+- дивергенция наблюдений и решений;
+- атрибуция второго порядка (NPC_B верит, что NPC_A утверждает P) — `SUPERBOX-014`;
+- персистентность убеждений сквозь save/load и рестарт GameLoop;
+- жёсткость мембраны восприятия (обход слоя запрещён);
+- композиция и коммутативность модификаторов скоринга;
+- каузация действие → world-event (Belief → Task → Scheduled World Event).
+
+---
+
+## 6. Что НЕ заявлено как реализованное
+
+Исследовательские цели, если прямо не подтверждены кодом и проходящим
+сценарием:
+
+- предиктивное ядро восприятия, информационно-теоретический surprise,
+  полный predictive-processing loop;
+- 4D-представление убеждений, BELIEVES-предикаты, каузальность пророчеств;
+- полноценная Theory of Mind как система (второй порядок доказан
+  сценарием, но как постоянный слой не построен);
+- Active Inference, контрфактическое рассуждение, полный self-model;
+- фракции, полноценная экономика/политика как системы;
+- полный Behavioral Closure (BC-1…BC-12) и Unified Appraisal (EM-1…EM-7) —
+  спроектированы в роадмапе, не замкнуты.
+
+Статусы документации: **IMPLEMENTED** (код + валидационный сценарий),
+**PARTIAL** (инфраструктура есть, контракт не доказан), **PROPOSED**
+(дизайн/гипотеза). Запись в роадмапе не является доказательством
+реализации; имя класса не является доказательством семантики.
+
+---
+
+## 7. Архитектура (реализованные слои)
 
     WORLD / SNAPSHOT
           ↓
-    PERCEPTION / EVENT PROCESSING
+    PERCEPTION / EVENT PROCESSING   (мембрана восприятия)
           ↓
-    NPC STATE
+    NPC STATE (тело, потребности, drives)
           ↓
-    NEEDS / DRIVES
+    MEMORY (ExperienceTrace → WorkingMemory → MemoryCrystal)
           ↓
-    DECISION HUB
+    BELIEF (кристаллизация, провенанс, DeltaGate)
           ↓
-    ACTION / MOVEMENT
+    DECISION HUB (utility-скоринг)
           ↓
-    STATE MUTATION
+    ACTION / MOVEMENT / TASK SCHEDULER
           ↓
-    PERSISTENCE / CHRONICLE
+    STATE MUTATION (+ World Events)
+          ↓
+    PERSISTENCE (Snapshot + L1Chronicle, append-only)
+
+К нему подключены: отношения (RE v2), экономика-модификаторы, бой,
+идентичность, восстановление, replay/DriftLab, LLM-диалоги.
+
+Ключевые архитектурные истины:
+
+1. **Truth = Snapshot + Chronicle.** Состояние эфемерно, идентичность —
+   append-only. Асимметричная онтология — не баг.
+2. **Time & Physics разрешаются только в Causal Kernel.**
+3. **Мембрана восприятия** — единственный путь мира в голову агента.
+4. **Symptom ≠ Cause** — чинят pipeline node, а не UI.
+5. **Vacuum = local rupture, not global zero** — Unknown ≠ Neutral 0.0.
+6. **«Паттерн, не субстанция»** — человеческие категории («влюблённость»,
+   «адаптация», «месть») не вводятся как состояния-сущности; каждая обязана
+   доказать каузальную работу (anti-Bond test), иначе — derived-операция.
+7. **Renderer не является источником истины о мире** (W-TRACK).
+
+## 8. Роль LLM
+
+LLM — не субстрат интеллекта ENIGMA. Детерминированный движок владеет
+состоянием, временем, каузальностью, восприятием, памятью, убеждениями,
+решениями и персистентностью. LLM — «медленный консультант»: он даёт
+интерпретацию языка, реализацию диалога и нарративную подачу.
+
+Быстрый мир (тики) никогда не ждёт медленного интеллекта (ADR-O-377,
+две скорости). Между интерпретацией и состоянием стоит `DeltaGate`:
+сгенерированная фраза не может создать факт мира без детерминированной
+авторизации мутации.
+
+## 9. Детерминизм и качество
+
+- Единственный источник случайности в kernel — `KernelRNG(tick, npc_id, salt)`;
+  `random.*` и `time.time()` в kernel-слое запрещены (`lint_kernel_rng`).
+- Целевая формула воспроизводимости: `initial state + seed + player actions +
+  tick sequence → reproducible simulation`.
+- Replay-валидация различает структурную дивергенцию, каузальную дивергенцию,
+  численный дрейф и косметический джиттер. Известный открытый долг:
+  DEBT-QUIESCE (async-interleaving недетерминизм) — задокументирован в роадмапе.
+- Observability никогда не мутирует состояние; тихие отказы запрещены
+  (`lint_silent_failures`).
+
+## 10. Стандарт доказательства
+
+Система считается реализованной только когда её поведение наблюдаемо и
+воспроизводимо проверяемо:
+
+    CLAIM → CODE → CALL PATH → TEST → OBSERVABLE RESULT
+
+Плохо: «Belief Layer implemented».
+Хорошо: «NPC A и NPC B получают разные наблюдения одного события; их
+персистентные убеждения расходятся; их последующие решения расходятся
+из-за этих убеждений; дивергенция переживает N тиков и save/load».
+
+Что считалось бы провалом проекта: все агенты видят объективную истину;
+убеждения — алиасы состояния мира; диалог утверждает убеждение, а движок
+его не использует; LLM изобретает факт, которому нет пути в состоянии.
+
+## 11. Запуск
+
+| Что | Команда | Время |
+|-----|---------|-------|
+| Проверить baseline ядра | `python backend/tests/IPT.py` | ~5 сек |
+| 3 тика без UI | `cd backend && python -m tests.sandbox.SUPERBOX.run drift quick_debug` | ~10 сек |
+| 200 тиков (стресс) | `cd backend && python -m tests.sandbox.SUPERBOX.run drift mass_traversal` | ~60 сек |
+| Запустить игру | `python game_launcher.py` | — |
+| Все unit-тесты | `cd backend && python -m pytest tests/ -v` | ~30 сек |
+| Профильные линтеры | `python scripts/lint_wall_clock.py` (и др. `lint_*`) | ~2 сек |
+
+Требования: Python 3.x (в репозитории — `payload/python`), локальный
+LLM-сервер для диалогов (менеджер: `scripts/llm_server_manager.py`).
+
+## 12. Документация
+
+| Документ | Роль |
+|---|---|
+| `docs/ENIGMA_ROADMAP.md` | Актуальная дорожная карта (v3.0): текущая точка, фазы, реестр долгов |
+| `docs/QUICKSTART.md` | Карта файлов и архитектурный гайд для разработчиков |
+| `docs/00_CAUSAL_CONTRACT_v3.0.md` | Высший закон: онтология и запреты |
+| `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md` | Иерархия слоёв, фазовая модель, законы |
+| `docs/ADR (Architecture Decision Records).md` | Реестр архитектурных решений |
+| `docs/MUTATIONS.md` | Журнал изменений сессий |
+| `reports/LAST_SESSION.md` | DNA-метрики и красные инварианты последней сессии |
+
+## 13. Текущая точка и дорожная карта
+
+Актуальный план — `docs/ENIGMA_ROADMAP.md` (v3.0). Положение на 2026-09-03:
+
+- **Фундамент памяти закрыт** (Фаза A: все P0 аудита V.0.5.3.9.3, 10/10 фаз
+  тика живы, речь NPC становится памятью).
+- **EMRL E1 (шина опыта) закрыта**, **E2.0-a/b (DeltaGate) закрыты**;
+  следующий шаг — **E2.0-c** (каузальный экзамен SUPERBOX), затем
+  Behavioral Closure **BC-1…BC-12**.
+- **RE-01 M1b**: V2 RAM-authoritative runtime жив; открыты M1b.3.3–3.7,
+  M1b.5, M2/D.
+- **W-TRACK**: субстрат WORLD-домена положен (dormant-substrate); дальше
+  W2 AffordanceResolver, W3 transition_object.
+- Дальше (по фазам): Unified Appraisal, Predictive Perception/Surprise,
+  Temporal Identity, Общество (Factions/Economy/Politics), Bounded
+  Rationality, контент и презентация.
 
-Additional systems attach to this pipeline:
+Принцип развития: **не строить следующую абстракцию, пока предыдущий
+эксперимент не докажет, что симуляция её требует**:
 
-    relationships
-    economy
-    combat
-    identity
-    recovery
-    memory
-    LLM dialogue
-    replay / drift analysis
+    observable behavior → causal requirement → minimal architecture →
+    implementation → validation
 
-This architecture is real.
+## 14. Лицензия
 
-The deeper epistemic architecture is no longer purely proposed — its
-foundational layer has been proven by the `SUPERBOX-NNN` scenarios
-(epistemic divergence, observation divergence, decision divergence,
-second-order attribution, persistence, perception membrane, modifier
-composition/commutativity, and the full Belief → Decision → Action →
-World-Event causal chain). The research frontier now is to deepen and
-harden that epistemic layer, not to build it from scratch.
+См. `LICENSE`.
 
----
-
-# 8. The research frontier
-
-The decisive question was never:
-
-    "Can ENIGMA have more systems?"
-
-It was:
-
-    "Can ENIGMA produce causal behavior from different internal models
-     of the same objective world?"
-
-That minimum experiment — a three-agent epistemic divergence scenario —
-has now been performed and passed by the `SUPERBOX` scenarios.
-
-The canonical form:
-
-    WORLD TRUTH:
-
-        A stole X from B.
-
-    A:
-        knows that A stole X.
-
-    B:
-        witnessed the theft.
-
-    C:
-        did not witness the theft.
-
-    A tells C:
-        "B stole X."
-
-    C trusts A.
-
-Result (proven, not expected):
-
-    Truth:
-        A stole X.
-
-    B belief:
-        A stole X.
-
-    C belief:
-        B stole X.
-
-B and C then produce different behavior from the same objective world
-because their beliefs diverge. C acts against B because of the false
-belief; B treats A as the culprit. The simulation has demonstrated the
-essential property ENIGMA was designed to investigate.
-
-The research frontier is therefore no longer to prove the core thesis.
-It is to harden it: longer horizons, larger agent populations, richer
-belief sources (testimony, inference, memory decay), and resistance to
-collapse under save/load and long-horizon drift.
-
----
-
-# 9. What would constitute failure
-
-The following are failures:
-
-- all agents access the same objective truth;
-- beliefs are merely aliases for world state;
-- beliefs are overwritten globally;
-- dialogue text says an agent believes something but the decision engine
-  does not use it;
-- belief differences do not affect behavior;
-- belief differences disappear on the next tick without causal reason;
-- save/load destroys the divergence;
-- the LLM invents the belief while deterministic simulation remains unaware
-  of it;
-- the test passes only because assertions inspect strings instead of state.
-
-The goal is not to generate convincing text.
-
-The goal is to generate different causal futures.
-
----
-
-# 10. LLM's role
-
-The LLM is not the intelligence substrate of ENIGMA.
-
-The deterministic engine owns:
-
-- state;
-- time;
-- causality;
-- perception;
-- memory;
-- belief;
-- decision;
-- action;
-- persistence.
-
-The LLM may provide:
-
-- language interpretation;
-- dialogue realization;
-- narrative expression.
-
-A generated sentence cannot create a world fact unless a deterministic
-simulation pathway accepts and validates the corresponding mutation.
-
----
-
-# 11. Determinism
-
-Determinism is an engineering requirement for the simulation core.
-
-The system should allow:
-
-    initial state
-        +
-    seed
-        +
-    player actions
-        +
-    tick sequence
-        ↓
-    reproducible simulation
-
-Cosmetic randomness must not be confused with causal nondeterminism.
-
-Replay validation must distinguish:
-
-- structural state divergence;
-- causal divergence;
-- numerical drift;
-- cosmetic movement jitter.
-
-A replay metric must never report "zero drift" merely because the comparison
-was skipped after an upstream failure.
-
----
-
-# 12. Documentation policy
-
-ENIGMA documentation uses three statuses.
-
-## IMPLEMENTED
-
-Executable code exists and a validation scenario demonstrates the claimed
-behavior.
-
-## PARTIAL
-
-Some infrastructure exists, but the complete semantic contract is not
-demonstrated.
-
-## PROPOSED
-
-The architecture is designed or hypothesized but is not implemented.
-
-Roadmap items are not implementation evidence.
-
----
-
-# 13. Current project position
-
-ENIGMA is a causal NPC/world simulation prototype with a proven foundational
-epistemic layer.
-
-The first major milestone — the central architectural thesis — has been met:
-
-    DIFFERENT BELIEFS → DIFFERENT DECISIONS → DIFFERENT FUTURES
-
-This is demonstrated, not hypothesized. The `SUPERBOX-NNN` scenarios under
-`backend/tests/sandbox/SUPERBOX/scenarios` are the executable evidence:
-epistemic divergence, observation divergence, decision divergence,
-second-order attribution, persistence across save/load, perception membrane
-hardening, modifier composition/commutativity, and the full
-Belief → Decision → Action → World-Event causal chain.
-
-ENIGMA is not yet a completed epistemic simulation engine. The remaining
-work is to harden and broaden the proven layer (longer horizons, richer
-belief sources, larger populations, drift resistance) before stacking
-additional predictive or counterfactual systems on top of it.
-
----
-
-# 14. Development principle
-
-Do not build the next abstraction because it is intellectually attractive.
-
-Build it because the previous experiment proves that the simulation requires it.
-
-The project therefore proceeds from:
-
-    observable behavior
-        ↓
-    causal requirement
-        ↓
-    minimal architecture
-        ↓
-    implementation
-        ↓
-    validation
-
-not:
-
-    theory
-        ↓
-    roadmap
-        ↓
-    names
-        ↓
-    presumed implementation
-
----
-
-# 15. License
-
-See repository license.

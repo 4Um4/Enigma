@@ -21,7 +21,10 @@ ResolutionLayer — стохастическое разрешение намер
 
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
+
+if TYPE_CHECKING:
+    from app.domain.identity_events import EffectiveDrives
 
 from app.core.constants import (
     BIAS_WEIGHT,

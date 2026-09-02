@@ -22,7 +22,7 @@ from typing import Dict, Optional, Tuple
 from app.domain.intent import IntentDTO
 from app.models.affect import AffectiveImprint, ResonanceProfile, ResponseBias
 from app.models.cfrm import PerceivedPhenomenon, PsychologicalPressure
-from app.models.will import IntentPressureProfile, WillState
+from app.models.will import IntentPressureProfile, WillResponseDTO, WillState
 
 logger = logging.getLogger(__name__)
 

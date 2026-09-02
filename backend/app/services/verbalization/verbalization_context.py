@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 
 from app.models.npc_state import (
     EmotionTag,
+    EventMemory,
     NPCState,
     WillState,
 )
