@@ -9,7 +9,7 @@ R1.1 + R5.3 — MemoryManager.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -74,18 +74,18 @@ class MemoryManager:
         # BUG-DL-07: Экземпляр DialogueConsolidator для суммаризации STM перед очисткой.
         self._dialogue_consolidator = DialogueConsolidator()
 
-    def switch_to_v2_relationships(self, campaign_id_hint: Optional[str] = None) -> None:
-        """M1b.4.2 cutover: memory_manager._relationships := V2RelationshipBackend
-        с late-bind. Вызывается ИЗ GameLoop.__init__ (до захвата подписчиками).
-        campaign_id_hint не используется для bind (кампания узнаётся при первом
-        init_scene_state) — параметр сохранён для читаемости call-site."""
+    def switch_to_v2_relationships(self, npc_provider: Optional[Callable] = None) -> None:
+        """M1b.4.2 cutover + M1b.3.2 npc_provider: _relationships :=
+        V2RelationshipBackend (RAM-authoritative, late-bind; lazy-bootstrap
+        через npc_provider закрывает второй прод-путь входа при живой
+        сцене). Вызывается ИЗ GameLoop.__init__ до захвата подписчиками."""
         from app.services.social.relationship_write_gate import RelationshipWriteGate
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
         _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731
-        self._relationships = V2RelationshipBackend(_provider)
+        self._relationships = V2RelationshipBackend(_provider, npc_provider=npc_provider)
         self._relationship_write_gate = RelationshipWriteGate(self._relationships)
-        logger.info("[M1b.4.2] V2 cutover: _relationships := V2RelationshipBackend (late-bind)")
+        logger.info("[M1b.4.2] V2 cutover: late-bind + npc_provider (M1b.3.2)")
 
     @property
     def working_memory(self) -> WorkingMemory:

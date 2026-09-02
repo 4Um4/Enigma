@@ -299,6 +299,17 @@ def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state:
                 _rel.sync_into_scene()
         except Exception as e:
             logger.warning(f"[M1b.4.2] migrate transform failed: {e}")
+    # M1b.3.2 (β): bootstrap из enriched NPC-диктов (кэш-проекция → RAM).
+    # Источник: npc_loader уже обогатил дикты (load_npcs_merged в loop);
+    # V2 поднимает результат, не читая village_relations.json сам.
+    try:
+        _npcs = loop._load_npcs() if hasattr(loop, "_load_npcs") else []
+        if _npcs:
+            _lifted = _rel.bootstrap_from_npc_dicts(_npcs)
+            if _lifted:
+                logger.info(f"[M1b.3.2] bootstrap → RAM: {_lifted} пар")
+    except Exception as e:
+        logger.warning(f"[M1b.3.2] bootstrap failed: {e}")
 
 
 # ── Публичные функции ─────────────────────────────────────────────────

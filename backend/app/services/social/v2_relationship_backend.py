@@ -63,6 +63,7 @@ class V2RelationshipBackend:
         self,
         scene_state_provider: Optional[Callable[[], Dict[str, Any]]] = None,
         campaign_id: Optional[str] = None,
+        npc_provider: Optional[Callable[[], list]] = None,
     ) -> None:
         """RAM-GO: _directed_ram — runtime authority (см. класс-докстринг).
         scene_state_provider — vestigial (удержан до доказательства
@@ -73,6 +74,7 @@ class V2RelationshipBackend:
         привязывает (см. _ensure_lazy_bind)."""
         self._scene_state_provider = scene_state_provider
         self._campaign_id = campaign_id
+        self._npc_provider = npc_provider
         self._directed_ram: Dict[str, Dict[str, float]] = {}
 
     def bind(self, campaign_id: str, scene_state: Optional[Dict[str, Any]] = None) -> None:
@@ -100,12 +102,78 @@ class V2RelationshipBackend:
                 f"запрещена (создавайте новый адаптер на кампанию)"
             )
 
+    def bootstrap_from_npc_dicts(
+        self,
+        npcs: list,
+    ) -> int:
+        """M1b.3.2 (ADR-RE-M1b.3, вердикт β): подъём relationship-bootstrap
+        из УЖЕ обогащённых NPC-диктов (npc_loader._enrich_... — единственный
+        владелец чтения village_relations.json; V2 не парсит конфиг сам —
+        «источник конфигурации читает один владелец; runtime authority
+        принимает нормализованный результат»).
+
+        Поднимает ТОЛЬКО 5 скаляров из relationship_cache-диктов NPC;
+        base_values / nature НЕ переносятся (decay-домен, не отношения:
+        loyalty_true ≠ trust — «baseline параметр дрейфа», не state).
+        Merge: existing-RAM-wins (setdefault-семантика loader'а сохранена).
+        Возвращает число поднятых пар."""
+        if self._campaign_id is None:
+            logger.warning("[V2_REL] bootstrap отклонён: адаптер не привязан")
+            return 0
+        lifted = 0
+        for npc in npcs:
+            if not isinstance(npc, dict):
+                continue
+            _src = npc.get("npc_id") or npc.get("id")
+            if not _src:
+                continue
+            _rc = npc.get("relationship_cache")
+            if not isinstance(_rc, dict):
+                continue
+            for _tgt, _vals in _rc.items():
+                if not isinstance(_tgt, str) or not _tgt or _src == _tgt:
+                    continue
+                if not isinstance(_vals, dict):
+                    continue
+                _entry = {
+                    _k: float(_v)
+                    for _k, _v in _vals.items()
+                    if _k in _LEGACY_SCALARS
+                    and isinstance(_v, (int, float))
+                }
+                if not _entry:
+                    continue
+                _key = f"{_src}→{_tgt}"
+                if _key not in self._directed_ram:  # existing-RAM-wins
+                    self._directed_ram[_key] = _entry
+                    lifted += 1
+        if lifted:
+            logger.info(f"[V2_REL] bootstrap: поднято {lifted} пар из NPC-диктов")
+            self.sync_into_scene()
+        return lifted
+
+
     def _ensure_lazy_bind(self, campaign_id: str) -> None:
-        """Lazy-привязка: непривязанный адаптер + осмысленный вызов → bind.
-        RAM-GO: сцена НЕ требуется (RAM-носитель жив без сцены — именно
-        это закрыло IPT-инцидент: update до первого тика обязан работать)."""
+        """Lazy-привязка + M1b.3.2 lazy-bootstrap: непривязанный адаптер +
+        осмысленный вызов → bind; если RAM пуст и есть npc_provider —
+        автоматический bootstrap из enriched-диктов. Закрывает ВТОРОЙ
+        прод-путь входа (resume/idle при живой сцене: init_scene_state
+        не вызывается, ленивый bind в Фазе 5 — единственная точка;
+        зонд-доказательство: idle-тик поднял 1 нулевую пару при 22
+        доступных базах)."""
         if self._campaign_id is None and campaign_id:
             self.bind(campaign_id)
+        # M1b.3.2: единый bootstrap для всех путей (идемпотентен:
+        # existing-RAM-wins; повторные вызовы безвредны)
+        if campaign_id == self._campaign_id and not self._directed_ram and self._npc_provider:
+            try:
+                _npcs = self._npc_provider()
+                if _npcs:
+                    _lifted = self.bootstrap_from_npc_dicts(_npcs)
+                    if _lifted:
+                        logger.info(f"[V2_REL] lazy-bootstrap: {_lifted} пар")
+            except Exception as e:
+                logger.warning(f"[V2_REL] lazy-bootstrap failed: {e}")
 
     # ── внутренняя навигация: RAM = runtime authority ──
 

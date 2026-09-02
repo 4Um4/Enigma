@@ -1129,6 +1129,18 @@ class TestRAMAuthorityLifecycle:
         assert v2.get_pair("camp", "player", "npc_friend")["trust"] == 80.0
         assert "x→y" not in v2._directed_ram
 
+    def test_lazy_bind_bootstraps_via_npc_provider(self):
+        """Второй прод-путь (idle/resume, init_scene_state минует): первый
+        API-вызов → lazy-bind + автоматический bootstrap из npc_provider."""
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        _npcs = [{"npc_id": "a", "relationship_cache": {"b": {"trust": 25.0}}}]
+        v2 = V2RelationshipBackend(lambda: {}, npc_provider=lambda: _npcs)
+        # Первый осмысленный вызов — всё происходит само:
+        v2.update("camp", "a", "c", {"trust": 5.0})
+        assert v2.get_pair("camp", "a", "b")["trust"] == 25.0  # bootstrap поднял
+        assert v2.get_pair("camp", "a", "c")["trust"] == 5.0   # и запись жива
+
 
 # ── 18. M1b.3.1: fallback DecisionHub удалён — кэш не источник истины ──
 
@@ -1168,3 +1180,74 @@ class TestDecisionHubFallbackRemoved:
         # Запись существует — читается (Vacuum ≠ «пусто навсегда»):
         v2.update("camp", "a", "b", {"trust": 10.0})
         assert v2.get_pair("camp", "a", "b")["trust"] == 10.0
+
+
+# ── 19. M1b.3.2: bootstrap из enriched-диктов → RAM (вердикт β) ──
+
+
+class TestBootstrapFromNpcDicts:
+    """«Источник конфигурации читает один владелец; runtime authority
+    принимает нормализованный результат». Поднимаются ТОЛЬКО 5 скаляров;
+    base_values/nature — decay-домен, в directed НЕ попадают;
+    existing-RAM-wins; после подъёма кэш — projection."""
+
+    ENRICHED = [
+        {
+            "npc_id": "maid_lusya",
+            "relationship_cache": {
+                "merchant_goran": {"trust": 30.0, "fear": 0.0,
+                                   "base_trust": 30.0, "nature": "collegial"},
+                "player": {"trust": 45.0, "fear": 5.0},
+            },
+            "base_values": {"merchant_goran": 30.0, "player": 50.0},
+        },
+        {
+            "npc_id": "guard_borko",
+            "relationship_cache": {
+                "thief_shadow": {"trust": -40.0, "fear": 60.0},
+            },
+        },
+    ]
+
+    def _v2(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        v2 = V2RelationshipBackend(lambda: {})
+        v2.bind("boot")
+        return v2
+
+    def test_bootstrap_lifts_only_five_scalars(self):
+        v2 = self._v2()
+        lifted = v2.bootstrap_from_npc_dicts(self.ENRICHED)
+        assert lifted == 3  # 3 пары: lusya→goran, lusya→player, borko→shadow
+        got = v2.get_pair("boot", "maid_lusya", "merchant_goran")
+        assert got["trust"] == 30.0 and got["fear"] == 0.0
+        # base_trust/nature НЕ в directed (decay-домен):
+        assert "base_trust" not in got and "nature" not in got
+        assert "base_trust" not in v2._directed_ram["maid_lusya→merchant_goran"]
+
+    def test_existing_ram_wins(self):
+        v2 = self._v2()
+        # RAM уже имеет пару (runtime-запись):
+        v2.update("boot", "maid_lusya", "merchant_goran", {"trust": 80.0})
+        v2.bootstrap_from_npc_dicts(self.ENRICHED)
+        # Bootstrap НЕ перезаписал (loader-семантика setdefault):
+        assert v2.get_pair("boot", "maid_lusya", "merchant_goran")["trust"] == 80.0
+
+    def test_vacuum_for_unknown_pair_after_bootstrap(self):
+        v2 = self._v2()
+        v2.bootstrap_from_npc_dicts(self.ENRICHED)
+        # Пары не было в enrichment → Vacuum:
+        assert v2.get_pair("boot", "merchant_goran", "maid_lusya") == {}
+
+    def test_unbound_adapter_rejects_bootstrap(self):
+        from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
+        v2 = V2RelationshipBackend(lambda: {})
+        assert v2.bootstrap_from_npc_dicts(self.ENRICHED) == 0  # guard: не привязан
+
+    def test_base_values_never_enter_ram(self):
+        v2 = self._v2()
+        v2.bootstrap_from_npc_dicts(self.ENRICHED)
+        for _entry in v2._directed_ram.values():
+            assert set(_entry.keys()) <= {"trust", "fear", "debt", "respect", "attraction"}

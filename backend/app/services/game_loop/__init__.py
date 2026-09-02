@@ -170,7 +170,13 @@ class GameLoop:
             # с late-bind; provider питается от _v2_scene_ref, который
             # наполняется в init_scene_state (первая сцена = первый bind).
             if memory_manager is not None:
-                memory_manager.switch_to_v2_relationships()
+                # M1b.3.2: npc_provider лямбдой на self — late-binding:
+                # _load_npcs присвоится ниже (:196), лямбда выполнится
+                # много позже (lazy-bootstrap при первом API-вызове) —
+                # порядок построения не нарушен
+                memory_manager.switch_to_v2_relationships(
+                    npc_provider=lambda: self._load_npcs()
+                )
             # P2 FIX: Проброс RelationshipStore в MVP-контроллер для эмерджентной драмы.
             _rel_store = memory_manager._relationships if memory_manager else None  # noqa: ENIGMA001
             self.mvp_controller = MvpTavernController(_canon_path, event_bus=get_event_bus(), relationship_store=_rel_store)
