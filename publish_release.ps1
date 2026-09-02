@@ -5,7 +5,11 @@
  $RepoOwner = "4Um4"
  $RepoName = "Enigma"
  $SetupScriptPath = "enigma_setup.iss"
- $VersionFile = "version.txt"
+# Корень проекта = папка, где лежит этот скрипт (абсолютные пути обязательны:
+# PS-командлеты используют текущее расположение, а .NET-методы — каталог
+# ПРОЦЕССА; они не совпадают, если скрипт запущен из другой папки).
+ $RootDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+ $VersionFile = Join-Path $RootDir "version.txt"
 
 Write-Host "🚀 Начинаем сборку и публикацию релиза Bloodloom..." -ForegroundColor Cyan
 
@@ -18,28 +22,50 @@ if (Test-Path "build") {
     New-Item -ItemType Directory -Path "build" | Out-Null
 }
 
-# 1. S210: версия. SSOT = frontend/constants.py (PROJECT_VERSION): первые
-# три сегмента. version.txt — ТОЛЬКО счётчик билдов (4-й сегмент); при смене
-# базы SSOT счётчик сбрасывается в 1. Фикс дрейфа «v0.5.3.7.15» при проекте 0.5.3.8.x.
- $consts = Get-Content "frontend\constants.py" -Raw
-if ($consts -notmatch 'PROJECT_VERSION:\s*str\s*=\s*"v?(\d+)\.(\d+)\.(\d+)') {
-    Write-Host "❌ SSOT версии не найден в frontend\constants.py (PROJECT_VERSION)!" -ForegroundColor Red; exit
+# 1. ВЕРСИЯ (фикс сломанной логики S210). version.txt — счётчик релизов из
+# 5 сегментов: первые два — фиксированный префикс (0.5), последние ТРИ катятся
+# как десятичный счётчик с переносом:
+#   0.5.3.9.6 → 0.5.3.9.7 → ... → 0.5.3.9.9 → 0.5.4.0.0 → 0.5.4.0.1 → ...
+#   ... → 0.5.4.0.9 → 0.5.4.1.0 → ... (и далее 0.5.9.9.9 → 0.5.10.0.0).
+# frontend/constants.py (PROJECT_VERSION) и backend/pyproject.toml синхронизируются.
+if (-not (Test-Path $VersionFile)) {
+    Write-Host "❌ Не найден $VersionFile — не от чего считать следующую версию!" -ForegroundColor Red; exit
 }
- $ssotBase = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
-
- $buildNum = 0
-if (Test-Path $VersionFile) {
-    $prev = (Get-Content $VersionFile -Raw).Trim().TrimStart('v').TrimStart('V')
-    $prevParts = $prev.Split('.')
-    if ($prevParts.Length -ge 4 -and (($prevParts[0..2] -join '.') -eq $ssotBase)) {
-        $buildNum = [int]$prevParts[3]
-    }
+ $prev = (Get-Content $VersionFile -Raw).Trim().TrimStart('v').TrimStart('V')
+ $parts = $prev.Split('.')
+if ($parts.Length -lt 5 -or ($parts | Where-Object { $_ -notmatch '^\d+$' })) {
+    Write-Host "❌ $VersionFile содержит '$prev' — ожидается 5 числовых сегментов (например 0.5.3.9.6)!" -ForegroundColor Red; exit
 }
- $buildNum++
- $NewVersion = "$ssotBase.$buildNum"
+ $versionPrefix = "$($parts[0]).$($parts[1])"
+ $counter = [int]$parts[2] * 100 + [int]$parts[3] * 10 + [int]$parts[4]
+ $counter++
+ $NewVersion = "$versionPrefix.$([math]::Floor($counter / 100)).$([math]::Floor(($counter % 100) / 10)).$($counter % 10)"
 
 Set-Content -Path $VersionFile -Value $NewVersion -NoNewline
-Write-Host "Версия обновлена: v$NewVersion (SSOT: $ssotBase, билд: $buildNum)" -ForegroundColor Yellow
+
+# Синхронизация SSOT-файлов с новым значением version.txt.
+# ВАЖНО: файлы в UTF-8 БЕЗ BOM и содержат кириллицу — читаем/пишем через .NET
+# с явной кодировкой UTF8Encoding($false), иначе PS 5.1 (ANSI по умолчанию) их побьёт.
+ $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+ $ConstsPath = Join-Path $RootDir "frontend\constants.py"
+ $consts = [System.IO.File]::ReadAllText($ConstsPath, $Utf8NoBom)
+if ($consts -notmatch 'PROJECT_VERSION:\s*str\s*=\s*"v?(\d+)\.(\d+)\.(\d+)') {
+    Write-Host "❌ PROJECT_VERSION не найден в $ConstsPath!" -ForegroundColor Red; exit
+}
+ $constsBase = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+if ($constsBase -ne "$($parts[0]).$($parts[1]).$($parts[2])") {
+    Write-Host "⚠️ База PROJECT_VERSION в $ConstsPath ($constsBase) расходится с $VersionFile ($versionPrefix.$($parts[2]).x) — синхронизирую по version.txt." -ForegroundColor Yellow
+}
+ $consts = $consts -replace 'PROJECT_VERSION:\s*str\s*=\s*"[^"]*"', "PROJECT_VERSION: str = `"v$NewVersion`""
+[System.IO.File]::WriteAllText($ConstsPath, $consts, $Utf8NoBom)
+
+ $PyProjectPath = Join-Path $RootDir "backend\pyproject.toml"
+if (Test-Path $PyProjectPath) {
+     $py = [System.IO.File]::ReadAllText($PyProjectPath, $Utf8NoBom)
+     $py = $py -replace '(?m)^(\s*version\s*=\s*)"[^"]*"', "`$1`"$NewVersion`""
+    [System.IO.File]::WriteAllText($PyProjectPath, $py, $Utf8NoBom)
+}
+Write-Host "Версия обновлена: v$NewVersion (счётчик: $versionPrefix + $($parts[2]).$($parts[3]).$($parts[4]) -> $([math]::Floor($counter / 100)).$([math]::Floor(($counter % 100) / 10)).$($counter % 10))" -ForegroundColor Yellow
 
 # 2. Компиляция Bloodloom.exe и Splash Screen
 Write-Host "🔨 Компиляция Bloodloom.exe и Splash Screen..." -ForegroundColor Cyan
