@@ -26,13 +26,7 @@ from typing import Dict, List, Optional
 
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.character import CharacterProfile
-from app.models.npc_state import (
-    EmotionTag,
-    NPCState,
-    WillState,
-    _emotion_from_str,
-    _pk_from_dict,
-)
+from app.models.npc_state import BODY_STATE_HEALTHY, NPCState, WillState, _emotion_from_str, _pk_from_dict
 from app.models.physical import Condition, Wound
 from app.models.schemas import CharacterSheet
 
@@ -137,7 +131,14 @@ class PlayerAvatarService:
         # Аватарная психика как домен — DEBT-R10 (vertical slice).
         _default = NPCState(
             npc_id=player_name,
-            body_state={"money": 48},
+            # AG1-D5 FIX (Stage B): NPC-паритет тела — аватар чистого мира
+            # получает здоровое тело как NPC (game_loop:921, life_engine:749,
+            # npc_loader:336), а не эконом-словарь. money — начальный капитал
+            # поверх здоровья. Construction-time self-write легален (guard:
+            # app.models.npc_state.__init__ — S208-прецедент этого же метода).
+            # ДО: {'money': 48} → effective_hp=0.0 (fallback npc_state:796,
+            # семантика DISABLED) + life_status ABSENT → Death Guard 'ALIVE'.
+            body_state={**BODY_STATE_HEALTHY, "money": 48},
         )
 
         # S-93 AVATAR_RESISTANCE: аватар должен сопротивляться действиям, противоречащим его природе
