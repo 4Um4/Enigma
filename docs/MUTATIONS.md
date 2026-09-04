@@ -878,6 +878,14 @@ services/npc/l1_chronicle.py; belief: npc_loader (beliefs round-trip);
 
 IPT: ✅ 45/45 (весь путь). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴.
 
+### S239: W-track G2 v1 — Affordance Producer-Facts, первый живой мост W2→решение (ADR-O-378) | ✅ IPT 45/45, W-контур 124+1skip, GORAN β G2 GREEN
+🎯 Гейт G2 (второй из трёх): W2-факты → производный каузальный факт → СУЩЕСТВУЮЩИЙ канал решения. Вердикты PRE-FLIGHT исполнены: Г3=A″-lite+C (C не начат — бюджет ушёл на честность GORAN-итераций); Г1=канал b1′ (полный сет в хаб не тащится — интерфейс под несуществующего потребителя; weapon_access = документированный DATA-стаб ADR-O-366 → DEBT-OPP-PRODUCER закрыт); Г2=proof-стандарт Мастера (production honest-zero = sanity-gate; доказательство = только controlled-scene).
+⚙️ Домен/канал: affordance_facts.py (pure продюсер из замороженного снапшота: WEAPON_ARCHETYPES policy класс-S211; факт = holder ∨ FREE∧IS_ADJACENT_TO — предикат из закрытого реестра W2, lockstep 1.5м; W2-резолвер не расширен — unknown-archetype=KeyError by design) → TickState.affordance_facts_map (frozen preloaded) → NpcTickPipeline: weapon_access=факт (пустая карта = байт-идентично False; сигнатуры DecisionHub не менялись — anti-race-зона была чиста). Флаг W3_G2_ENABLED default OFF=no-op; отказ продюсера = пустая карта (§11). GORAN β G2 (scripts/w3_g2_simple.py, 7×200, INVALID RUN-guard): GREEN — honest-zero, B-молчание, W hits=199/199 + persisted; engine-флип 0.50→0.70 (Δ=W_WEAPON) юнит-доказан; steal-флип условен по will-гейту (цели STEAL — W5/W6).
+⚙️ Методология-хроника (4 честных отказа, ноль ложных GREEN, все пойманы гвардами): (1) bootstrap-квант дочерних процессов (sys.path-фикс); (2) H1: get_scene_state вне тика перезаливает из persistence — инъекция только через save-контур; (3) H5: build_game_loop читает saves_dir из ГЛОБАЛЬНЫХ settings (data_dir его НЕ задаёт!) — прогоны №1–3 мутировали общий ROOT/saves/enigma_runtime.db = production-store (~2800 тиков эволюции чужого мира + weapon-артефакт, устранён перезаписью их живой сессией; исходное состояние невосстановимо — эскалация Мастеру); (4) H6: stale-парсинг sqlite-строки. Лечение: settings.saves_dir=str(temp) до build в дочернем — полная изоляция; terminal-дрейф 65→42 = артефакт общего store (канонический S237-класс восстановлен), НЕ регрессия ядра. G1-оговорка: w3_shadow_simple.py (S237) имел тот же дефект — 10 G1-профилей эволюционировали один мир; вердикт G1 валиден (тень=ноль writers), семантика изоляции — нет; все будущие A/B-харнессы обязаны патчить settings.saves_dir.
+📁 backend/app/services/world/affordance_facts.py, backend/app/domain/tick.py, backend/app/services/pipeline_runner.py, backend/app/services/tick_orchestrator.py, backend/app/services/npc/npc_tick_pipeline.py, backend/tests/test_affordance_facts.py (23), scripts/w3_g2_simple.py, reports/w3g2_*.json + reports/w3g2_run_history/, docs/audits/ADR-O-378_IMPACT.md
+⚠️ ЧУЖАЯ ЗОНА (ретрансляция Мастеру): (1) F821 Intent npc_tick_pipeline:696 — runtime-достижимый latent NameError (Bridge-7-регион, зона Память-серии; их TYPE_CHECKING-mypy-доводка не лечит runtime); (2) data/replay.db = 754 МБ / 68k snapshots / 20k llm_calls — рост без ротации; (3) INCIDENT: production-store ROOT/saves эволюционировал харнессом до изоляции — координация с Память_3 (new-game reset или признать эволюцию); (4) ENIGMA_ROADMAP W-раздел отстаёт (W2/W3 показаны открытыми — закрыты S232/S237/S239); (5) анти-race: ADR-O-377 занят их Non-Blocking Intelligence — мой пакет был поглощён их full-save d92e8d1c под чужим номером в комментах, сдвиг O-378 propagate'нут (13 сайтов); (6) TEst_Result.md (D) / «Правила Фикса БАГОВ.md» (M) — чужие правки, не атрибутированы мной.
+IPT: ✅ 45/45 (гейты до/после док-мутаций). КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
@@ -887,4 +895,6 @@ IPT: ✅ 45/45 (весь путь). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 
 *   **Infra:** `PBT-ROUNDTRIP`, `ADR-NET`, `REPLAY-STORE`, `REPLAY-DETERMINISM` (WARN), `SAVE-LOAD-INTEGRITY`, `EVENT-CARDINALITY`
 
 ---
+
+
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*

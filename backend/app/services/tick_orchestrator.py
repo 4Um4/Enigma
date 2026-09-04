@@ -1868,7 +1868,7 @@ class TickOrchestrator:
         _life_engine = self._get_life_engine()
         _idle_pressure_map = _life_engine.get_idle_pressure_map() if _life_engine else {}
 
-        # ADR-O-377 (G2 v1, канал b1′): продюсер per-NPC фактов W2 из
+        # ADR-O-378 (G2 v1, канал b1′): продюсер per-NPC фактов W2 из
         # замороженного снапшота тика — тот же вход, что у G1-тени (:797).
         # OFF (W3_G2_ENABLED, default) = пустая карта без вычислений;
         # отказ продюсера = пустая карта (D5) — деградация канала, не тика.
@@ -1902,7 +1902,7 @@ class TickOrchestrator:
             idle_pressure_map=_idle_pressure_map, # V8-SOC-5 FIX
             epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core  # noqa: ENIGMA002
             epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core  # noqa: ENIGMA002
-            affordance_facts_map=_affordance_facts_map, # ADR-O-377 (G2 v1): preloaded факты W2
+            affordance_facts_map=_affordance_facts_map, # ADR-O-378 (G2 v1): preloaded факты W2
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)

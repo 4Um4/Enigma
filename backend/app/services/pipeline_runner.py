@@ -37,7 +37,7 @@ def build_tick_state(
     idle_pressure_map: Optional[Any] = None, # V8-SOC-5 FIX: Инъекция idle_pressure
     epistemic_store: Optional[Any] = None, # S189: Инъекция EpistemicStore
     epistemic_context_resolver: Optional[Any] = None, # S189: Инъекция EpistemicContextResolver
-    affordance_facts_map: Optional[Dict[str, bool]] = None, # ADR-O-377 (G2 v1): preloaded факты W2
+    affordance_facts_map: Optional[Dict[str, bool]] = None, # ADR-O-378 (G2 v1): preloaded факты W2
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
     
@@ -87,7 +87,7 @@ def build_tick_state(
         idle_pressure_map=idle_pressure_map, # V8-SOC-5 FIX
         epistemic_store=epistemic_store, # S189: Epistemic Core
         epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
-        affordance_facts_map=affordance_facts_map, # ADR-O-377 (G2 v1): pass-through
+        affordance_facts_map=affordance_facts_map, # ADR-O-378 (G2 v1): pass-through
     )
     return _tick_state
 

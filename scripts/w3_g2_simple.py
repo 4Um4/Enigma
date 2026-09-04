@@ -1,6 +1,6 @@
 """
 path: scripts/w3_g2_simple.py
-Назначение: GORAN beta G2 (ADR-O-377) — A/B/C-контур behavior-changing
+Назначение: GORAN beta G2 (ADR-O-378) — A/B/C-контур behavior-changing
     гейта, критерии Мастера (PRE-FLIGHT Г2): (1) sanity/integration —
     production ON = честный ноль (weapon-архетипов в кампании нет;
     позиционные диффы OFF/ON не выходят за OFF/OFF-фон — ambient

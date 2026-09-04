@@ -1,6 +1,6 @@
 """
 path: backend/app/services/world/affordance_facts.py
-Назначение: ADR-O-377 (G2 v1, канал b1' producer-facts) — чистый продюсер
+Назначение: ADR-O-378 (G2 v1, канал b1' producer-facts) — чистый продюсер
     per-NPC производных фактов W2 из ЗАМОРОЖЕННОГО снапшота тика.
     v1-факт: weapon_access — семантика OpportunityContext («NPC держит
     оружие или оно в радиусе вытянутой руки»): holder == npc_id V
@@ -30,7 +30,7 @@ from app.services.world.world_objects_projection import project_world_objects
 
 logger = logging.getLogger(__name__)
 
-# ── Policy-таблица v1 (мини-ADR-запись ADR-O-377; класс S211) ────────
+# ── Policy-таблица v1 (мини-ADR-запись ADR-O-378; класс S211) ────────
 # КАЛИБРОВКА, НЕ ОНТОЛОГИЯ. Производственный контент оружием не спавнит
 # (editor-JSON 18 типов, weapon-архетипов нет) — таблица пустой не
 # делается: controlled-scene GORAN β спавнит archetype="weapon" напрямую

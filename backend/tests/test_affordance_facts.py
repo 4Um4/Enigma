@@ -1,6 +1,6 @@
 """
 path: backend/tests/test_affordance_facts.py
-Назначение: Тесты ADR-O-377 (G2 v1, канал b1′ producer-facts) —
+Назначение: Тесты ADR-O-378 (G2 v1, канал b1′ producer-facts) —
     AffordanceSet -> производный факт weapon_access -> OpportunityContext.
     Гварды: (1) truth table D6 (holder ∨ FREE∧adjacent≤1.5м) на РЕАЛЬНЫХ
     структурах (WorldObjectStore.spawn + BODY_STATE_HEALTHY, §12.4 —

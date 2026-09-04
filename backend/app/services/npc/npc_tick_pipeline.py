@@ -589,11 +589,11 @@ class NpcTickPipeline:
             _opp_dist = state.spatial_query.distance_player(npc_id) if state.spatial_query else 999.0
             _opp_att = max(0.0, min(1.0, 1.0 - _opp_dist / _OPP_ATTENTION_RANGE_M))
             _opp_allies = len(getattr(_epistemic_ctx, "perceived_allies", ())) if _epistemic_ctx else 0
-            # ADR-O-377 (G2 v1, b1′ producer-facts): производный факт доступности
+            # ADR-O-378 (G2 v1, b1′ producer-facts): производный факт доступности
             # оружия из замороженного снапшота тика. Пустая карта (флаг OFF или
             # оружия в сцене нет) -> False, байт-идентично легаси-литералу.
             # DecisionHub остаётся object-agnostic: факт приходит данными.
-            # ADR-O-377: поле ЗАЯВЛЕНО в TickState (tick.py, P2) и заполняется
+            # ADR-O-378: поле ЗАЯВЛЕНО в TickState (tick.py, P2) и заполняется
             # оркестратором (P4); getattr-гвард (вставка параллельной сессии)
             # оставлен как защита частичного отката P3-без-P2: отсутствует =
             # оружие недоступно (консервативно).
