@@ -26,8 +26,9 @@ from typing import List, Optional
 _module_logger = logging.getLogger(__name__)
 
 _INSULTS_PATH = Path(__file__).parent.parent.parent.parent / "data" / "insults_ru.json"
+_INSULT_ROOTS: set[str]
 try:
-    _INSULT_ROOTS: set[str] = set(json.loads(_INSULTS_PATH.read_text("utf-8-sig"))["roots"])
+    _INSULT_ROOTS = set(json.loads(_INSULTS_PATH.read_text("utf-8-sig"))["roots"])
 except Exception as _insult_err:
     # ИСПРАВЛЕНО: раньше empty set молча глотал ошибку → оскорбления
     # не распознавались без видимой причины. Теперь WARN в лог.
@@ -35,7 +36,7 @@ except Exception as _insult_err:
         f"[DM_ROUTER] insults_ru.json not loaded ({_insult_err}). "
         f"Insult detection DISABLED. Path: {_INSULTS_PATH}"
     )
-    _INSULT_ROOTS: set[str] = set()
+    _INSULT_ROOTS = set()
 
 _DIRECTED_AT_PATTERN = re.compile(
     r"(?i)\b(ты|тебя|тебе|вас|вам|твой|твоя|твоё|твои|вы)\b"

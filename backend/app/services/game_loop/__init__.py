@@ -22,7 +22,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 from app.domain.tick import TickResultDTO
 from app.models.schemas import (
@@ -45,6 +45,11 @@ from app.services.tick_orchestrator import (
     TickOrchestrator,
     TickPlayerResultDTO,
 )
+
+if TYPE_CHECKING:
+    from app.contracts.interventions import InterventionEvent
+    from app.models.world_continuity import WorldContinuityMode
+    from app.models.world_state_diff import WorldStateDiff
 
 # ─────────────────────────────────────────────────────────────────────────────
 # R3 DIRECT MODE: DM как единственный источник речи

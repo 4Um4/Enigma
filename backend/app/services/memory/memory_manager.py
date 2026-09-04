@@ -60,10 +60,11 @@ class MemoryManager:
         # WRITE: только через apply_identity_weights()
         # V8-MEM-7 FIX: Загружаем identity_cache из SQLite/JSON при старте
         # Safe call: SqliteMemoryStore может не иметь load_state (legacy gap)
-        if hasattr(self._layered.store, "load_state"):
-            self._identity_cache: Dict[str, Dict[str, float]] = self._layered.store.load_state("identity_cache")
-        else:
-            self._identity_cache: Dict[str, Dict[str, float]] = {}
+        self._identity_cache: Dict[str, Dict[str, float]] = (
+            self._layered.store.load_state("identity_cache")
+            if hasattr(self._layered.store, "load_state")
+            else {}
+        )
         # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
         self._dialogue_sessions: Dict[str, DialogueSession] = {}
 

@@ -90,11 +90,43 @@ class BeliefState:
         """Читать убеждение. None если отсутствует."""
         return self._beliefs.get(key)
 
+    # E2.0-c/D3 (ADR-SSOT-EPISTEMIC): guard единственной точки записи.
+    # Экзамен доказал: beliefs.update открыт — прямая запись DANGER мимо
+    # BeliefTransitionEngine/DeltaGate проходит молча. Легальные writer'ы
+    # по цензусу E2.0-c: два R8-канала (BTE — тиковая ветка, генерирует
+    # BeliefDelta; CoherenceBeliefAggregator — pattern-based) + загрузчик
+    # персистенции + сам модуль. Тестовые исключения — по цензусу;
+    # causal_state_test сюда НЕ вносить: его D3-атака обязана поднимать
+    # ArchitecturalViolationError (замок экзамена).
+    _UPDATE_ALLOWED_WRITERS = {
+        "app.models.npc.beliefs",
+        "app.models.npc_state",          # загрузка psyche["beliefs"] (npc_state:1022)
+        # E2.0-c/D3: загрузка персистенции — _beliefs_from_persistence
+        # (npc_loader:583, вызовы 561/661) строит BeliefState из psyche["beliefs"]
+        # через update(). Прецедент: npc_loader в _ALLOWED_WRITERS NPCState-guard.
+        # Поймано замком test_beliefs_round_trip_full_cycle (44/45).
+        "app.services.npc.npc_loader",
+        "app.services.npc.belief_transition_engine",
+        "app.services.npc.state_applicator",
+        "app.services.memory.belief_aggregator",
+        # Тестовые исключения (цензус E2.0-c):
+        "tests.sandbox.SUPERBOX.npc_sandbox",
+        "tests.sandbox.SUPERBOX.scenarios.epistemic_runtime_closure_test",
+        "tests.sandbox.SUPERBOX.scenarios.epistemic_scheduler_closure_test",
+    }
+
     def update(self, key: BeliefType, fragment: BeliefFragment) -> None:
         """
         Записать убеждение.
-        WRITE: вызывается только из BeliefTransitionEngine.
+        WRITE: два легальных канала (R8) + загрузка; см. _UPDATE_ALLOWED_WRITERS.
         """
+        import sys
+
+        _caller = sys._getframe(1).f_globals.get("__name__", "")
+        if _caller not in self._UPDATE_ALLOWED_WRITERS:
+            from app.errors import ArchitecturalViolationError
+
+            raise ArchitecturalViolationError(f"beliefs.update({key.value})", _caller)
         self._beliefs[key] = fragment
 
     def all(self) -> Dict[BeliefType, BeliefFragment]:

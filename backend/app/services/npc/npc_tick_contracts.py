@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
+    from app.domain.identity_events import EffectiveDrives
     from app.services.npc.decision_hub import EventContext
 
 # Сопоставление intent → activity для scene_state

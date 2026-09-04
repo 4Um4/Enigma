@@ -59,7 +59,7 @@ class PipelineContext:
 
     # ── Игрок и его действие ───────────────────────────────────────
     player: Dict[str, Any] = field(default_factory=dict)
-    player_name: str = "player"
+    # player_name объявлен выше, в блоке «Идентификаторы» (SSOT, mypy no-redef)
     player_markers: List[Any] = field(default_factory=list)
     player_target_id: str = ""
     player_target_name: str = ""

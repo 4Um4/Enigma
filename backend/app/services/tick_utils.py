@@ -11,7 +11,11 @@ path: backend/app/services/tick_utils.py
 import logging
 import types
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
+
+if TYPE_CHECKING:
+    from app.services.dto import _TickContext
+    from app.services.drf_bus import DRFBus
 
 from app.core.config import settings
 from app.models.delta_payloads import (

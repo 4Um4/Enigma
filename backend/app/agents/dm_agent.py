@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 import threading
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from app.core.config import settings
 from app.models.schemas import PlayerAction
@@ -20,6 +20,9 @@ from app.services.llm.provider import GenerationParams
 from app.services.logging_tools import jsonl_log
 from app.services.scene_state_manager import SceneStateManager
 from app.services.verbalization.prompt_loader import load_system_prompt
+
+if TYPE_CHECKING:
+    from app.services.verbalization.dm_contract_builder import DMContract
 
 logger = logging.getLogger(__name__)
 

@@ -577,7 +577,39 @@ def age_drives(drives: List[TemporaryDrive]) -> List[TemporaryDrive]:
 
 @dataclass
 class PerceptualKernel:
-    """Субъективная модель восприятия NPC. Геометрия пространства решений."""
+    """Субъективная модель восприятия NPC. Геометрия пространства решений.
+
+    E2.0-c/D2 (DEBT-R9/AUD-D4): guard подполей — PK мутабелен и вложен в
+    NPCState, guard хозяина не перехватывает присваивания на подполях
+    (экзамен доказал молчаливое принятие прямой записи threat_gradient).
+    """
+
+    # Разрешённые писатели: сам модуль (dataclass __init__ + _pk_from_dict)
+    # и StateApplicator (единый L2-writer, state_applicator.py:1187-1219).
+    # Всё остальное (сценарии/тесты/LLM-обвязки) → ArchitecturalViolationError:
+    # снаружи DeltaGate пути в психику нет (INV-LLM-NOT-SSOT).
+    _PK_ALLOWED_WRITERS = {
+        "app.models.npc_state": {"*"},
+        "app.services.npc.state_applicator": {"*"},
+        # Тестовые исключения (цензус E2.0-c). ВНИМАНИЕ: causal_state_test
+        # сюда НЕ вносить — его D2-атака обязана поднимать
+        # ArchitecturalViolationError (замок экзамена).
+        "tests.sandbox.SUPERBOX.npc_sandbox": {"*"},
+        "tests.sandbox.system.test_t06_belief_pipeline": {"*"},
+    }
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        import sys
+
+        _caller = sys._getframe(1).f_globals.get("__name__", "")
+        for _mod, _fields in self._PK_ALLOWED_WRITERS.items():
+            if _caller == _mod or _caller.startswith(_mod + "."):
+                if "*" in _fields or name in _fields:
+                    object.__setattr__(self, name, value)
+                    return
+        from app.errors import ArchitecturalViolationError
+
+        raise ArchitecturalViolationError(f"perceptual_kernel.{name}", _caller)
 
     threat_gradient: float = 0.0
     trust_gradient: float = 0.0
