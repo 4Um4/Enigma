@@ -1,6 +1,6 @@
 # ENIGMA --- Дорожная карта преемника
 
-**Версия документа:** 3.5 · 2026-09-04 (+W-синхронизация §0/§3/§5-F/Долг/5d: W1✅ W2✅ W3✅ G1✅ G2✅ — S239/ADR-O-378; следующий гейт W-трека — G3 Execution; W-долги зарегистрированы) **Адресат:** LLM-преемник на V.0.5.3.9.6 (ветка
+**Версия документа:** 3.6 · 2026-09-05 (+AG1: E2.0-c/B0 CLOSED — S241, четыре группы GREEN, PK/beliefs-guard, клетки §5b GC-04/GC-06/DIFF-01; +W-синхронизация §0/§3/§5-F/Долг/5d: W1✅ W2✅ W3✅ G1✅ G2✅ — S239/ADR-O-378; следующий гейт W-трека — G3 Execution; W-долги зарегистрированы) **Адресат:** LLM-преемник на V.0.5.3.9.6 (ветка
 `V.0.5.3.9.6_Память_3`) **Назначение:** Пошаговый план --- что делать, в
 каком порядке, что читать, что формулировать самому. **Принцип
 документа:** компактный, без воды; галочки `[ ]` --- для трекинга; путь
@@ -60,7 +60,8 @@ V.0.5.3.9.5 + **сессия AG1 (Фаза A + EMRL E1/E2.0)**: закрыт ф�
     единственный вход «интерпретация → состояние», живой провод
     THREATEN→ПК, EXPERIENCE_DELTA_COMMITTED для Chronicaler) --- 40
     замков `backend/tests/test_phase_a_memory_fixes.py`, IPT 45/45.
-    Осталось: E2.0-c (каузальный экзамен A/B/C/D) → BC-1..BC-12. Не
+    Осталось: E2.0-c ✅ (S241, B0-CLOSED: causal proof) → BC-1..BC-12
+    (BC-1 semantic leap открыт). Не
     вводить флаги «месть/обида/влюблённость» как сущности; выводы должны
     быть derived из общих механизмов.
 
@@ -366,15 +367,32 @@ proposition, не состояние.
                    тиковая ветка (causal_parent),                        
                    EXPERIENCE_DELTA_COMMITTED (EventDTO)                 
 
-  E2.0-c           SUPERBOX causal_state_test: A/B/C/D, детерминистичный \[ \] СЛЕДУЮЩИЙ
-                   инвариант (один snapshot+seed+event; единственная     ШАГ
-                   переменная --- авторизованная дельта; D = запись мимо 
-                   гейта → ожидаем ArchitecturalViolationError)          
+  E2.0-c           SUPERBOX causal_state_test: A/B/C/D, детерминистичный \[x\] ✅ CLOSED
+                   инвариант (один snapshot+seed+event; единственная     (S241, B0-CLOSED
+                   переменная --- авторизованная дельта; D = запись мимо владельцем):
+                   гейта → ожидаем ArchitecturalViolationError)          4 группы GREEN
+                   на GC-00-харнесе. Люся (флип-кейс): A argmax
+                   call_for_help→flee (0.272→0.800), C = тот же
+                   флип→flee 0.777 БЕЗ события/текста/LLLM (одна
+                   дельта threat_gradient 0.8 через DeltaGate+Applicator);
+                   A−C=0.023 = side-канал страха (атрибуция, не ошибка);
+                   B: PK=0, дельт нет. Горан (companion): state→scores
+                   доказан (flee +0.33 формульно), флип исключён
+                   H1-ландшафтом (request_service 0.71 > flee-потолок).
+                   D: D1/D2/D3 REJECTED (PK-guard + beliefs-guard
+                   закрыли DEBT-R9/ADR-SSOT-EPISTEMIC). LIMITATION
+                   (не критерий B0): флип уровня решения;
+                   FLEE-материализация в 1-тиковом окне блокирована
+                   арбитром (материал BC-12). Доказана каузальная
+                   независимость механики от языковой экспрессии.
   ---------------------------------------------------------------------------------------
 
 Терминологическая лестница (запрещено перепрыгивать): E2.0 = state-delta
 integrity; E2.0-b = live propagation; **BC-1 = semantic leap**
-(EXPERIENCE→CONCLUSION) --- только после зелёного E2.0-c.
+(EXPERIENCE→CONCLUSION) --- только после зелёного E2.0-c. E2.0-c =
+causal proof (B0-CLOSED, S241) → **BC-1 открыт** (тройплеты, не фразы;
+первый потребитель — Expectation BC-2; DeltaGate-тропа обязательна для
+conclusion_delta с provenance и causal parent).
 
 ------------------------------------------------------------------------
 
@@ -2064,22 +2082,30 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
     rules; observation создаётся; experience/memory сохраняется;
     следующий выбор NPC отличается от baseline.
 
--   [ ] **GC-04 --- Experience → Conclusion → Expectation → Decision.**
+-   [~] **GC-04 --- Experience → Conclusion → Expectation → Decision.**
     Повторяемое событие порождает машино-пригодный conclusion;
     conclusion меняет expectation; expectation входит в существующий
     DecisionHub; NPC выбирает действие, которое без этого history не
-    выбрал бы.
+    выбрал бы. **S241: сегмент E2-state→DecisionHub доказан**
+    (causal_state_test A/C — флип argmax от авторизованной дельты без
+    текста); сегменты Conclusion/Expectation — BC-1/BC-2, открыты
+    (терминологическая лестница §2a). Full-cell закрытие — после BC-3.
 
 -   [ ] **GC-05 --- Testimony → Belief → third-party behavior.** A лично
     переживает событие, сообщает B; B учитывает
     provenance/source/confidence и меняет belief; C или B демонстрирует
     поведенческое следствие.
 
--   [ ] **GC-06 --- Same world, different history → different
+-   [x] **GC-06 --- Same world, different history → different
     behavior.** Два прогона стартуют из одинакового мира и seed, но
     получают различную историю. При одинаковом текущем snapshot
     поведение должно расходиться именно из-за сохранённой
-    history/epistemic state.
+    history/epistemic state. ✅ S241: causal_state_test — одна
+    WorldSnapshot+seed, единственная переменная = авторизованная дельта
+    истории; argmax Люси расходится (flee vs call_for_help); Горан —
+    state-эффект в скорах при H1-ландшафте (флип-порог не пересечён —
+    свойство натуры, не разрыв). LIMITATION: decision-level (BC-12 —
+    материализация движения).
 
 -   [ ] **GC-07 --- Same event, different observation → different
     belief/behavior.** Два NPC находятся в одной сцене, но один имеет
@@ -2297,10 +2323,14 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
 
 ### 5a.4 Differential tests --- самые важные тесты против «пустой симуляции»
 
--   [ ] **DIFF-01 --- History differential.** `World_0 + History_A` и
+-   [x] **DIFF-01 --- History differential.** `World_0 + History_A` и
     `World_0 + History_B` → одинаковая геометрия/текущий world state, но
     различный NPC behavior. Если поведение одинаково всегда,
-    memory/epistemics не участвуют причинно.
+    memory/epistemics не участвуют причинно. ✅ S241: causal_state_test
+    (GC-00-харнес, один snapshot+seed, единственная переменная —
+    авторизованная дельта): C-группа — argmax Люси flips → flee без
+    события/текста; B-группа — контроль (дельт нет). LIMITATION:
+    доказано на уровне решения (argmax), не материализации движения.
 
 -   [ ] **DIFF-02 --- Observation differential.** `Event_X` происходит
     одинаково, но `NPC_A` наблюдает его, а `NPC_B` нет. Их belief state
@@ -2537,8 +2567,13 @@ gameplay closure.
 
   GC-03   Perception/Memory   observation → memory        perception → E1           GC-03   NEG-07      GC-20/21      indirect         \[ \]        \[ \]     \[ \]     
 
-  GC-04   Cognition           experience → conclusion →   E2/BC → DecisionHub       GC-04   NEG-03      GC-20/21      да               \[ \]        \[ \]     \[ \]     
-                              expectation → decision                                                                                                                    
+  GC-06   Memory              history differential        memory → cognition        GC-06   NEG-07      GC-21         да               ✅ (S241,    \[x\]     \[x\] с   \[x\]     \[ \]     
+                              C-группа: один мир + одна  оговоркой                  causal_state_test                                          дельта истории →    
+                                                                                                                                      C; D-группа =                    другой argmax;     
+                                                                                                                                      negative;                       A-группа =         
+                                                                                                                                      limitation:                     полный путь)       
+                                                                                                                                      decision-level,                                   
+                                                                                                                                      BC-12)                                                                                                                                                            
 
   GC-05   Epistemics          testimony → belief          speech → ClaimEvent →     GC-05   NEG-07      GC-20/21      indirect         \[ \]        \[ \]     \[ \]     
                                                           belief                                                                                                        
@@ -2763,6 +2798,7 @@ gameplay closure.
 | 2026-09-04 | Шаг 6 (AG1-D5, Этап А — зонд, фикс отложен) | tests/gameplay/test_tavern_vertical.py::test_gc00_ag1_d5_avatar_body_initialization → reports/gc00_ag1_d5_probe.txt | 🔴 RED (ожидаемый, 1.31s) — вердикт ПОДТВЕРЖДЁН | ROOT: avatar default body_state={'money': 48} (load_state default-ветка) — аватар чистого мира получает эконом-словарь вместо тела; NPC-паритет сломан (NPC→BODY_STATE_HEALTHY ×3 точки, аватар→money-only). Эффект: effective_hp=0.0 (fallback npc_state:796, семантика=DISABLED current_hp=0) + life_status ABSENT → Death Guard видит 'ALIVE' (:2154). Death Guard и VitalState НЕПРАВИЛЬНЫ (hp≤0≠смерть, ADR-123) — дефект в инициализации, не в guard. DOUBLE TRUTH опровергнут: dict-сторона player/Tester NOT IN SNAPSHOT — единственное тело в NPCState. SECONDARY-находка: аватар отсутствует в all_npcs_raw idle-прогонов (в REST-пути был) — новый хвост AVID-1. Зонд коммитится как красный детектор; Stage B-фикс — {**BODY_STATE_HEALTHY, 'money': 48} construction-time (S208-прецедент) — на решение Мастера | Дефект был двойной: wiring (self._rel_store отсутствовал) + control-flow (fall-through в for при None). rumors-контур в None-ветке сохранён. Попутно: санирован mojibake «для社交ной» :163. Логи: reports/gc00_aud_d2_p97.txt |
 | 2026-09-04 | Шаг 6 (AG1-D5, Stage B — фикс) | player_avatar_service.py: default body_state = {**BODY_STATE_HEALTHY, money:48} + импорт | ✅ ЗАКРЫТ: зонд GREEN 1.09s (current_hp=100, life_status=ALIVE, 17 ключей тела); полный GC-00 4/4 (89.10s); IPT 45/45; ruff clean | Красный→фикс→зелёный за одну итерацию. Аватар чистого мира получил телесный паритет NPC (включая sleep-оси S188 — энергетика/гидратация теперь инициализированы, закрывает часть фронта DEBT-SLEEP для аватара). Stage A→B: 5baea803 (RED-зонд) → текущий коммит (GREEN) |
 | 2026-09-04 | Шаг 7 (AVID-1 — GAP закрыт) | game_loop/__init__.py (idle-проводка S113 all_npcs_raw) + harness.py (upsert_character восстановлен) | ✅ ЗАКРЫТ: S198_PIPELINE_ENTER count=7 с 'player' ×3 тика (прямой smoke); срезы кэш/снапшот/runtime 7/7/7; зонд PASS; GC-00-модуль 4/4 (93.87s); IPT 45/45 | Вердикт Стадии 3: GAP (BY-DESIGN опровергнут кодом ADR-030). Дифференциал: до фикса count=6 при живой инъекции (транзит, не персист) — idle не передавал список оркестратору; после — count=7. Второй компонент: harness-баг (sheet потерян при guard-фиксе bd1 → list_characters пуст → инъекция молча пропускалась). Production-эффект: аватар укоренён в idle-мире — CFL/восприятие NPC/соцполе видят игрока между ходами (embodied player runtime). Отчёты: gc00_avid1_probe/fix/fix2 |
+| 2026-09-04 | Кросс-ретроспектива (из S240) | Инцидент контаминации prod-saves (bd2/bd3) — адъюдикация Мастера | ✅ вердикт: DEBT-W-STORE-INCIDENT = ACCEPT | Эволюция ROOT/saves признана каноническим состоянием живого мира (known provenance debt, «стратиграфия нарушена до T≈2800», reset отклонён — подмена исторической непрерывности опаснее артефакта; вердикт — в записи S240). Наш вклад: инцидент порождён baseline №2/№3 (env-изоляция была мертва, config.py:49 жёсткий дефолт); закрыт H-6..H-8 (settings-мутация+restore, sessions snapshot/restore, байтовая верификация host-состояния) — прогоны bd4+ чисты |
 
 **Унаследованные открытые хвосты журнала (не зарегистрированы в §4a; владелец — итерация «Пункт 5»):**
 

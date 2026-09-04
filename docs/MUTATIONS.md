@@ -894,6 +894,13 @@ IPT: ✅ 45/45 (гейты до/после док-мутаций). КРАСНЫ�
 📁 docs/AUDIT_W_TRACK_COUPLINGS.md (новый: §0 метод, §1 граф, §2 реестр 6 подсекций, §3 сводка §18.2, §4 входной ограничитель G3, §5 релеи R1–R6, §A команды), docs/MUTATIONS.md (эта запись), docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md (§3: DEBT-W-AUDIT [x] + 5d-журнал)
 IPT: ✅ 45/45 (гейт входа и закрытия). КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
 
+### S241: Итерация «Пункт 5» — тесты-детекторы и закрытие долгов (roadmap v3.4) | ✅ IPT 45/45
+🎯 Тестовый слой gameplay-closure как детекторы (красный = диагноз, не ретушь) + 4 production-фикса из живых прогонов. Журнал выполнимости перенесён из backend/tests/TEst_Result.md в Roadmap §5d (решение Мастера: единственное место фиксации — docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md).
+⚙️ (3) PROBE 9.7: REST-путь не разбирал pending_tasks (execute_pending только из idle_tick) → материализация ADR-O-313 в run_turn (зеркало idle-прецедента) — речь NPC становится памятью в player-сессиях. (4) GC-00: backend/tests/gameplay/ — TavernGameplayHarness (build_game_loop production-вход; тики только idle_tick, ходы только run_turn; clean-start: settings-мутация+restore, bus.clear, sessions snapshot/restore, reset_life_engine); эволюция baselines 0/3→1/3→2/3→3/3: ADR-WRITE-GUARD поймал сам harness → тест-баги (nested asyncio, контракт сцены) → контаминация (ретракция DEBT-QUIESCE: offset=N тиков = перенос, не недетерминизм) → детерминизм подтверждён (2×30 идентичны). (5) AUD-D2: self._rel_store не существовал (S198-читатель мёртв) + fall-through при None → None.apply каждый ход; фикс: провод + skip-путь (applied ≠ verified — персистентность в GC-11). (6) AG1-D5: avatar default body_state={'money':48} (виноват НЕ Death Guard) → {**BODY_STATE_HEALTHY, money:48}; зонд red→green. (7) AVID-1: idle не передавал all_npcs_raw (S113-контракт только в REST) → проводка; S198 count=7 с 'player' ×3 — аватар укоренён в idle-мире (CFL/восприятие/соцполе видят игрока между ходами).
+⚙️ Уроки: git add -A втянул 30 файлов/43k строк (28676bcb) — впредь точечный add; описательный патч ≠ БЫЛО/СТАЛО (34890fc8 → переиздание 109df98d); nested asyncio.run запрещён; атрибуция недетерминизма без доказанной изоляции = спекуляция.
+📁 backend/tests/gameplay/{harness,test_tavern_vertical}.py, svc/game_loop/__init__.py, svc/events/social_subscriber.py, svc/player_avatar_service.py, docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md (§5d, 16 строк), reports/gc00_*.txt (10 артефактов)
+⚠️ Хвосты: AI-D1, ST-1, PH-1, SC-1, RE-D2, DEBT-R10, AUD-D1/3–12. IPT 45/45, красных 0.
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
