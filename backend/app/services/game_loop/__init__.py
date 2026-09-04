@@ -262,6 +262,11 @@ class GameLoop:
         # Фаза 0.5: DI для idle-сервисов (social decay, reputation decay)
         _rep_engine = self._svc.get_reputation_engine()
         _rel_store = memory_manager._relationships if memory_manager else None  # noqa: ENIGMA001
+        # AUD-D2 FIX: S198-читатель (idle_tick:1162) ждёт АТРИБУТ self._rel_store,
+        # но до сих пор существовала только локальная переменная (обе точки :181/:264
+        # локальные) → shared_context.relationship_store был ВСЕГДА None →
+        # social_subscriber: None-ветка + индент-баг = None.apply ERROR каждый ход.
+        self._rel_store = _rel_store
         _state_applicator = (
             self._svc.get_state_applicator(  # noqa: ENIGMA001
                 relationship_store=_rel_store,

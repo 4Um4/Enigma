@@ -152,6 +152,22 @@ class SocialSubscriber:
                     "[SOCIAL_SUBSCRIBER] relationship_store отсутствует (None) — "
                     "trust-fallback пропущен; social deltas (rumors) не затронуты."
                 )
+                # AUD-D2 FIX: раньше здесь НЕ было выхода — цикл for _ev ниже
+                # выполнялся при _gate=None (индент-баг) → None.apply ERROR
+                # на каждом живом событии. None-стор = честный skip, не полуконтур.
+                self._social_engine = self._social_engine_factory(ctx.campaign_id)
+                self._social_tick, deltas = propagate_social_rumors(
+                    self._social_engine,
+                    self._social_tick,
+                    ctx.shared_context,
+                    events=events,
+                )
+                _affected_ids = {d.npc_id for d in deltas if d.npc_id}
+                return Phase8Result(
+                    deltas=deltas,
+                    socially_affected_npc_ids=_affected_ids,
+                    events_processed=len(events),
+                )
             else:
                 if _gate is None:
                     _gate = RelationshipWriteGate(_store)
@@ -160,7 +176,7 @@ class SocialSubscriber:
                 if _ev.type == EventType.NPC_SPOKE.value:
                     _sp = _ev.source
                     _tg = _ev.payload.get("target_id")
-                    # Phase 8.2: Детерминированный fallback для社交ной семантики.
+                    # Phase 8.2: Детерминированный fallback для социальной семантики.
                     # gossip разрушает доверие к сплетнику (speaker).
                     # accuse повышает страх к обвиняемому (target).
                     # praise повышает доверие к хвалимому (target).
