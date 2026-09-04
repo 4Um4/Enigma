@@ -17,6 +17,7 @@ path: backend/tests/test_affordance_facts.py
 """
 import copy
 from types import SimpleNamespace
+from typing import Optional
 
 import pytest
 from app.domain.semantic_action import WorldActionType
