@@ -329,9 +329,26 @@ class EventMemory:
             return None
         # ADR-O-206: Черты кристаллизуются из семантики события (tags) и его важности (importance).
         # EmotionTag изолирован от мутации идентичности.
-        if any(tag in self.tags for tag in ("hostile", "theft", "vandalism", "combat")):
+        #
+        # AG1-D4 (сшивка словарей): продюсер тегов — EventSemanticTagger
+        # (R8-цепочка, memory_manager.apply) — пишет префиксные social:*-теги;
+        # прежний список ждал bare-слова (hostile/gift/...) из другой эпохи —
+        # словари не пересекались ни одной лексемой, L3-каскад был мёртв
+        # в проде с рождения (замки тестировали фикстуры с ручными тегами).
+        # Сшивка здесь, у потребителя: теггер каноничен для R8, не трогаем.
+        _HOSTILE_ANY = (
+            "hostile", "theft", "vandalism", "combat",  # легаси-слова
+            "social:aggression", "social:physical_harm",
+            "social:intimidation", "social:property_harm",
+            "social:unknown_threat", "social:extreme_harm",
+        )
+        _AFFILIATIVE_ANY = (
+            "gift", "trade", "alliance", "help",  # легаси-слова
+            "social:benevolence", "social:transaction",
+        )
+        if any(tag in self.tags for tag in _HOSTILE_ANY):
             return ("resentment", round(self.importance * 0.1, 4))
-        if any(tag in self.tags for tag in ("gift", "trade", "alliance", "help")):
+        if any(tag in self.tags for tag in _AFFILIATIVE_ANY):
             return ("dependency", round(self.importance * 0.1, 4))
         return None
 

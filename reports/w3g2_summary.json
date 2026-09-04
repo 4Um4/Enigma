@@ -1,22 +1,22 @@
 {
   "background_diffs_off_off": [
-    5,
-    4,
-    3
+    1,
+    1,
+    0
   ],
   "zero_diffs_off_vs_on": [
-    5,
-    5,
-    5,
+    1,
+    1,
+    1,
     0,
-    5,
-    3
+    1,
+    0
   ],
   "honest_zero_ok": true,
   "b_silent": true,
-  "w_delivery_ok": false,
-  "structural_ok": false,
-  "verdict": "RED | proof не доставлен (hits/weapon_persisted) | структурный гвард",
+  "w_delivery_ok": true,
+  "structural_ok": true,
+  "verdict": "GREEN | ambient qualification: диффы в рамках фона (DEBT-QUIESCE)",
   "profiles": {
     "A1": {
       "tag": "A1",
@@ -28,11 +28,11 @@
       "weapon_persisted": null,
       "injected_near": null,
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 61,
+      "ticks_with_traversals": 172,
+      "terminals_total": 42,
       "status_counts": {
-        "COMPLETED": 24,
-        "INTERRUPTED": 37
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
       },
       "world_objects": 18
     },
@@ -46,11 +46,11 @@
       "weapon_persisted": null,
       "injected_near": null,
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 62,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
       "status_counts": {
-        "COMPLETED": 26,
-        "INTERRUPTED": 36
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
       },
       "world_objects": 18
     },
@@ -64,11 +64,11 @@
       "weapon_persisted": null,
       "injected_near": null,
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 63,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
       "status_counts": {
-        "COMPLETED": 27,
-        "INTERRUPTED": 36
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
       },
       "world_objects": 18
     },
@@ -82,11 +82,11 @@
       "weapon_persisted": null,
       "injected_near": null,
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 64,
+      "ticks_with_traversals": 120,
+      "terminals_total": 42,
       "status_counts": {
-        "INTERRUPTED": 38,
-        "COMPLETED": 26
+        "COMPLETED": 37,
+        "INTERRUPTED": 5
       },
       "world_objects": 18
     },
@@ -100,11 +100,11 @@
       "weapon_persisted": null,
       "injected_near": null,
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 65,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
       "status_counts": {
-        "COMPLETED": 29,
-        "INTERRUPTED": 36
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
       },
       "world_objects": 18
     },
@@ -114,17 +114,17 @@
       "crash": null,
       "real_errors": 0,
       "first_error": null,
-      "g2_hits": 0,
-      "weapon_persisted": false,
+      "g2_hits": 199,
+      "weapon_persisted": true,
       "injected_near": "maid_lusya",
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 65,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
       "status_counts": {
-        "COMPLETED": 29,
-        "INTERRUPTED": 36
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
       },
-      "world_objects": 18
+      "world_objects": 19
     },
     "W2": {
       "tag": "W2",
@@ -132,17 +132,17 @@
       "crash": null,
       "real_errors": 0,
       "first_error": null,
-      "g2_hits": 0,
-      "weapon_persisted": false,
+      "g2_hits": 199,
+      "weapon_persisted": true,
       "injected_near": "maid_lusya",
       "steal_mentions": 0,
-      "ticks_with_traversals": 199,
-      "terminals_total": 65,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
       "status_counts": {
-        "INTERRUPTED": 34,
-        "COMPLETED": 31
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
       },
-      "world_objects": 18
+      "world_objects": 19
     }
   }
 }

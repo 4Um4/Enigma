@@ -815,6 +815,69 @@ IPT: ✅ 45/0 (финальный, повторный; suspect-хвост был
 ⚙️ Уроки сессии: (1) v1-харнесс сделал ложный GREEN на двух одинаковых крашах — INVALID RUN-guard обязателен (равные краши != совпадение профилей); (2) команда запуска выдаётся ТОЛЬКО после патча по факту археологии (v1 погиб на предполагаемом API GameLoop; в том же выводе был рабочий эталон — DriftLab/build_game_loop); (3) v3-патч «main целиком» поглотил __main__-гвард — прогон молча exit-0 (grep-контроль хвоста после каждой замены); (4) stderr/stdout топология Redirect-харнессов: шум в err, print() в out — поллинг обязан знать, где что живёт; (5) терминальная конвейер-смерть без traceback = внешнее убийство (окно консоли), фоновый Start-Process с Redirect устойчив.
 IPT: ✅ 45/45 (гейт-прогон финальный; INV-WORLD-OBJECT-TOPOLOGY live=18). КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
 
+### S238: AG1-Сессия — Фаза A + EMRL E1/E2.0 + Реестр долгов (Полный цикл) | ✅ 45/45 замков, IPT 45/45
+
+🎯 Три этажа одной сессии. (1) Фаза A — фундамент памяти: закрыты все 9 P0
+аудита V.0.5.3.9.3 + 5 живых детонаций тика (легаси temporal-ветка →
+TICK_CRASH 3/3→0; L1-UNIQUE каннибализация; мёртвый _shared_context в
+провайдерах подписчиков — провод речь→память, 272 строки npc_spoke;
+affordance_facts_map-гвард; publish-dict). Все 10 фаз тика живы впервые.
+(2) EMRL: E1.0 ExperienceTrace+provenance (TESTIMONY≠копия); E1.1
+decay-семантика (floor=is_compressed — суть бессмертна, шум умирает);
+E1.2 MemoryCrystal (confidence≠retrieval_strength, домен-граница с
+CrystallizedBelief §13.3); E1.4 кокпит (new/wait/restart/mem —
+terminal_cockpit.py); E2.0-a/b DeltaGate (whitelist/клампы/TRACE-ONCE/
+INV-LLM-NOT-SSOT) + живой провод THREATEN→ПК (Proposal в
+reaction_subscriber, Gate=аудит не писатель, belief — тиковая ветка,
+causal_parent) + EXPERIENCE_DELTA_COMMITTED→Chronicaler (EventDTO).
+(3) Долговая уборка: реестр AG1-D1..D12 в Roadmap 3.0 §4a — D8→ADR-O-377
+(атлас+IMPACT, production-план=D8p/S203.4); D2 контекстный лог; D4
+сшивка словарей L3 (каскад идентичности мёртв с рождения:
+social:aggression ↔ hostile — ни одной общей лексемы; +замок полного
+прод-пути); D3 witness через Gate (+7-й разрыв словарей: канонический
+player_attacks не матчился в witness-elif); D11 телепатии в проде нет
+(писатель reduction:253 жив; warning — от тест-заглушек, заменены);
+D7 NPC-интент summary без пустых хвостов; D1/D9 уведомления владельцам.
+
+⚙️ Ключевые законы сессии: LLM ≠ SSOT (между Interpretation и State нет
+прямого пути — DeltaGate); две скорости (быстрый мир не ждёт LLM —
+ADR-O-377, cockpit-форма); AG1-INV-TRACE-ONCE (один event.id → один
+trace → ≤1 дельты поля); суть = акт консолидации (is_compressed), не
+зона важности; припоминание растит доступность, не истинность.
+
+⚙️ Системная находка: 7 разрывов словарей за сессию (L3-теги, witness-
+elif, _shared_context, affordance_facts_map, publish-dict, SLEEPING-
+фантом соседей, player_attacks) — самая частая причина мёртвых контуров
+ENIGMA: не отсутствие кода, а два словаря, которые никогда не встречались.
+
+⚠️ Границы честности: субъектность NPC НЕ доказана (доказано:
+proposition сохраняется; не доказано: оно меняет поведение без нового
+промпта — ключ = E2.0-c, НЕ начат); witness-эмпатия shock*2.0 —
+магическое число (полигон); production-форма O-377 — план; экономика
+распада long-horizon — наблюдение.
+
+📁 Замки: backend/tests/test_phase_a_memory_fixes.py (45); кокпит:
+backend/tests/sandbox/terminal_cockpit.py; зонд:
+backend/tests/sandbox/db_dump_probe.py; DTO:
+backend/app/domain/npc_state.py (npc_state.py), domain/
+state_delta_proposal.py, models/npc/memory_crystal.py, models/npc/
+experience_trace.py; Gate: services/memory/delta_gate.py; провод:
+services/events/reaction_subscriber.py; распад: services/memory/
+working_memory.py, npc_loader.py, npc_tick_pipeline.py; стор:
+services/memory/sqlite_store.py (traces/crystals/локи); L1:
+services/npc/l1_chronicle.py; belief: npc_loader (beliefs round-trip);
+экстракция: services/memory/dialogue_update_extractor.py (контекст-лог).
+Атлас: ADR-O-377 + IMPACT. Roadmap: docs/ENIGMA_ROADMAP.md → 3.0
+(§2a трек AG1, §4a реестр долгов).
+
+🎯 ТЗ-источники сессии: «Аудит ENIGMA V.0.5.3.9.3 НПС и UI» (Фаза A —
+канон); «Контур памяти NPC — разрывы и план» (Этапы 0–6 — E1-канон);
+«Контур психики НПС, Фаза B» (B1–B6 — ждёт E2.0-c); мандаты сессии:
+«EXPERIENCE→MEMORY→SELF→RELATIONSHIP LOOP» + «Законы двух скоростей»
+(владельца — НЕ записаны файлами, кандидат сохранения).
+
+IPT: ✅ 45/45 (весь путь). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴.
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`

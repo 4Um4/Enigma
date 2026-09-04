@@ -1,0 +1,148 @@
+{
+  "background_diffs_off_off": [
+    1,
+    0,
+    1
+  ],
+  "zero_diffs_off_vs_on": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    1
+  ],
+  "honest_zero_ok": true,
+  "b_silent": true,
+  "w_delivery_ok": true,
+  "structural_ok": true,
+  "verdict": "GREEN | ambient qualification: диффы в рамках фона (DEBT-QUIESCE)",
+  "profiles": {
+    "A1": {
+      "tag": "A1",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 18
+    },
+    "A2": {
+      "tag": "A2",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 172,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 18
+    },
+    "A3": {
+      "tag": "A3",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 18
+    },
+    "B1": {
+      "tag": "B1",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 18
+    },
+    "B2": {
+      "tag": "B2",
+      "inject": false,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 0,
+      "weapon_persisted": null,
+      "injected_near": null,
+      "steal_mentions": 0,
+      "ticks_with_traversals": 172,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 18
+    },
+    "W1": {
+      "tag": "W1",
+      "inject": true,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 199,
+      "weapon_persisted": true,
+      "injected_near": "maid_lusya",
+      "steal_mentions": 0,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 19
+    },
+    "W2": {
+      "tag": "W2",
+      "inject": true,
+      "crash": null,
+      "real_errors": 0,
+      "first_error": null,
+      "g2_hits": 199,
+      "weapon_persisted": true,
+      "injected_near": "maid_lusya",
+      "steal_mentions": 0,
+      "ticks_with_traversals": 173,
+      "terminals_total": 42,
+      "status_counts": {
+        "COMPLETED": 36,
+        "INTERRUPTED": 6
+      },
+      "world_objects": 19
+    }
+  }
+}

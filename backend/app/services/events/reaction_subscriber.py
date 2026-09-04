@@ -325,26 +325,67 @@ class ReactionSubscriber:
                 if stress_delta == 0.0 and fear_delta == 0.0 and trust_delta == 0.0:
                     continue
 
-                # ADR-123: Combat → Perception мост. Свидетели насилия получают threat_gradient_delta.
+                # ADR-123: Combat → Perception мост. Свидетели насилия
+                # получают threat_gradient_delta.
+                # EMRL E2.0-b/D3: та же обвязка DeltaGate, что и для target
+                # (E2.0-b) — причинная дельта свидетеля авторизуется
+                # (whitelist/клампы/TRACE-ONCE), публикует трассу и едет в
+                # существующий PerceptionPayload-канал. AG1-INV-TRACE-ONCE:
+                # каждый свидетель — свой trace (npc_id в ключе), один event
+                # может породить N авторизованных проекций свидетелей.
                 # Без этого PerceptualKernel.threat_gradient = 0.0 после боя → fear=0.0.
                 # Боль — это физиология. Угроза — это восприятие. Они независимы.
                 _threat_delta = 0.0
+                _threat_reason = ""
                 if shock > 0.0:
                     _threat_delta = min(0.5, shock * 2.0)  # Шок от удара → угроза
-                elif rule_key in ("player_attacked", "player_attack", "combat"):
+                    _threat_reason = f"empathic_shock_of={event.payload.get('target_id', '?')}"
+                elif rule_key in (
+                    "player_attacks",  # AG1-D3: канонический enum (живой)
+                    "player_attacked",  # легаси-имена (совместимость)
+                    "player_attack",
+                    "combat",
+                ):
                     _threat_delta = 0.3 * intensity  # Свидетельство насилия → угроза
+                    _threat_reason = f"witnessed_violence:{rule_key}"
 
                 if _threat_delta > 0.0:
-                    deltas.append(
-                        StateDeltas(
-                            npc_id=npc_id,
-                            domain=DeltaDomain.PERCEPTION,
-                            payload=PerceptionPayload(
-                                threat_gradient_delta=round(_threat_delta, 3),
-                            ),
-                            source="reaction_perception",
-                        )
+                    # AG1-D3 / E2.0-b-паттерн: причинная дельта свидетеля
+                    # авторизуется DeltaGate (whitelist/клампы/TRACE-ONCE),
+                    # публикует трассу Chronicaler'у (EXPERIENCE_DELTA_COMMITTED,
+                    # observation-only) и едет в существующий канал. Свидетель —
+                    # своя проекция: trace несёт npc_id свидетеля и причину
+                    # (эмпатический шок цели ИЛИ свидетельство насилия).
+                    from app.domain.state_delta_proposal import StateDeltaProposal
+                    from app.services.memory.delta_gate import DeltaGate
+
+                    _gate = DeltaGate()
+                    _proposal = StateDeltaProposal(
+                        trace_id=f"{event.id}:{npc_id}:witness",
+                        field="threat_gradient",
+                        value=_threat_delta,
+                        causal_parent=str(event.id),
+                        source="mechanical",
+                        rationale=_threat_reason or "witness",
                     )
+                    _authorized = _gate.validate(_proposal)
+                    if _authorized is None:
+                        logger.info(
+                            "[REACTION_SUB] witness-дельта не авторизована "
+                            f"({_proposal.trace_id}) — событие {event.id}"
+                        )
+                    else:
+                        _gate.apply(_proposal)  # публикация трассы
+                        deltas.append(
+                            StateDeltas(
+                                npc_id=npc_id,
+                                domain=DeltaDomain.PERCEPTION,
+                                payload=PerceptionPayload(
+                                    threat_gradient_delta=round(_authorized, 3),
+                                ),
+                                source="reaction_perception",
+                            )
+                        )
 
                 # v2: Разделяем на EMOTION (stress) и SOCIAL (trust, fear)
                 try:

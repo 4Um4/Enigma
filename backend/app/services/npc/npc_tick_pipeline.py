@@ -970,6 +970,17 @@ def create_memory_event(
         _importance = min(_base + _emotion_boost, 1.0)
 
     if _importance is not None:
+        # AG1-D7: третья ветка (NPC-интенты TALK/...) строила summary из
+        # player_text — поля хода игрока, которого в NPC-ходе нет:
+        # «actor → player: » с пустым хвостом при imp=0.8. Fallback-цепочка
+        # по событию (Шаг 4) + дефолт-тип (Шаг 4.5) — хвост не пустеет:
+        _summary = _summary or (
+            hub_event.payload.get("summary")
+            or hub_event.payload.get("raw_input")
+            or hub_event.payload.get("content")
+            or hub_event.payload.get("text")
+            or f"[{_evt_type}] {_evt_actor}"
+        )
         _emotion = (
             getattr(state_l2.emotion, "value", "neutral")
             if state_l2.emotion

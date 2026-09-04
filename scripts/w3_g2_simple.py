@@ -105,6 +105,15 @@ def _run_child() -> None:
             saves / "locations/location_templates.json",
         )
 
+        # H5-изоляция: build_game_loop читает СВОЙ saves_dir из глобальных
+        # settings (game_loop_builder:35), data_dir его НЕ задаёт —
+        # temp-каталог изолировал только replay/static. Все 3 GORAN-прогона
+        # мутировали общий ROOT/saves/enigma_runtime.db (загрязнение
+        # production-store, устранено перезаписью живой сессией + см.
+        # релей). Мутация до вызова: путь читается в момент build.
+        from app.core.config import settings
+
+        settings.saves_dir = str(saves)
         loop = build_game_loop(data_dir=saves)
 
         # Тик 1 = initialize_scene (production-спавнер: 18 объектов таверны).

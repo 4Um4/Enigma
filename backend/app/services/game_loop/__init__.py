@@ -1478,6 +1478,32 @@ class GameLoop:
         if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
             self.scene_manager.commit_tick_result(req.campaign_id, state.shared_context.scene_state)
 
+        # PROBE 9.7 FIX (Фаза A, итерация «Пункт 5»): ADR-O-313 — материализация
+        # отложенных задач в REST-пути. Idle-путь разбирает pending_tasks после
+        # commit (см. idle:1245); run_turn не разбирал никогда → NPC_SPOKE не
+        # публиковался, речь NPC не становилась памятью («0 строк npc_spoke»),
+        # canonical-очередь копилась (DLG_QUEUE OVERFLOW, Н-56). Зеркало
+        # idle-прецедента: авторитетная сцена = _tick_scenes[location_id]
+        # (deepcopy от commit_tick_result), чтобы мутации task_scheduler и
+        # подписчиков EventBus попали в финальный unlock_tick, а не потерялись
+        # в устаревшей ссылке shared_context.scene_state.
+        if state.shared_context and state.shared_context.scene_state:
+            _turn_scene = state.shared_context.scene_state
+            _auth_scene = None
+            if self.scene_manager:
+                _loc_key = _turn_scene.get("location_id", "default")
+                _auth_scene = self.scene_manager._tick_scenes.get(_loc_key)  # noqa: ENIGMA001
+            if _auth_scene is None:
+                _auth_scene = _turn_scene
+            # Fast-path (warn/spread_rumor/steal) публикует NPC_SPOKE синхронно —
+            # реплики видны в recent_dialogues этого же хода; LLM-задачи уходят
+            # на executor-пул, REST не блокируется (ADR-O-343/O-364).
+            if _auth_scene.get("pending_tasks"):
+                self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+            # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
+            # терминалы прошлого цикла применяются даже при пустой очереди.
+            self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+
         # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
         _ws_dict = None
         _npc_pos_dict = None
