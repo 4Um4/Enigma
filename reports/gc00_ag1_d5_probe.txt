@@ -1,0 +1,98 @@
+﻿python : [CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+At line:1 char:34
++ ... ONPATH="."; python -m pytest tests/gameplay/test_tavern_vertical.py:: ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-v2.Q5_K_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-8.3.3, pluggy-1.6.0 -- C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\DDD\Codex\VSC_Enigma\Enigma\backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, hypothesis-6.165.0
+collecting ... collected 1 item
+
+tests/gameplay/test_tavern_vertical.py::test_gc00_ag1_d5_avatar_body_initialization 
+[AG1-D5] ============= AVATAR BODY ===============
+npc_id=Tester
+body_state keys=['money']
+current_hp=<ABSENT> max_hp=<ABSENT>
+effective_hp=0.0  effective_max_hp=0.0
+life_status=<ABSENT> money=48
+dict[player]: <NOT IN SNAPSHOT>
+dict[Tester]: <NOT IN SNAPSHOT>
+[AG1-D5] ===========================================
+
+FAILED
+
+================================== FAILURES ===================================
+_________________ test_gc00_ag1_d5_avatar_body_initialization _________________
+
+    def test_gc00_ag1_d5_avatar_body_initialization():
+        """AG1-D5 red/green-зонд (Шаг 6, Этап A — фикс ОТЛОЖЕН, вердикт Мастера).
+    
+        Проверка структуры, не логов: STATE APPLIED условен («state changed»),
+        [FATE] в headless не стрелял. Цепь: new_game → load_state default-ветка
+        (clean-start: файла аватара нет) → body_state → effective_hp →
+        life_status → Death Guard input (:2154, get('life_status','ALIVE')).
+        Ожидание (онтология): fresh world = здоровое тело, NPC-паритет
+        (BODY_STATE_HEALTHY: game_loop:921, life_engine:749, npc_loader:336);
+        §ENIGMA-003: отсутствие данных ≠ нейтраль 0.0.
+        """
+        _h = TavernGameplayHarness(seed=42)
+        _h.new_game()
+        try:
+            _h.advance_ticks(3)  # материализовать dict-сторону (LifeEngine-кэш)
+    
+            _av = _h.game_loop.avatar_service.load_state("Open_road", "Tester")
+            _bs = dict(getattr(_av, "body_state", None) or {})
+    
+            print("\n[AG1-D5] ============= AVATAR BODY ===============")
+            print(f"npc_id={_av.npc_id}")
+            print(f"body_state keys={sorted(_bs.keys())}")
+            print(f"current_hp={_bs.get('current_hp', '<ABSENT>')} "
+                  f"max_hp={_bs.get('max_hp', '<ABSENT>')}")
+            print(f"effective_hp={_av.effective_hp}  "
+                  f"effective_max_hp={_av.effective_max_hp}")
+            print(f"life_status={_bs.get('life_status', '<ABSENT>')} "
+                  f"money={_bs.get('money', '<ABSENT>')}")
+    
+            # Dict-сторона: есть ли ВТОРОЕ тело (DOUBLE TRUTH)?
+            for _nid in ("player", "Tester"):
+                _d = _h.inspect_npc(_nid)
+                if _d:
+                    _dbs = _d.get("body_state") or {}
+                    print(f"dict[{_nid}]: body_keys={sorted(_dbs.keys())} "
+                          f"current_hp={_dbs.get('current_hp', '<ABSENT>')}")
+                else:
+                    print(f"dict[{_nid}]: <NOT IN SNAPSHOT>")
+            print("[AG1-D5] ===========================================\n")
+    
+>           assert "current_hp" in _bs, (
+                "AG1-D5: avatar default body_state без current_hp "
+                f"(keys={sorted(_bs.keys())}) — effective_hp падает в 0.0-fallback "
+                "(npc_state:796; семантика = BODY_STATE_DISABLED, :66-73) в свежем "
+                "мире. NPC получают BODY_STATE_HEALTHY (game_loop:921), аватар — "
+                "нет: асимметрия инициализации; §ENIGMA-003: absence != 0.0. "
+                "Фикс Stage B: {**BODY_STATE_HEALTHY, 'money': 48} "
+                "construction-time (S208-прецедент). NOT fixed here"
+            )
+E           AssertionError: AG1-D5: avatar default body_state без current_hp (keys=['money']) — effective_hp падает в 0.0-fallback (npc_state:796; семантика = BODY_STATE_DISABLED, :66-73) в свежем мире. NPC получают BODY_STATE_HEALTHY (game_loop:921), аватар — нет: асимметрия инициализации; §ENIGMA-003: absence != 0.0. Фикс Stage B: {**BODY_STATE_HEALTHY, 'money': 48} construction-time (S208-прецедент). NOT fixed here
+E           assert 'current_hp' in {'money': 48}
+
+tests\gameplay\test_tavern_vertical.py:224: AssertionError
+------------------------------ Captured log call ------------------------------
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+============================== warnings summary ===============================
+tests/gameplay/test_tavern_vertical.py::test_gc00_ag1_d5_avatar_body_initialization
+  C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pydantic\_internal\_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.9/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/gameplay/test_tavern_vertical.py::test_gc00_ag1_d5_avatar_body_initialization
+======================== 1 failed, 1 warning in 1.31s =========================

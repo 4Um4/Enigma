@@ -179,3 +179,61 @@ def test_gc00_probe_97_rest_smoke():
         )
     finally:
         _h.dispose()
+
+
+def test_gc00_ag1_d5_avatar_body_initialization():
+    """AG1-D5 red/green-зонд (Шаг 6, Этап A — фикс ОТЛОЖЕН, вердикт Мастера).
+
+    Проверка структуры, не логов: STATE APPLIED условен («state changed»),
+    [FATE] в headless не стрелял. Цепь: new_game → load_state default-ветка
+    (clean-start: файла аватара нет) → body_state → effective_hp →
+    life_status → Death Guard input (:2154, get('life_status','ALIVE')).
+    Ожидание (онтология): fresh world = здоровое тело, NPC-паритет
+    (BODY_STATE_HEALTHY: game_loop:921, life_engine:749, npc_loader:336);
+    §ENIGMA-003: отсутствие данных ≠ нейтраль 0.0.
+    """
+    _h = TavernGameplayHarness(seed=42)
+    _h.new_game()
+    try:
+        _h.advance_ticks(3)  # материализовать dict-сторону (LifeEngine-кэш)
+
+        _av = _h.game_loop.avatar_service.load_state("Open_road", "Tester")
+        _bs = dict(getattr(_av, "body_state", None) or {})
+
+        print("\n[AG1-D5] ============= AVATAR BODY ===============")
+        print(f"npc_id={_av.npc_id}")
+        print(f"body_state keys={sorted(_bs.keys())}")
+        print(f"current_hp={_bs.get('current_hp', '<ABSENT>')} "
+              f"max_hp={_bs.get('max_hp', '<ABSENT>')}")
+        print(f"effective_hp={_av.effective_hp}  "
+              f"effective_max_hp={_av.effective_max_hp}")
+        print(f"life_status={_bs.get('life_status', '<ABSENT>')} "
+              f"money={_bs.get('money', '<ABSENT>')}")
+
+        # Dict-сторона: есть ли ВТОРОЕ тело (DOUBLE TRUTH)?
+        for _nid in ("player", "Tester"):
+            _d = _h.inspect_npc(_nid)
+            if _d:
+                _dbs = _d.get("body_state") or {}
+                print(f"dict[{_nid}]: body_keys={sorted(_dbs.keys())} "
+                      f"current_hp={_dbs.get('current_hp', '<ABSENT>')}")
+            else:
+                print(f"dict[{_nid}]: <NOT IN SNAPSHOT>")
+        print("[AG1-D5] ===========================================\n")
+
+        assert "current_hp" in _bs, (
+            "AG1-D5: avatar default body_state без current_hp "
+            f"(keys={sorted(_bs.keys())}) — effective_hp падает в 0.0-fallback "
+            "(npc_state:796; семантика = BODY_STATE_DISABLED, :66-73) в свежем "
+            "мире. NPC получают BODY_STATE_HEALTHY (game_loop:921), аватар — "
+            "нет: асимметрия инициализации; §ENIGMA-003: absence != 0.0. "
+            "Фикс Stage B: {**BODY_STATE_HEALTHY, 'money': 48} "
+            "construction-time (S208-прецедент). NOT fixed here"
+        )
+        assert _av.effective_hp > 0, "AG1-D5: effective_hp=0.0 в новом мире"
+        assert "life_status" in _bs, (
+            "AG1-D5: life_status отсутствует — Death Guard видит дефолт 'ALIVE' "
+            "(:2154) при неинициализированном теле"
+        )
+    finally:
+        _h.dispose()
