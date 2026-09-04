@@ -18,8 +18,6 @@ path: backend/tests/test_affordance_facts.py
 import copy
 from types import SimpleNamespace
 
-from typing import Any, Optional
-
 import pytest
 from app.domain.semantic_action import WorldActionType
 from app.domain.tick import create_tick_state
