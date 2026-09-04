@@ -15,6 +15,29 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("gameplay.harness")
 
+
+def _snapshot_dir(root: Path) -> Optional[Dict[Path, bytes]]:
+    """Байтовый снапшот каталога (калибровочный прецедент experiment_runner:121;
+    локальная копия — граница контуров gameplay/calibration). None = каталога
+    не существовало (restore удалит созданное прогоном)."""
+    if not root.is_dir():
+        return None
+    return {f: f.read_bytes() for f in sorted(root.rglob("*")) if f.is_file()}
+
+
+def _restore_dir(root: Path, snap: Optional[Dict[Path, bytes]]) -> None:
+    """Байтово-точное восстановление (writer-agnostic: неважно, КТО писал)."""
+    if snap is None:
+        shutil.rmtree(root, ignore_errors=True)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    for _f in root.rglob("*"):
+        if _f.is_file() and _f not in snap:
+            _f.unlink()
+    for _f, _data in snap.items():
+        _f.parent.mkdir(parents=True, exist_ok=True)
+        _f.write_bytes(_data)
+
 _CAMPAIGN = "Open_road"
 _LOCATION = "tavern_silver_wolf"  # по player-прецеденту; DriftLab "tavern" — расхождение, диагностируется
 _PLAYER = "Tester"
@@ -80,7 +103,25 @@ class TavernGameplayHarness:
     def new_game(self) -> None:
         """Собирает production runtime через build_game_loop; temp-saves изоляция."""
         from app.core.config import settings
+
+        # Clean-start (calibration experiment_runner:169-196): (1) bus.clear()
+        # — подписчики прошлых GameLoop не снимаются dispose'ом (DEBT-EVBUS),
+        # их EventDTO-возвраты инжектируются в каузальный поток (Закон 2.1.2);
+        # тесты последовательны, параллельных harness'ов нет; (2) снапшот
+        # sessions: world_tick.json — переносчик sim_tick ВНЕ saves-изоляции
+        # (temporal_engine:149); (3) SpatialRegistry invalidate (mtime-кэш).
+        from app.services.events.event_bus import get_event_bus
         from app.services.game_loop_builder import build_game_loop
+
+        get_event_bus().clear()
+        self._sessions_root = Path(settings.data_dir) / "sessions" / _CAMPAIGN
+        self._sessions_snap = _snapshot_dir(self._sessions_root)
+        try:
+            from app.services.spatial.spatial_registry import SpatialRegistry
+
+            SpatialRegistry.invalidate_cache()
+        except Exception as e:
+            logger.warning(f"[GC00] SpatialRegistry invalidate failed: {e}")
 
         # Calibration-паттерн (experiment_runner:180-198, :278-280): прямая
         # мутация settings-синглтона + restore в dispose. Env-подмена мертва:
@@ -238,6 +279,16 @@ class TavernGameplayHarness:
         except Exception:
             return None
 
+    def _restore_sessions(self) -> None:
+        """Байтовое восстановление host-sessions после прогона."""
+        _root = getattr(self, "_sessions_root", None)
+        if _root is None:
+            return
+        try:
+            _restore_dir(_root, getattr(self, "_sessions_snap", None))
+        except Exception as e:
+            logger.warning(f"[GC00] sessions restore failed: {e}")
+
     def _restore_settings(self) -> None:
         """Restore настроек (calibration-finally-паттерн)."""
         try:
@@ -251,8 +302,16 @@ class TavernGameplayHarness:
             logger.warning(f"[GC00] settings restore failed: {e}")
 
     def dispose(self) -> None:
-        """Остановка: отписка + restore настроек + чистка temp-saves."""
-        self._restore_settings()
+        """Остановка: kill писателей → отписка → restore sessions →
+        restore настроек → temp. Порядок критичен: писатели умирают, пока
+        settings указывают в tmp; sessions восстанавливаются ПОСЛЕ всех
+        потенциальных писателей; настройки — последними."""
+        try:
+            from app.services.npc.life_engine import reset_life_engine
+
+            reset_life_engine()
+        except Exception as e:
+            logger.warning(f"[GC00] life_engine reset failed: {e}")
         if self._subscribed:
             try:
                 from app.services.events.event_bus import get_event_bus
@@ -262,6 +321,8 @@ class TavernGameplayHarness:
                     _bus.unsubscribe(_et, self.counters.on_event)
             except Exception as e:
                 logger.warning(f"[GC00] unsubscribe failed: {e}")
+        self._restore_sessions()
+        self._restore_settings()
         if self._tmpdir is not None:
             try:
                 shutil.rmtree(self._tmpdir, ignore_errors=True)
