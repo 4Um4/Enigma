@@ -127,10 +127,15 @@ def test_gc00_seed_determinism():
         print(f"run2@{_diverge[0]}: {_diverge[2]}")
     print("[GC00-DET] ==================================================\n")
 
+    # Baseline №3-урок: offset расхождения = числу тиков прогона →
+    # контаминация, не недетерминизм. DEBT-QUIESCE — только при
+    # доказанной изоляции (saves+sessions+синглтоны).
     assert _diverge is None, (
         f"GC00-DET: первое расхождение на тике {_diverge[0]}: "
-        f"{_diverge[1]} vs {_diverge[2]} — suspect: DEBT-QUIESCE "
-        f"(async interleaving; S237-класс) — фикс отдельным шагом, не в GC-слое"
+        f"{_diverge[1]} vs {_diverge[2]} — suspect-лестница: (1) контаминация "
+        f"состояния (saves/sessions world_tick/синглтоны; признак — offset "
+        f"кратен числу тиков прогона), (2) DEBT-QUIESCE (только при "
+        f"доказанной изоляции)"
     )
 
 

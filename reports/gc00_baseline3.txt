@@ -1,0 +1,229 @@
+﻿python : [CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+At line:1 char:34
++ ... ONPATH="."; python -m pytest tests/gameplay/test_tavern_vertical.py - ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-v2.Q5_K_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-8.3.3, pluggy-1.6.0 -- C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\DDD\Codex\VSC_Enigma\Enigma\backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, hypothesis-6.165.0
+collecting ... collected 3 items
+
+tests/gameplay/test_tavern_vertical.py::test_gc00_tick_liveness [GC00-SETUP] saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+
+[GC00-LIVENESS] ================= BASELINE =================
+ticks_ok=100/100  crashes=0
+time_scene=70460 time_counters=70460 tick=2726
+decisions=111  npc_spoke=111  moved=16
+traversals_active=4
+events_by_type={"npc_spoke": 111, "npc_moved": 16, "npc_proximity_leave": 14, "npc_proximity_close": 62}
+pending_tail(last10)=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+last_event=npc_spoke:thief_shadow
+[GC00-LIVENESS] =================================================
+
+PASSED
+tests/gameplay/test_tavern_vertical.py::test_gc00_seed_determinism [GC00-DET] run1: last_time=70760 spoke=34 moved=5
+[GC00-DET] run2: last_time=71060 spoke=34 moved=5
+[GC00-DET] fingerprints non-null: 30/30
+
+[GC00-DET] ================ DETERMINISM ================
+ticks_compared=30  diverge_tick=0
+run1@0: {'tick': 2727, 'time': 70470, 'npc': 7, 'pending': 0}
+run2@0: {'tick': 2757, 'time': 70770, 'npc': 7, 'pending': 0}
+[GC00-DET] ==================================================
+
+FAILED
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 93, in run
+    return self.narrate(
+           ~~~~~~~~~~~~^
+        location,
+        ^^^^^^^^^
+    ...<5 lines>...
+        context,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 795, in narrate
+    raw = self.router.request_for_agent(
+        agent_name="dm",
+    ...<2 lines>...
+        params=GenerationParams(max_tokens=settings.dm_max_tokens),
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 560, in request_for_agent
+    _result = self._request_via_pool(
+        capability_obj,
+    ...<3 lines>...
+        system_prompt=system_prompt,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 362, in _request_via_pool
+    raise RuntimeError(f"Все модели пула недоступны для capability={capability}")
+RuntimeError: Все модели пула недоступны для capability=Capability.NARRATIVE
+tests/gameplay/test_tavern_vertical.py::test_gc00_probe_97_rest_smoke 
+[GC00-P97] ============== PROBE 9.7 ==================
+pending_before=0  pending_after=0
+resp_type=ChatTurnResponse  recent_dialogues=1
+dm_response_len=106
+npc_spoke_counters=8
+[GC00-P97] ==================================================
+
+PASSED
+
+================================== FAILURES ===================================
+_________________________ test_gc00_seed_determinism __________________________
+
+    def test_gc00_seed_determinism():
+        """GC-00 «Same seed → same causal history»: 2 независимых прогона
+        (свежий harness каждый, seed=42) по 30 тиков; сравнение тик-отпечатков
+        сцены. Первое расхождение = диагноз (DEBT-QUIESCE-класс: async
+        interleaving), не заглушается."""
+        _N = 30
+        _runs = []
+        for _run_idx in range(2):
+            _h = TavernGameplayHarness(seed=42)
+            _h.new_game()
+            try:
+                _fps = _h.advance_ticks(_N)
+            finally:
+                _h.dispose()
+            _runs.append(_fps)
+            print(f"[GC00-DET] run{_run_idx + 1}: last_time={_h.counters.game_time_seconds} "
+                  f"spoke={_h.counters.npc_spoke} moved={_h.counters.npc_moved}")
+    
+        _a, _b = _runs
+        # Анти-вакуум: PASS на всех-None отпечатках запрещён
+        _non_null = sum(1 for _f in _a if _f.get("tick") is not None)
+        print(f"[GC00-DET] fingerprints non-null: {_non_null}/{len(_a)}")
+        assert _non_null > 0, (
+            "GC00-DET: все отпечатки None — контракт результата idle_tick не "
+            "распознан harness'ом (_scene_after_tick); сравнение вакуумное"
+        )
+        _diverge = None
+        for _i, (_fa, _fb) in enumerate(zip(_a, _b)):
+            if _fa != _fb:
+                _diverge = (_i, _fa, _fb)
+                break
+    
+        print("\n[GC00-DET] ================ DETERMINISM ================")
+        print(f"ticks_compared={min(len(_a), len(_b))}  diverge_tick={_diverge[0] if _diverge else None}")
+        if _diverge:
+            print(f"run1@{_diverge[0]}: {_diverge[1]}")
+            print(f"run2@{_diverge[0]}: {_diverge[2]}")
+        print("[GC00-DET] ==================================================\n")
+    
+>       assert _diverge is None, (
+            f"GC00-DET: первое расхождение на тике {_diverge[0]}: "
+            f"{_diverge[1]} vs {_diverge[2]} — suspect: DEBT-QUIESCE "
+            f"(async interleaving; S237-класс) — фикс отдельным шагом, не в GC-слое"
+        )
+E       AssertionError: GC00-DET: первое расхождение на тике 0: {'tick': 2727, 'time': 70470, 'npc': 7, 'pending': 0} vs {'tick': 2757, 'time': 70770, 'npc': 7, 'pending': 0} — suspect: DEBT-QUIESCE (async interleaving; S237-класс) — фикс отдельным шагом, не в GC-слое
+E       assert (0, {'npc': 7, 'pending': 0, 'tick': 2727, 'time': 70470}, {'npc': 7, 'pending': 0, 'tick': 2757, 'time': 70770}) is None
+
+tests\gameplay\test_tavern_vertical.py:130: AssertionError
+------------------------------ Captured log call ------------------------------
+WARNING  app.services.scene_state_manager:scene_state_manager.py:724 [SCENE] location_templates.json не найден по пути backend\data\locations\location_templates.json. Возвращаю пустой словарь.
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b817f451. Queue is full (20/20).
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7bdb88a8. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-db138f35. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a4718bad. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.scene_state_manager:scene_state_manager.py:724 [SCENE] location_templates.json не найден по пути backend\data\locations\location_templates.json. Возвращаю пустой словарь.
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ed38fc0f. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-745a26fa. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4f492b47. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5d98e92f. Queue is full (20/20).
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d25d099b. Queue is full (20/20).
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+ERROR    root:router.py:605 [R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.npc.npc_tick_pipeline:npc_tick_pipeline.py:149 [S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+WARNING  app.services.execution.dialogue_queue:dialogue_queue.py:77 [DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-4cb51253. Queue is full (20/20).
+============================== warnings summary ===============================
+tests/gameplay/test_tavern_vertical.py::test_gc00_tick_liveness
+  C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pydantic\_internal\_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.9/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/gameplay/test_tavern_vertical.py::test_gc00_seed_determinism - A...
+============= 1 failed, 2 passed, 1 warning in 310.36s (0:05:10) ==============

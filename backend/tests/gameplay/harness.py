@@ -7,7 +7,6 @@
 # Зависимости: game_loop_builder, scene_init, player_session_service, EventBus.
 # Основные сущности: TavernGameplayHarness, GameplayCounters.
 import logging
-import os
 import shutil
 import tempfile
 from dataclasses import dataclass, field
@@ -80,19 +79,22 @@ class TavernGameplayHarness:
 
     def new_game(self) -> None:
         """Собирает production runtime через build_game_loop; temp-saves изоляция."""
+        from app.core.config import settings
         from app.services.game_loop_builder import build_game_loop
 
+        # Calibration-паттерн (experiment_runner:180-198, :278-280): прямая
+        # мутация settings-синглтона + restore в dispose. Env-подмена мертва:
+        # config.py:49 — жёсткий дефолт BASE_DIR, объект создан раньше нас.
         self._tmpdir = Path(tempfile.mkdtemp(prefix="gc00_"))
-        _data_dir = Path(os.environ.get("ENIGMA_DATA_DIR", "backend/data"))
-        _saves_backup = os.environ.get("ENIGMA_SAVES_DIR")
-        os.environ["ENIGMA_SAVES_DIR"] = str(self._tmpdir)
+        self._orig_saves = settings.saves_dir
+        self._orig_env = settings.environment
+        settings.saves_dir = str(self._tmpdir)
+        settings.environment = "development"
         try:
-            self.game_loop = build_game_loop(_data_dir)
-        finally:
-            if _saves_backup is None:
-                os.environ.pop("ENIGMA_SAVES_DIR", None)
-            else:
-                os.environ["ENIGMA_SAVES_DIR"] = _saves_backup
+            self.game_loop = build_game_loop(Path(settings.data_dir))
+        except Exception:
+            self._restore_settings()
+            raise
         self._attach_counters()
         self._init_player_precedent()
 
@@ -236,8 +238,21 @@ class TavernGameplayHarness:
         except Exception:
             return None
 
+    def _restore_settings(self) -> None:
+        """Restore настроек (calibration-finally-паттерн)."""
+        try:
+            from app.core.config import settings
+
+            if getattr(self, "_orig_saves", None) is not None:
+                settings.saves_dir = self._orig_saves
+            if getattr(self, "_orig_env", None) is not None:
+                settings.environment = self._orig_env
+        except Exception as e:
+            logger.warning(f"[GC00] settings restore failed: {e}")
+
     def dispose(self) -> None:
-        """Остановка: отписка наблюдателя + чистка temp-saves."""
+        """Остановка: отписка + restore настроек + чистка temp-saves."""
+        self._restore_settings()
         if self._subscribed:
             try:
                 from app.services.events.event_bus import get_event_bus
