@@ -164,6 +164,20 @@ class TavernGameplayHarness:
         self.game_loop.load_campaign(_CAMPAIGN, _CAMPAIGN)
         ensure_scene_initialized(self.game_loop, _CAMPAIGN)
         player_session_service.select_player(_CAMPAIGN, _PLAYER)
+
+        # AVID-1 (урок зонда): инъекция ADR-030 в _load_npcs_with_runtime
+        # требует CharacterSheet в saves (list_characters → player_char →
+        # инжект). Прецедент test_player_turn_headless делает upsert явно;
+        # потеряно при замене _init_avatar_body (guard-фикс, bd1) — без sheet
+        # инъекция молча пропускается (срезы 6 NPC при живой сессии).
+        from app.models.schemas import CharacterSheet
+        from app.services.character_service import CharacterService
+
+        _char_svc = CharacterService(root=str(self.game_loop._saves_dir))
+        _char_svc.upsert_character(
+            _CAMPAIGN,
+            CharacterSheet(name=_PLAYER, archetype="Drifter", temperament="Stoic"),
+        )
         self._init_avatar_body()
 
 

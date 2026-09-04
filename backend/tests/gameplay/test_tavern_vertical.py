@@ -181,7 +181,46 @@ def test_gc00_probe_97_rest_smoke():
         _h.dispose()
 
 
-def test_gc00_ag1_d5_avatar_body_initialization():
+def test_gc00_avid1_avatar_in_idle_pipeline():
+    """AVID-1 зонд (Шаг 7, Стадия 2): аватар в idle-тике.
+
+    Археология: инъекция аватара живёт в _load_npcs_with_runtime (:822,
+    ADR-030 Actor-Agnostic) — но этот метод вызывается только REST-путём
+    (:1332, :1414, :1866); idle-путь собирает NPC иначе. Зонд фиксирует
+    ФАКТ (не вердикт): есть ли аватар в кэше, в idle-snapshot, в REST-срезе;
+    тело (Шаг 6) — живо ли. Исход определяет вердикт GAP/BY-DESIGN в
+    Стадии 3 — зонд сам по себе ни зелёный, ни красный, он диагностический:
+    ассертов на «должен присутствовать» нет, есть только печать и мягкая
+    проверка непустоты данных для диагностики.
+    """
+    _h = TavernGameplayHarness(seed=42)
+    _h.new_game()
+    try:
+        _h.advance_ticks(3)
+        _engine = _h.game_loop._get_life_engine()
+        _cache_ids = sorted(
+            {(n.get("id") or n.get("npc_id") or "?") for n in (_engine.get_npc_states("Open_road") or [])}
+        )
+        _snapshot_ids = sorted(
+            {(n.get("id") or n.get("npc_id") or "?") for n in (_h.game_loop._resolve_npcs_snapshot("Open_road") or [])}
+        )
+        _rest_ids = sorted(
+            {(n.get("id") or n.get("npc_id") or "?") for n in (_h.game_loop._load_npcs_with_runtime("Open_road") or [])}
+        )
+        _av = _h.game_loop.avatar_service.load_state("Open_road", "Tester")
+
+        print("\n[AVID-1] ============== AVATAR IN IDLE ============")
+        print(f"lifeengine_cache_ids = {_cache_ids}")
+        print(f"resolve_snapshot_ids = {_snapshot_ids}")
+        print(f"load_with_runtime_ids = {_rest_ids}")
+        print(f"avatar_body_alive = {_av.body_state.get('life_status', '<ABSENT>')}, hp={_av.effective_hp}")
+        print("[AVID-1] ===========================================\n")
+
+        # Мягкие диагностические проверки (не ассерты «должен»):
+        assert _rest_ids, "AVID-1: _load_npcs_with_runtime вернул пустой список — данные для диагностики отсутствуют"
+        assert _av.effective_hp > 0, "AVID-1: регресс AG1-D5 — тело аватара пустое"
+    finally:
+        _h.dispose()
     """AG1-D5 red/green-зонд (Шаг 6, Этап A — фикс ОТЛОЖЕН, вердикт Мастера).
 
     Проверка структуры, не логов: STATE APPLIED условен («state changed»),

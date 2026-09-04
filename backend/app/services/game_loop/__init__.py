@@ -1194,6 +1194,14 @@ class GameLoop:
             active_location_id=_active_loc,
             location_ids=_location_ids,
             eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
+            # AVID-1 FIX: S113-контракт «явная передача NPC (включая аватара)»
+            # выполнялся только в REST-пути (:1422); idle-путь не передавал
+            # список → оркестратор (синхронизация позиций :327, S198-pipeline)
+            # работал без аватара → idle-мир (CFL/восприятие NPC/соцполе)
+            # был слеп к игроку между ходами. Источник = тот же production-метод
+            # инъекции ADR-030, что и REST: _load_npcs_with_runtime (:822,
+            # кэш→фильтр→сессия→sheet→player_dict; транзит, не персист).
+            all_npcs_raw=self._load_npcs_with_runtime(campaign_id),
             mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
             interventions=interventions,  # M1: Внедрение событий игрока
             npc_services=_npc_svc,  # AUDIT-003 §3.3
