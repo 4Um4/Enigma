@@ -1,7 +1,6 @@
 # ENIGMA --- Дорожная карта преемника
 
-**Версия документа:** 3.4 · 2026-09-04 (+ §4c AUD-D; + финал AG1:
-45/45 замков, реестр §4a 6/11 закрыто, см. S238) **Адресат:** LLM-преемник на V.0.5.3.9.6 (ветка
+**Версия документа:** 3.5 · 2026-09-04 (+W-синхронизация §0/§3/§5-F/Долг/5d: W1✅ W2✅ W3✅ G1✅ G2✅ — S239/ADR-O-378; следующий гейт W-трека — G3 Execution; W-долги зарегистрированы) **Адресат:** LLM-преемник на V.0.5.3.9.6 (ветка
 `V.0.5.3.9.6_Память_3`) **Назначение:** Пошаговый план --- что делать, в
 каком порядке, что читать, что формулировать самому. **Принцип
 документа:** компактный, без воды; галочки `[ ]` --- для трекинга; путь
@@ -30,11 +29,18 @@ V.0.5.3.9.5 + **сессия AG1 (Фаза A + EMRL E1/E2.0)**: закрыт ф�
 
 2.  **W-TRACK --- World Embodiment Foundation**
     (`docs/Почти Актуальные TZ/TZ_WORLD_EMBODIMENT FOUNDATION (W-TRACK).md`).
-    Прогресс: субстрат WORLD-домена **положен** (ADR-O-371:
-    `architecture/world.yaml`, WorldObjectStore, 30 тестов, IPT 45/45),
-    рантайм-потребителей пока **ноль** (доктрина dormant-substrate).
-    Следующие: W2 AffordanceResolver, W3 transition_object + causal
-    writer, W7 PresentationProjector.
+    Прогресс (актуализировано S239): **W1 ✅** (ADR-O-371: субстрат,
+    30 тестов) → **W2 ✅** (S232/ADR-O-372: AffordanceResolver, 24
+    теста, закрытый реестр 7 предикатов) → **W3 ✅** (S237/ADR-O-376:
+    FSM transition_object/damage_object + production-спавнер live=18 +
+    Gate-1 discovery-shadow GREEN) → **G2 ✅** (S239/ADR-O-378:
+    producer-facts weapon_access --- ПЕРВЫЙ живой runtime-мост
+    W2→решение через OpportunityContext; W3_G2_ENABLED default OFF;
+    GORAN β GREEN). Рантайм-потребителей: 1 (G2). Остался **G3
+    (Execution)**: commitment → ревалидация precondition-кортежей →
+    transition → атомарная мутация → MutationRecord/Fact (контракт в
+    ADR-O-376/378). DEBT-W-AUDIT (ТЗ §18.3) не начат. W4 deferred
+    (Two-Domain не доказан); W5--W9 --- контракты + PoC.
 
 3.  **Р18 «Адаптация»** (раунд ТЗ-RE-01) --- ОТКРЫТ; режим работы и
     развилки --- в акте передачи (см. §2).
@@ -436,10 +442,31 @@ integrity; E2.0-b = live propagation; **BC-1 = semantic leap**
     (`backend/tests/test_world_object_topology.py`) +
     INV-WORLD-OBJECT-TOPOLOGY в IPT. Рантайм-потребителей: 0 (доктрина
     dormant-substrate).
--   [ ] **W2** --- AffordanceResolver (read-потребитель субстрата).
--   [ ] **W3** --- `transition_object` + causal writer (спавнер; тогда
-    же caller-guard по образцу M1a `_ALLOWED_WRITERS`).
--   [ ] **W4** --- Embodied State (поза, локомоция, хват, attachment).
+-   [x] **W2** (S232/ADR-O-372) --- AffordanceResolver: pure
+    `(WorldObject, BodyStateView, npc_position) → SemanticAction[]`,
+    реестр 7 предикатов закрыт (расширение = мини-ADR), INSERT/REMOVE
+    зарезервированы. 24 теста.
+-   [x] **W3 домен/стор/спавнер** (S237/ADR-O-376) ---
+    transition_object/damage_object (TransitionResult, не bool) +
+    production-спавнер (SpawnMapping, wo_-identity,
+    initialize_scene-only, live=18) + G1 shadow (GORAN β GREEN +
+    ambient). Гейты исполнения: **G1 ✅ / G2 ✅ / G3 --- контракт, не
+    реализовано**.
+-   [x] **G2** (S239/ADR-O-378) --- producer-facts: первый живой мост
+    W2→решение (weapon_access → OpportunityContext;
+    DEBT-OPP-PRODUCER закрыт; DecisionHub object-agnostic, сигнатуры
+    не менялись; W3_G2_ENABLED default OFF).
+-   [ ] **G3 (Execution)** --- СЛЕДУЮЩИЙ ШАГ W-трека: executor
+    объектных действий (commitment → ревалидация W2-кортежей →
+    transition → мутация → Fact/L1Chronicle; тогда же Г4 caller-guard
+    `_ALLOWED_WRITERS` --- writers сейчас 0). Зона Фаз 6--7: git-археология
+    + координация с параллельными сериями обязательны до PRE-FLIGHT.
+-   [ ] **DEBT-W-AUDIT** --- `docs/AUDIT_W_TRACK_COUPLINGS.md` (ТЗ
+    §18.3, обязательный deliverable): аудит simulation↔presentation
+    couplings; не начат.
+-   [ ] **W4** --- Embodied State (поза, локомоция, хват, attachment);
+    Two-Domain (§ENIGMA-002) не доказан --- точечно при реальных
+    W2-потребностях (CAN_GRIP для TAKE-таблицы).
 -   [ ] **W5--W9** --- Presentation Projector / интерфейсы renderers ---
     только контракты + PoC.
 
@@ -1239,6 +1266,28 @@ engine, тяжёлые second-order ToM и отдельная система э�
     Отдельный запах: apply_damage пишет target\["status"\] = "dead" ---
     display-дубль рядом с каноническим life_status (мягкий DOUBLE TRUTH,
     в сравнительную оценку).
+-   [ ] **DEBT-W-AUDIT** --- ТЗ Часть II §18.3: обязательный deliverable
+    Stage 2.5 `docs/AUDIT_W_TRACK_COUPLINGS.md` (таблица
+    Файл:строка/Паттерн/Категория/Migration по паттернам §18.1, 5
+    категорий). Перенос S232→S237→S239: не начат (бюджет ушёл на
+    GORAN-итерации G2). Владелец: W-трек; действие: греп-аудит по §18.1.
+-   [ ] **DEBT-W-STORE-INCIDENT** (S239; инцидент закрыт, координация
+    открыта) --- GORAN-харнессы S239 до изоляции мутировали общий
+    production-store `ROOT/saves/enigma_runtime.db` (~2800 тиков
+    эволюции чужого мира + weapon-артефакт; артефакт вытеснен живой
+    перезаписью сессии «Память_3»; исходное состояние невосстановимо).
+    Требуется вердикт Мастера: new-game reset или признать эволюцию.
+    Закон-урок: **все A/B-харнессы обязаны патчить `settings.saves_dir`
+    до `build_game_loop`** (эталон --- `scripts/w3_g2_simple.py`);
+    G1-харнесс S237 имел тот же дефект (вердикт G1 валиден: тень ---
+    ноль writers; семантика изоляции --- нет). Хроника: MUTATIONS S239,
+    ADR-O-378_IMPACT.
+-   [ ] **W-ретрансляции Мастеру** (S239): F821 `Intent`
+    `npc_tick_pipeline.py`~:697 --- runtime-достижимый latent NameError
+    (Bridge-7, зона «Память»; их TYPE_CHECKING-mypy-доводка runtime не
+    лечит); `data/replay.db` = 754 МБ / 68k snapshots (рост без
+    ротации). Устаревшие чужие долги: AG1-D9 (поле объявлено ---
+    S239/ADR-O-378), AG1-D8 (ADR-O-377 в атласе уже записан).
 
 ### §4a. Реестр долгов сессии AG1 (единый; префикс AG1-D; не разрозненный --- это исполняемый реестр)
 
@@ -1621,9 +1670,12 @@ engine, тяжёлые second-order ToM и отдельная система э�
 
 ### F. WORLD / OBJECTS / AFFORDANCES
 
--   [ ] **F1** W2 AffordanceResolver.
--   [ ] **F2** W3 `transition_object` + causal writer.
--   [ ] **F3** Caller guard / single writer for world objects.
+-   [x] **F1** W2 AffordanceResolver --- ✅ S232/ADR-O-372 (24 теста).
+-   [~] **F2** W3: домен+стор+спавнер ✅ (S237/ADR-O-376, live=18);
+    causal writer = G3 --- не реализован, следующий шаг W-трека.
+-   [ ] **F3** Caller guard / single writer --- с первым легальным
+    writer в G3 (writers сейчас 0; enforcement-ради-enforcement
+    запрещён).
 -   [ ] **F4** W4 embodied state: pose, locomotion, grasp, attachment.
 -   [ ] **F5** Objects become actionable affordances for NPC reasoning.
 -   [ ] **F6** Furniture/tasks/containers/resources integrated into
@@ -2677,6 +2729,8 @@ gameplay closure.
 | 2026-09-04 | Шаг 2 (детектор) | test_npc_state_r6.py (5 тестов) | ✅ 5/5 passed | противоречивые прогоны старого журнала = история миграции шкалы identity_integrity 0..100→0..1; билд самосогласован (SSOT npc_state.py:667/810/1149); находка закрыта (historical, живого бага нет); бонус: pytest.ini подхвачен pytest 8.3.3 — долг S213 закрыт фактом |
 | 2026-09-04 | Шаг 3 (PROBE 9.7, P1) | run_turn materialization parity — патч game_loop/__init__.py:1481 (ADR-O-313, зеркало idle-прецедента :1245) | ✅ патч применён: compile ✅, ruff 20 (pre-existing, +0), IPT 45/45, 0 CRITICAL | ROOT_CAUSE: REST-путь никогда не разбирал pending_tasks (execute_pending вызывался только из idle_tick:1245) → NPC_SPOKE не публиковался → «0 строк npc_spoke»/память речи NPC мертва в player-сессиях (FAIL_STAGE: MATERIALIZE). FIX_SCOPE 1: execute_pending + drain_commitment_outbox над _tick_scenes-сценой между commit (:1479) и unlock (:1510); fast-path реплики попадают в recent_dialogues этого же хода; LLM-задачи на пуле ADR-O-343 (REST не блокируется). Живой REST-smoke (реплика NPC → npc_spoke в L2) — в составе GC-00. Порождённые хвосты: AI-D1 (мёртвый гейт-тест), ST-1 (stream_turn REST-зеркало?) |
 | 2026-09-04 | Шаг 3.5 (вердикты) | pytest -rs (причина скипа) + тело stream_turn + семантика лока + frontend transport | ✅ вердикты получены | AI-D1: явный skip «Flaky… Needs refactor» (:52) — гейт мёртв, преемники headless вне pytest-коллекции; ST-1: разрыв подтверждён (нет commit/unlock/execute в WS-методе), но SSE недостижим в Direct-контракте (api_client.py:585–587), лок мягкий → P1→P2, кандидат REACH-03. Гигиена: коммит 28676bcb (git add -A) втянул 30 файлов/43k строк (w3g2-отчёты, логи, правки reaction_subscriber/npc_tick_pipeline/test_phase_a — не из этой итерации); впредь точечный git add |
+| 2026-09-04 | S239 (W-трек, ADR-O-378) | GORAN β G2: 7×200 тиков, процесс-изоляция + settings.saves_dir | ✅ GREEN: honest-zero (диффы ≤ OFF/OFF-фона), B-молчание, W hits=199/199 + weapon_persisted; engine-флип 0.50→0.70 юнит-доказан; W-контур 124+1skip, IPT 45/45 | Хроника: 4 честных отказа пойманы гвардами (bootstrap-квант / H1 потеря инъекции / H5 общий-store / stale-парсинг), ноль ложных GREEN; terminal-дрейф 65→42 = артефакт общего store (канонический S237-класс восстановлен изоляцией), не регрессия ядра; B1 trav=120 — одиночный ambient-выброс (DEBT-QUIESCE, ось не гейт) |
+| 2026-09-04 | S239 (док-санация) | drift O-373→O-376 (неполный propagate S237) | ✅ 24 сайта закрыты (доки/исходники/тесты/скрипт; гейты зелёные до/после) | Урок: propagate-sweep обязан покрывать ВСЕ файлы Files-списка ADR, не только доки |
 | 2026-09-04 | Шаг 4 (GC-00 baseline №1) | pytest tests/gameplay/test_tavern_vertical.py (3 детектора, -s) | ❌ 0/3 (2 failed + 1 error, единый корень) | Все 3 падения = ArchitecturalViolationError «Direct write to NPCState.drives from tests.gameplay.harness» — ADR-WRITE-GUARD (S212) поймал нарушение САМОГО harness'а: позитив, enforcement жив. Корень: _init_avatar_body пишет поля пост-конструкцией (скопирован из прецедента test_player_turn_headless, который мёртв под guard'ом → новый хвост PH-1). Production-обвязка fixture (load_campaign/ensure_scene/select_player/CharacterSheet) прошла. Попутно: WARNING location_templates.json не найден (pre-existing, вне шага). Действие: конструкторные kwargs / фабрика (§13.4) → baseline №2 |
 
 **Унаследованные открытые хвосты журнала (не зарегистрированы в §4a; владелец — итерация «Пункт 5»):**
