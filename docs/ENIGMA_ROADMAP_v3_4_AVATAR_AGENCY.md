@@ -39,7 +39,9 @@ V.0.5.3.9.5 + **сессия AG1 (Фаза A + EMRL E1/E2.0)**: закрыт ф�
     GORAN β GREEN). Рантайм-потребителей: 1 (G2). Остался **G3
     (Execution)**: commitment → ревалидация precondition-кортежей →
     transition → атомарная мутация → MutationRecord/Fact (контракт в
-    ADR-O-376/378). DEBT-W-AUDIT (ТЗ §18.3) не начат. W4 deferred
+    ADR-O-376/378). DEBT-W-AUDIT закрыт (S240):
+    `docs/AUDIT_W_TRACK_COUPLINGS.md` (ownership/coupling-граф +
+    входной ограничитель G3; главный риск-узел B1.4, релеи R1--R6). W4 deferred
     (Two-Domain не доказан); W5--W9 --- контракты + PoC.
 
 3.  **Р18 «Адаптация»** (раунд ТЗ-RE-01) --- ОТКРЫТ; режим работы и
@@ -461,9 +463,15 @@ integrity; E2.0-b = live propagation; **BC-1 = semantic leap**
     transition → мутация → Fact/L1Chronicle; тогда же Г4 caller-guard
     `_ALLOWED_WRITERS` --- writers сейчас 0). Зона Фаз 6--7: git-археология
     + координация с параллельными сериями обязательны до PRE-FLIGHT.
--   [ ] **DEBT-W-AUDIT** --- `docs/AUDIT_W_TRACK_COUPLINGS.md` (ТЗ
-    §18.3, обязательный deliverable): аудит simulation↔presentation
-    couplings; не начат.
+-   [x] **DEBT-W-AUDIT** --- ЗАКРЫТ (S240): `docs/AUDIT_W_TRACK_COUPLINGS.md`
+    (ownership/coupling-граф + входной ограничитель G3 §4; 0 Simulation
+    coupling, 12 Acceptable adapter, V1--V4 «пустые» зонды верифицируют
+    W0/W8). Главный риск-узел --- B1.4-канал (FE пушит полный scene_state
+    → merge незащищённых ключей → atomic_commit; world_objects/
+    relationship_state/commitments вне protected-листа) --- anti-writer
+    G3; обязательные условия до G3-ON и cross-track релеи --- §4/§5
+    аудита. G3 = первый runtime-writer (relations/transitions = 0
+    callers; typed-op перехода в сторе нет --- мини-ADR).
 -   [ ] **W4** --- Embodied State (поза, локомоция, хват, attachment);
     Two-Domain (§ENIGMA-002) не доказан --- точечно при реальных
     W2-потребностях (CAN_GRIP для TAKE-таблицы).
@@ -1266,11 +1274,16 @@ engine, тяжёлые second-order ToM и отдельная система э�
     Отдельный запах: apply_damage пишет target\["status"\] = "dead" ---
     display-дубль рядом с каноническим life_status (мягкий DOUBLE TRUTH,
     в сравнительную оценку).
--   [ ] **DEBT-W-AUDIT** --- ТЗ Часть II §18.3: обязательный deliverable
-    Stage 2.5 `docs/AUDIT_W_TRACK_COUPLINGS.md` (таблица
-    Файл:строка/Паттерн/Категория/Migration по паттернам §18.1, 5
-    категорий). Перенос S232→S237→S239: не начат (бюджет ушёл на
-    GORAN-итерации G2). Владелец: W-трек; действие: греп-аудит по §18.1.
+-   [x] **DEBT-W-AUDIT** --- ЗАКРЫТ (S240): `docs/AUDIT_W_TRACK_COUPLINGS.md`
+    (§1 граф; §2 реестр Файл:строка/Паттерн/Категория/FACT-INTERPRETATION-
+    RECOMMENDATION/Migration; §3 сводка §18.2: 0 Simulation coupling, 12
+    Acceptable adapter; §4 входной ограничитель G3; §5 релеи R1--R6).
+    Порог ТЗ перекрыт: поиск шире §18.1 (обратное ребро backend→frontend,
+    W-граница writers, сериализация, API). Главный риск-узел --- B1.4-канал
+    (routes.py:1243--1268: FE-пуш полного scene_state → merge
+    незащищённых ключей → atomic_commit): anti-writer G3 + обходы
+    CommitmentRegistry (R1) / RelationshipWriteGate (R2) --- релеи чужим
+    сериям; условия до G3-ON --- §4.3 аудита. Владелец: W-трек.
 -   [x] **DEBT-W-STORE-INCIDENT** (S239; инцидент закрыт; **вердикт
     Мастера 2026-09-04: ACCEPT --- признать эволюцию**) --- GORAN-харнессы
     S239 до изоляции мутировали общий production-store
@@ -2755,6 +2768,7 @@ gameplay closure.
 - [ ] **ST-1 (P2, понижен из P1 — мёртвый прод-контур):** ВЕРДИКТ: разрыв подтверждён — в stream_turn (:1560–1733) нет commit_tick_result/unlock_tick/execute_pending (коммиты :1035/:1202/:1479, анлоки :1046/:1290/:1510 — все вне WS-метода). Сцена лочится в _prepare_and_lock_scene (_run_pipeline:2338); в WS-пути не коммитится и не анлочится → при активации SSE: WS-тик не персистится (unlock = единственная точка персиста), pending_tasks не материализуются, Death-Guard early-return без unlock. Смягчение: фронтенд Direct-контракт SSE не поддерживает (api_client.py:585–587 NotImplementedError) → путь недостижим в проде; лок мягкий (lock_for_tick :242–248 возвращает None — паралича нет). Действие: при активации SSE — патч-зеркало PROBE 9.7 (commit + execute_pending + drain + unlock) до финального done-yield; до тех пор — кандидат REACH-03. Владелец: итерация «Пункт 5». Закрытие: галочка + строка журнала.
 - [ ] **PH-1 (P2, прецедент):** test_player_turn_headless.py (эталон player-хода, послужил базой harness'а) мёртв под ADR-WRITE-GUARD: пост-конструкционные записи NPCState.drives/psyche/body_state из модуля tests.* → ArchitecturalViolationError (guard введён S212; скрипт — __main__-формат вне pytest-коллекции, падение никем не замечено). Действие: миграция прецедента на конструкторные kwargs или фабрику; прогон как отдельный гейт после GC-00. Владелец: итерация «Пункт 5». Закрытие: галочка + строка журнала.
 - [ ] **SC-1 (P2, spatial/namespace, NEW из GC-00 baseline №2):** SHADOW_COMPILER «Node not found» в run_turn-пути: tavern:entrance (event_compiler:280), tavern:right_table (:155), tavern:fireplace (:280) — цели NPC не разрешаются в скомпилированном графе (namespace целей vs граф; см. расхождение tavern/tavern_silver_wolf из GC-00-археологии). Эффект: shadow-рельса пишет FAILED-записи позиций NPC, dual-rail компаризатор теряет материал. Действие: археология источника node-id (MovementIntent) vs компиляции графа; вердикт о namespace-каноне. Владелец: итерация «Пункт 5». Закрытие: галочка + строка журнала.
+| 2026-09-04 | S240 (W-трек, DEBT-W-AUDIT, вариант B — вердикт Мастера) | docs/AUDIT_W_TRACK_COUPLINGS.md (ТЗ §18.3 / DoD п.25) | ✅ deliverable закрыт: §1 граф + §2 реестр (FACT/INTERPRETATION/RECOMMENDATION) + §4 входной ограничитель G3; IPT 45/45 вход/выход; 0 .py-патчей, 0 ADR, 0 runtime-прогонов | B1.4-канал = главный риск-узел (anti-writer G3; релеи R1–R6 чужим сериям); W-граница: spawn=единственный writer, relations/transitions=0 callers, типовая G3-op отсутствует → мини-ADR. Процесс-урок: патч-гвард применённости обязателен перед терминальным коммитом — роадмап-патч S240 не был применён, коммит 2c4dfd9d обещал его в сообщении; закрыто док-коммитом |
 
 ## 6. Гейты и Stop-criteria
 
