@@ -96,7 +96,9 @@ def test_t5_gateway_and_refusal():
     assert "ENIGMA_BACKEND_URL" in fab and "http://127.0.0.1:8000" in fab
     la = src(LAUN)
     assert len(re.findall(r"create_game_gateway\(base_url=_BACKEND_URL\)", la)) == 2
-    assert len(re.findall(r'setdefault\("ENIGMA_BACKEND_URL"', la)) == 2
+    # 3 сайта (d54762cb9, AUDIT #13): конфиг-вкладка + оба пути запуска экрана
+    # пропагируют env-дефолт — audit-снапшот актуализирован с реализации
+    assert len(re.findall(r'setdefault\("ENIGMA_BACKEND_URL"', la)) == 3
     gs = src(GSCR)
     assert "Отказ запуска экрана" in gs and "[!]" in gs
 

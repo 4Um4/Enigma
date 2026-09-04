@@ -596,6 +596,10 @@ class PerceptualKernel:
         # ArchitecturalViolationError (замок экзамена).
         "tests.sandbox.SUPERBOX.npc_sandbox": {"*"},
         "tests.sandbox.system.test_t06_belief_pipeline": {"*"},
+        # sandbox-стресс-тесты эмулируют давление напрямую в ядре
+        # (import как "sandbox.*" — без префикса "tests.", см. conftest)
+        "sandbox.stress.test_authority_erosion": {"*"},
+        "tests.sandbox.stress.test_authority_erosion": {"*"},
     }
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -672,6 +676,16 @@ class NPCState:
         # Узко, по полям; без "*" и без TODO — это постоянный контракт,
         # а не временная поблажка (см. ADR-запись сессии).
         "app.services.avatar_state_applicator": {"body_state", "stress", "emotion"},
+        # P5-03 smoke-тест: сцена сравнивает DecisionHub-скор с/без
+        # жизненного проекта — запись поля-входа узко по полям.
+        # Имя модуля без префикса "tests." — фактический __name__ под pytest.
+        "test_decision_hub_goal_boost": {"life_project", "life_project_state"},
+        "tests.test_decision_hub_goal_boost": {"life_project", "life_project_state"},
+        # ADR-HP-UNIFICATION инвариант: тест эмулирует dual-write
+        # StateApplicator'а (hp + body_state), затем проверяет зеркальность —
+        # иммунный контроль, узко по полям (два варианта __name__ под pytest).
+        "sandbox.invariants.test_cross_layer_consistency": {"hp", "body_state"},
+        "tests.sandbox.invariants.test_cross_layer_consistency": {"hp", "body_state"},
     }
 
     def __setattr__(self, name: str, value: Any) -> None:
