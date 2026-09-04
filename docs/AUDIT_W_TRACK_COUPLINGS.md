@@ -213,4 +213,36 @@ object_fsms.py (callers: 0); world_routes.py:0–60; game_screen.py:734–757 (_
 
 Рекомендованные целевые доборы (не исполнены):
 `Select-String -Path "frontend/game_screen.py" -Pattern 'scene_state\["world_objects"\]|scene_state\["relationship_state"\]'`
-runtime print-зонд ключей payload в `save_scene_state` (FE, один прогон).
+runtime print-зонд ключей payload в `save_scene_state` (FE, один прогон). → **исполнен S241** (см. §6).
+
+---
+
+## §6. Runtime-верификация B1.4 (S241) — аддендум
+
+> Метод: харнесс `backend/tests/sandbox/b1_4_push_probe.py` (GC-00-паттерн: production-path
+> ONLY, temp-saves изоляция — урок H5, два изолированных rail). Реконструкция FE-held dict:
+> origin = `session_state().scene_state` (SSOT) → 3× `idle_tick` + FE-sync (семейства A/B
+> листинга A4-2r) → player-move → пуш. Checkpoint = `get_scene_state` (unlocked = диск,
+> deepcopy) до/после; Δ = anti-writer-критерий §4.3. Доказательная база:
+> `reports/b1_4_probe_report.json`. Зонды `[DIAG_B14_*]` — временные, сняты после прогона.
+
+| # | Находка | Класс | F/I/R |
+|---|---|---|---|
+| RT1 | B4 runtime-подтверждён: origin несёт wo/rel/ac/hist — эхо неизбежно по построению (FE их никогда не перечитывает) | DOUBLE TRUTH (эхо) | FACT |
+| RT2 | Direct-rail: полная замена сцены FE-диктом; вытерты active_commitments (3, вкл. player), commitment_history (5), commitment_ordinals (7 — риск переиспользования, ADR-O-363) + backend-only ключи (_version, epistemic_records, player_recognition, pending_tasks, last_save_real_time); protected-лист на пути ОТСУТСТВУЕТ (TIME-FREEZE bypass, находка №1 аудита подтверждена runtime) | anti-writer полного спектра | FACT |
+| RT3 | HTTP-rail: критические Δ=0 = латентность, НЕ безопасность (writers=0: RE M1a dormant, G3 не реализован; origin-реестры пусты → update({}) = no-op); механизм эха доказан на npc_positions | risk (латентный) | FACT |
+| RT4 | F-эхо: per-NPC записи npc_positions замещаются FE-копиями DTO-формы; множества изменённых полей идентичны на обоих rail → damage-класс определяется составом payload, транспорт — только blast-radius | presentation→world writeback | FACT |
+| RT5 | HTTP merge персистит projection-ключи в канонический scene_state (avatar_state, player_perception, player_body_topology, embodied_status, visual_dto, audible_dto) | projection-pollution | FACT |
+| RT6 | INV-NPC-NAME маскирован: name восстанавливается re-enrichment при load (SSM:380–382) — запись теряется в персистенции, эффект скрыт | masked | FACT |
+| RT7 | else-ветка routes.py:1267 не покрыта (недостижима в харнесс-мире) — класс статический | risk | — |
+
+**Усиление §4.3 (anti-writer условия G3):**
+1. Сужение payload БЕЗ конвергенции Direct-транспорта = деградация (Direct заменит сцену
+   мини-диктом). Любая опция защиты обязана закрывать ОБА rail.
+2. Санкционированный контракт канала (B1.4-FIX: player position) работает на обоих rail —
+   живая функция; всё прочее в payload — за пределами заявленного контракта.
+3. Релеи: R1 runtime-доказан (RT2); R2 латентен (RT3); R3 жив (RT4).
+
+**Развилка Р2 (фикс — отдельной сессией, решение Мастера):** приёмник-whitelist
+(только `npc_positions.player`) + конвергенция Direct-моста — рекомендация; матрица
+опций А/Б/В — в отчёте сессии S241.

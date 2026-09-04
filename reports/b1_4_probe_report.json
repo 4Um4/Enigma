@@ -1,0 +1,619 @@
+[
+  {
+    "rail": "direct",
+    "origin_keys": [
+      "active_commitments",
+      "active_effects",
+      "active_traversals",
+      "audible_dto",
+      "avatar_state",
+      "campaign_id",
+      "commitment_history",
+      "commitment_ordinals",
+      "embodied_status",
+      "environment",
+      "environment_modifiers",
+      "game_time_seconds",
+      "location_id",
+      "npc_positions",
+      "objects",
+      "player_body_topology",
+      "player_distances",
+      "player_perception",
+      "player_position",
+      "player_target_npc",
+      "player_target_npc_name",
+      "player_target_object",
+      "relationship_state",
+      "spatial_obstacles",
+      "spatial_walls",
+      "tick",
+      "visual_dto",
+      "world_objects"
+    ],
+    "critical": {
+      "world_objects": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 18,
+        "count_after": 18
+      },
+      "relationship_state": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 0,
+        "count_after": 0
+      },
+      "active_commitments": {
+        "added": [],
+        "removed": [
+          "maid_lusya",
+          "player",
+          "tavern_keeper_tornin"
+        ],
+        "changed": [],
+        "count_before": 3,
+        "count_after": 0
+      },
+      "commitment_history": {
+        "added": [],
+        "removed": [
+          "blacksmith_orm",
+          "guard_borko",
+          "merchant_goran",
+          "tavern_keeper_tornin",
+          "thief_shadow"
+        ],
+        "changed": [],
+        "count_before": 5,
+        "count_after": 0
+      },
+      "commitment_ordinals": {
+        "added": [],
+        "removed": [
+          "blacksmith_orm",
+          "guard_borko",
+          "maid_lusya",
+          "merchant_goran",
+          "player",
+          "tavern_keeper_tornin",
+          "thief_shadow"
+        ],
+        "changed": [],
+        "count_before": 7,
+        "count_after": 0
+      }
+    },
+    "protected": {
+      "game_time_seconds": {
+        "changed": false
+      },
+      "tick": {
+        "changed": false
+      },
+      "player_recognition": {
+        "changed": true
+      },
+      "active_traversals": {
+        "changed": true
+      },
+      "pending_tasks": {
+        "changed": true
+      },
+      "spatial_walls": {
+        "changed": false
+      },
+      "spatial_obstacles": {
+        "changed": false
+      }
+    },
+    "npc_positions": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "blacksmith_orm",
+        "guard_borko",
+        "maid_lusya",
+        "merchant_goran",
+        "player",
+        "tavern_keeper_tornin",
+        "thief_shadow"
+      ],
+      "count_before": 7,
+      "count_after": 7
+    },
+    "top_level_removed": [
+      "_version",
+      "epistemic_records",
+      "last_save_real_time",
+      "pending_tasks",
+      "player_recognition"
+    ],
+    "top_level_added": [
+      "audible_dto",
+      "avatar_state",
+      "embodied_status",
+      "player_perception",
+      "visual_dto"
+    ],
+    "npc_positions_field_diff": {
+      "blacksmith_orm": [
+        "body_heading",
+        "display_name",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "initiative_suppression",
+        "local_position",
+        "location_id",
+        "npc_id",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "guard_borko": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "in_transit",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "maid_lusya": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "merchant_goran": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "in_transit",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "player": [
+        "body_heading",
+        "position"
+      ],
+      "tavern_keeper_tornin": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "thief_shadow": [
+        "activity",
+        "body_heading",
+        "in_transit",
+        "local_position",
+        "position",
+        "visible"
+      ]
+    },
+    "npc_positions_field_direction": {
+      "blacksmith_orm": {
+        "body_heading": "added",
+        "display_name": "added",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "initiative_suppression": "added",
+        "local_position": "value",
+        "location_id": "added",
+        "npc_id": "added",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "guard_borko": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "in_transit": "dropped",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "maid_lusya": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "merchant_goran": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "in_transit": "dropped",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "player": {
+        "body_heading": "dropped",
+        "position": "value"
+      },
+      "tavern_keeper_tornin": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "thief_shadow": {
+        "activity": "value",
+        "body_heading": "dropped",
+        "in_transit": "dropped",
+        "local_position": "value",
+        "position": "value",
+        "visible": "value"
+      }
+    },
+    "player_delta_expected": true,
+    "npc_unexpected_changed": [
+      "blacksmith_orm",
+      "guard_borko",
+      "maid_lusya",
+      "merchant_goran",
+      "tavern_keeper_tornin",
+      "thief_shadow"
+    ],
+    "verdict": "RED",
+    "red_keys": [
+      "top_level_removed",
+      "active_commitments",
+      "commitment_history",
+      "commitment_ordinals",
+      "player_recognition[protected:bypass-expected]",
+      "active_traversals[protected:bypass-expected]",
+      "pending_tasks[protected:bypass-expected]",
+      "npc_positions[non-player]"
+    ]
+  },
+  {
+    "rail": "http",
+    "origin_keys": [
+      "active_commitments",
+      "active_effects",
+      "active_traversals",
+      "audible_dto",
+      "avatar_state",
+      "campaign_id",
+      "commitment_history",
+      "commitment_ordinals",
+      "embodied_status",
+      "environment",
+      "environment_modifiers",
+      "game_time_seconds",
+      "location_id",
+      "npc_positions",
+      "objects",
+      "player_body_topology",
+      "player_distances",
+      "player_perception",
+      "player_position",
+      "player_target_npc",
+      "player_target_npc_name",
+      "player_target_object",
+      "relationship_state",
+      "spatial_obstacles",
+      "spatial_walls",
+      "tick",
+      "visual_dto",
+      "world_objects"
+    ],
+    "critical": {
+      "world_objects": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 18,
+        "count_after": 18
+      },
+      "relationship_state": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 0,
+        "count_after": 0
+      },
+      "active_commitments": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 3,
+        "count_after": 3
+      },
+      "commitment_history": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 5,
+        "count_after": 5
+      },
+      "commitment_ordinals": {
+        "added": [],
+        "removed": [],
+        "changed": [],
+        "count_before": 7,
+        "count_after": 7
+      }
+    },
+    "protected": {
+      "game_time_seconds": {
+        "changed": false
+      },
+      "tick": {
+        "changed": false
+      },
+      "player_recognition": {
+        "changed": false
+      },
+      "active_traversals": {
+        "changed": false
+      },
+      "pending_tasks": {
+        "changed": false
+      },
+      "spatial_walls": {
+        "changed": false
+      },
+      "spatial_obstacles": {
+        "changed": false
+      }
+    },
+    "npc_positions": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "blacksmith_orm",
+        "guard_borko",
+        "maid_lusya",
+        "merchant_goran",
+        "player",
+        "tavern_keeper_tornin",
+        "thief_shadow"
+      ],
+      "count_before": 7,
+      "count_after": 7
+    },
+    "top_level_removed": [],
+    "top_level_added": [
+      "audible_dto",
+      "avatar_state",
+      "embodied_status",
+      "player_perception",
+      "visual_dto"
+    ],
+    "npc_positions_field_diff": {
+      "blacksmith_orm": [
+        "body_heading",
+        "display_name",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "initiative_suppression",
+        "local_position",
+        "location_id",
+        "npc_id",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "guard_borko": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "in_transit",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "maid_lusya": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "merchant_goran": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "in_transit",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "player": [
+        "body_heading",
+        "position"
+      ],
+      "tavern_keeper_tornin": [
+        "display_name",
+        "editor_room_id",
+        "exertion_level",
+        "facing",
+        "head_yaw",
+        "initiative_suppression",
+        "npc_id",
+        "position",
+        "recognition_confidence",
+        "velocity",
+        "visible"
+      ],
+      "thief_shadow": [
+        "activity",
+        "body_heading",
+        "in_transit",
+        "local_position",
+        "position",
+        "visible"
+      ]
+    },
+    "npc_positions_field_direction": {
+      "blacksmith_orm": {
+        "body_heading": "added",
+        "display_name": "added",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "initiative_suppression": "added",
+        "local_position": "value",
+        "location_id": "added",
+        "npc_id": "added",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "guard_borko": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "in_transit": "dropped",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "maid_lusya": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "merchant_goran": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "in_transit": "dropped",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "player": {
+        "body_heading": "dropped",
+        "position": "value"
+      },
+      "tavern_keeper_tornin": {
+        "display_name": "added",
+        "editor_room_id": "dropped",
+        "exertion_level": "added",
+        "facing": "added",
+        "head_yaw": "added",
+        "initiative_suppression": "added",
+        "npc_id": "added",
+        "position": "dropped",
+        "recognition_confidence": "added",
+        "velocity": "added",
+        "visible": "dropped"
+      },
+      "thief_shadow": {
+        "activity": "value",
+        "body_heading": "dropped",
+        "in_transit": "dropped",
+        "local_position": "value",
+        "position": "value",
+        "visible": "value"
+      }
+    },
+    "player_delta_expected": true,
+    "npc_unexpected_changed": [
+      "blacksmith_orm",
+      "guard_borko",
+      "maid_lusya",
+      "merchant_goran",
+      "tavern_keeper_tornin",
+      "thief_shadow"
+    ],
+    "verdict": "RED",
+    "red_keys": [
+      "npc_positions[non-player]"
+    ]
+  }
+]
