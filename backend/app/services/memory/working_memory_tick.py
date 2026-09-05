@@ -65,7 +65,7 @@ def write_npc_reactions_to_memory(
 
         npc_name_raw = reaction.split(":")[0].strip()
         npc_text = reaction.split(":", 1)[1].strip()[:120]
-        # FT-3 FIX (S246, вердикт закрыт): пустой хвост ("Имя:" / "Имя:   ") —
+        # FT-3 FIX (S248, вердикт закрыт): пустой хвост ("Имя:" / "Имя:   ") —
         # артефакт парсинга DM-нарратива, не речь. Без гварда пустышка шла в
         # ОБА стока: NPC_SPOKE с content="" (6 хендлеров) и пустой ход в
         # STM-сессию (npc, player) — partner_id по умолчанию, источник
