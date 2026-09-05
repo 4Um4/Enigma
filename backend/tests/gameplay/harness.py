@@ -297,6 +297,27 @@ class TavernGameplayHarness:
             return None
         return float(_pair.get("trust", 0.0))
 
+    def read_body(self, npc_id: str) -> Optional[dict]:
+        """GC-09 (реестр §5a.9): телесные оси NPC из живого runtime-дикта.
+        Поддерживает вложенную форму (body_state) и плоскую idle-проекцию
+        (ADR-O-373); фактическая форма выводится диагностикой теста.
+        Read-only."""
+        _n = self.inspect_npc(npc_id)
+        if _n is None:
+            return None
+        _body = _n.get("body_state")
+        if isinstance(_body, dict):
+            return _body
+        _flat = {
+            k: _n[k]
+            for k in (
+                "energy", "fatigue", "hydration", "nutrition",
+                "sleep_pressure", "coupling_mode",
+            )
+            if k in _n
+        }
+        return _flat or None
+
     def get_scene_fresh(self) -> Optional[dict]:
         """Read-only: живая post-commit сцена scene_manager._tick_scenes
         (для проверок ПОСЛЕ player_action — run_turn коммитит сам, S128)."""
