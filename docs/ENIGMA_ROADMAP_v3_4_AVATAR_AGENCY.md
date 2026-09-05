@@ -60,8 +60,10 @@ V.0.5.3.9.5 + **сессия AG1 (Фаза A + EMRL E1/E2.0)**: закрыт ф�
     единственный вход «интерпретация → состояние», живой провод
     THREATEN→ПК, EXPERIENCE_DELTA_COMMITTED для Chronicaler) --- 40
     замков `backend/tests/test_phase_a_memory_fixes.py`, IPT 45/45.
-    Осталось: E2.0-c ✅ (S243, B0-CLOSED: causal proof) → BC-1..BC-12
-    (BC-1 semantic leap открыт). Не
+    Осталось: E2.0-c ✅ (S243, B0-CLOSED: causal proof) → BC-1 ✅ (S247:
+    ADR-O-381, dormant ON, приёмка 6/6 GREEN — выводы-триплеты рождаются
+    из EXPERIENCE_DELTA, NO-VACUUM зелёный) → BC-2..BC-12 (BC-2
+    Conclusion→Expectation — следующий). Не
     вводить флаги «месть/обида/влюблённость» как сущности; выводы должны
     быть derived из общих механизмов.
 
@@ -1596,8 +1598,16 @@ engine, тяжёлые second-order ToM и отдельная система э�
     (атлас L8.2/L14.5 + IMPACT-файлы). Production-форма TaskScheduler —
     AG1-D8p (ADR-O-377 занят Non-Blocking Intelligence), НЕ гейт B0.
     **Ворота для B1 открыты.**
--   [ ] **B1** Experience → Conclusion (машино-пригодные триплеты
-    `subject/predicate/object + confidence + evidence[]`, не фразы).
+-   [x] **B1** Experience → Conclusion — ✅ S247 (ADR-O-381, dormant ON):
+    приёмка bc1_conclusion_test 6/6 GREEN на GC-00-харнесе. A (прод-путь:
+    threat-событие → DeltaGate → EXPERIENCE_DELTA_COMMITTED → Фаза 9 →
+    ConclusionGate → Store) — вывод `(maid_lusya, player, is_dangerous,
+    conf=0.8, evidence=[event-id])` без текста/LLM; B — NO-VACUUM
+    (инвариант владельца: без нового опыта → 0 эмитов, 0 записей);
+    C — state-канал без события (concordance, conf=0.8); D — мимо
+    ConclusionGate → ArchitecturalViolationError (замок); E — рестарт
+    round-trip; OFF — dormant: store=None, scene_key=absent. Механизм
+    доказан; потребитель — B2/BC-2. BC1_ENABLED default OFF.
 -   [ ] **B2** Conclusion → Expectation.
 -   [ ] **B3** Expectation → existing DecisionHub.
 -   [ ] **B4** Repetition → generalization/crystallization.
@@ -2814,7 +2824,8 @@ gameplay closure.
 - [x] **FT-1 (P1, адресация):** ✅ ЗАКРЫТ 2026-09-05 (S245): точка подмены — PlayerTargetExtractor.extract() (:638): name_forms-матч не знает npc_id (латиница клиентов) → sticky-захват прежней цели через ADDRESS_LEMMAS («обращаясь»→«обращаться»). Фикс: npc_id-ветка прямого матча. Доказано: stash-дифференциал (thief_shadow→maid_lusya на идентичном входе) + зонды 3/3 + IPT 45/45. Полевая конфигурация: «люся:» → id в скобке → промах → sticky=Торнин. — кокпит-парсер понял адресата (текст сохранил «[обращаясь к maid_lusya] привет»), player_target_pipeline выбрал Торнина (dist 0.0; suspicion: прокс-приоритет ближайшего). DM ответил за не-адресата; запись в памяти всех NPC — «player → tavern_keeper_tornin». Действие: археология резолва (player_target_pipeline vs адресный префикс кокпита); зонд (два адресных хода к разным NPC, target≠nearest). Владелец: следующая сессия.
 - [ ] **FT-2 (P1, FLEE+позиции, NEW):** wait-тики: FLEE_NAV «threat=maid_lusya not found in npc_positions! Flee blocked» ×12 — NPC решает бежать от Люси каждый тик, исполнение заблокировано; сама Люся отсутствует в npc_positions idle-тиков (SPATIAL_DATA 6/7→5/6). Живая склейка RE-D4 (FLEE-массовость) + Н-53 (GROUND_TRUTH location_id). Действие: локализовать беглеца и причину исчезновения Люси из позиций (post-mortem по scene_changes_*.jsonl); зонд. Владелец: следующая сессия.
 - [ ] **FT-3 (P2, память):** пусто-текстовые speech-эпизоды imp=0.80 («merchant_goran → player: ''») — речь материализуется, текст пуст. Действие: трасса producer→payload (working_memory_tick/materializer пустой text?). Владелец: следующая сессия.
-| 2026-09-05 | Шаг 9 / S245 (FT-1 закрыт) | player_target_extractor.py (npc_id-ветка прямого матча) + test_ft1_target_resolution.py | ✅ ЗАКРЫТ: ROOT_CAUSE (дифференциал git-stash на идентичном входе: без патча id=thief_shadow/sticky-захват, с патчем maid_lusya через [S.0 MATCH] npc_id; в поле — sticky=Торнин с праймер-хода «наблюдение» + fallback-nearest). Механика: клиенты кладут резолвнутый адресат в текст латинским npc_id → name_forms-матч (кириллица) слеп → has_address_signal (лемма «обращаться») → sticky переносит прежнюю цель. Фикс: npc_id = форма прямого упоминания (предлоговая косвенность к npc_id неприменима — адресация и есть «к»). Вердикты: production-зонды 3/3 ×2 (213.51s/205.05s: id-адресация/кириллица-контроль/симметрия), GC-00 4/4 (95.08s), IPT 45/45. Честная оговорка: оба отчёта ft1_probe_* — ПОСТпатчевые прогоны (одно-блоковый протокол Мастера, «ДО» не исполнялось); красное доказательство = stash-дифференциал. Патч каноничен независимо (канонический идентификатор = легитимная форма прямого обращения) |
+| 2026-09-05 | Шаг 9 / S245 (FT-1 закрыт) | player_target_extractor.py (npc_id-ветка прямого матча) + test_ft1_target_resolution.py | ✅ ЗАКРЫТ:
+| 2026-09-05 | S247 (BC-1, реализация/приёмка — ADR-O-381 dormant; вердикт P=BC-1, AG1-D8p отложен) | bc1_conclusion_test (новый SUPERBOX); IPT 45/45 (после L4-фикса INV-SILENT-FAILURE, было 44/45); ruff 6/6; causal_state_test обе серии: Люся полный parity, Горан seed-parity (PYTHONHASHSEED=0: дрожь 0.706↔0.707 = процессный hash-недетерминизм perceiving_ids, D11-класс, не регрессия) | ✅ 6/6 GREEN: A — (maid_lusya, player, is_dangerous, conf=0.8, evidence=[id]) прод-путём; B — NO-VACUUM тройной контроль (0/0/0); C — state-канал, conf=0.8, concordance; D — REJECTED; E — round-trip; OFF — dormant (store=None, scene_key=absent) | ROOT_CAUSE (дифференциал git-stash на идентичном входе: без патча id=thief_shadow/sticky-захват, с патчем maid_lusya через [S.0 MATCH] npc_id; в поле — sticky=Торнин с праймер-хода «наблюдение» + fallback-nearest). Механика: клиенты кладут резолвнутый адресат в текст латинским npc_id → name_forms-матч (кириллица) слеп → has_address_signal (лемма «обращаться») → sticky переносит прежнюю цель. Фикс: npc_id = форма прямого упоминания (предлоговая косвенность к npc_id неприменима — адресация и есть «к»). Вердикты: production-зонды 3/3 ×2 (213.51s/205.05s: id-адресация/кириллица-контроль/симметрия), GC-00 4/4 (95.08s), IPT 45/45. Честная оговорка: оба отчёта ft1_probe_* — ПОСТпатчевые прогоны (одно-блоковый протокол Мастера, «ДО» не исполнялось); красное доказательство = stash-дифференциал. Патч каноничен независимо (канонический идентификатор = легитимная форма прямого обращения) |
 
 
 ## 6. Гейты и Stop-criteria
