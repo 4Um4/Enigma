@@ -427,11 +427,31 @@ conclusion_delta с provenance и causal parent).
     $\mathbf d^* = (0, 4/23, 10/23, 9/23)$, fear=0 (Math §7.5);
     хронический страх через L1 работает, но топология «не умеет»
     хронически меняться.
--   [ ] **MATH-5** Принцип детерминистической непредсказуемости:
-    сценарий-тест «тот же ввод, другой день --- другая реакция» через
-    скрытые медленные переменные (pressure_accumulator /
-    affective_memory / sleep debt). Игрок видит следствия (перестал
-    шутить, сорвался на обычную фразу), не числа.
+    - [ ] MATH-5 Принцип детерминистической непредсказуемости:
+    сценарий-тест «тот же ввод, другой день — другая реакция»
+    через скрытые медленные переменные
+    (pressure_accumulator / affective_memory / sleep_state /
+    sleep_debt / recovery_history).
+
+    Сон не является бинарным reset-механизмом fatigue. Его результат
+    зависит от temporal continuity, interruption history и качества
+    доступного восстановления.
+
+    Один и тот же NPC при одинаковом внешнем input может демонстрировать
+    различную реакцию не из-за random variation, а вследствие скрытого
+    накопленного состояния организма и истории восстановления.
+
+    Игрок видит следствия (хуже слышит, медленнее реагирует, перестал
+    шутить, сорвался на обычную фразу, избегает сложного решения), не
+    внутренние числа.
+
+    Invariant:
+    same seed + same world + same temporal/recovery history
+        → same outcome
+
+    same seed + same world + different recovery history
+        → potentially different outcome
+        → только через canonical state.
 -   [ ] **MATH-6** Терминология AIF канонизирована (см. Math §18.4):
     «prediction-error-driven, inspired by Active Inference»; запрет
     «базируется на минимизации свободной энергии» до вариационного F.
@@ -575,13 +595,155 @@ conclusion_delta с provenance и causal parent).
     должен быть осторожнее»).
 -   [ ] **BC-11** Social triangles: A→B→C должен порождать третичное
     изменение отношений без специального «треугольника отношений».
--   [ ] **BC-12** Long-horizon proof: сценарии
-    `оскорбление→обида→память→избегание`,
-    `обман→вывод→слух→осторожность`, `обучение→новое действие`,
-    `помощь→благодарность→ответная помощь` проживаются 100--1000 тиков.
+    - [ ] BC-12 Long-horizon proof:
+    сценарии
+    «оскорбление → вывод → память → избегание»,
+    «обман → вывод → слух → осторожность»,
+    «обучение → новое действие»,
+    «помощь → благодарность → ответная помощь»
+    проживаются 100–1000 тиков.
+
+    - [ ] BC-13 Temporal consolidation boundary.
+
+    Разделить:
+
+        immediate causal update 
+        ≠
+        temporal consolidation.
+
+    Значимый опыт может немедленно изменить canonical state через
+    DeltaGate, но отдельные следствия опыта могут требовать времени и
+    повторной обработки.
+
+    Сон является одним из допустимых temporal windows для consolidation,
+    но не единственным источником learning/belief revision.
+
+    Запрет:
+    sleep() не является универсальным магическим commit() для памяти.
+
+    Проверить:
+
+        Experience
+            ↓
+        immediate state effect
+            +
+        persistent trace
+            ↓
+        temporal processing
+            ↓
+        selective consolidation /
+        revision /
+        strengthening /
+        weakening
+
+    Любое изменение должно иметь provenance и causal parent.
 
 **Stop:** пока BC-1...BC-7 не доказаны, не начинать полноценный Active
 Inference как отдельный большой слой.
+
+Цель:
+
+Сон не является отдельной «анимацией отдыха» и не является
+fatigue = 0.
+
+Сон — temporal runtime mode организма, в котором Body продолжает
+изменяться по собственным законам.
+
+Главный принцип:
+
+    SLEEP ≠ RESET
+
+    SLEEP = state-dependent recovery process.
+
+- [ ] Зафиксировать canonical границу:
+
+      wakefulness
+          ↓
+      sleep pressure accumulation
+          ↓
+      sleep seeking
+          ↓
+      reachable recovery affordance
+          ↓
+      settled
+          ↓
+      sleep transition
+          ↓
+      recovery runtime
+          ↓
+      awakening
+
+- [ ] Не создавать второй SleepStore, если canonical BodyState уже
+  способен хранить необходимые temporal variables.
+
+- [ ] Все переходы сна должны быть deterministic и replayable.
+
+- [ ] Sleep runtime не должен иметь прямого writer-пути мимо canonical
+  StateApplicator / владельца Body domain.
+
+- [ ] Разделить duration и quality.
+
+  8 часов в sleep state ≠ автоматически одинаковое восстановление.
+
+- [ ] Recovery зависит как минимум от:
+
+      continuity
+      interruption
+      safety / threat context
+      available recovery affordance
+      pre-existing sleep pressure
+
+- [ ] Не моделировать нейрофизиологию человека ради биологической
+  точности.
+
+  NREM/REM/EEG не являются обязательными canonical сущностями.
+
+  Если разные режимы восстановления понадобятся, они должны быть
+  введены как функциональные recovery modes, а не как декоративная
+  копия медицинской терминологии.
+
+- [ ] Observation / threat / relevant stimulus может прервать sleep state
+  только через существующие perception/arousal rules.
+
+- [ ] NPC не должен просыпаться от каждого event в мире.
+
+- [ ] Different stimulus relevance может давать:
+
+      no interruption
+      partial arousal
+      full awakening
+
+- [ ] Реакция зависит от:
+
+      perception accessibility
+      arousal threshold
+      current body state
+      threat appraisal.
+
+- [ ] No global "wake all NPCs" shortcut.
+
+- [ ] Проверить, выполняет ли единый recovery process разные уникальные
+  каузальные работы для:
+
+      Body restoration
+      Perception restoration
+      Cognitive availability
+
+- [ ] Новые recovery variables разрешены только после anti-Bond test:
+
+      какую причинную работу эта переменная выполняет,
+      которую уже не выполняют fatigue / sleep pressure /
+      existing body state?
+
+- [ ] Не создавать:
+
+      cognitive_recovery = 0.8
+      emotional_recovery = 0.6
+
+  только ради психологической правдоподобности.
+
+  Новая ось появляется только при доказанной уникальной causal work.
+
 
 ### Фаза 1.6 --- Unified Appraisal / «палитра эмоций»
 
@@ -616,6 +778,36 @@ Inference как отдельный большой слой.
     после первого порядка и при доказанной необходимости.
 -   [ ] **PP-6** Prophecy / prediction vertical slice --- после
     PP-1...PP-4.
+- [ ] PP-7 Temporal state → perception quality.
+
+  BodyState и recovery state могут причинно изменять доступность и
+  качество perception без создания второго perception engine.
+
+  Минимальные направления:
+
+      fatigue / sleep pressure
+          → reduced effective attention
+
+      sleep state
+          → altered arousal threshold
+
+      deep rest / settled recovery
+          → restoration of perception capacity
+
+  Реализация должна использовать существующие perception contracts и
+  deterministic thresholds/scaling, а не probability hacks.
+
+  Не вводить:
+      random_sleepiness()
+      chance_to_miss_event()
+
+  Предпочтительно:
+
+      canonical body state
+          ↓
+      derived perception modifier
+          ↓
+      existing Observation / Perception pipeline.
 
 ### Фаза 1.8 --- HUMOR / PLAY / SOCIAL INCONGRUITY
 
@@ -1283,6 +1475,40 @@ engine, тяжёлые second-order ToM и отдельная система э�
     Дизайн-вход Мастера (S236): «Тень тайно спит в подвале» --- первый
     кандидат контент-фикса (activity_map/MapEditor или W2
     sleep-affordance-типы BED→HAMMOCK/GROUND/SHELTER).
+    DEBT-SLEEP-DELIVERY — Sleep Architecture Delivery Boundary
+
+    Сон-машина физиологически верифицирована независимо.
+
+    Открытая проблема находится не внутри Body/Sleep Runtime, а на границе:
+
+        homeostatic pressure
+            ↓
+        motivation / intent
+            ↓
+        affordance discovery
+            ↓
+        reachable recovery target
+            ↓
+        traversal
+            ↓
+        settled
+            ↓
+        sleep transition
+            ↓
+        recovery runtime.
+
+    Следствие:
+
+        физиология может быть корректна,
+        но мир всё равно производит хронический недосып,
+        если embodied actor не способен физически достигнуть
+        recovery affordance.
+
+    Это не Body bug.
+
+    Это вертикальный разрыв:
+
+        BODY → DECISION → WORLD → BODY.
 -   [ ] **rng-бомба: rng or random в боевом ядре** Все функции
     combat_math.py принимают rng: Optional\[random.Random\] = None и
     делают \_rng = rng or random. Если хоть один call-site не инъецирует
@@ -2134,11 +2360,101 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
     ограничивает affordances/decision, вызывает подходящее действие, а
     recovery меняет body state обратно. Проверять реальным тиком, а не
     прямой записью body-поля.
+    GC-09 — Body → constraint → embodied action → recovery.
+
+    Дефицит:
+
+        energy
+        hydration
+        nutrition
+        sleep
+        pain / injury
+
+    становится canonical homeostatic pressure.
+
+    Pressure:
+
+        ограничивает доступные affordances
+        ↓
+        меняет Decision landscape
+        ↓
+        вызывает embodied action
+        ↓
+        требует реального достижения world affordance
+        ↓
+        запускает recovery runtime
+        ↓
+        изменяет BodyState.
+
+    Проверять реальным production tick:
+
+        Body
+        → Decision
+        → Commitment
+        → World target
+        → Traversal
+        → Settled
+        → Recovery
+        → changed Body.
+
+    Запрет:
+
+        прямой test-write body field
+            → считать доказательством recovery.
 
 -   [ ] **GC-10 --- Sleep delivery.** NPC получает sleep pressure,
     выбирает reachable sleep target, проходит traversal, становится
     settled и только после этого sleep state начинает реально снижать
     pressure. Отдельно проверить альтернативные sleep affordances.
+    GC-10 — Sleep Vertical Slice.
+
+    NPC:
+
+        accumulates sleep pressure
+            ↓
+        experiences changed constraints /
+        action landscape
+            ↓
+        selects recovery intent
+            ↓
+        discovers valid sleep affordance
+            ↓
+        validates reachable target
+            ↓
+        traverses
+            ↓
+        becomes settled
+            ↓
+        enters sleep state
+            ↓
+        undergoes deterministic recovery
+            ↓
+        can be interrupted by relevant perception/threat
+            ↓
+        resumes or exits sleep
+            ↓
+        wakes with causally derived BodyState.
+
+    Acceptance:
+
+        same seed + same world + same sleep history
+            → same sleep/recovery outcome.
+
+        interrupted sleep
+            ≠
+        uninterrupted sleep of equal nominal duration,
+        если это различие имеет доказанную causal работу.
+
+    Отдельно проверить альтернативные recovery affordances:
+
+        BED
+        HAMMOCK
+        GROUND
+        SHELTER
+
+    только если они действительно отличаются по доступным recovery conditions,
+    а не ради контентного enum.
+
 
 -   [ ] **GC-11 --- Relationship event → state → future social action.**
     Реальное социальное событие проходит RelationshipEventSemantics →
@@ -2190,6 +2506,27 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
     середине причинной цепи, загрузить и продолжить. NPC memory,
     beliefs, relationships, body, world objects и identity должны
     продолжить историю без reset/duplicate application.
+    - [ ] GC-20 — Temporal Recovery → Future Behavior.
+
+    Два прогона имеют:
+
+        одинаковый world snapshot
+        одинаковый seed
+        одинаковый текущий внешний input
+
+    но различную temporal recovery history.
+
+    Проверить:
+
+        recovery history
+            → canonical body/perception state
+            → changed decision landscape
+            → different future behavior.
+
+    Никакого random modifier.
+
+    Расхождение должно быть объяснимо через Chronicle / Snapshot /
+    causal provenance.
 
 -   [ ] **GC-21 --- Replay exactness.** Один seed + одинаковый
     input/event stream → одинаковые snapshots, causal events и terminal
