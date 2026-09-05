@@ -213,11 +213,11 @@ object_fsms.py (callers: 0); world_routes.py:0–60; game_screen.py:734–757 (_
 
 Рекомендованные целевые доборы (не исполнены):
 `Select-String -Path "frontend/game_screen.py" -Pattern 'scene_state\["world_objects"\]|scene_state\["relationship_state"\]'`
-runtime print-зонд ключей payload в `save_scene_state` (FE, один прогон). → **исполнен S241** (см. §6).
+runtime print-зонд ключей payload в `save_scene_state` (FE, один прогон). → **исполнен S242** (см. §6).
 
 ---
 
-## §6. Runtime-верификация B1.4 (S241) — аддендум
+## §6. Runtime-верификация B1.4 (S242) — аддендум
 
 > Метод: харнесс `backend/tests/sandbox/b1_4_push_probe.py` (GC-00-паттерн: production-path
 > ONLY, temp-saves изоляция — урок H5, два изолированных rail). Реконструкция FE-held dict:
@@ -235,6 +235,7 @@ runtime print-зонд ключей payload в `save_scene_state` (FE, один 
 | RT5 | HTTP merge персистит projection-ключи в канонический scene_state (avatar_state, player_perception, player_body_topology, embodied_status, visual_dto, audible_dto) | projection-pollution | FACT |
 | RT6 | INV-NPC-NAME маскирован: name восстанавливается re-enrichment при load (SSM:380–382) — запись теряется в персистенции, эффект скрыт | masked | FACT |
 | RT7 | else-ветка routes.py:1267 не покрыта (недостижима в харнесс-мире) — класс статический | risk | — |
+| RT8 | Direction-атрибуция: `initiative_suppression` (PerceptualKernel-домен) привносится DTO-формой («added», 5/6 NPC, оба rail) и персистится в канон — под-класс RT5; `visible/in_transit/position/editor_room_id` «dropped» — канонические поля уничтожаются DTO-замещением; `psyche_state` (guard_borko) — в field_diff, direction-атрибут отсутствует в коммитнутом JSON (аномалия консистентности артефакта; текущий код итерирует field_diff-ключи — smoke S242-fix; вероятный класс dropped — канон-стороннее легаси-поле, атрибут не доказан, вердикт — следующий прогон) | projection-pollution / data-loss | FACT |
 
 **Усиление §4.3 (anti-writer условия G3):**
 1. Сужение payload БЕЗ конвергенции Direct-транспорта = деградация (Direct заменит сцену
@@ -245,4 +246,4 @@ runtime print-зонд ключей payload в `save_scene_state` (FE, один 
 
 **Развилка Р2 (фикс — отдельной сессией, решение Мастера):** приёмник-whitelist
 (только `npc_positions.player`) + конвергенция Direct-моста — рекомендация; матрица
-опций А/Б/В — в отчёте сессии S241.
+опций А/Б/В — в отчёте сессии S242.

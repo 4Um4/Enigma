@@ -1,10 +1,3 @@
-"""
-Назначение: B1.4-runtime-зонд (S241) — реконструкция FE-held dict по production-контуру (origin = session_state.scene_state; FE-sync = семейства A/B листинга A4-2r; пуш между тиками, вне tick-lock) + anti-writer-доказательство Δ канонического state по критическим поддеревьям. Direct/HTTP — два изолированных мира (вердикт Мастера: writer boundary, не последовательные writers). GC-00-стандарт: FAIL обязан оставить след; production-фиксы запрещены; наблюдение не мутирует.
-Зависимости: tests.gameplay.harness.TavernGameplayHarness (production-path ONLY, temp-saves изоляция — урок H5/ADR-O-378), app.api.routes.update_scene_state (импорт-безопасность верифицирована).
-Основные сущности: run_probe, _apply_fe_sync, _emulate_player_move, _canon_checkpoint, _dict_diff, _diff_report, main.
-Запуск: cd backend; python -m tests.sandbox.b1_4_push_probe; cd ..
-"""
-
 # path: /project/backend/tests/sandbox/b1_4_push_probe.py
 # Назначение: B1.4-runtime-зонд (S242) — реконструкция FE-held dict по production-контуру
 #   (origin = session_state.scene_state; FE-sync = семейства A/B листинга A4-2r; пуш между
@@ -119,7 +112,7 @@ def _diff_report(rail: str, before: dict, after: dict, fe: dict) -> dict:
             _red.append(f"{_k}[protected:{'bypass-expected' if rail == 'direct' else 'ANOMALY'}]")
     _np = _dict_diff(before.get("npc_positions"), after.get("npc_positions"))
     report["npc_positions"] = _np
-    # S241: полевая атрибуция эха — какие именно поля изменились per-NPC.
+    # S242: полевая атрибуция эха — какие именно поля изменились per-NPC.
     # Классификация урона: потеря данных vs enrichment-артефакт vs
     # snapshot-DTO-форма (поля, отсутствующие в каноне).
     _npb = before.get("npc_positions") or {}
