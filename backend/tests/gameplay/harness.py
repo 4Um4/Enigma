@@ -272,6 +272,22 @@ class TavernGameplayHarness:
                 return _n
         return None
 
+    def read_trust(self, npc_id: str, target: str = "player") -> Optional[float]:
+        """GC-11 (реестр §5a.9): чтение trust-пары NPC→target через
+        канонический V2-бэкенд (провода game_loop._rel_store, S249; один
+        объект на все подписки — switch :87 до инъекций :186/:269).
+        None = пара отсутствует (Vacuum: нет записи = нет знания)."""
+        _store = getattr(self.game_loop, "_rel_store", None)
+        if _store is None:
+            return None
+        try:
+            _pair = _store.get_pair(_CAMPAIGN, npc_id, target)
+        except Exception:
+            return None
+        if not _pair:
+            return None
+        return float(_pair.get("trust", 0.0))
+
     def get_scene_fresh(self) -> Optional[dict]:
         """Read-only: живая post-commit сцена scene_manager._tick_scenes
         (для проверок ПОСЛЕ player_action — run_turn коммитит сам, S128)."""
