@@ -1663,6 +1663,14 @@ engine, тяжёлые second-order ToM и отдельная система э�
           несуществующий get_relationship; state не имеет                                                                   
           relationship_store) + social_deltas standalone-копия ---                                                          
           finding 3.5-класс, судьба в M1b.3.5                                                                               
+
+D-MOM (P3, PRE-FLIGHT-находка 2026-09-05, Embodied Constraint): motor_output_mult —
+orphaned derived state / dead consumer edge: sleep/body → CouplingResolver
+вычисляет множитель моторики → персистится в body_state
+(sleep_lifecycle:127) → production consumer не обнаружен (integration:236
+потребляет только external_hearing_mult). Не блокирует ADR-O-383; отдельный
+causal question; кандидат-владелец: Sleep/Decision-фронт после калибровки
+хронических порогов.
   ----------------------------------------------------------------------------------------------------------------------------------
 
 -   Патч-формат: ТОЛЬКО БЫЛО/СТАЛО с фактическими якорями с диска (не
