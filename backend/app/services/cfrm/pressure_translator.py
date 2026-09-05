@@ -12,6 +12,11 @@ from app.services.npc.behavior_modifiers import compute_behavior_modifiers
 
 logger = logging.getLogger(__name__)
 
+# ADR-O-383 (V1): chronic-пороги — CALIBRATION_CANDIDATE (Calibration Lab),
+# НЕ игровые истины. Консервативные заглушки до калибровки.
+_FATIGUE_HIGH_CANDIDATE: float = 0.8
+_ENERGY_LOW_CANDIDATE: float = 0.1
+
 
 def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionContext:
     """

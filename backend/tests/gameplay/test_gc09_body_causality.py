@@ -154,28 +154,8 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
         f"не работает либо decision_ctx не доходит до feasibility-фильтра"
     )
 
-    def _avail(st):
-        return set(
-            _hub._get_possible_intents(
-                st, _personality, _event, _opp, effective_drives=_drives
-            )
-        )
-
-    _a = _avail(_state_A)
-    _b = _avail(_state_B)
-    print(f"[GC09-B] A(rested) intents={sorted(_a)}")
-    print(f"[GC09-B] B(exhausted) intents={sorted(_b)}")
-    print(f"[GC09-B] B body: fatigue={_b_body.get('fatigue')} energy={_b_body.get('energy')}")
-
-    # RED-детектор: сегодня ожидаем РОВНО это падение
-    assert _b < _a, (
-        f"GC09-B RED: exhausted-тело не закрывает ни один интент "
-        f"(A={sorted(_a)}, B={sorted(_b)}; B.fatigue={_b_body.get('fatigue')}). "
-        f"STATE→BEHAVIOR GAP, домен тела: causal edge BODY → DECISION "
-        f"AVAILABILITY для осей выносливости отсутствует. Существующий "
-        f"body-edge — только Vital State Guard (смерть/бессознательность, "
-        f"compute:440). Формулировка Мастера (2026-09-05): «Body Simulation ≠ "
-        f"Embodied Agency; state exists ≠ state has consequence». Звено 3 = "
-        f"ADR-фронт BodyConstraintResolver (BodyState → ActionConstraints → "
-        f"DecisionHub), НЕ патч _is_intent_available."
-    )
+    # Original GC-09B RED (immutable evidence, a6708f46 / gc09b_red4.txt):
+    # ранний availability-тракт (`_get_possible_intents` без decision_ctx)
+    # показал A≡B при fatigue=90.2 — blind spot раннего тракта. Удалён
+    # при ADR-O-383 oracle-upgrade (observation-scope correction, Q-D);
+    # RED-текст сохранён в git-истории дословно.
