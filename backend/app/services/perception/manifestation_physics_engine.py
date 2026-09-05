@@ -31,7 +31,7 @@ class ManifestationPhysicsEngine:
     """
 
     def manifest(
-        self, npc_state: Dict[str, Any], body_state: Dict[str, Any], traversal: Dict[str, Any] = None
+        self, npc_state: Dict[str, Any], body_state: Dict[str, Any], traversal: Dict[str, Any] | None = None
     ) -> ManifestationState:
         if not npc_state or not isinstance(npc_state, dict):
             return ManifestationState()

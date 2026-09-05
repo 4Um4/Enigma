@@ -49,6 +49,19 @@ ENQUEUED / EXECUTED / APPLIED / STALE_DISCARDED / FAILED — наблюдаем�
 исполнения ≠ инвариант состояния. Собственный реестр очереди, НЕ TaskState
 диалоговых задач.
 
+## Implementation Result (S250-сессия AG1-D8p, 2026-09-05)
+Production-форма реализована и приёмлеем: P2-ПОСЛЕ (живой uvicorn, живая LLM,
+20× idle_tick) **total=8.37с — критерий `wait 20` ≤ 10с ТЗ закрыт** (baseline
+110.96с, ×13.2); P1-ПОСЛЕ 4.55с / RE-D2 23→0 / APPLIED=2 deferred; фальсификатор
+d8p_intelligence_test 23/23 (A placeholder+deferred-APPLIED+loop-exile; B OFF-
+контроль; C STALE-наблюдаемость; D Q5-замок; E не-wired деградация); parity:
+Люся GREEN точный (0.800/0.272/0.777), Горан parity по S243/S247-исходу; bc1
+6/6; IPT 45/45. Коммиты: 7acbaeb1 → 115d5691 → 303b839f → 247de9a0 → a6517a17.
+D8P_ENABLED default OFF (байт-идентично; INV-D8P-NOOP). Реализация:
+intelligence_queue.py (FIFO/lifecycle/Q5/STALE/apply); enqueue-ветка подписчика
++ wiring game_loop; сценарий. Известное: teardown-шум pool-сабмитов (наблюдаем,
+не чиним); parent_tick=0 на холодном старте (наблюдение); N=3 — calibration.
+
 ## Rollback
 `D8P_ENABLED=OFF` = полный no-op (прецеденты W3_G2_ENABLED/BC1_ENABLED).
 RAM-only, персистенции нет — удаление слоя бесследно.

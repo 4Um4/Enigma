@@ -23,7 +23,8 @@ class LLMCache:
 
     def get(self, agent_name: str, prompt: str) -> Optional[Dict[str, Any]]:
         _hash = compute_prompt_hash(prompt)
-        return self.store.get_llm_call(agent_name, _hash)
+        result: Optional[Dict[str, Any]] = self.store.get_llm_call(agent_name, _hash)
+        return result
 
     def record(self, session_id: str, tick_id: int, agent_name: str, prompt: str, response: str, model_name: str, latency_ms: int = 0) -> None:
         """Делегирует запись в ReplayStore."""

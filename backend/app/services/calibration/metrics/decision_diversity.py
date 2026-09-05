@@ -24,7 +24,12 @@ class DecisionDiversity(CalibrationMetric):
         self._seen: Dict[str, Set[str]] = {}
         self._totals: Dict[str, int] = {}
 
-    def update(self, tick, state_snapshot, event=None) -> None:
+    def update(
+        self,
+        tick: int,
+        state_snapshot: Dict[str, Dict[str, Any]],
+        event: Dict[str, Any] | None = None,
+    ) -> None:
         records: List[Any] = (event or {}).get(_K_RECORDS, [])
         for event_type, source, label in records:
             if event_type not in DECISION_EVENT_VALUES:

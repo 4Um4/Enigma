@@ -1244,27 +1244,14 @@ def new_game(campaign_id: str, request: NewGameRequest, game_loop=Depends(get_ga
 def update_scene_state(
     campaign_id: str, scene_state: dict = Body(...), game_loop=Depends(get_game_loop)
 ) -> dict:
-    """B1.4-FIX: receive scene_state updates from frontend (player position).
-    NEW-8 FIX: Merge partial updates to avoid overwriting player_recognition.
-    TIME-FREEZE FIX: Frontend cannot overwrite authoritative session keys."""
-    _loc_id = scene_state.get("location_id", "")
-    _current_state = game_loop.scene_manager.get_scene_state(campaign_id, _loc_id)
-    if _current_state:
-        # Список ключей, которые фронтенду ЗАПРЕЩЕНО перезаписывать
-        _protected_keys = {
-            "game_time_seconds", "tick", "player_recognition",
-            "active_traversals", "pending_tasks", "spatial_walls", "spatial_obstacles"
-        }
-        for _k, _v in scene_state.items():
-            if _k in _protected_keys:
-                continue
-            if isinstance(_v, dict) and isinstance(_current_state.get(_k), dict):
-                _current_state[_k].update(_v)
-            else:
-                _current_state[_k] = _v
-        game_loop.scene_manager.save_scene_state(campaign_id, _current_state)
-    else:
-        game_loop.scene_manager.save_scene_state(campaign_id, scene_state)
+    """B1.4-FIX + R2-В (S244): единый приёмник GameLoop.save_scene_state.
+
+    Whitelist-контракт: из payload принимается ТОЛЬКО npc_positions["player"]
+    (anti-writer G3, AUDIT §6 RT1–RT8). Merge/protected-семантика (NEW-8/
+    TIME-FREEZE) субсумирована by construction — кроме player-записи не
+    пишется ничего. Direct-rail (game_loop_bridge) сходится на тот же метод.
+    """
+    game_loop.save_scene_state(campaign_id, scene_state)
     return {"status": "ok"}
 
 

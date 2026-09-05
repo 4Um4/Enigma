@@ -25,7 +25,7 @@ class InterventionEvent:
 
     @classmethod
     def from_player_action(
-        cls, action_text: str, player_name: str, tick: int, **kwargs
+        cls, action_text: str, player_name: str, tick: int, **kwargs: Any
     ) -> "InterventionEvent":
         """Factory для player actions (backward compat для GameLoop)."""
         return cls(

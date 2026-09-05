@@ -21,7 +21,7 @@ _SURPRISE_GAIN: float = 1.2
 
 def _compute_scar_rate(abs_error: float) -> float:
     """Вычисляет скорость формирования 'шрама памяти' на основе ошибки предсказания."""
-    return 0.1 + (0.4 * (abs_error**1.5))
+    return float(0.1 + (0.4 * (abs_error**1.5)))
 
 
 def integrate_affective_pressure(

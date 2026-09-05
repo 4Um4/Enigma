@@ -127,7 +127,7 @@ class WorldTokenBudget:
             from app.services.body.body_topology_service import BodyTopologyService
             
             topo = BodyTopologyService.deserialize(topo_data)
-            inv_dict = {}
+            inv_dict: Dict[str, int] = {}
             for slot in topo.all_slots():
                 for item in topo.contents.get(slot.slot_id, ()):
                     inv_dict[item.item_id] = inv_dict.get(item.item_id, 0) + 1

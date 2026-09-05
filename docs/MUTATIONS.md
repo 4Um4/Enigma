@@ -985,6 +985,17 @@ IPT: ✅ 45/45. КРАСНЫЕ: 0 🔴 → 0 🔴
 📁 backend/app/services/cfrm/pressure_translator.py, backend/tests/gameplay/test_gc09_body_causality.py, docs/ADR (Architecture Decision Records).md (O-383), docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md (§4b D-MOM), docs/MUTATIONS.md (эта запись)
 IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
 
+### S251: AG1-D8p — Intelligence Queue (ADR-O-382, production-форма ADR-O-377; закрытие DEBT-RE-D2A) | ✅ критерий ТЗ закрыт: P2-ПОСЛЕ 8.37с (baseline 110.96с)
+🎯 Мандат двойной (консенсус): ТЗ-вход S238 §IV (executor-поток + outbox, прецедент drain_commitment_outbox) ≡ DEBT-RE-D2A forensic-соседа. Досье + вердикты Q1–Q5 владельца ДО кода (D8P_PRE_FLIGHT.md §13): Q1a ONLY extract; Q2б окно N=3 (calibration; строго >); Q3б time-bridge, MemoryManager = legal application authority, DeltaGate 🔒NO-TOUCH; Q4а существующий max_workers=1-пул (второй execution domain НЕ создан); Q5 event.id-идемпотентность (lifecycle ENQUEUED/EXECUTED/APPLIED/STALE_DISCARDED/FAILED).
+⚙️ Baseline ДО (живая LLM): R1 КРАСНЫЙ — uvicorn 20× idle_tick = 110.96с (mean 5.55с; sync-экстракция 3.3–4.3с в HTTP-потоке тика); R2 КРАСНЫЙ — cockpit 23 RE-D2/20т (guard → пустой DialogueUpdate = семантическая смерть player-диалогов). Сведение осей: ОДНА сцепка «экстракция ↔ поток публикатора» → ДВА режима отказа по контексту (R1 threadpool / R2 loop). Реализация (D8P_ENABLED default OFF): intelligence_queue.py (NEW: FIFO, md5-task_id, lifecycle-наблюдаемость, Q5-дедуб bounded, STALE-гейт age>N ∨ плейсхолдер-ход исчез ∨ listener вне мира, apply=MemoryManager session API c tick=parent_tick provenance, submit-at-enqueue на существующий пул + fallback-pump) + enqueue-ветка NpcDialogueSubscriber (:131; event_id=EventDTO.id, placeholder intent="dialogue" немедленно) + wiring game_loop (replace-семантика при restart) + SUPERBOX d8p_intelligence_test (NEW, 23/23). ПОСЛЕ: P1 4.55с/RE-D2=0/APPLIED=2 (APPLIED-строка после wall-clock = тик не ждал); P2 8.37с (критерий закрыт; NPC_DIALOGUE_SUB=8 — диалоги живы; APPLIED=2 deferred, STALE=0). Parity: Люся GREEN точный (0.800/0.272/0.777, A−C-класс 0.023, D REJECTED×3); Горан S243/S247-parity (0.707 seed-стабильный; CC2≡EE1 детерминизм); bc1 6/6; phase_a 45/45; IPT 45/45.
+⚙️ Инциденты/уроки сессии: (1) частичное применение патча c7a4a644 (3.53s невалиден; якоря обязаны пред-регистрироваться, deletion-чек); (2) wired-smoke v1 конфаунд (no_detach=False — «RE-D2=0» объяснялся отцеплением, не очередью; сообщение 303b839f завышено — §9.3 ревизия честности); (3) ruff fix=true проекта 3× автофиксы до ревью → только `--no-fix`; гейт = барьер решения (коммит при красном IPT — мой процессный пробел 7acbaeb1, зеркалит их fa82f359-вывод); (4) pycache-призрак (клевета на соседа снята ретракцией: 'self'/'_FATIGUE…'/'delta_far' = same-second правки соседа + фантомы; диагностика ТОЛЬКО после кэш-гигиены — ЧАСТЬ I); (5) EE1: прогон Люси ушёл в дефолт-Горана (аргумент обязателен; повторён корректно). Попутные: delta_far (NameError в rel-цепи, латентно с FRIENDLY-тонов) — исчез параллельной серией до вердикта; teardown pool-submit-шум — наблюдаем.
+⚙️ Эхо соседям: forensic — DEBT-RE-D2A закрыт (ADR-O-382; их guard = containment, мой слой = над ним); ADR-O-383/GC — ретракция призрака + pycache-урок; B0-числа НЕ тронуты их V1 (Люся-паритет точный); W-track — координационный якорь 6ad6e819 (их game_loop-хвост B1.4 в моём S247-коммите при их routes-половине в дереве; история не переписана, вердикт владельца (а)); RE-01 — их WIP (SELF_TALK_SENTINEL + RelationshipWriteGate-wrap в моём subscriber) композируется с D8P-веткой (BB3/CC4-verified). CONFIG-DEBT корроборирован (label qwen_7b/Q5 vs фактический Q4 4.36GiB). Anti-race: S249 занята GC-серией (:970) → S250 = max+1 по хвосту в момент записи.
+📁 svc/memory/intelligence_queue.py (NEW), svc/events/npc_dialogue_subscriber.py (enqueue-ветка; их WIP соседствует), svc/game_loop/__init__.py (wiring), tests/sandbox/terminal_cockpit.py (измерительный env-флаг D8P_BASELINE_NO_DETACH), tests/sandbox/SUPERBOX/scenarios/d8p_intelligence_test.py (NEW), docs/audits/D8P_PRE_FLIGHT.md (досье+вердикты+baseline §9.1–9.4), docs/audits/ADR-O-382_IMPACT.md, docs/ADR (атлас O-382), docs/ENIGMA_ROADMAP… (§5d/§2a)
+IPT: ✅ 45/45 (CC2+EE3). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+
+
+
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
 *   **Time/Space:** `WALL-CLOCK`, `KERNEL-RNG`, `SPATIAL-SSOT`, `POSITION-MUTATION`, `TICK-CARDINALITY`, `TEMPORAL-ISOLATION`, `SCENE-ENTITY-ISOLATION` / `NPC-CARDINALITY`
@@ -996,6 +1007,5 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-
 
 

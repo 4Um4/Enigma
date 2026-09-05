@@ -79,7 +79,7 @@ class FactExtractor:
         fact_type: str,
         fact_name: str,
         value: Any,
-        inaccuracy: List[str] = None,
+        inaccuracy: List[str] | None = None,
     ) -> ObservedFact:
         return ObservedFact(
             fact_id=str(uuid.uuid4()),

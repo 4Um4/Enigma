@@ -90,7 +90,7 @@ def update_avatar_from_npc_intents(
             logger.warning(f"[AVATAR] update error: {_av_err}")
 
 
-def avatar_to_prompt(state) -> dict:
+def avatar_to_prompt(state: Any) -> dict:
     """Формирует краткое описание состояния аватара для DM промпта."""
     wounds_str = "нет"
     if state.wounds:

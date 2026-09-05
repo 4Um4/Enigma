@@ -1,0 +1,255 @@
+{
+  "fix": "R2-V (S244)",
+  "rails": [
+    {
+      "rail": "direct",
+      "origin_keys": [
+        "active_commitments",
+        "active_effects",
+        "active_traversals",
+        "audible_dto",
+        "avatar_state",
+        "campaign_id",
+        "commitment_history",
+        "commitment_ordinals",
+        "embodied_status",
+        "environment",
+        "environment_modifiers",
+        "game_time_seconds",
+        "location_id",
+        "npc_positions",
+        "objects",
+        "player_body_topology",
+        "player_distances",
+        "player_perception",
+        "player_position",
+        "player_target_npc",
+        "player_target_npc_name",
+        "player_target_object",
+        "relationship_state",
+        "spatial_obstacles",
+        "spatial_walls",
+        "tick",
+        "visual_dto",
+        "world_objects"
+      ],
+      "critical": {
+        "world_objects": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 18,
+          "count_after": 18
+        },
+        "relationship_state": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 0,
+          "count_after": 0
+        },
+        "active_commitments": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 3,
+          "count_after": 3
+        },
+        "commitment_history": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 5,
+          "count_after": 5
+        },
+        "commitment_ordinals": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 7,
+          "count_after": 7
+        }
+      },
+      "protected": {
+        "game_time_seconds": {
+          "changed": false
+        },
+        "tick": {
+          "changed": false
+        },
+        "player_recognition": {
+          "changed": false
+        },
+        "active_traversals": {
+          "changed": false
+        },
+        "pending_tasks": {
+          "changed": false
+        },
+        "spatial_walls": {
+          "changed": false
+        },
+        "spatial_obstacles": {
+          "changed": false
+        }
+      },
+      "npc_positions": {
+        "added": [],
+        "removed": [],
+        "changed": [
+          "player"
+        ],
+        "count_before": 7,
+        "count_after": 7
+      },
+      "top_level_removed": [],
+      "top_level_added": [],
+      "npc_positions_field_diff": {
+        "player": [
+          "body_heading",
+          "position"
+        ]
+      },
+      "npc_positions_field_direction": {
+        "player": {
+          "body_heading": "dropped",
+          "position": "value"
+        }
+      },
+      "player_delta_expected": true,
+      "npc_unexpected_changed": [],
+      "verdict": "GREEN",
+      "red_keys": []
+    },
+    {
+      "rail": "http",
+      "origin_keys": [
+        "active_commitments",
+        "active_effects",
+        "active_traversals",
+        "audible_dto",
+        "avatar_state",
+        "campaign_id",
+        "commitment_history",
+        "commitment_ordinals",
+        "embodied_status",
+        "environment",
+        "environment_modifiers",
+        "game_time_seconds",
+        "location_id",
+        "npc_positions",
+        "objects",
+        "player_body_topology",
+        "player_distances",
+        "player_perception",
+        "player_position",
+        "player_target_npc",
+        "player_target_npc_name",
+        "player_target_object",
+        "relationship_state",
+        "spatial_obstacles",
+        "spatial_walls",
+        "tick",
+        "visual_dto",
+        "world_objects"
+      ],
+      "critical": {
+        "world_objects": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 18,
+          "count_after": 18
+        },
+        "relationship_state": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 0,
+          "count_after": 0
+        },
+        "active_commitments": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 3,
+          "count_after": 3
+        },
+        "commitment_history": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 5,
+          "count_after": 5
+        },
+        "commitment_ordinals": {
+          "added": [],
+          "removed": [],
+          "changed": [],
+          "count_before": 7,
+          "count_after": 7
+        }
+      },
+      "protected": {
+        "game_time_seconds": {
+          "changed": false
+        },
+        "tick": {
+          "changed": false
+        },
+        "player_recognition": {
+          "changed": false
+        },
+        "active_traversals": {
+          "changed": false
+        },
+        "pending_tasks": {
+          "changed": false
+        },
+        "spatial_walls": {
+          "changed": false
+        },
+        "spatial_obstacles": {
+          "changed": false
+        }
+      },
+      "npc_positions": {
+        "added": [],
+        "removed": [],
+        "changed": [
+          "player"
+        ],
+        "count_before": 7,
+        "count_after": 7
+      },
+      "top_level_removed": [],
+      "top_level_added": [],
+      "npc_positions_field_diff": {
+        "player": [
+          "body_heading",
+          "position"
+        ]
+      },
+      "npc_positions_field_direction": {
+        "player": {
+          "body_heading": "dropped",
+          "position": "value"
+        }
+      },
+      "player_delta_expected": true,
+      "npc_unexpected_changed": [],
+      "verdict": "GREEN",
+      "red_keys": []
+    }
+  ],
+  "edges": [
+    {
+      "edge": "missing_scene_no_write",
+      "pass": true
+    },
+    {
+      "edge": "no_player_no_write",
+      "pass": true
+    }
+  ]
+}

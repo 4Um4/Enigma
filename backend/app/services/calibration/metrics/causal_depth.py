@@ -19,7 +19,12 @@ from app.services.calibration.metrics.base import CalibrationMetric
 class CausalDepth(CalibrationMetric):
     name = "causal_depth"
 
-    def update(self, tick, state_snapshot, event=None) -> None:
+    def update(
+        self,
+        tick: int,
+        state_snapshot: Dict[str, Dict[str, Any]],
+        event: Dict[str, Any] | None = None,
+    ) -> None:
         # Ничего не накапливаем: источника цепочек в M0 нет (см. докстринг).
         return
 

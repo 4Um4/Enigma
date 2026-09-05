@@ -9,7 +9,7 @@ import logging
 from typing import Optional
 
 from app.core.config import BASE_DIR
-from app.models.player_action import PlayerAction, ActionType
+from app.models.player_action import ActionType, PlayerAction
 from app.models.truth_state import TruthState
 from app.services.truth_state_loader import TruthStateLoader
 

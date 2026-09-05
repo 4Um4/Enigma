@@ -20,7 +20,7 @@ class PerceptionProjector:
     This class is called by game_screen / frontend, NOT by tick_orchestrator.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         from app.services.perception.behavior_manifestation_service import (
             BehaviorManifestationService,
         )

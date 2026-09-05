@@ -19,13 +19,25 @@ from app.domain.epistemology import Proposition
 SELF_TALK_SENTINEL = "soliloquy"
 
 # ADR-O-311: Exposure Default Contract — радиус выводится из semantic.
+# SpeechExposure Contract (Р-В, GC-DIALOGUE-01): единственная лестница
+# громкости речи. Радиус ВЫВОДИТСЯ из semantic (ADR-O-311), не передаётся
+# хардкодом. Parity-контракт с ACTION_PERCEPTION_RADIUS["dialogue"]
+# (сторона игрока) — держится тестом test_speech_radius_parity.
 _EXPOSURE_DEFAULT_RADIUS: dict[str, float] = {
-    "secret": 1.5,  # собеседник рядом
+    "secret": 1.5,  # собеседник вплотную (visibility=whisper, не private!)
     "whisper": 3.0,  # группа вплотную
-    "normal": 5.0,  # обычная речь в комнате
+    "normal": 6.0,  # разговор (унифицировано со стороной игрока, D1)
+    "loud": 10.0,  # громкая речь (D2)
     "shout": 15.0,  # публичное событие, бой
-    "private": 0.0,  # внутренняя речь / солилоквий (не слышим)
+    "private": 0.0,  # внутренняя когниция — НЕ слышима (см. SELF_TALK_SENTINEL
+    # для экстернализованного бормотания: whisper-класс, не этот слот)
 }
+
+
+def exposure_radius(semantic: str) -> float:
+    """Р-В: SSOT-резолв физического радиуса речи. Для неизвестного semantic —
+    normal (громкий дефолт запрещён ADR-L9.1/ADR-148: пробивает мембраны)."""
+    return _EXPOSURE_DEFAULT_RADIUS.get(semantic, _EXPOSURE_DEFAULT_RADIUS["normal"])
 
 
 @dataclass(frozen=True)
@@ -36,7 +48,7 @@ class ExposureLevel:
     Прямая передача radius допускается только для override (test/sandbox).
     """
 
-    semantic: Literal["secret", "whisper", "normal", "shout", "private"]
+    semantic: Literal["secret", "whisper", "normal", "loud", "shout", "private"]
     physical_radius: Optional[float] = None  # None = derive from semantic
 
     def to_dict(self) -> dict:
@@ -64,7 +76,7 @@ class ExposureLevel:
 
     @classmethod
     def from_semantic(
-        cls, semantic: Literal["secret", "whisper", "normal", "shout", "private"]
+        cls, semantic: Literal["secret", "whisper", "normal", "loud", "shout", "private"]
     ) -> "ExposureLevel":
         """Единственный легальный способ создать ExposureLevel в прод-коде."""
         if semantic not in _EXPOSURE_DEFAULT_RADIUS:

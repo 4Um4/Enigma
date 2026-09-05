@@ -115,7 +115,7 @@ def export_npc_memories_to_yaml(
         "память": formatted,
     }
 
-    yaml_str = yaml.dump(
+    yaml_str: str = yaml.dump(
         doc, allow_unicode=True, default_flow_style=False, sort_keys=False
     )
 

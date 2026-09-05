@@ -23,7 +23,7 @@ class InferenceEngine:
     ЗАПРЕТ: Не изменяет Reality (Инвариант 2).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._causes_map = self._load_causes_map()
 
     def _load_causes_map(self) -> Dict[str, List[str]]:

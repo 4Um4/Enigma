@@ -27,7 +27,7 @@ class ReplayStore:
         self._lock = threading.Lock()
         self._init_db()
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         """Создаёт схему БД, если её нет."""
         self.conn.execute("PRAGMA journal_mode=WAL;")
         self.conn.executescript("""

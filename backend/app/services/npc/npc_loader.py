@@ -63,7 +63,8 @@ def _load_json_file(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"[NPC_LOADER] Config not found: {path}")
     with open(path, "rb") as bf:
-        return json.loads(bf.read().decode("utf-8-sig"))
+        payload: Dict[str, Any] = json.loads(bf.read().decode("utf-8-sig"))
+        return payload
 
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:

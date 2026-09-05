@@ -1,0 +1,1425 @@
+2026-09-05 22:16:33,145 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260905_221633.log
+2026-09-05 22:16:33,145 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-09-05 22:16:33,145 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-09-05 22:16:33,146 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-09-05 22:16:33,177 app.services.memory.memory_manager INFO: [M1b.4.2] V2 cutover: late-bind + npc_provider (M1b.3.2)
+2026-09-05 22:16:33,178 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-09-05 22:16:33,186 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-09-05 22:16:33,204 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-09-05 22:16:33,228 app.services.game_loop.task_scheduler INFO: [TASK_SCHED] DialogueQueue initialized
+2026-09-05 22:16:33,234 app.services.game_loop INFO: [GAME_LOOP] Replay Recorder started. Session ID: 6c2a36d9-4c67-451e-b9d6-2d634b2c2602
+2026-09-05 22:16:33,234 app.services.llm.router INFO: [LLM_CACHE] Replay context bound. Session: 6c2a36d9-4c67-451e-b9d6-2d634b2c2602
+2026-09-05 22:16:33,235 app.services.social.reputation_engine INFO: [REPUTATION] Loaded 4 factions
+2026-09-05 22:16:33,235 app.services.game_loop.service_factories INFO: [REPUTATION] Engine initialized
+2026-09-05 22:16:33,238 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=True
+2026-09-05 22:16:33,242 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber and DialogueMemorySubscriber registered
+2026-09-05 22:16:33,246 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:33,249 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=east connected_to=0 nodes
+2026-09-05 22:16:33,249 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] boundary=south connected_to=2 nodes
+2026-09-05 22:16:33,249 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern: compiled 19 nodes, 29 edges, 42 aliases, 2 boundaries (nav=True, rooms=True)
+2026-09-05 22:16:33,252 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:33,255 app.services.game_loop INFO: [GAME_LOOP] EpistemicResolver injected into ActionConsequenceCompiler (ACCUSE gate)
+2026-09-05 22:16:33,255 app.services.game_loop INFO: [GAME_LOOP] Epistemic Core (ClaimEventSubscriber) + SocialActionSubscriber registered
+2026-09-05 22:16:33,262 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-09-05 22:16:33,265 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-09-05 22:16:33,265 app.core.schema_validator ERROR: [SCHEMA] EventBus validation failed: 'EventBus' object has no attribute '_subscribers'
+2026-09-05 22:16:33,265 app.core.schema_validator WARNING: [SCHEMA] Validation finished with 1 errors (non-blocking).
+2026-09-05 22:16:37,157 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 200 OK"
+2026-09-05 22:16:37,163 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:37,165 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:37,167 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-09-05 22:16:39,149 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,150 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,431 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,433 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,438 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,439 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,441 app.services.spatial.spatial_registry INFO: [SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=1787318820.8845258)
+2026-09-05 22:16:39,444 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,445 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,448 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-09-05 22:16:39,449 app.services.game_loop.service_factories INFO: [ECO] Initialized 7 economic profiles for Open_road
+2026-09-05 22:16:39,449 app.services.social.social_engine INFO: [SOCIAL] Loaded 24 edges (22 defined, 2 reverse defaults)
+2026-09-05 22:16:39,449 app.services.game_loop.service_factories INFO: [SOCIAL] Engine initialized (6 NPCs in graph)
+2026-09-05 22:16:39,452 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-09-05 22:16:39,453 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:39,609 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=131
+2026-09-05 22:16:39,612 app.services.tick_orchestrator WARNING: [CFRM] ClusterOccupancy: Восстановлен NPC 'guard_borko' в npc_positions (loc=tavern, pos=tavern:bar_pass_north).
+2026-09-05 22:16:39,612 app.services.tick_orchestrator WARNING: [CFRM] ClusterOccupancy: Восстановлен NPC 'thief_shadow' в npc_positions (loc=tavern, pos=tavern:bar_pass_north).
+2026-09-05 22:16:39,612 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:39,613 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:39,613 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=36236ca0 tick=131 location=tavern npcs=7 traversals=1 rng_seed=131
+2026-09-05 22:16:39,629 app.services.scene_state_manager INFO: [SCENE] Применено 10/10 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:39,631 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:39,631 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:39,633 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern:main_hall reason=schedule:eating exact_xy=(6.5, 5.5) dist=1.12 ticks=1
+2026-09-05 22:16:39,633 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=blacksmith_orm status=VALID_PATH path_len=2 traversal=CREATED
+2026-09-05 22:16:39,633 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:schedule:eating spatial=yes traversal=NEW
+2026-09-05 22:16:39,633 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=36236ca0
+2026-09-05 22:16:39,634 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:39,635 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 3 LifeEngine intents
+2026-09-05 22:16:39,635 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:39,635 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:39,635 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=36236ca0
+2026-09-05 22:16:39,636 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:39,636 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:39,639 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=maid_lusya snapped to [13.5, 3.0] node=tavern:node_16
+2026-09-05 22:16:39,642 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:39,645 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=131, interventions=0
+2026-09-05 22:16:39,649 app.services.social.v2_relationship_backend INFO: [V2_REL] bind: campaign=Open_road
+2026-09-05 22:16:39,649 app.services.social.v2_relationship_backend INFO: [V2_REL] bootstrap: поднято 22 пар из NPC-диктов
+2026-09-05 22:16:39,649 app.services.social.v2_relationship_backend INFO: [V2_REL] lazy-bootstrap: 22 пар
+2026-09-05 22:16:39,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:39,652 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:39,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=5.3
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:39,653 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [LIFE_PROJECT] NPC merchant_goran FSM переход: ACTIVE -> COMPLETED (Проект: wealth_creator)
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:39,653 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [LIFE_PROJECT] NPC maid_lusya FSM переход: ACTIVE -> COMPLETED (Проект: family_builder)
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:39,653 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [LIFE_PROJECT] NPC blacksmith_orm FSM переход: ACTIVE -> COMPLETED (Проект: knowledge_seeker)
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:39,653 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=4.0
+2026-09-05 22:16:39,653 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:39,653 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=2.7
+2026-09-05 22:16:39,661 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:39,676 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=131 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:39,677 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:39,960 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,961 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,965 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,966 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,968 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,969 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:39,971 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:39,971 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=132
+2026-09-05 22:16:39,973 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:39,973 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:39,973 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=b85d94c3 tick=132 location=tavern npcs=7 traversals=1 rng_seed=132
+2026-09-05 22:16:39,979 app.services.scene_state_manager INFO: [SCENE] Применено 10/10 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:39,979 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:39,979 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:39,981 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern:kitchen reason=schedule:working exact_xy=(16.712863297325104, 2.3801183127572014) dist=3.27 ticks=2
+2026-09-05 22:16:39,981 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=2 traversal=CREATED
+2026-09-05 22:16:39,981 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-09-05 22:16:39,981 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=b85d94c3
+2026-09-05 22:16:39,982 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:39,982 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 3 LifeEngine intents
+2026-09-05 22:16:39,982 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:39,982 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:39,982 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=b85d94c3
+2026-09-05 22:16:39,984 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:39,984 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:39,984 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=blacksmith_orm snapped to [6.5, 5.5] node=tavern:main_hall
+2026-09-05 22:16:39,986 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:39,986 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_leave от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:39,986 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_leave от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:39,989 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=132, interventions=0
+2026-09-05 22:16:39,992 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:39,992 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:39,992 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:39,992 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:39,992 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:39,992 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:39,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:39,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:39,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:39,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:39,993 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:39,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:39,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:39,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:39,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:40,002 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:40,004 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=132 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:40,004 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:40,241 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,242 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,245 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,247 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,249 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,251 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,252 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:40,252 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=133
+2026-09-05 22:16:40,255 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:40,255 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:40,255 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=f5709a6d tick=133 location=tavern npcs=7 traversals=1 rng_seed=133
+2026-09-05 22:16:40,259 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:40,260 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:40,260 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:40,263 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=133, interventions=0
+2026-09-05 22:16:40,267 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:40,267 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:40,267 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:40,268 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,268 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=3.3
+2026-09-05 22:16:40,268 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,268 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:40,268 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,268 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:40,268 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:40,268 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:40,268 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:40,268 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:40,268 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:40,268 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:40,276 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:40,278 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=133 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:40,278 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:40,504 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,506 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,509 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,510 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,512 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,513 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,515 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:40,515 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=134
+2026-09-05 22:16:40,517 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:40,517 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:40,517 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=c9ac7125 tick=134 location=tavern npcs=7 traversals=1 rng_seed=134
+2026-09-05 22:16:40,522 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:40,522 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:40,522 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:40,523 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:40,523 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:40,524 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=c9ac7125
+2026-09-05 22:16:40,525 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:40,525 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:40,525 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=maid_lusya snapped to [16.712863297325104, 2.3801183127572014] node=tavern:kitchen
+2026-09-05 22:16:40,527 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=134, interventions=0
+2026-09-05 22:16:40,530 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:40,530 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:40,530 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:40,530 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,530 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=6.7
+2026-09-05 22:16:40,530 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,530 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:40,530 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,531 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:40,531 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:40,531 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:40,531 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:40,531 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:40,531 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:40,531 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:40,542 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:40,545 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=134 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:40,545 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:40,771 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,773 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,777 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,779 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,783 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,785 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:40,786 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:40,787 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=135
+2026-09-05 22:16:40,791 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:40,791 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:40,791 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=df1997ef tick=135 location=tavern npcs=7 traversals=0 rng_seed=135
+2026-09-05 22:16:40,796 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:40,797 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:40,797 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:40,801 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=135, interventions=0
+2026-09-05 22:16:40,806 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:40,806 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:40,806 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:40,806 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,806 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.998 integrity_delta=-0.0022 pressure=10.0
+2026-09-05 22:16:40,806 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,806 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:40,806 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:40,806 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:40,806 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:40,807 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:40,807 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:40,807 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:40,807 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:40,807 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:40,819 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:40,822 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=135 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:40,822 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:41,054 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,055 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,060 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,062 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,065 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,067 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,069 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:41,069 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=136
+2026-09-05 22:16:41,073 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:41,074 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:41,074 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=ccfb5a45 tick=136 location=tavern npcs=7 traversals=0 rng_seed=136
+2026-09-05 22:16:41,079 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:41,079 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,080 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,083 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=136, interventions=0
+2026-09-05 22:16:41,088 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:41,088 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:41,088 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:41,089 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,089 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.996 integrity_delta=-0.0022 pressure=13.3
+2026-09-05 22:16:41,089 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,089 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:41,089 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,089 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:41,089 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:41,089 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:41,089 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:41,090 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:41,090 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:41,090 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:41,103 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:41,105 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=136 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:41,105 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:41,336 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,338 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,343 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,345 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,348 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,350 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,351 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:41,351 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=137
+2026-09-05 22:16:41,354 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:41,354 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:41,354 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=c1256ee8 tick=137 location=tavern npcs=7 traversals=0 rng_seed=137
+2026-09-05 22:16:41,359 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:41,359 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,359 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,363 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=137, interventions=0
+2026-09-05 22:16:41,368 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:41,368 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:41,368 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:41,368 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,368 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.993 integrity_delta=-0.0022 pressure=16.7
+2026-09-05 22:16:41,368 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,368 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:41,368 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,368 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:41,368 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:41,369 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:41,369 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:41,369 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:41,369 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:41,369 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:41,381 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:41,384 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=137 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:41,384 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:41,615 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,617 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,622 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,624 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,627 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,629 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,630 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:41,630 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=138
+2026-09-05 22:16:41,634 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:41,634 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:41,634 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=c38b366c tick=138 location=tavern npcs=7 traversals=0 rng_seed=138
+2026-09-05 22:16:41,641 app.services.scene_state_manager INFO: [SCENE] Применено 9/9 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:41,641 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,641 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=blacksmith_orm target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,641 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,642 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern:main_hall_south reason=need_driven:shelter_urge=0.56 exact_xy=(5.5, 6.0) dist=1.12 ticks=1
+2026-09-05 22:16:41,642 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=blacksmith_orm status=VALID_PATH path_len=5 traversal=CREATED
+2026-09-05 22:16:41,643 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-09-05 22:16:41,643 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=c38b366c
+2026-09-05 22:16:41,644 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:41,644 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 3 LifeEngine intents
+2026-09-05 22:16:41,647 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:41,648 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=138, interventions=0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:41,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.991 integrity_delta=-0.0022 pressure=20.0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=0.0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:41,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:41,652 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:41,652 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:41,653 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:41,665 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:41,668 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=138 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:41,668 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:41,911 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,913 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,918 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,920 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,922 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,924 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:41,925 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:41,925 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=139
+2026-09-05 22:16:41,928 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:41,928 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:41,928 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=4c780ec0 tick=139 location=tavern npcs=7 traversals=1 rng_seed=139
+2026-09-05 22:16:41,933 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:41,933 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,934 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:41,935 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:41,935 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:41,935 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=4c780ec0
+2026-09-05 22:16:41,937 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:41,937 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:41,937 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=blacksmith_orm snapped to [5.5, 6.0] node=tavern:main_hall_south
+2026-09-05 22:16:41,940 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=139, interventions=0
+2026-09-05 22:16:41,945 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:41,945 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:41,945 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:41,945 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,945 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.989 integrity_delta=-0.0022 pressure=23.3
+2026-09-05 22:16:41,945 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,945 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=3.3
+2026-09-05 22:16:41,945 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:41,946 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=3.3
+2026-09-05 22:16:41,946 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:41,946 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:41,946 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:41,946 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:41,946 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:41,946 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:41,957 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:41,959 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=139 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:41,959 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:42,192 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,194 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,199 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,201 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,204 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,205 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,206 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:42,206 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=140
+2026-09-05 22:16:42,209 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:42,209 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:42,209 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=1b961bc3 tick=140 location=tavern npcs=7 traversals=0 rng_seed=140
+2026-09-05 22:16:42,215 app.services.scene_state_manager INFO: [SCENE] Применено 10/10 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:42,215 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:42,215 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:42,217 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern:node_16 reason=need_driven:hunger=0.56 exact_xy=(13.5, 3.0) dist=3.27 ticks=2
+2026-09-05 22:16:42,217 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=4 traversal=CREATED
+2026-09-05 22:16:42,218 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern:main_hall_west reason=need_driven:social_urge=0.64 exact_xy=(6.0, 8.0) dist=2.06 ticks=2
+2026-09-05 22:16:42,218 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=blacksmith_orm status=VALID_PATH path_len=3 traversal=CREATED
+2026-09-05 22:16:42,218 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-09-05 22:16:42,218 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:social_urge=0.64 spatial=yes traversal=NEW
+2026-09-05 22:16:42,218 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=1b961bc3
+2026-09-05 22:16:42,220 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:42,220 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-09-05 22:16:42,223 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:42,223 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:42,224 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=140, interventions=0
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=5.3
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.987 integrity_delta=-0.0023 pressure=26.7
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=6.7
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=6.7
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:42,228 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:42,228 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:42,238 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:42,240 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=140 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:42,240 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:42,473 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,474 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,478 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,480 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,482 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,483 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,485 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:42,485 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=141
+2026-09-05 22:16:42,488 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:42,488 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:42,488 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=73b28295 tick=141 location=tavern npcs=7 traversals=2 rng_seed=141
+2026-09-05 22:16:42,493 app.services.scene_state_manager INFO: [SCENE] Применено 9/9 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:42,493 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:42,493 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:42,497 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_close от 'maid_lusya' → 2 обработчиков, 0 результатов
+2026-09-05 22:16:42,497 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_leave от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:42,497 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_leave от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:42,502 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=141, interventions=0
+2026-09-05 22:16:42,507 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:42,507 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:42,507 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.998 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:42,507 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,507 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.985 integrity_delta=-0.0024 pressure=30.0
+2026-09-05 22:16:42,507 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,507 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.998 integrity_delta=-0.0022 pressure=10.0
+2026-09-05 22:16:42,507 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,507 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.998 integrity_delta=-0.0022 pressure=10.0
+2026-09-05 22:16:42,508 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:42,508 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:42,508 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:42,508 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:42,508 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:42,508 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:42,521 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:42,524 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=141 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:42,524 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:42,754 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,755 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,760 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,762 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,764 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,767 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:42,768 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:42,768 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=142
+2026-09-05 22:16:42,772 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:42,772 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:42,773 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=4c66dab7 tick=142 location=tavern npcs=7 traversals=2 rng_seed=142
+2026-09-05 22:16:42,778 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:42,778 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:42,778 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:42,780 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:42,780 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:42,780 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:42,780 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:42,780 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=4 shadow_compiled=4 snapshot_id=4c66dab7
+2026-09-05 22:16:42,783 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:42,783 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 4 changes applied
+2026-09-05 22:16:42,783 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=maid_lusya snapped to [13.5, 3.0] node=tavern:node_16
+2026-09-05 22:16:42,783 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=blacksmith_orm snapped to [6.0, 8.0] node=tavern:main_hall_west
+2026-09-05 22:16:42,786 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=142, interventions=0
+2026-09-05 22:16:42,791 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:42,791 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:42,791 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.996 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:42,791 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,791 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.982 integrity_delta=-0.0024 pressure=33.3
+2026-09-05 22:16:42,791 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,791 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.996 integrity_delta=-0.0022 pressure=13.3
+2026-09-05 22:16:42,791 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:42,791 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.996 integrity_delta=-0.0022 pressure=13.3
+2026-09-05 22:16:42,792 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:42,792 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:42,792 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:42,792 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:42,792 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:42,792 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:42,803 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:42,805 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=142 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:42,806 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:43,039 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,041 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,047 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,049 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,052 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,054 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,056 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:43,056 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=143
+2026-09-05 22:16:43,059 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:43,059 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:43,059 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=109f4c2e tick=143 location=tavern npcs=7 traversals=0 rng_seed=143
+2026-09-05 22:16:43,068 app.services.scene_state_manager INFO: [SCENE] Применено 13/13 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,069 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,069 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,071 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern:kitchen reason=need_driven:shelter_urge=0.64 exact_xy=(16.712863297325104, 2.3801183127572014) dist=3.27 ticks=2
+2026-09-05 22:16:43,071 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=3 traversal=CREATED
+2026-09-05 22:16:43,072 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern:main_hall_south reason=schedule:eating exact_xy=(5.5, 6.0) dist=2.06 ticks=2
+2026-09-05 22:16:43,072 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=blacksmith_orm status=VALID_PATH path_len=3 traversal=CREATED
+2026-09-05 22:16:43,073 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-09-05 22:16:43,073 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:schedule:eating spatial=yes traversal=NEW
+2026-09-05 22:16:43,073 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=109f4c2e
+2026-09-05 22:16:43,074 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,074 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-09-05 22:16:43,077 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:43,077 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:43,079 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=143, interventions=0
+2026-09-05 22:16:43,084 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:43,085 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:43,085 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.993 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:43,085 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,085 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.980 integrity_delta=-0.0025 pressure=36.7
+2026-09-05 22:16:43,085 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,085 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.993 integrity_delta=-0.0022 pressure=16.7
+2026-09-05 22:16:43,085 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,085 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.993 integrity_delta=-0.0023 pressure=23.3
+2026-09-05 22:16:43,086 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:43,086 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:43,086 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:43,086 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:43,086 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:43,086 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:43,101 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:43,104 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=143 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:43,105 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:43,351 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,353 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,358 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,361 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,364 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,367 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,369 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:43,369 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=144
+2026-09-05 22:16:43,374 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:43,374 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:43,374 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=6469cbbd tick=144 location=tavern npcs=7 traversals=2 rng_seed=144
+2026-09-05 22:16:43,380 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,380 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,380 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,388 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_close от 'blacksmith_orm' → 2 обработчиков, 0 результатов
+2026-09-05 22:16:43,390 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=144, interventions=0
+2026-09-05 22:16:43,394 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:43,394 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:43,394 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.991 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:43,395 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,395 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.977 integrity_delta=-0.0025 pressure=40.0
+2026-09-05 22:16:43,395 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,395 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.991 integrity_delta=-0.0022 pressure=20.0
+2026-09-05 22:16:43,395 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,395 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.991 integrity_delta=-0.0023 pressure=26.7
+2026-09-05 22:16:43,395 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:43,395 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:43,395 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:43,395 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:43,395 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:43,395 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:43,408 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:43,411 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=144 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:43,411 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:43,651 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,654 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,658 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,660 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,663 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,666 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,668 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:43,668 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=145
+2026-09-05 22:16:43,672 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:43,672 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:43,672 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=7c17f47c tick=145 location=tavern npcs=7 traversals=2 rng_seed=145
+2026-09-05 22:16:43,678 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,678 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,679 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,680 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:43,680 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:43,680 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:43,680 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:43,680 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=4 shadow_compiled=4 snapshot_id=7c17f47c
+2026-09-05 22:16:43,684 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,684 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 4 changes applied
+2026-09-05 22:16:43,685 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=maid_lusya snapped to [16.712863297325104, 2.3801183127572014] node=tavern:kitchen
+2026-09-05 22:16:43,685 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=blacksmith_orm snapped to [5.5, 6.0] node=tavern:main_hall_south
+2026-09-05 22:16:43,687 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=145, interventions=0
+2026-09-05 22:16:43,692 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:43,692 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:43,692 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.989 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:43,693 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,693 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.975 integrity_delta=-0.0026 pressure=43.3
+2026-09-05 22:16:43,693 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,693 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.989 integrity_delta=-0.0022 pressure=23.3
+2026-09-05 22:16:43,693 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,693 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.989 integrity_delta=-0.0024 pressure=30.0
+2026-09-05 22:16:43,693 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:43,693 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:43,693 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:43,693 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:43,693 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:43,693 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:43,708 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:43,711 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=145 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:43,711 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:43,948 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,951 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,956 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,958 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,961 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,962 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:43,964 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:43,964 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=146
+2026-09-05 22:16:43,968 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:43,968 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:43,969 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=e23b5afb tick=146 location=tavern npcs=7 traversals=0 rng_seed=146
+2026-09-05 22:16:43,976 app.services.scene_state_manager INFO: [SCENE] Применено 11/11 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,976 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,976 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:43,978 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern:node_16 reason=need_driven:social_urge=0.72 exact_xy=(13.5, 3.0) dist=3.27 ticks=2
+2026-09-05 22:16:43,978 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=6 traversal=CREATED
+2026-09-05 22:16:43,979 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern:main_hall reason=schedule:eating exact_xy=(6.5, 5.5) dist=1.12 ticks=1
+2026-09-05 22:16:43,979 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=blacksmith_orm status=VALID_PATH path_len=2 traversal=CREATED
+2026-09-05 22:16:43,980 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-09-05 22:16:43,981 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:schedule:eating spatial=yes traversal=NEW
+2026-09-05 22:16:43,981 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=e23b5afb
+2026-09-05 22:16:43,982 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:43,982 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-09-05 22:16:43,986 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:43,986 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:43,988 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=146, interventions=0
+2026-09-05 22:16:43,992 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:43,992 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:43,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.987 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:43,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.972 integrity_delta=-0.0027 pressure=46.7
+2026-09-05 22:16:43,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.987 integrity_delta=-0.0023 pressure=26.7
+2026-09-05 22:16:43,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:43,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.986 integrity_delta=-0.0024 pressure=33.3
+2026-09-05 22:16:43,993 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:43,993 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:43,993 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:43,994 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:43,994 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:43,994 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:44,008 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:44,011 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=146 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:44,011 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:44,244 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,246 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,252 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,253 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,256 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,257 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,259 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:44,259 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=147
+2026-09-05 22:16:44,264 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:44,264 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:44,264 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=d9f2357f tick=147 location=tavern npcs=7 traversals=2 rng_seed=147
+2026-09-05 22:16:44,270 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:44,271 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:44,271 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:44,273 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:44,273 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:44,273 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=d9f2357f
+2026-09-05 22:16:44,274 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:44,274 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:44,274 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=blacksmith_orm snapped to [6.5, 5.5] node=tavern:main_hall
+2026-09-05 22:16:44,278 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_close от 'maid_lusya' → 2 обработчиков, 0 результатов
+2026-09-05 22:16:44,278 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_leave от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:44,278 app.services.events.event_bus INFO: [EVENT_BUS] npc_proximity_leave от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:44,283 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=147, interventions=0
+2026-09-05 22:16:44,289 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:44,289 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:44,289 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.985 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:44,289 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,289 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.969 integrity_delta=-0.0027 pressure=50.0
+2026-09-05 22:16:44,289 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,289 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.985 integrity_delta=-0.0024 pressure=30.0
+2026-09-05 22:16:44,289 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,289 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.984 integrity_delta=-0.0025 pressure=36.7
+2026-09-05 22:16:44,290 app.services.phases.decision INFO: [LIFE_PROJECT] NPC blacksmith_orm FSM переход: COMPLETED -> LOST (Проект: knowledge_seeker)
+2026-09-05 22:16:44,290 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:44,290 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:44,290 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:44,290 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:44,290 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:44,290 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:44,303 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:44,305 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=147 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:44,305 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:44,541 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,543 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,548 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,551 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,554 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,556 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,558 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:44,558 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=148
+2026-09-05 22:16:44,562 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:44,562 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:44,562 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=9be5251b tick=148 location=tavern npcs=7 traversals=1 rng_seed=148
+2026-09-05 22:16:44,569 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:44,569 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:44,569 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:44,571 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:44,571 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:44,571 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=9be5251b
+2026-09-05 22:16:44,573 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:44,573 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:44,573 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=maid_lusya snapped to [13.5, 3.0] node=tavern:node_16
+2026-09-05 22:16:44,576 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=148, interventions=0
+2026-09-05 22:16:44,581 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:44,581 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:44,582 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.982 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:44,582 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,582 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.967 integrity_delta=-0.0028 pressure=53.3
+2026-09-05 22:16:44,582 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,582 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.982 integrity_delta=-0.0024 pressure=33.3
+2026-09-05 22:16:44,583 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,583 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.982 integrity_delta=-0.0026 pressure=40.0
+2026-09-05 22:16:44,583 app.services.phases.decision INFO: [LIFE_PROJECT] NPC blacksmith_orm FSM переход: LOST -> SEARCHING (Проект: knowledge_seeker)
+2026-09-05 22:16:44,583 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:44,583 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:44,583 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:44,583 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:44,584 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:44,584 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:44,597 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:44,601 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=148 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:44,601 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:44,839 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,842 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,847 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,850 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,853 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,856 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:44,857 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:44,857 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=149
+2026-09-05 22:16:44,861 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:44,861 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:44,862 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=0f8dd228 tick=149 location=tavern npcs=7 traversals=0 rng_seed=149
+2026-09-05 22:16:44,870 app.services.scene_state_manager INFO: [SCENE] Применено 11/11 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:44,870 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:44,870 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:44,872 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern:kitchen reason=schedule:working exact_xy=(16.712863297325104, 2.3801183127572014) dist=3.27 ticks=2
+2026-09-05 22:16:44,872 app.services.spatial.movement_engine INFO: [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=2 traversal=CREATED
+2026-09-05 22:16:44,872 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-09-05 22:16:44,872 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=0f8dd228
+2026-09-05 22:16:44,873 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:44,873 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 3 LifeEngine intents
+2026-09-05 22:16:44,876 app.services.events.event_bus INFO: [EVENT_BUS] npc_moved от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-09-05 22:16:44,877 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=149, interventions=0
+2026-09-05 22:16:44,882 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:44,882 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:44,882 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.980 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:44,883 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,883 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.964 integrity_delta=-0.0028 pressure=56.7
+2026-09-05 22:16:44,883 app.services.phases.decision INFO: [LIFE_PROJECT] NPC merchant_goran FSM переход: COMPLETED -> LOST (Проект: wealth_creator)
+2026-09-05 22:16:44,883 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,883 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.980 integrity_delta=-0.0025 pressure=36.7
+2026-09-05 22:16:44,884 app.services.phases.decision INFO: [LIFE_PROJECT] NPC maid_lusya FSM переход: COMPLETED -> LOST (Проект: family_builder)
+2026-09-05 22:16:44,884 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:44,884 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.979 integrity_delta=-0.0027 pressure=46.7
+2026-09-05 22:16:44,884 app.services.phases.decision INFO: [LIFE_PROJECT] NPC blacksmith_orm FSM переход: SEARCHING -> COMMITTED (Проект: hermit)
+2026-09-05 22:16:44,884 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:44,884 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:44,885 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:44,885 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:44,885 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:44,885 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:44,897 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:44,901 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=149 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:44,901 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:45,139 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,141 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,146 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,149 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,152 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,153 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,155 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:45,155 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=150
+2026-09-05 22:16:45,158 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:45,158 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:45,158 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=07a8aa53 tick=150 location=tavern npcs=7 traversals=1 rng_seed=150
+2026-09-05 22:16:45,170 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:45,170 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:45,170 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:45,176 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=150, interventions=0
+2026-09-05 22:16:45,181 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:45,181 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:45,181 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.978 integrity_delta=-0.0022 pressure=12.0
+2026-09-05 22:16:45,181 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:45,181 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.961 integrity_delta=-0.0029 pressure=60.0
+2026-09-05 22:16:45,182 app.services.phases.decision INFO: [LIFE_PROJECT] NPC merchant_goran FSM переход: LOST -> SEARCHING (Проект: wealth_creator)
+2026-09-05 22:16:45,182 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:45,182 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.977 integrity_delta=-0.0025 pressure=40.0
+2026-09-05 22:16:45,182 app.services.phases.decision INFO: [LIFE_PROJECT] NPC maid_lusya FSM переход: LOST -> SEARCHING (Проект: family_builder)
+2026-09-05 22:16:45,182 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:45,182 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.976 integrity_delta=-0.0027 pressure=46.7
+2026-09-05 22:16:45,182 app.services.phases.decision INFO: [LIFE_PROJECT] NPC blacksmith_orm FSM переход: COMMITTED -> ACTIVE (Проект: hermit)
+2026-09-05 22:16:45,183 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:45,183 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:45,183 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:45,183 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:45,183 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:45,183 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:45,195 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:45,199 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=150 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:45,199 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined
+2026-09-05 22:16:45,437 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,439 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,444 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,446 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,450 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,452 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern
+2026-09-05 22:16:45,453 app.services.player_avatar_service WARNING: [AVATAR] имя не совпадает: XRayProbe != Mark 3
+2026-09-05 22:16:45,453 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2284304836528 tick=151
+2026-09-05 22:16:45,458 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities processed
+2026-09-05 22:16:45,458 app.services.tick_orchestrator INFO: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+2026-09-05 22:16:45,458 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=af89ba21 tick=151 location=tavern npcs=7 traversals=1 rng_seed=151
+2026-09-05 22:16:45,463 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:45,463 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:45,463 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=thief_shadow target=city_gate rerouted to boundary tavern:exit_east in tavern
+2026-09-05 22:16:45,465 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:45,465 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=traversal_complete spatial=yes traversal=none
+2026-09-05 22:16:45,465 app.services.phases.traversal INFO: [DUAL_RAIL][TRAVERSAL_COMPLETE] spatial_changes=2 shadow_compiled=2 snapshot_id=af89ba21
+2026-09-05 22:16:45,467 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-09-05 22:16:45,467 app.services.phases.traversal INFO: [STL_COMMIT] Traversal completion: 2 changes applied
+2026-09-05 22:16:45,467 app.services.spatial.traversal_execution_system INFO: [TRAV_EXEC] COMPLETED: npc=maid_lusya snapped to [16.712863297325104, 2.3801183127572014] node=tavern:kitchen
+2026-09-05 22:16:45,470 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=151, interventions=0
+2026-09-05 22:16:45,475 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=guard_borko trust_min=-40.0 fear_max=0.0 social_pressure=8.0
+2026-09-05 22:16:45,475 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=guard_borko emotion=angry (social_pressure=8.0)
+2026-09-05 22:16:45,475 app.services.npc.break_progress_engine INFO: [BREAK] npc=guard_borko stage=resistance integrity=0.976 integrity_delta=-0.0021 pressure=12.0
+2026-09-05 22:16:45,476 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=merchant_goran trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:45,476 app.services.npc.break_progress_engine INFO: [BREAK] npc=merchant_goran stage=resistance integrity=0.958 integrity_delta=-0.0030 pressure=66.7
+2026-09-05 22:16:45,476 app.services.phases.decision INFO: [LIFE_PROJECT] NPC merchant_goran FSM переход: SEARCHING -> COMMITTED (Проект: survival)
+2026-09-05 22:16:45,476 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=maid_lusya trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:45,476 app.services.npc.break_progress_engine INFO: [BREAK] npc=maid_lusya stage=resistance integrity=0.975 integrity_delta=-0.0027 pressure=46.7
+2026-09-05 22:16:45,476 app.services.phases.decision INFO: [LIFE_PROJECT] NPC maid_lusya FSM переход: SEARCHING -> COMMITTED (Проект: isolation)
+2026-09-05 22:16:45,476 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=blacksmith_orm trust_min=10.0 fear_max=0.0 social_pressure=0.0
+2026-09-05 22:16:45,476 app.services.npc.break_progress_engine INFO: [BREAK] npc=blacksmith_orm stage=resistance integrity=0.974 integrity_delta=-0.0027 pressure=46.7
+2026-09-05 22:16:45,476 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=thief_shadow trust_min=-30.0 fear_max=0.0 social_pressure=6.0
+2026-09-05 22:16:45,477 app.services.phases.decision INFO: [EMOTION_EMERGENT] npc=thief_shadow emotion=angry (social_pressure=6.0)
+2026-09-05 22:16:45,477 app.services.npc.break_progress_engine INFO: [BREAK] npc=thief_shadow stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=4.0
+2026-09-05 22:16:45,477 app.services.phases.decision INFO: [BREAK_PROGRESS] npc=tavern_keeper_tornin trust_min=-20.0 fear_max=0.0 social_pressure=4.0
+2026-09-05 22:16:45,477 app.services.npc.break_progress_engine INFO: [BREAK] npc=tavern_keeper_tornin stage=resistance integrity=0.998 integrity_delta=+0.0000 pressure=2.7
+2026-09-05 22:16:45,477 app.services.npc.break_progress_engine INFO: [BREAK] npc=player stage=resistance integrity=1.000 integrity_delta=-0.0022 pressure=0.0
+2026-09-05 22:16:45,489 app.services.npc.npc_tick_pipeline WARNING: [S198_PIPELINE_ENTER] is_player_turn=False count=7 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin', 'player']
+2026-09-05 22:16:45,491 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=151 loc=tavern error=name 'self' is not defined
+2026-09-05 22:16:45,492 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road (loc=tavern): name 'self' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 682, in execute
+    self._run_core_phases(ctx, tick_fully=_tick_fully)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 876, in _run_core_phases
+    self._phase_5_decision(ctx) # 5
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1948, in _phase_5_decision
+    _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\pipeline_runner.py", line 99, in run_pipeline
+    return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py", line 498, in run
+    translate_kernel_to_context(  # noqa: ENIGMA001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+        _kernel,
+        ^^^^^^^^
+    ...<3 lines>...
+        has_active_commitment=_has_active_commitment,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\cfrm\pressure_translator.py", line 92, in translate_kernel_to_context
+    if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+                  ^^^^
+NameError: name 'self' is not defined

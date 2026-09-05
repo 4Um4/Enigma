@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class LocalTraversalPlanner:
     """Компилирует последовательность переходов (WALK, JUMP) в TraversalPlan."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._topology_solver = TransitionTopologySolver()
         self._transition_kernel = TraversalTransitionKernel()
 

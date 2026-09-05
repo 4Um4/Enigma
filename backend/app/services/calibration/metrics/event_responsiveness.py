@@ -26,7 +26,12 @@ class EventResponsiveness(CalibrationMetric):
         self._last_label: Dict[str, str] = {}
         self._ticks: List[Tuple[int, bool]] = []
 
-    def update(self, tick, state_snapshot, event=None) -> None:
+    def update(
+        self,
+        tick: int,
+        state_snapshot: Dict[str, Dict[str, Any]],
+        event: Dict[str, Any] | None = None,
+    ) -> None:
         records: List[Any] = (event or {}).get(_K_RECORDS, [])
         changed = False
         for event_type, source, label in records:

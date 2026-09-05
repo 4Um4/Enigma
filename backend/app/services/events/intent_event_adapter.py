@@ -46,10 +46,14 @@ class IntentEventAdapter:
           shout → "public" (с увеличенным radius)
         """
         _visibility_map = {
-            "secret": "private",
+            # Р-В (SpeechExposure, D3): secret — "whisper" (адресат слышит вплотную),
+            # НЕ "private" — иначе адресат не слышит собственный секрет.
+            # loud (D2) → "public": громкая речь слышима, радиус — из лестницы.
+            "secret": "whisper",
             "private": "private",
             "whisper": "whisper",
             "normal": "public",
+            "loud": "public",
             "shout": "public",
         }
 

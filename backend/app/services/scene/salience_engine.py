@@ -69,7 +69,7 @@ class SalienceEngine:
         objects: Dict[str, Dict[str, Any]],
         event_type: str,
         max_npc_stress: float,
-        player_target_object: str = None,
+        player_target_object: str | None = None,
     ) -> List[Tuple[str, Dict[str, Any]]]:
         """
         Возвращает отфильтрованный список объектов для промпта.

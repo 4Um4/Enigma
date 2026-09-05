@@ -7,7 +7,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Callable, Optional
 
 
 class ProviderType(str, Enum):
@@ -130,7 +130,7 @@ class StreamingLlmProvider(LlmProvider):
         prompt: str,
         params: GenerationParams | None = None,
         system_prompt: str | None = None,
-        callback=None,  # callable that receives chunks
+        callback: Callable[[str], None] | None = None,  # callable that receives chunks
     ) -> str:
         """
         Генерирует текст со стримингом.

@@ -92,7 +92,7 @@ def _base_attention_score(
         tunnel_penalty = min(stress * _THREAT_STRESS_PENALTY, _STRESS_TUNNEL_MAX)
         score -= tunnel_penalty
 
-    return max(0.0, min(1.0, score))
+    return float(max(0.0, min(1.0, score)))
 
 
 def _stochastic_roll(score: float) -> bool:

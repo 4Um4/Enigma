@@ -114,7 +114,7 @@ class PhysicsValidator:
         strength = character.get("strength", 10)
         max_pounds = strength * 15
         max_kg = max_pounds * 0.453592  # перевод в кг
-        return weight_kg <= max_kg
+        return bool(weight_kg <= max_kg)
 
     def validate(
         self,

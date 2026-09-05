@@ -1,0 +1,268 @@
+﻿python : [CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+At line:1 char:1
++ python backend/tests/IPT.py 2>&1 | Out-File -FilePath reports/ipt_aft ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-v2.Q5_K_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[COMMITMENT][SWEEP] tick=2 vanished=1 (unmirrored bypass paths / grace timeout)
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b6162181. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8ae6445b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-53198792. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cbc01e72. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-09daba81. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3d0ba291. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ce8bef64. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0d5353ea. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-b5133a97. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6b6a9496. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-bec42f06. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-64fba0e7. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a61a84c6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5a2fd64a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-557d5585. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0985dd54. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-71aabfd0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eb760f07. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c2aa49be. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1db22497. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-e5c2f157. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-28db1e49. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-90201ccc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cf2fb468. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c96f7104. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2b962255. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-84a64bc0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eec6484b. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cb35efa6. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-213a3f75. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-377cc3a1. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-89ae80d3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5adbc6b0. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a9ca5ae6. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-87946d9c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-19784f4b. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-66a99bc4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-43ed607f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c76eeedc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ae30025a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-eef242a3. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0bf81cda. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8bec4152. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2ff0a1cd. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-52ad5e4e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c8567aad. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0092dde5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-92758929. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-696dd51d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-015a1f8f. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ea20cf58. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-1d5249f9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-66ac30e3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ced42ccf. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-33a2eefc. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ef4f0afe. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d831fb73. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cd23fb96. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-aaa0676d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d69d16b4. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-0fb29147. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-45bc6cc7. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-8eee0f7c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-76daefa8. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-ba4af5b1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-57a08bfe. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-6e84818e. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-2698e6b4. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7c0a014a. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a4749bea. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a1fbef2a. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-77bba2e5. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-5ed46cdb. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d8fe6be3. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-08a5468c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-40c40616. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-43fd8edd. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-46caecce. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d1340baf. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-78aeb1e9. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-cafebc9e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-800d87b2. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-d065c70c. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-da11883d. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-11bd8be5. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-edf72613. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-89807d29. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-92a05e02. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-3a63c818. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-c3abbe3d. Queue is full (20/20).
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-7fbbae2c. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-12b949a1. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DLG_QUEUE] OVERFLOW: Dropped ambient task dlg-a24d083e. Queue is full (20/20).
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[LLM_MANAGER] llama-server уже запущен.
+============================================================
+INVARIANT PROBE TESTS (IPT)
+============================================================
+
+✅ INV-NPC-CARDINALITY [CRITICAL]
+   NPC изолированы по локациям (P0-2).
+
+✅ INV-REPLAY-DETERMINISM [WARNING]
+   Replay infrastructure ready (tick recorded). Full A/B test requires DriftLaboratory.
+
+✅ INV-SAVE-LOAD-INTEGRITY [CRITICAL]
+   Save/Load integrity verified.
+
+✅ INV-INTENT-EVENT-COMPLETENESS [CRITICAL]
+   All communicative intents have explicit event mapping.
+
+✅ INV-SEMANTIC-UNIFICATION [CRITICAL]
+
+✅ INV-DIALOGUE-CONTEXT-BINDING [CRITICAL]
+
+✅ INV-TRAV-TERMINALITY [CRITICAL]
+   No stuck traversals.
+
+✅ INV-DIALOGUE-LIVENESS [CRITICAL]
+   pending_tasks=0 (healthy).
+
+✅ INV-EVENT-CARDINALITY [CRITICAL]
+   Нет дублирования: NPC_MOVED=0, PROXIMITY=0 (NPCs=6).
+
+✅ INV-TIME-GROW [CRITICAL]
+   game_time вырос: 43350 → 43380
+
+✅ INV-TICK-GROW [CRITICAL]
+[DIAG_IPT_MOVE] before={'maid_lusya': (12.0, 3.0), 'tavern_keeper_tornin': (6.5, 5.5), 'merchant_goran': (6.5, 5.5), 'blacksmith_orm': (10.5, 3.0), 'guard_borko': (11.0, 10.0)}
+[DIAG_IPT_MOVE] after={'maid_lusya': (13.5, 3.0), 'tavern_keeper_tornin': (7.833333333333333, 5.833333333333333), 'merchant_goran': (7.833333333333333, 5.833333333333333), 'blacksmith_orm': (16.712863297325104, 2.3801183127572014), 'guard_borko': (11.0, 10.0)}
+[DIAG_IPT_MOVE] last_snapshot={'maid_lusya': {'npc_id': 'maid_lusya', 'local_position': {'x': 13.5, 'y': 3.0, 'z': 0.0}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': 2.950997127591609, 'head_yaw': 0.0, 'activity': 'serving_tables', 'name': 'Люся', 'display_name': 'Люся', 'recognition_confidence': 0.9500000000000004, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'tavern_keeper_tornin': {'npc_id': 'tavern_keeper_tornin', 'local_position': {'x': 7.833333333333333, 'y': 5.833333333333333, 'z': 0.9476696996881533}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': 0.24497866312686414, 'head_yaw': 0.0, 'activity': 'Обедает за столом', 'name': 'Торнин Серебряная Луна', 'display_name': 'Торнин Серебряная Луна', 'recognition_confidence': 1.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'merchant_goran': {'npc_id': 'merchant_goran', 'local_position': {'x': 7.833333333333333, 'y': 5.833333333333333, 'z': 0.9476696996881533}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': -2.8966139904629293, 'head_yaw': 0.0, 'activity': 'eating', 'name': 'Купец Горан', 'display_name': 'Купец Горан', 'recognition_confidence': 1.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'blacksmith_orm': {'npc_id': 'blacksmith_orm', 'local_position': {'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0}, 'location_id': '', 'facing': 'south', 'body_heading': -0.19059552599818433, 'head_yaw': 0.0, 'activity': 'Обедает в общем зале', 'name': 'Кузнец Орм', 'display_name': 'Кузнец Орм (?)', 'recognition_confidence': 0.8500000000000003, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'guard_borko': {'npc_id': 'guard_borko', 'local_position': {'x': 11.0, 'y': 10.0, 'z': 0.0}, 'location_id': '', 'facing': 'south', 'body_heading': 1.5708, 'head_yaw': 0.0, 'activity': 'guarding_gate', 'name': 'Стражник Борко', 'display_name': 'Стражник Борко', 'recognition_confidence': 1.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}}
+
+✅ INV-NPC-MOVE [CRITICAL]
+   Сдвинулись: ['maid_lusya', 'tavern_keeper_tornin', 'merchant_goran', 'blacksmith_orm']
+
+✅ INV-TRAV-DICT [CRITICAL]
+
+✅ INV-NPC-NAME [CRITICAL]
+
+✅ INV-DIALOGUE-INIT [CRITICAL]
+   Диалоги успешно инициализируются и исполняются.
+
+✅ INV-PLAYER-EPISTEMIC-CLOSURE [CRITICAL]
+   NPC_SPOKE -> EpistemicStore[player] работает.
+
+✅ INV-EPISTEMIC-TRUST-MONOTONICITY [CRITICAL]
+   Reliability монотонно зависит от trust.
+
+✅ INV-EPISTEMIC-TRUTH-IMMUTABILITY [CRITICAL]
+   World Truth неизменна после ClaimEvent.
+
+✅ INV-DIALOGUE-STM [CRITICAL]
+   Каузальная цепь NPC_SPOKE -> STM работает.
+
+✅ INV-DIALOGUE-SCHEDULER-FAIL [CRITICAL]
+   Тихих отказов нет.
+
+✅ INV-TRAV-ZOMBIE [CRITICAL]
+
+✅ INV-DEATH-LOCK [CRITICAL]
+
+✅ INV-TIME-FREEZER [CRITICAL]
+   TimeFreezer OK.
+
+✅ INV-REPLAY-STORE [CRITICAL]
+   ReplayStore round-trip OK.
+
+✅ INV-ADR-NET [CRITICAL]
+   ADR-Net: 171 nodes, 98 with files.
+
+✅ INV-NO-RETRO-SIM [CRITICAL]
+
+✅ INV-L1-APPEND-ONLY [CRITICAL]
+
+✅ INV-L3-EPHEMERAL [CRITICAL]
+
+✅ INV-DOMAIN-PURITY [CRITICAL]
+
+✅ INV-LLM-EXILE [CRITICAL]
+
+✅ INV-POSITION-MUTATION [CRITICAL]
+
+✅ INV-SC-1 [CRITICAL]
+
+✅ INV-SPATIAL-SSOT [CRITICAL]
+
+✅ INV-FRONTEND-ISOLATION [CRITICAL]
+
+✅ INV-EPISTEMIC-BOUNDARY [CRITICAL]
+
+✅ INV-KERNEL-RNG [CRITICAL]
+
+✅ INV-WALL-CLOCK [CRITICAL]
+
+✅ INV-SILENT-FAILURE [CRITICAL]
+
+✅ INV-HP-SSOT [CRITICAL]
+
+✅ INV-PBT-ROUNDTRIP [CRITICAL]
+   PBT (200 examples) passed: NPCState round-trip preserves critical fields.
+
+✅ INV-PBT-SC1 [CRITICAL]
+   PBT (100 examples) passed: SC-1 rejects (0.0, 0.0).
+
+✅ INV-PBT-TRAV-FSM [CRITICAL]
+   PBT (100 examples) passed: ADR-TRAV-FSM detects zombies.
+
+✅ INV-TICK-CARDINALITY [CRITICAL]
+   Время сдвинуто на 10 сек (1 шаг), N_LOCATIONS=3.
+
+✅ INV-COMMIT-CARDINALITY [CRITICAL]
+   Ровно 1 коммит за тик.
+
+✅ INV-WORLD-OBJECT-TOPOLOGY [CRITICAL]
+   Топология валидна (live=18, smoke OK).
+
+============================================================
+ИТОГО: 45 passed / 0 failed (0 CRITICAL)
+
+✅ ВСЕ ИНВАРИАНТЫ ПРОЙДЕНЫ — игра жива.

@@ -4,7 +4,7 @@
 Зависимости: typing, app.models., app.services.
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 from app.models.end_screen import EndScreenData, NpcFateScreenData
 from app.models.evaluation import EvaluationResult
 from app.models.cognitive_dissonance import Contradiction
@@ -22,7 +22,7 @@ class EndScreenDataBuilder:
         fate_tracker: FateTracker,
         last_words_system: LastWordsSystem,
         social_fabric: SocialFabricTracker,
-        relationship_store = None,
+        relationship_store: Any = None,
         campaign_id: str = ""
     ) -> EndScreenData:
         

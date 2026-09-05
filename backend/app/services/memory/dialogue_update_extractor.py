@@ -8,7 +8,7 @@
 import json
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class DialogueUpdate:
 class DialogueUpdateExtractor:
     """Извлекает structured update из реплики через LLM."""
     
-    def __init__(self, router=None):
+    def __init__(self, router: Any = None) -> None:
         self._router = router
     
     def extract(self, stm_before: str, new_turn: str, partner: str) -> DialogueUpdate:

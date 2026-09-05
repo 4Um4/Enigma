@@ -46,7 +46,7 @@ def load_ports() -> Dict[str, int]:
     if RUNTIME_PORTS_FILE.exists():
         try:
             with open(RUNTIME_PORTS_FILE, "r", encoding="utf-8") as f:
-                ports = json.load(f)
+                ports: dict[str, int] = json.load(f)
             # Валидация: убедиться, что все ключи присутствуют
             for key, default_value in DEFAULT_PORTS.items():
                 if key not in ports or not isinstance(ports[key], int):

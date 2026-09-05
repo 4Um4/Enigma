@@ -60,7 +60,7 @@ def log_error(
 # ====================== УДОБНЫЕ ОБЁРТКИ ======================
 def log_warning(
     module: str, function: str, message: str, context: Optional[Dict] = None
-):
+) -> None:
     """Для не-критических предупреждений (например, "действие невозможно")"""
     try:
         with open(ERROR_LOG_PATH, "a", encoding="utf-8") as f:

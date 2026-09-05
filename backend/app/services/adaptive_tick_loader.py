@@ -16,7 +16,7 @@ class AdaptiveTickLoader:
     LOD_ACTIVATION_SAMPLES = 5
     LOD_DEACTIVATION_SAMPLES = 50
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tick_history: deque = deque(maxlen=100)
         self._consecutive_slow = 0
         self._consecutive_fast = 0

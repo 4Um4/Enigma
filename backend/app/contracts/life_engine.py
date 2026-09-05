@@ -22,6 +22,6 @@ class LifeEngineInterface(Protocol):
         """Возвращает список NPC для кампании."""
         ...
         
-    def get_npc_observed_state(self, *args, **kwargs) -> Any:
+    def get_npc_observed_state(self, *args: Any, **kwargs: Any) -> Any:
         """Возвращает наблюдаемое состояние NPC."""
         ...

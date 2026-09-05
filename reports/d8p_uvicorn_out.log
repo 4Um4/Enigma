@@ -1,0 +1,46 @@
+
+=== STARTUP: Enigma Backend ===
+✓ LLM Router initialized
+✓ ModelPool initialized (1/1 models)
+~ ErrorInterpreter initialized; VRAMMonitor — ЗАГЛУШКА (S142), телеметрия нулевая
+✓ JSONL startup log written
+✓ ModelPool.debug = True
+✓ GameLoop initialized (app.state)
+✓ Schema validation passed (NPCs, TruthState, EventBus)
+
+=== Fast startup complete ===
+  Backend:   http://127.0.0.1:8000
+  API Docs:  http://127.0.0.1:8000/docs
+  LLM:       загружается в фоне (проверяйте /health)...
+
+✓ llama-server уже запущен/грузится (health ok: http://localhost:8181/health)
+
+=== Проверка LLM сервера ===
+INFO:     127.0.0.1:58409 - "GET /api/health HTTP/1.1" 200 OK
+  ✅ LLM (сервер): доступен
+
+=== Application startup complete ===
+
+  VRAM:      http://127.0.0.1:8000/api/debug/vram
+
+INFO:     127.0.0.1:58414 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59067 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59077 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59089 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53938 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52278 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52287 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62672 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56545 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49199 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49207 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61879 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52358 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64339 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53885 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50076 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61721 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61724 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61727 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60921 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63567 - "POST /api/game/idle_tick/Open_road HTTP/1.1" 200 OK

@@ -31,7 +31,7 @@ class PresentationAssembler:
 
     def assemble_facts_bundle(self, facts: List[ObservedFact]) -> ObservedFactsBundle:
         entries = []
-        by_target = {}
+        by_target: Dict[str, List[ObservedFactEntry]] = {}
 
         for fact in facts:
             entry = ObservedFactEntry(

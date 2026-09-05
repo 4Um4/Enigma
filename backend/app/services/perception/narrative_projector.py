@@ -26,7 +26,7 @@ class NarrativeProjector:
     Инжектируется в GameLoop. Принимает чистый PerceptionContext и сырые диалоги.
     Не генерирует event_id (ожидает его в raw_dialogues).
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self._distortion = AuditoryDistortionPolicy()
 
     def project(

@@ -12,7 +12,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="ENIGMA ADR-Net CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

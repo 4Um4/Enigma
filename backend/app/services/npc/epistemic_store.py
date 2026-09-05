@@ -17,7 +17,7 @@ class EpistemicStore:
     Ключ: (agent_id, proposition).
     Полностью изолирован от RelationshipStore и L1Chronicle.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self._records: Dict[Tuple[str, Proposition], EpistemicRecord] = {}
 
     def get(self, agent_id: str, proposition: Optional[Proposition] = None) -> Optional[EpistemicRecord]:

@@ -36,6 +36,17 @@ class DialogueMaterializer:
         elif exposure_semantic == "private":
             visibility = "private"
 
+        # Р-В (SpeechExposure): радиус — SSOT-вывод из semantic;
+        # 999-дефолт и хардкод запрещены (ADR-148). D4: сентинел солилоквия → экстерна
+        # лизованное бормотание: whisper-класс независимо от входного semantic
+        # (D4); агентная обработка сентинела отсечена в подписчике (Р-А).
+        from app.domain.communication import SELF_TALK_SENTINEL, exposure_radius
+
+        _speech_radius = exposure_radius(exposure_semantic)
+        if data.get("target_id") == SELF_TALK_SENTINEL:
+            visibility = "whisper"
+            _speech_radius = exposure_radius("whisper")
+
         from app.services.verbalization.tone_mapper import ToneMapper
 
         _tone = ToneMapper.map(data.get("emotional_state"))

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class TraversabilityEvaluator:
     """Pure function evaluator. Делегирует построение плана в LocalTraversalPlanner."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._planner = LocalTraversalPlanner()
 
     def evaluate(self, query: TraversalQuery, geometry: "LocalGeometry") -> TraversalFeasibility:

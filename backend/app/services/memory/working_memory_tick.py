@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from app.domain.communication import exposure_radius  # Р-В (SpeechExposure): SSOT-радиус речи
 from app.domain.events import EventDTO
 from app.models.temporal import TemporalContext
 from app.services.events.event_bus import get_event_bus
@@ -77,6 +78,8 @@ def write_npc_reactions_to_memory(
         # EventBus: NPC_SPOKE — Working Memory (Закон 5.1)
         try:
             get_event_bus().publish(
+                # Р-В (SpeechExposure): радиус — SSOT-вывод из semantic;
+                # 999-дефолт и хардкод запрещены (ADR-148). Импорт — шапка модуля.
                 EventDTO.create(
                     event_type=EventType.NPC_SPOKE,
                     source=npc_name_raw,
@@ -85,6 +88,8 @@ def write_npc_reactions_to_memory(
                         "content": npc_text,
                         "action_type": "dialogue_key",
                     },
+                    visibility="public",
+                    radius=exposure_radius("normal"),  # Р-В: 999-дефолт запрещён (ADR-148)
                     persistence_level="working",
                 )
             )

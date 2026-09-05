@@ -8,7 +8,7 @@ ADR-L1-PERSIST: L1Chronicle персистируется в SQLite. На рес�
 
 import logging
 import math
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from app.domain.identity_events import TraitDriftEvent
 
@@ -24,7 +24,7 @@ class L1Chronicle:
     Персистентность: SQLite (через sqlite_store). In-memory dict — кэш.
     """
 
-    def __init__(self, store=None, campaign_id: str = ""):
+    def __init__(self, store: Any = None, campaign_id: str = "") -> None:
         """
         Args:
             store: SQLiteStore instance. Если None — in-memory only (только для тестов).
