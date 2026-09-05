@@ -8,6 +8,16 @@ from typing import Literal, Optional
 
 from app.domain.epistemology import Proposition
 
+# Р-А (Player Dialogue, GC-DIALOGUE-01 prep): сентинел само-разговора NPC.
+# Значение target_id для экстернализованного бормотания без агента-адресата.
+# ОНТОЛОГИЯ: слышимая речь (журнал игрока при dist<8, LISTEN-дельты,
+# claim-подслушивание), но НЕ агент — нет STM, рёбер отношений, L1-записей
+# (guard в NpcDialogueSubscriber). Не путать с _EXPOSURE_DEFAULT_RADIUS
+# "private" (radius=0, внутренняя когниция — уровень SpeechExposure, Р-В).
+# Потребители: task_scheduler (fallback-цель), post_decision (STM-контракт),
+# npc_dialogue_subscriber (agent-guard).
+SELF_TALK_SENTINEL = "soliloquy"
+
 # ADR-O-311: Exposure Default Contract — радиус выводится из semantic.
 _EXPOSURE_DEFAULT_RADIUS: dict[str, float] = {
     "secret": 1.5,  # собеседник рядом

@@ -13,6 +13,7 @@ import hashlib
 import logging
 from typing import Any
 
+from app.domain.communication import SELF_TALK_SENTINEL
 from app.services.memory.intelligence_queue import (
     d8p_enabled,
     get_intelligence_queue,
@@ -21,7 +22,7 @@ from app.services.memory.intelligence_queue import (
 logger = logging.getLogger(__name__)
 
 
-class NpcDialogueSubscriber:
+class NpcDialogueSubscriber:    
     """Слушает NPC_SPOKE события и замыкает цикл восприятия для NPC-NPC диалогов.
 
     Для canonical реплик — полная обработка:
@@ -45,6 +46,13 @@ class NpcDialogueSubscriber:
     ) -> None:
         self.memory = memory_manager
         self.relationships = relationship_store
+        # Р-Б1 (M1b.2.4-паритет): седьмой write-маршрут замкнут на единый гейт
+        # (D2-инвариант «ALL RELATIONSHIP WRITES → GATE → STORE»). Паттерн
+        # StateApplicator:95-96 — wrap-own-gate над инжектированным бекендом;
+        # cutover M1b.4 меняет бекенд централизованно, писатель не мигрирует.
+        from app.services.social.relationship_write_gate import RelationshipWriteGate
+
+        self._rel_write_gate = RelationshipWriteGate(relationship_store)
         self._get_npc_state = npc_states_provider
         self._get_campaign_id = campaign_id_provider or (lambda: "Open_road")
         self._avatar_service = avatar_service
@@ -98,6 +106,43 @@ class NpcDialogueSubscriber:
                     self._avatar_service.append_journal(
                         campaign_id=_campaign_id, speaker=speaker, text=text
                     )
+
+        # Р-А: SELF_TALK_SENTINEL — внешне слышимое бормотание без агента-адресата.
+        # Журнал выше СОХРАНЁН: реплика экстернализована, игрок подслушивает легально.
+        # Агентная обработка (STM / отношения / L1) для фантома запрещена: адресат
+        # не является субъектом. Лог "X heard Y" для фантома не порождается.
+        if listener == SELF_TALK_SENTINEL:
+            logger.debug(
+                f"[NPC_DIALOGUE_SUB] self-talk {speaker}: агентная обработка пропущена (journal-only)"
+            )
+            return
+
+        # Р-Б2: Мембрана адресата (S192-паритет с ClaimEventSubscriber). Агентная
+        # обработка (STM / отношения / L1) — только если адресат физически способен
+        # воспринять реплику. ПОСЛЕ журнала игрока (Р-Г — отдельный шаг) и ПОСЛЕ
+        # sentinel-гарда Р-А. Fail-open по S198-прецеденту (детерминизм важнее
+        # молчания): dict-события (тестовый контракт), адресат без позиции,
+        # ошибка дистанции — адресат слышит.
+        if hasattr(event, "visibility") and self._get_spatial_query:
+            _sq_m = self._get_spatial_query()
+            if _sq_m is not None and hasattr(_sq_m, "distance"):
+                _positions_m = getattr(_sq_m, "_npc_positions", {})
+                if listener in _positions_m:
+                    try:
+                        _dist_m = _sq_m.distance(speaker, listener)
+                        from app.models.npc_state import PerceptualKernel
+                        if not PerceptualKernel.can_observe(event, _dist_m, listener, listener):
+                            logger.info(
+                                f"[NPC_DIALOGUE_SUB] membrane: {listener} не воспринимает "
+                                f"реплику {speaker} (dist={_dist_m:.1f}, "
+                                f"visibility={getattr(event, 'visibility', '?')})"
+                            )
+                            return
+                    except Exception as _membrane_err:
+                        logger.warning(
+                            f"[NPC_DIALOGUE_SUB] membrane check failed "
+                            f"({listener}/{speaker}): {_membrane_err}"
+                        )
 
         logger.info(
             f"[NPC_DIALOGUE_SUB] {listener} heard {speaker} "
@@ -252,11 +297,15 @@ class NpcDialogueSubscriber:
         else:
             delta_trust, delta_fear = 0.0, 0.0
         try:
-            self.relationships.update(
-                campaign_id=_campaign_id,
-                source=listener,
-                target=speaker,
-                delta={"trust": delta_trust, "fear": delta_fear},
+            # Р-Б1: через RelationshipWriteGate (whitelist/NaN-валидация +
+            # provenance cause). Гейт делегирует backend.update() — паритет
+            # D3: сатурация/clamp в бекенде, поведение идентично прежнему.
+            self._rel_write_gate.apply(
+                _campaign_id,
+                listener,
+                speaker,
+                {"trust": delta_trust, "fear": delta_fear},
+                cause=f"npc_dialogue_sub:{tone.lower()}",
             )
             logger.info(
                 f"[NPC_DIALOGUE_SUB] {listener} rel update: "
@@ -309,11 +358,13 @@ class NpcDialogueSubscriber:
             delta_trust, delta_fear = 0.0, 0.0
 
         try:
-            self.relationships.update(
-                campaign_id=_campaign_id,
-                source=listener,
-                target=speaker,
-                delta={"trust": delta_trust, "fear": delta_fear},
+            # Р-Б1: через RelationshipWriteGate — аналогично canonical-ветке.
+            self._rel_write_gate.apply(
+                _campaign_id,
+                listener,
+                speaker,
+                {"trust": delta_trust, "fear": delta_fear},
+                cause=f"npc_dialogue_sub:ambient_{tone.lower()}",
             )
             logger.info(
                 f"[NPC_DIALOGUE_SUB] {listener} rel update (ambient): "

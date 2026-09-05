@@ -299,7 +299,9 @@ class TaskScheduler:
             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
                 from dataclasses import replace as dc_replace
 
-                _resolved_target = "soliloquy"
+                from app.domain.communication import SELF_TALK_SENTINEL  # Р-А: доменный сентинел вместо магической строки
+
+                _resolved_target = SELF_TALK_SENTINEL
                 # C11 FIX: DialogueRequest уже импортирован на уровне модуля
 
                 # P2 FIX: Использование SpatialQueryService для фильтрации по радиусу

@@ -64,7 +64,9 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             # ADR-O-342: Hard Contract (Принцип 2). Если нет STM (истории разговора),
             # нельзя начинать содержательный диалог. Принудительно меняем на approach.
             # Исключение: soliloquy (разговор с самим собой) — STM не нужен.
-            if _memory_mgr and _target_id and _target_id not in ("all", "soliloquy"):
+            from app.domain.communication import SELF_TALK_SENTINEL  # Р-А: доменный сентинел
+
+            if _memory_mgr and _target_id and _target_id not in ("all", SELF_TALK_SENTINEL):
                 _stm_check = _memory_mgr.get_stm_prompt_block_pair(
                     ctx.campaign_id, intent.speaker, _target_id
                 )
