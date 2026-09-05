@@ -194,6 +194,15 @@ class Cockpit:
         # идёт из TaskScheduler._process_tasks_async → NpcDialogueSubscriber
         # (npc_dialogue_subscriber.py:131) и, возможно, ещё из мест.
         # Надёжно: отключаем сам класс (метод), а не конкретный инстанс.
+        # AG1-D8p Шаг 2 — измерительный режим baseline ДО (test-zone, обратимо):
+        # D8P_BASELINE_NO_DETACH=1 → wait БЕЗ класс-отцепления экстрактора.
+        # R2-ось: сцепка «экстракция ↔ поток публикатора» остаётся живой
+        # (cockpit wait = loop-thread → RE-D2 guard → пустой DialogueUpdate).
+        # R1-ось: wall-clock печатается в finally независимо от исхода тиков.
+        import os as _os
+        import time as _wc_time
+        _no_detach = bool(_os.environ.get("D8P_BASELINE_NO_DETACH"))
+        _wc_t0 = _wc_time.monotonic()
         _orig_extract = None
         try:
             from app.services.memory import dialogue_update_extractor as _due_mod
@@ -221,6 +230,12 @@ class Cockpit:
                     print(f"  … тик {i + 1}/{n}")
             print(f"  время: +{n} тиков")
         finally:
+            # AG1-D8p Шаг 2 (R1): wall-clock печатается ВСЕГДА — даже при раннем
+            # return упавшего тика (метрика = числа, НЕ впечатление).
+            print(
+                f"  [wait] wall-clock: {_wc_time.monotonic() - _wc_t0:.2f}s"
+                f" | no_detach={_no_detach}"
+            )
             if _orig_extract is not None:
                 from app.services.memory import dialogue_update_extractor as _due_mod
 
