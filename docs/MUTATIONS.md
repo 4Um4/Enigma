@@ -977,6 +977,13 @@ IPT: ✅ 44/45 (собственных красных 0; единственны�
 ⚠️ Anti-race: S248 = наш tail; S249 — по max+1 на момент записи (параллельные серии активны, file-scoped только наши файлы).
 IPT: ✅ 45/45. КРАСНЫЕ: 0 🔴 → 0 🔴
 
+### S250: ADR-O-383 Embodied Constraint — фронт закрыт за одну сессию (PRE-FLIGHT → V1 → GREEN) | ✅ гейты зелёные; red-commit-уроки ×2
+🎯 Замыкание causal edge, доказанного отсутствующим GC-09B-RED (S249): chronic-body → feasibility → behavior. Вердикты Мастера: Q-A (V1 — расширение существующего veto-словаря, без нового ownership), Q-B (пороги = CALIBRATION_CANDIDATE, Calibration Lab), Q-C (motor_output_mult → §4b D-MOM, отдельно), Q-D (oracle full-compute — observation-scope correction, формулировка дословно в ADR), Q2 (action-set FLEE/ATTACK/APPROACH/MANIPULATE — INTIMIDATE исключён по прецеденту blood_loss).
+⚙️ PRE-FLIGHT-находки: острый body-edge существует (SOMATIC_VETO→compression→:565, pain/shock/blood_loss); хронические оси в словарь не входили; ранний availability-тракт тела не читает вовсе (два тракта — разная телесная видимость); motor_output_mult — orphaned derived state (D-MOM). Архитектурная гипотеза State Consumer Gap — выборка 2 (отношения, тело), остаётся гипотезой.
+⚙️ IMPLEMENT: pressure_translator — chronic-veto (fatigue>0.8 / energy<0.1 → cap 0.3 на физические действия), модульные константы CALIBRATION_CANDIDATE; GC-09B-full oracle (полный compute с decision_ctx; оригинальный RED — immutable evidence в git-истории + маркер в файле). GREEN: 2/2, IPT 45/45, ruff 0.
+⚙️ Инциденты-уроки (2× red-commit, главный процесс-урок): fa82f359 и b9b6f90c ушли при красном ruff (F821 self→module; затем не-вставленные константы) — последовательный командный блок обходит гейт; fix2 закрыл (гейты зелёные до коммита). Патчи — только БЫЛО/СТАЛО с дисковыми якорями (Режим §4; «вставить после» = следующий red-commit). Дефект до remote дошёл, обнаружен и закрыт в той же сессии.
+📁 backend/app/services/cfrm/pressure_translator.py, backend/tests/gameplay/test_gc09_body_causality.py, docs/ADR (Architecture Decision Records).md (O-383), docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md (§4b D-MOM), docs/MUTATIONS.md (эта запись)
+IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
