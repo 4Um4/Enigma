@@ -1,6 +1,6 @@
 # ENIGMA --- Дорожная карта преемника
 
-**Версия документа:** 3.6 · 2026-09-05 (+AG1: E2.0-c/B0 CLOSED — S241, четыре группы GREEN, PK/beliefs-guard, клетки §5b GC-04/GC-06/DIFF-01; +W-синхронизация §0/§3/§5-F/Долг/5d: W1✅ W2✅ W3✅ G1✅ G2✅ — S239/ADR-O-378; следующий гейт W-трека — G3 Execution; W-долги зарегистрированы) **Адресат:** LLM-преемник на V.0.5.3.9.6 (ветка
+**Версия документа:** 3.6 · 2026-09-05 (+AG1: E2.0-c/B0 CLOSED — S243, четыре группы GREEN, PK/beliefs-guard, клетки §5b GC-04/GC-06/DIFF-01; +W-синхронизация §0/§3/§5-F/Долг/5d: W1✅ W2✅ W3✅ G1✅ G2✅ — S239/ADR-O-378; следующий гейт W-трека — G3 Execution; W-долги зарегистрированы) **Адресат:** LLM-преемник на V.0.5.3.9.6 (ветка
 `V.0.5.3.9.6_Память_3`) **Назначение:** Пошаговый план --- что делать, в
 каком порядке, что читать, что формулировать самому. **Принцип
 документа:** компактный, без воды; галочки `[ ]` --- для трекинга; путь
@@ -60,7 +60,7 @@ V.0.5.3.9.5 + **сессия AG1 (Фаза A + EMRL E1/E2.0)**: закрыт ф�
     единственный вход «интерпретация → состояние», живой провод
     THREATEN→ПК, EXPERIENCE_DELTA_COMMITTED для Chronicaler) --- 40
     замков `backend/tests/test_phase_a_memory_fixes.py`, IPT 45/45.
-    Осталось: E2.0-c ✅ (S241, B0-CLOSED: causal proof) → BC-1..BC-12
+    Осталось: E2.0-c ✅ (S243, B0-CLOSED: causal proof) → BC-1..BC-12
     (BC-1 semantic leap открыт). Не
     вводить флаги «месть/обида/влюблённость» как сущности; выводы должны
     быть derived из общих механизмов.
@@ -368,7 +368,7 @@ proposition, не состояние.
                    EXPERIENCE_DELTA_COMMITTED (EventDTO)                 
 
   E2.0-c           SUPERBOX causal_state_test: A/B/C/D, детерминистичный \[x\] ✅ CLOSED
-                   инвариант (один snapshot+seed+event; единственная     (S241, B0-CLOSED
+                   инвариант (один snapshot+seed+event; единственная     (S243, B0-CLOSED
                    переменная --- авторизованная дельта; D = запись мимо владельцем):
                    гейта → ожидаем ArchitecturalViolationError)          4 группы GREEN
                    на GC-00-харнесе. Люся (флип-кейс): A argmax
@@ -390,7 +390,7 @@ proposition, не состояние.
 Терминологическая лестница (запрещено перепрыгивать): E2.0 = state-delta
 integrity; E2.0-b = live propagation; **BC-1 = semantic leap**
 (EXPERIENCE→CONCLUSION) --- только после зелёного E2.0-c. E2.0-c =
-causal proof (B0-CLOSED, S241) → **BC-1 открыт** (тройплеты, не фразы;
+causal proof (B0-CLOSED, S243) → **BC-1 открыт** (тройплеты, не фразы;
 первый потребитель — Expectation BC-2; DeltaGate-тропа обязательна для
 conclusion_delta с provenance и causal parent).
 
@@ -1592,8 +1592,12 @@ engine, тяжёлые second-order ToM и отдельная система э�
 
 ### B. СЛЕДУЮЩЕЕ --- самый высокий gameplay ROI (фундамент E2.0 см. §2a)
 
--   [ ] **B0** E2.0-c: каузальный экзамен A/B/C/D + ADR-O-377 в реестр
-    (production-форма TaskScheduler). **Ворота для B1.**
+-   [x] **B0** E2.0-c: каузальный экзамен A/B/C/D — ✅ S243, B0-CLOSED
+    (вердикт владельца вербатим — §2a): 4 группы GREEN на GC-00-харнесе
+    (causal_state_test, обе серии); guard'ы PK/beliefs — ADR-O-379/O-380
+    (атлас L8.2/L14.5 + IMPACT-файлы). Production-форма TaskScheduler —
+    AG1-D8p (ADR-O-377 занят Non-Blocking Intelligence), НЕ гейт B0.
+    **Ворота для B1 открыты.**
 -   [ ] **B1** Experience → Conclusion (машино-пригодные триплеты
     `subject/predicate/object + confidence + evidence[]`, не фразы).
 -   [ ] **B2** Conclusion → Expectation.
@@ -2086,7 +2090,7 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
     Повторяемое событие порождает машино-пригодный conclusion;
     conclusion меняет expectation; expectation входит в существующий
     DecisionHub; NPC выбирает действие, которое без этого history не
-    выбрал бы. **S241: сегмент E2-state→DecisionHub доказан**
+    выбрал бы. **S243: сегмент E2-state→DecisionHub доказан**
     (causal_state_test A/C — флип argmax от авторизованной дельты без
     текста); сегменты Conclusion/Expectation — BC-1/BC-2, открыты
     (терминологическая лестница §2a). Full-cell закрытие — после BC-3.
@@ -2100,7 +2104,7 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
     behavior.** Два прогона стартуют из одинакового мира и seed, но
     получают различную историю. При одинаковом текущем snapshot
     поведение должно расходиться именно из-за сохранённой
-    history/epistemic state. ✅ S241: causal_state_test — одна
+    history/epistemic state. ✅ S243: causal_state_test — одна
     WorldSnapshot+seed, единственная переменная = авторизованная дельта
     истории; argmax Люси расходится (flee vs call_for_help); Горан —
     state-эффект в скорах при H1-ландшафте (флип-порог не пересечён —
@@ -2326,7 +2330,7 @@ EventCompiler/ProjectionEngine и зарегистрированных subscribe
 -   [x] **DIFF-01 --- History differential.** `World_0 + History_A` и
     `World_0 + History_B` → одинаковая геометрия/текущий world state, но
     различный NPC behavior. Если поведение одинаково всегда,
-    memory/epistemics не участвуют причинно. ✅ S241: causal_state_test
+    memory/epistemics не участвуют причинно. ✅ S243: causal_state_test
     (GC-00-харнес, один snapshot+seed, единственная переменная —
     авторизованная дельта): C-группа — argmax Люси flips → flee без
     события/текста; B-группа — контроль (дельт нет). LIMITATION:
@@ -2567,18 +2571,16 @@ gameplay closure.
 
   GC-03   Perception/Memory   observation → memory        perception → E1           GC-03   NEG-07      GC-20/21      indirect         \[ \]        \[ \]     \[ \]     
 
-  GC-06   Memory              history differential        memory → cognition        GC-06   NEG-07      GC-21         да               ✅ (S241,    \[x\]     \[x\] с   \[x\]     \[ \]     
+  GC-05   Epistemics          testimony → belief          speech → ClaimEvent →     GC-05   NEG-07      GC-20/21      indirect         \[ \]        \[ \]     \[ \]     
+                                                          belief                                                                                                        
+
+  GC-06   Memory              history differential        memory → cognition        GC-06   NEG-07      GC-21         да               ✅ (S243,    \[x\]     \[x\] с   \[x\]     \[ \]
                               C-группа: один мир + одна  оговоркой                  causal_state_test                                          дельта истории →    
                                                                                                                                       C; D-группа =                    другой argmax;     
                                                                                                                                       negative;                       A-группа =         
                                                                                                                                       limitation:                     полный путь)       
                                                                                                                                       decision-level,                                   
                                                                                                                                       BC-12)                                                                                                                                                            
-
-  GC-05   Epistemics          testimony → belief          speech → ClaimEvent →     GC-05   NEG-07      GC-20/21      indirect         \[ \]        \[ \]     \[ \]     
-                                                          belief                                                                                                        
-
-  GC-06   Memory              history differential        memory → cognition        GC-06   NEG-07      GC-21         да               \[ \]        \[ \]     \[ \]     
 
   GC-07   Perception          observation differential    perception filter         GC-07   NEG-07      GC-21         да               \[ \]        \[ \]     \[ \]     
 
@@ -2811,9 +2813,10 @@ gameplay closure.
 - [x] **AVID-1 (P2, avatar-in-idle, NEW из AG1-D5 зонда):** ✅ ЗАКРЫТ 2026-09-04 (Шаг 7, вердикт GAP): idle_tick не передавал all_npcs_raw оркестратору (S113-контракт «включая аватара» выполнялся только в REST) — инъекция ADR-030 была транзитом, аватар не укоренялся. Фикс: проводка в idle-вызове + harness-реставрация upsert_character. Доказательство: S198 count=7 с 'player' ×3 тика, срезы 7/7/7, GC-00 4/4, IPT 45/45. Idle-мир (CFL/восприятие/соцполе) теперь видит аватара.
 | 2026-09-04 | S240 (W-трек, DEBT-W-AUDIT, вариант B — вердикт Мастера) | docs/AUDIT_W_TRACK_COUPLINGS.md (ТЗ §18.3 / DoD п.25) | ✅ deliverable закрыт: §1 граф + §2 реестр (FACT/INTERPRETATION/RECOMMENDATION) + §4 входной ограничитель G3; IPT 45/45 вход/выход; 0 .py-патчей, 0 ADR, 0 runtime-прогонов | B1.4-канал = главный риск-узел (anti-writer G3; релеи R1–R6 чужим сериям); W-граница: spawn=единственный writer, relations/transitions=0 callers, типовая G3-op отсутствует → мини-ADR. Процесс-урок: патч-гвард применённости обязателен перед терминальным коммитом — роадмап-патч S240 не был применён, коммит 2c4dfd9d обещал его в сообщении; закрыто док-коммитом |
 
-- [ ] **FT-1 (P1, адресация, NEW из полевого теста):** «люся: привет» → [TARGET] Extracted: Торнин — кокпит-парсер понял адресата (текст сохранил «[обращаясь к maid_lusya] привет»), player_target_pipeline выбрал Торнина (dist 0.0; suspicion: прокс-приоритет ближайшего). DM ответил за не-адресата; запись в памяти всех NPC — «player → tavern_keeper_tornin». Действие: археология резолва (player_target_pipeline vs адресный префикс кокпита); зонд (два адресных хода к разным NPC, target≠nearest). Владелец: следующая сессия.
+- [x] **FT-1 (P1, адресация):** ✅ ЗАКРЫТ 2026-09-05 (S245): точка подмены — PlayerTargetExtractor.extract() (:638): name_forms-матч не знает npc_id (латиница клиентов) → sticky-захват прежней цели через ADDRESS_LEMMAS («обращаясь»→«обращаться»). Фикс: npc_id-ветка прямого матча. Доказано: stash-дифференциал (thief_shadow→maid_lusya на идентичном входе) + зонды 3/3 + IPT 45/45. Полевая конфигурация: «люся:» → id в скобке → промах → sticky=Торнин. — кокпит-парсер понял адресата (текст сохранил «[обращаясь к maid_lusya] привет»), player_target_pipeline выбрал Торнина (dist 0.0; suspicion: прокс-приоритет ближайшего). DM ответил за не-адресата; запись в памяти всех NPC — «player → tavern_keeper_tornin». Действие: археология резолва (player_target_pipeline vs адресный префикс кокпита); зонд (два адресных хода к разным NPC, target≠nearest). Владелец: следующая сессия.
 - [ ] **FT-2 (P1, FLEE+позиции, NEW):** wait-тики: FLEE_NAV «threat=maid_lusya not found in npc_positions! Flee blocked» ×12 — NPC решает бежать от Люси каждый тик, исполнение заблокировано; сама Люся отсутствует в npc_positions idle-тиков (SPATIAL_DATA 6/7→5/6). Живая склейка RE-D4 (FLEE-массовость) + Н-53 (GROUND_TRUTH location_id). Действие: локализовать беглеца и причину исчезновения Люси из позиций (post-mortem по scene_changes_*.jsonl); зонд. Владелец: следующая сессия.
 - [ ] **FT-3 (P2, память):** пусто-текстовые speech-эпизоды imp=0.80 («merchant_goran → player: ''») — речь материализуется, текст пуст. Действие: трасса producer→payload (working_memory_tick/materializer пустой text?). Владелец: следующая сессия.
+| 2026-09-05 | Шаг 9 / S245 (FT-1 закрыт) | player_target_extractor.py (npc_id-ветка прямого матча) + test_ft1_target_resolution.py | ✅ ЗАКРЫТ: ROOT_CAUSE (дифференциал git-stash на идентичном входе: без патча id=thief_shadow/sticky-захват, с патчем maid_lusya через [S.0 MATCH] npc_id; в поле — sticky=Торнин с праймер-хода «наблюдение» + fallback-nearest). Механика: клиенты кладут резолвнутый адресат в текст латинским npc_id → name_forms-матч (кириллица) слеп → has_address_signal (лемма «обращаться») → sticky переносит прежнюю цель. Фикс: npc_id = форма прямого упоминания (предлоговая косвенность к npc_id неприменима — адресация и есть «к»). Вердикты: production-зонды 3/3 ×2 (213.51s/205.05s: id-адресация/кириллица-контроль/симметрия), GC-00 4/4 (95.08s), IPT 45/45. Честная оговорка: оба отчёта ft1_probe_* — ПОСТпатчевые прогоны (одно-блоковый протокол Мастера, «ДО» не исполнялось); красное доказательство = stash-дифференциал. Патч каноничен независимо (канонический идентификатор = легитимная форма прямого обращения) |
 
 
 ## 6. Гейты и Stop-criteria

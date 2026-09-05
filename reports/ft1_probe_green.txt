@@ -1,0 +1,139 @@
+﻿python : [CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+At line:1 char:34
++ ... ONPATH="."; python -m pytest tests/gameplay/test_ft1_target_resolutio ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-v2.Q5_K_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-8.3.3, pluggy-1.6.0 -- C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\DDD\Codex\VSC_Enigma\Enigma\backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, hypothesis-6.165.0
+collecting ... collected 3 items
+
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 96, in run
+    return self.narrate(
+           ~~~~~~~~~~~~^
+        location,
+        ^^^^^^^^^
+    ...<5 lines>...
+        context,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 798, in narrate
+    raw = self.router.request_for_agent(
+        agent_name="dm",
+    ...<2 lines>...
+        params=GenerationParams(max_tokens=settings.dm_max_tokens),
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 560, in request_for_agent
+    _result = self._request_via_pool(
+        capability_obj,
+    ...<3 lines>...
+        system_prompt=system_prompt,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 362, in _request_via_pool
+    raise RuntimeError(f"Все модели пула недоступны для capability={capability}")
+RuntimeError: Все модели пула недоступны для capability=Capability.NARRATIVE
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 96, in run
+    return self.narrate(
+           ~~~~~~~~~~~~^
+        location,
+        ^^^^^^^^^
+    ...<5 lines>...
+        context,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 798, in narrate
+    raw = self.router.request_for_agent(
+        agent_name="dm",
+    ...<2 lines>...
+        params=GenerationParams(max_tokens=settings.dm_max_tokens),
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 560, in request_for_agent
+    _result = self._request_via_pool(
+        capability_obj,
+    ...<3 lines>...
+        system_prompt=system_prompt,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 362, in _request_via_pool
+    raise RuntimeError(f"Все модели пула недоступны для capability={capability}")
+RuntimeError: Все модели пула недоступны для capability=Capability.NARRATIVE
+tests/gameplay/test_ft1_target_resolution.py::test_ft1_id_addressing 
+[FT1] sticky after primer: thief_shadow
+[FT1] id-addressing: requested=maid_lusya selected=maid_lusya
+PASSED
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 96, in run
+    return self.narrate(
+           ~~~~~~~~~~~~^
+        location,
+        ^^^^^^^^^
+    ...<5 lines>...
+        context,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 798, in narrate
+    raw = self.router.request_for_agent(
+        agent_name="dm",
+    ...<2 lines>...
+        params=GenerationParams(max_tokens=settings.dm_max_tokens),
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 560, in request_for_agent
+    _result = self._request_via_pool(
+        capability_obj,
+    ...<3 lines>...
+        system_prompt=system_prompt,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 362, in _request_via_pool
+    raise RuntimeError(f"Все модели пула недоступны для capability={capability}")
+RuntimeError: Все модели пула недоступны для capability=Capability.NARRATIVE
+tests/gameplay/test_ft1_target_resolution.py::test_ft1_cyrillic_control 
+[FT1] cyrillic control: selected=maid_lusya
+PASSED
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 96, in run
+    return self.narrate(
+           ~~~~~~~~~~~~^
+        location,
+        ^^^^^^^^^
+    ...<5 lines>...
+        context,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py", line 798, in narrate
+    raw = self.router.request_for_agent(
+        agent_name="dm",
+    ...<2 lines>...
+        params=GenerationParams(max_tokens=settings.dm_max_tokens),
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 560, in request_for_agent
+    _result = self._request_via_pool(
+        capability_obj,
+    ...<3 lines>...
+        system_prompt=system_prompt,
+    )
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\llm\router.py", line 362, in _request_via_pool
+    raise RuntimeError(f"Все модели пула недоступны для capability={capability}")
+RuntimeError: Все модели пула недоступны для capability=Capability.NARRATIVE
+tests/gameplay/test_ft1_target_resolution.py::test_ft1_id_symmetry 
+[FT1] id symmetry: requested=tavern_keeper_tornin selected=tavern_keeper_tornin
+PASSED
+
+============================== warnings summary ===============================
+tests/gameplay/test_ft1_target_resolution.py::test_ft1_id_addressing
+  C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pydantic\_internal\_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.9/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 3 passed, 1 warning in 205.05s (0:03:25) ===================
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION

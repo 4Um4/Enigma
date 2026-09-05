@@ -635,8 +635,16 @@ class PlayerTargetExtractor:
             npc_id = ctx.get("npc_id", "")
             npc_name = ctx.get("npc_name", "")
 
-            # name_forms (приоритет)
+            # name_forms (приоритет) + npc_id как каноническая форма прямого
+            # упоминания (FT-1, S243): клиенты кладут резолвнутый адресат в
+            # текст латинским npc_id («[обращаясь к maid_lusya] привет»);
+            # без этой ветки матч промахивается → sticky-перенос предыдущей
+            # цели (Торнин) подменяет адресата. npc_id = та же форма прямого
+            # обращения, не новый словарь; проверка границ слова исключает
+            # подстрочные ложные срабатывания (maid_lusya_inn и т.п.).
             name_forms = [f.lower() for f in ctx.get("name_forms", [])]
+            if npc_id:
+                name_forms.append(npc_id.lower())
             if name_forms:
                 for form in name_forms:
                     pos = lower.find(form)
