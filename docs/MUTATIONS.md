@@ -935,6 +935,17 @@ IPT: ✅ 45/45 (гейт входа; док-мутации код не трог�
 ⚠️ Хвосты: FT-2 (FLEE-storm — материал BC-12 по их формулировке), FT-3 (пустые речи), У-2-канон pathspec/untracked здесь закрыт; field_test_S241.txt закоммичен (догон «Шаг 8 (доп)», не создавшийся из-за pathspec/untracked-гочи).
 IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
 
+### S246: ТЗ-RE-01 M1b.3.1–3.4 (post-cutover readers: fallback-удаление, bootstrap β, снапшот-гидратация) | ✅ сьюта 205/205, IPT 45/45, канар жив
+🎯 Readers-фронт M1b после физического cutover (S232/M1b.4): V2 RAM-authoritative — единственный носитель; кэш = проекция, не источник.
+⚙️ M1b.3.1: fallback DecisionHub УДАЛЁН (обе ветки; Vacuum каноничен при живом SSOT) + V2-get легаси-формат ДОСЛОВНО (стрелочные ключи — hub-ридер :316 был слеп на таргет-ключах; сетка D3 не покрывала get; consumers: hub:316 + social_target_resolver:40) + греп-инвариант запрета + миграция test_decision_calibration на compute-kwargs (прод-путь :425-426). 
+⚙️ M1b.3.2 (β): bootstrap_from_npc_dicts — подъём 5 скаляров из enriched-диктов (base_values/nature — decay-домен, НЕ переносятся; existing-RAM-wins; «источник конфигурации читает один владелец»: V2 не парсит village_relations.json) + npc_provider lazy-bootstrap (ВТОРОЙ прод-путь: idle/resume минует init_scene_state — закрыт в _ensure_lazy_bind; зонд 0→21/22 ненулевых пар) + интеграция scene_init (обе ветки _load_or_create_scene).
+⚙️ M1b.3.3+3.4 (единый разрез): build_npc_snapshots(+relationship_store, +campaign_id) — кэш-слой снапшота = проекция V2 (get_all_for_source; guard store-привязки для смоуков; merge с легаси-диктом, player-дефолты social_stats — фолбэк Vacuum); idle_services-проброс; SocialDecayHandler НЕ тронут (produce Δ над снапшотом — П3); phases/decision:202 безусловная гидратация (sticky-кэш закрыт канонически; до фикса нейтрализован тик-порядком Фаза 0.5 < 5).
+⚙️ P0-LLM-инцидент (2026-08-30, параллельно, приказ Мастера): двойной llama-server на 8181 → VRAM 96% → 503 NARRATIVE → DRI 2%; acquire_llama_server_lock (health + bind-проба) в server_lifecycle; оба спавнера (main, game_launcher) спрашивают лок ДО Popen; DRI 100% восстановлен; закрыт полностью (коммиты 47559f86 + 268fc600 + L4-хил).
+⚠️ Инциденты-уроки сессии (7 sequencing/формата, счёт честно): S225, M1b.2.3, P0×2, M1b.4.1-partial (архив ≠ диск), M1b.3.2-preview (описочный патч без БЫЛО/СТАЛО → 62 красных: контракт-сдвиг = код+тесты ОДНИМ пакетом), M1b.3.2-fix2 (провал зонда при 202-зелёном: юнит-грин ≠ интеграционная-истина — жёлтые гейты требуют живого зонда не-юнит-доказательства). Транзиент-атаки: IPT-красные ×3 (тройной прогон опроверг; stash-атрибуция чувствительна к save-состоянию — ограничение метода задокументировано), L4-миг (self-healed). Формат-закон: патчи ТОЛЬКО БЫЛО/СТАЛО с дисковыми якорями; интеграционные гейты = зонд живого тика + канар.
+⚠️ Досье-находки (в реестр §4b): RE-D1 AG1-D1-сверка (reset_campaign RAM — `_cache` не существует); RE-D2 DialogueUpdateExtractor нулевые дельты (P1: диалоги не пишут отношения!); RE-D3 BeliefCrystallization npc=break_progress:* (не npc_id); RE-D4 FLEE-массовость 6/6 при fear=0.0; RE-D5 game_loop 20 ruff pre-existing; RE-D8 S135-статик мёртв + social_deltas-копия (3.5-зонд); RE-D7 campaign-bootstrap schema-директива Мастера (ADR после 3.x).
+📁 decision_hub.py, v2_relationship_backend.py (+get-формат, +npc_provider, +lazy-bootstrap), memory_manager.py (switch+npc_provider), scene_init.py (обе ветки), tick_utils.py (снапшот-гидратация), idle_services.py (проброс), phases/decision.py (безусловная гидратация), server_lifecycle.py/main.py/game_launcher.py (P0-lock), tests/test_relationship_state_store.py (205), test_decision_calibration.py
+IPT: ✅ 45/45 (тройная стабильность после транзиента). КРАСНЫЕ: 0 🔴 → 0 🔴
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
@@ -947,3 +958,6 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
+
+
+
