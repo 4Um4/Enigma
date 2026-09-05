@@ -82,61 +82,76 @@ def test_gc09a_body_writes_in_production_ticks(harness):
             )
 
 def test_gc09b_body_exhaustion_blocks_intents(harness):
-    """GC-09B: Embodied Constraint (RED-детектор, вердикт Мастера
-    2026-09-05). Предельный износ (fatigue +90 / energy −90) — единственная
-    переменная между двумя копиями живого NPCState. Доказываемый тезис:
-    тело ДО порога смерти/бессознательности (Vital State Guard :440 —
-    единственный существующий body-edge в compute) должно влиять на
-    доступность интентов. RED сегодня = официальное доказательство
-    STATE→BEHAVIOR GAP: между живым телом и DecisionHub нет порогового
-    causal edge (Звено 3 = ADR-фронт BodyConstraintResolver)."""
+    """GC-09B-full (ADR-O-383 oracle, observation-scope correction — вердикт
+    Мастера Q-D): наблюдение ПОЛНОГО production-контура решения (decision_ctx
+    из translate_kernel_to_context — официальный путь veto в живом тике).
+    "Original GC-09B RED remains immutable evidence of the early
+    availability-path blind spot. The post-implementation oracle is
+    upgraded to observe the complete production decision contour because V1
+    intentionally operates in the feasibility layer. The oracle upgrade is
+    therefore an observation-scope correction, not a relaxation of the
+    acceptance criterion."
+    (Оригинальный RED-текст сохранён в истории коммитов a6708f46/
+    gc09b_red4.txt как immutable evidence.)"""
     import copy as _copy
 
     from app.domain.identity_events import EffectiveDrives
-    from app.services.economy.opportunity_engine import OpportunityResult
+    from app.services.cfrm.pressure_translator import translate_kernel_to_context
     from app.services.npc.decision_hub import DecisionHub, EventContext
-    from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
-    from app.services.npc.state_applicator import StateApplicator
+    from app.services.npc.npc_loader import (
+        load_l2_state_from_runtime_dict,
+        load_profile_from_legacy_json,
+    )
 
     harness.advance_ticks(3)
     _raw = harness.inspect_npc("maid_lusya")
     assert _raw is not None, "GC09-B: живой дикт недостижим"
 
-    from app.services.npc.npc_loader import load_profile_from_legacy_json
-
     _state_A = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
-    # Personality живёт ОТДЕЛЬНО от NPCState (pipeline:216 — NPCProfileL0 из
-    # того же дикта отдельной фабрикой; state.personality не существует).
     _personality = load_profile_from_legacy_json(_copy.deepcopy(_raw))
-
     _drives = EffectiveDrives.from_dict(
         {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
     )
     _event = EventContext(
-        event_type="social",
-        actor_id="player",
-        success=True,
-        intensity=1.0,
-        distance=3.0,
-        witness_count=2,
-    )
-    _opp = OpportunityResult(
-        score=0.5, hidden_action_allowed=False, unlocked_intents=frozenset()
+        event_type="social", actor_id="player", success=True,
+        intensity=1.0, distance=3.0, witness_count=2,
     )
     _hub = DecisionHub(seed=0)
 
     _state_B = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
+    from app.services.npc.state_applicator import StateApplicator
+
     _applicator = object.__new__(StateApplicator)
     _applicator._apply_physiology_deltas(
-        _state_B, 0.0, 0.0, +90.0, 0.0, [], [], [], 0.0,
-        energy_delta=-90.0,
+        _state_B, 0.0, 0.0, +90.0, 0.0, [], [], [], 0.0, energy_delta=-90.0,
     )
-    # Гвард дифференциала: мутация обязана состояться (иначе тест измеряет воздух)
     _b_body = _state_B.body_state or {}
-    assert _b_body.get("fatigue", 0.0) > 50.0, (
-        f"GC09-B guard: physiology-мутация не применилась "
-        f"(fatigue={_b_body.get('fatigue')}) — suspect: StateApplicator "
-        f"против from_legacy-формы"
+    assert _b_body.get("fatigue", 0.0) > 50.0, "GC09-B guard: мутация не применилась"
+
+    from app.models.npc_state import PerceptualKernel
+
+    def _decide(st):
+        _ctx = translate_kernel_to_context(
+            kernel=PerceptualKernel(),
+            body_state=dict(st.body_state or {}),
+            social_input_ema=0.0,
+            gregariousness=0.5,
+            has_active_commitment=False,
+        )
+        return _hub.compute(
+            state=st, personality=_personality, effective_drives=_drives,
+            event=_event, decision_ctx=_ctx,
+        ).intent
+
+    _a = _decide(_state_A)
+    _b = _decide(_state_B)
+    print(f"[GC09-B-full] A(rested)={_a}; B(exhausted)={_b}; "
+          f"B.fatigue={_b_body.get('fatigue')}")
+
+    assert _b != _a, (
+        f"GC-09B-full FAIL: chronic-veto не меняет итоговый выбор "
+        f"(A={_a}, B={_b}, B.fatigue={_b_body.get('fatigue')}) — ADR-O-383 "
+        f"не работает либо decision_ctx не доходит до feasibility-фильтра"
     )
 
     def _avail(st):

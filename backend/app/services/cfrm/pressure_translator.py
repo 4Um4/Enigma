@@ -89,7 +89,7 @@ def translate_kernel_to_context(
         # cap 0.3 = «существенно затруднено» (не «невозможно» — chronic).
         _fatigue = float(body_state.get("fatigue", 0.0)) / 100.0  # ADR-094
         _energy = float(body_state.get("energy", 100.0)) / 100.0
-        if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+        if _fatigue > _FATIGUE_HIGH_CANDIDATE or _energy < _ENERGY_LOW_CANDIDATE:
             for action in ("FLEE", "ATTACK", "APPROACH", "MANIPULATE"):
                 constraints[action] = min(constraints.get(action, 1.0), 0.3)
 
