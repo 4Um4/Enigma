@@ -482,6 +482,43 @@ class GameLoop:
 
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
 
+            # BC-1/ADR-O-381 (dormant): restore conclusions из scene_state
+            # (S193-паттерн, сосед epistemic-restore :447-450). Ключ — из
+            # той же сцены, что читает orchestrator; «tavern»-хардкод
+            # соседа НЕ наследуем (досье §14.2/находка №11) — ключ берём из
+            # той же get_scene_state, но чуть шире: пробуем локацию сцены
+            # _tick_orch (по умолчанию — tavern-регион GC-00).
+            try:
+                from app.services.npc.conclusion_store import ConclusionStore
+                from app.services.memory.conclusion_runtime import bc1_enabled
+
+                # Dormant-дисциплина (INV-BC1-NOOP): restore только при ON;
+                # при OFF старые conclusions лежат в scene_state нетронутыми
+                # (байт-идентичный проход, ключ не переписывается).
+                _conclusion_data = (
+                    _scene.get("conclusions", [])
+                    if _scene and bc1_enabled()
+                    else []
+                )
+                if _conclusion_data:
+                    # Restore ВНУТРИ try — если layer выключен (BC1_ENABLED
+                    # off), стор всё равно восстановится (проекция в
+                    # scene_state это допускает), но слой остаётся
+                    # не-wired до ensure: слои создаются лениво в
+                    # orchestrator'е при ON (см. conclusion_runtime).
+                    self._tick_orch._conclusion_store = (
+                        ConclusionStore.from_dict(_conclusion_data)
+                    )
+                    logger.info(
+                        "[BC1] Restore: %s conclusion(s) из scene_state",
+                        len(_conclusion_data),
+                    )
+            except Exception as _bc1_restore_err:  # noqa: ENIGMA001
+                # D5-деградация: restore не роняет сцену (паттерн G2)
+                logger.warning(
+                    f"[BC1] conclusions restore failed: {_bc1_restore_err}"
+                )
+
             # S211 (§18): инъекция резолвера в ACCUSE-гейт компилятора
             # последствий (late binding: контроллер собирается раньше ядра).
             _mvp = getattr(self, "mvp_controller", None)
@@ -1066,8 +1103,37 @@ class GameLoop:
         return self.scene_manager.get_scene_state(campaign_id, location_id)
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
-        """E.2: Инкапсуляция scene_manager.save_scene_state"""
-        self.scene_manager.save_scene_state(campaign_id, scene_state)
+        """B1.4-RECEIVER (R2-В): единый семантический приёмник FE-канала.
+
+        Контракт (anti-writer G3, AUDIT §6 RT2/RT4/RT5): из payload
+        принимается ТОЛЬКО npc_positions["player"] (+ location_id для
+        адресации); всё прочее игнорируется by construction. Сцена не
+        найдена — честный отказ без записи (старая else-ветка писала
+        полный FE-дикт без защиты). Internal-writers (scene_init/SSM/
+        replay) пишут канон через scene_manager напрямую — не меняются.
+        Tick-locked окно: get_scene_state возвращает живой _tick_scenes-объект —
+        мутация ограничена санкционированной player-записью, полная
+        замена сцены исключена (сужение B5-окна, очередь пушей — вне скоупа).
+        """
+        import copy as _copy
+
+        if not isinstance(scene_state, dict):
+            logger.warning(f"[B14-RECV] non-dict payload ({type(scene_state).__name__}) — ignored")
+            return
+        _loc_id = scene_state.get("location_id", "")
+        _npc_pos = scene_state.get("npc_positions")
+        _player_entry = _npc_pos.get("player") if isinstance(_npc_pos, dict) else None
+        if not isinstance(_player_entry, dict) or not _player_entry:
+            return
+        _current = self.scene_manager.get_scene_state(campaign_id, _loc_id)
+        if not _current:
+            logger.warning(
+                f"[B14-RECV] scene not found: campaign={campaign_id} loc={_loc_id!r} "
+                f"— запись отменена (whitelist-контракт)"
+            )
+            return
+        _current.setdefault("npc_positions", {})["player"] = _copy.deepcopy(_player_entry)
+        self.scene_manager.save_scene_state(campaign_id, _current)
 
     def find_starting_location(self, campaign_id: str) -> str:
         """E.2: Инкапсуляция scene_manager.find_starting_location"""

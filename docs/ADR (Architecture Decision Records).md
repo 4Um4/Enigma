@@ -102,6 +102,11 @@ NPC инициируют `TALK` в idle_tick. `threat_gradient > 0.5` → пре
 - ❌ **Taboo:** `EmotionTag` в `ImportanceEngine` или `MemoryManager`; Влияние тега на `decay_rate`.
 - 📁 `svc/memory/importance_engine.py`, `svc/memory/memory_manager.py`
 
+**L8.2: PerceptualKernel Write Guard** (ADR-O-379, S243)
+Caller-based замок субъективного состояния восприятия: prod-писатель ЕДИНСТВЕННЫЙ — `StateApplicator` (применение perception-дельт/директив, клампы [0..1], state_applicator.py:1186-1236) + сам модуль (`__init__`, `_pk_from_dict`); тест-исключения по цензусу E2.0-c (npc_sandbox, t06, authority_erosion ×2 `__name__`-варианта). Всё остальное → `ArchitecturalViolationError` — снаружи DeltaGate пути в психику нет (INV-LLM-NOT-SSOT). Рождён D2-атакой экзамена B0 (молчаливый DEBT-R9). Дубль `__setattr__` (артефакт двойного патча) устранён до терминального коммита. IMPACT: `docs/audits/ADR-O-379_IMPACT.md`.
+- ❌ **Taboo:** Прямое присваивание PK-полей вне цензуса; расширение `_PK_ALLOWED_WRITERS` без цензуса писателей; внесение causal_state_test в исключения (D2 обязан падать).
+- 📁 `mod/npc_state.py` (PerceptualKernel: `_PK_ALLOWED_WRITERS`, `__setattr__`), `svc/npc/state_applicator.py`
+
 ---
 
 ## DOM-04: SPATIAL & LOCOMOTION
@@ -193,6 +198,16 @@ NPC формирует `SpatialTargetIntent`. `SpatialTargetResolver` разре
 
 ❌ Taboo: npc_id-хардкоды affinity; steal в диалоговом слое (TaskScheduler); THEFT-payload без target_id; расширение object-action списка без mini-ADR.
 📁 svc/npc/decision_hub (_steal_affinity, unlock-ветка), svc/phases/post_decision (маршрутизатор, gate, Фаза 7), svc/events/intent_event_adapter, models/npc_state (Intent.STEAL), `dom/intent_profiles
+
+**L14.5: BeliefState Write Guard** (ADR-O-380, S243)
+Caller-based замок L2/эпистемики: `BeliefState.update()` разрешён только цензусу — сам модуль; `npc_state` (загрузка psyche["beliefs"]); `npc_loader` (`_beliefs_from_persistence` — легальный писатель, найден замком round-trip); `belief_transition_engine` (R8-канал, генерирует BeliefDelta); `state_applicator` (apply_belief_delta — единственный физический write-path); `belief_aggregator` (CoherenceBeliefAggregator, pattern-based R8-канал). Всё остальное → `ArchitecturalViolationError`. Рождён D3-атакой экзамена B0 (запись мимо BTE/DeltaGate проходила молча — enforcement-дыра ADR-SSOT-EPISTEMIC). Мёрджа двух R8-каналов нет — guard фиксирует writer'ов, не семантику конфликта. IMPACT: `docs/audits/ADR-O-380_IMPACT.md`.
+- ❌ **Taboo:** `state.beliefs.update()` вне цензуса; мутация убеждений без Cause/BeliefDelta; расширение `_UPDATE_ALLOWED_WRITERS` без цензуса; внесение causal_state_test в исключения (D3 обязан падать).
+- 📁 `mod/npc/beliefs.py` (`_UPDATE_ALLOWED_WRITERS`, `update`), `svc/npc/belief_transition_engine.py`, `svc/npc/state_applicator.py`, `svc/memory/belief_aggregator.py`, `svc/npc/npc_loader.py
+
+**L14.6: Conclusion Layer — Experience → Conclusion (BC-1, dormant)** (ADR-O-381, S243-вердикты / S247-реализация; ACTIVE: приёмка bc1_conclusion_test 6/6 GREEN, dormant default OFF)
+Новый авторизованный переход состояния: пережитый опыт → машино-пригодный вывод. Триплет subject/predicate/object + confidence [0..1] + evidence[event_ids → L1] + source=DIRECT_EXPERIENCE — НЕ фразы, НЕ флаги поведения (фальсификатор: NPC меняет будущее поведение без флага поведения). Тропа (F1a): Фаза 9 при phase_2_events → ConclusionEngine (pure; вход — ТОЛЬКО новые дельты/трейсы тика) → ConclusionGate по образу DeltaGate (F2б: закрытый predicate-реестр, старт — ОДИН предикат IS_DANGEROUS; кламп confidence; идемпотентность (trace_id, subject, predicate) — перенос AG1-INV-TRACE-ONCE; Gate = аудит, НЕ писатель) → ConclusionStore.apply (единственный write-path) → CONCLUSION_FORMED (F2c: новый EventType, observation-only, Закон XI). SSOT-А: per-agent RAM + round-trip scene_state["conclusions"] → Фаза 10 atomic_commit_all (прецедент EpistemicStore S193: write tick_orchestrator:691 / read game_loop:447-453 / терминал SSM:555); собственная SQLite ЗАПРЕЩЕНА (анти-паттерн ExpectationStore). NO-VACUUM (владелец, вербатим): «BC-1 не имеет права создавать conclusion из отсутствия нового опыта» — без новых EXPERIENCE_DELTA нет CONCLUSION_FORMED и нет записи; вход ≠ текущее состояние. CONCLUSION ──X──> EXPECTATION закрыт до BC-2 (F3а; BC1_ENABLED default OFF = no-op, INV-BC1-NOOP; dormant M1a-класса). Anti-Bond (Р17-П1): уникальная работа — вывод-правило, derived из множества собственных ExperienceTrace, evidence-адресуемый (полная таблица: BC1_PRE_FLIGHT.md §3); Two-Domain-отклонение по мандату лестницы (потребители BC-2/BC-5 заявлены каноном). Досье: docs/audits/BC1_PRE_FLIGHT.md; IMPACT: docs/audits/ADR-O-381_IMPACT.md (оговорка №11: epistemic read-path хардкодит локацию «tavern» game_loop:448 — восстановление ConclusionStore хардкод НЕ наследует).
+- ❌ **Taboo:** conclusion как флаг поведения (avoid_*); фразы/текст в триплете; расширение predicate-реестра без мини-ADR; write в Expectation/PK/beliefs/RelationshipStore/DecisionHub; запись мимо ConclusionGate; глобальный store; DELETE (append-only + confidence-decay по образцу MemoryCrystal); confidence = truth; TESTIMONY-ветка (BC-5); собственная SQLite-персистенция; bc1-сценарий в guard-исключения (D-группа = замок экзамена).
+- 📁 (план BC-1-сессии) `dom/conclusions.py` (триплет + proposal + predicate), `svc/memory/conclusion_engine.py` (pure), `svc/memory/conclusion_gate.py` (мембрана), `svc/npc/conclusion_store.py` (SSOT), `svc/phases/integration.py` (Фаза 9, за флагом), `svc/tick_orchestrator.py` (store + pre-commit проекция), `svc/events/event_types.py` (CONCLUSION_FORMED), `tests/sandbox/SUPERBOX/scenarios/bc1_conclusion_test.py
 
 ---
 

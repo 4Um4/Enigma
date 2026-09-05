@@ -127,6 +127,20 @@ class TickOrchestrator:
         )
         self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
         self._combat_sub: CombatSubscriber = CombatSubscriber(self._get_event_bus())
+        # BC-1/ADR-O-381 (dormant): коллектор нового опыта тика — события
+        # EXPERIENCE_DELTA_COMMITTED (эмиттеры: reaction S115-точки).
+        # Читается+очищается wrapper'ом Фазы 9; флаг OFF = пустой список
+        # (без подписки) = тик байтово идентичен (INV-BC1-NOOP).
+        self._conclusion_collector: list = []
+        self._conclusion_store: Any = None
+        self._conclusion_gate: Any = None
+        # BC-1: инициализация при ON — В ИНИЦИЕ, не в первом тике: подписка
+        # коллектора обязана существовать ДО первых событий тика (трасса
+        # EXPERIENCE_DELTA_COMMITTED публикуется ранними фазами). OFF →
+        # ensure молчит (INV-BC1-NOOP).
+        from app.services.memory.conclusion_runtime import ensure_conclusion_layer
+
+        ensure_conclusion_layer(self)
         from app.services.npc.homeostasis_projector import HomeostasisProjector
 
         self._homeostasis_sub: HomeostasisProjector = HomeostasisProjector()
@@ -689,6 +703,13 @@ class TickOrchestrator:
             # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
             if hasattr(self, "_epistemic_store") and self._epistemic_store:
                 ctx.scene_state["epistemic_records"] = self._epistemic_store.to_dict()
+            # BC-1/ADR-O-381: pre-commit проекция conclusions (S193-паттерн,
+            # сосед epistemic_records). Стор/гейт/коллектор НЕ созданы при
+            # OFF → hasattr-guard держит тишину (INV-BC1-NOOP).
+            if (
+                getattr(self, "_conclusion_store", None) is not None
+            ):
+                ctx.scene_state["conclusions"] = self._conclusion_store.to_dict()
 
             final_snapshot = ctx.scene_state
 
@@ -2112,6 +2133,17 @@ class TickOrchestrator:
             manifest_svc=self._manifest_svc,
             project_svc=self._project_svc,
         )
+        # BC-1/ADR-O-381 (F1a): ConclusionEngine — до run_phase_9_integration,
+        # паттерн G2-продюсера (:1877): оркестратор зовёт guarded-функцию,
+        # модуль инкапсулирует слой. NO-VACUUM: вход — ТОЛЬКО события
+        # EXPERIENCE_DELTA_COMMITTED текущего тика (коллектор), не состояние.
+        # OFF (BC1_ENABLED, default) = no-op без вычислений (INV-BC1-NOOP).
+        from app.services.memory.conclusion_runtime import (
+            run_conclusion_formation_guarded,
+        )
+
+        run_conclusion_formation_guarded(ctx=ctx, orchestrator=self)
+
         run_phase_9_integration(ctx, deps)
 
         # Тело метода удалено. Логика перенесена в phases/integration.py

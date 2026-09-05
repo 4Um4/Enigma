@@ -53,6 +53,10 @@ class EventType(str, Enum):
     # EMRL E2.0-b: трасса причинного изменения состояния — потребляется
     # Chronicaler'ом (cross-cutting); observation-only (Закон XI)
     EXPERIENCE_DELTA_COMMITTED = "experience_delta_committed"
+    # BC-1/ADR-O-381: трасса сформированного вывода — observation-only
+    # (Закон XI); эмиттер conclusion_gate.apply. Семантически ≠ delta:
+    # EXPERIENCE_DELTA_COMMITTED (вход опыта) ≠ CONCLUSION_FORMED (вывод).
+    CONCLUSION_FORMED = "conclusion_formed"
     WEATHER_CHANGED = "weather_changed"
     FACTION_EVENT = "faction_event"
     WORLD_TICK = "world_tick"  # проактивный тик мира (Фаза 3.4)
