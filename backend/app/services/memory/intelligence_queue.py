@@ -426,10 +426,18 @@ def wire_intelligence_queue(
     npc_states_provider: Optional[Callable[[], Optional[List[Any]]]] = None,
     pool_provider: Optional[Callable[[], Any]] = None,
 ) -> IntelligenceQueue:
-    """Конструирует/возвращает singleton очереди (идемпотентно)."""
+    """Проводка очереди к провайдерам ЭТОЙ сборки GameLoop (replace).
+
+    Restart/build_game_loop → повторная регистрация подписчика → НОВАЯ
+    очередь со свежими провайдерами (singleton-замена; инцидент
+    wired-smoke v1: singleton держал бы провайдеры первой сборки —
+    осиротевший мир). In-flight задачи прежней очереди завершаются
+    против ЕЁ старых провайдеров — STALE-гейт осиротевший мир отсекает
+    наблюдаемо. Регистрация подписчика однократна в __init__ — двойной
+    wire в одной сборке не существует; _enqueued внутри каждой очереди
+    держит Q5-идемпотентность события."""
     global _QUEUE
-    if _QUEUE is None:
-        _QUEUE = IntelligenceQueue(
+    _QUEUE = IntelligenceQueue(
             memory_manager=memory_manager,
             extractor=extractor,
             tick_provider=tick_provider,

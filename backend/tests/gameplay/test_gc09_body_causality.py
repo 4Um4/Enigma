@@ -102,8 +102,12 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
     _raw = harness.inspect_npc("maid_lusya")
     assert _raw is not None, "GC09-B: живой дикт недостижим"
 
+    from app.services.npc.npc_loader import load_profile_from_legacy_json
+
     _state_A = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
-    _personality = _state_A.personality  # L2-фабрика даёт personality из живого дикта
+    # Personality живёт ОТДЕЛЬНО от NPCState (pipeline:216 — NPCProfileL0 из
+    # того же дикта отдельной фабрикой; state.personality не существует).
+    _personality = load_profile_from_legacy_json(_copy.deepcopy(_raw))
 
     _drives = EffectiveDrives.from_dict(
         {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
@@ -124,8 +128,8 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
     _state_B = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
     _applicator = object.__new__(StateApplicator)
     _applicator._apply_physiology_deltas(
-        _state_B, 0, 0, 0, 0, [], [], [], 0,
-        fatigue_delta=+90.0, energy_delta=-90.0,
+        _state_B, 0.0, 0.0, +90.0, 0.0, [], [], [], 0.0,
+        energy_delta=-90.0,
     )
     # Гвард дифференциала: мутация обязана состояться (иначе тест измеряет воздух)
     _b_body = _state_B.body_state or {}
