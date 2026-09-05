@@ -199,8 +199,9 @@ def evaluate_behavior_and_identity(
                 _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
             )
             
-            # V8-PSY-6 FIX: Гидратация relationship_cache актуальными значениями из RelationshipStore
-            if relationship_store and not _player_rel:
+            # V8-PSY-6 + M1b.3.4: БЕЗУСЛОВНАЯ гидратация (кэш = projection,
+            # sticky-путь закрыт; store жив всегда post-cutover)
+            if relationship_store:
                 _rels = relationship_store.get_all_for_source(campaign_id, npc_id)
                 _player_data = _rels.get("player", {}) if isinstance(_rels, dict) else {}
                 if _player_data:
