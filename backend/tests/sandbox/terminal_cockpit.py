@@ -204,19 +204,27 @@ class Cockpit:
         _no_detach = bool(_os.environ.get("D8P_BASELINE_NO_DETACH"))
         _wc_t0 = _wc_time.monotonic()
         _orig_extract = None
-        try:
-            from app.services.memory import dialogue_update_extractor as _due_mod
+        if not _no_detach:
+            try:
+                from app.services.memory import dialogue_update_extractor as _due_mod
 
-            _orig_extract = _due_mod.DialogueUpdateExtractor.extract
-            # runtime-патч: заглушка возвращает None — существующее
-            # поведение подписчика при отказе экстракции
-            # ("Dialogue update failed" уже живёт с None)
-            _due_mod.DialogueUpdateExtractor.extract = (  # type: ignore[method-assign]
-                lambda self, stm_before, new_turn, partner: None  # type: ignore[assignment, return-value, no-any-return]
-            )
-            print("  [wait] медленный интеллект отцеплен (быстрый мир, класс-уровень)")
-        except ImportError:
-            pass  # модуль не найден — отцеплять нечего
+                _orig_extract = _due_mod.DialogueUpdateExtractor.extract
+                # runtime-патч: заглушка возвращает None — существующее
+                # поведение подписчика при отказе экстракции
+                # ("Dialogue update failed" уже живёт с None)
+                _due_mod.DialogueUpdateExtractor.extract = (  # type: ignore[method-assign]
+                    lambda self, stm_before, new_turn, partner: None  # type: ignore[assignment, return-value, no-any-return]
+                )
+                print("  [wait] медленный интеллект отцеплен (быстрый мир, класс-уровень)")
+            except ImportError:
+                pass  # модуль не найдён — отцеплять нечего
+        else:
+            # AG1-D8p Шаг 2, блок 2 (инцидент частичного применения c7a4a644):
+            # при D8P_BASELINE_NO_DETACH сцепка НЕ разрывается — fast-path
+            # публикации idle-тиков идут в подписчик на потоке петли →
+            # RE-D2 guard → наблюдаемая деградация (R2-ось в окне замера,
+            # счёт в логе прогона, НЕ в тике).
+            print("  [wait] D8P_BASELINE_NO_DETACH=1: экстрактор НЕ отцеплен (baseline ДО, R2 живая)")
         try:
             for i in range(n):
                 try:
