@@ -9,6 +9,7 @@ path: /project/backend/tests/test_re_d2_router_guard.py
     test_router_source_has_no_self_deadlock_bridge
 """
 
+import ast
 import asyncio
 import time
 from pathlib import Path
@@ -48,7 +49,16 @@ def test_router_source_has_no_self_deadlock_bridge():
     роутера — это ровно класс RE-D2 и требует мини-ADR.
     """
     _src = Path(router_mod.__file__).read_text(encoding="utf-8")
-    assert "run_coroutine_threadsafe" not in _src, (
-        "RE-D2: в router.py возвращён threadsafe-мост — "
-        "см. вердикт RE-D2 (self-deadlock) и DEBT-RE-D2A"
-    )
+    # AST, а не substring: комментарий guard'а и сообщение исключения
+    # легально упоминают имя моста — запрет касается ТОЛЬКО вызова.
+    # Substring-версия самопоражалась о собственный фикс (урок 723c1a61:
+    # красный тест-баг в коммите).
+    for _node in ast.walk(ast.parse(_src)):
+        if isinstance(_node, ast.Call):
+            _called = getattr(_node.func, "id", None) or getattr(
+                _node.func, "attr", None
+            )
+            assert _called != "run_coroutine_threadsafe", (
+                "RE-D2: в router.py возвращён threadsafe-мост (ВЫЗОВ) — "
+                "см. вердикт RE-D2 (self-deadlock) и DEBT-RE-D2A"
+            )

@@ -617,7 +617,10 @@ class ModelRouter:
         else:
             coro = self.request(capability, prompt, params, system_prompt)
             try:
-                loop = asyncio.get_running_loop()
+                # RE-D2: значение не нужно — вызов работает как детектор
+                # контекста: успех = текущий поток ЕСТЬ поток петли (else-ветка
+                # ниже поднимает громкий отказ). F841-гигиена.
+                asyncio.get_running_loop()
             except RuntimeError as e:
                 logger.debug(f"No running loop, starting new one: {e}")
                 _result = asyncio.run(coro)
@@ -776,7 +779,9 @@ def initialize_router() -> None:
     pool_results = initialize_model_pool()
 
     # Get router
-    router = get_router()
+    # F841-гигиена (pre-existing): присваивание было мёртвым; вызов сохранён —
+    # get_router() создаёт/возвращает синглтон, побочный эффект важен, значение — нет.
+    get_router()
 
     logger.debug(f"Router initialized. ModelPool: {pool_results}")
     logger.debug("Lazy loading enabled: only one model in VRAM at a time")
