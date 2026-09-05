@@ -49,9 +49,12 @@ def _max_age_ticks() -> int:
     """D8P_MAX_AGE_TICKS (default 3). Calibration-константа, НЕ онтология
     (вердикт Q2б); сравнение строго `>`: окно из N тиков = N допустимых
     возрастов."""
+    raw = os.environ.get("D8P_MAX_AGE_TICKS", "3")
     try:
-        return max(0, int(os.environ.get("D8P_MAX_AGE_TICKS", "3")))
+        return max(0, int(raw))
     except ValueError:
+        # L4 (INV-SILENT-FAILURE): невалидная калибровка наблюдаема, не молча.
+        logger.warning("[D8P_Q] invalid D8P_MAX_AGE_TICKS=%r — fallback 3", raw)
         return 3
 
 
@@ -215,7 +218,11 @@ class IntelligenceQueue:
             try:
                 self._deque.remove(task)
             except ValueError:
-                pass
+                # Ожидаемо при двойном submit/pump-гонке — но наблюдаемо (L4).
+                logger.debug(
+                    "[D8P_Q] task %s already removed from deque (double-run)",
+                    task.task_id[:8],
+                )
             self._counters["executed"] += 1
         self._execute(task)
 
