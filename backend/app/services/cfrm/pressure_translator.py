@@ -83,6 +83,16 @@ def translate_kernel_to_context(
         shock = body_state.get("shock_impulse", 0.0)
         blood_loss = body_state.get("blood_loss", 0.0)
 
+        # ADR-O-383 (V1): хронические оси → feasibility. Action-set =
+        # семантический прецедент acute blood_loss (физические/locomotion);
+        # INTIMIDATE исключён — социально-поведенческое (вердикт Q2).
+        # cap 0.3 = «существенно затруднено» (не «невозможно» — chronic).
+        _fatigue = float(body_state.get("fatigue", 0.0)) / 100.0  # ADR-094
+        _energy = float(body_state.get("energy", 100.0)) / 100.0
+        if _fatigue > self._FATIGUE_HIGH_CANDIDATE or _energy < self._ENERGY_LOW_CANDIDATE:
+            for action in ("FLEE", "ATTACK", "APPROACH", "MANIPULATE"):
+                constraints[action] = min(constraints.get(action, 1.0), 0.3)
+
         if pain > 0.8:
             constraints["FLEE"] = 0.0  # Боль не позволяет бегствовать
         if shock > 0.7:
