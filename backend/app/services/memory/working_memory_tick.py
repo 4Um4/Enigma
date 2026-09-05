@@ -65,6 +65,13 @@ def write_npc_reactions_to_memory(
 
         npc_name_raw = reaction.split(":")[0].strip()
         npc_text = reaction.split(":", 1)[1].strip()[:120]
+        # FT-3 FIX (S246, вердикт закрыт): пустой хвост ("Имя:" / "Имя:   ") —
+        # артефакт парсинга DM-нарратива, не речь. Без гварда пустышка шла в
+        # ОБА стока: NPC_SPOKE с content="" (6 хендлеров) и пустой ход в
+        # STM-сессию (npc, player) — partner_id по умолчанию, источник
+        # симптома «npc → player: ''» (§5d/FT-3). Пропуск, не запись.
+        if not npc_text:
+            continue
         matched_id = name_to_id.get(npc_name_raw.lower())
 
         # EventBus: NPC_SPOKE — Working Memory (Закон 5.1)
