@@ -382,6 +382,28 @@ class GameLoop:
             from app.services.memory.dialogue_update_extractor import DialogueUpdateExtractor
             _extractor = DialogueUpdateExtractor(router=self.dm_agent.router)
 
+            # AG1-D8p Шаг 3.2 (ADR-O-382): проводка IntelligenceQueue.
+            # Провайдеры — ТЕ ЖЕ, что у подписчика (единая точка истины);
+            # pool-провайдер — через ленивый геттер :2490 (Q4а: существующий
+            # executor-пул TaskScheduler, второй execution domain НЕ
+            # создаётся). Wire — безусловно (OFF проверяется в enqueue-
+            # точке через d8p_enabled; не-wired при ON = громкий warning
+            # подписчика, INV-LLM-LOOP-EXILE by construction).
+            from app.services.memory.intelligence_queue import (
+                wire_intelligence_queue,
+            )
+            wire_intelligence_queue(
+                memory_manager=memory_manager,
+                extractor=_extractor,
+                tick_provider=lambda: getattr(self, "_current_tick", 0),
+                npc_states_provider=lambda: (
+                    self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+                ),
+                pool_provider=lambda: (
+                    self._get_task_scheduler()._executor_pool
+                ),
+            )
+
             _subscriber = NpcDialogueSubscriber(
                 memory_manager=memory_manager,
                 relationship_store=rel_store,
@@ -489,8 +511,8 @@ class GameLoop:
             # той же get_scene_state, но чуть шире: пробуем локацию сцены
             # _tick_orch (по умолчанию — tavern-регион GC-00).
             try:
-                from app.services.npc.conclusion_store import ConclusionStore
                 from app.services.memory.conclusion_runtime import bc1_enabled
+                from app.services.npc.conclusion_store import ConclusionStore
 
                 # Dormant-дисциплина (INV-BC1-NOOP): restore только при ON;
                 # при OFF старые conclusions лежат в scene_state нетронутыми

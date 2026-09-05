@@ -9,8 +9,14 @@ path: /project/backend/app/services/events/npc_dialogue_subscriber.py
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any
+
+from app.services.memory.intelligence_queue import (
+    d8p_enabled,
+    get_intelligence_queue,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +61,7 @@ class NpcDialogueSubscriber:
         else:
             speaker = event.get("source", "")
             payload = event.get("payload", {})
-        
+
         # H-01 FIX: Используем каноничный симуляционный тик (ctx.tick_number / scene_state["tick"])
         # вместо event.timestamp (wall-clock time), чтобы удовлетворить контракт L1Chronicle (INTEGER).
         tick = int(self._get_tick())
@@ -100,7 +106,13 @@ class NpcDialogueSubscriber:
 
         try:
             if is_canonical:
-                self._process_canonical(speaker, listener, text, tone, topic, tick)
+                # AG1-D8p Шаг 3.2 (ADR-O-382): event.id (UUID EventDTO) —
+                # ключ Q5-идемпотентности очереди; для dict-событий (тесты)
+                # пусто — _process_canonical возьмёт content-hash fallback.
+                _event_id = str(getattr(event, "id", "") or "")
+                self._process_canonical(
+                    speaker, listener, text, tone, topic, tick, event_id=_event_id
+                )
             else:
                 self._process_ambient(speaker, listener, tone, topic, tick)
         except Exception as e:
@@ -116,6 +128,7 @@ class NpcDialogueSubscriber:
         tone: str,
         topic: str,
         tick: int,
+        event_id: str = "",
     ) -> None:
         """Полная обработка canonical реплики (с текстом от LLM)."""
         _campaign_id = self._get_campaign_id()
@@ -125,11 +138,46 @@ class NpcDialogueSubscriber:
             # BUG-DL-09: Извлекаем structured update (claims, questions) из реплики
             _stm_before = ""
             _update = None
-            if self._extractor:
+            # AG1-D8p Шаг 3.2 (ADR-O-382): при D8P_ENABLED экстракция НЕ
+            # исполняется в потоке публикатора — enqueue IntelligenceTask
+            # (неблокирующе), placeholder-ход ниже пишется немедленно
+            # (intent="dialogue" — существующая семантика деградации);
+            # смысл доедает позже: очередь → STALE-гейт → MemoryManager.
+            # Гонка enqueue→placeholder безопасна: ход пишется тем же
+            # потоком через микросекунды, LLM-экстракция длится секунды.
+            # OFF (default) = elif-ветка дословно прежний inline-путь
+            # (INV-D8P-NOOP). Dubl event.id → enqueue=False, повторная
+            # экстракция запрещена (Q5).
+            if d8p_enabled():
+                _session = self.memory.get_dialogue_session(_campaign_id, listener, partner_id=speaker)
+                _stm_before = _session.to_prompt_block()
+                _queue = get_intelligence_queue()
+                _ev_id = event_id or hashlib.md5(
+                    f"{_campaign_id}:{speaker}:{listener}:{text}:{tick}".encode("utf-8")
+                ).hexdigest()
+                if _queue is not None:
+                    _queue.enqueue(
+                        event_id=_ev_id,
+                        campaign_id=_campaign_id,
+                        speaker=speaker,
+                        listener=listener,
+                        text=text,
+                        stm_before=_stm_before,
+                        parent_tick=tick,
+                    )
+                else:
+                    # INV-LLM-LOOP-EXILE by construction: при ON LLM никогда
+                    # не зовётся из потока публикатора — даже при сломанной
+                    # проводке (громко, не молча; wiring-баг ловится здесь).
+                    logger.warning(
+                        "[D8P] D8P_ENABLED=1, IntelligenceQueue не wired — "
+                        "экстракция пропущена (placeholder-ход записан)"
+                    )
+            elif self._extractor:
                 _session = self.memory.get_dialogue_session(_campaign_id, listener, partner_id=speaker)
                 _stm_before = _session.to_prompt_block()
                 _update = self._extractor.extract(_stm_before, text, speaker)
-            
+
             self.memory.add_dialogue_turn(
                 campaign_id=_campaign_id,
                 npc_id=listener,
@@ -165,7 +213,7 @@ class NpcDialogueSubscriber:
                     _session.answer_question(q_idx, text, speaker, tick)
         except Exception as mem_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}/{speaker}: {mem_err}")
-            
+
             # BUG-DL-06: Отложенная запись в L2 (narrative_cache) через буфер MemoryManager.
             # Фаза 3 следующего тика применит это событие к свежему NPCState.
             from app.domain.events import EventDTO
