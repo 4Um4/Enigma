@@ -275,10 +275,8 @@ derived-операция.
     один владелец») + npc_provider lazy-bootstrap (закрыл ВТОРОЙ
     прод-путь: idle/resume минует init_scene_state; зонд: 0 → 21/22
     ненулевых пар). Сьюта 202.
--   [ ] **M1b.3.3--3.7** --- decay/гидратация (единый разрез
-    `build_npc_snapshots`: V2 → снапшот-кэш; decay = produce Δ над
-    снапшотом, не трогать) → flat-readers-зонд (3 находки в досье) →
-    S128-разделение (вердикт (а) получен) → греб-страж allowlist.
+-   [x] **M1b.3.3+3.4** --- ЕДИНЫЙ РАЗРЕЗ закрыт: `build_npc_snapshots(+relationship_store, +campaign_id)` — кэш-слой снапшота = проекция V2 (decay/BehaviorMask на каноне; sticky закрыт и в phases/decision:202 безусловной гидратацией); handler decay не тронут (produce Δ). Сьюта 205, канар жив. Урок: юнит-зелёный ≠ интеграционная истина — гейт = живой зонд.
+-   [ ] **M1b.3.5--3.7** --- flat-readers-зонд (интерпретация/risk/social_deltas: формат {target:{attr}} vs {attr}; S135-статик мёртв — RE-D8) → S128-разделение (вердикт (а)) → греб-страж allowlist (кэш-чтения только рендер-проекциям).
 -   [ ] **M1b.5** --- удалить мёртвый `apply_npc_state_updates` (0
     вызовов доказано грепом) + судьба legacy-класса/vestigial provider.
 -   [ ] **M2/D** --- `RelationshipEventSemantics`: первый реальный
