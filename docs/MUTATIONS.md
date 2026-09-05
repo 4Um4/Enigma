@@ -967,6 +967,16 @@ IPT: ✅ 45/45 (финальный: 44/45 → L4-фикс → 45/45). КРАСН
 ⚠️ Anti-race: S246 занят RE-01-серией (их запись M1b.3.1–3.4 закоммичена в fee7c7df). ⚠️ Инцидент записи (уроки): чужой WIP откачен checkout'ом, патч-снапшот погиб (PS 5.1 `>` = UTF-16LE → git apply «No valid patches»); их WIP рематериализовался и закоммичен НАМИ под нашими S247-сообщениями (fee7c7df = их S246-запись, e7d63863 = их M1b-дельта; контент цел; история не переписана — rebase при живой серии опасен); 7f9a31e7 = пустой артефакт (удалён). Гейты док-коммитов вперёд: (5) git-снапшоты только `git diff --output=`; (6) grep-верификация ДИФФА на свой маркер ДО коммита (ловушка fee7c7df: git add всасывает ремате-риализованный чужой WIP); (7) «no changes added» после команды вставки = правка не внесена — проверять до следующего шага.
 IPT: ✅ 44/45 (собственных красных 0; единственный red — чужой conclusion_engine.py:81, атрибутирован). КРАСНЫЕ: 0 🔴 → 0 🔴
 
+### S249: GC-09 A/B — первый гейт, рождённый нормой GACR (§5a.9-реестр): Body Runtime GREEN + Embodied Constraint RED-доказательство | ✅ A GREEN / B RED (finding)
+🎯 Вердикт Мастера (2026-09-05): Body Simulation ≠ Embodied Agency; сплит A/B; RED не ретушировать; Звено 3 — ADR-фронт, не патч; вход — production-legitimate (не инъекция, не combat, не сотни тиков); harness-capability «accelerated body-load» — precondition B.
+⚙️ A (7f369e54): 25 production-тиков; one-way-оси hydration/nutrition сместились у обоих субъектов (98.8→92.8/99.7→98.3; 98.5→91.0/99.7→98.1); Контраст персонификации: maid (load 0.5) теряет fatigue 0.375→2.25 и energy 99.5→97.0, blacksmith (load 0, отдых) — на клампах. Численно доказано: ADR-O-373-фикс S2B-провода жив (S2B был production-мёртв до плоского снапшота).
+⚙️ B (f8051d70): from_legacy-копии живого maid_lusya; единственная переменная — fatigue+90/energy−90 через StateApplicator; гвард мутации (fatigue>50) зелёный; availability-наборы A≡B — тело не закрывает ни одного интента. RED-доказательство STATE→BEHAVIOR GAP (домен тела, второй после отношений); единственный body-edge — Vital State Guard (смерть/бессознательность, compute:440). Архитектурная гипотеза Мастера «State Consumer Gap» — второй живой домен (не закон: выборка мала).
+⚙️ Архитектура Звена 3 (по вердикту): не if-fatigue в _is_intent_available (DecisionHub = парламент всех подсистем); контракт BodyConstraintResolver: BodyState → ActionConstraints (locomotion_capacity/combat_available/social_initiative_available/exploration_available/rest_required) → DecisionHub. Отдельный ADR-фронт «Embodied Constraint», открывается после RED-фиксации.
+⚙️ Попутные: intelligence_queue.py соседей (D2A-реализация, их WIP) — атрибуция foreign-red в IPT (44/45→45/45 в этой сессии: их 2 тихих отказа закрыты их серией); релея: «2 INV-SILENT-FAILURE intelligence_queue:54/:217 — их зона, не чиним».
+📁 tests/gameplay/test_gc09_body_causality.py (+81), harness.py (read_body, +103 с A-коммитом), docs/MUTATIONS.md (эта запись), roadmap §5d
+⚠️ Anti-race: S248 = наш tail; S249 — по max+1 на момент записи (параллельные серии активны, file-scoped только наши файлы).
+IPT: ✅ 45/45. КРАСНЫЕ: 0 🔴 → 0 🔴
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
