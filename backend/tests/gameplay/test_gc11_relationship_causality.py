@@ -63,10 +63,10 @@ def test_gc11_compliment_writes_nonzero_ram(harness):
     _res = harness.player_action(f"подойди к {_TARGET_NPC} и скажи ей комплимент")
 
     # Событие обязано доехать до RAM: либо сразу, либо после следующего тика
-    _after_immediate = _v2_rel(harness, _TARGET_NPC, "player")
-    if _after_immediate <= 0.0:
+    _after_immediate = _v2_rel(harness, "player", _TARGET_NPC)
+    if _after_immediate is None or _after_immediate <= 0.0:
         harness.advance_ticks(3)  # событию нужен тик на оседание
-        _after = _v2_rel(harness, _TARGET_NPC, "player")
+        _after = _v2_rel(harness, "player", _TARGET_NPC)
     else:
         _after = _after_immediate
 
@@ -104,7 +104,7 @@ def test_gc11_event_shifts_decision_landscape(harness):
     harness.advance_ticks(2)  # событие оседает, next-tick decision использует новые входы
 
     _intent_after = _npc_intent(harness, _TARGET_NPC)
-    _trust_after = _v2_rel(harness, _TARGET_NPC, "player")
+    _trust_after = _v2_rel(harness, "player", _TARGET_NPC)
 
     print(f"[GC11-STEP2] intent: {_intent_before} → {_intent_after}")
     print(f"[GC11-STEP2] trust: {_trust_before} → {_trust_after}")

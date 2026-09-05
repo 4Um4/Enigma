@@ -277,7 +277,16 @@ class TavernGameplayHarness:
         канонический V2-бэкенд (провода game_loop._rel_store, S249; один
         объект на все подписки — switch :87 до инъекций :186/:269).
         None = пара отсутствует (Vacuum: нет записи = нет знания)."""
-        _store = getattr(self.game_loop, "_rel_store", None)
+        # GC-11-факт (зонд 2026-09-05): V2-записи живут в
+        # memory_manager._relationships (switch :87); game_loop._rel_store —
+        # вторая ссылка, после switch указывающая на иной/устаревший инстанс
+        # (STEP-2 Vacuum при живой паре trust=2.0). Читаем канонический
+        # объект напрямую, fallback на вторую ссылку только для legacy-смоуков.
+        _store = getattr(
+            getattr(self.game_loop, "memory_manager", None), "_relationships", None
+        )
+        if _store is None:
+            _store = getattr(self.game_loop, "_rel_store", None)
         if _store is None:
             return None
         try:
