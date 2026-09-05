@@ -23,7 +23,6 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Optional
 
 from app.services.logging_tools import jsonl_log
@@ -33,8 +32,13 @@ logger = logging.getLogger(__name__)
 _root_logger = logging.getLogger()
 
 from app.core.config import settings
-from app.services.llm.provider import GenerationParams, LlmProvider, ProviderType
-from app.services.llm.provider import Capability, CAPABILITY_MODEL_PREFERENCES
+from app.services.llm.provider import (
+    CAPABILITY_MODEL_PREFERENCES,
+    Capability,
+    GenerationParams,
+    LlmProvider,
+    ProviderType,
+)
 
 
 @dataclass
@@ -480,12 +484,12 @@ class ModelRouter:
             Ответ от LLM
         """
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
-        
+
         # Подсистема 2: LLM Cache для Replay (Этап 2.3)
-        from app.services.replay.llm_cache import compute_prompt_hash
         from app.core.config import settings
+        from app.services.replay.llm_cache import compute_prompt_hash
         _prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
-        
+
         # === ЛОГИРОВАНИЕ ПРОМПТА ДЛЯ ОТЛАДКИ (M-08 FIX) ===
         _prompt_preview = (prompt[:500] + "...") if len(prompt) > 500 else prompt
         _sys_preview = (
@@ -511,10 +515,9 @@ class ModelRouter:
                 "intent_after": None,
             }
         )
-        
+
         if settings.replay_playback:
             # Режим воспроизведения: читаем только из кэша
-            from app.services.replay.replay_store import ReplayStore
             _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
             if _store:
                 _current_session = getattr(self, "_current_session_id", "unknown")
@@ -527,7 +530,6 @@ class ModelRouter:
                 raise RuntimeError("Replay determinism broken: LLM cache miss in playback")
         elif settings.replay_record:
             # Режим записи: пытаемся читать из кэша (hot-path), при miss идём к LLM
-            from app.services.replay.replay_store import ReplayStore
             _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
             if _store:
                 _current_session = getattr(self, "_current_session_id", "unknown")
@@ -535,7 +537,7 @@ class ModelRouter:
                 if _cached and _cached.get("response"):
                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
                     return _cached["response"]
-                
+
         # Worker thread (to_thread): прямой синхронный вызов без semaphore
         # Semaphore привязан к main loop — в новом loop он мёртв
         if threading.current_thread() is not threading.main_thread():
@@ -571,7 +573,6 @@ class ModelRouter:
                 # H-07 FIX: Не пишем пустые ответы в кэш, чтобы не нарушать детерминизм.
                 # H-08 FIX: Передаём system_prompt и params для корректного вычисления хэша.
                 if settings.replay_record and _result:
-                    from app.services.replay.replay_store import ReplayStore
                     _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
                     if _store:
                         _tick_id = getattr(self, "_current_tick_id", 0)
@@ -586,7 +587,7 @@ class ModelRouter:
                             system_prompt=system_prompt,
                             params=params
                         )
-                
+
                 # M-09/M-10 FIX: Логируем ответ LLM с метриками
                 from app.services.replay.llm_cache import compute_prompt_hash
                 jsonl_log({
@@ -607,7 +608,7 @@ class ModelRouter:
                 raise
             finally:
                 self._request_in_progress = False
-                
+
         _result = ""
         if settings.replay_playback:
             # В режиме playback мы уже вернули ответ из кэша выше, если он был.
@@ -621,12 +622,29 @@ class ModelRouter:
                 logger.debug(f"No running loop, starting new one: {e}")
                 _result = asyncio.run(coro)
             else:
-                future = asyncio.run_coroutine_threadsafe(coro, loop)
-                _result = future.result(timeout=60)
-                
+                # RE-D2 FIX: в эту ветку попадаем ТОЛЬКО с потока самой
+                # event loop (get_running_loop() выше успел — значит текущий
+                # поток и есть поток петли). Спланировать корутину на
+                # собственную петлю и блокирующе ждать future — дедлок по
+                # построению: петля не исполнит колбэк, пока её поток стоит
+                # в .result(). До фикса — 60-секундная заморозка всего
+                # бэкенда (RE-D2; репродукции S241 и 2026-09-05: submit ->
+                # блок -> timeout -> зомби-корутина исполнилась ПОСЛЕ отказа
+                # ждущего, результат выброшен). Громкий отказ вместо тихой
+                # минуты. Правильные пути тяжёлых вызовов — worker-поток
+                # (asyncio.to_thread) либо async request(); перенос экстракции
+                # в intelligence queue — DEBT-RE-D2A.
+                coro.close()
+                raise RuntimeError(
+                    "RE-D2: request_for_agent() вызван с потока event loop: "
+                    "run_coroutine_threadsafe на собственную петлю + "
+                    "блокирующее ожидание = гарантированный дедлок. "
+                    "Вызывай из worker-потока (asyncio.to_thread) или "
+                    "используй await router.request(...)."
+                )
+
         # Запись в кэш (если режим записи)
         if settings.replay_record:
-            from app.services.replay.replay_store import ReplayStore
             _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
             if _store:
                 _tick_id = getattr(self, "_current_tick_id", 0)
@@ -641,7 +659,7 @@ class ModelRouter:
                     system_prompt=system_prompt,
                     params=params
                 )
-                
+
         return _result
         # BUGFIX-ROUTER-DEADCODE-001: Удалён мёртвый код (try/except get_running_loop + asyncio.run после return)
 
