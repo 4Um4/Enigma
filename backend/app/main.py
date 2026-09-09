@@ -22,6 +22,7 @@ import asyncio
 import logging
 import subprocess
 from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
 
@@ -78,7 +79,7 @@ DATA_DIR = BASE_DIR / "backend" / "data"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """FastAPI lifespan — замена устаревшего @app.on_event('startup'/'shutdown')."""
     # CDS FileHandler: пишет каузальные факты в файл для пост-мортем анализа LLM
     # Не трогает stdout, не ломает SSE. Уровень DEBUG ловит [DECISION_HUB] и [STATE_APPLIED].
@@ -413,7 +414,7 @@ if DATA_DIR.exists():
 
 
 @app.get("/")
-def root():
+def root() -> JSONResponse:
     """Статус backend — UI теперь в pygame."""
     return JSONResponse(
         {

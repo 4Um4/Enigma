@@ -49,6 +49,9 @@ _EDITOR_TYPE_TO_ARCHETYPE: Dict[str, str] = {
     "door": "door",
     "door_transition": "door",
     "chair": "chair",
+    # Living Activity (EAT, мини-запись ADR-O-376): W2-покрытие полное
+    # (AVAILABLE/HELD + damage-терминал О6), W3 = carrier-паттерн chair.
+    "food_portion": "food_portion",
 }
 
 _OBJECT_ID_PREFIX = "wo"

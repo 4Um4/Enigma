@@ -137,3 +137,12 @@
 [TIMING] +  8.63с  servers ready
 [TIMING] +  8.71с  menu display created — START-TO-MENU TOTAL
 [TIMING] +  8.73с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.42с  zombie-kill done
+[TIMING] +  2.00с  backend Popen issued
+[TIMING] +  4.14с  llm health OK
+[TIMING] +  8.27с  backend health OK
+[TIMING] +  8.27с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  8.27с  servers ready
+[TIMING] +  8.73с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  8.98с  CDS observer init done

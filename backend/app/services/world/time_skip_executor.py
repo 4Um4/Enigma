@@ -287,7 +287,7 @@ class SkipPolicyA:
         npc_services: Any,
         get_npcs: Callable,
     ) -> TimeSkipResult:
-        event_log = []
+        event_log: List[Any] = []
         _state = scene_state
         _tick = _state.get("tick", 0)  # SSOT: время берётся только из scene_state
 
@@ -333,7 +333,7 @@ class SkipPolicyB:
         npc_services: Any,
         get_npcs: Callable,
     ) -> TimeSkipResult:
-        event_log = []
+        event_log: List[Any] = []
         stops = []
         _state = scene_state
         _tick = _state.get("tick", 0)  # SSOT: время берётся только из scene_state
@@ -399,7 +399,7 @@ class SkipPolicyC:
         context: Dict[str, Any],
     ) -> TimeSkipResult:
         checkpoints = []
-        event_log = []
+        event_log: List[Any] = []
         _state = scene_state
         _tick = _state.get("tick", 0)  # SSOT: время берётся только из scene_state
         start_tick = _tick  # C9 FIX: Фиксируем начальный тик для расчёта skipped
@@ -473,7 +473,7 @@ class SkipPolicyC:
         period_type = context.get("period", "year")
         if period_type == "year":
             TICKS_PER_YEAR = 24 * 365
-            groups = {}
+            groups: dict[int, List[MilestoneCheckpoint]] = {}
             for cp in checkpoints:
                 year = cp.tick // TICKS_PER_YEAR
                 groups.setdefault(year, []).append(cp)

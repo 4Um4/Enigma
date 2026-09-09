@@ -80,7 +80,7 @@ def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
 
 def parse_master_index(filepath: str) -> List[ADRNode]:
     """Парсит Master Index для извлечения Laws и маппинга в ADRs."""
-    nodes = []
+    nodes: List[ADRNode] = []
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -90,7 +90,7 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
         
     current_domain = ""
     current_law = ""
-    current_files = []
+    current_files: List[str] = []
     
     for i, line in enumerate(lines):
         if line.startswith("## DOM-"):

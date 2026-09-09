@@ -21,7 +21,7 @@ def is_legacy_save(campaign_state: dict) -> bool:
 
 def detect_legacy_saves(saves_dir: Path) -> List[str]:
     """Возвращает список campaign_id с legacy сейвами."""
-    legacy = []
+    legacy: List[str] = []
     if not saves_dir.exists():
         return legacy
         

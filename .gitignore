@@ -52,3 +52,5 @@ debug_launch.py
 sleep_debug.txt
 sleep_test.log
 *_crash.log
+
+mypy_report.txt

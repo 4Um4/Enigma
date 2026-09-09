@@ -6,13 +6,14 @@ path: backend/app/services/llm/server_lifecycle.py
 import atexit
 import logging
 import urllib.request
+from typing import Any
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Глобальное состояние процесса (dict для передачи по ссылке)
-_llama_state = {"proc": None, "started_by_us": False, "restart_count": 0, "last_restart_time": 0.0}
+_llama_state: dict[str, Any] = {"proc": None, "started_by_us": False, "restart_count": 0, "last_restart_time": 0.0}
 
 
 def kill_llama_server() -> None:

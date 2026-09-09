@@ -100,7 +100,7 @@ class JsonMemoryStore:
         if not path.exists():
             return []
 
-        tail = deque(maxlen=limit)
+        tail: deque[Any] = deque(maxlen=limit)
         try:
             with path.open("r", encoding="utf-8") as f:
                 for line in f:

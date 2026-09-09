@@ -190,7 +190,7 @@ class BodyTopology:
     @property
     def visible_items(self) -> List[Item]:
         """Что видно окружающим — в руках, на поясе, надето."""
-        items = []
+        items: List[Item] = []
         for slot in list(self.hands.values()) + self.belt + list(self.worn.values()):
             items.extend(self.contents.get(slot.slot_id, ()))
         return items
@@ -198,7 +198,7 @@ class BodyTopology:
     @property
     def accessible_in_combat(self) -> List[Item]:
         """Что можно достать за 1 ход — руки + пояс."""
-        items = []
+        items: List[Item] = []
         for slot in list(self.hands.values()) + self.belt:
             items.extend(self.contents.get(slot.slot_id, ()))
         return items

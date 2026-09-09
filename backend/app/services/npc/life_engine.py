@@ -100,6 +100,33 @@ _NEED_THRESHOLD: float = 0.5
 # Прирост за тик, если активность не удовлетворяет потребность
 _NEED_DECAY_PER_TICK: float = 0.08
 
+
+def _living_activity_owns_needs() -> bool:
+    """Living Activity (шаг 5): контур деятельностей владеет насыщением.
+    Ленивый импорт — life_engine не зависит от activity-модуля на загрузке."""
+    try:
+        from app.services.npc.activity_lifecycle_service import (
+            living_activity_owns_needs,
+        )
+        return living_activity_owns_needs()
+    except ImportError as exc:
+        # Модуль контура отсутствует → легаси-поведение; наблюдаемо (L4)
+        logger.debug(f"[LIFE_ENGINE] activity module unavailable: {exc}")
+        return False
+
+
+def _legacy_suppressed(need_name: str) -> bool:
+    """Living Activity: потребность забрана каталогом → легаси-движения нет."""
+    try:
+        from app.services.npc.activity_lifecycle_service import (
+            legacy_need_suppressed,
+        )
+        return legacy_need_suppressed(need_name)
+    except ImportError as exc:
+        # Модуль контура отсутствует → легаси-поведение; наблюдаемо (L4)
+        logger.debug(f"[LIFE_ENGINE] activity module unavailable: {exc}")
+        return False
+
 # Восстановление стресса за тик
 # ── Tick Architecture (Блок 1) ──────────────────────────────────────────────
 
@@ -1240,14 +1267,24 @@ class LifeEngine:
     def _tick_needs(self, npc: Dict[str, Any]) -> None:
         """
         Увеличивает потребности за тик.
-        Если текущая активность удовлетворяет потребность — сбрасываем.
+
+        Living Activity (шаг 5, NO_LABEL_SATISFACTION): при живом контуре
+        деятельностей насыщение пишет ТОЛЬКО терминал конвертера
+        (activity terminal → needs=0.0) — ярлык больше не обнуляет
+        (смерть осциллятора hunger=0.56). При OFF — легаси-подстрока,
+        байт-идентично (откат = флаги).
         """
         needs = self._ensure_needs_state(npc)
         current_activity = npc.get("routine", {}).get("current", "")
 
+        _outcome_mode = _living_activity_owns_needs()
+
         for need_name, activity_name in _NEED_TO_ACTIVITY.items():
-            if activity_name in current_activity:
-                # NPC удовлетворяет потребность — сбрасываем
+            if _outcome_mode:
+                # Насыщение — только outcome-фактом; здесь только рост
+                needs[need_name] = min(1.0, needs[need_name] + _NEED_DECAY_PER_TICK)
+            elif activity_name in current_activity:
+                # Легаси: ярлык обнуляет (байт-идентично OFF-режиму)
                 needs[need_name] = 0.0
             else:
                 # Потребность растёт
@@ -1272,7 +1309,10 @@ class LifeEngine:
 
         # Находим самую критичную потребность
         urgent_needs = [
-            (name, val) for name, val in needs.items() if val >= _NEED_THRESHOLD
+            (name, val)
+            for name, val in needs.items()
+            if val >= _NEED_THRESHOLD
+            and not _legacy_suppressed(name)
         ]
 
         if not urgent_needs:

@@ -27,7 +27,7 @@ class CognitiveDissonanceTracker:
 
     def detect_contradictions(self, actions: List[PlayerAction]) -> List[Contradiction]:
         """Проверяет список действий на наличие противоречий."""
-        new_contradictions = []
+        new_contradictions: List[Contradiction] = []
 
         for i, action_a in enumerate(actions):
             for action_b in actions[i+1:]:

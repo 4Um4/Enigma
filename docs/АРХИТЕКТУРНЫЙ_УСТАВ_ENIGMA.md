@@ -484,6 +484,8 @@ obj = dataclasses.replace(obj, npc_id="test_override")
 | AffectiveLoad | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-121) |
 | ExpectationStore | `expectation_store.py` | `test_kernel_rng` (косвенно) | S93 (ADR-S93.2) |
 | L1Chronicle | `l1_chronicle.py` | `test_event_memory` | S86 (ADR-L1-PERSIST) |
+| Desire / ProvenanceEntry | `desire.py` | `test_living_activity_domain.py` | Living Activity (номер сессии — при записи в MUTATIONS) |
+| ActivityState / ActivityStep | `activity.py` | `test_living_activity_domain.py` | Living Activity (номер сессии — при записи в MUTATIONS) |
 
 Добавление нового адаптера без записи в реестр = нарушение.
 

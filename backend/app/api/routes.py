@@ -1159,7 +1159,7 @@ def add_interface_player(campaign_id: str, request: dict) -> dict:
 
 
 @router.get("/interface/facts/{campaign_id}")
-def get_interface_facts(campaign_id: str, category: str = None) -> List[dict]:
+def get_interface_facts(campaign_id: str, category: str | None = None) -> List[dict]:
     facts = campaign_service.get_world_facts(campaign_id, category=category)
     return [
         {"id": f.id, "text": f.text, "category": f.category, "tags": f.tags}

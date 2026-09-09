@@ -141,6 +141,9 @@ _DAMAGE_TERMINAL_STATE: Dict[str, str] = {
     "door": "BROKEN",
     "chair": "BROKEN",
     "container": "DESTROYED",
+    # Living Activity (EAT, мини-запись ADR-O-376): съедено = уничтожен
+    # (терминал, не «сломан»); семантика потребления — в outcome-факте.
+    "food_portion": "DESTROYED",
 }
 _DAMAGE_TERMINAL_DEFAULT = "BROKEN"
 

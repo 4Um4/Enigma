@@ -106,7 +106,7 @@ class BehaviorManifestationService:
         return gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt
 
     def produce_traces(self, scene_state, all_npcs_raw=None) -> list[EmbodiedTraceDTO]:
-        traces = []
+        traces: list[EmbodiedTraceDTO] = []
         if not scene_state or not isinstance(scene_state, dict):
             return traces
 

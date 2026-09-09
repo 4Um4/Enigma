@@ -412,10 +412,10 @@ class ExperimentRunner:
         )
         self._overlay_ctx.__enter__()
 
-        self._statuses = []
-        self._npc_captures = []
-        self._rel_captures = []
-        self._events_per_tick = []
+        self._statuses: list[Any] = []
+        self._npc_captures: list[Any] = []
+        self._rel_captures: list[Any] = []
+        self._events_per_tick: list[Any] = []
         self._ticks_executed = 0
 
         return self._experiment_id

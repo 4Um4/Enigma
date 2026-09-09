@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-08-31 21:39
+# ENIGMA Session State — 2026-09-09 20:28
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,25 +16,25 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 2.9 мин | Тиков: 27 | LLM-вызовов: 52_
+_Сессия: 2.7 мин | Тиков: 18 | LLM-вызовов: 58_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
 | **SHI** (Simulation Health) | 100% | → +0.0% | ✅ норма: NPC активно принимают решения |
-| **NPI** (NPC Pipeline) | 86% | → +0.0% | ⚠️ 6/7 NPC с координатами: есть потери в traversal |
+| **NPI** (NPC Pipeline) | 71% | ↓ -14.3% | ⚠️ 5/7 NPC с координатами: есть потери в traversal |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 18.10/мин | ↓ -5.9 | ✅ 18.10/мин: активная сессия |
+| **CVS** (Causal Velocity) | 21.18/мин | ↑ +9.6 | ✅ 21.18/мин: активная сессия |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
-| **Tracebacks** | 4 (AttrErr=4, TypeErr=0) | → | ⚠️ КРИТИЧНО: невидимые регрессии (Tracebacks) |
-| **BCI** (Belief Crystallization) | 50 (idx=1.85) | → | ✅ Убеждения формируются |
-| **BPI** (Break Progress) | 208 (broken=0) | → | ✅ Давление доходит |
+| **Tracebacks** | 5 (AttrErr=0, TypeErr=0) | → | ⚠️ КРИТИЧНО: невидимые регрессии (Tracebacks) |
+| **BCI** (Belief Crystallization) | 549 (idx=30.50) | → | ✅ Убеждения формируются |
+| **BPI** (Break Progress) | 160 (broken=0) | → | ✅ Давление доходит |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1114 записей_
+_История: `reports/dna_history.jsonl` — 1115 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 0b47aa4f M1b.4.2 ADR-O-371: ФИЗИЧЕСКИЙ CUTOVER — RAM-authoritative V2 (вердикт RAM-GO: RAM=runtime authority, сцена=persistence projection, disk-on-update запрещён, sync идемпотентен). Цепь: switch в GameLoop до захвата подписчиками → late/lazy-bind (сцена не нужна: pre-scene writes — паритет-контракт легаси, вскрыт IPT friend==enemy=50) → migrate transform (split: маркер .migrated ТОЛЬКО после atomic_commit_all, confirm_migration) → sync_into_scene проекция + Фаза 10 multi-location sync → legacy JSON заморожен. 194 теста: сетка D3 legacy==v2, pre-scene lifecycle, sync-идемпотентность, hydrate-приоритет, смена локации, заморозка JSON. IPT 45/45 (reliability сторож pre-scene навечно). Уроки: контракт-сдвиг=код+тесты одним пакетом (62 красных — моя неполнота); архив по paste ≠ диск (двойной докстринг)
-  - 4fae7e4e V.0.5.3.9.1_ДОВОДКА_2: полное сохранение проекта (сессия 2026-08-30); актуализация версий до 0.5.3.9.3 (version.txt, pyproject, frontend/constants, ENIGMA_ROADMAP); ADR-O-371 M1b.4.1 V2RelationshipBackend + ADR-O-372 Affordances resolver; новый ветвление V.0.5.3.9.3_Мир_1
-  - 600d89e0 M1b.4.1 ADR-O-371: V2RelationshipBackend — тупой адаптер над scene_state.directed (legacy-интерфейс; headroom+clamp+Vacuum+round(4) дословно; без _cache/файлов/новых семантик; provider-лямбда сцены) + контрактная сетка D3 legacy==v2 (8x8x5) 186 тестов; ленивая навигация create=True; L4-чист; попутно mypy-дефект M1a: дубль _KEY_SUBSTITUTABILITY → _KEY_HC_SUBSTITUTABILITY
-  - 2afdb89d S232 W2 Affordances ADR-O-372: pure resolver (WorldObject, BodyStateView, npc_position) -> Tuple[SemanticAction, ...]; substrate-only, 0 runtime-потребителей; IPT 45/45, W2 24/24, W1 30/30
-  - 5d879987 M1b.2.7 ADR-O-371: ARCHITECTURAL PROOF — вечные греп-инварианты: (1) ноль прямых writer'ов 5 скаляров вне RelationshipWriteGate (D2-инвариант, разовый аудит увековечен тестом); (2) attraction-хирургия кэша запрещена (§8.6). Лестница M1b.2 замкнута: 2.0 гейт+D3-сетка 8x8x5 → 2.1-2.5 пять механических миграций (соц-подписчик/компилятор/фасад/Applicator/decay-доказательство) → 2.6 semantic gate §8.6 → 2.7 proof
+  - bac0c6d6 V.0.5.3.9.8_RoadMap_2: полное сохранение проекта (сессия 2026-09-05); актуализация версий до 0.5.3.9.8 (version.txt, pyproject, frontend/constants, README, ENIGMA_ROADMAP). Р-В (SpeechExposure, GC-DIALOGUE-01): SSOT exposure_radius в communication (лестница secret/whisper/normal/loud/shout/private; normal=6.0 — parity D1 с ACTION_PERCEPTION_RADIUS, loud=10.0 — D2); IntentEventAdapter D3: secret→whisper (адресат слышит вплотную), loud→public; DialogueMaterializer D4: солилоквий-сентинел → whisper + SSOT-радиус; WorkingMemory NPC_SPOKE: radius из SSOT (999-дефолт запрещён ADR-148); routes scene_state → единый приёмник GameLoop.save_scene_state (R2-В/S244, anti-writer G3, whitelist-семантика субсумирована by construction). Mypy-доводка 641→608: 33 мелочи закрыты без вмешательства в логику (аннотации __init__/update/_init_db/main, X|None-дефолты, no-any-return → bool()/float(), var-annotated словари, TYPE_CHECKING-совместимые импорты). Гейты: тесты Р-В micro 10/10, micro-suite 11/11, импорты ядра OK. Примечание: unstaged-патчи сессии восстановлены из байткод-анализа __pycache__ после случайного checkout — routes/working_memory_tick байт-в-байт, communication/adapter/materializer dis-эквивалентны (расхождение только в формулировках комментариев).
+  - a92278cc P-A/P-B: speech-tube sanitation (soliloquy sentinel + write-gate + listener membrane)
+  - b72a6eac S250: Embodied Constraint фронт закрыт за сессию (PRE-FLIGHT→V1→GREEN); процесс-урок: гейт≠барьер без exit-ветвления, патчи только БЫЛО/СТАЛО
+  - 93d03fad ADR-O-383: §5d-строка закрытия Embodied Constraint (GREEN, гейт-цитаты, red-commit-уроки)
+  - a0cc0d42 ADR-O-383 V1 fix2 + GREEN: модульные константы (F821 self закрыт), старый availability-хвост оракула удалён (immutable-evidence-маркер в файле); GC-09B-full GREEN — chronic-body→feasibility→behavior замкнут (RED→ADR→V1→GREEN за сессию). Гейты зелёные ДО коммита: ruff 0, файл-прогон 2/2, IPT 45/45
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -83,15 +83,15 @@ _(баги не обнаружены в этой сессии)_
 (не определено — обнови MUTATIONS.md)
 
 ### Состояние рендеринга (из последней сессии игры):
-- NPC с известными координатами (6):
-  - `guard_borko`: x=10.0 y=11.0
-  - `merchant_goran`: x=5.5 y=6.0
-  - `maid_lusya`: x=10.5 y=3.0
-  - `blacksmith_orm`: x=10.5 y=6.5
-  - `thief_shadow`: x=8.1 y=13.0
-  - `tavern_keeper_tornin`: x=6.0 y=8.0
-- NPC без координат (lerp не работает, 1):
-  - `player` (intent=idle)
+- NPC с известными координатами (5):
+  - `guard_borko`: x=11.0 y=10.0
+  - `merchant_goran`: x=7.8 y=5.8
+  - `maid_lusya`: x=10.5 y=6.5
+  - `blacksmith_orm`: x=5.5 y=6.0
+  - `tavern_keeper_tornin`: x=10.5 y=3.0
+- NPC без координат (lerp не работает, 2):
+  - `thief_shadow` (intent=warn)
+  - `player` (intent=flee)
 - Граф-fallback локаций: нет
 
 ### Визуальные аномалии:
@@ -111,32 +111,35 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 27 | Decisions > 0: 2/27 | LLM: 52 вызовов / 52 ответов | Симуляция: ✅ живёт
+Тиков: 18 | Decisions > 0: 5/18 | LLM: 58 вызовов / 56 ответов | Симуляция: ❌ МЕРТВА
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
 - LLM сервер: ❌ (не доступен при старте)
 
 **Предупреждения:**
-  - _(нет)_
+  - ⚠️ КРИТИЧНО: все тики вернули 0 decisions — симуляция заморожена
 
 **Movement Pipeline (по NPC):**
 | NPC | Intent | Score | Traversal | Координаты | Виден игроку |
 |-----|--------|-------|-----------|------------|--------------|
-| blacksmith_orm | request_service | 0.738 | ✅ | x=10.5 y=6.5 | ❌ |
-| guard_borko | report | 0.154 | ✅ | x=10.0 y=11.0 | ❌ |
-| maid_lusya | flee | 0.565 | ✅ | x=10.5 y=3.0 | ❌ |
-| merchant_goran | offer_job | 0.734 | ✅ | x=5.5 y=6.0 | ❌ |
-| player | idle | 0.000 | ✅ | None | ❌ |
-| tavern_keeper_tornin | call_for_help | 0.384 | ✅ | x=6.0 y=8.0 | ❌ |
-| thief_shadow | observe | 0.288 | ✅ | x=8.1 y=13.0 | ❌ |
+| blacksmith_orm | request_service | 0.761 | ✅ | x=5.5 y=6.0 | ❌ |
+| guard_borko | flee | 3.630 | ✅ | x=11.0 y=10.0 | ❌ |
+| maid_lusya | flee | 3.739 | ✅ | x=10.5 y=6.5 | ❌ |
+| merchant_goran | flee | 3.140 | ✅ | x=7.8 y=5.8 | ❌ |
+| player | flee | 1.219 | ✅ | None | ❌ |
+| tavern_keeper_tornin | flee | 3.066 | ✅ | x=10.5 y=3.0 | ❌ |
+| thief_shadow | warn | 1.190 | ✅ | None | ❌ |
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
   - _(нет разрывов в movement pipeline)_
 
 ### Каузальные разрывы:
 
-_Каузальных разрывов не обнаружено_
+#### [BREAK-1] Симуляция заморожена
+**Симптом:** все тики вернули 0 decisions
+**Файл для проверки:** `backend/app/services/npc/decision_hub.py`
+**PowerShell:** `Select-String -Path "backend/app/services/npc/decision_hub.py" -Pattern "def compute"`
 
 ### Архитектурный долг (не трогать без обсуждения):
 - Stale Cognition: DecisionHub работает на state T-1. Требует ADR-059.

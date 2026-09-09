@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
@@ -56,9 +57,9 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     avatar_service = PlayerAvatarService(root=str(saves_dir))
 
     # NPC cache — замыкание, одно на весь lifecycle
-    _cache: dict = {"npcs": None, "runtime_path": None}
+    _cache: dict[str, Any] = {"npcs": None, "runtime_path": None}
 
-    def load_npcs(runtime_path=None) -> list:
+    def load_npcs(runtime_path: Any = None) -> list[Any]:
         # Инвалидируем кэш если изменился runtime_path
         if _cache["runtime_path"] != runtime_path:
             _cache["npcs"] = None

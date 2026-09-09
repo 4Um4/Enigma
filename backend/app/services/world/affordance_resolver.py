@@ -146,6 +146,16 @@ def effective_state(obj: WorldObject) -> str:
         if obj.occupancy is not None:
             return "OCCUPIED"
         return "AVAILABLE"
+    if obj.archetype == "food_portion":
+        # Living Activity (EAT, мини-запись ADR-O-376): carrier-паттерн
+        # как chair, без occupancy. Потребление = BODY_ACTION тела (реестр
+        # WorldActionType не расширялся); истощение — damage-закон О6
+        # (терминал архетипа); семантика «съедено» — в outcome-факте (G3).
+        if obj.state in ("BROKEN", "DESTROYED", "DAMAGED"):
+            return obj.state
+        if obj.holder is not None:
+            return "HELD"
+        return "AVAILABLE"
     return obj.state
 
 
@@ -255,6 +265,24 @@ _AFFORDANCE_TABLE: Dict[Tuple[str, str], Tuple[SemanticAction, ...]] = {
         (
             (WorldActionType.REPAIR, _ADJ),
             (WorldActionType.DISCARD, _ADJ),
+        ),
+    ),
+    # ── food_portion: carrier-паттерн (Living Activity EAT, мини-запись
+    # ADR-O-376). Потребление — BODY_ACTION (не объектный глагол), истощение —
+    # damage-закон О6. ──
+    ("food_portion", "AVAILABLE"): _actions(
+        ("food_portion", "AVAILABLE"),
+        (
+            (WorldActionType.TAKE, _ADJ),
+            (WorldActionType.MOVE, _ADJ),
+        ),
+    ),
+    ("food_portion", "HELD"): _actions(
+        ("food_portion", "HELD"),
+        (
+            (WorldActionType.PLACE, _HOLD),
+            (WorldActionType.DROP, _HOLD),
+            (WorldActionType.DISCARD, _HOLD),
         ),
     ),
     # ── container: state-поле = FSM (ТЗ §22.1) ──

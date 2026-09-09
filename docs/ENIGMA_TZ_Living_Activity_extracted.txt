@@ -1,0 +1,1450 @@
+
+E  N  I  G  M  A     T  E  C  H  N  I  C  A  L     S  P  E  C  I  F  I  C  A  T  I  O  N
+VISIBLE WORLD /
+LIVING ACTIVITY
+Техническое задание Архитектору: от NEED → INTENT → MOVEMENT к наблюдаемой жизни NPC
+Проект: ENIGMA v0.5.3.9.8 (RoadMap_2), backend ~96 656 строк
+Доказательная база: три археологии кода и production-логов (26.08–05.09)
+Аудитория: Архитектор ENIGMA
+Статус: черновик для проектирования · контур согласования открыт
+
+</w:pBdr><w:spacing w:before="200"/><w:ind w:left="1200" w:right="800"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:color w:val="687078"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr><w:t xml:space="preserve">ENIGMA · Living Activity Program                                        сентябрь 2026
+
+СОДЕРЖАНИЕ
+
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100000" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>I. EXECUTIVE VERDICT</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100000 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100001" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>1.1. Формула перехода: тот же тик, другая онтология</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100001 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>2
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100002" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>II. CURRENT RUNTIME TRUTH</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100002 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>2
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100003" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>2.1. Производственный путь потребности</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100003 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>3
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100004" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>2.2. Movement audit: чем на самом деле заняты NPC</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100004 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>3
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100005" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>2.3. Трейс Торнина: трактирщик в собственной таверне</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100005 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>3
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100006" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>2.4. Самопознание: время решения против времени диалога</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100006 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>4
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100007" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>2.5. Что видит игрок и что знает нарратор</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100007 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>4
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100008" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>III. EXISTING ASSETS</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100008 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>4
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100009" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>3.1. Работает (WORKS)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100009 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>5
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100010" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>3.2. Написано и обойдено (BYPASSED / SHADOW / DEAD)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100010 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>5
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100011" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>3.3. Семантика ролей: что значит быть этим человеком</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100011 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>5
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100012" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>3.4. Данные-активы (DATA)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100012 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>6
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100013" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>IV. MISSING ONTOLOGY</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100013 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>6
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100014" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>4.1. Контрольный пример: субъектность Торнина из существующих данных</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100014 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>7
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100015" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>4.2. Три сущности крупным планом</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100015 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>7
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100016" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>V. ACTIVITY ATLAS</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100016 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>8
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100017" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.1. Домен I. Выживание и тело (10)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100017 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>9
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100018" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.2. Домен II. Профессиональная деятельность (37)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100018 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>9
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100019" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.3. Домен III. Социальная жизнь (14)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100019 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>9
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100020" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.4. Домен IV. Привязанность и близость (6)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100020 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>10
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100021" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.5. Домен V. Вражда и конфликт (6)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100021 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>10
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100022" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.6. Домен VI. Собственность и территория (8)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100022 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>10
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100023" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.7. Домен VII. Защита жизни (5)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100023 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>10
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100024" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.8. Полные жизненные циклы ключевых деятельностей</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100024 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>11
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100025" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>5.9. Сводка атласа</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100025 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>11
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100026" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>VI. TORNNIN GOLDEN TRACE</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100026 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>12
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100027" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>6.1. Нарратив дня</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100027 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>12
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100028" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>6.2. Вилки, срывы, адаптации</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100028 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>12
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100029" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>6.3. Альтернативная ветка дня: когда мир вмешался</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100029 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>13
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100030" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>6.4. Инварианты приёмки по трейсу</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100030 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>14
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100031" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>VII. FIVE GOLDEN VERTICAL SLICES</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100031 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>14
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100032" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>7.1. Срез EAT — потребление</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100032 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>15
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100033" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>7.2. Срез SLEEP — эталонный образец</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100033 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>15
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100034" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>7.3. Срез WORK — услуга за деньги</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100034 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>15
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100035" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>7.4. Срез PROTECT — власть над пространством</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100035 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>15
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100036" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>7.5. Срез SOCIAL — связь через тайну</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100036 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>16
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100037" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>VIII. INTEGRATION OPTIONS</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100037 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>16
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100038" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>8.1. Вариант A: DecisionHub выбирает абстрактную цель, ActivityResolver ищет средства</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100038 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>16
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100039" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>8.2. Вариант B: GoalPlanner с мировыми аффордансами</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100039 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>16
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100040" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>8.3. Вариант C: Role/Activity mediator между DecisionHub и миром</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100040 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>17
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100041" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>8.4. Точки интеграции в коде (общие для всех вариантов)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100041 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>17
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100042" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>8.5. Карта оживления: мёртвый орган → срез → точка включения</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100042 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>17
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100043" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>IX. RISKS</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100043 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>18
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100044" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>9.1. Анти-паттерны (уроки археологии)</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100044 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>18
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100045" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>9.2. Пороги приёмки</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100045 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>19
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100046" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>X. ARCHITECT'S DESIGN QUESTIONS</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100046 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>19
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100047" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>10.1. Ядро: деятельность и её состояние</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100047 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>19
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100048" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>10.2. Мир: цели, аффордансы, последствия</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100048 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>20
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100049" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>10.3. Идентичность, желания, изменяемость</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100049 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>21
+<w:tab w:val="right" w:leader="dot" w:pos="9026"/></w:tabs><w:spacing w:before="120" w:after="60"/></w:pPr><w:hyperlink w:anchor="_Toc100050" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t>10.4. Формат ответа Архитектора</w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> PAGEREF _Toc100050 \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>22
+
+Примечание: оглавление построено на полевых кодах. После правок щёлкните по оглавлению правой кнопкой и выберите «Обновить поле», чтобы обновить номера страниц.
+
+I. EXECUTIVE VERDICT
+Настоящее техническое задание подготовлено по результатам трёх археологических проходов по кодовой базе ENIGMA v0.5.3.9.8 (backend ≈ 497 файлов, ~96 656 строк в app/) и по production-логам семнадцати сессий (26.08–05.09). Задача формулировалась узко: не искать новый Decision Layer, не проектировать эмоции и не переписывать DecisionHub, а определить, какие минимальные и фундаментальные структуры отсутствуют между существующим внутренним состоянием NPC и наблюдаемой деятельностью в мире. Ответ установлен с точностью до строк кода и подтверждён числами из логов.
+Вердикт. Цепь NEED → INTENT → MOVEMENT в ENIGMA существует и работает. Целевая цепь IDENTITY → SITUATION → DESIRE → GOAL → MEANS → ACTIVITY → TARGET → INTERACTION → WORLD CHANGE → PERCEPTION → MEMORY → NEXT DESIRE разорвана в четырёх местах, причём два средних звена никогда не существовали как runtime-сущности, а два нижних написаны и обойдены продакшеном. Между «NPC чего-то хочет» и «игрок видит, что именно NPC делает ради этого» нет ни одного несущего элемента: желание — скаляр, цель — строка конфига, деятельность — ярлык, привязка к миру — семантический узел зоны без объектов, взаимодействие с предметом — отсутствует в закрытом реестре действий, результат — позиция.
+Четыре установленных разрыва: (1) NEED → DESIRE — желания как направленного состояния с объектом нет; desire в системе — это четверть персональной массы драйвов, безразличная к тому, чего именно хочет NPC; (2) DESIRE → GOAL — слой целей удалён из кода сознательно (P5-03: поле goal удалено как мёртвый код); (3) GOAL → TARGET — привязка мотива к миру ограничена zone-узлами, типа OBJECT в SpatialTargetType не существует, никакого запроса «найти источник еды» в рантайме нет; (4) ACTIVITY → WORLD CHANGE — прибытие к цели порождает только snap позиции, а потребность насыщается подстрочным совпадением с ярлыком, выставленным до прибытия. Единственный контрпример — сон: там вся цепь замкнута и работает, и это готовый образец для генерализации.
+Северная звезда проектирования. Потребности и нужды NPC должны стать видимыми, логичными и изменяемыми. Видимыми — игрок читает деятельность, а не HUD-метку. Логичными — каждое действие имеет прослеживаемую причину в данных, а не шум утилити-формулы. Изменяемыми — желания, предпочтения и цели являются мутируемыми runtime-данными с провенансом (авторский сид → рантайм-эволюция → усвоенный опыт), а не константами конфига. Это прямо открывает траекторию к будущему, в котором NPC сами учат себя и меняются: если потребности и предпочтения — первоклассные структуры с историей, то механизм их изменения от последствий становится надстройкой над онтологией, а не новой революцией. Архитектору предлагается проектировать онтологию сразу под мутацию и обучение: поля provenance, weights, learned_from — закладывать сейчас, наполнять позже.
+Фундамент, который должен спроектировать Архитектор, — не система и не слой, а онтология направленной деятельности: компактный набор runtime-сущностей (Desire, Goal, Means, Activity, WorldTarget, Interaction, Outcome, Preference, IdentityContext), их владельцев, точек создания и чтения, и одного нового конвертера «место → поведение» по образцу сонного. Всё остальное в ENIGMA для этого уже есть: тик-оркестратор, арбитраж, память, эпистемика, отношения, коммитменты, свидетельства, распорядок дня. Документ фиксирует фактическую карту, полный атлас деятельностей шести NPC, золотой трейс Торнина, пять вертикальных срезов, три варианта интеграции с точными координатами в коде, риски и список вопросов, на которые обязан ответить Архитектор до первой строки кода.
+Таблица 1.1. Три археологии в одной рамке (доказательная база ТЗ)
+Проход
+Вопрос
+Вердикт
+Ключевые числа
+№1 Непрерывность агентности
+Есть ли Life Continuity Layer?
+Мир жив, но нем, беззуб, бесследен; слой построен, обесточен
+94% тиков автономны; 92% диалогов NPC→NPC; stress=0.0 (сломанный канал); enforcement-флаги OFF
+№2 Desire→Affordance→Activity
+Почему внутренняя машина не превращается в видимую деятельность?
+DESIRE/GOAL отсутствуют как структуры; деятельность=ярлык; цель=zone-node
+hunger=0.56 — осциллятор; 25.9% пустых прибытий; пинг-понг ×79; ambush трактирщика ×62
+№3 (настоящее ТЗ)
+Что минимально отсутствует между состоянием и наблюдаемой жизнью?
+Онтология Desire→Target→Activity→Outcome + IdentityContext + один конвертер место→поведение
+63 деятельности: WIRED 12, PARTIAL 17, DEAD 12, NO 22; 6/6 субъектных утверждений Торнина без структурного заземления
+1.1. Формула перехода: тот же тик, другая онтология
+Переход не заменяет пайплайн — он меняет типы, текущие по нему. Таблица ниже — эталон для ревью любого проектного решения Архитектора: если предлагаемое не двигает строку из левой колонки в правую, оно не относится к цели VISIBLE WORLD / LIVING ACTIVITY.
+Таблица 1.2. Модель сейчас → модель целевая
+Точка
+Сейчас
+Целевая
+Внутреннее давление
+скаляр hunger=0.56 у argmax-победителя
+Desire(subject=food, source=need, urgency, provenance) в DesireSet
+Решение
+Intent.flee/observe/talk по утилити-шуму
+выбор Desire → Goal(desired_outcome) → Means-кандидаты
+Цель в мире
+zone-node tavern:right_table из activity_map
+WorldTarget(OBJECT: котёл/стол/гость) через world query + аффордансы
+Исполнение
+переезд → snap → ярлык
+Activity(state=ACTIVE, progress, policy) → действия take/give/consume
+Результат
+нужда обнулена подстрокой
+Outcome(success, world_delta) → StateApplicator → свидетели
+Социальный след
+—
+память события, веры свидетелей, trust/fear через WriteGate
+Видимость игроку
+1-секундная иконка; DM слеп
+поза/действие/реплика + R3-блок «занят: подаёт эль Горану»
+Завтра
+та же пила с 0.56
+изменённые веса desires/preferences от исхода → эволюция поведения
+II. CURRENT RUNTIME TRUTH
+Раздел фиксирует, как NPC живёт в продакшене сегодня. Доказательная база — выжимка из двух предыдущих археологий (анализ 17 CDS-сессий, movement audit по 6 сессиям, трейс Торнина) и два целевых инвентарных прохода по identity-данным и социальным механизмам. Цифры приводятся как опорные точки для приёмки будущих изменений: после работы Архитектора каждая из них должна сдвинуться измеримо.
+2.1. Производственный путь потребности
+Полная цепь голода в продакшене выглядит так. LifeEngine тикает потребность (+0.08 за тик, порог 0.5), выбирает единственного argmax-победителя, переводит имя потребности в слово-деятельность (_NEED_TO_ACTIVITY: hunger→eating), берёт из activity_map персонажа пару location/position (например, tavern:right_table) либо fallback на любой узел роли TABLE, и выпускает MacroMovementGoal с reason=need_driven:hunger=0.56. Критическая деталь: ярлык routine.current=eating выставляется в момент генерации намерения, то есть до прибытия. Движение исполняется traversal-системой, прибытие порождает только snap позиции — scene_state_manager прямо запрещает новые эффекты: «это факт завершения перемещения, а не начало нового». Насыщение происходит на следующем тике Phase 0 подстрочным сравнением: если слово eating содержится в текущем ярлыке — hunger обнуляется. Ни еды, ни объекта, ни события потребления в этой цепи нет.
+if activity_name in current_activity: needs[need_name] = 0.0  — life_engine.py:1248-1251
+Отсюда разгадка константы hunger=0.56 в логах: 7 тиков по 0.08 — точка выхода в движение; в пути Phase 0 байпасится и голод замирает; по прибытии ярлык его сбрасывает; пила повторяется бесконечно. scene_changes.jsonl повторяет need_driven:hunger=0.56 как фиксированную точку. Это не потребность — это осциллятор. Параллельный экономический трек (NeedEngine → EconomicModifier) до DecisionHub доезжает только как весовые сдвиги к скорам: hunger даёт trade +0.35, talk +0.15, help −0.2 — и никогда не создаёт движения или намерения есть: «экономика не создаёт новые интенты, а усиливает или ослабляет существующие» (economic_modifier.py:12).
+2.2. Movement audit: чем на самом деле заняты NPC
+По шести богатым сессиям разобрано 756 переездов и 920 прибытий. Распределение причин: reactive:flee — 393 (52%), need_driven — 97, schedule — 93, проактивные — 173 (request_service 71, call_for_help 50, offer_job 29, остальное — шум). 25.9% прибытий не сопровождаются ничем в окне 25 секунд: NPC стоит, наблюдает, разбегается или немедленно едет дальше. Главный индикатор холостого движения — пинг-понг A→B→A: Люсья fireplace ×79 и right_table ×58, Горан fireplace ×67, Торнин fireplace ×55, Борко fireplace ×42. NPC «делают» = «переезжают»: миграция стала суррогатом деятельности, потому что другой деятельности в системе не существует.
+Таблица 2.1. Опорные числа продакшена (базовые точки приёмки)
+Метрика
+Значение
+Источник
+Что означает
+Автономные тики
+94% всех тиков
+17 сессий CDS
+Мир тикает без игрока; жизнь есть, она невидима
+Диалоги NPC→NPC
+92% всех реплик (232/252)
+сессия 0830
+Социальная ткань живёт, но игрок её не видит
+FLEE+OBSERVE на player_interacts
+56% решений (62/111)
+DECISION_HUB
+Реакция на игрока — оборонительная дрожь
+stress у NPC
+0.0 во всех 163 замерах
+ARCHAE_BM
+Канал записи стресса сломан (271 отказ StateApplicator)
+Пустые прибытия
+25.9% (238/920)
+movement audit
+Движение без деятельности
+Пинг-понг зон
+до ×79 на пару зон
+movement audit
+Отсутствие инерции деятельности
+Реплика игрока обрабатывается
+всем составом (7 сущностей)
+S198 count=7
+Нет адресности и занятости
+2.3. Трейс Торнина: трактирщик в собственной таверне
+Слитый трейс tavern_keeper_tornin по всем сессиям даёт 668 событий. Распределение решений: call_for_help ×95, spread_rumor ×80, ambush ×62, flee ×51, seek_ally ×42, talk ×31, idle ×20, warn ×13. Хозяин таверны за 90 секунд без игрока двенадцать раз переезжает между right_table и fireplace, ни разу ничего не сделав по прибытии. Три вывода из трейса. Первый: трактирщик ни разу не «хозяйничает» — роль существует как дисплей-строка innkeeping и позиция за стойкой по расписанию; ни одного акта роли (принять заказ, подать, получить плату) система не умеет. Второй: Торнин 62 раза пытается устроить засаду — мирный фильтр COMBAT_CAPABLE_ROLES мёртв, потому что load_l2_state_from_runtime_dict никогда не заполняет current_role, а при пустой роли гейт пропускает («пустая роль = не блокируем»): источник роли есть в конфиге, потребитель есть в DecisionHub, топливо не подведено. Третьий: решение меняется каждый тик при скорах 0.19–0.39 — болото около шумового пола; инерция COMMITMENT_BONUS_K не работает, потому что intent не переживает границу тика.
+[DECISION_HUB] tavern_keeper_tornin: intent=Intent.ambush score=0.489  — сессия 0827, тик за тиком
+2.4. Самопознание: время решения против времени диалога
+Аудит самопознания показывает асимметрию, критичную для проектирования IdentityContext: в диалоге NPC «знает» свою прозу, в решениях — не знает ничего. Дополнительная деталь: DM-нарратор знает о Торнине больше, чем собственный диалоговый промпт Торнина — нарратору подаются memory_hints из origin_events с редакцией секретов («[СЕКРЕТ — НЕ РАСКРЫВАТЬ] тайна про debt, thieves_guild»), а самому Торнину в prepared_prompt уходит только статичная проза backstory; origin_events никогда не входят в его собственную реплику. Вычисляемые, но никем не рендеримые recalled_facts/suppressed_secrets — ещё один готовый канал, ждущий связки.
+Таблица 2.2. Что NPC знает о себе в разных точках системы
+Канал
+Что подаётся
+Чего не хватает
+DecisionHub (решения)
+drives-скаляры, life_project-ярлык, trust/fear, вес риска 0.05×importance из narrative_cache
+Долга, роли-обязанностей, территории, иждивенцев, предпочтений — никаких причин, только давления
+Диалог с игроком (DM)
+имя, титул, description, voice, backstory, author_notes (в hardcore), memory_hints top-3 с редакцией секретов
+Текущей деятельности; живых отношений; собственных origin_events в его ответах
+NPC→NPC диалог
+backstory, voice, author_notes, веры о собеседнике, STM-тред, recall-история пары
+Той же слепоты к деятельности и мотивам; origin_events недостижимы
+Вербализация (готово, не рендерится)
+recalled_facts, suppressed_secrets, narrative_hints, stm_buffer
+Единственного блока в prepared_prompt — и facts оживут
+2.5. Что видит игрок и что знает нарратор
+Каналы видимости деятельности: панель наблюдения в HUD показывает «Имя: ярлык» (30 i18n-ключей), иконка-маркер живёт ровно 1 секунду при смене деятельности, поза не связана с деятельностью (standing/staggered/prone — только боль и коллапс; ни сидит, ни спит позой не выражается). DM-нарратор слеп: в verbalization-слое нет ни одного обращения к activity или routine — речевой слой не может сказать «Торнин обедает за столом», хотя строка существует. Мёртвый код get_activity_description (life_engine.py:660-688, «Торнин стоит за стойкой, протирает кружки») написан и не вызван ни разу. Итог: самый живой слой системы — автономная жизнь таверны — не имеет ни одного канала до игрока, а единственный источник биографии для диалогов — статичная проза backstory, тогда как структурные факты (долг, тайны, происшествия) до скорящего ядра не доезжают вовсе.
+III. EXISTING ASSETS
+Инвентарь переиспользования. Классификация: WORKS — работает в продакшене; BYPASSED — написано и вызываемо, но продакшен-путь обходит; SHADOW — работает только в телеметрии/логах, принуждение выключено флагом; DEAD — написано, ноль вызовов; DATA — богатые авторские данные без механики. Ключевой паттерн всей кодовой базы: компоненты лежат рядом, связки не закручены. Это превращает задачу Архитектора из «написать» в «соединить и оживить».
+3.1. Работает (WORKS)
+Таблица 3.1. Активы в продакшене
+Актив
+Где
+Что даёт новой онтологии
+TickOrchestrator, 10 фаз
+tick_orchestrator.py
+Единый каркас: Phase 0 — место для LifeEngine/деятельностей, Phase 5 — решение, Phase 9 — причинность, Phase 10 — атомарная персистенция
+LifeEngine (2203 строки)
+npc/life_engine.py
+Расписания, потребности, перемещения — источник триггеров деятельности
+Sleep lifecycle (Phase 0.6)
+sleep_lifecycle_service.py
+Единственный полный конвертер место→поведение: предикат BED + settled → факт тела → downstream. Образец для генерализации
+DecisionHub + арбитраж
+decision_hub.py, action_priority.py
+Утилити-скоринг с инерцией и гистерезисом; статическая таблица приоритетов; готов принимать новые факты-входы
+Commitment FSM + Registry + Arbiter
+action_commitment.py и др.
+9-статусная машина, персист в scene_state,ARBITER_REJECT INCUMBENT в логах; в shadow-режиме — готов держать Activity
+RelationshipStore + WriteGate
+relationship_store.py
+SSOT: trust/fear/debt/respect/attraction, единый шлюз записи, сатурация — канал последствий уже есть
+Эпистемика: Claims, BeliefRevision, ObservationSubscriber
+claim_event_subscriber.py, observation_subscriber.py
+Слухи, свидетельства кражи, показания — восприятие последствий деятельности другими уже работает
+Память: narrative_cache + SQLite + recall
+memory_manager.py
+origin_events живут как воспоминания; recall с барьером секретов — хранилище биографии и истории деятельности
+WillpowerGate, windups, traversals
+will.py, action_windup.py
+Многоходовые действия (2 тика), воля игрока — готовая оболочка для duration-деятельностей
+Workplace-теги + resolve_affordance(sleep)
+role_resolver.py, spatial_service.py
+Живая привязка роль→узло→место: Борко→guard_post, Люсья→kitchen, кровать по owner
+SocialSubscriber + NpcDialogueSubscriber
+events/
+Дельты отношений от диалогов и событий; NPC слышат NPC — канал наблюдаемости
+3.2. Написано и обойдено (BYPASSED / SHADOW / DEAD)
+Эта группа — главный актив: каждый пункт — готовый орган, которому не подвели питание. Для каждого указана конкретная связка, отсутствие которой держит его в анабиозе.
+Таблица 3.2. Спящие органы и их недостающие связки
+Орган
+Статус
+Что держит в анабиозе
+Цена оживления
+W2 AffordanceResolver (дверь/стул/сундук)
+SHADOW
+Флаг W3_SHADOW_ENABLED OFF; результат явно выбрасывается (не кладётся в ctx)
+Флаг + один写入 в контекст
+G2 weapon_access факт
+BYPASSED
+W3_G2_ENABLED OFF; при ON — честный ноль: архетипов оружия в контенте нет
+Флаг + контент
+Object FSM: SIT/TAKE/OPEN/LOCK
+DEAD
+WorldObjectStore.apply_transition — ноль продакшен-вызовов (только тесты)
+Один writer в traversal-complete
+Спавн объектов
+PARTIAL
+В таверне 33 объекта, спавнятся только двери и стулья; bar/table/bed пропущены; кузницы нет нигде
+Расширить _EDITOR_TYPE_TO_ARCHETYPE
+TaskKind.EAT
+DEAD
+Зарегистрирован в enum, executor в TaskScheduler не прописан (только DIALOGUE)
+Один executor
+TemporalSpec «eat» (критерий успеха)
+DEAD
+get_temporal_spec — ноль вызовов; фазы 4.5/5.5 удалены
+Возобновить вызов
+ConsumptionResolver
+ABSENT
+Существует только в комментарии need_engine.py:123
+Написать (маленький)
+SocialEngine модификаторы (jealousy, protect, debt-lever)
+DEAD by bug
+compute_social_modifiers возвращает ключи UPPERCASE, apply_modifiers сверяет lowercase — ни один не совпадает
+Один .lower() — оживит 4 модификатора
+assess_secrets_under_pressure + get_unfulfilled_contracts
+DEAD
+Ноль продакшен-вызовов; долги/контракты уже тегированы в памяти
+Вызов из Phase 5/6
+hidden_truth → BehaviorMask.BETRAYAL
+DEAD WIRE
+decision.py:215 читает несуществующий атрибут NPCState.hidden_truth — всегда False
+Приатачить поле при загрузке
+recalled_facts / suppressed_secrets / narrative_hints
+DEAD
+Вычисляются в VerbalizationContext, не рендерятся ни в один промпт
+Один блок в prepared_prompt
+get_activity_description
+DEAD
+Ноль вызовов; готовый текст «Торнин протирает кружки»
+Вызов в R3/DMFrame
+REPORT/HELP интенты
+DEAD-END
+Скорятся (report +0.15 для стражи), но не в _VERBAL_INTENTS и не в _MOVE_INTENTS — не материализуются никогда
+Добавить в вербальные/движковые наборы
+gossip / praise / accuse ветки Phase 8.2
+DEAD
+Дельты прописаны, продюсеров интентов нет
+Продюсер или удаление
+attraction
+WRITE-ONLY
+Единственный писатель — эвристика «комплимент/сказать»; читателей ноль
+Читатель в диалог/решение
+faction_rank (значение −1/2/4)
+BYPASSED
+Читаются только ключи; число (враждебность/ранг) не читает никто
+Читатель в репутацию/решение
+SQLite narrative_cache
+CLOBBERED
+npc_tick_pipeline.py:230 перезагружает L2 без narrative_cache_override — SQLite-память мертва на чтение
+Одна строка
+Enforcement-флаги арбитража
+SHADOW
+TRAVERSAL_OWNERSHIP_ENFORCEMENT, S203_4_OWNERSHIP_MIRRORS — default OFF
+Включить в dev-профиле
+DilemmaEngine
+INERT
+check_triggers тикает, register_dilemma никто не зовёт
+Продюсер дилемм
+3.3. Семантика ролей: что значит быть этим человеком
+Роль в ENIGMA не должна быть строкой — она должна быть пространством обязанностей, полномочий, зависимостей и личных целей. Ниже — разбор конкретных ролей конкретных NPC на их собственных биографических данных (не стереотипы). Эта семантика — заготовка IdentityContext: каждое утверждение должно стать либо структурным фактом (обязанность, полномочие, зависимость), либо desire-источником (личная цель, страх), либо preference-якорем.
+Таблица 3.3. Роли как субъектные контракты
+Роль/NPC
+Обязанности (что роль требует)
+Полномочия и автономия
+Зависимости и навязанное
+Личное поверх роли
+Трактирщик / Торнин
+держать таверну работающей: обслуживать, кормить, управлять запасами, следить за порядком, защищать заведение и людей
+хозяин пространства: право не пускать, выгонять, устанавливать правила зала
+долг гильдии (1200g, сборщики ежемесячно); зависимость от потока посетителей; Люсья — ответственность
+ненависть к гильдии (author_notes); ностальгия солдата; предпочтение конкретных мест
+Служанка / Люся
+прислуживать за столами, помогать Торнину, содержать зал
+минимальная: нанятая, под защитой-опекой хозяина
+шпионаж для гильдии (навязан); травма-триггер от Торнина; не знает, что Торнин знает о ней
+мечта бежать на юг (backstory); симпатия к Борко (secret); информацию о подвале — её «козырь»
+Кузнец / Орм
+производить и чинить, обслуживать клиентов, поддерживать кузницу и материалы
+полная профессиональная автономия (freedom 90); репутация мастера 20 лет
+нужен поток заказов и материалов; sleeps в чужом лагере у ворот (нет дома!)
+мертвая жена и измена с Люсьей (open, sad); тайна закалки мастера; сталь как страсть (desire .45)
+Стражник / Борко
+охранять ворота, патрулировать, наблюдать, задерживать нарушителей, реагировать на угрозы
+право задержания (в системе отсутствует как механика); ранг в страже (2)
+десять лет службы без повышения (отказ командиру — открытая обида); bribes Горана — навязанная зависимость
+лень и Voyeurism (secret 0.95); стыд упущенного каравана; не злой (author_notes)
+Вор / Тень
+наблюдать, вычислять моменты, красть, скрывать намерения и следы, поддерживать сеть
+полная личная автономия (gender unknown, nocturnal); профессиональная репутация лейтенанта гильдии
+заказ гильдии: найти предателя, продавшего шёлк Горана; подозревает Люсью
+первое убийство три года назад; «что-то ищет» (hidden_truth); шантажный интерес к долговым тайнам
+Из этой таблицы напрямую выводится минимум IdentityContext: обязанности → role_binds (источник duties-давлений и PROTECT-срезов); полномочия → права на территории и задержание (сейчас отсутствуют целиком); зависимости → навязанные desires (долг, шпионаж) с provenance=imposed; личное → authored desires и preferences. Каждая ячейка уже имеет текстуального носителя в конфигах — Архитектору предстоит лишь выбрать структуру хранения, не сочиняя содержание.
+3.4. Данные-активы (DATA)
+Биографический слой написан руками автора и почти не подключён к механике. На каждого из шести NPC есть: name_forms (6 форм), description, backstory (у Торнина — солдат → трактирщик → долг гильдии; у Люсьи — семья убита, шпионаж, мечта бежать на юг), author_notes (режиссёрские указания: «ненавидит гильдию», «скрывает даже от Люсьи»), origin_events (у Торнина 3, у Люсьи 5, у каждой пары — переплетения), hidden_truth (структурированные тайны), status_profile (свобода/богатство/власть/титул/faction_rank), psyche (воля/стойкость/лояльность), drives, core_orientation, village_relations с записями-природами связей («Торнин знает о шпионаже Люси, но молчит из-за долга гильдии»), truth_state_tavern.json — канонические 17 секретов с графом из 20 отношений (DEPENDS_ON/CAUSES/REVEALS/CONCEALS), factions.json с должниками.
+Доля подключённого: backstory/author_notes/voice доезжают до трёх LLM-промптов (диалог игрока, fallback-диалог, DM-блок) — «проза работает». origin_events попадают в narrative_cache и влияют на решения весом 0.05×importance в риске агрессивных действий — и всё. village_relations notes отбрасываются при обогащении (остаются только числа trust/fear). truth_state никогда не подаётся NPC. faction_rank значения не читаются. flags (has_gold/knows_secret/planning_revenge/is_enslaved) — ноль читателей. psyche.breakpoint загружается и не потребляется ни одним движком. Вывод для Архитектора: онтология Desire/Identity должна питаться именно этими данными — они уже описывают субъектность, которую система не может употребить.
+IV. MISSING ONTOLOGY
+Ниже — предварительный состав недостающих runtime-сущностей. Это не предписание, а карта минимальных несущих конструкций: для каждой указаны поля, владелец, персистенция, источники питания из существующих данных и статус мутабельности. Принцип против DOUBLE TRUTH: каждая сущность имеет ровно одного писателя и один SSOT; там, где данные уже есть (конфиги, narrative_cache, RelationshipStore), новые структуры ссылаются на них, а не копируют. Принцип мутабельности: у Desire, Preference, Goal с рождения есть поле provenance (authored | derived | learned) и вес, изменяемый рантаймом — это закладывает фундамент самообучения без перестройки схемы.
+Таблица 4.1. Недостающие сущности
+Сущность
+Смысл
+Минимальные поля
+Владелец / SSOT
+Чем питается сегодня
+IdentityContext
+Кто я: роль как источник обязанностей, территория, иждивенцы, источники дохода, самофакты
+role_binds[], territory, wards[], income_sources[], self_facts[] (ссылки на origin_events)
+NPC-конфиг → читатель при загрузке; инвариант в NPCState
+status_profile.title, origin_events, village_relations (notes!), factions.json, activity_map
+Desire
+Направленное хочу-состояние с объектом и давлением
+id, subject_class (food/money/safety/person…), urgency, source (need/value/relationship), provenance, born_tick, decay
+DesireSet на NPC; писатель — генератор желаний в Phase 0
+needs dict, drives, psyche, RelationshipStore, origin_events (долг→desire money), hidden_truth
+Goal
+Желаемый результат с критерием успеха
+desired_outcome (predicate), target_ref, deadline/decay, success_count, failure_count, provenance
+GoalSet на NPC; персист в scene_state
+Пока отсутствует полностью (goal удалён P5-03)
+Means
+Способ достижения: глагол + классы объектов
+verb (eat/buy/take/ask/steal/serve…), object_classes, social_verb флаг, риск
+Таблица MEANS (конфиг-реестр), читается резолвером
+WorldActionType (19 глаголов, без EAT/CONSUME), _VERBAL_INTENTS, SocialIntent
+Activity
+Процесс во времени: что делаю сейчас и почему
+type, target_ref, state (READY/ACTIVE/PAUSED/DONE/FAILED/INTERRUPTED), progress, started_tick, interruption_policy, parent_goal
+ActivityState на NPC + реестр в scene_state (по образцу active_commitments)
+Sleep lifecycle как образец; Commitment FSM как носитель
+ActivityState (current)
+Чем я занят сейчас — персистентно между тиками
+activity_ref, elapsed, resume_token
+NPCState (обязательное поле персисты!) + scene_state
+Отсутствует: routine.current — строка без состояния
+WorldTarget
+Конкретный адрес желания: объект/персона/место
+kind (OBJECT/PERSON/ZONE), ref_id, affordances[], distance
+Разрешается резолвером целей; хранится в Goal/Activity
+SpatialTargetType без OBJECT; activity_map (zone), NodeRole
+Interaction
+Действие с миром: акт + предмет + исход
+verb, target_ref, tick, success, world_delta_id
+EventBus-факт; пишется конвертером деятельности
+WorldActionType FSM (без вызовов), windup, TaskKind
+Outcome
+Результат: что изменилось и кто видел
+success, world_delta (StateDeltaProposal), witnesses[], memory_refs
+Phase 9 (CFRM/кристаллизация) + Phase 10 commit
+StateApplicator/DeltaGate готовы; наполнение отсутствует
+Preference
+Предпочтения: люблю X, избегаю Y
+entity_ref, weight (−1..1), kind (place/person/food/bed/method/risk), provenance, learned_from[]
+PreferenceMap на NPC; персист с NPCState
+Ничего: поле preferences отсутствует во всех 6 конфигах
+SocialMove
+Социальный акт как действие с целью и эффектом
+act (SpeechAct 17 значений), target, proposition_ref, desired_effect
+CommunicationIntent → QueuedTask (уже есть)
+SpeechAct/SocialIntent словари есть; producers у части отсутствуют
+4.1. Контрольный пример: субъектность Торнина из существующих данных
+Торнин должен знать: я содержу таверну — это мой доход и моя территория; Люся под моей ответственностью; у меня долг гильдии, он давит; обслуживать посетителей — мой способ заработать; я предпочитаю конкретные места и вещи. Проверка заземления шести утверждений на существующих данных показывает: проза есть везде, структурных связок нет.
+Таблица 4.2. Шесть утверждений «Торнин-субъект» и их заземление
+Утверждение
+Данные уже есть
+Что отсутствует
+Я содержу таверну
+title «Хозяин таверны», archetype, backstory, working→behind_bar
+Роль как источник обязанностей: нет ни одного intent обслуживания; владение пространством не читается решением
+Это доход и территория
+status_profile.wealth→eco gold; factions таверна_серебряный_волк
+income_sources пуст; zone owner не существует; обслуживание не порождает доход-событие
+Люся под моей защитой
+village_relations employer_employee + note «молчит из-за долга»
+Note отбрасывается при загрузке; wards[] нет; protect-интент недостижим (case-баг)
+Долг создаёт давление
+origin_event 0.9 secret; truth_state tornin_debt; factions npc_debtors; hidden_truth
+Никто не читает: 0.05 риска; get_unfulfilled_contracts без вызовов; двойная истина known_by (конфиг: только Торнин; канон: Торнин+Тень)
+Обслуживание приносит деньги
+eco INCOME need; compute_economy читает activity
+Связки «посетитель в МОЕЙ таверне → сервис → золото» нет; транзакции захоронены (AUDIT #6)
+Я предпочитаю конкретное
+drives, core_orientation ruler, голосовой архетип
+Поле preferences отсутствует во всех конфигах; preferred_bed/fallback невозможны
+Итог раздела: IdentityContext — не новый текст, а читатель существующего текста; Desire — конвертер существующих давлений в направленные состояния; Preference — новое маленькое поле с большими последствиями для узнаваемости субъекта. Именно здесь реализуется требование изменяемости: у каждого desire/preference появляется история изменений, по которой будущий механизм обучения сможет подкреплять удавшееся и гасить провалившееся.
+4.2. Три сущности крупным планом
+Ниже — детальные схемы трёх сущностей, на которых Архитектору предстоит принимать самые спорные решения. Остальные восемь из таблицы 4.1 следуют тем же принципам и в детализации не нуждаются до фазы проектирования.
+Desire — направленное желание
+Поле
+Тип
+Источник значения
+Мутабельность
+subject_class
+enum: food/money/safety/person/territory/knowledge
+карта из needs, ролей, биографий
+авторский словарь; расширение — версия конфига
+urgency
+float 0..1, decay за тик
+нужда, давление долга/тайн, отношения
+рантайм: рост от давления, гашение исполнением
+source
+need | role_duty | relationship | biography | learned
+IdentityContext, origin_events, RelationshipStore
+провенанс фиксирован при рождении, источники дополняются
+target_class
+класс объекта/персоны (не экземпляр)
+словарь MEANS
+резолвится позже в WorldTarget
+provenance
+authored | imposed | derived | learned
+конфиг-сид / навязано обстоятельствами (долг, шпионаж) / выведено / усвоено
+append-only история
+born_tick / last_fulfilled
+tick / tick
+фаза 0
+рантайм; история для будущего learner
+Preference — узнаваемая индивидуальность
+Поле
+Тип
+Пример (Торнин)
+Источник сида
+entity_ref
+ссылка на объект/зону/персону/способ
+preferred_bed=kitchen_bed_2, fallback=bed_1; место отдыха=fireplace
+авторский конфиг (новое поле preferences)
+kind
+place | food | person | method | risk | social_distance
+place; method: warn прежде intimidation
+автор
+weight
+float −1..1
+fireplace +0.6; гильдия −0.9
+автор; далее — рантайм-эволюция
+provenance / learned_from
+enum + список id исходов
+learned_from: [гость-постоянник вернулся трижды]
+learner будущего — только дописывает learned_from
+anchor_guard
+правило мутации
+рантайм не перебивает authored-предпочтение выше якоря core_orientation
+правило из конфига личности
+IdentityContext — кто я в этом мире
+Поле
+Смысл
+Чем питается (существующие данные)
+Кто пишет
+role_binds[]
+обязанности роли как источники давлений
+archetype + status_profile.title + атлас (таблица 3.3)
+конфиг; читатель при загрузке
+territory[]
+зоны владения/ответственности
+НОВОЕ: owner в zone-JSON (таверна→Торнин, ворота→стража)
+конфиг мира
+wards[]
+кто под моей опекой
+village_relations notes (employer_employee — сегодня отбрасываются)
+конфиг соц-графа + читатель
+income_sources[]
+что и как приносит деньги
+роль + мир (посетители таверны); сейчас EconomicProfile.income_sources пуст
+конфиг + факты Outcome
+self_facts[]
+структурные самознания для решений
+origin_events (долг), hidden_truth, truth_state (после сверки known_by)
+конфиги + reconcile при загрузке
+authority[]
+права (задержать, не пустить, выдворить)
+роль + территория; сегодня мирный фильтр мёртв из-за пустого current_role
+конфиг роли
+V. ACTIVITY ATLAS
+Полная карта того, что существа этого мира могут делать — не абстрактный список человеческих действий, а набор деятельностей, естественно вытекающих из существующих шести NPC, их ролей, биографий, тел и среды текущего MVP (таверна, рынок, городские ворота). Атлас построен по семиуровневой модели, разводящей смешанные сейчас понятия: СОСТОЯНИЕ (голод, усталость, страх) → ПОТРЕБНОСТЬ/ДАВЛЕНИЕ (нужно восстановиться) → ЖЕЛАНИЕ (хочу поесть, направлено) → ЦЕЛЬ (получить еду) → СРЕДСТВО (купить, украсть, попросить) → ДЕЯТЕЛЬНОСТЬ (есть, охранять, торговаться) → КОНКРЕТНОЕ ДЕЙСТВИЕ (взять хлеб, сесть, передать кружку). Сегодня система реализует уровни 1–2 и перескакивает с 2 сразу на 6–7 в вырожденной форме движения; атлас описывает полный пролёт.
+Таблица 5.0. Семь уровней и их носители в ENIGMA сегодня
+Уровень
+Суть
+Носитель сегодня
+Статус
+1. СОСТОЯНИЕ
+голод, усталость, боль, страх, одиночество
+needs dict (LifeEngine), body_state, affective-слой, stress
+ЕСТЬ (раздвоен: LifeEngine vs NeedEngine)
+2. ПОТРЕБНОСТЬ/ДАВЛЕНИЕ
+нужно восстановиться/получить ресурс
+urgency≥0.5 → argmax; eco-модификаторы; BREAK-integrity
+ЕСТЬ, скалярный
+3. ЖЕЛАНИЕ
+хочу поесть у Торнина / хочу избавиться от долга
+— (desire-драйв без объекта)
+ОТСУТСТВУЕТ
+4. ЦЕЛЬ
+получить еду; накопить 20 золотых
+— (goal удалён P5-03; life_project — ярлык)
+ОТСУТСТВУЕТ
+5. СРЕДСТВО
+купить / украсть / попросить / приготовить
+фрагменты: WorldActionType 19 глаголов, _VERBAL_INTENTS, MEANS-таблицы нет
+ЧАСТИЧНО, без выбора
+6. ДЕЯТЕЛЬНОСТЬ
+есть, охранять вход, торговаться, патрулировать
+ярлык routine.current + перемещение; сон — единственное исключение
+ВЫРОЖДЕНА
+7. ДЕЙСТВИЕ
+взять хлеб, сесть, передать кружку
+FSM предметов (без вызовов), windup (attack/steal), GIVE у игрока
+ФРАГМЕНТАРНО
+Прежде чем читать домены — виньетки, из которых атлас выведен. Торнин: отставной солдат, купивший таверну в долг, который вырос вдвое и давит ежемесячными сборщиками; содержит при себе Люсю, о чьём шпионаже знает и молчит. Люся: осиротевшая, нанятая, запуганная, с козырем в подвале и мечтой о юге. Орм: полурослик-мастер с двадцатилетней репутацией, спящий в чужой палатке у ворот, с мёртвой женой и страстью к стали. Борко: ленивый, не злой стражник с рангом, взяткой от Горана и стыдом упущенного каравана. Тень: ночная, бесполая, профессиональная — лейтенант гильдии на охоте за предателем, которого подозревает в таверне. Горан: успешный торговец с контрабандным прошлым, должник преступников и взяткодатель. Эти виньетки — не декор: каждая строка атласа выводима из них, и в этом гарантия, что деятельность будет читаться как жизнь этих людей, а не манекенов.
+Легенда статусов: WIRED — работает сегодня; PARTIAL — фрагменты работают; SHADOW — написано, выключено; DEAD — написано, ноль вызовов; NO — отсутствует и требует нового кода. Для каждой деятельности указаны: побуждение (какое желание/давление её запускает), средства (какими глаголами достигается), требуемые аффордансы (что должно существовать в мире), и статус в коде. Для ключевых деятельностей каждого домена ниже приведена полная цепочка жизненного цикла.
+Отдельно зафиксирован общесистемный словарь средств (MEANS) — входные данные для одноимённой сущности раздела IV. Словарь собран из атласа и сверен с носителями в коде: у каждого глагола должен появиться ровно один исполнитель и класс объектов-адресатов.
+Таблица 5.0b. Словарь MEANS: глаголы деятельности и их носители
+Группа
+Глаголы
+Носитель сегодня
+Потребление
+есть, пить, отдыхать, лечиться
+— (EAT/DRINK отсутствуют; consume — комментарий)
+Перемещение
+идти, подходить, уходить, патрулировать, бежать, прятаться
+traversal/wired; hide — нет
+Манипуляция предметами
+взять, положить, передать, открыть, закрыть, запереть, отпереть, сломать, чинить
+WorldActionType/FSM — ноль вызовов; repair в реестре
+Обмен
+купить, продать, заплатить, взять в долг, дать в долг
+TransactionEngine — захоронен (AUDIT #6)
+Речь
+сказать, спросить, попросить, предложить, предупредить, угрожать, объяснить, растрезвонить, позвать на помощь, обвинить, похвалить, пообещать, соврать, назначить встречу
+11 _VERBAL_INTENTS wired; accuse/thank/gossip/promise/negotiate — словарь без продюсеров
+Власть/территория
+не пустить, выгнать, разрешить, задержать, охранять, блокировать путь
+block_path — ходьба без права; authority — нет
+Тайное
+красть, скрывать, выведывать, следить, шептать
+steal wired; наблюдение wired; whisper-мембраны есть; выведывание — нет
+Труд
+работать, ковать, готовить, убирать, подавать, считать
+расписания-ярлыки; деятельностей нет
+Защита
+заслонить, прикрыть отступление, вмешаться, позвать стражу
+protect — case-мёртв; call_for_help wired (движение)
+5.1. Домен I. Выживание и тело (10)
+Активность
+Побуждение
+Средства
+Требуемые аффордансы
+Статус
+Есть (потребить найденное)
+hunger → хочу есть
+take + consume
+Объект еды; действие EAT/CONSUME; место
+NO: EAT отсутствует в WorldActionType; сытость по ярлыку
+Искать/добыть еду
+hunger, пустые запасы
+search, query world
+Реестр источников еды; запрос к миру
+NO: запросов к миру нет; food — скаляр и слово
+Готовить еду
+hunger + роль
+cook (compose)
+Очаг/кухня как объект
+NO: kitchen — узел serving_station, объекта нет
+Пить
+жажда (нет в needs)
+take + drink
+Бочка/кружка
+NO: жажды нет; drinking — ярлык расписания
+Спать
+fatigue/shelter_urge
+go + lie down
+Кровать (объект + узел BED)
+WIRED: полная цепь Phase 0.6 — образец
+Отдыхать (сидеть)
+fatigue, комфорт
+sit
+Стул с SIT
+PARTIAL: стулья спавнятся; SIT — ноль вызовов
+Лечиться
+pain/injury
+apply remedy, rest
+Лекарство; постельный режим
+NO: wounds — мёртвый слой, пенальти всегда 0
+Избегать боли
+pain
+stop, move away
+—
+PARTIAL: pain → stress/fear в решениях
+Избегать опасности
+fear
+flee, hide
+Укрытие (node)
+PARTIAL: FLEE wired (52% движений!); hide NO
+Согреваться у огня
+дискомфорт (нет в needs)
+approach
+Campfire как источник тепла
+NO: campfire — декорация; погода считается, не живёт
+Ключевая цепочка домена — ЕДА, полный жизненный цикл в целевом виде: TRIGGER: hunger≥0.5 (сегодня) → WHY: тело требует, пища даёт силу работать (нет) → DESIRE: subject=food, urgency=hunger (нет) → OUTCOME: сыт (predicate hunger<0.2) (нет) → MEANS: съесть своё / взять с кухни / купить у Торнина / попросить (нет) → WORLD DISCOVERY: запрос «источники еды рядом» (нет) → TARGET: конкретный хлеб/котел/стол (нет; сейчас: узел right_table) → ACTIVITY: идти, взять, сесть, есть 3 тика (нет; сейчас: идти) → SUCCESS: hunger=0, еда потрачена (нет; сейчас: ярлык) → FAILURE: еды нет — раздражение, смена средства (нет) → CONSEQUENCE: запас уменьшился, Торнин заметил (нет) → OBSERVABILITY: NPC ест за столом — иконка/поза/реплика (нет) → MEMORY: «вчера еда кончилась» → NEXT DESIRE: пополнить запасы (нет).
+5.2. Домен II. Профессиональная деятельность (37)
+Профессии — главный источник разнообразия деятельности. Ниже по персонажам; данные биографий используются как есть (долг Торнина, шпионаж Люсьи, взятки Борко, охота Тени на предателя, контрабанда Горана).
+Торнин — трактирщик (8)
+Активность
+Побуждение
+Средства
+Аффордансы
+Статус
+Держать стойку (innkeeping)
+роль/долг
+go + stand
+behind_bar (узел inn_desk)
+WIRED: расписание + display
+Принять заказ
+доход
+talk (заказ)
+Посетитель + стойка; структура заказа
+NO: заказа как сущности нет
+Подать еду/напиток
+заказ
+take + carry + give
+Еда-объект; руки/носитель
+NO: GIVE есть у игрока, у NPC нет
+Получить плату
+доход
+trade
+TransactionEngine
+DEAD: захоронен (AUDIT #6)
+Убрать со стола
+чистота (need-ghost)
+take + carry
+Стол-объект
+NO: CLEANLINESS — один из 4 ghost-need'ов
+Следить за запасами
+доход
+observe, count
+Кладовая-объект
+NO
+Защитить заведение
+территория
+warn, block, intimidate
+Zone owner; TRESPASSED-предикат
+NO: warn wired, предиката нет
+Пресечь драку в зале
+порядок
+intervene, intimidate
+Наблюдение драки (есть)
+PARTIAL: intimidate wired; триггер-предиката нет
+Орм — кузнец (6), Люся — служанка (6)
+Активность
+Побуждение
+Средства
+Аффордансы
+Статус
+Орм: ковать
+rep кузнеца, доход
+work (multi-tick)
+Кузница-объект (НЕТ), workshop_area — DEFAULT-узел
+NO
+Орм: добыть материалы
+заказы
+buy/take
+Железо-объект; рынок
+NO
+Орм: отремонтировать
+заказ/просьба
+repair
+REPAIR в реестре есть
+DEAD: без вызовов
+Орм: обслужить клиента
+доход
+talk + trade
+—
+NO
+Орм: взять заказ
+доход
+request_service/offer_job
+intents есть
+PARTIAL: интенты wired, исполнения нет
+Орм: пойти выпить (18:00-22:00)
+привычка
+go + drink
+bar_area
+WIRED: расписание
+Люся: подавать за столами
+работа
+carry + give
+serving_tables display
+PARTIAL: ярлык есть, акта нет
+Люся: ассистировать Торнину
+зависимость/работа
+follow, assist
+wards/employer связь (отброшена)
+NO
+Люся: прибирать пространство
+чистота
+clean (take/place)
+Столы/посуда
+NO
+Люся: шпионить для гильдии
+долг/страх
+observe, report
+hidden_truth есть; REPORT — dead-end
+PARTIAL: данные есть, канал мёртв
+Люся: искать путь на юг
+личная цель (backstory)
+plan, save money
+—
+NO: биография не читается решениями
+Люся: защищаться от Торнина
+травма-триггер (origin)
+flee, avoid
+threat recognition
+PARTIAL: flee есть; личной истории в решении нет
+Борко — стражник (6), Тень — вор (7), Горан — торговец (5)
+Активность
+Побуждение
+Средства
+Аффордансы
+Статус
+Борко: охранять вход
+долг службы
+go + stand + observe
+guard_post (workplace-тег)
+WIRED
+Борко: патрулировать
+долг
+traverse route
+traversal
+PARTIAL: перемещение есть, маршрута нет
+Борко: задержать нарушителя
+полномочия
+block_path + challenge
+Право на задержание; block_path — просто ходьба
+NO: прав/предиката нет
+Борко: защитить человека
+лояльность
+protect (interpose)
+ally-protection модификатор
+DEAD: case-баг ключей
+Борко: взять взятку
+скрытый доход
+take + conceal
+origin_event Goran bribe; тайна
+NO: данные есть, механики нет
+Борко: пить (20:00-22:00)
+привычка
+go + drink
+bar_area
+WIRED: расписание
+Тень: наблюдать (18:00-06:00)
+профессия
+observe
+corner_table
+WIRED: расписание
+Тень: вычислить момент
+выгода
+assess opportunity
+OpportunityEngine
+WIRED (для STEAL)
+Тень: украсть
+выгода
+steal (windup 2 тика)
+STEAL + witnesses
+WIRED: полная цепь с последствиями
+Тень: спрятаться
+риск
+hide
+Укрытие
+NO
+Тень: уйти от погони
+страх
+flee
+—
+WIRED
+Тень: сбыть добытое
+выгода
+trade
+TransactionEngine
+DEAD: захоронен
+Тень: охотиться на предателя
+заказ гильдии (origin)
+observe, follow, suspect
+origin_events; suspects Lusya
+PARTIAL: память есть; контекст в решении — 0.05 риска
+Горан: торговать
+прибыль
+trade
+trade intent
+PARTIAL: интент есть, сделки нет
+Горан: платить взятку Борко
+беспрепятственность
+give + conceal
+GIVE у игрока; NPC give нет
+NO
+Горан: арендовать склад
+бизнес
+—
+village note (отброшена)
+NO
+Горан: скрывать контрабанду
+тайна
+conceal
+hidden_truth (dead wire)
+DEAD
+5.3. Домен III. Социальная жизнь (14)
+Речевой аппарат богат словарём, беден продюсерами. SpeechAct содержит 17 актов (assert…accusation), SocialIntent — 13 социальных намерений (obtain_information…deceive), но половина производственных каналов обрывается: HELP и REPORT скорятся, но не вербализуются; gossip/praise/accuse имеют дельты без продюсеров; flirt деградирован в HELP костылём legacy_bridge.
+Активность
+Средства (акт)
+Эффект в отношениях
+Статус
+Разговор
+talk → DialogueExecutor/ambient
+trust +0.5; heard → память
+WIRED (92% диалогов NPC→NPC)
+Обмен информацией
+spread_rumor + SocialEngine BFS
+слух без содержимого (topic-string)
+PARTIAL: канал есть, содержания нет
+Просьба
+request_service
+—
+PARTIAL: intent wired; исполнение просьбы NO
+Предложение
+offer_job
+—
+PARTIAL: аналогично
+Торг
+trade
+транзакция
+DEAD: TransactionEngine в архиве
+Спор / ссора
+tone ANGRY → npc_insults
+trust −6 / fear +2
+PARTIAL: дельты от тона есть; ссоры как деятельности нет
+Угроза
+intimidate → claim + fear +1.0
+fear ↑
+WIRED
+Обвинение
+SpeechAct.ACCUSATION
+fear +1.0; STOLE-пропозиция
+PARTIAL: только player-канал (conf≥0.5)
+Помощь
+help intent
+trust +12 (player-HELP)
+DEAD-END: NPC-help скорится, не материализуется
+Благодарность
+praise branch
+trust +1.5
+DEAD: продюсера нет
+Сплетня
+gossip branch
+trust −2.0
+DEAD: продюсера нет
+Обман
+SocialIntent.deceive
+belief-инъекция
+NO: словарь есть, механизма нет
+Кооперация / союз
+seek_ally, call_for_help
+движение к цели; союз
+PARTIAL: движение есть, союза нет
+Защита другого
+protect
+interpose
+DEAD: case-баг
+5.4. Домен IV. Привязанность и близость (6)
+Домен ведётся причинной цепочкой attraction → attention → interaction → interest → trust/intimacy → courtship → attachment → sexual activity. Пол и характер — факторы распределения предпочтений конкретного NPC, а не сценарный автомат. Сегодня: attraction — скаляр write-only (единственный писатель — эвристика «комплимент», читателей ноль; LOVE-тест валидации измеряет счётчик в никуда); unrequited_love-рёбра в village_relations (Люсья→Борко 0.8, Орм→Люсья 0.9) питают только ревность — а она мертва case-багом; intimacy/sexual-слоты уже описаны в RelationshipStateStore v2 (RE_NEED_SLOTS, read-only M1a); flirt — костыль FLIRT→HELP. Субъективное: attraction/interest — внутренние веса; видимое: внимание (observe), инициативы разговора, жесты (социальные move) — всё через существующие каналы; в отношениях и памяти остаются дельты trust/attraction и воспоминания взаимодействий.
+Активность
+Побуждение
+Статус
+Внимание к объекту симпатии
+attraction (write-only)
+PARTIAL: observe есть, привязки к симпатии нет
+Инициатива разговора
+interest
+PARTIAL: talk wired, мотивации нет
+Ухаживание (комплименты, жесты)
+interest
+NO: flirt→HELP костыль
+Доверительная близость
+trust/intimacy slot
+PARTIAL: слоты v2 read-only
+Привязанность (пара)
+attachment
+NO: только config-рёбра unrequited_love
+Ревность / треугольник
+jealousy modifier
+DEAD: case-баг (оживит одной строкой)
+5.5. Домен V. Вражда и конфликт (6)
+Активность
+Побуждение
+Статус
+Неприязнь (низкое доверие)
+trust < порог
+WIRED: читается решениями
+Избегание
+dislike
+NO: отдельного avoid нет; FLEE — паника, не стратегия
+Противостояние / саботаж
+конфликт интересов
+NO
+Угроза
+opposition
+WIRED: intimidate
+Драка
+эскалация
+WIRED: attack + windup + реакция + последствия
+Месть
+planning_revenge flag / обида
+DEAD: flag с нулём читателей; обида живёт только в памяти
+5.6. Домен VI. Собственность и территория (8)
+Критический домен: «эта таверна — не просто zone». Модель: OWNERSHIP (владение) → POSSESSION (держу при себе) → ACCESS (кто может) → TERRITORY (где моя воля) → RESPONSIBILITY (за что отвечаю). Сегодня существует только объектное владение личными вещами: инвентарь материализуется как предметы с owner, resolve_affordance(owner=…) назначает свою кровать, SalienceEngine исключает фартук/ключи/кошелёк из «брошенного». Зонной собственности, права доступа, выдворения нет вовсе; LOCK/UNLOCK FSM написаны и не вызываются; «заперт» — дисплей-строка; faction_rank значения не читаются; DirectiveInterpretationSubscriber — односторонний (игрок → NPC), NPC не может выдать директиву игроку.
+Активность
+Средства
+Статус
+Владеть (место/предмет)
+owner-тег
+PARTIAL: предметы — да; зоны — NO
+Не пустить
+deny access
+NO: предиката доступа нет
+Выгнать
+evict directive
+NO: NPC не выдаёт директив
+Разрешить доступ
+grant
+NO
+Запереть/отпереть
+LOCK/UNLOCK
+DEAD: FSM без вызовов; «заперт» — строка
+Защитить имущество
+warn/block/intimidate
+NO: триггера «нарушение моего» нет
+Забрать/вернуть
+TAKE/PLACE
+DEAD: FSM без вызовов
+Украсть
+STEAL
+WIRED: с ветром свидетелей и верой STOLE
+5.7. Домен VII. Защита жизни (5)
+Текущий FLEE не считается деятельностью сам по себе — это рефлекс. Причинная цепь: опасность → оценка угрозы → избегание → бегство → поиск защиты → защита другого → вооружённое сопротивление. Оценка угрозы частично есть (threat_gradient, CFRM-деформация, тело → FLEE при HP<30%); «после бегства» не происходит ничего — петля замыкается дрожью, что и даёт 52% реактивных переездов. Защита другого — case-мёртвый модификатор. Вооружённое сопротивление: attack wired, оружие в контенте отсутствует.
+Активность
+Статус
+Комментарий
+Оценить угрозу
+PARTIAL
+threat_gradient/CFRM есть; нет источника «кто угрожает моему»
+Избегание (pre-emptive)
+NO
+Стратегического avoid нет
+Бегство
+WIRED
+Но без follow-up: укрылся → ничего
+Поиск защиты
+PARTIAL
+seek_ally/call_for_help wired; протекция не отвечает
+Защита другого / сопротивление
+DEAD / WIRED
+protect — case-баг; attack+windup работает
+5.8. Полные жизненные циклы ключевых деятельностей
+Ниже три образцовых цикла дополнительно к ЕДЕ (5.1). КАЖДЫЙ цикл — это и есть «жизненный цикл деятельности» из брифа: TRIGGER → WHY → DESIRE → OUTCOME → MEANS → WORLD DISCOVERY → TARGET → ACTIVITY → ACTIONS → SUCCESS/FAILURE → WORLD CHANGE → OBSERVABILITY → MEMORY → FUTURE. Формат одинаков для всех 63 деятельностей атласа; здесь даны три контрастных образца, Архитектору рекомендуется утвердить его как канон документирования.
+ОБСЛУЖИТЬ ПОСЕТИТЕЛЯ (Торнин). TRIGGER: посетитель в зоне стойки + рабочие часы. WHY: гость — прямой источник дохода, доход закрывает долг. DESIRE: subject=money, source=role_duty+debt. OUTCOME: монета в кассе, гость доволен. MEANS: принять заказ → взять сосуд → налить/взять из запаса → передать → получить плату. WORLD DISCOVERY: запрос «гости в зале», «остатки бочонка». TARGET: конкретный гость + конкретный сосуд. ACTIONS: talk(заказ) 1 тик → take 1 тик → give 1 тик → transaction. SUCCESS: золото +5, заказ закрыт. FAILURE: нет напитка → извинение, desire пополнить запасы. WORLD CHANGE: минус порция, плюс монета, факт услуги. OBSERVABILITY: три действия подряд видны игроку как обслуживание. MEMORY: гость в список постоянных, выручка дня. FUTURE: постоянный гость → preference, выручка → учёт вечером.
+УКРАСТЬ (Тень) — референс уже работающей цепи. TRIGGER: OpportunityEngine (дистанция, внимание, доступ). WHY: выгода без следов, профессия. DESIRE: subject=gain, risk-вес по drives. OUTCOME: предмет у Тени, никто не заметил. MEANS: steal (единственный выбор сегодня — для контраста с едой). WORLD DISCOVERY: opportunity-контекст. TARGET: конкретный предмет в инвентаре жертвы. ACTIONS: windup 2 тика → исполнение. SUCCESS: transfer + witness-мембрана. FAILURE: замечен → реакция жертвы, вера STOLE у свидетелей. WORLD CHANGE: владение предметом сменилось. OBSERVABILITY: игрок видит жест кражи; свидетели — веру. MEMORY: жертва и свидетели запомнили. FUTURE: показание, месть, репутация — каналы готовы.
+НЕ ПУСТИТЬ ЧУЖАКА ЗА СТОЙКУ (Торнин). TRIGGER: TRESPASSED-предикат (новый): не-владелец в зоне owner-only. WHY: стойка — рабочее место и касса, территория роли. DESIRE: subject=territory_integrity. OUTCOME: чужак вне зоны или конфликт. MEANS: warn → block (стоять между) → intimidate → call_for_help(адресат Борко). WORLD DISCOVERY: владение зоной + позиция нарушителя (оба факта уже считаются). TARGET: нарушитель + граница зоны. ACTIONS: talk(warn) → движение-интерцепция → intimidate при отказе. SUCCESS: нарушитель отступил; fear-дельта. FAILURE: эскалация → свидетель конфликт, репутация под риском; если нарушитель — Тень, давление тайны долга. WORLD CHANGE: позиция, факт конфронтации, возможно вызов стражи. OBSERVABILITY: полный конфликт виден и игроку (он может быть нарушителем). MEMORY: инцидент у обеих сторон, отношение к месту. FUTURE: повторный вход → эскалация быстрее; Борко запомнил нарушителя.
+Три цикла демонстрируют принцип универсальности: смена только WHY, MEANS и FAILURE-профиля превращает обслуживание в кражу или защиту территории — машина одна, контент различается данными роли и биографии. Именно поэтому атлас не требует 63 систем — он требует одну машину деятельности и таблицу её наполнения.
+5.9. Сводка атласа
+Итого в атласе 63 деятельности: выживание 10, профессиональные 37, социальные 14 (пересечения с профессиональными учтены), привязанность 6, вражда 6, собственность 8, защита жизни 5. Карта подтверждает вердикт: разнообразие не появится от новых решений — оно появится, когда 17 PARTIAL и 12 DEAD получат недостающие связки, а 22 NO — минимальную онтологию из раздела IV.
+Таблица 5.1. Распределение статусов по доменам
+Домен
+Всего
+WIRED
+PARTIAL
+DEAD/SHADOW
+NO
+I. Выживание и тело
+10
+1 (сон)
+3
+2
+4
+II. Профессиональные
+37
+5
+5
+3
+24
+III. Социальные
+14
+2
+6
+3
+3
+IV. Привязанность
+6
+0
+3
+1
+2
+V. Вражда
+6
+2
+1
+1
+2
+VI. Собственность
+8
+1
+1
+2
+4
+VII. Защита жизни
+5
+1
+2
+1
+1
+VI. TORNNIN GOLDEN TRACE
+Один полный день Торнина, смоделированный как ожидаемый результат работы Архитектора. Это не сценарий: каждый шаг имеет причину, альтернативы, угрозы срыва и сохраняющиеся последствия. Таблица — детерминированный каркас (колонки: потребность→желание, цель и средство, что срывает, адаптация, последствие, видимость игроку); нарратив ниже показывает субъективную ткань дня. Точка отсчёта идентичности: Торнин — хозяин «Серебряного волка», должник гильдии воров (1200 золотых, сборщики приходят ежемесячно), опекун Люсьи, бывший солдат со шрамом.
+Таблица 6.1. Каркас дня Торнина (golden trace)
+Шаг/время
+Потребность → желание
+Цель и средство
+Что срывает
+Адаптация
+Последствие
+Видимость
+06:00 подъём
+сон завершён → бодрость
+встать (своё место сна: kitchen_bed_2, fallback bed_1 — предпочтение)
+плохой сон (шум в зале)
+усталость выше нормы → к вечеру быстрее устанет
+wake-факт; тело помнит
+панель: спит→работает
+06:10 осмотр
+порядок → хочу знать, что с таверной
+обойти зал, проверить запасы
+обнаружена недостача бочонков
+desire: пополнить запасы (новая, learned)
+запись в память; goal открыт
+реплика-бормотание
+06:30 открытие
+доход → таверна должна работать
+занять стойку (роль-обязанность)
+болит старая рана (дождь)
+скорее сесть, Люсье — принять первых
+innkeeping-деятельность активна
+иконка работы, поза за стойкой
+08:00 гость
+доход → обслужить
+принять заказ → подать эль → взять 5 монет
+заказ перебивает беседу с Люсьей
+приоритет: заказ > болтовня (арбитраж)
+плюс 5 монет; гость в памяти постоянных
+игрок ВИДИТ сервис: подход, передачу, плату
+10:00 Люсья
+опека → проверить, как она
+подойти, короткий разговор
+гость зовёт раньше времени
+перенести разговор (goal отложен, не потерян)
+trust-дельта у Люсьи; тема «работа»
+бегущее диалог-облако
+12:00 обед
+hunger → поесть
+сесть за правый стол (предпочтение), съесть из запасов
+запасы кончились (утренняя недостача!)
+смена средства: купить у Горана или готовить самому
+минус монеты ИЛИ open loop «нет еды»
+игрок видит: встал, поиск, раздражение
+12:30 Тень за стойкой
+безопасность территории → не пускать чужих за стойку
+warn → block_path за стойкой
+Тень угрожающ спокоен
+intimidate; если не помогло — позвать Борко (call_for_help с адресом)
+fear ↑ у Тени; инцидент в памяти обоих
+конфликт виден: игрок может вмешаться
+14:00 сборщик долга
+долг давит → страх+стыд
+отдать 50 монет или договориться об отсрочке
+денег мало после покупки еды
+тяжёлый выбор: касса таверны или унижение отсрочки (два исхода, оба в память)
+долг −50 или stress ↑; тайна под давлением — риск трещины (assess_secrets_under_pressure)
+если игрок рядом: может платить, шантажировать, помочь
+16:00 драка в зале
+порядок → пресечь
+intervene: устрашить зачинщиков
+один из них клиент гильдии
+осторожнее: warn вместо intimidation
+репутация заведения; witness-события
+драка и вмешательство видны
+18:00 усталость
+fatigue → отдых
+кресло у огня (предпочтительное место)
+гость с вопросом
+1 тик на клиента, затем отдых (возобновление)
+восстановление частично
+сидит у огня — поза
+20:00 учёт
+доход → подсчитать выручку
+подсчёт монет
+выручка ниже долга-платежа
+desire: завтра поднять цены? (learning hook)
+eco-профиль обновлён
+панель: считает монеты
+22:00 закрытие
+ритуал → завершить день
+запереть дверь (LOCK!)
+гость просит ещё один эль
+решение: деньги против порядка
+дверь заперта — факт мира
+игрок видит запертую дверь
+22:10 сон
+сонливость → спать
+своё место (preferred_bed)
+плохой сон прошлой ночи → раньше лечь
+сдвиг расписания на −10 минут (мутабельность)
+sleep_onset-факт; сны (пока без подписчиков)
+панель: спит
+6.1. Нарратив дня
+Торнин просыпается на своём месте — не потому, что schedule телепортировал его в kitchen_bed_2 в 06:00, а потому что у него есть preferred_bed и fallback, и это различие игрок может заметить. Первые полчаса он хозяин: обходит зал, находит недостачу и именно это событие, а не случайный шум, порождает новую цель пополнить запасы. В восемь утра приходит гость — и игрок впервые видит услугу как цепь: принять заказ, подать, взять монеты. Каждый шаг — отдельные действия с предметами, и каждое оставляет след: касса выросла на пять монет, гость запомнился как постоянный.
+Обед показывает систему сбоев: запасы кончились из-за утренней недостачи, и желание поесть не может разрешиться привычным средством. Торнин раздражается, меняет средство — и вот здесь игра происходит: игрок может одолжить ему денег, предложить украсть у Горана, просто понаблюдать. Полдень приносит территориальный конфликт с Тенью за стойкой — warn материализуется как реплика с адресатом и предметом спора, block_path становится стоянием между Тенью и кассой. В четырнадцать часов сборщик долга превращает абстрактную запись в origin_events в живое давление с вилкой: платить из кассы (таверна обеднеет) или выпрашивать отсрочку (унижение, стресс). Оба исхода ложатся в память и меняют завтрашний день — если выбрал кассу, то к вечеру учёт покажет дефицит и появится желание поднять цены. Это и есть критерий успеха всего направления: день Торнина не воспроизводится от запуска к запуску как сценарий, но остаётся читаемым как жизнь конкретного существа.
+6.2. Вилки, срывы, адаптации
+Вилка приоритета: заказ против разговора с Люсьей — решает арбитраж активностей с ценой прерывания, а не шум скоринга; отложенный goal сохраняется и возобновляется.
+Вилка средств: еда — своё/купить/украсть/попросить; выбор зависит от монет, отношений, риска, характера — четыре MEANS на одну desire.
+Срыв с последствием: недостача запасов в 06:10 доезжает до обеда и до вечера — последствие живёт дольше тика.
+Территориальный рефлекс: Тень за стойкой запускает TRESPASSED-предикат через владение, а не распознавание «плохого» игрока.
+Секрет под давлением: сборщик в 14:00 поднимает pressure-канал тайны; трещина дискlosure — существующий движок assess_secrets_under_pressure, оживлённый вызовом.
+Мутабельность: сдвиг расписания после плохого сна и «поднять цены» как выученное желание — примеры runtime-изменения поведения, а не авторской правки.
+6.3. Альтернативная ветка дня: когда мир вмешался
+Второй вариант того же дня показывает, почему это не сценарий. Идентичность, роли и предпочтения неизменны — изменяется мир, и день разворачивается иначе. Игрок должен быть способен вызвать каждую из этих ветвей своим вмешательством.
+Таблица 6.2. Расхождения при вмешательстве мира
+Возмущение
+Чем отличается день
+Какие структуры срабатывают
+Игрок украл выручку из кассы ночью (14:00)
+учёт 20:00 обнаружит дефицит → panic-desire money; сборщик 14:00 следующего дня не может быть оплачен → отчаянное средство (просьба/кража/занос); Торнин подозревает присутствовавших (recall по target) → warn-опрос
+Outcome-факт кражи уже работает (witness STOLE); новые: panic-desire, debt-платёж как activity
+Люся не вышла на смену (болеет)
+Торнин покрывает столы сам → обслуживание двоится, заказы теряются; желание выяснить, что с ней (care-desire к иждивенцу); доверие к её отговоркам ниже из-за её шпионажа, если раскрыт
+wards-связь IdentityContext; failure-профиль заказа; trust-фильтр восприятия
+Борко пьян и пропустил вора у ворот
+утром караванная жалоба доходит до Торнина как слух → gossip-продюсер; Торнин усиливает контроль зала (territory-чувствительность ↑ на день)
+слуховая SocialEngine-цепь (оживлённый case); временный модификатор бдительности как learned-параметр дня
+Игрок оплатил долг Торнина целиком
+14:00 отменяется; desire money гаснет на неделю (decay); появляется глубокая trust-дельта к игроку + preference «постоянный благодетель»; секрет долга теряет давление — трещины не будет
+desire-источник long с провенансом event; WriteGate-дельта; pressure-канал тайны (уже есть)
+Тень нашла доказательство против Люсьи до сбора долга
+Тень намекает Торнину в 16:00 → Торнин между опекой и гильдией (конфликт двух desires: protect_ward против guild_fear); день 2: ультиматум Люсье или двойная игра
+две desire с конкурирующими источниками — арбитраж; secrets-граф DEPENDS_ON/CONCEALS (канон уже описывает)
+Заметьте: ни одна строка таблицы не требует новых эмоций, новых мозгов или LLM-скриптов. Каждая ветвь — комбинация desire-источников из биографии, арбитража, последствий и памяти. Это и есть доказательство достаточности предлагаемой онтологии: разнообразие рождается из пересечения существующих данных, которым дали несущие структуры.
+6.4. Инварианты приёмки по трейсу
+Трейс превращается в исполняемые проверки: каждый шаг дня должен оставлять наблюдаемый факт, который можно утверждать в тестах и видеть в логах. Минимальный набор инвариантов: ACTIVITY_ONSET_FACT — деятельность началась с записью причины (desire_id, target_ref), а не с ярлыком; NO_LABEL_SATISFACTION — потребность не обнуляется строкой, только Outcome-фактом; INTERRUPTION_PRESERVES_GOAL — отложенный goal возобновляется либо осознанно отменяется с записью; CONSEQUENCE_REACHES_MEMORY — у каждого world_delta есть хотя бы один наблюдатель с записанной памятью; PREFERENCE_STABLE — preferred_bed выбирается при доступности, fallback фиксируется в логе; ROLE_AUTHORITATIVE — мирный NPC не порождает ambush (current_role подведён к гейту). Эти шесть утверждений — прямые антиподы шести установленных дефектов (осциллятор 0.56, substring-насыщение, амнезия intent, snap-без-следствия, nearest-BED, пустая роль).
+VII. FIVE GOLDEN VERTICAL SLICES
+Пять минимальных деятельностей, максимально различающихся по природе: потребление (EAT), восстановление (SLEEP — эталон из кода), услуга за деньги (WORK), власть над пространством (PROTECT), связь через тайну (SOCIAL). Каждый срез обязан проходить полную цепь CAUSE → DESIRE → WORLD → ACTIVITY → CONSEQUENCE и имеет критерий приёмки со стороны игрока. Срезы выбраны так, что вместе они закрывают все четыре разрыва раздела I и оживляют большую часть списка спящих органов из раздела III.
+Ориентир различия — одна и та же сцена прибытия игрока в таверну, зафиксированная в брифе и разбитая на кадры:
+Таблица 7.0. Сцена: игрок входит в таверну — сейчас и после
+Момент
+Сейчас (продакшен)
+После работы Архитектора
+Вход
+все 7 сущностей обрабатывают реплику; реакции — дрожь observe/flee (56%)
+реакция адресная: кто занят — тот занят; Торнин поднимает голову, Тень не отрывается от кружки
+Вопрос Торнину
+ответ из статичной прозы; служба невозможна
+заказ как цепь: принять → подать → взять монеты; отказ возможен («стойку не покидаю, сядьте»)
+Игрок молчит
+NPC мигрируют пинг-понгом, 52% — flee-дрожь
+жизнь видна: Люсья носит еду, Орм спорит с Гораном о цене, Тень уходит в тень по расписанию ночи
+Вмешательство в чужой разговор
+толпы-обработка, без последствий
+прерывание деятельности с ценой: раздражение, запоминание, эскалация по роли
+Игрок за стойкой
+ничего не происходит
+TRESPASSED → warn → block → выдворение; вызов Борко при упорстве
+Кража у кассы
+ветер STOLE у свидетелей есть, но речь о нём не построится
+показание через warn-канал; Торнин помнит и меняет отношение к гостю
+7.1. Срез EAT — потребление
+CAUSE: hunger≥0.5 у любого NPC. DESIRE: subject=food, urgency=hunger. WORLD: в таверне должен существовать источник еды (котёл/прилавок с порциями как объекты), у Орма — пайки, у Тени — ворованные крохи. ACTIVITY: выбрать средство (своё/кухня Торнина/купить/украсть) → идти к конкретному объекту → take → consume N тиков → голод=0. CONSEQUENCE: порция исчезает (world delta), Торнин видит кражу с кухни (witness → вера STOLE → warn), запас уменьшен → новая цель пополнить. Критерий приёмки: игрок, войдя в таверну, за минуту различает «голодного» и «сытого» NPC по поведению, а не по HUD; кража еды на его глазах приводит к реакции Торнина при следующем тике.
+7.2. Срез SLEEP — эталонный образец
+CAUSE: fatigue/shelter_urge + расписание. DESIRE: сон. WORLD: кровати-объекты с owner (уже есть в resolve_affordance). ACTIVITY: полная цепь Phase 0.6 — предикат BED-узла + settled → onset-факт → восстановление → wake-pressure → выход. CONSEQUENCE: восстановление, сны (канал есть, подписчиков нет — довесок), инвариант sleep-ownership в реестре коммитментов. Критерий приёмки уже достигнут кодом — срез служит референсом для остальных четырёх: именно так выглядит закрытая цепь, и именно её форму Архитектор обязан генерализовать (пространственный предикат + settled → писатель факта → downstream-системы).
+7.3. Срез WORK — услуга за деньги
+CAUSE: посетитель в зоне стойки + роль трактирщика + цель дохода (долг). DESIRE: обслужить и заработать. WORLD: заказ как мини-структура (посетитель, предмет, цена),TransactionEngine возвращён из архива по его же контракту (точка возврата Post-Phase 5: trade.resolve(economic_intents) → DeltaBuffer). ACTIVITY: принять заказ (talk-канал) → подать (take+carry+give) → получить плату (transaction) → успех фиксируется. CONSEQUENCE: золото NPC ↑, eco-профиль удовлетворён, гость запомнен, касса таверны как счётчик существует; failure: нет товара — извинение + цель пополнить. Критерий приёмки: игрок может заказать эль у Торнина и увидеть полный цикл с изменением золота обеих сторон; параллельно NPC-гость (Горан) проходит тот же цикл без игрока.
+7.4. Срез PROTECT — власть над пространством
+CAUSE: чужак в закрытой зоне (за стойкой, в спальне) или угроза иждивенцу. DESIRE: выгнать/защитить. WORLD: zone owner (таверна → Торнин) + TRESPASSED-предикат + wards[] (Люся). ACTIVITY: warn с адресатом и предметом → block_path как стояние между нарушителем и ценностью → intimidate → если не помогло: call_for_help адресный (Борко) → выдворение директивой (новый исходящий канал NPC→игрок: «Уходи, или позову стражу»). CONSEQUENCE: fear/trust дельты через WriteGate, инцидент в памяти обоих, репутация Торнина-хозяина; failure: Торнин проигрывает давление — тайна долга поднимает трещину-риск. Критерий приёмки: игрок, вошедший за стойку без приглашения, за два тика получает адресную реакцию с эскалацией, и это же происходит с NPC-нарушителем без игрока.
+7.5. Срез SOCIAL — связь через тайну
+CAUSE: давление тайны (долг) + встреча с носителем знания (Тень знает долг по канону; origin-матрица знает только Торнин — двойную истину Архитектор обязан устранить). DESIRE: удержать секрет/разведать намерения другого. WORLD: не-телепатические стены уже есть (recall-фильтр, мембраны слуха, DM-редакция секретов) — они сохраняются. ACTIVITY: осторожный разговор (talk с SocialIntent.obtain_information) → Тень намекает (hint-реплика, не раскрытие) → Торнин отвечает уклончиво → давление тайны растёт. CONSEQUENCE: pressure накапливается; при угрозе/напуге — трещина (assess_secrets_under_pressure оживлён), частичное раскрытие через конфессиональный парсер; если игрок рядом — он слышит намёк (eavesdrop-канал 8.0 уже есть). Критерий приёмки: игрок, наблюдая диалог Торнин—Тень, чувствует подтекст, а после шантажа в бою — получает частичное признание; всё без LLM-скрипта — детерминированными актами и давлением.
+VIII. INTEGRATION OPTIONS
+Три варианта моста DESIRE/GOAL → MEANS → WORLD QUERY → AFFORDANCE CANDIDATES → ACTIVITY PLAN. Археология не выбирает архитектуру — она фиксирует точки интеграции, цену и последствия каждого варианта. Общая для всех вариантов константа: писатель один (single-writer), чтение — через существующие фазы TickOrchestrator, персистенция — scene_state + NPCState по образцу active_commitments, детерминизм — по контракту GC-00.
+8.1. Вариант A: DecisionHub выбирает абстрактную цель, ActivityResolver ищет средства
+DecisionHub остаётся object-agnostic по ADR-O-378 и поднимается на уровень желаний: новым входом становится DesireSet (давления без адресов). Победившее желание передаётся ActivityResolver (новый компонент) — он делает world query (источники еды, свободный стул, адресат просьбы), возвращает Activity-кандидатов с аффордансами, арбитр подтверждает, движение и исполнение — по существующим traversal/windup/TaskKind. Точки интеграции: Phase 0 (генерация desires) → Phase 5 (решение по желаниям вместо интентов-движений) → Phase 6 (материализация активности). Переиспользование: почти всё; новый код — резолвер и реестр MEANS. Последствия: граница ADR-O-378 соблюдена (DecisionHub не видит объектов, видит классы); риск — резолвер становится вторым мозгом, если перегрузить его стратегией; детерминизм проще всего (чистая функция запрос→кандидаты при фиксированном seed). Стоимость: средняя.
+8.2. Вариант B: GoalPlanner с мировыми аффордансами
+Классический планировщик: Desire → декомпозиция Goal → выбор Means по библиотеке планов с учётом живых аффордансов мира. Прямо запрещён внутренним вердиктом кодовой базы («фиктивный планировщик запрещён», tick_orchestrator.py:853) — Архитектор вправе пересмотреть запрет, но должен знать контекст: запрет принят после того, как планировщик раздулся и не сходился по детерминизму. Точки интеграции: те же фазы, плюс постоянный реестр планов. Переиспользование: TemporalSpec (критерии успеха), W2-резолвер (кандидаты действий), windup/TaskKind (исполнение). Последствия: максимальная выразительность (многошаговые планы: «деньги → продать → для этого → взять заказ»), но комбинаторный взрыв на пересечении 63 деятельностей × 6 NPC × 0.5с-тик, самый высокий риск недетерминизма и второй истины (план уплывает от факта). Стоимость: высокая.
+8.3. Вариант C: Role/Activity mediator между DecisionHub и миром
+Отдельный посредник (Role-Activity Broker): роль NPC разворачивается в каталог деятельностей (из атласа раздела V), Desire-давление выбирает деятельность из каталога, брокер разрешает цель в мире (world query), заключает Activity в существующий Commitment FSM (инерция, прерывание, возобновление бесплатно) и публикует исполнение через Phase 6. DecisionHub остаётся арбитром конкурирующих давлений (социальные события, угрозы) и больше не порождает MOVE-пустоту — движение становится побочным эффектом деятельности. Точки интеграции: Phase 0.6-стиль конвертер (по образцу сна) + Phase 5 (DecisionHub получает activity-контекст как модификаторы) + Phase 6 (исполнение) + Phase 9/10 (исходы и персистенция). Переиспользование: самое широкое — сон как каркас, коммитменты как носитель, workplace-теги и resolve_affordance как выбор места, RelationshipStore/эпистемика как каналы последствий. Последствия: роль впервые становится механикой (обязанности, полномочия, ответственность); риск — каталог авторский (но это и есть контент игры); детерминизм средний (брокер детерминирован, LLM только на речи). Стоимость: средняя, делимая на срезы VII.1–VII.5.
+Таблица 8.1. Сравнение вариантов
+Критерий
+A: Абстрактная цель + резолвер
+B: GoalPlanner
+C: Role/Activity mediator
+Соответствие ADR-O-378
+Полное (hub видит классы)
+Нарушается (planner видит мир)
+Полное (hub видит давления)
+Конфликт с внутренним запретом planner
+Нет
+Да — нужно пересматривать вердикт
+Нет
+Переиспользование
+Высокое
+Среднее
+Максимальное (сон+коммитменты)
+Риск второй истины
+Низкий
+Высокий
+Низкий (SSOT в реестре)
+Комбинаторика
+Умеренная
+Взрывная
+Умеренная (каталог по ролям)
+Детерминизм
+Легко
+Трудно
+Средне
+Путь к самообучению NPC
+Через веса desires
+Через перепланирование
+Через веса desires + статистику деятельностей
+Стоимость
+Средняя
+Высокая
+Средняя, делимая
+8.4. Точки интеграции в коде (общие для всех вариантов)
+Таблица 8.2. Координаты врезания
+Точка
+Файл / фаза
+Что происходит
+Генерация desires
+Phase 0: life_engine.tick → DesireGenerator
+нужды/роли/биографии → DesireSet; LifeEngine сохраняет владение расписанием, NeedEngine — модификатором
+Выбор деятельности
+Phase 5: npc_tick_pipeline перед DecisionHub
+desire-давления → кандидат деятельности (по варианту A/B/C); DecisionHub арбитрирует события поверх деятельности
+Резолв цели
+ActivityResolver (новый) + SpatialService
+world query: источники/объекты/персоны → WorldTarget; использует resolve_affordance и workplace-теги
+Заключение в носитель
+CommitmentRegistry + Arbiter
+Activity = commitment нового вида; инерция, прерывание, персист бесплатно
+Исполнение действий
+Phase 6-7: TaskScheduler + WindupGate + FSM объектов
+take/give/consume/sit — оживление WorldObjectStore.apply_transition; executor для TaskKind.EAT
+Фиксация исхода
+Phase 9: CFRM/ObservationSubscriber + Phase 10 commit
+Outcome → StateDeltaProposal → свидетели/память; scene_state: active_activities
+Видимость
+R3 direct builder + focus_renderer
+строка деятельности в DM-блок (оживление get_activity_description); длительные иконки/поза
+Каналы эскалации
+warn/intimidate/call_for_help + адресность
+PROTECT-срез: TRESPASSED-предикат, evict-директива NPC→игрок
+8.5. Карта оживления: мёртвый орган → срез → точка включения
+Сводная карта связывает три плоскости ТЗ: список спящих органов (3.2), вертикальные срезы (VII) и точки врезания. Правило реализации: срез считается закрытым, когда все «его» органы переведены из DEAD/SHADOW в WIRED и сдвинули метрики таблицы 2.1. Это защищает от главного исторического сбоя ENIGMA — строительства рядом вместо включения.
+Таблица 8.3. Органы → срезы
+Спящий орган
+Срез
+Точка включения
+TaskKind.EAT executor + TemporalSpec(eat) + ConsumptionResolver
+EAT
+Phase 6 executor + success-predicate
+Object FSM (take/place), спавн bar/bed/table
+EAT / WORK
+_EDITOR_TYPE_TO_ARCHETYPE + apply_transition writer
+Sleep lifecycle (референс, работает)
+SLEEP
+без изменений — образец конвертера
+Транзакционный контур из _archive (по контракту AUDIT #6)
+WORK
+Post-Phase 5: trade.resolve(economic_intents) → DeltaBuffer
+get_activity_description + R3-блок занятости
+все
+r3_direct_builder + verbalization
+COMBAT_CAPABLE_ROLES (подвести current_role в L2)
+PROTECT
+npc_loader.load_l2_state_from_runtime_dict
+Zone owner + TRESPASSED-предикат + evict-директива
+PROTECT
+zone-JSON + decision-вход + исходящий directive
+assess_secrets_under_pressure + get_unfulfilled_contracts
+SOCIAL
+вызовы из Phase 5/6 при desire secret/debt
+recalled_facts / suppressed_secrets в prepared_prompt
+SOCIAL
+один блок рендера в post_decision
+SocialEngine модификаторы (case .lower()) — jealousy/protect/debt-lever
+SOCIAL / PROTECT
+decision_hub.apply_modifiers
+REPORT/HELP вербализация
+SOCIAL
+_VERBAL_INTENTS + fast-path тексты
+village_relations notes → wards[]/employer
+PROTECT / SOCIAL
+npc_loader._enrich_with_social_relations
+Сверка known_by ↔ truth_state (двойная истина долга)
+SOCIAL
+загрузочный reconcile
+SQLite narrative_cache (убрать перезатирание)
+все
+npc_tick_pipeline.py:230 — сохранить override
+Археологическая пометка без выбора: данные разделов II–V слабее всего противоречат варианту C (роль уже разворачивается в workplace-теги и activity_map; сон уже реализует конвертер; коммитменты уже держат инерцию), но окончательное решение — зона ответственности Архитектора, включая возможный гибрид A+C.
+IX. RISKS
+Таблица 9.1. Карта рисков
+Риск
+Чем подтверждён уже
+Митигция
+Второй источник истины (DOUBLE TRUTH)
+Уже горело: hp/max_hp конфликт (Торнин 40 vs унаследованные 110); known_by долга противоречит truth_state (Торнин vs Торнин+Тень); goal удалён именно из-за DOUBLE TRUTH
+Одна сущность — один писатель; новые структуры ссылаются на конфиг/narrative_cache, не копируют; миграционная сверка known_by ↔ truth_state до старта
+Новая система поверх старой
+150k строк с историей захоронений (AUDIT #6, ExpectationStore, WorldTickEngine)
+Правило: сначала включить спящее (таблица 3.2), потом добавлять; каждый срез VII должен уменьшать список DEAD, а не расти рядом с ним
+Комбинаторный взрыв
+63 деятельности × 6 NPC × 0.5с тик; WorldTickEngine закрыт именно за это
+Каталог по ролям (вариант C), LOD-тики для дальних локаций (уже есть tick_fully=False), desire-квоты на NPC в тик
+LLM-зависимость
+DM NARRATIVE падал «все модели пула недоступны» (4×); кэш LLM 0% (53 903 промаха); 41 сбой суммаризации
+Деятельность — детерминированная; LLM только вербализация; fast-path реплики как у warn; graceful degradation на ambient-фразы
+Производительность
+Тики ~0.5с уже близко к бюджету; 105 решений на окно 15с
+Деятельность заменяет дрожь (меньше решений/тик); world query кэшируется на тик; профилирование до мержа
+Replay determinism
+GC-00 доказал детерминизм чистого старта; любой новый источник случайности ломает повтор
+RNG только через инжектируемый rng; seeded world query; activity-реестр в scene_state реплеится как commitments
+Ownership / multiwriter
+Фронт пушит полный scene_state назад (риск B1.4); зеркала коммитментов env-гейтятся
+Писатель деятельности один (broker/реестр); фронт — read-only по этим ключам; WriteGate-паттерн как у отношений
+Персистенция сейвов
+Существующие сейвы не знают новых структур
+Ленивая миграция: activity-реестр создаётся пустым при загрузке старого сейва; version-тег в scene_state
+Ловушка shadow-mode
+Коммитменты годами жили с флагами OFF; W2/G2 спят
+Каждый срез обязан включать свой enforcement-флаг в dev-профиле и иметь приёмку в логах (метрика из таблицы 2.1 должна сдвинуться)
+Самообучение без предохранителей
+Требование мутабельности desires/preferences открывает дрейф характера
+Лимиты мутации за сессию; provenance-аудит; learned-изменения подчиняются core_orientation как якорю личности
+9.1. Анти-паттерны (уроки археологии)
+Строить рядом вместо включения. Аудит #6, ExpectationStore, WorldTickEngine, W2 — пять захоронений, созданных параллельно с живой системой. Новое принимается только вместе с включением/удалением старого.
+Флаги вместо решений. Коммитменты годами жили с OFF-флагами и считались «готовыми». Статус WIRED присваивается только при включённом принуждении в dev-профиле.
+Скаляр вместо объекта. hunger, desire, attraction, goal — четыре истории одного урока: число без subject/target не порождает поведения.
+Проза вместо структуры. backstory доходит до LLM, но долг Торнина не читает ни один скор. Проза — для голоса; решениям нужны факты.
+LLM-first. Падение пула NARRATIVE уронит видимость деятельности, если она реализована промптами. Деятельность — детерминирована; LLM — только произношение.
+Двойная правда. known_by против truth_state, hp против body_profile, routine.current против факта места. Одна сущность — один писатель; сверка при загрузке.
+9.2. Пороги приёмки
+Метрика (таблица 2.1)
+База
+Порог приёмки
+Действие при нарушении
+Пустые прибытия
+25.9%
+≤10%
+срез не закрывается; разрыв в ACTIVITY→OUTCOME
+Пинг-понг пары зон
+×79
+≤×5 на смену деятельности
+инерция/арбитраж не держат — проверять носитель Activity
+Видимость деятельности в R3
+0 упоминаний
+≥1 строка на фокус-NPC
+канал в r3_direct_builder не подключён
+Мирные NPC с ambush
+62 за сессию
+0
+current_role не дошёл до гейта
+Сатисфакция подстрокой
+вся еда
+0 случаев
+Outcome-писатель не заменяет label-reset
+Органы DEAD из таблицы 3.2
+19
+≤6 после всех срезов
+карта оживления не выполнена
+X. ARCHITECT'S DESIGN QUESTIONS
+Вопросы, на которые Архитектор обязан ответить до первой строки кода. Каждый вопрос снабжён археологическим контекстом, чтобы ответ давался на фактах, а не на вкусе.
+10.1. Ядро: деятельность и её состояние
+Где живёт Activity? Предложено три дома (раздел VIII); критерий выбора — единственный писатель и минимальный конфликт с ADR-O-378. Ответ должен назвать файл, фазу тика и ключ scene_state.
+Кто владеет её состоянием между тиками? Прецедент: windup_registry/active_traversals/active_commitments живут в scene_state с персистой Phase 10. Нужен ли отдельный active_activities, или четвёртый реестр — признак болезни?
+Как Activity переживает тик? Intent амнезиак (to_persistence_dict не содержит intent) — это объявлено главным дефектом воли. Что персистит ActivityState: elapsed, resume_token, interruption_policy — и как это проходит атомарный коммит?
+Кто имеет право прервать Activity? Статическая шкала приоритетов (EXPLORATION=1…WINDOWED=7) не читает срочность потребностей. Должен ли прерывающий вес вычисляться из urgency desire, и где живёт цена прерывания (stub vs abandon)?
+Как фиксируется success? TemporalSpec «eat» с критерием цели написан и мёртв. Критерий успеха деятельности — predicate в Goal или код executor'а? Кто пишет факт успеха — исполнитель или наблюдатель?
+10.2. Мир: цели, аффордансы, последствия
+Как Desire получает объектный target? SpatialTargetType без OBJECT; activity_map знает только зоны. Кто делает world query (продюсер desires? резолвер? брокер?) и с каким кэшем?
+Как мир сообщает об аффордансах? W2 производит и выбрасывает; O-330 извлекает forge/work и не отдаёт никому. Единый читаемый реестр аффордансов или запрос к WorldObjectStore на резолве цели? Что происходит с запретом ADR-O-378?
+Как consequence становится world fact? DeltaGate/StateApplicator готовы; activity-исходы (порция съедена, дверь заперта, монеты переданы) — это StateDeltaProposal нового вида или события? Как witnessing по LOS доезжает до эпистемики (прецедент — кража)?
+Как это попадает в perception и память? Наблюдатель должен получить деятельность, а не перемещение. Расширение EventContext, отдельный ACTIVITY_OBSERVED, или переиспользование ObservationSubscriber? Как событие становится воспоминанием с target-привязкой (recall)?
+Что видит DM и HUD? get_activity_description мёртв; verbalization слепа. Минимальный канал: R3-блок «занят: подаёт эль Горану» — кто его заполняет и в какой фазе?
+10.3. Идентичность, желания, изменяемость
+Кто создаёт Desire? Два несвязанных источника потребностей (LifeEngine и NeedEngine) уже порождают двойную правду. Единый генератор desires в Phase 0 поглощает оба, или needs остаются источником, а NeedEngine — модификатором?
+Как роль становится обязанностями и полномочиями? IdentityContext: откуда берутся territory/wards/income — новые поля конфига или читатели существующих (village_relations notes, factions, status_profile)? Кто reconcil'ит конфликт known_by ↔ truth_state?
+Какие предпочтения и откуда? preferences отсутствуют во всех конфигах. Минимальный набор (bed/place/food/person/method/risk) вводится авторским сидом с provenance=authored — и какие из них уже выводимы из существующих данных без автора?
+Как Desire/Preference изменяются со временем? Требование изменяемости: decay по времени, подкрепление успехом, гашение провалом. Где живёт история изменений и её бюджет (лимиты мутации за сессию, якорь core_orientation)?
+Какой минимальный механизм обучения закладывается сейчас? NPC должны сами себя учить в будущем. Достаточно ли provenance+weights+learned_from в схеме, чтобы поздний learner (статистика исходов → веса средств) стал надстройкой без миграции данных? Что запрещено менять в рантайме без автора (личность? секреты? биография?)
+Что входит в MVP-контракт срезов VII? Принять или оспорить: EAT/WORK/PROTECT/SOCIAL обязаны сдвинуть метрики таблицы 2.1 (пустые прибытия ≤10%, пинг-понг ≤×5, видимость деятельности в R3), а SLEEP остаётся референсом. Какая из пяти связок таблицы 3.2 входит в первый срез обязательным оживлением?
+10.4. Формат ответа Архитектора
+Ответы принимаются в формате короткого ADR-комплекта: на каждый вопрос — решение, альтернативы, последствия, затронутые файлы и фазы тика, impacted-строки таблиц 2.1/3.2 (какие метрики сдвинутся и какие мёртвые органы оживут). Дополнительно: выбранная точка интеграции из раздела VIII (или обоснованный гибрид), порядок реализации срезов VII и минимальный план включения enforcement-флагов. Отдельным пунктом — позиция по мутабельности: какие поля desires/preferences разрешено менять в рантайме с первого дня, что резервируется под будущего learner, что навсегда остаётся авторским.
+Финальный критерий успеха всей работы сформулирован в брифе и повторяется здесь как приёмочное суждение: игрок должен увидеть не «hunger = 0.56», а «Торнин прекращает разговор, идёт к кухне, не находит еды, раздражается, меняет план и решает купить продукты» — как результат связки IDENTITY + NEED + DESIRE + WORLD STATE + PREFERENCES + AFFORDANCES + ACTIVITY + CONSEQUENCES, воспроизводимую, детерминируемую и наблюдаемую в логах. Каждый ответ Архитектора проверяется одним движением: делает ли он эту фразу ближе без нового источника истины.

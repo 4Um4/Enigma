@@ -136,7 +136,7 @@ def load_content_policy(settings: Any) -> ContentPolicy:
 def _save_content_section(path: Path, policy: ContentPolicy, reason: str = "user_action") -> None:
     """Сохраняет секцию content в user_settings.yaml."""
     if not path.exists():
-        data = {}
+        data: dict[str, Any] = {}
     else:
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -161,7 +161,7 @@ def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
         policy = ContentPolicy.preset_explicit()
 
     if not path.exists():
-        data = {}
+        data: dict[str, Any] = {}
     else:
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

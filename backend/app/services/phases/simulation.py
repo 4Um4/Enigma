@@ -69,6 +69,16 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             f"[TICK_ORCH] Фаза 0: {len(changes)} cognitive changes от LifeEngine"
         )
 
+    # Living Activity (шаги 2+4): продюсер желаний + конвертер деятельностей
+    # ВНУТРИ Фазы 0, ДО Гейта① — MOVE-шаги деятельностей едут существующим
+    # рельсом; цель конфликта решает арбитр, не шум скоринга (В4).
+    orchestrator._update_npc_desires(ctx)
+    from app.services.npc.activity_lifecycle_service import run_activity_lifecycle
+
+    _activity_goals = run_activity_lifecycle(ctx, orchestrator)
+    if _activity_goals:
+        life_intents = list(life_intents or []) + list(_activity_goals)
+
     # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
     # Намерения расписания обрабатываются через MovementEngine, порождая TraversalState.
     if life_intents:

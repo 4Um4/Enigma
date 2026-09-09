@@ -1458,6 +1458,48 @@
         "wall_id": "wall_1"
       },
       "wall_id": "wall_1"
+    },
+    {
+      "type": "food_portion",
+      "id": "obj_42",
+      "position": {
+        "x": 4.2,
+        "y": 5.4
+      },
+      "properties": {},
+      "size": {
+        "w": 0.4,
+        "h": 0.4,
+        "d": 0.5
+      }
+    },
+    {
+      "type": "food_portion",
+      "id": "obj_43",
+      "position": {
+        "x": 4.8,
+        "y": 5.5
+      },
+      "properties": {},
+      "size": {
+        "w": 0.4,
+        "h": 0.4,
+        "d": 0.5
+      }
+    },
+    {
+      "type": "food_portion",
+      "id": "obj_44",
+      "position": {
+        "x": 5.4,
+        "y": 5.4
+      },
+      "properties": {},
+      "size": {
+        "w": 0.4,
+        "h": 0.4,
+        "d": 0.5
+      }
     }
   ],
   "portals": [

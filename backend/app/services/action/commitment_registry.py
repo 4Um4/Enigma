@@ -521,6 +521,44 @@ class CommitmentRegistry:
                 )
 
     @staticmethod
+    def reconcile_activity_ownership(
+        scene_state: Dict[str, Any], npcs: list, tick: int
+    ) -> None:
+        """Living Activity (шаг 4, D-3-паттерн сна): факт деятельности без
+        владельца → activity-зеркало; деятельность ушла → COMPLETED;
+        NPC исчез → INTERRUPTED(ACTIVITY_VANISHED). Идемпотентно."""
+        if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
+            return
+        _alive = set()
+        for _npc in npcs or []:
+            _nid = _npc.get("npc_id") or _npc.get("id") or ""
+            if not _nid:
+                continue
+            _alive.add(_nid)
+            if (_npc.get("body_state", {}) or {}).get("life_status") == "DEAD":
+                continue
+            _has = isinstance(_npc.get("activity_state"), dict)
+            _cm = CommitmentRegistry.get_active(scene_state, _nid)
+            if _has:
+                if _cm is None:
+                    _atype = str(
+                        (_npc.get("activity_state") or {}).get("activity_type", "activity")
+                    ).upper()
+                    _created = CommitmentRegistry._commit_nonsuperseding(
+                        scene_state, tick, _nid, action=_atype,
+                        cause="activity:lifecycle", executor="activity",
+                    )
+                    if _created is not None:
+                        # Деятельность = born-EXECUTING (делает СЕЙЧАС)
+                        CommitmentRegistry.mark_executing(scene_state, _nid, tick)
+            elif _cm is not None and _cm.get("executor") == "activity":
+                CommitmentRegistry.complete(scene_state, _nid, tick)
+        for _nid, _cm in list((scene_state.get(_KEY_ACTIVE) or {}).items()):
+            if _cm.get("executor") == "activity" and _nid not in _alive:
+                CommitmentRegistry.interrupt(
+                    scene_state, _nid, tick, "ACTIVITY_VANISHED")
+
+    @staticmethod
     def mirror_traversal_interrupted(
         scene_state: Dict[str, Any], npc_id: str, tick: int, interrupt_reason: str
     ) -> None:

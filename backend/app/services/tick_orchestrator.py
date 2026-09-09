@@ -1469,6 +1469,18 @@ class TickOrchestrator:
 
         # Тело метода удалено. Логика перенесена в phases/simulation.py
 
+    def _update_npc_desires(self, ctx: "_TickContext") -> None:
+        """Living Activity (шаг 2): Фаза 0 — продюсер DesireSet (G2-паттерн).
+
+        DESIRES_ENABLED (default OFF) = байт-идентичный no-op; отказ
+        продюсера = деградация канала, не тика. Desires — персистентный
+        L2.8-слой (npc["desires"]), не L3-эффективные драйвы: имеют
+        born_tick/last_fulfilled/weight и переживают тики.
+        """
+        from app.services.npc.desire_generator import update_all
+
+        update_all(ctx.all_npcs_raw, ctx.tick_number)
+
     def _phase_0_6_sleep_lifecycle(self, ctx: _TickContext) -> None:
         """Фаза 0.6: Sleep lifecycle — обновление sleep depth, recovery, wake checks.
         Вынесено из LifeEngine для чистоты пайплайна и поддержки BUG-SLEEP-012.
