@@ -105,3 +105,8 @@ class EventType(str, Enum):
 
     # ── S201: Social Act Materialization ─────────────────────────────────
     SOCIAL_ACTION = "social_action"  # Канонический канал социальных событий
+
+    # ── Living Activity (мини-ADR #3, класс ADR-O-349): исход деятельности —
+    # observation-only; эмиттер activity_lifecycle_service._publish_outcome.
+    # Проводка в память NPC (подписка MemoryManager) — открытый пункт среза.
+    ACTIVITY_OUTCOME = "activity_outcome"

@@ -980,6 +980,10 @@ class NPCState:
         # Идентичность — без этого from_legacy в следующем тике получит "unknown"
         npc_dict["npc_id"] = state.npc_id
         npc_dict["id"] = state.npc_id
+        # Living Activity (R1): роль переживает round-trip (§12.2 WARA —
+        # from_legacy читает, to_persistence_dict обязан писать)
+        if state.current_role:
+            npc_dict["current_role"] = state.current_role
 
         # ADR-139: drives_runtime → npc_dict["drives"] (serialization mirror).
         # Write authority = state.drives_runtime. npc_dict = projection only.
@@ -1251,6 +1255,16 @@ class NPCStateAdapter:
             # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
             emotion=_emotion_from_str(npc_dict.get("emotion", "neutral")),
             emotion_delta=float(npc_dict.get("emotion_delta", 0.0)),
+            # Living Activity (R1-фикс, инвариант ROLE_AUTHORITATIVE):
+            # рантайм-роль первая (RoleTransition пишет при смене),
+            # status_profile.title — фолбэк рождения. Без этого гейт
+            # COMBAT_CAPABLE_ROLES всегда видел пустую роль («пустая =
+            # не блокируем») — 62 ambush Торнина за сессию.
+            current_role=str(
+                npc_dict.get("current_role", "")
+                or (npc_dict.get("status_profile") or {}).get("title", "")
+                or ""
+            ),
         )
 
 

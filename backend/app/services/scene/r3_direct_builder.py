@@ -211,6 +211,33 @@ def build_r3_dm_frame(
             f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context"
         )
 
+    # Living Activity (шаг 6): наблюдаемая занятость → SceneContinuity (DM).
+    # Канал: npc_positions[nid]["activity"] — проекция ФАКТА деятельности
+    # (пишет конвертер через SceneChange; насыщение — терминалом, Шаг 5).
+    # Гейт флагами: OFF = байт-идентично (гарантия отката).
+    try:
+        from app.services.npc.activity_lifecycle_service import (
+            living_activity_owns_needs,
+        )
+        _la_on = living_activity_owns_needs()
+    except ImportError as exc:
+        logger.debug(f"[R3] activity module unavailable: {exc}")
+        _la_on = False
+    if _la_on:
+        _ACTIVITY_PHRASES = {
+            "eating": "ест",
+            "sleeping": "спит",
+            "working": "работает",
+            "resting": "отдыхает",
+            "drinking": "пьёт",
+        }
+        for _nid, _npos in (_npc_pos or {}).items():
+            _label = str(_npos.get("activity", "") or "")
+            if _label:
+                _name = _id_to_name.get(_nid, _nid)
+                _phrase = _ACTIVITY_PHRASES.get(_label, _label)
+                _cont.add_event(f"{_name}: {_phrase}")
+
     # ШАГ 0.5: MicroEvents → SceneContinuity флаги/события
     for ctx in _filtered_ctxs:
         for me in ctx.get("micro_events", []):

@@ -20,13 +20,14 @@ import math
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.domain.activity import ActivityState, ActivityStep, StepKind
+from app.domain.activity import ActivityState, ActivityStep, ActivityType, StepKind
 from app.domain.desire import Desire
 from app.domain.movement import IntentDomain, MacroMovementGoal, PRIORITY_NEEDS
 from app.domain.semantic_action import WorldActionType
 from app.domain.world_object import ObjectRelationKind, WorldObject
 from app.models.spatial_contracts import NodeRole
 from app.services.npc.activity_catalog import ACTIVITY_CATALOG, _SPEC_BY_TYPE
+from app.services.scene_change import ChangeType, SceneChange
 from app.services.world.affordance_resolver import AffordanceResolver, effective_state
 from app.services.world.world_object_store import WorldObjectStore
 
@@ -39,6 +40,29 @@ _ONSET_URGENCY: float = 0.5
 # Таймаут без прогресса — честный FAILURE-исход: желание продолжает давить,
 # плохая раскладка контента ловится, а не затыкается
 _ACTIVITY_TIMEOUT_TICKS: int = 60
+
+# Проекция факта в наблюдаемый ярлык: HUD/R3 читают npc_positions.activity
+# (сон-канал: wake пишет field="activity" той же фабрикой SceneChange).
+# Ярлык — ПРОЕКЦИЯ, насыщение пишет только терминал (Шаг 5).
+_ACTIVITY_DISPLAY_LABEL = {ActivityType.EAT: "eating"}
+
+
+def _emit_label_change(ctx: Any, orchestrator: Any, npc_id: str, label: str) -> None:
+    """Наблюдаемая занятость → npc_positions.activity (сон-прецедент)."""
+    try:
+        _change = SceneChange(
+            type=ChangeType.NPC_POSITION,
+            target=npc_id,
+            field="activity",
+            value=label,
+            cause="activity_lifecycle",
+        )
+        orchestrator._apply_with_shadow_observation(
+            ctx, [_change], phase_label="ACTIVITY_LIFECYCLE"
+        )
+    except Exception as exc:
+        # Деградация канала видимости, не тика (G2 D5); L4: громко
+        logger.warning(f"[ACTIVITY] label emit fault {npc_id}: {exc}")
 
 
 def _activity_enabled() -> bool:
@@ -195,6 +219,7 @@ def _terminate(
             if isinstance(_d, dict) and _d.get("desire_id") == state.desire_id:
                 _d["last_fulfilled_tick"] = _tick
     npc.pop("activity_state", None)
+    _emit_label_change(ctx, orchestrator, _nid, "")
     _publish_outcome(orchestrator, _nid, state, success, reason, _tick)
     logger.info(
         f"[ACTIVITY] {_nid}: {state.activity_type.value} terminal "
@@ -449,6 +474,12 @@ def _onset_for_desire(
         interruption_policy=spec.interruption_policy,
     )
     npc["activity_state"] = _state.to_dict()
+    _emit_label_change(
+        ctx,
+        orchestrator,
+        _nid,
+        _ACTIVITY_DISPLAY_LABEL.get(spec.activity_type, spec.activity_type.value),
+    )
     logger.info(
         f"[ACTIVITY] {_nid}: onset {spec.activity_type.value} "
         f"desire={desire.desire_id} target={_obj.object_id} node={_node_id}"
