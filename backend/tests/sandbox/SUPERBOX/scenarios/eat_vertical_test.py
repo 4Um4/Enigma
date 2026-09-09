@@ -94,12 +94,15 @@ def _quiet():
     logging.basicConfig(level=logging.WARNING)
     for _name in (
         "app.services.llm.router",
+        "app.services.llm.provider_manager",
         "app.services.llm.llama_cpp_provider",
         "app.services.game_loop.task_scheduler",
+        "app.services.execution.dialogue_queue",
         "app.services.memory",
         "app.services.npc.npc_tick_pipeline",
     ):
         logging.getLogger(_name).setLevel(logging.CRITICAL)
+    logging.getLogger().setLevel(logging.CRITICAL)  # root: R4A-воркеры
 
 
 def main() -> int:
@@ -176,12 +179,19 @@ def main() -> int:
 
     # Движение доказано сменой позиций (терминал → расписание легально
     # двигает дальше; финальная позиция ≠ позиция прибытия)
+    _step0_target = (
+        _activity_seen[0]["steps"][0]["target_ref"] if _activity_seen else ""
+    )
+    print(f"[E5-DIAG] step0.target={_step0_target!r}")
+    # Движение мог исполнить и расписанный транзит (арбитр отдал ему
+    # приоритет) — конвертер оппортунистичен: прибытие = W2-adjacency,
+    # не «мой транзит». Цель шага обязана указывать на bar-зону.
     e5 = (
         bool(_activity_seen)
-        and _activity_seen[0]["steps"][0]["target_ref"] == "bar_area"
+        and "bar_area" in str(_step0_target)
         and len(set(_positions_seen)) >= 2
     )
-    print(f"[E5] MOVE по рельсу (цель bar_area; позиции="
+    print(f"[E5] MOVE (цель {_step0_target}; позиции="
           f"{sorted(set(_positions_seen))}) — {'✅' if e5 else '❌'}")
 
     e6 = any(h == TORNIN for _, h in _holder_seen)
@@ -221,6 +231,13 @@ def main() -> int:
     os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = ""
     os.environ["DESIRES_ENABLED"] = ""
     settings.saves_dir = tempfile.mkdtemp(prefix="eat_slice_ctrl_")
+    # LifeEngine — процесс-глобальный синглтон: кэш кампаний (TTL 1ч)
+    # переживает пересборку GameLoop — без сброса world2 читает словари
+    # мира 1 (урок харнесса: engine-state-ассерты в control-мирах
+    # требуют reset_life_engine; горан не попадал — не читал engine)
+    from app.services.npc.life_engine import reset_life_engine
+
+    reset_life_engine()
     world2 = types.SimpleNamespace(game_loop=build_game_loop(Path(settings.data_dir)))
     _tick(world2)
     _t2 = _states_map(world2).get(TORNIN) or {}
