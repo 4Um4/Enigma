@@ -7,7 +7,7 @@
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from app.domain.embodied_trace import EmbodiedTraceDTO, PlayerPerceptionDTO
 from app.domain.snapshot import AvatarStateDTO
@@ -22,7 +22,7 @@ class PhenomenologyProjectionService:
     """
 
     def project(
-        self, traces: list[EmbodiedTraceDTO], scene_state: dict, tick: int, observed_facts: list[str] = None,
+        self, traces: list[EmbodiedTraceDTO], scene_state: dict, tick: int, observed_facts: Optional[list[str]] = None,
         avatar_state: Optional[AvatarStateDTO] = None
     ) -> PlayerPerceptionDTO:
         cues = []

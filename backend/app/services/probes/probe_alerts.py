@@ -5,19 +5,22 @@
 """
 import logging
 from collections import deque
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 class ProbeAlertManager:
     """In-memory singleton для хранения истории проб."""
-    _instance = None
+    _instance: Optional["ProbeAlertManager"] = None
+    _history: deque
+    _violations: Dict[str, int]
 
-    def __new__(cls):
+    def __new__(cls) -> "ProbeAlertManager":
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._history = deque(maxlen=100)
-            cls._instance._violations = {}
+            _instance = super().__new__(cls)
+            _instance._history = deque(maxlen=100)
+            _instance._violations = {}
+            cls._instance = _instance
         return cls._instance
 
     def record_results(self, tick_id: int, results: List[Any]) -> None:
@@ -30,7 +33,7 @@ class ProbeAlertManager:
             "warnings": [r.details for r in results if not r.passed and r.severity == "WARN"]
         }
         self._history.append(_tick_summary)
-        
+
         # Считаем топ нарушителей
         for r in results:
             if not r.passed:
@@ -41,10 +44,10 @@ class ProbeAlertManager:
         _history_list = list(self._history)
         _total_ticks = len(_history_list)
         _total_errors = sum(t["failed"] for t in _history_list)
-        
+
         # Топ-5 нарушителей
         _top_violators = sorted(self._violations.items(), key=lambda x: x[1], reverse=True)[:5]
-        
+
         return {
             "total_ticks_recorded": _total_ticks,
             "total_failed_probes": _total_errors,

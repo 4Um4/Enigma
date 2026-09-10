@@ -34,7 +34,7 @@ class ExpectationStore:
         self._cache: Dict[Tuple[str, str], Expectation] = {}
         self._init_db()
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         try:
             conn = sqlite3.connect(self._db_path)
             conn.execute("""
@@ -98,7 +98,7 @@ class ExpectationStore:
 
     def update_expectation(
         self, npc_id: str, source_id: str, actual_reward: float, actual_threat: float
-    ):
+    ) -> None:
         key = (npc_id, source_id)
         exp = self.get_expectation(npc_id, source_id)
 

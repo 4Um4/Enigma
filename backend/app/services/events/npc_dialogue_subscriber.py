@@ -22,7 +22,7 @@ from app.services.memory.intelligence_queue import (
 logger = logging.getLogger(__name__)
 
 
-class NpcDialogueSubscriber:    
+class NpcDialogueSubscriber:
     """Слушает NPC_SPOKE события и замыкает цикл восприятия для NPC-NPC диалогов.
 
     Для canonical реплик — полная обработка:
@@ -102,7 +102,22 @@ class NpcDialogueSubscriber:
                             _player_pos.get("x", 0.0) - _speaker_pos.get("x", 0.0),
                             _player_pos.get("y", 0.0) - _speaker_pos.get("y", 0.0)
                         )
-                if _dist_to_player < 8.0 and is_canonical:
+                # Р-Г (GC-DIALOGUE-01): порог журнала игрока — из event.radius
+                # (SpeechExposure SSOT, Р-В): whisper 3 / normal 6 / loud 10 /
+                # shout 15 / private 0 — вместо хардкода 8.0 (S128). Фоллбек 8.0
+                # сохранён как fail-open-паритет с Р-Б2: dict-события без radius
+                # и битые значения (999-дефолт ADR-148, NaN, вне лестницы) не
+                # меняют сегодняшнее поведение и не раздувают журнал на сцену.
+                # Локальный импорт — прецедент файла (math, PerceptualKernel).
+                from app.domain.communication import exposure_radius
+                _evt_radius = getattr(event, "radius", None)
+                _journal_threshold = 8.0  # легаси-порог S128 (fail-open)
+                if (
+                    isinstance(_evt_radius, (int, float))
+                    and 0.0 <= float(_evt_radius) <= exposure_radius("shout")
+                ):
+                    _journal_threshold = float(_evt_radius)
+                if _dist_to_player < _journal_threshold and is_canonical:
                     self._avatar_service.append_journal(
                         campaign_id=_campaign_id, speaker=speaker, text=text
                     )

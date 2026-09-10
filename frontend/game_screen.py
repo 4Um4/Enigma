@@ -23,10 +23,7 @@ logger = logging.getLogger(__name__)
 from constants import (  # noqa: E402
     COLOR_DEATH_SUB,
     COLOR_DEATH_TITLE,
-    COLOR_JOURNAL_TITLE,
     COLOR_MANIFEST_DEFAULT,
-    COLOR_NARRATOR,
-    COLOR_NPC_NAME,
     COLOR_TEXT_DARK,
     COLOR_TEXT_DEFAULT,
     COLOR_TEXT_MUTED,
@@ -47,9 +44,9 @@ from game_types import (  # noqa: E402
     PlayerFocus,
 )
 from i18n import t  # noqa: E402
+from keybindings import get_key, load_keybinds  # noqa: E402
 from scene_renderer import SceneRenderer  # noqa: E402
 from text_input import TextInput  # noqa: E402
-from keybindings import load_keybinds, get_key  # noqa: E402
 
 
 def _clean_dm_response(text: str) -> str:
@@ -253,16 +250,18 @@ def _build_perceived_scene(
 # A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
 # Плавная интерполяция между DTO-снимками — отдельная задача
 from api_client import ActionQueue, create_game_gateway  # noqa: E402
-from end_screen_renderer import EndScreenRenderer  # noqa: E402
 
 # Тайминги опроса backend из constants.py (frontend-side)
 from constants import (  # noqa: E402
+    DIALOGUE_FOCUS_MIN_INTERVAL_MS,
+    DIALOGUE_FOCUS_SPEEDUP,
     IDLE_TICK_FAR_MS,
     IDLE_TICK_MID_MS,
     IDLE_TICK_MID_RADIUS,
     IDLE_TICK_NEAR_MS,
     IDLE_TICK_NEAR_RADIUS,
 )
+from end_screen_renderer import EndScreenRenderer  # noqa: E402
 from i18n import activity_ru, manifest_color  # noqa: E402
 
 _SAVES_DIR = Path(__file__).resolve().parents[1] / "saves"
@@ -1259,18 +1258,27 @@ class GameScreen:
                 )
                 logger.debug(f"[TELEGRAPH] event-driven: {_telegraph_text}")
 
-            # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
+            # Фаза 2.1 — distance-based интервал + TAB Dialogue Focus (GC-DIALOGUE-01/§8)
             _now = pygame.time.get_ticks()
-            if not text_input.focused:
-                # WASD: чат не в фокусе → NPC двигаются по расстоянию
-                _nearest = _nearest_npc_distance(scene_state)
-                # Ускорение: делим интервал на time_scale (минимум 500мс чтобы не DDOSить бэкенд)
+            # TAB Dialogue Focus: режим внимания, НЕ режим симуляции. Базовый
+            # интервал доктрины «близость NPC → частый тик» считается всегда;
+            # фокус ввода диалога (TAB) сжимает его ×4 — мир живёт В разговоре,
+            # а не замирает (фриз 30с удалён: «NPC стоят» противоречил «фокусу
+            # внимания на живом мире», §8). Ядро, тики, RNG и их последовательность
+            # не тронуты (ADR-O-344/§14): FE лишь чаще вызывает idle_tick —
+            # реплей-детерминизм инвариантен pacing'у.
+            _nearest = _nearest_npc_distance(scene_state)
+            # Ускорение: делим интервал на time_scale (минимум 500мс чтобы не DDOSить бэкенд)
+            _tick_interval = max(
+                500, _idle_tick_interval_ms(_nearest) // _time_scale
+            )
+            if text_input.focused:
+                # ×4 внимания: NEAR 500→125 (floor 125 = не чаще 8 тик/с),
+                # MID 1500→375, FAR 3000→750
                 _tick_interval = max(
-                    500, _idle_tick_interval_ms(_nearest) // _time_scale
+                    DIALOGUE_FOCUS_MIN_INTERVAL_MS,
+                    _tick_interval // DIALOGUE_FOCUS_SPEEDUP,
                 )
-            else:
-                # Диалог: NPC стоят и разговаривают, не "летают" по комнате
-                _tick_interval = 30_000
             # Запускаем новый idle_tick если пора и предыдущий завершён
             if (
                 _now - _last_idle_tick >= _tick_interval

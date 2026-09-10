@@ -21,7 +21,8 @@ if rng.random() < 0.4: # deterministic for (42, "maid_lusya")
 
 import hashlib
 import random
-from typing import List, Any
+from typing import Any, List, Optional
+
 
 class KernelRNG:
     """
@@ -66,7 +67,7 @@ class KernelRNG:
         """Return [0.0, 1.0) — deterministic for (tick, npc_id)."""
         return self._rng.random()
 
-    def choice(self, seq):
+    def choice(self, seq: List[Any]) -> Any:
         """Choose random element from seq — deterministic."""
         return self._rng.choice(seq)
 
@@ -74,7 +75,7 @@ class KernelRNG:
         """Return [a, b) — deterministic."""
         return self._rng.uniform(a, b)
 
-    def choices(self, seq, weights=None, k: int = 1):
+    def choices(self, seq: List[Any], weights: Optional[List[float]] = None, k: int = 1) -> List[Any]:
         """Choose k elements — deterministic."""
         return self._rng.choices(seq, weights=weights, k=k)
 

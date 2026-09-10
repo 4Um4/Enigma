@@ -67,10 +67,10 @@ class RulesDelta:
     success: bool = False
     dc: int = 0
     roll: int = 0
-    checks: List[Any] = None  # Read-only metadata для DM-агента (post-state)
+    checks: Optional[List[Any]] = None  # Read-only metadata для DM-агента (post-state)
     money_delta: float = 0.0  # БАГ 5 FIX: Дельта денег для TRADE/GIVE_MONEY
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.checks is None:
             object.__setattr__(self, "checks", [])
 

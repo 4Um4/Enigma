@@ -13,7 +13,7 @@ path: /frontend/constants.py
 # ─── Версия проекта ────────────────────────────────────────────────
 # Единственное место во frontend, где версия задаётся явно.
 # Истина: backend/pyproject.toml (строка 7). Здесь дублируется для UI.
-PROJECT_VERSION: str = "v0.5.3.9.9"
+PROJECT_VERSION: str = "v0.5.4.0.0"
 
 # Тайминги опроса backend в зависимости от расстояния до ближайшего NPC
 IDLE_TICK_NEAR_MS: int = 500
@@ -21,6 +21,12 @@ IDLE_TICK_MID_MS: int = 1_500
 IDLE_TICK_FAR_MS: int = 3_000
 IDLE_TICK_NEAR_RADIUS: float = 5.0
 IDLE_TICK_MID_RADIUS: float = 15.0
+# TAB Dialogue Focus (×4) — GC-DIALOGUE-01 / §8: интервал опроса тика при
+# фокусе диалогового ввода (TAB) делится на 4 — режим внимания, НЕ режим
+# симуляции. Floor 125 = NEAR 500 // 4: не чаще 8 тик/с (DDOS-защита бэкенда
+# сохранена, пере-калибрована под фокус).
+DIALOGUE_FOCUS_SPEEDUP: int = 4
+DIALOGUE_FOCUS_MIN_INTERVAL_MS: int = 125
 
 # Игровое время: секунды за метр ходьбы внутри помещения
 TIME_DELTA_WALK_INDOOR: int = 10

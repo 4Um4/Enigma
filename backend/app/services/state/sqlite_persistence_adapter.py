@@ -29,7 +29,7 @@ import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from app.services.state.persistence_port import PersistencePort
 
@@ -200,8 +200,8 @@ class SqlitePersistenceAdapter(PersistencePort):
         """Дополнение Б: shim для legacy-кода. Возвращает "default" сцену, если она есть, иначе первую попавшуюся."""
         _default_scene = self._select(f"scene:{campaign_id}:default")
         if _default_scene:
-            return _default_scene
-            
+            return cast(Dict[str, Any], _default_scene)
+
         # Ищем любую сцену этой кампании
         _all_scenes = self.load_all_scenes(campaign_id)
         if _all_scenes:
@@ -210,7 +210,7 @@ class SqlitePersistenceAdapter(PersistencePort):
 
     def load_scene_at(self, campaign_id: str, location_id: str) -> Dict[str, Any] | None:
         """Загружает состояние конкретной локации."""
-        return self._select(f"scene:{campaign_id}:{location_id}")
+        return cast(Optional[Dict[str, Any]], self._select(f"scene:{campaign_id}:{location_id}"))
 
     def load_all_scenes(self, campaign_id: str) -> Dict[str, Dict[str, Any]]:
         """Загружает все локации кампании."""

@@ -9,7 +9,7 @@ path: backend/app/services/drf_bus.py
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +19,10 @@ class DRFBus:
     Системы пишут сюда претензии (emit), наблюдатель читает и схлопывает (drain).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.stream: list[dict] = []
 
-    def emit(self, claim: dict):
+    def emit(self, claim: dict) -> None:
         self.stream.append(claim)
 
     def drain(self) -> list[dict]:
@@ -39,14 +39,14 @@ class DRFExecutionContext:
     """
 
     tick_id: int
-    bus: Any  # DRFBus — разделяемая шина тика
+    bus: "DRFBus"  # разделяемая шина тика
     npc_id: Optional[str] = None  # None = frame-level (pre-loop)
 
     def for_npc(self, npc_id: str) -> "DRFExecutionContext":
         """Создаёт scoped контекст для конкретного NPC (тот же bus, тот же tick)."""
         return DRFExecutionContext(tick_id=self.tick_id, npc_id=npc_id, bus=self.bus)
 
-    def emit(self, claim: dict):
+    def emit(self, claim: dict) -> None:
         """Испускает претензию с авто-привязкой npc_id и tick_id."""
         _enriched = {**claim}
         if self.npc_id and "target_npc" not in _enriched:

@@ -9,7 +9,7 @@ path: /backend/app/services/memory/dialogue_session.py
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 
 @dataclass
@@ -66,7 +66,7 @@ class DialogueSession:
     open_questions: List[OpenQuestion] = field(default_factory=list)
 
     # Legacy / Этап 5
-    _pressure_by_topic: dict = field(default_factory=dict)
+    _pressure_by_topic: dict[str, int] = field(default_factory=dict)
     last_pressure_type: str = ""
     emotional_markers: List[str] = field(default_factory=list)
 
@@ -175,13 +175,13 @@ class DialogueSession:
         summary_parts = [f"Диалог с {self.partner_id} ({len(self.buffer)} реплик)"]
         if self.topic:
             summary_parts.append(f"Тема: {self.topic}")
-        
+
         # Включаем последние 2-3 реплики в summary для контекста
         if self.buffer:
             _recent_turns = self.buffer[-3:]
             _turns_text = "; ".join(f"{t.speaker}: {t.text}" for t in _recent_turns)
             summary_parts.append(f"Последние реплики: {_turns_text}")
-            
+
         if self.claims:
             open = [c for c in self.claims if c.status == "open"]
             if open:

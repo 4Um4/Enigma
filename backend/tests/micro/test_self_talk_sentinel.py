@@ -180,3 +180,84 @@ def test_membrane_near_public_listener_processes():
     assert len(mem.turns) == 1
     assert len(rel.calls) == 1
     assert len(chron.commits) == 1
+
+
+# ---------------------------------------------------------------------------
+# Р-Г (GC-DIALOGUE-01): честный журнал — порог подслушивания из event.radius
+# (SpeechExposure SSOT, Р-В), не хардкод 8.0. Замок: фикс без этих проверок
+# не переживает регресс батареи.
+# ---------------------------------------------------------------------------
+
+
+def _make_sub_with_player_dist(player_dist: float, rel, mem, chron, avatar):
+    # Р-Г: стаб с настраиваемой дистанцией игрока до спикера (спикер в тестах
+    # этого файла — thief_shadow); distance/_npc_positions сохранены, чтобы
+    # мембрана адресата оставалась в контуре (S198-паритет)
+    return NpcDialogueSubscriber(
+        memory_manager=mem,
+        relationship_store=rel,
+        avatar_service=avatar,
+        spatial_query_provider=lambda: SimpleNamespace(
+            player_distances=lambda ids: {"thief_shadow": player_dist},
+            distance=lambda a, b: 25.0,
+            _npc_positions={"thief_shadow": {}, "guard_borko": {}},
+        ),
+        campaign_id_provider=lambda: "test_campaign",
+        l1_chronicle=chron,
+        tick_provider=lambda: 7,
+    )
+
+
+def test_journal_whisper_radius_gates_eavesdrop():
+    # Р-Г: whisper (radius 3.0) с 5.0 м — хардкод 8.0 журналил (баг Р-Г),
+    # SSOT запрещает: слышно только вплотную
+    rel, mem, chron, avatar = _SpyRelationships(), _SpyMemory(), _SpyChronicle(), _SpyAvatar()
+    sub = _make_sub_with_player_dist(5.0, rel, mem, chron, avatar)
+
+    sub.on_npc_spoke(_dto_evt("guard_borko", "whisper", 3.0))
+
+    assert avatar.journal == [], "Р-Г: whisper за пределами 3.0 м не журналируется"
+
+
+def test_journal_shout_reaches_beyond_legacy_threshold():
+    # Р-Г: shout-класс (radius 15.0) с 12.0 м — хардкод резал потолок,
+    # SSOT расширяет: крик физически слышим дальше 8.0 м
+    rel, mem, chron, avatar = _SpyRelationships(), _SpyMemory(), _SpyChronicle(), _SpyAvatar()
+    sub = _make_sub_with_player_dist(12.0, rel, mem, chron, avatar)
+
+    sub.on_npc_spoke(_dto_evt("guard_borko", "public", 15.0))
+
+    assert len(avatar.journal) == 1, "Р-Г: shout слышен на 12.0 м"
+
+
+def test_journal_private_never_eavesdropped():
+    # Р-Г: private (radius 0.0) — внутренняя когниция не экстернализована:
+    # даже вплотную (0.5 м) журнал глух
+    rel, mem, chron, avatar = _SpyRelationships(), _SpyMemory(), _SpyChronicle(), _SpyAvatar()
+    sub = _make_sub_with_player_dist(0.5, rel, mem, chron, avatar)
+
+    sub.on_npc_spoke(_dto_evt("guard_borko", "private", 0.0))
+
+    assert avatar.journal == [], "Р-Г: private не слышим ни на какой дистанции"
+
+
+def test_journal_radius_999_falls_back_not_scene_wide():
+    # Р-Г/D5: 999-дефолт EventDTO.create (ADR-148) не раздувает журнал на всю
+    # сцену — валидити-гард уводит на легаси-фоллбек 8.0
+    rel, mem, chron, avatar = _SpyRelationships(), _SpyMemory(), _SpyChronicle(), _SpyAvatar()
+    sub = _make_sub_with_player_dist(50.0, rel, mem, chron, avatar)
+
+    sub.on_npc_spoke(_dto_evt("guard_borko", "public", 999.0))
+
+    assert avatar.journal == [], "Р-Г: 999 не пробивает журнал (фоллбек 8.0)"
+
+
+def test_journal_dict_event_fail_open_legacy():
+    # Р-Г: dict-событие без radius — fail-open по легаси-порогу 8.0
+    # (паритет с Р-Б2: dict-контракт слышит как раньше)
+    rel, mem, chron, avatar = _SpyRelationships(), _SpyMemory(), _SpyChronicle(), _SpyAvatar()
+    sub = _make_sub_with_player_dist(2.0, rel, mem, chron, avatar)
+
+    sub.on_npc_spoke(_evt("guard_borko"))
+
+    assert len(avatar.journal) == 1, "Р-Г: fail-open — dict-событие слышит по легаси-порогу"

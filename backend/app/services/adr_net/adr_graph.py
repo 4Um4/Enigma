@@ -5,20 +5,21 @@ path: /project/backend/app/services/adr_net/adr_graph.py
 Зависимости: networkx, app.services.adr_net.adr_parser
 Основные сущности: ADRGraphBuilder
 
-Запуск: 
+Запуск:
 """
 import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Optional
+
 import networkx as nx
-from app.services.adr_net.adr_parser import run_parser, ADRNode
+from app.services.adr_net.adr_parser import ADRNode, run_parser
 
 logger = logging.getLogger(__name__)
 
 class ADRGraphBuilder:
     """Строит направленный граф зависимостей ADR."""
 
-    def __init__(self, audits_dir: str = None, master_index: str = None):
+    def __init__(self, audits_dir: Optional[str] = None, master_index: Optional[str] = None):
         # Вычисляем корень проекта (на 4 уровня выше: adr_graph.py -> adr_net -> services -> app -> backend -> ROOT)
         _root = Path(__file__).resolve().parents[4]
         self.audits_dir = audits_dir or str(_root / "docs" / "audits")
@@ -28,7 +29,7 @@ class ADRGraphBuilder:
     def build(self) -> nx.MultiDiGraph:
         """Парсит данные и строит граф."""
         parsed_data = run_parser(self.audits_dir, self.master_index)
-        
+
         # run_parser может возвращать как {adr_id: node}, так и {"nodes": [...]}
         if isinstance(parsed_data, dict):
             # Если значения — это ADRNode
@@ -38,7 +39,7 @@ class ADRGraphBuilder:
                 nodes = parsed_data.get("nodes", [])
         else:
             nodes = []
-        
+
         # 1. Добавляем узлы ADR
         for node in nodes:
             self.graph.add_node(
@@ -49,7 +50,7 @@ class ADRGraphBuilder:
                 domain=node.domain,
                 laws=node.laws
             )
-            
+
             # Добавляем файлы как отдельные узлы и связи IMPLEMENTS
             for file_path in node.files:
                 file_node_id = f"FILE:{file_path}"
@@ -69,23 +70,23 @@ class ADRGraphBuilder:
 
     def get_impact(self, file_path: str) -> List[str]:
         """Возвращает список ADR, которые зависят от указанного файла.
-        
+
         Поддерживает поиск как по полному пути, так и по короткому имени (basename).
         """
         from pathlib import Path
         target_basename = Path(file_path).name
-        
+
         impacted_adrs = []
         # Ищем все узлы-файлы, которые совпадают по имени
         for node in self.graph.nodes:
             if self.graph.nodes[node].get("node_type") == "FILE":
                 stored_path = self.graph.nodes[node].get("path", "")
                 stored_basename = Path(stored_path).name
-                
+
                 if stored_path == file_path or stored_basename == target_basename:
                     # Нашли файл. Ищем все ADR, которые IMPLEMENTS этот файл
                     for predecessor in self.graph.predecessors(node):
                         if self.graph.nodes[predecessor].get("node_type") == "ADR":
                             impacted_adrs.append(predecessor)
-                            
+
         return list(set(impacted_adrs)) # Убираем дубликаты

@@ -12,7 +12,7 @@ JsonPersistenceAdapter — JSON реализация PersistencePort.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from app.services.state.persistence_port import PersistencePort
 
@@ -56,12 +56,12 @@ class JsonPersistenceAdapter(PersistencePort):
             if campaign_file.exists():
                 with open(campaign_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-            
+
             if "scenes" not in data:
                 data["scenes"] = {}
-            
+
             data["scenes"][location_id] = scene_state
-            
+
             with open(campaign_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.debug(f"[PERSISTENCE] Scene saved: {campaign_id}:{location_id}")
@@ -76,7 +76,7 @@ class JsonPersistenceAdapter(PersistencePort):
         try:
             with open(campaign_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return data.get("scenes", {}).get(location_id)
+            return cast(Optional[Dict[str, Any]], data.get("scenes", {}).get(location_id))
         except (OSError, json.JSONDecodeError) as e:
             logger.error(f"[PERSISTENCE] Error loading scene_at: {e}")
             return None
@@ -89,7 +89,7 @@ class JsonPersistenceAdapter(PersistencePort):
         try:
             with open(campaign_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return data.get("scenes", {})
+            return cast(Dict[str, Dict[str, Any]], data.get("scenes", {}))
         except (OSError, json.JSONDecodeError) as e:
             logger.error(f"[PERSISTENCE] Error loading all scenes: {e}")
             return {}
@@ -151,7 +151,7 @@ class JsonPersistenceAdapter(PersistencePort):
             return None
         try:
             with open(runtime_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return cast(Optional[List[Dict[str, Any]]], json.load(f))
         except (OSError, json.JSONDecodeError) as e:
             logger.error(f"[PERSISTENCE] Error loading NPC runtime: {e}")
             return None

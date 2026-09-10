@@ -10,9 +10,9 @@ LLM получает build_combat_context() и только нарративит
 
 import json
 import random
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
 from app.core.clock import get_clock
 from app.core.log_gate import file_logs_enabled
 
@@ -25,7 +25,7 @@ _LOG_DIR.mkdir(parents=True, exist_ok=True)
 _COMBAT_LOG = _LOG_DIR / "combat_log.jsonl"
 
 
-def _log_roll(description: str, rolls: Any, total: int, context: Dict = None) -> None:
+def _log_roll(description: str, rolls: Any, total: int, context: Optional[Dict] = None) -> None:
     # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл молчит.
     if not file_logs_enabled():
         return
@@ -190,7 +190,7 @@ def attack_roll(
     target: Dict,
     advantage: bool = False,
     disadvantage: bool = False,
-    env_conditions: List[str] = None,
+    env_conditions: Optional[List[str]] = None,
     rng: Optional[random.Random] = None,
 ) -> AttackResult:
     """
@@ -311,14 +311,14 @@ def apply_damage(target: Dict, damage: int) -> Dict:
     body = target.setdefault("body_state", {})
     before = body.get("current_hp", target.get("hp", 0))  # Fallback на legacy hp для старых сейвов
     body["current_hp"] = max(0, before - damage)
-    
+
     if body["current_hp"] <= 0:
         # ADR-123: life_status — единственный источник истины о смерти
         body["life_status"] = "DEAD"
         target["status"] = (
             "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
         )
-        
+
     _log_event(
         "damage_applied",
         {
@@ -345,14 +345,14 @@ def apply_healing(target: Dict, amount: int) -> Dict:
             f"[COMBAT] apply_healing skipped for DEAD npc={target.get('id', target.get('name', '?'))}"
         )
         return {"hp_before": body.get("current_hp", 0), "hp_after": body.get("current_hp", 0)}
-        
+
     max_hp = body.get("max_hp", target.get("max_hp", body.get("current_hp", 0)))
     before = body.get("current_hp", target.get("hp", 0))
     body["current_hp"] = min(max_hp, before + amount)
-    
+
     if body["current_hp"] > 0:
         target["status"] = "alive"
-        
+
     _log_event(
         "healing_applied",
         {
@@ -476,7 +476,7 @@ class CombatGrid:
     Позволяет DM говорить 'гоблин зашёл тебе за спину'.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.positions: Dict[str, Tuple[int, int]] = {}
 
     def place(self, name: str, x: int, y: int) -> None:
@@ -523,8 +523,8 @@ class CombatGrid:
 def build_combat_context(
     attack: AttackResult,
     target: Dict,
-    grid: CombatGrid = None,
-    conditions: List[str] = None,
+    grid: Optional[CombatGrid] = None,
+    conditions: Optional[List[str]] = None,
 ) -> Dict:
     """
     Готовый контекст — DM агент получает это и только нарративит.

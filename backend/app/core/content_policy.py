@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, cast
 
 import yaml
 
@@ -182,4 +182,4 @@ def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
     path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
 
     # Принудительно перезагружаем кэш в настройках
-    return settings.reload_content_policy()
+    return cast(ContentPolicy, settings.reload_content_policy())

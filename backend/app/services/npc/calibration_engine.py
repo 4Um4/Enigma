@@ -9,7 +9,7 @@ path: backend/app/services/npc/calibration_engine.py
 Архитектурная роль: НЕ трансформер. НЕ интерпретатор. ONLY phase lock gate.
 """
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from app.domain.identity_events import EffectiveDrives
 
@@ -34,7 +34,7 @@ class CalibrationEngine:
         l3_raw: EffectiveDrives,
         l3_prev: Dict[str, float],
         l0_baseline: Dict[str, float],
-        strain_memory: Dict[str, float] = None,
+        strain_memory: Optional[Dict[str, float]] = None,
         tick_delta: int = 1,
     ) -> Tuple[EffectiveDrives, Dict[str, float], Dict[str, float]]:
         """

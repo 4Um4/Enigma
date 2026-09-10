@@ -37,10 +37,10 @@ def _shape_drive(drive: float) -> float:
     # Нелинейность: power curve с центром на NEUTRAL_DRIVE
     if d > NEUTRAL_DRIVE:
         excess = (d - NEUTRAL_DRIVE) / (1.0 - NEUTRAL_DRIVE)
-        return NEUTRAL_DRIVE + (1.0 - NEUTRAL_DRIVE) * (excess ** (1.0 / POWER_ALPHA))
+        return float(NEUTRAL_DRIVE + (1.0 - NEUTRAL_DRIVE) * (excess ** (1.0 / POWER_ALPHA)))
     elif d < NEUTRAL_DRIVE:
         deficit = (NEUTRAL_DRIVE - d) / NEUTRAL_DRIVE
-        return NEUTRAL_DRIVE * (1.0 - deficit**POWER_ALPHA)
+        return float(NEUTRAL_DRIVE * (1.0 - deficit**POWER_ALPHA))
     else:
         return NEUTRAL_DRIVE
 

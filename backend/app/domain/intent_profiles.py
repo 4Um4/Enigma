@@ -1,11 +1,11 @@
 """S199.2: Семантическая классификация интентов для обхода ADR-O-342.
- 
+
 Классифицирует интенты по трём осям:
 - requires_dialogue_context: нужен ли контекст диалога (STM)
 - requires_llm_materialization: нужна ли LLM для генерации текста
 - produces_claim: порождает ли интент EpistemicClaim
 """
-from typing import Dict, Any
+from typing import Any, Dict
 
 INTENT_PROFILES: Dict[str, Dict[str, Any]] = {
     "talk": {"requires_dialogue_context": True, "requires_llm": True, "produces_claim": False},
@@ -26,11 +26,11 @@ INTENT_PROFILES: Dict[str, Dict[str, Any]] = {
 }
 
 def requires_dialogue_context(intent_type: str) -> bool:
-    return INTENT_PROFILES.get(intent_type, {}).get("requires_dialogue_context", True)
+    return bool(INTENT_PROFILES.get(intent_type, {}).get("requires_dialogue_context", True))
 
 def requires_llm_materialization(intent_type: str) -> bool:
-    return INTENT_PROFILES.get(intent_type, {}).get("requires_llm", True)
+    return bool(INTENT_PROFILES.get(intent_type, {}).get("requires_llm", True))
 
 def produces_claim(intent_type: str) -> bool:
     """S216 (027.1): Возвращает True, если интент порождает EpistemicClaim (canonical)."""
-    return INTENT_PROFILES.get(intent_type, {}).get("produces_claim", False)
+    return bool(INTENT_PROFILES.get(intent_type, {}).get("produces_claim", False))
