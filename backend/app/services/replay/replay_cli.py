@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 from pathlib import Path
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="ENIGMA Replay CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

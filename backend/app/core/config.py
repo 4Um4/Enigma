@@ -8,7 +8,7 @@
 
 import sys
 from pathlib import Path
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.core.content_policy import ContentPolicy
@@ -103,14 +103,14 @@ class Settings(BaseSettings):
                     self._gpu_layers_cache = self.gpu_layers
             else:
                 self._gpu_layers_cache = self.gpu_layers
-        return self._gpu_layers_cache
+        return int(self._gpu_layers_cache)
 
     @property
     def content_policy(self) -> "ContentPolicy":
         """Кэшированная политика контента. Загружается при первом обращении."""
         if not hasattr(self, "_content_policy_cache") or self._content_policy_cache is None:
             from app.core.content_policy import load_content_policy
-            self._content_policy_cache = load_content_policy(self)
+            self._content_policy_cache: "ContentPolicy" = load_content_policy(self)
         return self._content_policy_cache
 
     def reload_content_policy(self) -> "ContentPolicy":
@@ -177,11 +177,11 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def ensure_log_dir(self):
+    def ensure_log_dir(self) -> "Settings":
         self.log_dir.mkdir(parents=True, exist_ok=True)
         return self
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         # VRAM бюджет для RTX 3070 Ti (8192 MB):
@@ -220,7 +220,7 @@ class Settings(BaseSettings):
 
     def get_context_for_agent(self, agent_name: str) -> int:
         """Бюджет контекста для агента (не больше ctx_size модели)."""
-        ctx_map = {
+        ctx_map: Dict[str, int] = {
             "dm": 3072,  # DM: SceneState + python_engines + история
             "npc": 1536,  # NPC: один персонаж, диалог
             "rules": 1024,  # Rules: точность важнее длины
@@ -242,8 +242,8 @@ class Settings(BaseSettings):
     def check_llm_servers_health(self) -> Dict[str, bool]:
         import urllib.request
 
-        results = {}
-        checked_ports = set()
+        results: Dict[str, bool] = {}
+        checked_ports: set[str] = set()
         for agent_name, cfg in self.llm_servers.items():
             host = cfg.get("host", "localhost")
             port = cfg.get("port", "8080")
@@ -265,17 +265,17 @@ class Settings(BaseSettings):
 # ErrorInterpreter (legacy)
 # ─────────────────────────────────────────────────────────────────────────────
 class ErrorInterpreter:
-    def __init__(self):
+    def __init__(self) -> None:
         self.log_file = Path("logs/startup_errors.jsonl")
         self.log_file.parent.mkdir(exist_ok=True, parents=True)
 
-    def log_exception(self, exc: Exception):
+    def log_exception(self, exc: Exception) -> str:
         human_msg = f"{type(exc).__name__}: {exc}"
         with self.log_file.open("a", encoding="utf-8") as f:
             f.write(human_msg + "\n")
         return human_msg
 
-    def simulate_startup_error(self):
+    def simulate_startup_error(self) -> None:
         exc = RuntimeError("Simulated startup error")
         self.log_exception(exc)
         raise exc

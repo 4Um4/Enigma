@@ -73,7 +73,7 @@ class RelationshipStore:
             self._evict_if_needed()
             return self._cache[campaign_id]
 
-    def _evict_if_needed(self):
+    def _evict_if_needed(self) -> None:
         while len(self._cache) > self.MAX_CACHE_SIZE:
             oldest = next(iter(self._cache))
             del self._cache[oldest]

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 """
 Назначение: Сервис для трансформации латентных ограничений NPC в наблюдаемые моторные паттерны, которые могут быть восприняты Игроком. (Переводит казуальные ограничения в физические следы. Не читает эмоции. Только тело.)
@@ -15,7 +15,7 @@ from app.domain.embodied_trace import EmbodiedTraceDTO
 logger = logging.getLogger(__name__)
 
 
-def _safe_get(d, *keys, default=0.0):
+def _safe_get(d: Any, *keys: str, default: float = 0.0) -> float:
     current = d
     for key in keys:
         if current is None:
@@ -105,7 +105,7 @@ class BehaviorManifestationService:
 
         return gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt
 
-    def produce_traces(self, scene_state, all_npcs_raw=None) -> list[EmbodiedTraceDTO]:
+    def produce_traces(self, scene_state: Dict[str, Any], all_npcs_raw: Optional[List[Dict[str, Any]]] = None) -> list[EmbodiedTraceDTO]:
         traces: list[EmbodiedTraceDTO] = []
         if not scene_state or not isinstance(scene_state, dict):
             return traces
@@ -147,7 +147,7 @@ class BehaviorManifestationService:
         return traces
 
     def _manifest_npc(
-        self, npc_id: str, data: Dict[str, Any], body_state: Dict[str, Any] = None, psyche: Dict[str, Any] = None
+        self, npc_id: str, data: Dict[str, Any], body_state: Optional[Dict[str, Any]] = None, psyche: Optional[Dict[str, Any]] = None
     ) -> EmbodiedTraceDTO:
         # Rule X (ADR-101/112): Моторика определяется строго физиологией и PerceptualKernel
         # НЕ телепатия: мы не читаем "NPC боится", мы наблюдаем дрожь рук и напряжённую позу

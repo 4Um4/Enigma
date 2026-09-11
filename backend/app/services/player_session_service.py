@@ -24,7 +24,7 @@ class PlayerSessionService:
     Single Source of Truth - backend хранит состояние сессий.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Словарь: {campaign_id: PlayerSession}
         # Только ОДИН активный игрок на кампанию!
         self._sessions: Dict[str, PlayerSession] = {}
@@ -192,7 +192,7 @@ class PlayerSessionService:
             )
             return session
 
-    def is_player_active(self, campaign_id: str, player_name: str = None) -> bool:
+    def is_player_active(self, campaign_id: str, player_name: Optional[str] = None) -> bool:
         """
         Проверить, активен ли игрок.
         Игрок считается активным если:

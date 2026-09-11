@@ -65,7 +65,7 @@ class SocialEngine:
     DEFAULT_REVERSE_NATURE: str = "acquaintance"
 
     # Какие event_type считаются негативными
-    NEGATIVE_EVENTS: Set[str] = frozenset(
+    NEGATIVE_EVENTS: set[str] = frozenset(
         {
             "player_attacks",
             "player_insults",
@@ -77,7 +77,7 @@ class SocialEngine:
     )
 
     # Дополнительные propagatable события (не негативные, но достойные слухов)
-    EXTRA_PROPAGATABLE: Set[str] = frozenset(
+    EXTRA_PROPAGATABLE: set[str] = frozenset(
         {
             "player_helpers",
             "npc_role_changed",

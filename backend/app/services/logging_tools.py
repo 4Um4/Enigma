@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from app.core.config import settings
 from app.core.log_gate import file_logs_enabled
@@ -11,7 +12,7 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "enigma_audit.jsonl"
 
 
-def jsonl_log(entry: dict):
+def jsonl_log(entry: dict[str, Any]) -> None:
     """Простейший логгер в JSONL. Append-only, без ротации."""
     # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл молчит.
     if not file_logs_enabled():

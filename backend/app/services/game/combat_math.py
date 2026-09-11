@@ -11,7 +11,8 @@ LLM получает build_combat_context() и только нарративит
 import json
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
+from types import ModuleType
 
 from app.core.clock import get_clock
 from app.core.log_gate import file_logs_enabled
@@ -55,7 +56,7 @@ def _log_event(event: str, data: Dict) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def roll(n: int, sides: int, rng: Optional[random.Random] = None) -> Tuple[List[int], int]:
+def roll(n: int, sides: int, rng: Optional[Union[random.Random, ModuleType]] = None) -> Tuple[List[int], int]:
     """Бросить NdM. Возвращает (список бросков, сумма)."""
     _rng = rng or random
     results = [_rng.randint(1, sides) for _ in range(n)]
@@ -64,7 +65,7 @@ def roll(n: int, sides: int, rng: Optional[random.Random] = None) -> Tuple[List[
     return results, total
 
 
-def roll_advantage(sides: int = 20, rng: Optional[random.Random] = None) -> Tuple[int, int, int]:
+def roll_advantage(sides: int = 20, rng: Optional[Union[random.Random, ModuleType]] = None) -> Tuple[int, int, int]:
     """Бросок с преимуществом. Возвращает (r1, r2, max)."""
     _rng = rng or random
     r1, r2 = _rng.randint(1, sides), _rng.randint(1, sides)
@@ -73,7 +74,7 @@ def roll_advantage(sides: int = 20, rng: Optional[random.Random] = None) -> Tupl
     return r1, r2, result
 
 
-def roll_disadvantage(sides: int = 20, rng: Optional[random.Random] = None) -> Tuple[int, int, int]:
+def roll_disadvantage(sides: int = 20, rng: Optional[Union[random.Random, ModuleType]] = None) -> Tuple[int, int, int]:
     """Бросок с помехой. Возвращает (r1, r2, min)."""
     _rng = rng or random
     r1, r2 = _rng.randint(1, sides), _rng.randint(1, sides)
@@ -253,7 +254,7 @@ def attack_roll(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False, rng: Optional[random.Random] = None) -> Dict:
+def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False, rng: Optional[Union[random.Random, ModuleType]] = None) -> Dict:
     """
     Бросок урона.
     При критическом — удваиваются кубики (не бонус).

@@ -168,8 +168,8 @@ class EconomyTracker:
                 ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float("inf")
             )
             needs_status = {
-                nt.value: f"{n.effective_urgency:.2f}"
-                for nt, n in ep.get_needs_dict().items()
+                need.need_type.value: f"{need.effective_urgency:.2f}"
+                for need in ep.base_needs
             }
 
             snapshot.append(

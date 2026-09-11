@@ -6,7 +6,7 @@
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 class DialogueConsolidator:
     """Создаёт текст summary из законченной DialogueSession для EventMemory."""
     
-    def __init__(self, llm_client=None):
+    def __init__(self, llm_client: Optional[Any] = None) -> None:
         self._llm = llm_client
     
-    def consolidate(self, session) -> Optional[str]:
+    def consolidate(self, session: Any) -> Optional[str]:
         """Возвращает текст summary для EventMemory.
         
         Пока работает без LLM (structural fallback).

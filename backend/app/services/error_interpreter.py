@@ -17,7 +17,7 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from app.core.config import settings
 
@@ -40,14 +40,14 @@ class ErrorInterpreter:
             cls._instance._init_logs()
         return cls._instance
 
-    def _init_logs(self):
-        self._log_entries: list[dict] = []
+    def _init_logs(self) -> None:
+        self._log_entries: list[dict[str, Any]] = []
         self._tail_lines = 50  # Analyze last N entries
 
     def handle(
         self,
         exc: Exception,
-        context: Dict[str, any] = None,
+        context: Optional[Dict[str, Any]] = None,
         agent: str = "unknown",
         model: str = "unknown",
     ) -> Tuple[str, str]:
@@ -119,7 +119,7 @@ class ErrorInterpreter:
         }
         return messages.get(error_code, f"❌ {agent.upper()} ({model}) ошибка.")
 
-    def _get_fix_recommendation(self, error_code: str, context: Dict) -> str:
+    def _get_fix_recommendation(self, error_code: str, context: Optional[Dict[str, Any]]) -> str:
         fixes = {
             "timeout": [
                 f"1. Проверьте llama-server: {settings.llama_cpp_server_url}/health",
@@ -154,7 +154,7 @@ class ErrorInterpreter:
         }
         return "\n".join(fixes.get(error_code, ["1. Проверьте логи data/logs/*.jsonl"]))
 
-    def _jsonl_log(self, entry: Dict):
+    def _jsonl_log(self, entry: Dict[str, Any]) -> None:
         """Append to daily JSONL log."""
         # LOG-GATE: при ENIGMA_DISABLE_FILE_LOGS=1 (тесты из git-хуков) файл
         # молчит, но in-memory tail продолжает наполняться (analyze/get_recent).
@@ -169,20 +169,20 @@ class ErrorInterpreter:
         except Exception:
             logger.error("Failed to write JSONL log")
 
-    def get_recent_logs(self, lines: int = 20) -> list[Dict]:
+    def get_recent_logs(self, lines: int = 20) -> list[Dict[str, Any]]:
         """Return tail of logs for /debug/logs-tail."""
         return self._log_entries[-lines:]
 
     def analyze_recent_errors(self) -> Dict[str, int]:
         """Count recent error_codes for dashboard."""
-        errors = {}
+        errors: Dict[str, int] = {}
         for entry in self._log_entries[-50:]:
             code = entry.get("error_code")
             if code:
                 errors[code] = errors.get(code, 0) + 1
         return errors
 
-    def simulate_startup_error(self):
+    def simulate_startup_error(self) -> None:
         try:
             raise Exception("Simulated startup error")
         except Exception as e:

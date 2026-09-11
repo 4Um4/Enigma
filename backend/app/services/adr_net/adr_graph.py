@@ -31,14 +31,13 @@ class ADRGraphBuilder:
         parsed_data = run_parser(self.audits_dir, self.master_index)
 
         # run_parser может возвращать как {adr_id: node}, так и {"nodes": [...]}
+        nodes: List[ADRNode] = []
         if isinstance(parsed_data, dict):
             # Если значения — это ADRNode
             if all(isinstance(v, ADRNode) for v in parsed_data.values()):
                 nodes = list(parsed_data.values())
             else:
                 nodes = parsed_data.get("nodes", [])
-        else:
-            nodes = []
 
         # 1. Добавляем узлы ADR
         for node in nodes:
