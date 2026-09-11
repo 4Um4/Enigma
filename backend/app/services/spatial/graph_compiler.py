@@ -124,6 +124,7 @@ def compile_graph(
                 tags=node_data.get("tags", []),
                 zone_id=location_id,
                 level=level,
+                owner=node_data.get("owner"),  # ADR-O-386: владение зоной (PROTECT)
             )
             graph[canonical_id] = node_ref
             alias_map[node_id] = canonical_id

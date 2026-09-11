@@ -170,6 +170,7 @@ class SqliteMemoryStore:
                 contract_ref TEXT DEFAULT '',
                 is_compressed INTEGER DEFAULT 0,
                 compressed_from_json TEXT DEFAULT '[]',
+                secret_id TEXT DEFAULT NULL,
                 created_at TEXT NOT NULL
             )
         """)
@@ -180,6 +181,25 @@ class SqliteMemoryStore:
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_event_memories_tags
             ON event_memories(campaign_id, npc_id, tags_json)
+        """)
+        # M1/P1 (ТЗ «Таверна тайн», git-бан): миграционный гвард для
+        # существующих БД — CREATE IF NOT EXISTS не расширяет живые таблицы;
+        # без колонки INSERT c secret_id падал бы на старых сейвах.
+        # Первый ALTER-прецедент проекта (fixed в дневнике M1).
+        _em_cols = {
+            _r[1] for _r in cur.execute("PRAGMA table_info(event_memories)").fetchall()
+        }
+        if "secret_id" not in _em_cols:
+            cur.execute(
+                "ALTER TABLE event_memories ADD COLUMN secret_id TEXT DEFAULT NULL"
+            )
+        # Индекс — СТРОГО после гварда: на старых БД колонка существует
+        # только после ALTER (урок smoke-прогона: индекс до гварда =
+        # OperationalError no such column). CREATE INDEX IF NOT EXISTS —
+        # идемпотентен для новых БД.
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_event_memories_secret
+            ON event_memories(campaign_id, secret_id)
         """)
         self._conn.commit()
 
@@ -419,8 +439,8 @@ class SqliteMemoryStore:
                         summary, day, importance, accessibility, clarity, confidence,
                         decay_rate, stage, sequence_id, tags_json, is_secret,
                         known_by_json, hidden_from_json, fulfilled, contract_ref,
-                        is_compressed, compressed_from_json, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        is_compressed, compressed_from_json, secret_id, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         mem_id,
                         d.get("npc_id", ""),
@@ -445,6 +465,7 @@ class SqliteMemoryStore:
                         d.get("contract_ref", ""),
                         int(d.get("is_compressed", False)),
                         json.dumps(list(compressed_from)),
+                        d.get("secret_id"),
                         datetime.now(timezone.utc).isoformat(),
                     ),
                 )
@@ -500,7 +521,7 @@ class SqliteMemoryStore:
                     # Закон 4.2.1: Откат всей транзакции при невалидных данных (None вместо dict)
                     if not isinstance(d, dict):
                         raise TypeError(f"Invalid memory data: expected dict, got {type(d)}")
-                    mem_id = f"{npc_id}_seq_{d.get('sequence_id', i)}"
+                    mem_id = f"{npc_id}_seq_{d.get('sequence_id', i)}_{i}"
                     tags = d.get("tags", ())
                     known_by = d.get("known_by", ())
                     hidden_from = d.get("hidden_from", ())
@@ -511,8 +532,8 @@ class SqliteMemoryStore:
                             summary, day, importance, accessibility, clarity, confidence,
                             decay_rate, stage, sequence_id, tags_json, is_secret,
                             known_by_json, hidden_from_json, fulfilled, contract_ref,
-                            is_compressed, compressed_from_json, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            is_compressed, compressed_from_json, secret_id, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             mem_id,
                             npc_id,
@@ -537,6 +558,7 @@ class SqliteMemoryStore:
                             d.get("contract_ref", ""),
                             int(d.get("is_compressed", False)),
                             json.dumps(list(compressed_from)),
+                            d.get("secret_id"),
                             datetime.now(timezone.utc).isoformat(),
                         ),
                     )

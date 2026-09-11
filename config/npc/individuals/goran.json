@@ -93,6 +93,7 @@
   "origin_events": [
     {
       "summary": "Месяц назад партия контрабандного шёлка перехвачена стражей. Ты потерял 300 золотых. Криминалы требуют вернуть втрое.",
+      "secret_id": "goran_contraband",
       "importance": 0.9,
       "tags": [
         "contraband",
@@ -114,6 +115,7 @@
     },
     {
       "summary": "Ты подкупал стражника на заставе два года. Знаешь его слабости.",
+      "secret_id": "goran_bribe",
       "importance": 0.7,
       "tags": [
         "corruption",

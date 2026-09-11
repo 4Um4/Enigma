@@ -237,6 +237,7 @@ class EventMemory:
     known_by: Tuple[str, ...] = ()  # кто знает (immutable для frozen)
     hidden_from: Tuple[str, ...] = ()  # от кого скрыто (immutable для frozen)
     accessibility: float = 1.0  # 0..1, падает со временем отдельно от importance
+    secret_id: Optional[str] = None  # M1/P1+P2: идентичность ФАКТА канона (не экземпляра памяти); (npc_id, secret_id) = отношение «знает»; один факт живёт во многих памятях (holders/поколения/хроника)
 
     # Этап 6: контракты и обязательства
     fulfilled: bool = False  # обещание выполнено / долг погашен
@@ -1168,7 +1169,6 @@ class NPCStateAdapter:
     def from_legacy(npc_dict: Dict[str, Any]) -> NPCState:
         """Создаёт NPCState из legacy npc dict."""
         psyche = npc_dict.get("psyche", {})
-        ss = npc_dict.get("social_stats", {})
 
         # ADR-139: drives_runtime — Restore Gate (Single Write Authority).
         # Вычисляем ДО return — нельзя присваивать внутри аргументов вызова.

@@ -1636,9 +1636,13 @@ class TickOrchestrator:
         if not ctx.old_npc_positions:
             return
         detector = SpatialEventDetector()
+        # ADR-O-386 (PROTECT): передаём детектору lookup владельцев из графа
+        # (нет сервиса — нет нарушений; флаг гейтится внутри детектора)
+        _territory_svc = self._resolve_spatial_service(ctx)
         if _spatial_events := detector.detect_and_publish(
             old_positions=ctx.old_npc_positions,
             new_scene_state=ctx.scene_state,
+            zone_owner=_territory_svc.zone_owner if _territory_svc else None,
         ):
             ctx.phase_2_events.extend(_spatial_events)
             logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")

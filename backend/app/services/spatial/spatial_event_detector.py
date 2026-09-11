@@ -18,12 +18,22 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, Tuple
+import os
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
+
+# ADR-O-386 (PROTECT): флаг канала (G2-паттерн): default OFF = детектор
+# не ищет нарушений территории (состав событий байт-идентичен легаси)
+_TERRITORY_ENV = "TERRITORY_ENABLED"
+
+
+def territory_enabled() -> bool:
+    """PROTECT-канал включён (env; шаг 4 переиспользует этот же флаг)."""
+    return os.environ.get(_TERRITORY_ENV, "").strip().lower() in ("1", "true", "yes", "on")
 
 # Порогы расстояния в метрах
 _PROXIMITY_CLOSE_THRESHOLD: float = 2.0  # ближе = "подошёл"
@@ -68,12 +78,15 @@ class SpatialEventDetector:
         self,
         old_positions: Dict[str, Tuple[float, float, str]],
         new_scene_state: Dict[str, Any],
+        zone_owner: Optional[Callable[[str], Optional[str]]] = None,
     ) -> list[EventDTO]:
         """Сравнивает позиции, публикует события через EventBus.
 
         Args:
             old_positions: снимок ДО тика (из _npc_positions_snapshot)
             new_scene_state: scene_state ПОСЛЕ применения изменений
+            zone_owner: ADR-O-386 — lookup node_id → владелец (npc_id | None);
+                None или TERRITORY_ENABLED=off → нарушения не ищутся (no-op)
 
         Returns:
             Список созданных EventDTO (для логов/тестов)
@@ -102,6 +115,30 @@ class SpatialEventDetector:
                 )
                 events.append(event)
                 logger.debug(f"[SPATIAL] {npc_id}: {old_node} → {new_node}")
+
+                # ADR-O-386 (PROTECT): не-владелец вошёл в owned-узел → TRESPASSED.
+                # Владелец в собственный узел — не нарушение; OFF или без lookup'а —
+                # no-op (состав событий байт-идентичен легаси).
+                if zone_owner is not None and territory_enabled():
+                    _owner = zone_owner(new_node)
+                    if _owner and _owner != npc_id:
+                        events.append(
+                            EventDTO.create(
+                                event_type=EventType.TRESPASSED.value,
+                                source=npc_id,
+                                payload={
+                                    "trespasser": npc_id,
+                                    "owner": _owner,
+                                    "node": new_node,
+                                },
+                                visibility="public",
+                                radius=15.0,
+                                persistence_level="working",
+                            )
+                        )
+                        logger.info(
+                            f"[PROTECT] TRESPASSED: {npc_id} → {new_node} (owner={_owner})"
+                        )
 
         # 2. Проксимитет: сравниваем расстояния между парами
         old_pairs = _compute_pair_distances(old_positions)

@@ -277,7 +277,7 @@ def _apply_runtime_overlay(
 ) -> Dict[str, Any]:
     """
     Глубоко мержит runtime-поля из runtime_npc поверх static_npc.
-    Static поля НЕ перезаписываются на верхнем уровне, но runtime-данные 
+    Static поля НЕ перезаписываются на верхнем уровне, но runtime-данные
     внутри словарей (psyche, body_state и т.д.) обновляются рекурсивно.
     Stage 0: Упразднён whitelist _RUNTIME_TOP_LEVEL_KEYS (DOUBLE TRUTH fix).
     """
@@ -521,9 +521,110 @@ def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> Tuple[Any, .
             known_by=_known,
             hidden_from=_hidden,
             accessibility=_d.get("accessibility", 1.0),
+            secret_id=_d.get("secret_id"),  # M1/P2 (Q1=MAP): origin-конфиг — авторитетный носитель идентичности факта
         )
         _result.append(_mem)
     return tuple(_result)
+
+
+_M1_TRUTH_STATE_CACHE: Any = None
+
+
+def _canon_truth_state() -> Any:
+    """M1/P1 (ТЗ «Таверна тайн»): ленивый канон-синглтон для сеялки.
+    Прецедент — ActionSemanticResolver._DEFAULT_CANON_PATH. Отказ загрузки =
+    пустой канон (сеялка no-op) с громким логом: деградация канала, не тика
+    (G2-паттерн). Синглтон уместен: канон кампане-независим (файл один)."""
+    global _M1_TRUTH_STATE_CACHE
+    if _M1_TRUTH_STATE_CACHE is not None:
+        return _M1_TRUTH_STATE_CACHE
+    try:
+        from app.core.config import BASE_DIR
+        from app.services.truth_state_loader import TruthStateLoader
+
+        _M1_TRUTH_STATE_CACHE = TruthStateLoader.load(
+            BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
+        )
+    except Exception as e:  # noqa: ENIGMA001
+        logger.warning(f"[M1_P1] canon load failed — seeding degraded: {e}")
+        from app.models.truth_state import TruthState
+
+        _M1_TRUTH_STATE_CACHE = TruthState(secrets={}, relations=())
+    return _M1_TRUTH_STATE_CACHE
+
+
+def _seed_canon_secret_memories(npc_id: str, cache: Tuple[Any, ...]) -> Tuple[Any, ...]:
+    """M1/P1 (ТЗ «Таверна тайн»): сеялка канонного знания — секрет канона
+    становится EventMemory у каждого initial_holder («кто знает что» —
+    машинно проверяемо). Per-NPC инверсия ТЗ-псевдокода seed_canon_knowledge
+    (точка гидратации обрабатывает одного NPC; эквивалентность — инверсия
+    initial_holders). Дедуп по secret_id — идемпотентность (A/A Шага 4).
+    Формат — паттерн _convert_origin_events (day=-1000, decay 0.001).
+    Конфиг-памяти NPC не читаются и не правятся — рассинхроны канон↔конфиг
+    закрывает P2."""
+    _truth = _canon_truth_state()
+    if not _truth or not _truth.secrets:
+        return cache
+    from app.models.npc_state import EventMemory
+
+    _known = {getattr(_m, "secret_id", None) for _m in cache}
+    _known.discard(None)
+    _added = []
+    for _secret in _truth.secrets.values():
+        if _secret.secret_id in _known:
+            continue
+        if npc_id not in _secret.initial_holders:
+            continue
+        _added.append(
+            EventMemory(
+                event_type="secret_origin",
+                target_id="",
+                emotion_tag="neutral",
+                day=-1000,
+                importance=_secret.importance,
+                clarity=1.0,
+                confidence=1.0,
+                decay_rate=0.001,
+                summary=_secret.canonical_truth,
+                npc_id=npc_id,
+                is_secret=True,
+                known_by=tuple(_secret.initial_holders),
+                hidden_from=("player",),
+                accessibility=1.0,
+                secret_id=_secret.secret_id,
+            )
+        )
+    if not _added:
+        return cache
+    return cache + tuple(_added)
+
+
+def who_knows(secret_id: str, npc_states: List[Any]) -> List[str]:
+    """M1/P1: кто из данных NPCState знает секрет — фильтр по полю
+    secret_id поверх narrative_cache (ТЗ: НЕ новая система знаний).
+    Read-only; пустой список честен (секрет не сеян/утерян)."""
+    _out: List[str] = []
+    for _st in npc_states:
+        _nid = getattr(_st, "npc_id", "") or ""
+        for _m in getattr(_st, "narrative_cache", ()) or ():
+            if getattr(_m, "secret_id", None) == secret_id:
+                _out.append(_nid)
+                break
+    return _out
+
+
+def known_secrets(npc_id: str, npc_states: List[Any]) -> List[str]:
+    """M1/P1: какие канон-секреты знает NPC — фильтр по secret_id."""
+    _out: List[str] = []
+    for _st in npc_states:
+        if (getattr(_st, "npc_id", "") or "") != npc_id:
+            continue
+        for _m in getattr(_st, "narrative_cache", ()) or ():
+            _sid = getattr(_m, "secret_id", None)
+            if _sid and _sid not in _out:
+                _out.append(_sid)
+        break
+    return _out
 
 
 def _restore_narrative_cache(cache_list: List[Dict]) -> Tuple[Any, ...]:
@@ -672,6 +773,11 @@ def load_l2_state_from_runtime_dict(
     if not _cache:
         _npc_id = raw_data.get("id", "unknown")
         _cache = _convert_origin_events(raw_data.get("origin_events", []), _npc_id)
+    # M1/P1 (ТЗ «Таверна тайн»): канон-сеялка поверх любой ветки — секрет
+    # становится EventMemory у каждого initial_holder; дедуп по secret_id
+    # делает повторные гидратации идемпотентными (per-tick вызовы: см.
+    # npc_tick_pipeline:170). Рассинхроны канон↔конфиг — зона P2.
+    _cache = _seed_canon_secret_memories(raw_data.get("id", "unknown"), _cache)
     object.__setattr__(state, "narrative_cache", _cache)
 
     return state

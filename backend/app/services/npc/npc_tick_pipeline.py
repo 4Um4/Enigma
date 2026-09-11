@@ -364,6 +364,16 @@ class NpcTickPipeline:
             # TZ-10: Чтение preloaded social modifiers из TickState
             _social_mods = state.social_modifiers_map.get(npc_id, {})
 
+            # ADR-O-386 (PROTECT): факт территориального доступа — предвычислен
+            # ВНЕ DecisionHub: пайплайн читает read-only spatial_service из TickState
+            # (контракт редюсера). OFF = False без обращений к сервису — no-op
+            from app.services.spatial.spatial_event_detector import territory_enabled
+            _territory_pass = bool(
+                territory_enabled()
+                and state.spatial_service is not None
+                and npc_id in state.spatial_service.territory_owners()
+            )
+
             # TZ-10: Чтение preloaded economic profile из TickState
             _eco_profile = state.economic_profiles_map.get(npc_id)
             _current_activity = npc.get("routine", {}).get("current", "")
@@ -625,6 +635,7 @@ class NpcTickPipeline:
                 identity=_identity,
                 eco_modifiers=_all_modifiers or None,
                 social_modifiers=_social_mods or None,
+                territory_pass=_territory_pass,  # ADR-O-386 (PROTECT)
                 reputation_modifiers=_rep_modifiers_for_hub,
                 drive_modifiers=_drive_modifiers_for_hub or None,
                 reflex_constraints=_reflex_constraints,

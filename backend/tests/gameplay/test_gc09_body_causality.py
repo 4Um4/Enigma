@@ -82,6 +82,111 @@ def test_gc09a_body_writes_in_production_ticks(harness):
             )
 
 def test_gc09b_body_exhaustion_blocks_intents(harness):
+    """GC-09B-full R1-санация (S254/Мастер 2026-09-11): оригинальный GREEN
+    был CAUSAL FALSE GREEN — единственная наблюдаемая разница A->B была
+    RNG-артефактом (noise ±SCORE_NOISE_RANGE на каждый intent,
+    decision_hub.py:1037/:1052; один хаб на два compute -> позиция-2 потока;
+    S254 decisive-зонд: A/A-дрейф == A/B-дрейфу; fresh A == fresh B
+    байт-идентично при fatigue 0.22 vs 90.2).
+    Контракт R1 (Мастер): fresh hub + A/A control + noise-off +
+    сохранение causal claim в усиленной форме — chronic cap 0.3 обязан
+    множить scores capped-интентов (FLEE/ATTACK/APPROACH; MANIPULATE может
+    отсутствовать в словаре хаба). При живом контуре — GREEN; при разрыве —
+    RED-диагноз S254 L4-F8/F9 (НЕ ретушь: fix = R2 mini-ADR).
+    Immutable evidence: reports/history/gc09b_vacuous_green_immutable.txt
+    (git заморожен); оригинальный RED a6708f46 и vacuous GREEN a0cc0d42 —
+    в git-истории."""
+    import copy as _copy
+
+    import app.services.npc.decision_hub as _dh
+    from app.domain.identity_events import EffectiveDrives
+    from app.services.cfrm.pressure_translator import translate_kernel_to_context
+    from app.services.npc.decision_hub import DecisionHub, EventContext
+    from app.services.npc.npc_loader import (
+        load_l2_state_from_runtime_dict,
+        load_profile_from_legacy_json,
+    )
+
+    harness.advance_ticks(3)
+    _raw = harness.inspect_npc("maid_lusya")
+    assert _raw is not None, "GC09-B: живой дикт недостижим"
+
+    _state_A = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
+    _personality = load_profile_from_legacy_json(_copy.deepcopy(_raw))
+    _drives = EffectiveDrives.from_dict(
+        {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
+    )
+    _event = EventContext(
+        event_type="social", actor_id="player", success=True,
+        intensity=1.0, distance=3.0, witness_count=2,
+    )
+
+    _state_B = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
+    from app.services.npc.state_applicator import StateApplicator
+
+    _applicator = object.__new__(StateApplicator)
+    _applicator._apply_physiology_deltas(
+        _state_B, 0.0, 0.0, +90.0, 0.0, [], [], [], 0.0, energy_delta=-90.0,
+    )
+    _b_body = _state_B.body_state or {}
+    assert _b_body.get("fatigue", 0.0) > 50.0, "GC09-B guard: мутация не применилась"
+
+    from app.models.npc_state import PerceptualKernel
+
+    _orig_noise = _dh.SCORE_NOISE_RANGE
+    _dh.SCORE_NOISE_RANGE = 0.0  # R1: noise-off — детерминированный режим
+
+    def _decide(st):
+        _ctx = translate_kernel_to_context(
+            kernel=PerceptualKernel(), body_state=dict(st.body_state or {}),
+            social_input_ema=0.0, gregariousness=0.5, has_active_commitment=False,
+        )
+        return DecisionHub(seed=0).compute(  # R1: FRESH hub на каждый decide
+            state=st, personality=_personality, effective_drives=_drives,
+            event=_event, decision_ctx=_ctx,
+        )
+
+    try:
+        # R1 A/A-контроль: прибор обязан быть детерминирован (noise-off, fresh)
+        _aa1 = _decide(_state_A)
+        _aa2 = _decide(_state_A)
+        assert _aa1.scores_trace == _aa2.scores_trace, (
+            "GC09-B R1 A/A FAIL: noise-off + fresh-hub всё равно дрейфует — "
+            "недетерминированный измерительный прибор; подозреваемый: ещё один "
+            "RNG-терм в compute (искать rng-вызовы вне decision_hub.py:1037)"
+        )
+
+        _a = _decide(_state_A)
+        _b = _decide(_state_B)
+        print(
+            f"[GC09-B-R1] A(rested)={_a.intent}; B(exhausted)={_b.intent}; "
+            f"B.fatigue={_b_body.get('fatigue')}; "
+            f"A.flee={_a.scores_trace.get('flee')}; "
+            f"B.flee={_b.scores_trace.get('flee')}"
+        )
+
+        # R1 causal-claim (усиленная форма исходного): chronic cap 0.3
+        # множит scores capped-интентов: B[k] ≈ round(A[k] * 0.3, 4)
+        for _k in ("flee", "attack", "approach"):
+            _va = _a.scores_trace.get(_k)
+            _vb = _b.scores_trace.get(_k)
+            assert _va is not None and _vb is not None, (
+                f"GC09-B R1: capped-ось '{_k}' отсутствует в scores_trace — "
+                "кандидат-набор теста не совпадает со словарём хаба"
+            )
+            assert abs(_vb - round(_va * 0.3, 4)) <= 0.0002, (
+                f"GC09-B R1 RED: chronic cap не применяется к '{_k}' "
+                f"(A={_va}, B={_vb}; ожидание ~A*0.3={round(_va * 0.3, 4)}). "
+                "Диагноз S254 L4-F8/F9: translator пишет constraints "
+                "{'FLEE':0.3,...}, DecisionHub их не потребляет — ФАЗА 1 "
+                "(decision_hub.py:565) мертва по кейсу ('FLEE' vs 'flee'), "
+                "потребитель 0<feasibility<1 отсутствует (ФАЗА 2 применяет "
+                "только deformation). Fix = R2 (mini-ADR: нормализация ключей "
+                "+ scores×feasibility), НЕ ретушь теста. Evidence: S254 "
+                "decisive-зонд — fresh A == fresh B байт-идентично."
+            )
+    finally:
+        _dh.SCORE_NOISE_RANGE = _orig_noise
     """GC-09B-full (ADR-O-383 oracle, observation-scope correction — вердикт
     Мастера Q-D): наблюдение ПОЛНОГО production-контура решения (decision_ctx
     из translate_kernel_to_context — официальный путь veto в живом тике).

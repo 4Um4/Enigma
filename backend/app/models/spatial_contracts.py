@@ -72,6 +72,9 @@ class NodeRef:
     y: float  # АБСОЛЮТНАЯ мировая координата
     zone_id: str  # Топология: всегда = location_id
     level: Optional[str] = None  # Вертикальность: ground, basement, floor_2
+    # ADR-O-386 (PROTECT): владелец узла — npc_id; None = ничей. Территория,
+    # не роль: право на защиту пространства читается из мира (L-A1)
+    owner: Optional[str] = None
 
     @property
     def xy(self) -> Tuple[float, float]:

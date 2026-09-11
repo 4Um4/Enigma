@@ -211,6 +211,7 @@
       "y": 6.0,
       "label": "Северный обход стойки",
       "role": "default",
+      "owner": "tavern_keeper_tornin",
       "connections": [
         "bar_west",
         "bar_side",
@@ -222,6 +223,7 @@
       "y": 3.1371200000000004,
       "label": "Обход стойки",
       "role": "default",
+      "owner": "tavern_keeper_tornin",
       "connections": [
         "bar_pass_north",
         "behind_bar"
@@ -232,6 +234,7 @@
       "y": 2.79264,
       "label": "За стойкой",
       "role": "inn_desk",
+      "owner": "tavern_keeper_tornin",
       "tags": [
         "workplace:tavern_keeper",
         "inn_desk"

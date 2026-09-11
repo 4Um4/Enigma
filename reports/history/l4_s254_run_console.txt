@@ -1,0 +1,945 @@
+
+########## L4 S254 RUN — 2026-09-11T19:10:39 ##########
+режим: fresh / harness / flags OFF / LLM ON / без ускорителей / git-бан / локально
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[2026-09-11T19:11:04] [LLM] поднят и здоров (остановлю при выходе)
+[2026-09-11T19:11:06] harness поднят: seed=42, temp-saves изоляция (реальные saves защищены)
+
+════════ PHASE 0 ════════ 2026-09-11T19:11:06
+  [sample P0-baseline] tick=None (сразу после new_game; может быть пусто)
+    maid_lusya: NO-BODY
+    blacksmith_orm: NO-BODY
+    guard_borko: NO-BODY
+    merchant_goran: NO-BODY
+    tavern_keeper_tornin: NO-BODY
+    thief_shadow: NO-BODY
+  [P0-warmup] +5 тиков | wall 0.74s (0.15s/тик)
+  [sample P0-warmup] tick=5 
+    maid_lusya            fat=0.375    enr=99.50000000000003 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=0.375    enr=99.50000000000003 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b1] +20 тиков | wall 1.71s (0.09s/тик)
+  [sample P0-b1] tick=25 
+    maid_lusya            fat=1.8749999999999993 enr=97.50000000000014 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=1.8749999999999993 enr=97.50000000000014 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.04     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b2] +20 тиков | wall 1.74s (0.09s/тик)
+  [sample P0-b2] tick=45 
+    maid_lusya            fat=1.9050000000000011 enr=98.86000000000018 pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=3.3750000000000027 enr=95.50000000000026 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.14000000000000004 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b3] +20 тиков | wall 1.78s (0.09s/тик)
+  [sample P0-b3] tick=65 
+    maid_lusya            fat=3.1250000000000036 enr=97.50000000000028 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=4.875000000000006 enr=93.50000000000037 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.24000000000000013 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.02     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+
+──── ОТЧЁТ PHASE 0 ────
+  maid: 0.375 -> 3.1250000000000036 (тики 5.0->65.0); Δ/тик = +0.0458
+  формула body_engine (mod=1, без сна): implied load ≈ 0.417 (ожидание ≈0.5)
+  горизонт: (80 - 3.1250000000000036) / +0.0458 ≈ 1677 тиков ≈ 2.4 мин wall-clock (0.09s/тик)
+  control blacksmith_orm: 0.0 -> 0.0 (Δ/тик +0.0000)
+  control guard_borko: 0.375 -> 4.875000000000006 (Δ/тик +0.0750)
+  control merchant_goran: 0.0 -> 0.24000000000000013 (Δ/тик +0.0040)
+  control tavern_keeper_tornin: 0.0 -> 0.02 (Δ/тик +0.0003)
+  control thief_shadow: 0.0 -> 0.0 (Δ/тик +0.0000)
+  реплей-чекпоинт: sessions 1642 -> 1642 (новых нет — консистентно L4-F5)
+  счётчики Phase 0: {'npc_moved': 42, 'npc_spoke': 32, 'npc_proximity_close': 80, 'npc_proximity_leave': 35, '__ticks': 65, '__npc_spoke': 32, '__npc_moved': 42}
+
+[L4 CHECKPOINT] Phase 0 завершён. go — Main / stop — чистый выход > [checkpoint] ответ: stop
+[L4] stop — dispose (sessions/settings будут восстановлены).
+[2026-09-11T19:20:22] dispose: life_engine reset, подписки сняты, sessions/settings восстановлены
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.
+
+########## L4 S254 RUN v2 — 2026-09-11T19:21:12 ##########
+режим: fresh / harness / flags OFF / LLM ON / без ускорителей / git-бан / локально
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[2026-09-11T19:21:24] [LLM] поднят и здоров (остановлю при выходе)
+[2026-09-11T19:21:25] harness поднят: seed=42, temp-saves изоляция (реальные saves защищены)
+
+════════ PHASE 0 ════════ 2026-09-11T19:21:25
+  [sample P0-baseline] tick=None (сразу после new_game; может быть пусто)
+    maid_lusya: NO-BODY
+    blacksmith_orm: NO-BODY
+    guard_borko: NO-BODY
+    merchant_goran: NO-BODY
+    tavern_keeper_tornin: NO-BODY
+    thief_shadow: NO-BODY
+  [P0-warmup] +5 тиков | wall 0.55s (0.11s/тик)
+  [sample P0-warmup] tick=5 
+    maid_lusya            fat=0.375    enr=99.50000000000003 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=0.375    enr=99.50000000000003 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b1] +20 тиков | wall 2.05s (0.10s/тик)
+  [sample P0-b1] tick=25 
+    maid_lusya            fat=1.8749999999999993 enr=97.50000000000014 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=1.8749999999999993 enr=97.50000000000014 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.04     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b2] +20 тиков | wall 1.87s (0.09s/тик)
+  [sample P0-b2] tick=45 
+    maid_lusya            fat=1.9050000000000011 enr=98.86000000000018 pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=3.3750000000000027 enr=95.50000000000026 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.14000000000000004 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b3] +20 тиков | wall 1.87s (0.09s/тик)
+  [sample P0-b3] tick=65 
+    maid_lusya            fat=3.1250000000000036 enr=97.50000000000028 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=4.875000000000006 enr=93.50000000000037 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.24000000000000013 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.02     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+
+──── ОТЧЁТ PHASE 0 ────
+  maid fatigue: 0.375 -> 3.1250000000000036 (тики 5.0->65.0); Δ/тик = +0.0458
+  maid energy:  99.50000000000003 -> 97.50000000000028; Δ/тик = -0.0333
+  формула body_engine (mod=1, без сна): implied load ≈ 0.417 (serving≈0.5; паузы activity занижают avg)
+  горизонт maid fatigue: (80 - 3.13)/+0.0458 ≈ 1677 тиков (activity-паузы удлиняют)
+  контроли (fatigue | energy, Δ/тик; проекция до порога при сохранении темпа):
+    blacksmith_orm        fat +0.0000 (до 80: —) | enr +0.0000 (до 10: —)
+    guard_borko           fat +0.0750 (до 80: ~1002 тиков) | enr -0.1000 (до 10: ~835 тиков)
+    merchant_goran        fat +0.0040 (до 80: ~19940 тиков) | enr +0.0000 (до 10: —)
+    tavern_keeper_tornin  fat +0.0003 (до 80: ~239940 тиков) | enr +0.0000 (до 10: —)
+    thief_shadow          fat +0.0000 (до 80: —) | enr +0.0000 (до 10: —)
+  реплей-чекпоинт: sessions 1643 -> 1643 (новых нет — консистентно L4-F5)
+  счётчики Phase 0: {'npc_moved': 42, 'npc_spoke': 33, 'npc_proximity_close': 80, 'npc_proximity_leave': 35, '__ticks': 65, '__npc_spoke': 33, '__npc_moved': 42}
+  пейс: 0.10s/тик
+
+  ── АВТО-GO критерии чекпоинта (Main предавторизован приказом Мастера): ──
+     go  если: maid Δ/тик fatigue > 0.02; нет [FAIL]/[ANOMALY]; горизонт <= 3800 тиков
+     иначе: stop + прислать этот отчёт
+
+[L4 CHECKPOINT] Phase 0 завершён; критерии автого напечатаны выше. go — Main / stop — чистый выход > [checkpoint] ответ: go
+
+════════ MAIN ════════ 2026-09-11T19:30:12
+
+── PLAYER LEG: ДО crossing (базлайн поведения) ──
+> [обращаясь к maid_lusya] привет! Как твоя смена сегодня?
+  DM: Люся поднимает голову и скрещивает руки на груди, избегая зрительного контакта с Тестером. 'Хорошо, спасибо.'
+  NPC: Люся: Люся поднимает голову и скрещивает руки на груди, избегая зрительного контакта с Тестером. 'Хорошо, спасибо.'
+> [обращаясь к maid_lusya] Ты, кажется, весь день на ногах — не устала?
+  DM: Люся нервно улыбается и качает головой, словно пытаясь высвободить мысли из тесного мешка. 'Не очень, господин Тестер,' — бормочет она, неmeeting your gaze.
+  NPC: Люся: Люся нервно улыбается и качает головой, словно пытаясь высвободить мысли из тесного мешка. 'Не очень, господин Тестер,' — бормочет она, неmeeting your gaze.
+> [обращаясь к maid_lusya] Что будешь делать после смены?
+  DM: Люся нервно потирает ладони и опускает голову, затем поднимает глаза на Тестера: 'Сначала я вымоюсь в колодце. Потом домой, к дочери.'
+  NPC: Люся: Люся нервно потирает ладони и опускает голову, затем поднимает глаза на Тестера: 'Сначала я вымоюсь в колодце. Потом домой, к дочери.'
+  [M1] +20 тиков | wall 1.96s (0.10s/тик)
+  [sample M1] tick=88 
+    maid_lusya            fat=2.6650000000000054 enr=99.9800000000003 pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=6.37500000000001 enr=91.50000000000048 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.005    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M2] +20 тиков | wall 2.07s (0.10s/тик)
+  [sample M2] tick=108 
+    maid_lusya            fat=1.4700000000000064 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.075    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=7.875000000000013 enr=89.5000000000006 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M3] +20 тиков | wall 2.14s (0.11s/тик)
+  [sample M3] tick=128 
+    maid_lusya            fat=0.17000000000000715 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.17500000000000007 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=9.375    enr=87.50000000000071 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M4] +20 тиков | wall 1.85s (0.09s/тик)
+  [sample M4] tick=148 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.27500000000000013 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=10.874999999999986 enr=85.50000000000082 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M5] +20 тиков | wall 1.86s (0.09s/тик)
+  [sample M5] tick=168 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.3750000000000002 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=12.374999999999972 enr=83.50000000000094 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M6] +20 тиков | wall 1.92s (0.10s/тик)
+  [sample M6] tick=188 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.4750000000000003 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=13.874999999999957 enr=81.50000000000105 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M7] +20 тиков | wall 2.03s (0.10s/тик)
+  [sample M7] tick=208 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.5750000000000004 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=15.374999999999943 enr=79.50000000000117 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M8] +20 тиков | wall 2.12s (0.11s/тик)
+  [sample M8] tick=228 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.6750000000000005 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=16.87499999999993 enr=77.50000000000128 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M9] +20 тиков | wall 2.03s (0.10s/тик)
+  [sample M9] tick=248 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.7750000000000006 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=18.374999999999915 enr=75.50000000000139 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M10] +20 тиков | wall 2.12s (0.11s/тик)
+  [sample M10] tick=268 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.8750000000000007 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=19.8749999999999 enr=73.5000000000015 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.005    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M11] +20 тиков | wall 2.55s (0.13s/тик)
+  [sample M11] tick=288 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.9750000000000008 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=21.374999999999886 enr=71.50000000000162 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [PAUSE] maid fatigue не растёт 10 батчей (200 тиков) — продолжаю наблюдение
+          (load-модуляция от activity — модель, не аномалия; см. P0-b2 run 1)
+  [M12] +20 тиков | wall 2.18s (0.11s/тик)
+  [sample M12] tick=308 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.074999999999999 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=22.874999999999872 enr=69.50000000000173 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M13] +20 тиков | wall 2.24s (0.11s/тик)
+  [sample M13] tick=328 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.174999999999997 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=24.374999999999858 enr=67.50000000000185 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M14] +20 тиков | wall 2.28s (0.11s/тик)
+  [sample M14] tick=348 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.2749999999999948 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=25.874999999999844 enr=65.50000000000196 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M15] +20 тиков | wall 2.44s (0.12s/тик)
+  [sample M15] tick=368 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.3749999999999927 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=27.37499999999983 enr=63.50000000000204 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M16] +20 тиков | wall 2.34s (0.12s/тик)
+  [sample M16] tick=388 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.4749999999999905 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=28.874999999999815 enr=61.50000000000201 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M17] +20 тиков | wall 2.35s (0.12s/тик)
+  [sample M17] tick=408 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.5749999999999884 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=30.3749999999998 enr=59.50000000000198 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M18] +20 тиков | wall 2.52s (0.13s/тик)
+  [sample M18] tick=428 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.6749999999999863 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=31.874999999999787 enr=57.500000000001954 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M19] +20 тиков | wall 2.36s (0.12s/тик)
+  [sample M19] tick=448 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.7749999999999841 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=33.37499999999984 enr=55.500000000001926 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M20] +20 тиков | wall 2.39s (0.12s/тик)
+  [sample M20] tick=468 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.874999999999982 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=34.87499999999989 enr=53.5000000000019 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M21] +20 тиков | wall 2.48s (0.12s/тик)
+  [sample M21] tick=488 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.9749999999999799 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=36.37499999999995 enr=51.50000000000187 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M22] +20 тиков | wall 2.44s (0.12s/тик)
+  [sample M22] tick=508 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.074999999999978 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=37.87500000000001 enr=49.50000000000184 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M23] +20 тиков | wall 2.49s (0.12s/тик)
+  [sample M23] tick=528 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.174999999999976 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=39.375000000000064 enr=47.50000000000181 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M24] +20 тиков | wall 2.46s (0.12s/тик)
+  [sample M24] tick=548 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.2749999999999737 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=40.87500000000012 enr=45.50000000000178 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.01     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M25] +20 тиков | wall 2.50s (0.12s/тик)
+  [sample M25] tick=568 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.3749999999999716 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=42.37500000000018 enr=43.500000000001755 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M26] +20 тиков | wall 2.36s (0.12s/тик)
+  [sample M26] tick=588 
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.4749999999999694 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    guard_borko           fat=43.875000000000234 enr=41.50000000000173 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [ANOMALY] maid fatigue не растёт 25 батчей (500 тиков) — честный стоп
+             смотреть sleep/coupling/activity в последних сэмплах — археология, не патч
+
+──── EVENT-КОНТУР: батчи Main (до-нога -> после-батчей) ────
+    __npc_moved: 45 -> 266
+    __npc_spoke: 38 -> 294
+    __ticks: 65 -> 585
+    npc_moved: 45 -> 266
+    npc_proximity_close: 82 -> 397
+    npc_proximity_leave: 36 -> 275
+    npc_spoke: 38 -> 294
+
+── PLAYER LEG: ПОСЛЕ crossing ──
+> [обращаясь к maid_lusya] привет снова! Как ты?
+  DM: Люся нервно улыбается и поспешно оправдывается: 'Привет, господин Тестер! Я хорошо, спасибо. Устала немного, но все в порядке.'
+  NPC: Люся: Люся нервно улыбается и поспешно оправдывается: 'Привет, господин Тестер! Я хорошо, спасибо. Устала немного, но все в порядке.'
+> [обращаясь к maid_lusya] Ты выглядишь уставшей — всё в порядке?
+  DM: Люся кивает, но её глаза блуждают по залу, словно ища что-то или кого-то. 'Всё хорошо,' — бормочет она, не встречаясь с Тестером взглядом.
+  NPC: Люся: Люся кивает, но её глаза блуждают по залу, словно ища что-то или кого-то. 'Всё хорошо,' — бормочет она, не встречаясь с Тестером взглядом.
+> [обращаясь к maid_lusya] Может, тебе присесть и отдохнуть?
+  DM: Люся нервно улыбается, не встречая глаза Тестера, и махает рукой, указывая на свободный стool рядом с собой: 'Спасибо, господин. Присяду.'
+  NPC: Люся: Люся нервно улыбается, не встречая глаза Тестера, и махает рукой, указывая на свободный стool рядом с собой: 'Спасибо, господин. Присяду.'
+
+──── EVENT-КОНТУР: нога ПОСЛЕ ────
+    __npc_moved: 266 -> 268
+    __npc_spoke: 294 -> 299
+    npc_moved: 266 -> 268
+    npc_proximity_close: 397 -> 399
+    npc_proximity_leave: 275 -> 276
+    npc_spoke: 294 -> 299
+    social_action: 0 -> 1
+
+════════ ФИНАЛЬНЫЙ ОТЧЁТ L4 ════════
+  maid fatigue: 0.375 -> 0.0 (тики 5.0 -> 588.0); Δ/тик = -0.0006
+  maid последние оси: {"fatigue": 0.0, "energy": 100.0, "pain": 0.0, "current_hp": 100, "life_status": "ALIVE", "hydration": 0.0, "nutrition": 68.69500000000247, "sleep_pressure": 1.0}
+  maid crossing (окно наблюдения): НЕТ
+  все crossings: нет
+  (а) natural crossing: НЕТ
+  (б) контур BODY->translator->decision: event-диффы выше + JSONL (суждение — Мастер)
+  (в) feasible action space: event-диффы + activity-сэмплы до/после (суждение — Мастер)
+  (г) player-observable: ноги ДО/ПОСЛЕ выше (суждение — Мастер)
+  счётчики итог: {'npc_moved': 268, 'npc_spoke': 299, 'npc_proximity_close': 399, 'npc_proximity_leave': 276, 'social_action': 1, '__ticks': 585, '__npc_spoke': 299, '__npc_moved': 268}
+  данные: C:\DDD\Codex\VSC_Enigma\Enigma\reports\history\l4_s254_samples.jsonl | C:\DDD\Codex\VSC_Enigma\Enigma\reports\history\l4_s254_run_console.txt
+[2026-09-11T19:31:44] dispose: life_engine reset, подписки сняты, sessions/settings восстановлены
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.
+
+########## L4 S254 RUN v3 — 2026-09-11T19:56:56 ##########
+режим: fresh / harness / flags OFF / LLM ON / без ускорителей / git-бан / локально
+TARGET: guard_borko (решение Мастера; thief_shadow — в WATCH)
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[2026-09-11T19:57:09] [LLM] поднят и здоров (остановлю при выходе)
+[2026-09-11T19:57:10] harness поднят: seed=42, temp-saves изоляция (реальные saves защищены)
+
+════════ PHASE 0 (TARGET=guard_borko) ════════ 2026-09-11T19:57:10
+  [sample P0-baseline] tick=None (сразу после new_game; может быть пусто)
+    guard_borko: NO-BODY
+    maid_lusya: NO-BODY
+    blacksmith_orm: NO-BODY
+    merchant_goran: NO-BODY
+    tavern_keeper_tornin: NO-BODY
+    thief_shadow: NO-BODY
+  [P0-warmup] +5 тиков | wall 0.51s (0.10s/тик)
+  [sample P0-warmup] tick=5 
+    guard_borko           fat=0.375    enr=99.50000000000003 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.375    enr=99.50000000000003 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b1] +20 тиков | wall 1.64s (0.08s/тик)
+  [sample P0-b1] tick=25 
+    guard_borko           fat=1.8749999999999993 enr=97.50000000000014 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=1.8749999999999993 enr=97.50000000000014 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.04     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b2] +20 тиков | wall 1.74s (0.09s/тик)
+  [sample P0-b2] tick=45 
+    guard_borko           fat=3.3750000000000027 enr=95.50000000000026 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=1.9050000000000011 enr=98.86000000000018 pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.14000000000000004 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [P0-b3] +20 тиков | wall 1.78s (0.09s/тик)
+  [sample P0-b3] tick=65 
+    guard_borko           fat=4.875000000000006 enr=93.50000000000037 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=3.1250000000000036 enr=97.50000000000028 pain=0.0     hp=100     life=ALIVE     act=serving_tables     tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.24000000000000013 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.02     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+
+──── ОТЧЁТ PHASE 0 ────
+  guard_borko fatigue: 0.375 -> 4.875000000000006 (тики 5.0->65.0); Δ/тик = +0.0750
+  guard_borko energy:  99.50000000000003 -> 93.50000000000037; Δ/тик = -0.1000
+  формула body_engine: implied load ≈ 0.500 (guarding ≈0.5)
+  горизонт fatigue: (80 - 4.88)/+0.0750 ≈ 1002 тиков
+  горизонт energy:  (93.50 - 10)/0.1000 ≈ 835 тиков (ПЕРВЫЙ порог)
+  контроли (fatigue | energy, Δ/тик; проекция при сохранении темпа):
+    maid_lusya            fat +0.0458 (до 80: ~1677 тиков) | enr -0.0333 (до 10: ~2625 тиков)
+    blacksmith_orm        fat +0.0000 (до 80: —) | enr +0.0000 (до 10: —)
+    merchant_goran        fat +0.0040 (до 80: ~19940 тиков) | enr +0.0000 (до 10: —)
+    tavern_keeper_tornin  fat +0.0003 (до 80: ~239940 тиков) | enr +0.0000 (до 10: —)
+    thief_shadow          fat +0.0000 (до 80: —) | enr +0.0000 (до 10: —)
+  реплей-чекпоинт: sessions 1644 -> 1644 (новых нет до dispose (L4-F5: флаш на выходе))
+  счётчики Phase 0: {'npc_moved': 42, 'npc_spoke': 33, 'npc_proximity_close': 80, 'npc_proximity_leave': 35, '__ticks': 65, '__npc_spoke': 33, '__npc_moved': 42}
+  пейс: 0.09s/тик
+
+  ── АВТО-GO критерии чекпоинта (Main предавторизован приказом Мастера): ──
+     go  если: TARGET Δ/тик fatigue > 0.02; нет [FAIL]/[ANOMALY]; горизонт <= 3800 тиков
+     иначе: stop + прислать этот отчёт
+
+[L4 CHECKPOINT] Phase 0 завершён; критерии автого напечатаны выше. go — Main / stop — чистый выход > [checkpoint] ответ: go
+
+════════ MAIN (TARGET=guard_borko) ════════ 2026-09-11T20:02:46
+
+── PLAYER LEG: ДО crossing (базлайн поведения) ──
+> [обращаясь к guard_borko] Привет, Борко. Как служба сегодня?
+  DM: Борко поднял голову и устало взглянул на Тестера, зевнув на последний момент. 'Ааа, ничего особенного. Ты чего здесь?'
+  NPC: Стражник Борко: Борко поднял голову и устало взглянул на Тестера, зевнув на последний момент. 'Ааа, ничего особенного. Ты чего здесь?'
+> [обращаясь к guard_borko] Давно ты на посту? Смена длинная выходит?
+  DM: Стражник Борко поднял голову, зевнул и пожал плечами. 'Ааа, недолго еще. Смена скоро. Ты чего здесь?'
+  NPC: Стражник Борко: Стражник Борко поднял голову, зевнул и пожал плечами. 'Ааа, недолго еще. Смена скоро. Ты чего здесь?'
+> [обращаясь к guard_borko] Как ты себя чувствуешь — тяжело стоять?
+  DM: Стражник Борко устало поднял голову и зевнул, после чего снова опустил её на крепкую грудь. 'Ааа, нифига особенного. Странно только, что ты здесь. Как дела?'
+  NPC: Стражник Борко: Стражник Борко устало поднял голову и зевнул, после чего снова опустил её на крепкую грудь. 'Ааа, нифига особенного. Странно только, что ты здесь. Как дела?'
+  [M1] +20 тиков | wall 1.83s (0.09s/тик)
+  [sample M1] tick=88 
+    guard_borko           fat=6.37500000000001 enr=91.50000000000048 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=2.6650000000000054 enr=99.9800000000003 pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    blacksmith_orm        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.3400000000000002 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M2] +20 тиков | wall 1.70s (0.09s/тик)
+  [sample M2] tick=108 
+    guard_borko           fat=7.875000000000013 enr=89.5000000000006 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=1.4700000000000064 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.075    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M3] +20 тиков | wall 1.70s (0.09s/тик)
+  [sample M3] tick=128 
+    guard_borko           fat=9.375    enr=87.50000000000071 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.17000000000000715 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.17500000000000007 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M4] +20 тиков | wall 1.72s (0.09s/тик)
+  [sample M4] tick=148 
+    guard_borko           fat=10.874999999999986 enr=85.50000000000082 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.27500000000000013 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M5] +20 тиков | wall 1.70s (0.09s/тик)
+  [sample M5] tick=168 
+    guard_borko           fat=12.374999999999972 enr=83.50000000000094 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.3750000000000002 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M6] +20 тиков | wall 1.76s (0.09s/тик)
+  [sample M6] tick=188 
+    guard_borko           fat=13.874999999999957 enr=81.50000000000105 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.4750000000000003 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M7] +20 тиков | wall 1.79s (0.09s/тик)
+  [sample M7] tick=208 
+    guard_borko           fat=15.374999999999943 enr=79.50000000000117 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.5750000000000004 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.005    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M8] +20 тиков | wall 1.85s (0.09s/тик)
+  [sample M8] tick=228 
+    guard_borko           fat=16.87499999999993 enr=77.50000000000128 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.6750000000000005 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M9] +20 тиков | wall 1.83s (0.09s/тик)
+  [sample M9] tick=248 
+    guard_borko           fat=18.374999999999915 enr=75.50000000000139 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.7750000000000006 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M10] +20 тиков | wall 1.86s (0.09s/тик)
+  [sample M10] tick=268 
+    guard_borko           fat=19.8749999999999 enr=73.5000000000015 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.8750000000000007 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M11] +20 тиков | wall 1.86s (0.09s/тик)
+  [sample M11] tick=288 
+    guard_borko           fat=21.374999999999886 enr=71.50000000000162 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=0.9750000000000008 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M12] +20 тиков | wall 1.84s (0.09s/тик)
+  [sample M12] tick=308 
+    guard_borko           fat=22.874999999999872 enr=69.50000000000173 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.074999999999999 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M13] +20 тиков | wall 1.89s (0.09s/тик)
+  [sample M13] tick=328 
+    guard_borko           fat=24.374999999999858 enr=67.50000000000185 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.174999999999997 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M14] +20 тиков | wall 1.96s (0.10s/тик)
+  [sample M14] tick=348 
+    guard_borko           fat=25.874999999999844 enr=65.50000000000196 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.2749999999999948 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M15] +20 тиков | wall 1.96s (0.10s/тик)
+  [sample M15] tick=368 
+    guard_borko           fat=27.37499999999983 enr=63.50000000000204 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.3749999999999927 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M16] +20 тиков | wall 1.94s (0.10s/тик)
+  [sample M16] tick=388 
+    guard_borko           fat=28.874999999999815 enr=61.50000000000201 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.4749999999999905 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M17] +20 тиков | wall 1.95s (0.10s/тик)
+  [sample M17] tick=408 
+    guard_borko           fat=30.3749999999998 enr=59.50000000000198 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.5749999999999884 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M18] +20 тиков | wall 2.01s (0.10s/тик)
+  [sample M18] tick=428 
+    guard_borko           fat=31.874999999999787 enr=57.500000000001954 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.6749999999999863 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M19] +20 тиков | wall 1.97s (0.10s/тик)
+  [sample M19] tick=448 
+    guard_borko           fat=33.37499999999984 enr=55.500000000001926 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.7749999999999841 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M20] +20 тиков | wall 1.99s (0.10s/тик)
+  [sample M20] tick=468 
+    guard_borko           fat=34.87499999999989 enr=53.5000000000019 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.874999999999982 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M21] +20 тиков | wall 2.05s (0.10s/тик)
+  [sample M21] tick=488 
+    guard_borko           fat=36.37499999999995 enr=51.50000000000187 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=1.9749999999999799 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M22] +20 тиков | wall 2.06s (0.10s/тик)
+  [sample M22] tick=508 
+    guard_borko           fat=37.87500000000001 enr=49.50000000000184 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.074999999999978 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M23] +20 тиков | wall 2.03s (0.10s/тик)
+  [sample M23] tick=528 
+    guard_borko           fat=39.375000000000064 enr=47.50000000000181 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.174999999999976 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M24] +20 тиков | wall 2.09s (0.10s/тик)
+  [sample M24] tick=548 
+    guard_borko           fat=40.87500000000012 enr=45.50000000000178 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.2749999999999737 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.01     enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M25] +20 тиков | wall 2.08s (0.10s/тик)
+  [sample M25] tick=568 
+    guard_borko           fat=42.37500000000018 enr=43.500000000001755 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.3749999999999716 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M26] +20 тиков | wall 2.14s (0.11s/тик)
+  [sample M26] tick=588 
+    guard_borko           fat=43.875000000000234 enr=41.50000000000173 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.4749999999999694 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M27] +20 тиков | wall 2.10s (0.11s/тик)
+  [sample M27] tick=608 
+    guard_borko           fat=45.37500000000029 enr=39.5000000000017 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.5749999999999673 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M28] +20 тиков | wall 2.17s (0.11s/тик)
+  [sample M28] tick=628 
+    guard_borko           fat=46.87500000000035 enr=37.50000000000167 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.674999999999965 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M29] +20 тиков | wall 2.12s (0.11s/тик)
+  [sample M29] tick=648 
+    guard_borko           fat=48.375000000000405 enr=35.50000000000164 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.774999999999963 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.005    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M30] +20 тиков | wall 2.12s (0.11s/тик)
+  [sample M30] tick=668 
+    guard_borko           fat=49.87500000000046 enr=33.50000000000161 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.874999999999961 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M31] +20 тиков | wall 2.19s (0.11s/тик)
+  [sample M31] tick=688 
+    guard_borko           fat=51.37500000000052 enr=31.500000000001585 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=2.974999999999959 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M32] +20 тиков | wall 2.19s (0.11s/тик)
+  [sample M32] tick=708 
+    guard_borko           fat=52.875000000000576 enr=29.500000000001556 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.0749999999999567 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.005    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M33] +20 тиков | wall 2.25s (0.11s/тик)
+  [sample M33] tick=728 
+    guard_borko           fat=54.37500000000063 enr=27.500000000001528 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.1749999999999545 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M34] +20 тиков | wall 2.16s (0.11s/тик)
+  [sample M34] tick=748 
+    guard_borko           fat=55.87500000000069 enr=25.5000000000015 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.2749999999999524 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M35] +20 тиков | wall 2.22s (0.11s/тик)
+  [sample M35] tick=768 
+    guard_borko           fat=57.375000000000746 enr=23.50000000000147 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.3749999999999503 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M36] +20 тиков | wall 2.23s (0.11s/тик)
+  [sample M36] tick=788 
+    guard_borko           fat=58.8750000000008 enr=21.500000000001442 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.474999999999948 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M37] +20 тиков | wall 2.29s (0.11s/тик)
+  [sample M37] tick=808 
+    guard_borko           fat=60.37500000000086 enr=19.500000000001414 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.574999999999946 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M38] +20 тиков | wall 2.23s (0.11s/тик)
+  [sample M38] tick=828 
+    guard_borko           fat=61.87500000000092 enr=17.500000000001386 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.674999999999944 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M39] +20 тиков | wall 2.26s (0.11s/тик)
+  [sample M39] tick=848 
+    guard_borko           fat=63.37500000000097 enr=15.500000000001366 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.7749999999999417 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=talking_at_bar     tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M40] +20 тиков | wall 2.28s (0.11s/тик)
+  [sample M40] tick=868 
+    guard_borko           fat=64.87500000000102 enr=13.500000000001373 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.8749999999999396 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M41] +20 тиков | wall 2.31s (0.12s/тик)
+  [sample M41] tick=888 
+    guard_borko           fat=66.37500000000108 enr=11.50000000000138 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=3.9749999999999375 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M42] +20 тиков | wall 2.27s (0.11s/тик)
+  [sample M42] tick=908 
+    guard_borko           fat=67.87500000000114 enr=9.500000000001387 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.074999999999935 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  ★ CROSSING[guard_borko] energy=9.500000000001387 (тик 908)
+
+  ★★★ CROSSING[TARGET] guard_borko: fatigue=67.87500000000114 energy=9.500000000001387 на тике 908 — окно наблюдения открыто (ждём вторую ось)
+  [M43] +20 тиков | wall 2.33s (0.12s/тик)
+  [sample M43] tick=928 
+    guard_borko           fat=69.3750000000012 enr=7.500000000001394 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.174999999999933 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M44] +20 тиков | wall 2.32s (0.12s/тик)
+  [sample M44] tick=948 
+    guard_borko           fat=70.87500000000125 enr=5.5000000000014015 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.274999999999931 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M45] +20 тиков | wall 2.35s (0.12s/тик)
+  [sample M45] tick=968 
+    guard_borko           fat=72.37500000000131 enr=3.5000000000014064 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.374999999999929 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M46] +20 тиков | wall 2.39s (0.12s/тик)
+  [sample M46] tick=988 
+    guard_borko           fat=73.87500000000136 enr=1.5000000000014047 pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.474999999999927 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M47] +20 тиков | wall 2.40s (0.12s/тик)
+  [sample M47] tick=1008 
+    guard_borko           fat=75.37500000000142 enr=0.0      pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.574999999999925 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M48] +20 тиков | wall 2.44s (0.12s/тик)
+  [sample M48] tick=1028 
+    guard_borko           fat=76.87500000000148 enr=0.0      pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.6749999999999226 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M49] +20 тиков | wall 2.43s (0.12s/тик)
+  [sample M49] tick=1048 
+    guard_borko           fat=78.37500000000153 enr=0.0      pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.77499999999992 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.005    enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M50] +20 тиков | wall 2.49s (0.12s/тик)
+  [sample M50] tick=1068 
+    guard_borko           fat=79.87500000000159 enr=0.0      pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.874999999999918 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  [M51] +20 тиков | wall 2.50s (0.12s/тик)
+  [sample M51] tick=1088 
+    guard_borko           fat=81.37500000000165 enr=0.0      pain=0.0     hp=100     life=ALIVE     act=guarding_gate      tr=None
+    maid_lusya            fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=socializing        tr=True
+    blacksmith_orm        fat=4.974999999999916 enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает в общем зале tr=True
+    merchant_goran        fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=eating             tr=True
+    tavern_keeper_tornin  fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=Обедает за столом  tr=True
+    thief_shadow          fat=0.0      enr=100.0    pain=0.0     hp=100     life=ALIVE     act=sleeping           tr=None
+  ★ CROSSING[guard_borko] fatigue=81.37500000000165 (тик 1088)
+  [окно] оси=['energy', 'fatigue'], батчей наблюдения=9 — закрываю окно
+
+──── EVENT-КОНТУР: батчи Main (до-нога -> конец батчей) ────
+    __npc_moved: 45 -> 459
+    __npc_spoke: 37 -> 484
+    __ticks: 65 -> 1085
+    npc_moved: 45 -> 459
+    npc_proximity_close: 82 -> 647
+    npc_proximity_leave: 36 -> 543
+    npc_spoke: 37 -> 484
+
+── PLAYER LEG: ПОСЛЕ crossing ──
+> [обращаясь к guard_borko] Привет снова, Борко. Как ты?
+  DM: Стражник Борко потянулся, зевнул и устало произнёс: 'Ааа, всё то же самое. А ты как?'
+  NPC: Стражник Борко: Стражник Борко потянулся, зевнул и устало произнёс: 'Ааа, всё то же самое. А ты как?'
+> [обращаясь к guard_borko] Ты выглядишь уставшим — всё в порядке?
+  DM: Стражник Борко пожимает плечами и зевает, не поднимая головы. 'Ааа, ну так и скажи, если что-то случилось. Вот уж не думал, что сегодня снова придется стоять на посту.'
+  NPC: Стражник Борко: Стражник Борко пожимает плечами и зевает, не поднимая головы. 'Ааа, ну так и скажи, если что-то случилось. Вот уж не думал, что сегодня снова придется стоять на пос
+> [обращаясь к guard_borko] Может, тебе смениться и отдохнуть?
+  DM: Стражник Борко подмигивает, хмурясь при этом слегка. 'Ааа, ну и дело-то! Вот бы мне сейчас лежать где-нибудь тихонечко... Но ведь нельзя же так поступать — есть же еще люди.'
+  NPC: Стражник Борко: Стражник Борко подмигивает, хмурясь при этом слегка. 'Ааа, ну и дело-то! Вот бы мне сейчас лежать где-нибудь тихонечко... Но ведь нельзя же так поступать — есть же 
+
+──── EVENT-КОНТУР: нога ПОСЛЕ ────
+    __npc_moved: 459 -> 460
+    __npc_spoke: 484 -> 490
+    npc_moved: 459 -> 460
+    npc_proximity_leave: 543 -> 544
+    npc_spoke: 484 -> 490
+    social_action: 0 -> 1
+
+════════ ФИНАЛЬНЫЙ ОТЧЁТ L4 v3 ════════
+  guard_borko fatigue: 0.375 -> 81.37500000000165 (тики 5.0 -> 1088.0); Δ/тик = +0.0748
+  guard_borko energy:  99.50000000000003 -> 0.0; Δ/тик = -0.0919
+  TARGET последние оси: {"fatigue": 81.37500000000165, "energy": 0.0, "pain": 0.0, "current_hp": 100, "life_status": "ALIVE", "hydration": 0.0, "nutrition": 32.1875, "sleep_pressure": 1.0}
+  TARGET crossing (окно): тик 908, оси ['energy', 'fatigue'] ✓
+  все crossings: {"enr:guard_borko": 908, "fat:guard_borko": 1088}
+  (а) natural crossing: ДА (см. crossings выше)
+  (б) контур BODY->translator->decision: event-диффы + JSONL + экстрактор реплея (суждение — Мастер)
+  (в) feasible action space: event-диффы + activity-сэмплы до/после (суждение — Мастер)
+  (г) player-observable: ноги ДО/ПОСЛЕ выше (суждение — Мастер)
+  счётчики итог: {'npc_moved': 460, 'npc_spoke': 490, 'npc_proximity_close': 647, 'npc_proximity_leave': 544, 'social_action': 1, '__ticks': 1085, '__npc_spoke': 490, '__npc_moved': 460}
+  данные: C:\DDD\Codex\VSC_Enigma\Enigma\reports\history\l4_s254_samples.jsonl | C:\DDD\Codex\VSC_Enigma\Enigma\reports\history\l4_s254_run_console.txt
+[2026-09-11T20:04:47] dispose: life_engine reset, подписки сняты, sessions/settings восстановлены
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

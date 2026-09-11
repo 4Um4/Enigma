@@ -310,6 +310,24 @@ class SpatialService:
         canonical = self.normalize_id(node_id)
         return self._graph.get(canonical)
 
+    def zone_owner(self, node_id: str) -> Optional[str]:
+        """ADR-O-386 (PROTECT): владелец узла по каноническому node_id.
+
+        npc_id-владелец или None (узел ничей / не найден).
+        Чистое чтение — сервис не принимает решений (контракт ядра).
+        """
+        node = self.get_node(node_id)
+        if node is None:
+            return None
+        return node.owner
+
+    def territory_owners(self) -> Set[str]:
+        """ADR-O-386 (PROTECT): все владельцы узлов текущего графа.
+
+        Множество npc_id — «хозяева этого пространства». Чистое чтение.
+        """
+        return {n.owner for n in self._graph.values() if n.owner}
+
     def get_node_label(self, node_id: str) -> str:
         """Возвращает читаемый label для узла. Fallback на denormalized ID."""
         node = self.get_node(node_id)

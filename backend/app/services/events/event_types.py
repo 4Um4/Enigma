@@ -46,6 +46,8 @@ class EventType(str, Enum):
     NPC_STATE_CHANGED = "npc_state_changed"
     NPC_MOVED = "npc_moved"
     NPC_SPOKE = "npc_spoke"
+    # ADR-O-386 (PROTECT): не-владелец вошёл в owned-узел (территория, не роль — L-A1)
+    TRESPASSED = "trespassed"
 
     # ── Мир ───────────────────────────────────────────────────────────────
     TIME_PASSED = "time_passed"

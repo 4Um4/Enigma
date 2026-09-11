@@ -419,6 +419,8 @@ class DecisionHub:
         npc_memory_modifiers: Optional[Dict[str, float]] = None,
         epistemic_modifiers: Optional[Dict[str, float]] = None,
         reflex_constraints: Optional[Dict] = None,
+        # ADR-O-386 (PROTECT): факт территориального доступа — предвычислен вне Hub
+        territory_pass: bool = False,
         topic: Optional[str] = None,
         decision_ctx: Optional["DecisionContext"] = None,  # S28: Каузальная деформация
         spatial_query: Optional[Any] = None,  # S96: Для SocialTargetResolver
@@ -472,7 +474,8 @@ class DecisionHub:
         # L1 черты: только из NPCIdentityL1
         active_traits: Dict[str, float] = identity.active_traits if identity else {}
         possible = self._get_possible_intents(
-            state, personality, event, opportunity, effective_drives=effective_drives
+            state, personality, event, opportunity, effective_drives=effective_drives,
+            territory_pass=territory_pass
         )
         scores, components_trace = self._score_all(
             state,
@@ -873,6 +876,7 @@ class DecisionHub:
         event: EventContext,
         opportunity: OpportunityResult,
         effective_drives: Optional["EffectiveDrives"] = None,
+        territory_pass: bool = False,
     ) -> List[str]:
         from app.services.events.event_types import EventType
 
@@ -894,6 +898,7 @@ class DecisionHub:
                 personality,
                 opportunity,
                 effective_drives=effective_drives,
+                territory_pass=territory_pass,
             ):
                 filtered.append(intent)
 
@@ -907,6 +912,7 @@ class DecisionHub:
         personality: NPCProfileL0,
         opportunity: OpportunityResult,
         effective_drives: Optional["EffectiveDrives"] = None,
+        territory_pass: bool = False,
     ) -> bool:
         """
         Фильтр доступности intent по состоянию NPC.
@@ -958,6 +964,11 @@ class DecisionHub:
         # Ролевая фильтрация: мирные роли не перехватывают и не устраивают засады
         # Пустая роль = нет данных → не блокируем (безопаснее разрешить)
         if intent in (Intent.BLOCK_PATH.value, Intent.AMBUSH.value):
+            # ADR-O-386 (L-A1): authority из ТЕРРИТОРИИ, не только из роли.
+            # Мирный владелец пространства имеет право на защиту; факт
+            # предвычислен вне Hub (пайплайн) и приходит параметром
+            if territory_pass:
+                return True
             role_lower = state.current_role.lower()
             if role_lower and not any(p in role_lower for p in COMBAT_CAPABLE_ROLES):
                 return False

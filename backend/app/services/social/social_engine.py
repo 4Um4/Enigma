@@ -407,7 +407,7 @@ class SocialEngine:
 
         Триггеры:
         - Ревность: игрок близко к other + affection > 0.3 → INTIMIDATE
-        - Защита союзника: игрок угрожает other + trust > 0.4 → THREATEN
+        - Защита союзника: игрок угрожает other + trust > 0.4 → INTIMIDATE (ADR-O-386: ремап)
         - Страх перед ассоциатом: игрок атакует other + fear > 0.3 → FLEE
         - Долговой рычаг: игрок рядом с должником → OBSERVE
 
@@ -445,7 +445,7 @@ class SocialEngine:
                 and bool(_all_event_types & _JEALOUSY_EVENTS)
             ):
                 bonus = round(0.4 * rel.effective_affection, 4)
-                modifiers["INTIMIDATE"] = max(modifiers.get("INTIMIDATE", 0.0), bonus)
+                modifiers["intimidate"] = max(modifiers.get("intimidate", 0.0), bonus)
 
             # ЗАЩИТА СОЮЗНИКА: только если атакуют конкретного друга
             _PROTECT_EVENTS = {"player_attacks", "player_threatens", "player_insults"}
@@ -453,17 +453,20 @@ class SocialEngine:
                 rel.effective_trust > 0.4 and bool(_all_event_types & _PROTECT_EVENTS)
             ):
                 bonus = round(0.3 * rel.effective_trust, 4)
-                modifiers["THREATEN"] = max(modifiers.get("THREATEN", 0.0), bonus)
+                # ADR-O-386 (решение Мастера, вариант а): Intent.THREATEN не существует —
+                # защитная угроза канализируется в INTIMIDATE; слияние с ревностью
+                # через max() — консервативно, без двойного учёта (инвариант «фикс ≠ баланс»)
+                modifiers["intimidate"] = max(modifiers.get("intimidate", 0.0), bonus)
 
             # СТРАХ ПЕРЕД АССОЦИАТОМ: только если атакуют того кого боимся
             if is_target and rel.fear > 0.3 and "player_attacks" in _all_event_types:
                 bonus = round(0.3 * rel.fear, 4)
-                modifiers["FLEE"] = max(modifiers.get("FLEE", 0.0), bonus)
+                modifiers["flee"] = max(modifiers.get("flee", 0.0), bonus)
 
             # ДОЛГОВОЙ РЫЧАГ: игрок рядом с любым должником — по ВСЕМ связям
             if rel.debt > 0 and other_dist < 4.0:
                 bonus = round(0.2 * min(rel.debt / 50.0, 1.0), 4)
-                modifiers["OBSERVE"] = max(modifiers.get("OBSERVE", 0.0), bonus)
+                modifiers["observe"] = max(modifiers.get("observe", 0.0), bonus)
 
         return modifiers
 
