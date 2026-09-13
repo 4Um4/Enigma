@@ -1,4 +1,4 @@
-"""
+﻿"""
 Файл: backend/app/services/player_cognition/action_consequence_compiler.py
 Назначение: Маршрутизация действия игрока во все слои симуляции.
 Зависимости: typing, app.models.player_action, app.services.*
@@ -11,7 +11,13 @@ if TYPE_CHECKING:
     # SANATION-M1b.2.2: forward-ref Optional["TruthState"] жил без импорта
     # (F821, pre-existing) — TYPE_CHECKING-блок; рантайм не тронут.
     from app.models.truth_state import TruthState
+    from app.services.player_cognition.discovery_bridge import DiscoveryBridge
 
+from app.domain.player_epistemics import (
+    CONTENT_ACTION_SECRET_LANDED,
+    SurfaceEvent,
+    SurfaceKind,
+)
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.player_action import ActionType, PlayerAction
 from app.services.player_cognition.observation_log import ObservationLog
@@ -42,12 +48,14 @@ class ActionConsequenceCompiler:
         truth_state: Optional["TruthState"] = None,
         faction_tracker: Optional[Any] = None,
         relationship_store: Optional[Any] = None,
-        epistemic_resolver: Optional[Any] = None  # S211 (§18): гейт убеждений
+        epistemic_resolver: Optional[Any] = None,  # S211 (§18): гейт убеждений
+        discovery_bridge: Optional["DiscoveryBridge"] = None,  # P6/E3 (S255)
     ) -> None:
         self._log = observation_log
         self._beliefs = belief_model
         self._fabric = social_fabric
         self._truth = truth_state
+        self._discovery_bridge = discovery_bridge
         self._faction_tracker = faction_tracker
         self._relationship_store = relationship_store
         # M1b.2.2 (ADR-O-371): писатель пяти скаляров переводится на
@@ -68,6 +76,31 @@ class ActionConsequenceCompiler:
         раньше регистрации Epistemic Core в GameLoop — DI по прецеденту
         SocialSubscriber.set_social_engine_factory)."""
         self._epistemic_resolver = resolver
+
+    def _emit_action_discovery(self, action: PlayerAction) -> None:
+        """P6/E3 (S255): структурный action-путь discovery.
+
+        Bridge — владелец перехода (не обёртка): DM_NARRATIVE +
+        ACTION_SECRET_LANDED -> SurfaceEvent -> map_surface ->
+        IDENTIFIED -> mark_discovered ВНУТРИ Bridge (Р1). Прямой
+        mark из компилятора удалён — T5-монополия. Bridge не
+        инжектирован -> телеметрия, не молча.
+        """
+        if self._discovery_bridge is None:
+            logger.warning(
+                f"[P6_E3] discovery потерян: action={action.action_id} "
+                f"secret_id={action.secret_id!r}: Bridge не инжектирован"
+            )
+            return
+        self._discovery_bridge.process(
+            SurfaceEvent(
+                kind=SurfaceKind.DM_NARRATIVE,
+                tick=action.tick,
+                source_id=action.target_id,
+                secret_id=action.secret_id,
+                content_class=CONTENT_ACTION_SECRET_LANDED,
+            )
+        )
 
     def process_action(self, action: PlayerAction) -> Optional[str]:
         """Обрабатывает действие и обновляет все зависимые слои. Идемпотентно.
@@ -124,9 +157,8 @@ class ActionConsequenceCompiler:
             )
             self._beliefs.update_from_evidence(obs, ev)
 
-            # M-02 FIX: Отмечаем секрет как раскрытый
-            if self._truth:
-                self._truth.mark_discovered(action.secret_id)
+            # P6/E3 (S255): discovery — через Bridge (владелец перехода).
+            self._emit_action_discovery(action)
 
             self._fabric.apply_delta(
                 tick=action.tick,
@@ -162,8 +194,8 @@ class ActionConsequenceCompiler:
                 polarity=EvidencePolarity.SUPPORTS
             )
             self._beliefs.update_from_evidence(obs, ev)
-            if self._truth:
-                self._truth.mark_discovered(action.secret_id)
+            # P6/E3 (S255): discovery — через Bridge (владелец перехода).
+            self._emit_action_discovery(action)
 
         elif action.action_type == ActionType.HELP:
             self._fabric.apply_delta(

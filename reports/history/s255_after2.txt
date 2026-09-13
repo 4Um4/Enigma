@@ -1,0 +1,62 @@
+﻿...................................................s................F... [  4%]
+.......................................F................................ [  8%]
+.......F...........................................F.................... [ 12%]
+.......................................................................F [ 16%]
+........................................................................ [ 20%]
+........................F...........sss.ss..........FFF..............FF. [ 24%]
+........................................................................ [ 28%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+..sssssssssssssssss....................s................................ [ 44%]
+........................................................................ [ 48%]
+...................................s.................................... [ 52%]
+....................................s...s............................... [ 56%]
+.......................................................F................ [ 60%]
+............................................................s........... [ 64%]
+.....................F.................................................. [ 68%]
+........................................................................ [ 72%]
+........................................................................ [ 76%]
+........................................................................ [ 80%]
+........................................................................ [ 84%]
+.......................................................ss............... [ 88%]
+...............................................................F........ [ 92%]
+........s............................................................... [ 96%]
+........................s..............................                  [100%]
+============================== warnings summary ===============================
+.venv\Lib\site-packages\pydantic\_internal\_config.py:291
+.venv\Lib\site-packages\pydantic\_internal\_config.py:291
+  C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pydantic\_internal\_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.9/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+backend\tests\calibration_lab\test_m0_acceptance.py:57
+  C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\calibration_lab\test_m0_acceptance.py:57: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+backend\tests\calibration_lab\test_m0_runner.py:34
+  C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\calibration_lab\test_m0_runner.py:34: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+backend\tests\calibration_lab\test_m0_superbox.py:28
+  C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\calibration_lab\test_m0_superbox.py:28: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED backend\tests\gameplay\test_gc09_body_causality.py::test_gc09b_body_exhaustion_blocks_intents
+FAILED backend\tests\gameplay\test_tavern_vertical.py::test_gc00_probe_97_rest_smoke
+FAILED backend\tests\sandbox\SUPERBOX\scenarios\epistemic_second_order_attribution_test.py::test_superbox_014_second_order_attribution
+FAILED backend\tests\sandbox\micro\test_boundary_transition.py::test_runtime_applies_boundary_snap
+FAILED backend\tests\sandbox\micro\test_observer_causality.py::test_observer_out_of_radius_no_belief
+FAILED backend\tests\sandbox\phenomenology\test_dialogue_context_binding.py::test_question_with_context
+FAILED backend\tests\sandbox\system\test_causal_closure.py::test_full_obedience_closure
+FAILED backend\tests\sandbox\system\test_causal_closure.py::test_brave_resistance_closure
+FAILED backend\tests\sandbox\system\test_life_direction_crisis.py::test_crisis_changes_life_direction_and_intent
+FAILED backend\tests\sandbox\test_causal_movement.py::TestCausalOntology::test_no_direct_scene_change_in_resolver
+FAILED backend\tests\sandbox\test_causal_movement.py::TestCausalOntology::test_pressure_modifies_utility_not_commands
+FAILED backend\tests\test_opportunity_engine.py::test_non_broken_will_state_always_denied
+FAILED backend\tests\test_phase1_validation.py::TestPhase1Implementation::test_bridge_3_player_spoke_in_threat_types
+FAILED backend\tests\test_sqlite_store_stage11.py::TestSqliteBatch::test_batch_uses_sequence_id_for_mem_id
+14 failed, 1737 passed, 32 skipped, 5 warnings in 245.92s (0:04:05)
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

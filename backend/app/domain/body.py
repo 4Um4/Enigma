@@ -6,7 +6,7 @@ path: /project/backend/app/domain/body.py
 """
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class EncumbranceLevel(Enum):
@@ -72,7 +72,7 @@ class CouplingMode(str, Enum):
 # потребители сравнивали литералы, которых enum не производит (сон-физиология
 # ×3 и sleep-зеркало были мёртвы в production с рождения). Строковые свитчи
 # по литералам coupling_mode вне этого модуля ЗАПРЕЩЕНЫ.
-_SLEEP_COUPLING_VALUES: frozenset = frozenset(
+_SLEEP_COUPLING_VALUES: frozenset[str] = frozenset(
     (
         CouplingMode.SLEEP.value,
         CouplingMode.DEEP_SLEEP.value,

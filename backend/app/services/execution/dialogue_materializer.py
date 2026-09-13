@@ -5,10 +5,8 @@ path: /backend/app/services/execution/dialogue_materializer.py
 Основные сущности: DialogueMaterializer
 """
 from __future__ import annotations
+
 import logging
-
-
-
 from typing import Any, Iterable
 
 from app.domain.execution import Artifact
@@ -52,7 +50,7 @@ class DialogueMaterializer:
         _tone = ToneMapper.map(data.get("emotional_state"))
 
         events = []
-        
+
         events.append(EventDTO.create(
             event_type=EventType.NPC_SPOKE.value,
             source=data["speaker_id"],
@@ -65,7 +63,7 @@ class DialogueMaterializer:
                 "intent_type": data.get("intent_type", "talk"),
             },
             visibility=visibility,
-            radius=10.0,
+            radius=_speech_radius,
             persistence_level="session",
         ))
 
@@ -83,7 +81,7 @@ class DialogueMaterializer:
                     "tick": 0 # Tick будет перезаписан в ClaimEventSubscriber
                 },
                 visibility=visibility,
-                radius=10.0,
+                radius=_speech_radius,
                 persistence_level="session",
             ))
 

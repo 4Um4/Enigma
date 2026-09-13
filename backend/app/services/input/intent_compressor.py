@@ -34,6 +34,33 @@ except ImportError:
 
 # Словари лемм для детерминированного матчера (оба вида глаголов)
 _ACTION_LEMMAS = {
+    # M1/P3 (ТЗ «Таверна тайн»): ASK-контур fast-path — чистый вопрос не
+    # должен умирать в UNCERTAIN при недоступном LLM. Леммы — индикаторы
+    # вопроса (I4: НЕ триггерные фразы — совпадение даёт QUESTION-акт,
+    # предмет отдельной осью SubjectRef).
+    ActionType.DIALOGUE: {
+        "спросить",
+        "расспросить",
+        "выспросить",
+        "рассказ",  # корень: расскажи/рассказать (pymorphy-нормали не всегда сходятся)
+        "рассказать",
+        "рассказывать",
+        "поведать",
+        "спроси",
+        "знать",  # «ты знаешь…»
+        "знаешь",
+        "известно",
+        "видеть",  # «ты видел…»
+        "видел",
+        "слышать",
+        "слышал",
+        "услышать",
+        "услышал",
+        "почему",
+        "зачем",
+        "кто",
+        "что",  # осторожно: пересечение с бытовой речью — см. _ASK_WEAK-гейт ниже
+    },
     ActionType.MOVE: {
         "пойти",
         "идти",
@@ -203,6 +230,157 @@ _INTENSITY_LEMMAS = {
 }
 
 
+# ── M1/P3: предметная ось вопроса (SubjectRef; коррекция Мастера) ──────────
+
+_ASK_STRONG = {
+    "спросить", "расспросить", "выспросить", "спроси",
+    "почему", "зачем", "известно",
+}
+_ASK_MEDIUM = {
+    "рассказ", "рассказать", "рассказывать", "поведать", "знать", "знаешь",
+    "видеть", "видел", "слышать", "слышал", "услышать", "услышал",
+}
+# «кто/что» — слабые: бытовая речь («что наливаю?») тоже их содержит;
+#QUESTION требует сильный/средний индикатор ИЛИ вопросительный знак.
+_QUESTION_MARK = "?"
+
+
+def _is_question(lemmas: set, raw_text: str) -> bool:
+    """N1-гейт: чистое действие («наливаю пиво») не QUESTION. Сильные
+    индикаторы достаточны; слабые (кто/что) — только при '?' в тексте."""
+    if not lemmas.isdisjoint(_ASK_STRONG):
+        return True
+    if not lemmas.isdisjoint(_ASK_MEDIUM):
+        return True
+    return _QUESTION_MARK in raw_text and (
+        "кто" in lemmas or "что" in lemmas
+    )
+
+
+# M1/P3: предлоги с ГРАНИЦЕЙ СЛОВА — «о» внутри «что/кто» не предлог
+# (зонд-урок 2026-09-12: «Что ты знаешь о Люсе?» матчило «о » в «что »
+# -> ложный NP «ты знаешь о»; 3/4 красных имели этот единый корень).
+_SUBJECT_PREPOSITIONS = (" о ", " об ", " про ", " насчёт ", " насчет ")
+
+
+def _extract_np_after_preposition(text: str) -> str | None:
+    """NP-группа (до 3 токенов) после предлога предмета; lowercase; без
+    пунктуации-хвоста. Word-boundary: предлог обязан стоять между
+    пробелами. Best-effort: None = нет предлога (не ошибка)."""
+    lowered = " " + text.lower().strip() + " "
+    for prep in _SUBJECT_PREPOSITIONS:
+        idx = lowered.find(prep)
+        if idx >= 0:
+            tail = lowered[idx + len(prep):].strip()
+            tail = tail.rstrip("?!.,;:").strip()
+            tokens = tail.split()[:3]
+            return " ".join(tokens) if tokens else None
+    return None
+
+
+def extract_subject(raw_text: str):
+    """M1/P3: предмет вопроса → SubjectRef. Резолв: NPC (name_forms
+    прецедент) → канон-тема → event-NP → UNKNOWN. Детерминировано;
+    нерезолв сохраняет hint (N2). Не решает knows/reveals (P4/P5)."""
+    from app.domain.subject_ref import SubjectKind, SubjectRef
+
+    np = _extract_np_after_preposition(raw_text)
+    if not np:
+        # «почему Горан нервничает?» — без предлога: первый токен после
+        # слабого индикатора; fallback: вся строка как hint
+        return SubjectRef(kind=SubjectKind.UNKNOWN, subject_id=None,
+                          subject_hint=raw_text.strip()[:60] or None)
+
+    # 1) NPC-резолв по канон-словарю имён (детерминированный реестр)
+    _hit = _resolve_npc_by_name(np)
+    if _hit is not None:
+        return SubjectRef(kind=SubjectKind.NPC, subject_id=_hit, subject_hint=np)
+
+    # 2) Канон-тема: topics-словарь секретов (тема ≠ discovery)
+    _topic = _resolve_canon_topic(np)
+    if _topic is not None:
+        return SubjectRef(kind=SubjectKind.CANON_TOPIC, subject_id=_topic,
+                          subject_hint=np)
+
+    # 3) Событие/сущность: NP сохраняется как hint (без онтологии событий)
+    return SubjectRef(kind=SubjectKind.EVENT, subject_id=None, subject_hint=np)
+
+
+_M1_NPC_NAMES: dict[str, str] | None = None
+
+
+def _npc_display_names() -> dict[str, str]:
+    """M1/P3 (Мастер: движок не знает имён; entity -> языковые формы):
+    ленивый реестр {npc_id: name} ИЗ ДАННЫХ МИРА (individuals/*.json,
+    поле "name"). Новый NPC-контент -> имя доступно языку автоматически;
+    в коде — ноль имён. Поколенчески устойчиво (Generation-0 слеп)."""
+    global _M1_NPC_NAMES
+    if _M1_NPC_NAMES is not None:
+        return _M1_NPC_NAMES
+    _names: dict[str, str] = {}
+    try:
+        from app.services.npc.npc_loader import _CONFIG_NPC_ROOT
+        import json as _json
+
+        for _f in (_CONFIG_NPC_ROOT / "individuals").glob("*.json"):
+            try:
+                _d = _json.loads(_f.read_text(encoding="utf-8-sig"))
+            except Exception as _je:  # повреждённый JSON наблюдаем (L4), не молчит
+                print(
+                    f"[M1_P3] NPC name registry: skip {_f.name}: {_je}",
+                    file=__import__("sys").stderr,
+                )
+                continue
+            _nid = _d.get("id")
+            _nm = _d.get("name")
+            if _nid and _nm:
+                _names[_nid] = str(_nm)
+    except Exception as _e:  # noqa: ENIGMA001
+        # F821-фикс: модуль без logger; тихий fallback в пустой реестр —
+        # резолв деградирует до UNKNOWN (легален по N2), без шума в import-слой
+        import sys as _sys
+
+        print(f"[M1_P3] NPC name registry degraded: {_e}", file=_sys.stderr)
+    _M1_NPC_NAMES = _names
+    return _names
+
+
+def _resolve_npc_by_name(np: str) -> str | None:
+    """NPC-резолв над ДАННЫМИ МИРА (не словарь в коде): generic-стем —
+    для имён len>=4 усечение последней буквы («Люся»->«люс» ⊂ «люсе»);
+    короткие — полное имя. Плюс npc_id-подстрока (латинская адресация,
+    прецедент FT-1 :647). Падеже-устойчиво; детерминировано; без LLM."""
+    _low = np.lower()
+    for _npc_id, _name in _npc_display_names().items():
+        _n = _name.lower().strip()
+        if _n and (_n in _low or (len(_n) >= 4 and _n[:-1] in _low)):
+            return _npc_id
+        if _npc_id.lower() in _low:
+            return _npc_id
+    return None
+
+
+def _resolve_canon_topic(np: str) -> str | None:
+    """Тема канона: topics-поля секретов. Матч — усечение хвоста NP до
+    основы («подвале» содержит «подвал» -> тема «подвал»). Тема — индекс
+    предмета, НЕ триггер (I4), НЕ discovery (ASKING != DISCOVERING).
+    Первый матч по порядку канона — детерминировано."""
+    from app.services.npc import npc_loader as _nl
+
+    _truth = _nl._canon_truth_state()
+    if not _truth or not _truth.secrets:
+        return None
+    _low = np.lower()
+    for _sec in _truth.secrets.values():
+        for _topic in getattr(_sec, "topics", ()) or ():
+            if not _topic:
+                continue
+            _t = _topic.lower()
+            if _t in _low:
+                return _sec.secret_id
+    return None
+
+
 class IntentCompressor:
     """Слой 1: Сжатие языка в IntentSemanticField."""
 
@@ -257,6 +435,22 @@ class IntentCompressor:
 
         if not matched_action:
             return None
+
+        # M1/P3: ASK-контур. QUESTION-акт + предметная ось SubjectRef.
+        # Инварианты Мастера: акт независим от резолва (N2); детерминировано;
+        # LLM-independent; ASKING != DISCOVERING (никаких disclosure-решений).
+        if matched_action is ActionType.DIALOGUE and _is_question(lemmas, raw_text):
+            _subject = extract_subject(raw_text)
+            return IntentSemanticField(
+                action=ActionType.DIALOGUE,
+                speech_act=SpeechAct.QUESTION,
+                subject_kind=_subject.kind.value,
+                subject_id=_subject.subject_id,
+                subject_hint=_subject.subject_hint,
+                raw_text=raw_text,
+                confidence=ConfidenceVector(action=0.85, parse=0.9, target=0.6, emotion=0.3),
+                ambiguity=SemanticAmbiguity.CLEAR,
+            )
 
         physical = 0.4
         emotional = 0.1

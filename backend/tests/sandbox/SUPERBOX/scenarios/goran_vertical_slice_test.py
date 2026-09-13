@@ -37,9 +37,7 @@ from app.core.config import settings
 # Изоляция saves ДО импорта сервисов (IPT-паттерн)
 settings.saves_dir = tempfile.mkdtemp(prefix="goran_slice_")
 
-from app.domain.epistemology import Predicate, Proposition
-from app.models.npc_profile import NPCProfileL0
-from app.models.npc_state import NPCState
+from app.domain.epistemology import Predicate
 from app.services.economy.opportunity_engine import OpportunityContext
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
@@ -48,7 +46,6 @@ from app.services.npc.decision_hub import DecisionHub
 from app.services.npc.npc_loader import load_profile_from_legacy_json
 from app.services.phases.post_decision import (
     run_phase_6_post_decision,
-    run_phase_7_windup_resolution,
 )
 
 CAMPAIGN = "Open_road"
@@ -77,6 +74,30 @@ def _get_spy_events(et: str):
 
 def _store(world):
     return getattr(world.game_loop._tick_orch, "_epistemic_store", None)
+
+
+def _freeze_spatial_consumers_v(world, frozen_sq, ev_bus=None) -> int:
+    """HARNESS FIX (β-канон smoke_goran_beta:157, S225): заморозка геометрии —
+    провайдеры подписчиков это bound methods, захваченные при конструировании;
+    замена атрибута game_loop их НЕ перехватывает. Патчим _get_spatial_query
+    на инстансах через реестр шины + провайдер game_loop + shared_context
+    (эшелон-5, немедленный эффект). Живые расписания S252-эпохи уводят
+    свидетелей из sight-radius в момент THEFT — freeze восстанавливает
+    детерминизм зонда. ev_bus: шина конкретного мира (ctrl-плечо G9 — bus2;
+    default — глобал bus EXP-мира)."""
+    _bus = ev_bus if ev_bus is not None else world.game_loop._tick_orch._get_event_bus()
+    _patched = 0
+    for _hlist in getattr(_bus, "_handlers", {}).values():
+        for _h in _hlist:
+            _inst = getattr(_h, "__self__", None)
+            if _inst is not None and hasattr(_inst, "_get_spatial_query"):
+                _inst._get_spatial_query = lambda: frozen_sq
+                _patched += 1
+    world.game_loop._get_spatial_query_for_subscriber = lambda: frozen_sq
+    _shared = getattr(world.game_loop._tick_orch, "_shared_context", None)
+    if _shared is not None:
+        _shared.spatial_query = frozen_sq
+    return _patched
 
 
 def main() -> int:
@@ -145,8 +166,8 @@ def main() -> int:
 
     # Production DTO вместо заглушки: EventContext (decision_hub:211) —
     # нейтральный world_tick, все обязательные поля из контракта.
-    from app.services.npc.decision_hub import EventContext
     from app.services.events.event_types import EventType as _ET
+    from app.services.npc.decision_hub import EventContext
     _wt_event = EventContext(
         event_type=_ET.WORLD_TICK, actor_id="world", success=True,
         intensity=0.2, distance=10.0, witness_count=1, location="tavern",
@@ -210,12 +231,42 @@ def main() -> int:
         all_npcs_raw=list((_scene.get("npc_positions") or {}).keys()),
     )
     run_phase_6_post_decision(_phase6_ctx, _orch)
-    _windups = [w for k, ws in _orch._windup_registry.items() for w in ws
-                if w.action_type == "steal" and w.status.value == "pending"]
-    g2a = len(_windups) == 1 and _windups[0].duration_ticks == 2
+    # HARNESS MIGRATION (S223/Э6, решение Мастера 2026-09-11): НЕ production
+    # causal defect. Два дефекта ТЕСТА: (1) с Э6 ветка 6 пишет windup в
+    # scene_state["windup_registry"] (dict-форма, строковый ключ) — легаси
+    # _orch._windup_registry пуст by design (tick_orchestrator:99-102);
+    # (2) get_scene_state при _tick_locked=False возвращает свежую копию из
+    # persistence (находка S225) — инъекция обязана персиститься полным writer'ом
+    # scene_manager.save_scene_state (НЕ GameLoop.save_scene_state: тот после
+    # S244 — B1.4-whitelist на player-position). Замена чтения + save = возврат
+    # теста на production-контракт Э6.
+    world.game_loop.scene_manager.save_scene_state(CAMPAIGN, _scene)
+    _wstore = _scene.get("windup_registry") or {}
+    _windups = [
+        w for ws in _wstore.values() for w in ws
+        if w.get("action_type") == "steal" and w.get("status") == "pending"
+    ]
+    g2a = len(_windups) == 1 and _windups[0].get("duration_ticks") == 2
     g2b = len(_get_spy_events("theft")) == 0
+
+    # HARNESS FIX (β-геометрия №104): заморозка мембран EXP-плеча ДО релиза
+    # THEFT — тот же вызов, что ctrl-мир G9 (доказан repair5: G9/G9b GREEN).
+    # Живые расписания S252-эпохи уводят Горана (fireplace↔main_hall) и вора
+    # (schedule:sleeping) из sight-radius в момент THEFT → G4/G5 красные.
+    # β-тройка: вор 11.5,11.0 / Горан 10.1,6.1 (свидетель 5.1 с LOS) /
+    # игрок 8.59,0.81 (10.6 — НЕ свидетель, 5.5 — слышит warn Горана).
+    _sc_f = world.game_loop.scene_manager.get_scene_state(CAMPAIGN, "tavern") or {}
+    _np_f = dict(_sc_f.get("npc_positions") or {})
+    for _nid, _pos in ((THIEF, (11.5, 11.0)), (GORAN, (10.1, 6.1)), ("player", (8.59, 0.81))):
+        if _nid in _np_f:
+            _np_f[_nid] = dict(_np_f[_nid])
+            _np_f[_nid]["local_position"] = {"x": _pos[0], "y": _pos[1]}
+    from app.services.spatial.spatial_query_service import SpatialQueryService
+    _frozen_sq = SpatialQueryService(npc_positions=_np_f)
+    _n_patched = _freeze_spatial_consumers_v(world, _frozen_sq, ev_bus=bus)
+    print(f"[G2-FREEZE] spatial-потребители заморожены: {_n_patched}")
     print(f"[G2] Windup создан ({len(_windups)}, dur="
-          f"{_windups[0].duration_ticks if _windups else '-'}), THEFT на шине НЕТ — "
+          f"{_windups[0].get('duration_ticks') if _windups else '-'}), THEFT на шине НЕТ — "
           f"{'✅' if (g2a and g2b) else '❌'}")
     ok = ok and g2a and g2b
 
@@ -416,6 +467,13 @@ def main() -> int:
     # Эшелон-5: подмена ПРОВАЙДЕРА (shared_context.spatial_query пересобирается
     # каждым тиком — подмена словаря затирается; провайдер стабилен).
     world2.game_loop._get_spatial_query_for_subscriber = lambda: _ctrl_sq
+    # HARNESS FIX (ctrl-плечо): реестр-патч выше фильтрует по store и может
+    # не найти подписчика после сброса шины; эшелон-5 не перехватывает bound
+    # методы. Генерический freeze по bus2 закрывает ВСЕХ spatial-потребителей
+    # ctrl-мира — иначе ObservationSubscriber живёт на живых позициях
+    # (Goran в main_hall ≈7.4 м от вора → свидетель, belief[goran]=ЕСТЬ,
+    # repair4).
+    _freeze_spatial_consumers_v(world2, _ctrl_sq, ev_bus=bus2)
     _shared2 = getattr(world2.game_loop._tick_orch, "_shared_context", None)
     if _shared2 is not None:
         _shared2.spatial_query = _ctrl_sq  # + immediate-эффект для текущего тика
@@ -426,6 +484,11 @@ def main() -> int:
         scene_state=_scene2, npc_services=None,
         all_npcs_raw=list(_np2.keys()),
     ), world2.game_loop._tick_orch)
+    # HARNESS MIGRATION (та же пара, что EXP-ветка, решение Мастера 2026-09-11):
+    # ctrl-инъекция обязана персиститься — без save живые тики грузят сцену без
+    # windup, THEFT не релизится («кража была (False)», repair2/3). Полный writer
+    # — scene_manager (НЕ GameLoop.save_scene_state: B1.4-whitelist после S244).
+    world2.game_loop.scene_manager.save_scene_state(CAMPAIGN, _scene2)
     for _ in range(8):
         _tick(world2)
 
@@ -457,8 +520,8 @@ def main() -> int:
     ok = ok and g9 and g9c
 
     # ── C0: формальная фиксация ─────────────────────────────────────
-    print(f"[C0] TruthState: обе кражи идентичны (тот же compute-выход, "
-          f"тот же intent-объект) — ✅ (структурно гарантировано)")
+    print("[C0] TruthState: обе кражи идентичны (тот же compute-выход, "
+          "тот же intent-объект) — ✅ (структурно гарантировано)")
     print("=" * 64)
     print("🎉 VERTICAL SLICE «ТЕНЬ И ЗОЛОТО» ДОКАЗАН: мотив → кража → "
           "наблюдение → убеждение → характер → речь → вера игрока → действие → "

@@ -11,7 +11,7 @@ path: /project/backend/app/domain/epistemology.py
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 
 class Predicate(Enum):
@@ -73,7 +73,7 @@ class Proposition:
     object_id: str  # С чем/кем взаимодействовали
     polarity: bool = True  # True: "B украл X". False: "B НЕ украл X".
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Э6: JSON-сериализация (§12 WARA)."""
         return {
             "subject_id": self.subject_id,
@@ -83,7 +83,7 @@ class Proposition:
         }
 
     @staticmethod
-    def from_dict(d: dict) -> "Proposition":
+    def from_dict(d: dict[str, Any]) -> "Proposition":
         from app.domain.epistemology import Predicate  # forward-ref safe
 
         return Proposition(

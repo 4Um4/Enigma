@@ -83,7 +83,7 @@ class SemanticAction:
                 self, "action_type", WorldActionType(self.action_type)
             )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "action_type": self.action_type.value,
             "target_object_id": self.target_object_id,

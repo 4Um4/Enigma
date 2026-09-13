@@ -37,13 +37,17 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None, memory_manager=None, confession_parser=None):
+    def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None, memory_manager=None, confession_parser=None, npc_states_provider=None):
         from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
         }
         # ADR-O-342: Сохраняем для проверки STM при резолве цели
         self._memory_manager = memory_manager
+        # B (пункт 10, решение Мастера 2026-09-11): провайдер NPC-статов для
+        # liveness-гейта диалоговых задач (Callable[[campaign_id], list[dict]]).
+        # None = гейт выключен (fail-open) — sandbox/тесты без wiring как раньше.
+        self._npc_states_provider = npc_states_provider
         # Блокер 5: Sims-слой для ambient-диалогов без LLM
         self._ambient_executor: NpcConversation = NpcConversation()
         self._materializers: Dict[str, Materializer] = {
@@ -75,6 +79,28 @@ class TaskScheduler:
         self._commitment_outbox: list = []
         self._commitment_outbox_lock = threading.Lock()
         logger.info("[TASK_SCHED] DialogueQueue initialized")
+
+    def _owner_is_dead(self, campaign_id: str, owner_id: str) -> bool:
+        """B (пункт 10): True только при доказанном life_status=DEAD владельца
+        задачи — канонический ADR-O-365 terminal-mapping «actor DEAD → EXPIRED»
+        (достройка заявленного мэппинга, НЕ новая система смерти). Fail-open по
+        S198-паритету: провайдер не задан / владелец не найден / ошибка → False
+        (задача исполняется; возрастной M-29 разбирает брошенные). Чтение —
+        мир не мутируется."""
+        if not self._npc_states_provider or not owner_id:
+            return False
+        try:
+            _states = self._npc_states_provider(campaign_id) or []
+        except Exception as _prov_err:
+            logger.warning(f"[TASK_SCHED] liveness-gate provider failed: {_prov_err}")
+            return False
+        for _n in _states:
+            if not isinstance(_n, dict):
+                continue
+            if _n.get("npc_id") == owner_id or _n.get("id") == owner_id:
+                _bs = _n.get("body_state") or {}
+                return _bs.get("life_status") == "DEAD"
+        return False
 
     def set_spatial_query_service(self, sqs):
         """Инъекция SpatialQueryService для Social Target Resolver."""
@@ -138,6 +164,24 @@ class TaskScheduler:
         # Копируем задачи и очищаем список в scene_state, чтобы не запустить повторно
         tasks_to_process = pending[:max_tasks_per_tick]
         remaining_tasks = pending[max_tasks_per_tick:]
+        # B (пункт 10, решение Мастера; точка №3 — найдена прогоном №149):
+        # process_tasks — параллельный dispatcher (минуя DialogueQueue и оба
+        # гейта execute_pending): мёртвый владелец → EXPIRED по каноническому
+        # ADR-O-365 мэппингу ДО пула — «посмертные реплики через этот путь
+        # при зелёном dequeue-гейте» были последним разрывом пункта 10.
+        _camp = scene_state.get("campaign_id", "")
+        _alive = []
+        for _td in tasks_to_process:
+            _own = _td.get("owner_id", "")
+            if self._owner_is_dead(_camp, _own):
+                self._record_task_outcome(_own, "EXPIRED")
+                logger.info(
+                    f"[TASK_SCHED] liveness-gate (process_tasks): owner={_own} "
+                    f"DEAD → task EXPIRED (mid-generation interrupt)"
+                )
+                continue
+            _alive.append(_td)
+        tasks_to_process = _alive
         scene_state["pending_tasks"] = remaining_tasks
 
         # Запускаем фоновую обработку
@@ -184,6 +228,15 @@ class TaskScheduler:
                     # публикует NPC_SPOKE и обновляет EpistemicStore ДО возврата из
                     # execute_pending → поллинг видит conf в том же тике.
                     # LLM-задачи (talk и др.) остаются на пуле — ADR-O-343 не нарушен.
+                    # B (пункт 10): liveness-гейт fast-path — тот же ADR-O-365
+                    # terminal-mapping, main-thread sync-ветка (как DEDUP).
+                    if self._owner_is_dead(campaign_id, speaker_id):
+                        self._record_task_outcome(speaker_id, "EXPIRED")
+                        logger.info(
+                            f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
+                            f"DEAD → task EXPIRED (mid-generation interrupt)"
+                        )
+                        continue
                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time)
                     continue
 
@@ -253,6 +306,18 @@ class TaskScheduler:
                         )
                     continue
 
+            # B (пункт 10, решение Мастера): liveness-гейт при dequeue — смерть
+            # прерывает mid-generation: реплика мёртвого не материализуется,
+            # задача получает EXPIRED по каноническому ADR-O-365 мэппингу
+            # (жизненный цикл убитой задачи = прецедент DEDUP-ветки). Fail-open:
+            # нет провайдера/не найден/ошибка → исполнение как раньше.
+            if self._owner_is_dead(campaign_id, task_dict.get("owner_id", "")):
+                self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+                logger.info(
+                    f"[TASK_SCHED] liveness-gate: owner={task_dict.get('owner_id', '')} "
+                    f"DEAD → task EXPIRED (mid-generation interrupt)"
+                )
+                continue
             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
             # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
             self._executor_pool.submit(
@@ -271,6 +336,21 @@ class TaskScheduler:
             campaign_id = scene_state.get("campaign_id", "")
 
         for task_dict in tasks:
+            # B8 (пункт 10, №149/№151-ретракция): worker-гейт — последняя
+            # точка прерывания mid-generation. Dispatch-гейты не покрывают
+            # in-flight: задача сабмичена ДО смерти (владелец жил — гейты
+            # честно прошли), воркер исполняет ПОСЛЕ. Проверка перед
+            # executor.execute переспрашивает живость на каждом хопе
+            # (enqueue→dequeue→submit→execute) — любые будущие dispatch-точки
+            # закрыты by construction. EXPIRED — канонический ADR-O-365
+            # terminal-mapping; outbox-дренаж воркера — прецедент D-2.
+            if self._owner_is_dead(campaign_id, task_dict.get("owner_id", "")):
+                self._record_task_outcome(task_dict.get("owner_id", ""), "EXPIRED")
+                logger.info(
+                    f"[TASK_SCHED] liveness-gate (worker): owner={task_dict.get('owner_id', '')} "
+                    f"DEAD → task EXPIRED (mid-generation interrupt)"
+                )
+                continue
             self.total_processed_tasks += 1
             task = self._reconstruct_task(task_dict)
             if task is None:
@@ -299,7 +379,9 @@ class TaskScheduler:
             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
                 from dataclasses import replace as dc_replace
 
-                from app.domain.communication import SELF_TALK_SENTINEL  # Р-А: доменный сентинел вместо магической строки
+                from app.domain.communication import (
+                    SELF_TALK_SENTINEL,  # Р-А: доменный сентинел вместо магической строки
+                )
 
                 _resolved_target = SELF_TALK_SENTINEL
                 # C11 FIX: DialogueRequest уже импортирован на уровне модуля

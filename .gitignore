@@ -40,6 +40,12 @@ Thumbs.db
 backend/logs/cds_backend.log
 backend/logs/cds_session_20260724_235539.log
 backend/drift_log.txt
+backend/data/logs/enigma_audit.jsonl
+backend/data/logs/scene_changes.jsonl
+backend/data/logs/enigma_20260913.jsonl
+data/logs/combat_log.jsonl
+backend/logs/llama_server.log
+backend/logs/llama_server_stderr.log
 
 # Build artifacts
 build/

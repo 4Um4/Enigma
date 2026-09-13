@@ -33,7 +33,9 @@ class Secret:
     initial_holders: Tuple[str, ...]
     discovery_surface: Tuple[str, ...] # Как это можно обнаружить
     confession_keywords: Tuple[str, ...] = field(default_factory=tuple) # V8-MVP-CK1 FIX: Ключевые слова для парсинга признаний NPC
+    topics: Tuple[str, ...] = ()  # M1/P3: индекс предмета вопроса (НЕ discovery; закон ASKING != DISCOVERING)
 
+    
 @dataclass(frozen=True)
 class TruthRelation:
     source_secret_id: str

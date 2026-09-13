@@ -1,4 +1,4 @@
-"""
+﻿"""
 Файл: backend/app/services/social/mvp_tavern_controller.py
 Назначение: Единая точка доступа к эпистемическим и социальным системам MVP.
 Зависимости: Все созданные нами P7-компоненты.
@@ -60,6 +60,18 @@ class MvpTavernController:
         self.exit_trigger = ExitTrigger()
         self.world_diff_builder = WorldDiffBuilder()
         
+        # P6/E3 (S255): игрок-петля — третий онтологический слой
+        # (TruthState / NPC narrative_cache / PlayerEpistemicState).
+        from app.models.player_epistemic_state import PlayerEpistemicState
+        self.player_epistemic_state = PlayerEpistemicState()
+
+        # P6/E3: DiscoveryBridge — ЕДИНСТВЕННЫЙ writer discovery (Р1);
+        # компилятор получает Bridge; executor — на шаге E1.
+        from app.services.player_cognition.discovery_bridge import DiscoveryBridge
+        self.discovery_bridge = DiscoveryBridge(
+            self.player_epistemic_state, self.truth_state
+        )
+
         # Компилятор последствий (связывает трекеры вместе)
         # S212: relationship_store инъектируется (контроллер получает его из
         # GameLoop) — без него ACCUSE/HELP/BLACKMAIL-дельты уходили только в
@@ -70,7 +82,8 @@ class MvpTavernController:
             social_fabric=self.social_fabric,
             truth_state=self.truth_state,
             faction_tracker=self.faction_tracker,
-            relationship_store=relationship_store
+            relationship_store=relationship_store,
+            discovery_bridge=self.discovery_bridge  # P6/E3 (S255)
         )
         
         # V8-MVP-12 FIX: Парсер признаний NPC
@@ -106,6 +119,7 @@ class MvpTavernController:
         
         # M-02/M-12 FIX: Обновляем ссылки на truth_state в под-сервисах (на случай сброса состояния)
         self.action_compiler._truth = self.truth_state
+        self.discovery_bridge._truth = self.truth_state  # P6/E3: паритет re-point
         self.confession_parser._truth = self.truth_state # V8-MVP-12 FIX
         # P2 FIX: Инжектируем RelationshipStore и campaign_id в ActionCompiler
         self.action_compiler._relationship_store = self._relationship_store

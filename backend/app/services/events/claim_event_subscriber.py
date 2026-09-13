@@ -7,8 +7,8 @@ path: /project/backend/app/services/events/claim_event_subscriber.py
 
 import logging
 from typing import Any, Optional
-from app.domain.events import EventDTO
-from app.domain.epistemology import ClaimEvent, Proposition, Predicate, SpeechAct
+
+from app.domain.epistemology import ClaimEvent, Predicate, Proposition, SpeechAct
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
 
@@ -29,8 +29,8 @@ class ClaimEventSubscriber:
     S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
     """
     def __init__(
-        self, 
-        engine: BeliefRevisionEngine, 
+        self,
+        engine: BeliefRevisionEngine,
         store: EpistemicStore,
         spatial_query_provider: Optional[Any] = None,
     ):
@@ -44,7 +44,7 @@ class ClaimEventSubscriber:
         Если LLM не предоставила proposition, извлекает его из intent_type.
         """
         import dataclasses
-        
+
         if not hasattr(event, 'payload'):
             return
 
@@ -81,8 +81,54 @@ class ClaimEventSubscriber:
             }
             new_payload.setdefault("claim_id", f"fallback-{event.id}")
             new_payload.setdefault("speech_act", "assert")
-            
+
             # Создаём новый event с теми же полями, но новым payload
+            new_event = dataclasses.replace(event, payload=new_payload)
+            self.on_claim_event(new_event)
+
+    def on_player_spoke(self, event: Any) -> None:
+        """G1 (GC-SOCIAL-01, Stage-1.5): PLAYER_SPOKE → ClaimEvent для слышащих
+        NPC — симметрия testimony-канала (NPC→player доказан S200/β-G6).
+        Зеркало on_npc_spoke-фоллбека: proposition строится ТОЛЬКО из DM-вектора
+        (ADR-035: semantic_action/target_reference/target_id). Обычный dialogue
+        без вектора — no-op: Stage-1.5 не «понимает» речь (граница M2/D —
+        self-relevance/secret-семантика запрещены). Мембрана унаследована из
+        on_claim_event (distance + can_observe по event.radius = SSOT Р-В)."""
+        import dataclasses  # локальный — прецедент on_npc_spoke (шрам трека: №181)
+
+        if not hasattr(event, "payload"):
+            return
+
+        payload = event.payload
+        semantic_action = payload.get("semantic_action")
+        if not semantic_action:
+            return  # G1: без DM-вектора нет утверждения — слышимость живёт в LISTEN-дельтах
+
+        subject_of_claim = payload.get("target_reference") or payload.get("target_id")
+        speaker = getattr(event, "source", "player")
+
+        prop = None
+        if semantic_action == "ACCUSE" and subject_of_claim:
+            # "Игрок обвиняет target в краже" → target украл неизвестно что
+            # (зеркало NPC-фоллбека accuse→STOLE, №177)
+            prop = Proposition(subject_id=subject_of_claim, predicate=Predicate.STOLE, object_id="unknown")
+        elif semantic_action == "THREATEN" and subject_of_claim:
+            # "Игрок угрожает target" → игрок напал(угроза) на target
+            prop = Proposition(subject_id=speaker, predicate=Predicate.ATTACKED, object_id=subject_of_claim)
+        elif semantic_action == "HELP" and subject_of_claim:
+            # "Игрок помог target" → игрок помог target
+            prop = Proposition(subject_id=speaker, predicate=Predicate.HELPED, object_id=subject_of_claim)
+
+        if prop:
+            new_payload = dict(payload)
+            new_payload["proposition"] = {
+                "subject_id": prop.subject_id,
+                "predicate": prop.predicate.value,
+                "object_id": prop.object_id,
+                "polarity": True,
+            }
+            new_payload.setdefault("claim_id", f"player-claim-{event.id}")
+            new_payload.setdefault("speech_act", "assert")
             new_event = dataclasses.replace(event, payload=new_payload)
             self.on_claim_event(new_event)
 

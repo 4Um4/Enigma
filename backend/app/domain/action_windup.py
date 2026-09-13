@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 
 class WindupStatus(str, Enum):
@@ -39,7 +39,7 @@ class ActionWindup:
     # DEBT-310.1: ID интента, отложенного в TickOrchestrator._pending_intents.
     held_intent_id: Optional[str] = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """S203.4 (Э6, Н-40): JSON-сериализация для scene_state-персистентности.
         Все поля — примитивы или str-Enum; round-trip без потерь (§12 WARA)."""
         return {
@@ -54,7 +54,7 @@ class ActionWindup:
         }
 
     @staticmethod
-    def from_dict(d: dict) -> "ActionWindup":
+    def from_dict(d: dict[str, Any]) -> "ActionWindup":
         """S203.4 (Э6): восстановление из JSON (после atomic_commit → load)."""
         return ActionWindup(
             actor_id=d["actor_id"],

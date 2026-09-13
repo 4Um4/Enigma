@@ -246,7 +246,7 @@ class WorldSnapshotDTO:
     )
     # Phase 8.2: Эпистемическая проекция убеждений игрока (UI DOCTRINE §IV, §XII)
     # Содержит только убеждения observer_id="player" для вкладки "Мои убеждения".
-    player_beliefs: list = field(default_factory=list)
+    player_beliefs: list[Any] = field(default_factory=list)
     player_perception: Optional[PlayerPerceptionDTO] = (
         None  # ТЗ EMBODIED UI: Симметричная онтология восприятия
     )

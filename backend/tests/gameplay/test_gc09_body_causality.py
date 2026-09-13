@@ -82,19 +82,20 @@ def test_gc09a_body_writes_in_production_ticks(harness):
             )
 
 def test_gc09b_body_exhaustion_blocks_intents(harness):
-    """GC-09B-full (ADR-O-383 oracle, observation-scope correction — вердикт
-    Мастера Q-D): наблюдение ПОЛНОГО production-контура решения (decision_ctx
-    из translate_kernel_to_context — официальный путь veto в живом тике).
-    "Original GC-09B RED remains immutable evidence of the early
-    availability-path blind spot. The post-implementation oracle is
-    upgraded to observe the complete production decision contour because V1
-    intentionally operates in the feasibility layer. The oracle upgrade is
-    therefore an observation-scope correction, not a relaxation of the
-    acceptance criterion."
-    (Оригинальный RED-текст сохранён в истории коммитов a6708f46/
-    gc09b_red4.txt как immutable evidence.)"""
+    """GC-09B-full R1-санация (S254/Мастер 2026-09-11): оригинальный GREEN
+    был CAUSAL FALSE GREEN — единственная наблюдаемая разница A->B была
+    RNG-артефактом (noise ±SCORE_NOISE_RANGE на каждый intent,
+    decision_hub.py:1037/:1052; один хаб на два compute -> позиция-2 потока;
+    S254 decisive-зонд: A/A-дрейф == A/B-дрейфу; fresh A == fresh B
+    байт-идентично при fatigue 0.22 vs 90.2).
+    Контракт R1 (Мастер): fresh hub + A/A control + noise-off +
+    сохранение causal claim в усиленной форме — chronic cap 0.3 обязан
+    множить scores capped-интентов. При живом контуре — GREEN; при разрыве —
+    RED-диагноз S254 L4-F8/F9 (НЕ ретушь: fix = R2 mini-ADR).
+    Evidence: протокол S254; см. L4_S254_EVIDENCE_REBUILT.md."""
     import copy as _copy
 
+    import app.services.npc.decision_hub as _dh
     from app.domain.identity_events import EffectiveDrives
     from app.services.cfrm.pressure_translator import translate_kernel_to_context
     from app.services.npc.decision_hub import DecisionHub, EventContext
@@ -116,7 +117,6 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
         event_type="social", actor_id="player", success=True,
         intensity=1.0, distance=3.0, witness_count=2,
     )
-    _hub = DecisionHub(seed=0)
 
     _state_B = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
     from app.services.npc.state_applicator import StateApplicator
@@ -130,32 +130,57 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
 
     from app.models.npc_state import PerceptualKernel
 
+    _orig_noise = _dh.SCORE_NOISE_RANGE
+    _dh.SCORE_NOISE_RANGE = 0.0  # R1: noise-off — детерминированный режим
+
     def _decide(st):
         _ctx = translate_kernel_to_context(
-            kernel=PerceptualKernel(),
-            body_state=dict(st.body_state or {}),
-            social_input_ema=0.0,
-            gregariousness=0.5,
-            has_active_commitment=False,
+            kernel=PerceptualKernel(), body_state=dict(st.body_state or {}),
+            social_input_ema=0.0, gregariousness=0.5, has_active_commitment=False,
         )
-        return _hub.compute(
+        return DecisionHub(seed=0).compute(  # R1: FRESH hub на каждый decide
             state=st, personality=_personality, effective_drives=_drives,
             event=_event, decision_ctx=_ctx,
-        ).intent
+        )
 
-    _a = _decide(_state_A)
-    _b = _decide(_state_B)
-    print(f"[GC09-B-full] A(rested)={_a}; B(exhausted)={_b}; "
-          f"B.fatigue={_b_body.get('fatigue')}")
+    try:
+        # R1 A/A-контроль: прибор обязан быть детерминирован (noise-off, fresh)
+        _aa1 = _decide(_state_A)
+        _aa2 = _decide(_state_A)
+        assert _aa1.scores_trace == _aa2.scores_trace, (
+            "GC09-B R1 A/A FAIL: noise-off + fresh-hub всё равно дрейфует — "
+            "недетерминированный измерительный прибор; подозреваемый: ещё один "
+            "RNG-терм в compute (искать rng-вызовы вне decision_hub.py:1037)"
+        )
 
-    assert _b != _a, (
-        f"GC-09B-full FAIL: chronic-veto не меняет итоговый выбор "
-        f"(A={_a}, B={_b}, B.fatigue={_b_body.get('fatigue')}) — ADR-O-383 "
-        f"не работает либо decision_ctx не доходит до feasibility-фильтра"
-    )
+        _a = _decide(_state_A)
+        _b = _decide(_state_B)
+        print(
+            f"[GC09-B-R1] A(rested)={_a.intent}; B(exhausted)={_b.intent}; "
+            f"B.fatigue={_b_body.get('fatigue')}; "
+            f"A.flee={_a.scores_trace.get('flee')}; "
+            f"B.flee={_b.scores_trace.get('flee')}"
+        )
 
-    # Original GC-09B RED (immutable evidence, a6708f46 / gc09b_red4.txt):
-    # ранний availability-тракт (`_get_possible_intents` без decision_ctx)
-    # показал A≡B при fatigue=90.2 — blind spot раннего тракта. Удалён
-    # при ADR-O-383 oracle-upgrade (observation-scope correction, Q-D);
-    # RED-текст сохранён в git-истории дословно.
+        # R1 causal-claim (усиленная форма исходного): chronic cap 0.3
+        # множит scores capped-интентов: B[k] ≈ round(A[k] * 0.3, 4)
+        for _k in ("flee", "attack", "approach"):
+            _va = _a.scores_trace.get(_k)
+            _vb = _b.scores_trace.get(_k)
+            assert _va is not None and _vb is not None, (
+                f"GC09-B R1: capped-ось '{_k}' отсутствует в scores_trace — "
+                "кандидат-набор теста не совпадает со словарём хаба"
+            )
+            assert abs(_vb - round(_va * 0.3, 4)) <= 0.0002, (
+                f"GC09-B R1 RED: chronic cap не применяется к '{_k}' "
+                f"(A={_va}, B={_vb}; ожидание ~A*0.3={round(_va * 0.3, 4)}). "
+                "Диагноз S254 L4-F8/F9: translator пишет constraints "
+                "{'FLEE':0.3,...}, DecisionHub их не потребляет — ФАЗА 1 "
+                "(decision_hub.py:565) мертва по кейсу ('FLEE' vs 'flee'), "
+                "потребитель 0<feasibility<1 отсутствует (ФАЗА 2 применяет "
+                "только deformation). Fix = R2 (mini-ADR: нормализация ключей "
+                "+ scores×feasibility), НЕ ретушь теста. Evidence: S254 "
+                "decisive-зонд — fresh A == fresh B байт-идентично."
+            )
+    finally:
+        _dh.SCORE_NOISE_RANGE = _orig_noise

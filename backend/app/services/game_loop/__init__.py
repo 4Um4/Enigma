@@ -483,6 +483,12 @@ class GameLoop:
             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
             # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+            # G1 (GC-SOCIAL-01, Stage-1.5): симметрия testimony-канала — речь
+            # игрока порождает ClaimEvent для слышащих NPC (мембрана унаследована:
+            # distance+can_observe по event.radius). НЕ понимание речи: proposition
+            # приходит только из DM-вектора (ADR-035); без вектора — no-op.
+            # Self-relevance/secret-семантика — M2/D, вне Stage-1.5.
+            _bus.subscribe(EventType.PLAYER_SPOKE, _subscriber.on_player_spoke)
 
             # S201: Регистрация SocialActionSubscriber для маршрутизации SOCIAL_ACTION
             from app.services.events.social_action_subscriber import SocialActionSubscriber
@@ -2524,7 +2530,7 @@ class GameLoop:
             _cp = getattr(self.mvp_controller, "confession_parser", None) if self.mvp_controller else None  # noqa: ENIGMA001, ENIGMA002
             if _cp is None and self.mvp_controller is not None:
                 logger.error("MvpTavernController missing confession_parser. Check wiring.")
-            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp)
+            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs, memory_manager=self.memory_manager, confession_parser=_cp, npc_states_provider=lambda cid: self._resolve_npcs_snapshot(cid))
             self._task_scheduler = _scheduler
         return self._task_scheduler
 

@@ -4,7 +4,7 @@
 # Основные сущности: ExposureLevel, CommunicationIntent
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from app.domain.epistemology import Proposition
 
@@ -51,7 +51,7 @@ class ExposureLevel:
     semantic: Literal["secret", "whisper", "normal", "loud", "shout", "private"]
     physical_radius: Optional[float] = None  # None = derive from semantic
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Э6: JSON-сериализация (§12 WARA). physical_radius — явно
         (не None, т.к. __post_init__ уже вычислил его)."""
         return {
@@ -60,7 +60,7 @@ class ExposureLevel:
         }
 
     @staticmethod
-    def from_dict(d: dict) -> "ExposureLevel":
+    def from_dict(d: dict[str, Any]) -> "ExposureLevel":
         return ExposureLevel(
             semantic=d["semantic"],
             physical_radius=d.get("physical_radius"),

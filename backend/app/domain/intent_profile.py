@@ -93,6 +93,11 @@ class IntentSemanticField(BaseModel):
 
     speech_act: Optional[SpeechAct] = Field(default=None)
     proposition: Optional[Proposition] = Field(default=None, description="Semantic content")
+    # M1/P3 (коррекция Мастера): предмет вопроса — ось, ортогональная акту;
+    # unknown легален (N2); extractor best-effort, non-authoritative.
+    subject_kind: Optional[str] = Field(default=None, description="SubjectKind.value; None = не вопрос/нет предмета")
+    subject_id: Optional[str] = Field(default=None, description="npc_id / canon topic_key / secret_id")
+    subject_hint: Optional[str] = Field(default=None, description="сырая NP; переживает нерезолв")
     social_intent: Optional[SocialIntent] = Field(default=None)
     requested_outcome: Optional[str] = Field(default=None, description="Что игрок хочет получить")
     offered_outcome: Optional[str] = Field(default=None, description="Что игрок предлагает")
