@@ -337,6 +337,16 @@ def aggregate_deltas(deltas: list) -> list:
             if d.source != "unknown":
                 existing.source = d.source
 
+            # [GC-I01-E1b] intent-перенос (мерж-семантика will_state_override:
+            # last-write-wins, None не переносится). Без этого первая же
+            # одногрупповая дельта теряла intent решения.
+            if d.intent is not None:
+                existing.intent = d.intent
+            if d.intent_tick:
+                existing.intent_tick = d.intent_tick
+            if d.target is not None:
+                existing.target = d.target
+
             if d.emotion_tag is not None:
                 existing.emotion_tag = d.emotion_tag
             if d.new_trauma is not None:

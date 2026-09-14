@@ -986,6 +986,20 @@ class NPCState:
         if state.current_role:
             npc_dict["current_role"] = state.current_role
 
+        # [GC-I01-E1] DEBT-INTENT-SOURCE closure: intent-блок переживает
+        # round-trip — по прецеденту current_role/WARA §12.2 (from_legacy
+        # читает, to_persistence_dict обязан писать). NPCState.intent = SSOT;
+        # npc_dict = проекция (второй writer запрещён). Полный блок из 6 полей:
+        # частичная проекция (intent без formed_at/duration) создаёт ложную
+        # семантику «вечно только что сменился» — инерция DecisionHub живёт на
+        # счётчиках (StateApplicator._apply_intent).
+        npc_dict["intent"] = state.intent.value if state.intent else None
+        npc_dict["intent_target"] = state.intent_target
+        npc_dict["intent_formed_at"] = state.intent_formed_at
+        npc_dict["intent_duration"] = state.intent_duration
+        npc_dict["intent_progress_ticks"] = state.intent_progress_ticks
+        npc_dict["last_intent_change"] = state.last_intent_change
+
         # ADR-139: drives_runtime → npc_dict["drives"] (serialization mirror).
         # Write authority = state.drives_runtime. npc_dict = projection only.
         # Без этого mutation engine теряет результаты между тиками.
@@ -1251,10 +1265,24 @@ class NPCStateAdapter:
                 intensity=float(psyche.get("behavior_mask_intensity", 0.0)),
                 applied_at_day=int(psyche.get("behavior_mask_applied_at_day", 0))
             ),
-            # emotion — восстановление текущей эмоции (ADR-116)
-            # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
             emotion=_emotion_from_str(npc_dict.get("emotion", "neutral")),
             emotion_delta=float(npc_dict.get("emotion_delta", 0.0)),
+            # [GC-I01-E1b] intent-блок: round-trip from_legacy (гасит
+            # перезатиратель decision.py: persist без чтения стирал блок).
+            # Safe-map по прецеденту load_l2_state_from_runtime_dict:
+            # мусор/отсутствие -> None/дефолты (pre-fix сейвы — тот же путь).
+            intent=(
+                Intent(npc_dict["intent"])
+                if npc_dict.get("intent")
+                else None
+            ),
+            intent_target=npc_dict.get("intent_target") or None,
+            intent_formed_at=int(npc_dict.get("intent_formed_at", 0) or 0),
+            intent_duration=int(npc_dict.get("intent_duration", 0) or 0),
+            intent_progress_ticks=int(
+                npc_dict.get("intent_progress_ticks", 0) or 0
+            ),
+            last_intent_change=int(npc_dict.get("last_intent_change", 0) or 0),
             # Living Activity (R1-фикс, инвариант ROLE_AUTHORITATIVE):
             # рантайм-роль первая (RoleTransition пишет при смене),
             # status_profile.title — фолбэк рождения. Без этого гейт

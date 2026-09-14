@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from app.domain.communication import SELF_TALK_SENTINEL
+from app.domain.player_epistemics import SurfaceEvent, SurfaceKind
 from app.services.memory.intelligence_queue import (
     d8p_enabled,
     get_intelligence_queue,
@@ -41,6 +42,7 @@ class NpcDialogueSubscriber:
         avatar_service: Any = None,
         spatial_query_provider: Any = None,
         l1_chronicle: Any = None,
+        discovery_bridge_provider: Any = None,  # E2 (S256): канал EAVESDROP
         tick_provider: Any = None,  # H-01 FIX: callable() -> int (симуляционный тик)
         dialogue_update_extractor: Any = None,  # BUG-DL-09: Для извлечения claims/questions
     ) -> None:
@@ -60,6 +62,7 @@ class NpcDialogueSubscriber:
         self._l1_chronicle = l1_chronicle
         self._get_tick = tick_provider or (lambda: 0)
         self._extractor = dialogue_update_extractor
+        self._get_discovery_bridge = discovery_bridge_provider
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
@@ -121,6 +124,34 @@ class NpcDialogueSubscriber:
                     self._avatar_service.append_journal(
                         campaign_id=_campaign_id, speaker=speaker, text=text
                     )
+                    # E2 (S256, mini-ADR E2-1..E2-4): реплика ДОСТАВЛЕНА —
+                    # мембрана S128/Р-Г пройдена, журнал игрока записан.
+                    # Канал EAVESDROP: игрок не адресат (суверенитет E1) и
+                    # не говорящий. До P7 меток нет -> map_surface ->
+                    # observation only; mark_discovered недостижим (Р1).
+                    if listener != "player" and speaker != "player":
+                        try:
+                            _bridge = (
+                                self._get_discovery_bridge()
+                                if self._get_discovery_bridge is not None
+                                else None
+                            )
+                            if _bridge is not None:
+                                _bridge.process(
+                                    SurfaceEvent(
+                                        kind=SurfaceKind.EAVESDROP,
+                                        tick=tick,
+                                        source_id=speaker,
+                                        secret_id=None,
+                                        content_class=None,
+                                        subject_hint=(topic or None),
+                                    )
+                                )
+                        except Exception as _e2_err:
+                            logger.warning(
+                                "[NPC_DIALOGUE_SUB] eavesdrop emit failed "
+                                f"({speaker}): {_e2_err}"
+                            )
 
         # Р-А: SELF_TALK_SENTINEL — внешне слышимое бормотание без агента-адресата.
         # Журнал выше СОХРАНЁН: реплика экстернализована, игрок подслушивает легально.

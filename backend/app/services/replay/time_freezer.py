@@ -7,17 +7,18 @@ path: backend/app/services/replay/time_freezer.py
 import time
 import datetime
 from contextlib import contextmanager
+from typing import Generator, Type
 
 @contextmanager
-def frozen_time(game_time_seconds: float):
+def frozen_time(game_time_seconds: float) -> Generator[None, None, None]:
     """Подменяет time.time() и datetime.datetime.now() на game_time_seconds."""
-    original_time_time = time.time
-    original_datetime_class = datetime.datetime
+    original_time_time: callable = time.time
+    original_datetime_class: Type[datetime.datetime] = datetime.datetime
     
     # Подменяем класс datetime.datetime на подкласс с переопределённым now()
     class FrozenDateTime(original_datetime_class):
         @classmethod
-        def now(cls, tz=None):
+        def now(cls, tz: Any = None) -> datetime.datetime:
             if tz:
                 return original_datetime_class.fromtimestamp(game_time_seconds, tz)
             # Windows fallback: utcfromtimestamp не падает на малых таймстампах

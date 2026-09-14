@@ -1,4 +1,4 @@
-"""
+﻿"""
 Файл: backend/app/services/player_cognition/npc_confession_parser.py
 Назначение: Парсинг LLM-ответов NPC на предмет признаний секретов. Использует PropositionMatcher (семантический матч, не keyword overlap).
 Зависимости: app.models.truth_state, app.services.player_cognition.observation_log, app.services.player_cognition.player_belief_model, app.services.player_cognition.legacy_bridge
@@ -106,5 +106,5 @@ class NpcConfessionParser:
             polarity=EvidencePolarity.SUPPORTS,
         )
         self._beliefs.update_from_evidence(obs, ev)
-        self._truth.mark_discovered(secret_id)
+        # P6/E1 (S255): mark_discovered удалён — монополия Bridge (Р1/T5).
         logger.info(f"[NPC_CONFESSION] npc={npc_id} secret={secret_id} recorded")

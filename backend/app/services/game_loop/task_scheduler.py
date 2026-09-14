@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /backend/app/services/game_loop/task_scheduler.py
 Назначение: Читает pending_tasks из scene_state, исполняет их через Executor'ы и публикует WorldEvent'ы.
 Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
@@ -102,6 +102,41 @@ class TaskScheduler:
                 return _bs.get("life_status") == "DEAD"
         return False
 
+    def _owner_intent_flees(self, campaign_id: str, owner_id: str) -> bool:
+        """[GC-I01-E2] GC-INTERRUPT-01: True только при доказанном текущем
+        intent='flee' владельца — воля владельца ушла из разговора
+        (E1b-провод: NPCState.intent -> npc_dict -> снапшот провайдера).
+        Зеркало _owner_is_dead; fail-open S198-паритет (нет провайдера/
+        не найден/ошибка -> False -> исполнение). Чтение — мир не мутируется."""
+        if not self._npc_states_provider or not owner_id:
+            return False
+        try:
+            _states = self._npc_states_provider(campaign_id) or []
+        except Exception as _prov_err:
+            logger.warning(f"[TASK_SCHED] stale-intent-gate provider failed: {_prov_err}")
+            return False
+        for _n in _states:
+            if not isinstance(_n, dict):
+                continue
+            if _n.get("npc_id") == owner_id or _n.get("id") == owner_id:
+                return _n.get("intent") == "flee"
+        return False
+
+    def set_epistemic_wiring(self, discovery_bridge=None, npc_states_provider=None,
+                             relationship_provider=None, subject_resolver=None) -> None:
+        """P6/E1 (S255): проброс игрок-контура P3→P4→P5→P6 в DialogueExecutor
+        (late-binding; прецедент set_spatial_query_service)."""
+        _dlg = self._executors.get(TaskKind.DIALOGUE)
+        if _dlg is None:
+            logger.warning("[TASK_SCHED] set_epistemic_wiring: DialogueExecutor отсутствует")
+            return
+        _dlg.set_epistemic_wiring(
+            discovery_bridge=discovery_bridge,
+            npc_states_provider=npc_states_provider,
+            relationship_provider=relationship_provider,
+            subject_resolver=subject_resolver,
+        )
+
     def set_spatial_query_service(self, sqs):
         """Инъекция SpatialQueryService для Social Target Resolver."""
         self._spatial_query_service = sqs
@@ -109,11 +144,15 @@ class TaskScheduler:
     # ── S203.4 (ADR-O-365, D-2): outbox терминалов ──────────────────────
 
     def _record_task_outcome(
-        self, npc_id: str, outcome: str, fail_reason: str = ""
+        self, npc_id: str, outcome: str, fail_reason: str = "", interrupt_reason: str = ""
     ) -> None:
-        """Воркер/синхронный путь → thread-safe outbox. Реестр НЕ пишется здесь."""
+        """Воркер/синхронный путь → thread-safe outbox. Реестр НЕ пишется здесь.
+        [GC-I01-E2] interrupt_reason — четвёртая позиция кортежа (D-6:
+        причина прерывания ≠ причина провала; закон №16 — единый реестр)."""
         with self._commitment_outbox_lock:
-            self._commitment_outbox.append((npc_id, outcome, fail_reason or None))
+            self._commitment_outbox.append(  # [GC-I01-E2] 4-позиция: interrupt_reason
+                (npc_id, outcome, fail_reason or None, interrupt_reason or None)
+            )
 
     def drain_commitment_outbox(self, scene_state: dict) -> None:
         """Единственная точка применения терминалов task → реестр.
@@ -132,9 +171,18 @@ class TaskScheduler:
         with self._commitment_outbox_lock:
             _batch = self._commitment_outbox
             self._commitment_outbox = []
-        for _npc_id, _outcome, _fail in _batch:
+        for _entry in _batch:  # [GC-I01-E2] 4-кортежи; legacy 3-кортежи живы
+            _npc_id = _entry[0]
+            _outcome = _entry[1]
+            _fail = _entry[2] if len(_entry) > 2 else None
+            _interrupt = _entry[3] if len(_entry) > 3 else None
             CommitmentRegistry.mirror_task_terminal(
-                scene_state, _npc_id, _tick, _outcome, fail_reason=_fail
+                scene_state,
+                _npc_id,
+                _tick,
+                _outcome,
+                fail_reason=_fail,
+                interrupt_reason=_interrupt,
             )
 
     def get_recent_dialogues(self, current_time: float) -> list:
@@ -180,6 +228,18 @@ class TaskScheduler:
                     f"DEAD → task EXPIRED (mid-generation interrupt)"
                 )
                 continue
+            # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт (после death-check — смерть
+            # сильнее). Воля владельца ушла из разговора: реплика не
+            # материализуется, задача INTERRUPTED(TASK_STALE_INTENT).
+            from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT  # noqa: ENIGMA002
+
+            if self._owner_intent_flees(_camp, _own):
+                self._record_task_outcome(_own, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                logger.info(
+                    f"[TASK_SCHED] stale-intent-gate (process_tasks): owner={_own} "
+                    f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+                )
+                continue
             _alive.append(_td)
         tasks_to_process = _alive
         scene_state["pending_tasks"] = remaining_tasks
@@ -209,6 +269,9 @@ class TaskScheduler:
             self._speech_scheduler = SpeechScheduler(self._memory_manager)
 
         from app.domain.intent_profiles import requires_llm_materialization
+        # [GC-I01-E2] GC-INTERRUPT-01: причина прерывания (закон №16, локальный
+        # импорт — прецедент файла; шрам-закон №1: поверхность перед использованием).
+        from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT
 
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":
@@ -235,6 +298,16 @@ class TaskScheduler:
                         logger.info(
                             f"[TASK_SCHED] liveness-gate (fast-path): owner={speaker_id} "
                             f"DEAD → task EXPIRED (mid-generation interrupt)"
+                        )
+                        continue
+                    # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт fast-path (после
+                    # death-check): warn/spread_rumor убегающего тоже не
+                    # материализуются — воля владельца сильнее типа задачи.
+                    if self._owner_intent_flees(campaign_id, speaker_id):
+                        self._record_task_outcome(speaker_id, "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                        logger.info(
+                            f"[TASK_SCHED] stale-intent-gate (fast-path): owner={speaker_id} "
+                            f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
                         )
                         continue
                     self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time)
@@ -318,6 +391,16 @@ class TaskScheduler:
                     f"DEAD → task EXPIRED (mid-generation interrupt)"
                 )
                 continue
+            # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт при dequeue (после
+            # death-check). In-flight-политика = death-прецедент ADR-O-387:
+            # гейт стоит до executor.execute — начатая генерация не отзывается.
+            if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
+                self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                logger.info(
+                    f"[TASK_SCHED] stale-intent-gate (dequeue): owner={task_dict.get('owner_id', '')} "
+                    f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
+                )
+                continue
             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
             # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
             self._executor_pool.submit(
@@ -330,7 +413,12 @@ class TaskScheduler:
         import time
 
         # S203.4: константы fail_reason для терминальных хуков (закон №16).
-        from app.domain.action_commitment import FAIL_TASK_CRASH, FAIL_TASK_ERROR
+        # [GC-I01-E2] + INTERRUPT_TASK_STALE_INTENT (flee-гейт ниже).
+        from app.domain.action_commitment import (
+            FAIL_TASK_CRASH,
+            FAIL_TASK_ERROR,
+            INTERRUPT_TASK_STALE_INTENT,
+        )
         bus = get_event_bus()
         if not campaign_id:
             campaign_id = scene_state.get("campaign_id", "")
@@ -349,6 +437,16 @@ class TaskScheduler:
                 logger.info(
                     f"[TASK_SCHED] liveness-gate (worker): owner={task_dict.get('owner_id', '')} "
                     f"DEAD → task EXPIRED (mid-generation interrupt)"
+                )
+                continue
+            # [GC-I01-E2] GC-INTERRUPT-01: flee-гейт worker — последний рубеж
+            # до executor.execute (прецедент B8: задача, сабмиченная до
+            # изменения воли, не исполняется; начатая генерация не отзывается).
+            if self._owner_intent_flees(campaign_id, task_dict.get("owner_id", "")):
+                self._record_task_outcome(task_dict.get("owner_id", ""), "INTERRUPTED", interrupt_reason=INTERRUPT_TASK_STALE_INTENT)
+                logger.info(
+                    f"[TASK_SCHED] stale-intent-gate (worker): owner={task_dict.get('owner_id', '')} "
+                    f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
                 )
                 continue
             self.total_processed_tasks += 1

@@ -252,7 +252,16 @@ class TavernGameplayHarness:
         }
 
     def player_action(self, action_text: str) -> Any:
-        """Player-ход ЧЕРЕЗ production REST-путь run_turn (PROBE 9.7-контур)."""
+        """Player-ход ЧЕРЕЗ production REST-путь run_turn (PROBE 9.7-контур).
+
+        GC-SOCIAL-01 (Stage-1.5): DM-классификатор требует живого LLM; при
+        мёртвом llama он отдаёт UNCERTAIN и testimony-канал (G1) не получает
+        вектора. Тестовый override (setIntentParametersDTO) — production-объект
+        ADR-035/ADR-091, и в сценарии после player_action('accuse…') мы
+        восстанавливаем вектор ACCUSE + target_id через официальный вход
+        класса — это НЕ инъекция события, а авторинг входа DM-слоя (прецедент
+        S214: will-авторинг; S122-FAST_PATH — лексический перехват как класс).
+        """
         from app.models.schemas import ChatTurnRequest, PlayerAction
 
         _req = ChatTurnRequest(

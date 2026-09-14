@@ -26,7 +26,7 @@ from app.models.delta_payloads import (
     SocialPayload,
     WillConflictPayload,
 )
-from app.models.npc_state import EmotionTag, WillState
+from app.models.npc_state import EmotionTag, Intent, WillState  # [GC-I01-E1b]
 
 
 class DeltaDomain(Enum):
@@ -130,6 +130,15 @@ class StateDeltas:
     identity_integrity_delta: float = 0.0
     pressure_resistance_delta: float = 0.0
     will_state_override: Optional[WillState] = None
+
+    # [GC-I01-E1b] intent-провод (завершение S1): DecisionHub выбирает,
+    # StateApplicator применяет в NPCState.intent (инерция: _apply_intent),
+    # проекция в npc_dict — to_persistence_dict (E1). Значение Optional:
+    # None = не трогать (мерж-семантика will_state_override).
+    intent: Optional["Intent"] = None
+    # Тик решения (для intent_formed_at/last_intent_change): apply_batch-
+    # контракт тик не несёт — везём в дельте (штампует пайплайн).
+    intent_tick: int = 0
 
     # --- v2: Domain-Tagged Typed Payloads ---
     domain: Optional[DeltaDomain] = None  # Домен мутации (v2)

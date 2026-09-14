@@ -137,6 +137,15 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         
     ctx.significant_events = mutation.npc_deltas or []
 
+    # [GC-I01-E1b-fix3] Committer-S1: дельты TickMutation едут в буфер применения
+    # (Фаза 9 integration / Фаза 10 commit flush). Вариант (x): только intent-дельты —
+    # доставляем S1-обещание для намерения, не трогая числовые контуры (те живут на
+    # событийных дельтах). Вариант (y) (все decision-дельты) — отдельное решение
+    # Мастера с собственным гейтом.
+    ctx.delta_buffer.extend(
+        d for d in (mutation.npc_deltas or []) if getattr(d, "intent", None) is not None
+    )
+
     # Применение L1 Drift Events (Append-only Chronicle)
     _svc = ctx.npc_services
     

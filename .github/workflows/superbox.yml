@@ -2,7 +2,7 @@ name: ENIGMA SUPERBOX
 
 on:
   push:
-    branches: [ "V.0.5.3.*" ]
+    branches: [ "V.0.5.4.*" ]
   workflow_dispatch:
 
 jobs:

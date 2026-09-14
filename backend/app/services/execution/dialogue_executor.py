@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /backend/app/services/execution/dialogue_executor.py
 Назначение: Исполнитель задач типа DIALOGUE. Вызывает LLM (или заглушку) и возвращает артефакт.
 Зависимости: app.domain.execution, app.domain.communication
@@ -11,8 +11,18 @@ import logging
 
 from typing import Callable, Iterable, Optional
 from app.domain.communication import DialogueRequest
+from app.domain.disclosure import (
+    DisclosureContext,
+    InteractionPressure,
+    SocialTarget,
+    SocialTargetKind,
+)
 from app.domain.execution import Artifact, QueuedTask
 from app.domain.intent_profiles import requires_dialogue_context, requires_llm_materialization
+from app.domain.player_epistemics import SurfaceEvent, SurfaceKind
+from app.services.npc.disclosure_decision import decide_disclosure
+from app.services.npc.knowledge_retrieval import retrieve_knowledge
+from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +46,10 @@ class DialogueExecutor:
         belief_store=None,
         memory_manager=None,
         confession_parser=None, # V8-MVP-12 FIX
+        discovery_bridge=None,  # P6/E1 (S255): Bridge — владелец перехода
+        npc_states_provider=None,  # P6/E1: Callable[[cid], list[dict]]
+        relationship_provider=None,  # P6/E1: Callable[[cid, k, r], dict]
+        subject_resolver=None,  # P6/E1: Callable[[topic], SubjectRef]
     ):
         self._router = router
         self._memory_manager = memory_manager
@@ -44,6 +58,11 @@ class DialogueExecutor:
         )
         self._belief_store = belief_store
         self._confession_parser = confession_parser
+        # P6/E1 (S255): игрок-контур (late-binding: set_epistemic_wiring)
+        self._discovery_bridge = discovery_bridge
+        self._npc_states_provider = npc_states_provider
+        self._relationship_provider = relationship_provider
+        self._subject_resolver = subject_resolver
         # L-02: Валидатор реплик NPC
         from dataclasses import dataclass, field
         from uuid import uuid4
@@ -66,6 +85,24 @@ class DialogueExecutor:
                 return list(self._forbidden_tuple)
 
         self._validator = ResponseValidator(NpcContract())
+
+    def set_epistemic_wiring(
+        self,
+        discovery_bridge=None,
+        npc_states_provider=None,
+        relationship_provider=None,
+        subject_resolver=None,
+    ) -> None:
+        """P6/E1 (S255): late-binding игрок-контура (прецеденты:
+        set_spatial_query_service; S211 set_epistemic_resolver)."""
+        if discovery_bridge is not None:
+            self._discovery_bridge = discovery_bridge
+        if npc_states_provider is not None:
+            self._npc_states_provider = npc_states_provider
+        if relationship_provider is not None:
+            self._relationship_provider = relationship_provider
+        if subject_resolver is not None:
+            self._subject_resolver = subject_resolver
 
     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
         if not isinstance(task.payload, DialogueRequest):
@@ -138,17 +175,12 @@ class DialogueExecutor:
             )
             return
 
-        # V8-MVP-12 FIX: Парсим ответ NPC на предмет признаний
-        if self._confession_parser:
-            try:
-                self._confession_parser.parse_and_record(
-                    npc_id=task.owner_id,
-                    reply_text=text,
-                    tick=task.tick, # Используем поле tick из QueuedTask
-                    target_id=req.target_id
-                )
-            except Exception as e:
-                logger.error(f"[DIALOGUE_EXEC] ConfessionParser failed: {e}", exc_info=True)
+        # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
+        # DELIVERY: решение P5 материально только при доставленной
+        # реплике; error-ветки выше не эмитят). Заменил вызов парсера
+        # (V8-MVP-12): текст НЕ источник discovery — PROVENANCE, NOT
+        # STRINGS. Писатель :109 — отдельным шагом ПОСЛЕ T8/T3.
+        self._emit_dialogue_outcome(task, req)
 
         yield Artifact(
             task_id=task.task_id,
@@ -165,6 +197,72 @@ class DialogueExecutor:
                 "intent_type": req.intent_type, # S201 FIX: Пробрасываем intent_type для ClaimEventSubscriber fallback
             },
         )
+
+    def _emit_dialogue_outcome(self, task: QueuedTask, req: DialogueRequest) -> None:
+        """P6/E1 (S255): игрок-контур P3→P4→P5→P6 в точке доставки.
+
+        Гейты: bridge, req.target_id == "player" (D30; NPC→NPC — E2),
+        провайдеры, NPCState(owner). Fail-open (S200/S201): проводка
+        не роняет диалог. Итерация по KnowledgeItem (P5 — один item;
+        Bridge идемпотентен). Давление V1 (alpha): topic-heat сессии —
+        D-E1-PRESSURE; уточнение — Calibration Lab (beta).
+        """
+        if self._discovery_bridge is None:
+            return
+        if (req.target_id or "") != "player":
+            return
+        if self._npc_states_provider is None or self._subject_resolver is None:
+            logger.info("[P6_E1] wiring неполный (provider/resolver) — эмит пропущен")
+            return
+        try:
+            owner_raw = None
+            for _n in (self._npc_states_provider(task.campaign_id) or []):
+                if isinstance(_n, dict):
+                    if (_n.get("npc_id") or _n.get("id")) == task.owner_id:
+                        owner_raw = _n
+                        break
+            if owner_raw is None:
+                logger.info(f"[P6_E1] NPCState не найден: {task.owner_id}")
+                return
+            owner_state = load_l2_state_from_runtime_dict(owner_raw)
+            subject = self._subject_resolver(req.topic)
+            items = retrieve_knowledge(owner_state, subject)
+            if not items:
+                return
+            rel = {}
+            if self._relationship_provider is not None:
+                rel = self._relationship_provider(
+                    task.campaign_id, task.owner_id, "player"
+                ) or {}
+            pressure = 0.0
+            if self._memory_manager is not None:
+                try:
+                    pressure = float(
+                        self._memory_manager.get_dialogue_pressure(
+                            task.campaign_id, task.owner_id
+                        )
+                    )
+                except Exception:
+                    pressure = 0.0
+            ctx = DisclosureContext(
+                pressure=InteractionPressure.QUESTION,
+                pressure_amount=pressure,
+            )
+            recipient = SocialTarget(SocialTargetKind.PERSON, "player")
+            for item in items:
+                outcome = decide_disclosure(owner_state, recipient, rel, item, ctx)
+                self._discovery_bridge.process(
+                    SurfaceEvent(
+                        kind=SurfaceKind.DIALOGUE_OUTCOME,
+                        tick=task.tick,
+                        source_id=task.owner_id,
+                        secret_id=outcome.secret_id,
+                        disclosure_level=outcome.level,
+                        subject_hint=req.topic,
+                    )
+                )
+        except Exception as e:
+            logger.warning(f"[P6_E1] emit failed (fail-open): {e}", exc_info=True)
 
     def _generate_with_router(self, task: QueuedTask, req: DialogueRequest) -> str:
         """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""

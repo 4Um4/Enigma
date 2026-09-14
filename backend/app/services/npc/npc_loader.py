@@ -720,6 +720,17 @@ def load_l2_state_from_runtime_dict(
     except ValueError:
         will_enum = WillState.FREE
 
+    # [GC-I01-E1] safe-mapping строкового intent из дикта в Enum (прецедент
+    # will_str → WillState выше). Незнакомое/отсутствующее значение → None:
+    # pre-fix сейвы без блока идут тем же путём, что и сегодня.
+    from app.models.npc_state import Intent as _Intent
+
+    _intent_raw = raw_data.get("intent")
+    try:
+        _intent_enum = _Intent(_intent_raw) if _intent_raw else None
+    except ValueError:
+        _intent_enum = None
+
     # L2.7: LifeProject — динамическая проекция L0.
     # P2: Обратная совместимость. Если нет life_project, берём старое life_direction или L0.
     _life_project = psyche.get("life_project", psyche.get("life_direction", raw_data.get("core_orientation", "survival")))
@@ -755,6 +766,17 @@ def load_l2_state_from_runtime_dict(
         body_state=dict(raw_data.get("body_state", {})),
         perceptual_kernel=_pk_from_dict(raw_data.get("perceptual_kernel", {})),
     )
+
+    # [GC-I01-E1] round-trip: intent-блок читается зеркально писателю
+    # (to_persistence_dict). Прямой set полей — тот же путь записи, что
+    # StateApplicator._apply_intent (не ctor-kwargs: сигнатура __init__
+    # не входит в контракт этого изменения).
+    state.intent = _intent_enum
+    state.intent_target = raw_data.get("intent_target") or None
+    state.intent_formed_at = int(raw_data.get("intent_formed_at", 0) or 0)
+    state.intent_duration = int(raw_data.get("intent_duration", 0) or 0)
+    state.intent_progress_ticks = int(raw_data.get("intent_progress_ticks", 0) or 0)
+    state.last_intent_change = int(raw_data.get("last_intent_change", 0) or 0)
 
     # Фаза A Шаг 8: beliefs переживают границу тика (аудит P0 №3).
     # Единственный адаптер — _beliefs_from_persistence (§12: без мутации

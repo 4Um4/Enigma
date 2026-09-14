@@ -79,7 +79,7 @@ _ADAPTATION_STRATEGIES: Final[FrozenSet[str]] = frozenset(
 # Слоты M1a — закрытый реестр: расширение = вердикт GPT + ADR (запрет №17;
 # линтер ADR-O-369 держит канонические узлы). attachment отсутствует ДОБРОВОЛЬНО
 # (гипотеза C, АТ-1..3) — «на будущее» пустых слотов не создаём.
-RE_NEED_SLOTS: Final[Dict[str, "NeedSlot"]] = {
+RE_NEED_SLOTS: Final[Dict[str, Optional["NeedSlot"]]] = {
     NEED_ID_SEXUAL: None,  # заполняется ниже, после определения класса
     NEED_ID_INTIMACY: None,
 }

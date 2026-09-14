@@ -695,6 +695,30 @@ class StateApplicator:
             else 0.0
         )
 
+        # [GC-I01-E1b] intent-ветка: применение решения в NPCState.intent
+        # (ядро инерции = StateApplicator._apply_intent; apply() и дельта-путь
+        # делят одно поведение: смена -> мягкий сброс прогресса, сохранение —
+        # инкремент счётчиков). None = не трогать.
+        if deltas.intent is not None:
+            _intent_new = deltas.intent
+            if state.intent == _intent_new:
+                state.intent_duration += 1
+                _prog = min(
+                    state.intent_progress_ticks + 1, state.intent_duration
+                )
+                state.intent_progress_ticks = _prog
+            else:
+                state.intent = _intent_new
+                state.intent_target = (
+                    deltas.target or state.intent_target
+                )
+                state.intent_formed_at = int(deltas.intent_tick or 0)
+                state.intent_duration = 0
+                state.intent_progress_ticks = int(
+                    state.intent_progress_ticks * 0.3
+                )
+                state.last_intent_change = int(deltas.intent_tick or 0)
+
         # DEEP-015 FIX: Мёртвый код ExpectationStore (Reward Prediction Error) удалён.
         # SANATION-M1a: v2-поля IdentityPayload (identity_integrity_delta /
         # pressure_resistance_delta / will_state_override) читаются только по

@@ -49,6 +49,9 @@ class EpistemicContextResolver:
         max_conf = 0.0
         # S197: Сохраняем утверждение с максимальной уверенностью для Causal Provenance.
         _trigger_prop = None
+        # GC-RELEVANCE-01 (R1): клеймы о самом себе — отдельный канал сбора.
+        about_self = []
+        max_self_conf = 0.0
 
         for record in records:
             if record.confidence < CONFIDENCE_THRESHOLD:
@@ -56,7 +59,16 @@ class EpistemicContextResolver:
                 
             pred = record.proposition.predicate
             subj = record.proposition.subject_id
-            
+
+            if subj == agent_id:
+                # GC-RELEVANCE-01 (R1): «обо мне» — не угроза в собственном лице,
+                # не violation и не trigger (Epistemic Targeting DecisionHub:1922
+                # целился бы warn-ом в самого себя). Полная развязка каналов.
+                about_self.append(record.proposition)
+                if record.confidence > max_self_conf:
+                    max_self_conf = record.confidence
+                continue
+
             if record.confidence > max_conf:
                 max_conf = record.confidence
                 _trigger_prop = record.proposition
@@ -75,7 +87,9 @@ class EpistemicContextResolver:
             perceived_allies=tuple(allies),
             perceived_violations=violations,
             max_confidence=max_conf,
-            trigger_proposition=_trigger_prop
+            trigger_proposition=_trigger_prop,
+            claims_about_self=tuple(about_self),
+            max_self_confidence=max_self_conf
         )
 
     @staticmethod
@@ -117,5 +131,17 @@ class EpistemicContextResolver:
             _ally_boost = round(context.max_confidence * 0.2, 4)
             modifiers["trade"] = _ally_boost
             modifiers["help"] = _ally_boost
-            
+
+        # GC-RELEVANCE-01 (R2): self-relevance канал. Клейм о самом агенте
+        # («обвинение в твой адрес») — салиентность собственного имени в
+        # разговоре: агент вероятнее вступит в диалог. НЕ реакция (контратака/
+        # оправдание/flee) — разрешение виновности и противостояние клейму
+        # это RESIST/MODIFY, следующая ступень лестницы AGENCY. Вес вдвое ниже
+        # threat-буста S198: салиентность, не паника. Ключ "talk" — живой
+        # в словаре scores (Intent.TALK.value, применение через
+        # apply_modifiers с lowercase-совпадением).
+        if context.claims_about_self:
+            _self_boost = round(context.max_self_confidence * 0.5, 4)
+            modifiers["talk"] = round(modifiers.get("talk", 0.0) + _self_boost, 4)
+
         return modifiers

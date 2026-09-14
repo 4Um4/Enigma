@@ -47,7 +47,7 @@ class CharacterChangeRate(CalibrationMetric):
         self._prev: Dict[str, Tuple[float, ...]] = {}
         self._deltas: list = []
 
-    def update(self, tick, state_snapshot, event=None) -> None:
+    def update(self, tick: int, state_snapshot: Dict[str, Any], event: Any = None) -> None:
         for npc_id, npc in state_snapshot.items():
             vec = _vector(npc)
             prev = self._prev.get(npc_id)

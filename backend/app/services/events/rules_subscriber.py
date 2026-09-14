@@ -96,7 +96,7 @@ class RulesSubscriber:
     _GIVE_MONEY_ACTIONS = {"деньги", "отдать", "заплатить"}
     _TRADE_ACTIONS = {"купить", "торгов", "сделка", "эль", "пиво"}
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass  # No state. Pure function container.
 
     def can_handle(self, event_type: str) -> bool:

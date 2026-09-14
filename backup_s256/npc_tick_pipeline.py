@@ -381,7 +381,6 @@ class NpcTickPipeline:
             if work_enabled():
                 from app.core.constants import GOODS_PRICES
                 from app.services.npc.desire_generator import _NEED_TO_DESIRE
-                from app.services.economy.work_orders import WORK_TRADE_PRESSURE_K
 
                 for _d in npc.get("desires") or []:
                     _subj = str(_d.get("subject_class", "") or "")
@@ -394,7 +393,7 @@ class NpcTickPipeline:
                         }
                     ):
                         _work_trade_pressure = max(
-                            _work_trade_pressure, _urg * WORK_TRADE_PRESSURE_K
+                            _work_trade_pressure, _urg * 0.5
                         )
                 if _work_trade_pressure > 0.0:
                     logger.info(
@@ -414,6 +413,14 @@ class NpcTickPipeline:
             if _eco_modifiers := _eco_result["modifiers"]:
                 for _intent, _mod in _eco_modifiers.items():
                     _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
+            # ADR-O-389 (WORK, S256): давление желания → TRADE — тот же рельс,
+            # та же аддитивная сумма. Pressure deforms, not commands (L-W2).
+            if _work_trade_pressure > 0.0:
+                _all_modifiers["trade"] = (
+                    _all_modifiers.get("trade", 0.0) + _work_trade_pressure
+                )
+            # [WORK-MERGE] временный зонд — снимается в фикс-выдаче
+
             # ADR-O-389 (WORK, S256): давление желания → TRADE — через тот же
             # eco-рельс и в ту же аддитивную сумму. Pressure deforms, not
             # commands (L-W2: DecisionHub не тронут). OFF = блок не исполняется

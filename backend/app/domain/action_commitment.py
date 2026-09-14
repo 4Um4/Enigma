@@ -87,6 +87,10 @@ CAUSE_UNKNOWN_LEGACY_SOURCE: str = "UNKNOWN_LEGACY_SOURCE"
 INTERRUPT_PRIORITY_SUPERSEDE: str = "PRIORITY_SUPERSEDE"  # арбитр-INTERRUPT (S203.4)
 INTERRUPT_TASK_VANISHED: str = "TASK_VANISHED"  # sweep: task-исполнитель исчез (grace)
 INTERRUPT_WINDUP_STALE_INTENT: str = "WINDUP_STALE_INTENT"  # Фаза 7: stale-интент
+# [GC-I01-E2] GC-INTERRUPT-01: Фаза-5 intent владельца сменился на flee —
+# воля ушла из разговора, вербальная задача устарела (симметрия
+# WINDUP_STALE_INTENT: событие мира, не решение актора).
+INTERRUPT_TASK_STALE_INTENT: str = "TASK_STALE_INTENT"
 INTERRUPT_SLEEP_VANISHED: str = "SLEEP_VANISHED"  # reconciliation: спящий исчез
 
 # fail_reason — ПОЧЕМУ ПРОВАЛЕНО (D-6: отдельный контракт; №7 распространён:
