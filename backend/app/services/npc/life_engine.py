@@ -1141,9 +1141,20 @@ class LifeEngine:
         # 1. Need-driven: только если ROUTINE жизнеспособен
         # Фикс A: Sleep schedule non-interruptible. Если по расписанию NPC должен спать,
         # потребности (shelter_urge, social_urge) его не прерывают.
+        # IRON RIVER Phase B / Н-18-фикс: ЖИВАЯ activity_state владеет доменом
+        # движения NPC — легаси-треки (need-driven И schedule) молчат, пока
+        # конвертер ведёт деятельность; иначе двойной трек = вечный
+        # арбитражный конфликт (eatlog-диагноз: Люсья ходила kitchen↔
+        # kitchen_bed_1 по расписанию, step=0 навечно, timeout). Сон —
+        # исключение (Phase 0.6 владеет отдельно, его график легален).
         _routine_dict = npc.get("routine", {})
         _scheduled_activity = self._get_current_activity(_routine_dict.get("schedule", {}), current_time)
-        if IntentDomain.ROUTINE in _viable and _scheduled_activity != "sleeping":
+        _has_activity = isinstance(npc.get("activity_state"), dict)
+        if (
+            IntentDomain.ROUTINE in _viable
+            and _scheduled_activity != "sleeping"
+            and not _has_activity
+        ):
             self._tick_needs(npc)
             if need_intent := self._check_need_driven_movement(npc):
                 need_intent.domain = IntentDomain.ROUTINE
@@ -1156,10 +1167,17 @@ class LifeEngine:
         # 2. Расписание: только если ROUTINE жизнеспособен И нет критической потребности
         # S89: Need override — если need_intent уже в кандидатах, schedule не генерируется
         # Модель: голодный кузнец не идёт на работу, он идёт есть
+        # IRON RIVER Phase B / Н-18-фикс (ветка 2): та же защита домена —
+        # живая activity_state глушит schedule-трек (eatlog: Люсью водило
+        # именно расписание kitchen↔kitchen_bed_1 при живой eat-цели).
         _has_critical_need = any(
             c.reason.startswith("need_driven:") for c in candidates
         )
-        if IntentDomain.ROUTINE in _viable and not _has_critical_need:
+        if (
+            IntentDomain.ROUTINE in _viable
+            and not _has_critical_need
+            and not _has_activity
+        ):
             routine_changes, routine_intent = self.update_routine(
                 npc, current_time, tick, scene_state=scene_state
             )

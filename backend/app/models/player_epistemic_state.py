@@ -35,7 +35,7 @@ class PlayerEpistemicState:
 
     def level(self, secret_id: str) -> int:
         """Текущий уровень (UNKNOWN, если секрета никогда не касались)."""
-        return self.levels.get(secret_id, UNKNOWN)
+        return int(self.levels.get(secret_id, UNKNOWN))
 
     def raise_level(
         self, secret_id: str, to_level: int, source_event: SurfaceEvent

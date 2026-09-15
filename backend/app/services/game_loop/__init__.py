@@ -1879,7 +1879,7 @@ class GameLoop:
         # DM — стриминг токенов
         yield {"type": "status", "text": "Мастер рассказывает..."}
         token_count = 0
-        world_result = {"world_events": []}
+        world_result: dict[str, Any] = {"world_events": []}
         dm_text_parts: list[str] = []  # R2.1: буфер для экстрактора
 
         try:

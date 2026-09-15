@@ -6,6 +6,7 @@
 Путь: backend/app/services/perception/phenomenology_projection_service.py
 """
 
+import dataclasses
 import logging
 from typing import Optional
 
@@ -137,7 +138,7 @@ class PhenomenologyProjectionService:
             atmosphere_key=atm_key,
             atmosphere_intensity=atm_intensity,
             embodied_traces=[
-                dataclasses.asdict(t) if hasattr(t, "__dataclass_fields__") else dict(t)
+                dataclasses.asdict(t) if hasattr(t, "__dataclass_fields__") else dict(t)  # type: ignore[call-overload]
                 for t in traces
             ],
             manifestations=manifestations,

@@ -570,6 +570,50 @@ class NpcTickPipeline:
                         f"[EPISTEMIC] Context resolution failed for {npc_id}: {_epistemic_err}"
                     )
 
+            # R5 CAUSAL SLICE 1 (мини-АДР CS1-CS6): DesiredChange из
+            # угрозы ДО выбора способа; сборка существующих машин
+            # (threat/fear-атрибуция/disposition/drives/allies/body),
+            # проекция в Modifier Contract. None/ошибка = no-op (срез
+            # аддитивен; мир без угроз не меняется).
+            _causal_modifiers: Optional[Dict[str, float]] = None
+            try:
+                from app.domain.epistemic_dispositions import (
+                    get_epistemic_disposition,
+                )
+                from app.services.npc.causal_slice_threat import (
+                    ThreatDesiredChangeProducer,
+                )
+
+                _rel_view: Dict[str, Dict[str, float]] = {}
+                if state.relationship_store is not None and state.campaign_id:
+                    _all_rel = state.relationship_store.get(
+                        state.campaign_id, npc_id
+                    ) or {}
+                    for _rk, _rv in _all_rel.items():
+                        _t = _rk.split("→", 1)
+                        if len(_t) == 2 and _t[0] == npc_id and isinstance(_rv, dict):
+                            _rel_view[_t[1]] = _rv
+                _belief_src = getattr(_epistemic_ctx, "trigger_proposition", None) if _epistemic_ctx else None
+                _dc = ThreatDesiredChangeProducer.resolve(
+                    state=state,
+                    rel=_rel_view,
+                    disposition=get_epistemic_disposition(
+                        getattr(profile_l0, "archetype", "commoner")
+                    ),
+                    allies=len(getattr(_allies_cache, "get", lambda _k: [])(npc_id)) if isinstance(_allies_cache, dict) else 0,
+                    belief_source=_belief_src,
+                )
+                _causal_modifiers = ThreatDesiredChangeProducer.to_modifiers(_dc) or None
+                if _dc is not None:
+                    logger.info(
+                        f"[CAUSAL_SLICE] npc={npc_id} desired_change="
+                        f"{_dc.state_type}:{_dc.target_of_change} methods={_dc.method_weights}"
+                    )
+            except Exception as _causal_err:
+                logger.warning(
+                    f"[CAUSAL_SLICE] producer failed (no-op) for {npc_id}: {_causal_err}"
+                )
+
             # S198 FIX: SLEEP_GUARD не должен полностью обрывать каузальную цепь.
             # Если drives is None (спящий NPC), используем fallback на base_drives,
             # чтобы DecisionHub мог вычислить utility и эпистемика могла его перебить.
@@ -679,6 +723,7 @@ class NpcTickPipeline:
                 relationship_store=state.relationship_store, # S135: SSOT
                 campaign_id=state.campaign_id, # S135: SSOT
                 epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
+                causal_modifiers=_causal_modifiers, # R5: ADR среза CS2
                 epistemic_context=_epistemic_ctx, # S197: Causal Provenance
                 opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER
             )

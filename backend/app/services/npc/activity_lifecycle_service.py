@@ -288,6 +288,37 @@ def _advance(
         _terminate(ctx, orchestrator, npc, state, success=False, reason="no_step")
         return None
     _step = state.steps[state.step_index]
+
+    # IRON RIVER Phase B / Фронт 1 (гонки за порцию): ревалидация живости
+    # объектной цели ДО диспатча шага. Диагноз eatlog: конкурент съедает
+    # порцию (DESTROYED в сторе) или берёт её (holder != мы) между нашим
+    # онсетом и прибытием — цель мертва, но _get_object её возвращает →
+    # шаги вращаются вхолостую до 60-тикного timeout. Честный быстрый
+    # провал: desire продолжает давить, _find_target возьмёт живую порцию.
+    # SERVE не затронут: target_ref = order_id, не WorldObject-archetype.
+    if (
+        state.activity_type is not ActivityType.SERVE
+        and state.target_ref.startswith("wo_")
+    ):
+        _target_obj = _get_object(ctx.scene_state, state.target_ref)
+        _owner = _npc_id(npc)
+        if (
+            _target_obj is None
+            or getattr(_target_obj, "state", "") == "DESTROYED"
+            or (
+                getattr(_target_obj, "holder", None) not in (None, "", _owner)
+            )
+        ):
+            _reason = (
+                "target_vanished"
+                if _target_obj is None
+                else "target_consumed_by_other"
+                if _target_obj.state == "DESTROYED"
+                else "target_taken_by_other"
+            )
+            _terminate(ctx, orchestrator, npc, state, success=False, reason=_reason)
+            return None
+
     if _step.step_kind is StepKind.MOVE:
         return _advance_move(ctx, orchestrator, npc, state, _step)
     if _step.step_kind is StepKind.OBJECT_ACTION:

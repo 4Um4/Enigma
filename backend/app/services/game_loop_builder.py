@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
@@ -65,13 +65,15 @@ def build_game_loop(data_dir: Path) -> GameLoop:
             _cache["npcs"] = None
             _cache["runtime_path"] = runtime_path
 
-        if _cache["npcs"] is not None:
-            return _cache["npcs"]
+        cached: Any = _cache["npcs"]
+        if cached is not None:
+            return cast(list[Any], cached)
 
         from app.services.npc.npc_loader import load_npcs_merged
 
-        _cache["npcs"] = load_npcs_merged(runtime_path)
-        return _cache["npcs"]
+        loaded = load_npcs_merged(runtime_path)
+        _cache["npcs"] = loaded
+        return loaded
 
     # NPC загружаются из config/npc/ через npc_loader.load_npcs_merged()
     # Runtime персистируется через PersistencePort

@@ -7,7 +7,7 @@ path: backend/app/services/replay/time_freezer.py
 import time
 import datetime
 from contextlib import contextmanager
-from typing import Generator, Type, Any
+from typing import Any, Callable, Generator
 
 @contextmanager
 def frozen_time(game_time_seconds: float) -> Generator[None, None, None]:
@@ -16,7 +16,7 @@ def frozen_time(game_time_seconds: float) -> Generator[None, None, None]:
     original_datetime_class: type[datetime.datetime] = datetime.datetime
     
     # Подменяем класс datetime.datetime на подкласс с переопределённым now()
-    class FrozenDateTime(original_datetime_class):
+    class FrozenDateTime(original_datetime_class):  # type: ignore[valid-type, misc]
         @classmethod
         def now(cls, tz: Any = None) -> datetime.datetime:
             if tz:
@@ -25,10 +25,10 @@ def frozen_time(game_time_seconds: float) -> Generator[None, None, None]:
             return original_datetime_class.utcfromtimestamp(game_time_seconds)
             
     time.time = lambda: game_time_seconds
-    datetime.datetime = FrozenDateTime
+    datetime.datetime = FrozenDateTime  # type: ignore[misc]
     
     try:
         yield
     finally:
         time.time = original_time_time
-        datetime.datetime = original_datetime_class
+        datetime.datetime = original_datetime_class  # type: ignore[misc]

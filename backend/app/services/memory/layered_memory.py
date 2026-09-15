@@ -5,10 +5,21 @@ import logging
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Protocol
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
+
+
+class MemoryStoreProtocol(Protocol):
+    """Минимальный контракт хранилища памяти (JsonMemoryStore / SqliteMemoryStore).
+
+    ADR (Закон 4.2.1): SQLite = runtime truth, поэтому LayeredMemory принимает
+    любое хранилище с совместимым append/recent.
+    """
+
+    def append(self, collection: str, payload: Dict[str, Any]) -> str: ...
+    def recent(self, collection: str, limit: int = 25) -> List[Dict[str, Any]]: ...
 
 
 class _SafeMemoryEncoder(json.JSONEncoder):
@@ -118,7 +129,7 @@ class JsonMemoryStore:
 class LayeredMemory:
     """Three-layer campaign memory: world canon, campaign memory, session memory, NPC memory."""
 
-    def __init__(self, store: JsonMemoryStore) -> None:
+    def __init__(self, store: MemoryStoreProtocol) -> None:
         self.store = store
 
     # === World Canon ===

@@ -384,6 +384,7 @@ class DecisionHub:
         contract_modifiers: Optional[Dict[str, float]] = None,
         npc_memory_modifiers: Optional[Dict[str, float]] = None,
         epistemic_modifiers: Optional[Dict[str, float]] = None,
+        causal_modifiers: Optional[Dict[str, float]] = None,
     ) -> Dict[str, float]:
         """S188: Чистая функция (Pure Reducer) для аддитивного применения модификаторов.
         Не мутирует входной словарь scores, возвращает новый.
@@ -393,7 +394,7 @@ class DecisionHub:
         all_mods = [
             eco_modifiers, social_modifiers, reputation_modifiers,
             drive_modifiers, contract_modifiers, npc_memory_modifiers,
-            epistemic_modifiers
+            epistemic_modifiers, causal_modifiers
         ]
         for mod_dict in all_mods:
             if mod_dict:
@@ -427,6 +428,7 @@ class DecisionHub:
         relationship_store: Optional[Any] = None,  # S135: SSOT для чтения отношений
         campaign_id: str = "",  # S135: Ключ кампании для SSOT
         epistemic_context: Optional[Any] = None,  # S197: Для извлечения trigger_proposition
+        causal_modifiers: Optional[Dict[str, float]] = None,  # R5: DesiredChange→Modifier Contract
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -542,7 +544,8 @@ class DecisionHub:
             drive_modifiers=drive_modifiers,
             contract_modifiers=contract_modifiers,
             npc_memory_modifiers=npc_memory_modifiers,
-            epistemic_modifiers=epistemic_modifiers
+            epistemic_modifiers=epistemic_modifiers,
+            causal_modifiers=causal_modifiers
         )
 
         # ── Причинный слой: ReflexConstraints (ограничения от рефлекса) ──
