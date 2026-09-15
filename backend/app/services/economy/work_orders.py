@@ -1,12 +1,12 @@
 """
 path: /project/backend/app/services/economy/work_orders.py
-Назначение: WORK Vertical Slice (ADR-O-389, S256) — минимальная петля
+Назначение: WORK Vertical Slice (ADR-O-391, S256) — минимальная петля
     заказа и расчёта на живом субстрате:
         Intent.TRADE → ORDER(Transaction PROPOSED) → SERVE(Activity)
         → settle: атомарный SSOT-обмен → COMPLETED/FAILED →
         ACTIVITY_OUTCOME обоим → EconomyTracker.record_income.
     Замыкает разрыв «Intent.TRADE — выбор есть, исполнителя нет».
-Законы (ADR-O-389):
+Законы (ADR-O-391):
     L-W1  ORDER — экономическая онтология (Transaction); SERVE —
           поведенческая (ActivityState; владение зеркалится существующим
           reconcile_activity_ownership).
@@ -79,7 +79,7 @@ def _profiles_getter(ctx: Any, orchestrator: Any = None) -> Optional[Any]:
     """SSOT-геттер профилей: NpcServices → оркестратор (DI P1.1f-паттерн).
 
     Юнит-харнессы инъектируют геттер в NpcServices-подобный объект;
-    production-путь — проводка game_loop._svc → оркестратор (ADR-O-389).
+    production-путь — проводка game_loop._svc → оркестратор (ADR-O-391).
     Громко при недоступности обоих (INV-SILENT-FAILURE): контур нем, но видно.
     """
     _svc = getattr(ctx, "npc_services", None)
@@ -132,7 +132,7 @@ def create_order_from_trade_intent(
         logger.debug(f"[WORK] профиль покупателя не найден: {buyer} — ORDER не рождён")
         return None
 
-    # ADR-O-389 (M2b-фикс, S256): социальный адресат интента
+    # ADR-O-391 (M2b-фикс, S256): социальный адресат интента
     # (SocialTargetResolver) не обязан быть экономическим контрагентом —
     # ORDER маршрутизируется к продавцу предмета желания. Ключ в
     # stock_for_sale = «продаёт предмет» (0.0 = продано — settlement честно
@@ -359,7 +359,7 @@ def settle_order(
     seller_p.gold = round(float(seller_p.gold or 0.0) + payment, 4)
     _o["status"] = TransactionStatus.COMPLETED.value
 
-    # ADR-O-389: терминал обмена гасит давление покупателя («насыщение
+    # ADR-O-391: терминал обмена гасит давление покупателя («насыщение
     # пишет только терминал», EAT-прецедент) — иначе желание ale=0.9
     # рождает ордер каждый тик и W2 ловит второй settlement. FAILED-путь
     # давления не касается (желание продолжает давить — честно).

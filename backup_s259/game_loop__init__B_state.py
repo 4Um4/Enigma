@@ -128,15 +128,6 @@ from app.services.game_loop.tick_context import (
 # ────────────────────────────────────────────────────────────────────────────────
 
 
-def _e1_extract_subject(topic: str):
-    """E1-wiring (S260): канонический P3-резолвер темы речи в SubjectRef
-    (extract_subject; обёртка "про {topic}" — паттерн E1-фикстур и
-    P7-B-подписчика game_loop:446 — единый механизм, не второй)."""
-    from app.services.input.intent_compressor import extract_subject
-
-    return extract_subject(f"про {topic}")
-
-
 class GameLoop:
     """
     Единая точка входа для одного игрового хода.
@@ -261,27 +252,6 @@ class GameLoop:
 
         # S150 FIX: Принудительная инициализация TaskScheduler для прохождения INV-DIALOGUE-INIT/SCHEDULER-FAIL
         _ = self._get_task_scheduler()
-
-        # DEBT-E1-WIRING (S260, санкция Мастера): замыкание адресованного
-        # вопроса игрока в disclosure-контур P7-A. Механика построена
-        # (S255 E1 + S259 P7-A); потерто ЗВЕНО ВЫЗОВА: TaskScheduler
-        # строился без epistemic-параметров, set_epistemic_wiring не
-        # вызывался → production-executor без bridge → DENY-монокультура
-        # (доказано T-W1). Это ПРОВОДКА, не механика: ни нового стора,
-        # ни DTO, ни второго источника истины.
-        _scheduler = self._get_task_scheduler()
-        _scheduler.set_epistemic_wiring(
-            discovery_bridge=(
-                lambda: getattr(
-                    getattr(self, "mvp_controller", None),
-                    "discovery_bridge",
-                    None,
-                )
-            )(),
-            npc_states_provider=lambda cid: self._resolve_npcs_snapshot(cid),
-            relationship_provider=self._e1_relationship_reader,
-            subject_resolver=lambda topic: _e1_extract_subject(topic),
-        )
 
         # Подсистема 2: Инициализация ReplayRecorder
         if settings.replay_mode != "off":
@@ -929,46 +899,6 @@ class GameLoop:
             return engine.get_npc_light_states(campaign_id)
         return []
 
-    def _e1_relationship_reader(
-        self, campaign_id: str, knower_id: str, recipient_id: str
-    ) -> dict:
-        """E1-wiring (S260): читатель отношений для decide_disclosure.
-
-        Источник — SSOT RelationshipStore (V2, RAM-authoritative);
-        Vacuum (нет пары knower→recipient) → фолбэк social_stats NPC —
-        канонический паттерн tick_utils (M1b.3.3+3.4: «Player-дефолты
-        social_stats — фолбэк только при Vacuum в V2»). Возвращает
-        {"trust": float, "fear": float} в шкале 0-100 (пороги V1:
-        T_REVEAL=50, F_HIGH=60). Fail-open: любая ошибка чтения →
-        пустой dict (decide_disclosure даст DENY-лестницу по нулям —
-        честное «не знаю отношений», не крах диалога)."""
-        try:
-            _store = getattr(
-                getattr(self, "memory_manager", None), "_relationships", None
-            )
-            if _store is not None:
-                _rels = _store.get(campaign_id, knower_id) or {}
-                _pair = _rels.get(f"{knower_id}→{recipient_id}") or {}
-                if _pair:
-                    return {
-                        "trust": float(_pair.get("trust", 0.0)),
-                        "fear": float(_pair.get("fear", 0.0)),
-                    }
-            # Vacuum → social_stats NPC (канон tick_utils)
-            for _n in self._resolve_npcs_snapshot(campaign_id) or []:
-                if not isinstance(_n, dict):
-                    continue
-                if (_n.get("npc_id") or _n.get("id")) == knower_id:
-                    _ss = _n.get("social_stats") or {}
-                    return {
-                        "trust": float(_ss.get("trust", 0.0)),
-                        "fear": float(_ss.get("fear_of_player", 0.0)),
-                    }
-            return {}
-        except Exception as _e:
-            logger.warning(f"[E1_WIRING] relationship read failed: {_e}")
-            return {}
-
     def _project_perception(
         self, campaign_id: str, scene_state: dict, all_npcs_raw: list
     ):
@@ -1353,22 +1283,14 @@ class GameLoop:
 
         _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
 
-        # S259 (redesign v1, вердикт Мастера): fresh per-tick idle-контекст.
-        # γ-3 REVERTED/CAUSAL — персистентный объект протекал через границу
-        # тика; взамен СВЕЖИЙ SimpleNamespace каждый idle-тик, долгоживут
-        # только SSOT-ссылки. Поля = спек варианта №1: scene_state = текущая
-        # сцена (семантика tick_utils-фоллбэка), spatial_query = текущий тик
-        # (R4/R5), relationship_store = SSOT-ссылка (R1), campaign_id (гейт
-        # подписчика: даже легаси-строка shared_context.campaign_id валидна).
-        # Конец тика → объект умирает. Никакого накопления атрибутов.
-        from types import SimpleNamespace as _SNS
+        _idle_ctx = getattr(self, "_idle_shared_context", None)
+        if _idle_ctx is None:
+            from types import SimpleNamespace as _SNS
 
-        _idle_ctx = _SNS(
-            scene_state=_scene,
-            spatial_query=getattr(self, "_current_spatial_query", None),
-            relationship_store=getattr(self, "_rel_store", None),
-            campaign_id=campaign_id,
-        )
+            _idle_ctx = _SNS()
+            self._idle_shared_context = _idle_ctx
+        if not getattr(_idle_ctx, "relationship_store", None):
+            _idle_ctx.relationship_store = getattr(self, "_rel_store", None)
 
         # AUDIT-003 §3.3: контекст NPC для idle-тика — тот же паттерн сборки, что и путь игрока
         from app.services.events.event_bus import get_event_bus

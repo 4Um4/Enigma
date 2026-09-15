@@ -56,7 +56,7 @@ class CognitiveDissonanceTracker:
                                 emotional_weight=weight
                             )
                             new_contradictions.append(contradiction)
-                            self._processed_pairs.add(pair_key)
+                            self._processed_pairs.add(pair_key)  # type: ignore[arg-type]
                             break # Одно противоречие на пару действий достаточно
 
         self._contradictions.extend(new_contradictions)

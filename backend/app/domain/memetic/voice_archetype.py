@@ -59,7 +59,7 @@ def load_voice_archetype(archetype_id: str, canon_dir: Optional[str] = None) -> 
 
     # ADR-O-MEMETIC: Абсолютный путь от корня проекта, чтобы работало из backend/ и из корня
     if canon_dir is None:
-        canon_dir = _PROJECT_ROOT / "config" / "canon" / "voice_archetypes"
+        canon_dir = str(_PROJECT_ROOT / "config" / "canon" / "voice_archetypes")
 
     file_path = Path(canon_dir) / f"{archetype_id}.yaml"
     if not file_path.exists():

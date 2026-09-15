@@ -6,10 +6,9 @@ path: /backend/app/services/execution/dialogue_executor.py
 """
 from __future__ import annotations
 
-import concurrent.futures
 import logging
-
 from typing import Callable, Iterable, Optional
+
 from app.domain.communication import DialogueRequest
 from app.domain.disclosure import (
     DisclosureContext,
@@ -124,6 +123,10 @@ class DialogueExecutor:
         # S197: Извлекаем Proposition на верхнем уровне, чтобы он был доступен во всех ветках
         _proposition = getattr(req, "proposition", None)  # noqa: ENIGMA002
 
+        # P7-A: вердикт disclosure выносится ДО вербализации, РОВНО ОДИН
+        # раз на реплику (инвариант Мастера). LLM вербализует, не решает.
+        _verdict = self._resolve_disclosure_verdict(task, req)
+
         # Если роутер не задан (sandbox/test), возвращаем заглушку
         if self._router is None:
             logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
@@ -137,10 +140,10 @@ class DialogueExecutor:
             # В будущем LLM_TIMEOUT_SEC будет вынесен в CalibrationProfile.
             import threading
             _timer = threading.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
-            
+
             try:
                 _timer.start()
-                text = self._generate_with_router(task, req)
+                text = self._generate_with_router(task, req, _verdict)
             except DialogueContractViolation as e:
                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
                 # BUGFIX: Возвращаем error artifact, а не success, т.к. текст не сгенерирован
@@ -180,7 +183,7 @@ class DialogueExecutor:
         # реплике; error-ветки выше не эмитят). Заменил вызов парсера
         # (V8-MVP-12): текст НЕ источник discovery — PROVENANCE, NOT
         # STRINGS. Писатель :109 — отдельным шагом ПОСЛЕ T8/T3.
-        self._emit_dialogue_outcome(task, req)
+        self._emit_dialogue_outcome(task, req, _verdict)
 
         yield Artifact(
             task_id=task.task_id,
@@ -198,22 +201,18 @@ class DialogueExecutor:
             },
         )
 
-    def _emit_dialogue_outcome(self, task: QueuedTask, req: DialogueRequest) -> None:
-        """P6/E1 (S255): игрок-контур P3→P4→P5→P6 в точке доставки.
-
-        Гейты: bridge, req.target_id == "player" (D30; NPC→NPC — E2),
-        провайдеры, NPCState(owner). Fail-open (S200/S201): проводка
-        не роняет диалог. Итерация по KnowledgeItem (P5 — один item;
-        Bridge идемпотентен). Давление V1 (alpha): topic-heat сессии —
-        D-E1-PRESSURE; уточнение — Calibration Lab (beta).
-        """
+    def _resolve_disclosure_verdict(self, task: QueuedTask, req: DialogueRequest):
+        """P7-A: ЕДИНСТВЕННОЕ вычисление вердикта на реплику — ДО слов.
+        Гейты E1 (S255) сохранены дословно: bridge, target=='player',
+        провайдеры, NPCState(owner), fail-open. Возвращает DisclosureOutcome
+        или None (unwired/нет знания/ошибка = без эмита, как в E1)."""
         if self._discovery_bridge is None:
-            return
+            return None
         if (req.target_id or "") != "player":
-            return
+            return None
         if self._npc_states_provider is None or self._subject_resolver is None:
             logger.info("[P6_E1] wiring неполный (provider/resolver) — эмит пропущен")
-            return
+            return None
         try:
             owner_raw = None
             for _n in (self._npc_states_provider(task.campaign_id) or []):
@@ -223,12 +222,12 @@ class DialogueExecutor:
                         break
             if owner_raw is None:
                 logger.info(f"[P6_E1] NPCState не найден: {task.owner_id}")
-                return
+                return None
             owner_state = load_l2_state_from_runtime_dict(owner_raw)
             subject = self._subject_resolver(req.topic)
             items = retrieve_knowledge(owner_state, subject)
             if not items:
-                return
+                return None
             rel = {}
             if self._relationship_provider is not None:
                 rel = self._relationship_provider(
@@ -249,22 +248,56 @@ class DialogueExecutor:
                 pressure_amount=pressure,
             )
             recipient = SocialTarget(SocialTargetKind.PERSON, "player")
-            for item in items:
-                outcome = decide_disclosure(owner_state, recipient, rel, item, ctx)
-                self._discovery_bridge.process(
-                    SurfaceEvent(
-                        kind=SurfaceKind.DIALOGUE_OUTCOME,
-                        tick=task.tick,
-                        source_id=task.owner_id,
-                        secret_id=outcome.secret_id,
-                        disclosure_level=outcome.level,
-                        subject_hint=req.topic,
-                    )
+            # P5 — один item на реплику: инвариант Мастера «один вердикт».
+            # (E1 итерировал items; смена политики зафиксирована в досье.)
+            return decide_disclosure(owner_state, recipient, rel, items[0], ctx)
+        except Exception as e:
+            logger.warning(f"[P6_E1] verdict resolve failed (fail-open): {e}", exc_info=True)
+            return None
+
+    def _emit_dialogue_outcome(self, task: QueuedTask, req: DialogueRequest, verdict) -> None:
+        """P7-A: эмит из УЖЕ вычисленного вердикта (точка доставки — та же,
+        что в E1: DISCOVERY IS DELIVERY). Повторное вычисление вердикта
+        здесь = DOUBLE TRUTH — запрещено (инвариант Мастера)."""
+        if verdict is None or self._discovery_bridge is None:
+            return
+        if (req.target_id or "") != "player":
+            return
+        try:
+            self._discovery_bridge.process(
+                SurfaceEvent(
+                    kind=SurfaceKind.DIALOGUE_OUTCOME,
+                    tick=task.tick,
+                    source_id=task.owner_id,
+                    secret_id=verdict.secret_id,
+                    disclosure_level=verdict.level,
+                    subject_hint=req.topic,
                 )
+            )
         except Exception as e:
             logger.warning(f"[P6_E1] emit failed (fail-open): {e}", exc_info=True)
 
-    def _generate_with_router(self, task: QueuedTask, req: DialogueRequest) -> str:
+    @staticmethod
+    def _verdict_directive(verdict) -> str:
+        """P7-A: сериализация вердикта в поведенческую директиву промпта.
+        P5 решил ЧТО; P7 вербализует КАК; LLM не решает (DisclosureLevel)."""
+        from app.domain.disclosure import DisclosureLevel as _DL
+
+        if verdict is None:
+            return ""
+        _texts = {
+            _DL.REVEAL: "ты решил полностью раскрыть это знание — расскажи о нём прямо",
+            _DL.PARTIAL: "ты решил сказать лишь часть — намекни на суть, не раскрывая деталей",
+            _DL.HINT: "ты решил лишь намекнуть — не раскрывай, о чём речь",
+            _DL.DENY: "ты решил уклониться от ответа — не раскрывай знание, уйди от темы",
+            _DL.REDIRECT: "ты решил сменить тему — мягко уведи разговор в сторону",
+        }
+        _t = _texts.get(verdict.level)
+        if _t is None:
+            return ""
+        return f"[ДИРЕКТИВА РАСКРЫТИЯ: {verdict.level.value.upper()}] {_t}."
+
+    def _generate_with_router(self, task: QueuedTask, req: DialogueRequest, verdict=None) -> str:
         """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""
         ctx = self._get_context(task.campaign_id, task.owner_id)
 
@@ -309,7 +342,7 @@ class DialogueExecutor:
             _stm_text = self._memory_manager.get_stm_prompt_block_pair(
                 task.campaign_id, task.owner_id, req.target_id
             )
-        
+
         # Hard Contract (Принцип 2): Нет STM -> нельзя говорить canonical dialogue
         # Разрешаем только первый ход (intent_type="greeting"), чтобы установить контакт
         # Исключение: claim-producing интенты (warn, intimidate) не требуют контекста диалога.
@@ -318,7 +351,7 @@ class DialogueExecutor:
                            f"intent '{req.intent_type}' demoted to 'approach' (auto-recover).")
             from dataclasses import replace as _dc_replace
             req = _dc_replace(req, intent_type="approach")
-        
+
         if _stm_text:
             _history_text += f"\n[Контекст текущего разговора]\n{_stm_text}\n"
 
@@ -345,6 +378,11 @@ class DialogueExecutor:
             f"{_history_text}"
             "Скажи свою реплику:"
         )
+
+        # P7-A: директива вердикта в промпт — LLM вербализует, не решает
+        _directive = self._verdict_directive(verdict)
+        if _directive:
+            user_prompt += f" {_directive}"
 
         try:
             from app.services.llm.router import GenerationParams

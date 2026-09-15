@@ -59,7 +59,7 @@ class CharacterChangeRate(CalibrationMetric):
     def compute(self) -> Optional[float]:
         if not self._deltas:
             return None
-        return sum(self._deltas) / len(self._deltas)
+        return float(sum(self._deltas) / len(self._deltas))
 
     def reset(self) -> None:
         self._prev.clear()

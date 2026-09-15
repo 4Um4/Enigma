@@ -368,7 +368,7 @@ class NpcTickPipeline:
             _eco_profile = state.economic_profiles_map.get(npc_id)
             _current_activity = npc.get("routine", {}).get("current", "")
 
-            # ADR-O-389 (WORK, S256): канал давления желания → TRADE.
+            # ADR-O-391 (WORK, S256): канал давления желания → TRADE.
             # Канонический принцип: давление искривляет utility, не приказывает
             # (DecisionHub не тронут — модификатор проходит существующим
             # eco_modifiers-рельсом, единая точка применения :379/:626).
@@ -414,7 +414,7 @@ class NpcTickPipeline:
             if _eco_modifiers := _eco_result["modifiers"]:
                 for _intent, _mod in _eco_modifiers.items():
                     _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
-            # ADR-O-389 (WORK, S256): давление желания → TRADE — через тот же
+            # ADR-O-391 (WORK, S256): давление желания → TRADE — через тот же
             # eco-рельс и в ту же аддитивную сумму. Pressure deforms, not
             # commands (L-W2: DecisionHub не тронут). OFF = блок не исполняется
             # (L-W5). Линейный по urgency; предмет — рыночный (GOODS_PRICES).

@@ -271,15 +271,21 @@ class RulesSubscriber:
     # ── Pure helper methods (read-only) ──────────────────────────────
     def _extract_target(self, event: Any) -> Optional[str]:
         if hasattr(event, "payload"):
-            return event.payload.get("target_id") or event.payload.get(
-                "target_reference"
-            )
-        return event.get("target_id") or event.get("target_reference")
+            payload = event.payload
+            if isinstance(payload, dict):
+                return payload.get("target_id") or payload.get(
+                    "target_reference"
+                )
+            return None
+        if isinstance(event, dict):
+            return event.get("target_id") or event.get("target_reference")
+        return None
 
     def _find_npc(self, npc_id: str, npcs: List[Any]) -> Optional[Dict]:
         for npc in npcs:
-            if npc.get("npc_id") == npc_id or npc.get("id") == npc_id:
-                return npc
+            if isinstance(npc, dict):
+                if npc.get("npc_id") == npc_id or npc.get("id") == npc_id:
+                    return npc
         return None
 
     def _compute_damage(self, roll: int, dc: int) -> float:

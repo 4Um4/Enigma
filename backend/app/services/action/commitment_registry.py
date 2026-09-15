@@ -91,7 +91,7 @@ class CommitmentRegistry:
         if entry is not None:
             return entry.get("status") in ACTIVE_COMMITMENT_STATUSES
         trav = (scene_state.get("active_traversals") or {}).get(npc_id, {})
-        return trav.get("status") == "MOVING"
+        return bool(trav.get("status") == "MOVING")
 
     @staticmethod
     def get_active(

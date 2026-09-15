@@ -1,6 +1,6 @@
 """
 path: /project/backend/tests/test_work_orders.py
-Назначение: ADR-O-389 (WORK, S256) — юнит-замок контура заказов:
+Назначение: ADR-O-391 (WORK, S256) — юнит-замок контура заказов:
     рождение ORDER, материализация SERVE, атомарный settlement,
     идемпотентность терминала (L-W6), FAILED без мутаций (L-W3),
     OFF = no-op (L-W5).

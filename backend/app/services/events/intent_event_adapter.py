@@ -81,7 +81,7 @@ class IntentEventAdapter:
                 "semantic_action": getattr(intent, "semantic_action", None),  # noqa: ENIGMA002
                 "target_id": getattr(intent, "target_id", None),  # noqa: ENIGMA002
             },
-            visibility=_visibility_map.get(intent.exposure_level.semantic, "public"),
-            radius=intent.exposure_level.physical_radius,
+            visibility=_visibility_map.get(intent.exposure_level.semantic, "public"),  # type: ignore[arg-type]
+            radius=intent.exposure_level.physical_radius,  # type: ignore[arg-type]
             persistence_level="working",
         )

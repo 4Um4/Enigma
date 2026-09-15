@@ -103,6 +103,9 @@ def _quiet():
     ):
         logging.getLogger(_name).setLevel(logging.CRITICAL)
     logging.getLogger().setLevel(logging.CRITICAL)  # root: R4A-воркеры
+    # S259-DIAG: свидетели EMA-канала — не глушить (приборы, не шум)
+    logging.getLogger("app.services.npc.state_applicator").setLevel(logging.INFO)
+    logging.getLogger("app.services.phases.reduction").setLevel(logging.WARNING)
 
 
 def main() -> int:

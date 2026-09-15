@@ -20,8 +20,12 @@ class SpeechScheduler:
     Живёт в infrastructure layer (game_loop), имеет право использовать wall-clock для pacing.
     """
 
-    MINIMUM_RESPONSE_LATENCY_SEC = 2.0
-    DEDUP_CONTEXT_TTL_SEC = 4.0  # Если LLM упала (заглушка), NPC сможет повторить попытку после pacing
+    # IRON RIVER D-1/P0-2 (F2): admission на каузальной оси game_time
+    # (1 тик = 60 game-сек). Прежние wall-секунды делали состав реплик
+    # функцией реального времени (единственный оставшийся P0-генератор
+    # кросс-процессного MISMATCH). Отношение порогов 1:2 сохранено.
+    MINIMUM_RESPONSE_LATENCY_GAME_SEC = 120.0  # = 2 тика между репликами NPC
+    DEDUP_CONTEXT_TTL_GAME_SEC = 240.0  # = 4 тика; LLM-failure → честный повтор
 
     def __init__(self, memory_manager: Optional[Any] = None) -> None:
         self._memory_manager = memory_manager
@@ -32,15 +36,23 @@ class SpeechScheduler:
         # Хранит сигнатуры контекста для дедупликации
         self._admitted_contexts: Dict[str, tuple[str, float]] = {}
 
-    def admit(self, task_dict: dict, campaign_id: str = "") -> tuple[bool, str]:
+    def admit(
+        self,
+        task_dict: dict,
+        campaign_id: str = "",
+        game_time_seconds: float = 0.0,
+    ) -> tuple[bool, str]:
         """
         Арбитраж диалоговой задачи.
         Возвращает (True, "ADMITTED") если допущена.
         Возвращает (False, "PACING") если отклонена из-за тайминга (нужно вернуть в очередь).
         Возвращает (False, "DEDUP") если отклонена как дубликат (нужно уничтожить).
+
+        IRON RIVER F2: время — каузальная ось game_time_seconds (от очереди,
+        BUG-DLG-006); при 0.0 (легаси-вызов без оси) pacing вырождается в
+        «первая реплика всегда допущена» — деградация темпа, не истины.
         """
-        from app.core.clock import get_clock
-        now = get_clock().timestamp()
+        now = float(game_time_seconds)
 
         speaker_id = task_dict.get("owner_id", "")
         payload = task_dict.get("payload", {})
@@ -51,7 +63,7 @@ class SpeechScheduler:
 
         # 1. Minimum Response Latency (Human Pacing)
         last_speech = self._actor_last_speech_ts.get(speaker_id, 0.0)
-        if now - last_speech < self.MINIMUM_RESPONSE_LATENCY_SEC:
+        if now - last_speech < self.MINIMUM_RESPONSE_LATENCY_GAME_SEC:
             logger.debug(f"[SPEECH_SCHED] Denied {speaker_id}: Pacing limit (now={now:.2f}, last={last_speech:.2f})")
             return False, "PACING"
 
@@ -64,7 +76,7 @@ class SpeechScheduler:
 
         admitted_context, admitted_ts = self._admitted_contexts.get(pair_key, ("", 0.0))
         if admitted_context == causal_context_version:
-            if now - admitted_ts < self.DEDUP_CONTEXT_TTL_SEC:
+            if now - admitted_ts < self.DEDUP_CONTEXT_TTL_GAME_SEC:
                 logger.debug(f"[SPEECH_SCHED] Denied {speaker_id}: Duplicate context {causal_context_version}")
                 return False, "DEDUP"
 
@@ -87,11 +99,9 @@ class SpeechScheduler:
             del self._admitted_contexts[pair_key]
             logger.debug(f"[SPEECH_SCHED] Reset context for {pair_key} due to execution failure.")
 
-    def cleanup_stale_contexts(self) -> None:
-        """Очистка устаревших контекстов (вызывать периодически)."""
-        from app.core.clock import get_clock
-        now = get_clock().timestamp()
+    def cleanup_stale_contexts(self, game_time_seconds: float = 0.0) -> None:
+        """Очистка устаревших контекстов (каузальная ось, IRON RIVER F2)."""
         self._admitted_contexts = {
             k: v for k, v in self._admitted_contexts.items()
-            if now - v[1] < self.DEDUP_CONTEXT_TTL_SEC
+            if (game_time_seconds - v[1]) < self.DEDUP_CONTEXT_TTL_GAME_SEC
         }

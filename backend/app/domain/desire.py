@@ -71,7 +71,7 @@ class ProvenanceEntry:
         # Нормализация str → enum на рождении (закрытый реестр; прецедент
         # SemanticAction.__post_init__ — легальная запись в frozen).
         if not isinstance(self.source, DesireSource):
-            object.__setattr__(self, "source", DesireSource(self.source))
+            object.__setattr__(self, "source", DesireSource(self.source))  # type: ignore[unreachable]
         object.__setattr__(self, "weight", _clamp01(self.weight))
 
     def to_dict(self) -> Dict[str, Any]:

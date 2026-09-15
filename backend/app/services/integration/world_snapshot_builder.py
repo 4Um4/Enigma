@@ -205,7 +205,7 @@ class WorldSnapshotBuilder:
                     PeripheralCueDTO(
                         npc_id=cue["npc_id"],
                         cue_key=cue_key,  # A3-FIX: renamed from cue_type
-                        hover_text=self._CUE_TEXT_MAP.get(cue_key, cue_key),
+                        hover_text=self._CUE_TEXT_MAP.get(cue_key, cue_key) or "",
                     )
                 )
 

@@ -1,5 +1,5 @@
 """
-SUPERBOX-WORK (S256, ADR-O-389): Vertical Slice «Заказ и расчёт».
+SUPERBOX-WORK (S256, ADR-O-391): Vertical Slice «Заказ и расчёт».
 
 ЖЕЛЕЗНЫЕ УСЛОВИЯ:
   1. Инъекция ТОЛЬКО входа: thirst=0.9 (факт тела Горана) + экономический
@@ -173,7 +173,7 @@ def _work_outcomes():
 def main() -> int:
     _quiet()
     print("=" * 64)
-    print("SUPERBOX-WORK: Vertical Slice «Заказ и расчёт» (S256, ADR-O-389)")
+    print("SUPERBOX-WORK: Vertical Slice «Заказ и расчёт» (S256, ADR-O-391)")
     print("=" * 64)
     ok = True
 

@@ -86,7 +86,7 @@ class JsonMemoryStore:
             return {}
         try:
             with path.open("r", encoding="utf-8") as f:
-                return json.load(f)
+                return json.load(f)  # type: ignore[no-any-return]
         except (IOError, json.JSONDecodeError) as e:
             logger.error(f"Failed to load state from {collection}: {e}")
             return {}

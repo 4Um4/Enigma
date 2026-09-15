@@ -7,13 +7,13 @@ path: backend/app/services/replay/time_freezer.py
 import time
 import datetime
 from contextlib import contextmanager
-from typing import Generator, Type
+from typing import Generator, Type, Any
 
 @contextmanager
 def frozen_time(game_time_seconds: float) -> Generator[None, None, None]:
     """Подменяет time.time() и datetime.datetime.now() на game_time_seconds."""
-    original_time_time: callable = time.time
-    original_datetime_class: Type[datetime.datetime] = datetime.datetime
+    original_time_time: Callable[[], float] = time.time
+    original_datetime_class: type[datetime.datetime] = datetime.datetime
     
     # Подменяем класс datetime.datetime на подкласс с переопределённым now()
     class FrozenDateTime(original_datetime_class):

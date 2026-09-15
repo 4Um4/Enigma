@@ -1331,13 +1331,18 @@ class TickOrchestrator:
         # чтобы CombatSubscriber (Фаза 8) вызвал ImpactEngine и нанёс физический урон.
         # Без этого NPC не получает боль/шок, и BehaviorManifestationService не генерирует моторные следы.
         if _sem_action.upper() == "ATTACK":
-            import uuid
-
             from app.domain.events import EventDTO
             from app.services.events.event_types import EventType
 
+            # IRON RIVER D-1/P0-3 (F3-1): детерминированный event-id вместо
+            # uuid4 — id входит в боевой rng_seed (combat_subscriber:222) и в
+            # состояние; same (tick, actor, target) → same id → same бой.
+            # INV-REPLAY-DETERMINISM; uuid4 в kernel-событиях запрещён.
+            _evt_id = (
+                f"evt:{int(ctx.tick_number)}:player:{_target_id}:attack"
+            )
             _attack_event = EventDTO(
-                id=str(uuid.uuid4()),
+                id=_evt_id,
                 type=EventType.PLAYER_ATTACKED.value,
                 source="player",
                 timestamp=ctx.scene_state.get("game_time_seconds", 0.0),

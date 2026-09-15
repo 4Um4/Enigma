@@ -137,7 +137,8 @@ class PhenomenologyProjectionService:
             atmosphere_key=atm_key,
             atmosphere_intensity=atm_intensity,
             embodied_traces=[
-                t.__dict__ if hasattr(t, "__dict__") else dict(t) for t in traces
+                dataclasses.asdict(t) if hasattr(t, "__dataclass_fields__") else dict(t)
+                for t in traces
             ],
             manifestations=manifestations,
             observed_facts=observed_facts or [],

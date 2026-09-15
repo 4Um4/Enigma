@@ -28,7 +28,7 @@ path: /project/backend/app/domain/relationship_contracts.py
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Final, FrozenSet
+from typing import Any, Dict, Final, FrozenSet, Optional
 
 # ═══ Ключи сериализации — КОНСТАНТЫ (Устав §12.1: inline-строки в адаптерах запрещены) ═══
 

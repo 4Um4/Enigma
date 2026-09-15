@@ -29,6 +29,10 @@ logger = logging.getLogger(__name__)
 # 021 Calibration candidates (behavior-identical extraction)
 _DIALOGUE_TTL: float = 180.0
 _UI_TTL_SEC: float = 7.0
+# IRON RIVER D-1 (F1b): TTL UI-кэша в ГЕЙМ-секундах (60 сек/тик × ~2 тика).
+# Прежний wall-clock TTL (7с) несовместим с game-time осью timestamp (F1a).
+# CALIBRATION_CANDIDATE: окно видимости реплики в UI при 60 сек/тик.
+_RECENT_TTL_GAME_SEC: float = 120.0
 _MAX_TASKS_PER_TICK: int = 1
 
 class TaskScheduler:
@@ -186,17 +190,22 @@ class TaskScheduler:
             )
 
     def get_recent_dialogues(self, current_time: float) -> list:
-        """Возвращает активные реплики для WorldSnapshotDTO."""
-        # ADR-O-343: UI-кэш реплик живёт по wall-clock (infrastructure layer),
-        # так как game_time растёт слишком быстро (60+ сек/тик) и реплики исчезают мгновенно.
-        import time
-        _now = time.time()
-        # _UI_TTL_SEC moved to module level (021)
+        """Возвращает активные реплики для WorldSnapshotDTO.
+
+        IRON RIVER D-1/P0-1 (F1b): единая каузальная ось. Запись timestamp =
+        game_time (F1a); фильтр сравнивает game-time с game-time. Смешение осей
+        (wall-clock запись vs game-time аргумент у всех трёх caller'ов:
+        game_loop:1101/1414/1664, tick_orchestrator:1722) делало TTL-фильтр
+        всегда-просроченным — реплики выметались из UI-кэша. UI-staleness
+        переехал на real_ts (F1a) — отдельно, §15.2. TTL в game-секундах:
+        60 сек/тик × 2 тика (CALIBRATION_CANDIDATE 021-наследие).
+        """
         with self._dialogue_lock:
             self._recent_dialogues = [
                 d
                 for d in self._recent_dialogues
-                if _now - d.get("timestamp", 0.0) < _UI_TTL_SEC
+                if (current_time - d.get("timestamp", 0.0))
+                < _RECENT_TTL_GAME_SEC
             ]
             return list(self._recent_dialogues)
 
@@ -357,7 +366,11 @@ class TaskScheduler:
             _task_type = getattr(_eligible, "task_type", "canonical")
 
             # ADR-O-343: Narrative Arbitration после извлечения из очереди
-            _admitted, _reason = self._speech_scheduler.admit(task_dict, campaign_id)
+            # IRON RIVER D-1/P0-2 (F2): admission на каузальной оси —
+            # game_time (в scope, BUG-DLG-006), не wall-clock.
+            _admitted, _reason = self._speech_scheduler.admit(
+                task_dict, campaign_id, game_time_seconds=_game_time
+            )
 
             if not _admitted:
                 if _reason == "PACING":
@@ -559,7 +572,12 @@ class TaskScheduler:
                                 "speaker_id": ev.source,
                                 "target_id": ev.payload.get("target_id", ""),
                                 "text": ev.payload.get("text", ""),
-                                "timestamp": time.time(),  # для UI staleness
+                                # IRON RIVER D-1/P0-1 (F1a): timestamp — каузальная
+                                # ось game_time (значение уже в точке записи, :564),
+                                # детерминирован и входит в канон-хеш; real_ts —
+                                # UI-staleness (§15.2-исключение), из хеша исключён.
+                                "timestamp": _game_time,
+                                "real_ts": time.time(),
                                 # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
                                 "game_time": _game_time,
                             }

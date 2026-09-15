@@ -53,7 +53,7 @@ EAT_SPEC = ActivitySpec(
     priority_hint=6.0,
 )
 
-# ADR-O-389 (WORK, S256): SERVE — деятельность продавца по заказу.
+# ADR-O-391 (WORK, S256): SERVE — деятельность продавца по заказу.
 # Материализация — work-pass (цель = order_id, не WorldObject-архетип:
 # target_archetype пуст, desire-онсет этот spec не подберёт); запись в
 # каталоге = честный реестр + терминальные lookup'ы (_SPEC_BY_TYPE).

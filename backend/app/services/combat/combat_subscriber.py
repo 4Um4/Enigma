@@ -215,18 +215,24 @@ class CombatSubscriber:
                 )
 
             # Вызов физического интегратора (Pure Function)
+            # IRON RIVER D-1/P0-3 (F3-2): боевой seed — KernelRNG-деривация
+            # sha256(tick:actor:salt), не питоновский hash(uuid4): старый путь
+            # был недетерминирован дважды (uuid4 + PYTHONHASHSEED-зависимый
+            # hash()). Каузальная ось тика — event.timestamp (game_time_seconds,
+            # пишется оркестратором) → целочисленный тик для деривации.
+            from app.services.npc.kernel_rng import KernelRNG
+
+            _combat_tick = int(
+                getattr(event, "timestamp", 0.0) or 0.0
+            )
+            _combat_rng = KernelRNG(
+                tick=_combat_tick, npc_id=intent.actor_id, salt="combat"
+            )
             impact_deltas = resolve_physical_impact(
                 attacker=attacker_snapshot,
                 defender=defender_snapshot,
                 intent=intent,
-                rng_seed=hash(
-                    (
-                        event.id if hasattr(event, "id") else 0,
-                        intent.actor_id,
-                        intent.target_id,
-                    )
-                )
-                & 0xFFFFFFFF,
+                rng_seed=_combat_rng.seed & 0xFFFFFFFF,
             )
 
             logger.debug(f"[COMBAT_SUB] impact_deltas count={len(impact_deltas)}")

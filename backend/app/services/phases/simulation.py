@@ -73,7 +73,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     # ВНУТРИ Фазы 0, ДО Гейта① — MOVE-шаги деятельностей едут существующим
     # рельсом; цель конфликта решает арбитр, не шум скоринга (В4).
     orchestrator._update_npc_desires(ctx)
-    # ADR-O-389 (WORK, S256): ORDER→SERVE — материализация деятельности
+    # ADR-O-391 (WORK, S256): ORDER→SERVE — материализация деятельности
     # продавца из заказа (рождён Фазой 6 прошлого тика). Шов внутри Фазы 0
     # (L-W7: второго pipeline нет). OFF = no-op без вычислений (L-W5).
     from app.services.economy.work_orders import run_work_orders_pass

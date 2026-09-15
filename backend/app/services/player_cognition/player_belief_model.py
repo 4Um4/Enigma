@@ -26,7 +26,7 @@ class PlayerBeliefModel:
         # Строгий ключ идемпотентности: (observation_id, secret_id, polarity)
         ev_key = (obs_id, secret_id, evidence.polarity)
         if ev_key in self._processed_evidence:
-            return self._beliefs.get(secret_id)
+            return self._beliefs.get(secret_id)  # type: ignore[return-value]
         self._processed_evidence.add(ev_key)
 
         current = self._beliefs.get(secret_id)
@@ -74,7 +74,7 @@ class PlayerBeliefModel:
         # Строгий ключ идемпотентности на основе внешнего ID события/действия
         ev_key = (evidence_id, secret_id, polarity)
         if ev_key in self._processed_evidence:
-            return current
+            return current  # type: ignore[return-value]
         self._processed_evidence.add(ev_key)
 
         new_support = current.support_mass if current else 0.0

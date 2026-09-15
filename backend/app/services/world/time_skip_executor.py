@@ -514,7 +514,7 @@ class TimeSkipExecutor:
         tick_number: int,
         spatial_service: Any,
         npc_services: Any,
-    ):
+    ) -> Any:
         """Обёртка для вызова ядра."""
         return self._kernel.execute(
             campaign_id=campaign_id,
@@ -532,7 +532,7 @@ class TimeSkipExecutor:
         policy: str = "A",
         spatial_service: Any = None,
         npc_services: Any = None,
-        get_npcs_callback: Callable = None,
+        get_npcs_callback: Optional[Callable[..., Any]] = None,
         context: Optional[Dict[str, Any]] = None,
     ) -> TimeSkipResult:
         """Промотать время. Kernel выполняется, policy определяет observation.

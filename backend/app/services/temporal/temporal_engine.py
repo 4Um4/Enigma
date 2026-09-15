@@ -154,7 +154,8 @@ class TemporalEngine:
             return 0
         try:
             data = json.loads(path.read_text(encoding="utf-8-sig"))
-            return data.get("sim_tick", 0)
+            tick_val = data.get("sim_tick", 0)
+            return int(tick_val) if tick_val is not None else 0
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(f"[TEMPORAL_ENGINE] Ошибка чтения tick: {e}")
             return 0

@@ -64,7 +64,7 @@ class RelationshipStore:
             self._cache.move_to_end(campaign_id)
             self._timestamps[campaign_id] = time.time()
             self._evict_if_needed()
-            return data
+            return data  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"[RELATIONSHIPS] Ошибка чтения {path}: {e}")
             self._cache[campaign_id] = {}

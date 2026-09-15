@@ -29,7 +29,7 @@ _DESIRES_ENABLED_ENV = "DESIRES_ENABLED"
 # срезов (давление без деятельности, не мёртвый код).
 _NEED_TO_DESIRE: Dict[str, tuple] = {
     "hunger": ("food", "food_portion"),
-    # ADR-O-389 (WORK): жажда → желание эля; цель — человек-продавец.
+    # ADR-O-391 (WORK): жажда → желание эля; цель — человек-продавец.
     # "ale" в каталоге деятельностей нет → легаси-движение не подавляется
     # (legacy_need_suppressed: субъект вне каталога → False).
     "thirst": ("ale", "person"),

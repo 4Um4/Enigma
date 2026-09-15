@@ -5,16 +5,23 @@ path: /backend/app/services/scene/scene_event_emitter.py
 Основные сущности: SceneEventEmitter
 """
 
-from typing import List
+from typing import List, TypedDict
 
 from app.models.scene_event import SceneEvent, SceneEventType
+
+
+class _TypeProfile(TypedDict):
+    event_type: SceneEventType
+    intensity: float
+    visibility_radius: float
+    sound_level: float
 
 
 class SceneEventEmitter:
     """Создаёт SceneEvent из различных источников."""
 
     # Базовые параметры по типу действия
-    _TYPE_PROFILES = {
+    _TYPE_PROFILES: dict[str, _TypeProfile] = {
         "player_attacks": {
             "event_type": SceneEventType.VIOLENCE,
             "intensity": 0.9,
