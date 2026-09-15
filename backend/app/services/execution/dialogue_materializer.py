@@ -62,7 +62,7 @@ class DialogueMaterializer:
                 "tone": _tone,
                 "intent_type": data.get("intent_type", "talk"),
             },
-            visibility=visibility,
+            visibility=visibility,  # type: ignore[arg-type]
             radius=_speech_radius,
             persistence_level="session",
         ))
@@ -80,7 +80,7 @@ class DialogueMaterializer:
                     "speech_act": "assert",
                     "tick": 0 # Tick будет перезаписан в ClaimEventSubscriber
                 },
-                visibility=visibility,
+                visibility=visibility,  # type: ignore[arg-type]
                 radius=_speech_radius,
                 persistence_level="session",
             ))

@@ -42,32 +42,55 @@ class BodyTopologyService:
     @classmethod
     def create_topology(cls, avatar_id: str, strength_score: int = 10) -> BodyTopology:
         """Создаёт экземпляр BodyTopology из загруженного шаблона."""
-        if cls._topology_template is None:
+        template = cls._topology_template
+        if template is None:
             cls.load_template()
-            
+            template = cls._topology_template
+        assert template is not None  # mypy: load_template гарантирует непустой шаблон
+
         topology = BodyTopology(avatar_id=avatar_id, strength_score=strength_score)
-        
+
         # Парсинг рук (Dict)
-        for hand_data in cls._topology_template.get(_YAML_HANDS, []):
-            slot = cls._parse_slot(hand_data)
-            topology.hands[slot.slot_id] = slot
+        hand_data = template.get(_YAML_HANDS)
+        if hand_data is not None:
+            for hand_data_item in hand_data:
+                slot = cls._parse_slot(hand_data_item)
+                topology.hands[slot.slot_id] = slot
             
         # Парсинг пояса (List)
-        topology.belt = [cls._parse_slot(d) for d in cls._topology_template.get(_YAML_BELT, [])]
+        belt_data = template.get(_YAML_BELT)
+        if belt_data is not None:
+            topology.belt = [cls._parse_slot(d) for d in belt_data]
+        else:
+            topology.belt = []
         
         # Парсинг карманов (List)
-        topology.pockets = [cls._parse_slot(d) for d in cls._topology_template.get(_YAML_POCKETS, [])]
+        pockets_data = template.get(_YAML_POCKETS)
+        if pockets_data is not None:
+            topology.pockets = [cls._parse_slot(d) for d in pockets_data]
+        else:
+            topology.pockets = []
         
         # Парсинг рюкзака (List)
-        topology.backpack = [cls._parse_slot(d) for d in cls._topology_template.get(_YAML_BACKPACK, [])]
+        backpack_data = template.get(_YAML_BACKPACK)
+        if backpack_data is not None:
+            topology.backpack = [cls._parse_slot(d) for d in backpack_data]
+        else:
+            topology.backpack = []
         
         # Парсинг надетого (Dict)
-        for worn_data in cls._topology_template.get(_YAML_WORN, []):
-            slot = cls._parse_slot(worn_data)
-            topology.worn[slot.slot_id] = slot
+        worn_data = template.get(_YAML_WORN)
+        if worn_data is not None:
+            for worn_data_item in worn_data:
+                slot = cls._parse_slot(worn_data_item)
+                topology.worn[slot.slot_id] = slot
             
         # Парсинг скрытых (List)
-        topology.hidden = [cls._parse_slot(d) for d in cls._topology_template.get(_YAML_HIDDEN, [])]
+        hidden_data = template.get(_YAML_HIDDEN)
+        if hidden_data is not None:
+            topology.hidden = [cls._parse_slot(d) for d in hidden_data]
+        else:
+            topology.hidden = []
         
         return topology
 

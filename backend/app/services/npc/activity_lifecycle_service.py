@@ -46,7 +46,7 @@ _ACTIVITY_TIMEOUT_TICKS: int = 60
 # Ярлык — ПРОЕКЦИЯ, насыщение пишет только терминал (Шаг 5).
 _ACTIVITY_DISPLAY_LABEL = {
     ActivityType.EAT: "eating",
-    ActivityType.SERVE: "serving",  # ADR-O-389: onset пишет work-pass, терминал чистит сам
+    ActivityType.SERVE: "serving",  # ADR-O-391: onset пишет work-pass, терминал чистит сам
 }
 
 
@@ -130,7 +130,7 @@ def _get_object(scene_state: Dict[str, Any], object_id: str) -> Optional[WorldOb
         return None
 
 
-def _body_view(npc: Dict[str, Any]):
+def _body_view(npc: Dict[str, Any]) -> Optional[Any]:
     """View для W2-предикатов. Falsy body_state → нет деятельности
     (§ENIGMA-003: отсутствие ≠ нейтральность; мёртвый/без сознания не ест)."""
     _bs = npc.get("body_state")
@@ -225,7 +225,7 @@ def _terminate(
     _emit_label_change(ctx, orchestrator, _nid, "")
     _publish_outcome(orchestrator, _nid, state, success, reason, _tick)
 
-    # ADR-O-389 (WORK, S256): терминал SERVE = момент исполнения сделки.
+    # ADR-O-391 (WORK, S256): терминал SERVE = момент исполнения сделки.
     # Settlement — только по success-пути; провал деятельности → заказ
     # FAILED без экономических мутаций (L-W3). Гейт call-time (L-W5).
     if state.activity_type is ActivityType.SERVE:
@@ -385,7 +385,7 @@ def _advance_body_action(
     видимый прогресс деятельности."""
     _tick = ctx.tick_number
 
-    # ADR-O-389 (WORK, S256): SERVE — телесная деятельность БЕЗ предмета
+    # ADR-O-391 (WORK, S256): SERVE — телесная деятельность БЕЗ предмета
     # (target_ref = order_id, не WorldObject; D6). Длительность → терминал;
     # без consume-петли и damage-закона. OFF не достижим: материализуется
     # только work-pass'ом под WORK_ENABLED (L-W5 by construction).
@@ -454,7 +454,7 @@ def _onset_for_desire(
     orchestrator: Any,
     npc: Dict[str, Any],
     desire: Desire,
-    spec,
+    spec: Any,
 ) -> Optional[MacroMovementGoal]:
     _tick = ctx.tick_number
     _nid = _npc_id(npc)

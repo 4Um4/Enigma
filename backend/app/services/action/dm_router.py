@@ -288,8 +288,9 @@ class DMRouter:
             if not clean_word:
                 continue
 
-            parsed = _MORPH.parse(clean_word)[0]
-            lemma = parsed.normal_form
+            _morph_result = _MORPH.parse(clean_word) if _MORPH else None
+            parsed_first = (_morph_result[0] if _morph_result else None)
+            lemma = (parsed_first.normal_form if parsed_first else clean_word)
 
             if lemma in _INSULT_ROOTS:
                 # 3. ЗАЩИТА ОТ ОТРИЦАНИЙ: "ты не дурак", "он вовсе не идиот"
@@ -303,7 +304,7 @@ class DMRouter:
                 )
 
                 # 2. ЗАЩИТА ОТ МЕЖДОМЕТИЙ: "Блядь, я забыл" (игнорируем как основное оскорбление)
-                if "INTJ" in parsed.tag:
+                if parsed_first is not None and "INTJ" in parsed_first.tag:
                     continue
 
                 # Если мы здесь, значит оскорбление реальное (не междометие, не отрицание)

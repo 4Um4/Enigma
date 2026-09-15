@@ -76,7 +76,7 @@ class SocialSubscriber:
         for et in _SOCIAL_EVENT_TYPES:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
+    def _on_event(self, event: EventDTO) -> None:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
         self._pending_events.append(event)
         return None
@@ -122,17 +122,46 @@ class SocialSubscriber:
         # 8.1 FIX: Детерминированный fallback для трекинга отношений.
         # Если LLM не парсит семантику, NPC A и B всё равно должны влиять на отношения при разговоре.
         # Явная проверка атрибутов без скрытых дефолтов (§1.2 Silent Failure Eradication)
-        if not hasattr(ctx.shared_context, "campaign_id"):
-            # S116-fallback (tick_utils SimpleNamespace) — известно пустой
-            # контекст idle/world-tick пути; не ошибка, debug.
-            logger.debug(
-                "[SOCIAL_SUBSCRIBER] S116-fallback shared_context (без campaign_id) "
-               "— trust-fallback пропущен."
-            )
-        elif not hasattr(ctx.shared_context, "relationship_store"):
+        # S259 (γ-фикс): campaign_id берем из Phase8Context (reduction.py:223
+        # кладёт ctx.campaign_id всегда) — S116-fallback смотрел не на тот
+        # объект, отрезая trust-fallback на всех idle-тиках при живых событиях
+        # (runtime-evidence: S116 на каждом тике, deltas=0). shared_context
+        # остаётся источником relationship_store; гейт над стором не меняется.
+        _campaign_id = ctx.campaign_id or getattr(ctx.shared_context, "campaign_id", None)
+        # S259 (redesign, вердикт Мастера): fresh-context не создаётся —
+        # носителем уже является per-tick _TickContext.npc_services
+        # (idle-путь: NpcTickServices carries relationship_store,
+        # game_loop:1298; Phase8Context.ticky_ctx проводит его сюда).
+        # SSOT-ссылка, не копия; lifetime = тик. Порядок чтения:
+        # 1) tick_ctx.npc_services (production idle);
+        # 2) shared_context (player-путь, если задан);
+        # 3) None — честный skip (fallback ниже).
+        _tick_ctx = getattr(ctx, "tick_ctx", None)
+        _npc_services = getattr(_tick_ctx, "npc_services", None)
+        _store = (
+            getattr(_npc_services, "relationship_store", None)
+            or getattr(ctx.shared_context, "relationship_store", None)
+        )
+        _gate = getattr(ctx.shared_context, "relationship_write_gate", None)
+        if _store is None and _gate is None:
+            # M1b.2.1-fix: стор ещё не собран (lazy-сборка game_loop) —
+            # детерминированный skip с наблюдаемым логом (§1.2).
             logger.warning(
-                "[SOCIAL_SUBSCRIBER] shared_context missing relationship_store. "
-                "Social deltas skipped."
+                "[SOCIAL_SUBSCRIBER] relationship_store/gate отсутствуют — "
+                "trust-fallback пропущен; social deltas (rumors) не затронуты."
+            )
+            self._social_engine = self._social_engine_factory(ctx.campaign_id)
+            self._social_tick, deltas = propagate_social_rumors(
+                self._social_engine,
+                self._social_tick,
+                ctx.shared_context,
+                events=events,
+            )
+            _affected_ids = {d.npc_id for d in deltas if d.npc_id}
+            return Phase8Result(
+                deltas=deltas,
+                socially_affected_npc_ids=_affected_ids,
+                events_processed=len(events),
             )
         else:
             # M1b.2.1 (ADR-O-371): писатель переводится на RelationshipWriteGate —
@@ -140,8 +169,10 @@ class SocialSubscriber:
             # доступного стора, если точка сборки его ещё не пробросила; на
             # cutover (M1b.4) backend гейта меняется централизованно — подписчик
             # повторно не мигрирует. Дельты/направления НЕ меняются (механика).
-            _gate = getattr(ctx.shared_context, "relationship_write_gate", None)
-            _store = getattr(ctx.shared_context, "relationship_store", None)
+            # S259-redesign: _gate/_store УЖЕ вычислены выше (tick_ctx.npc_services
+            # → shared_context) — здесь только достройка гейта, БЕЗ перезаписи.
+            if _gate is None and _store is not None:
+                _gate = RelationshipWriteGate(_store)
             if _gate is None and _store is None:
                 # M1b.2.1-fix: стор ещё не собран (lazy-сборка game_loop) —
                 # детерминированный trust-fallback честно пропускается с

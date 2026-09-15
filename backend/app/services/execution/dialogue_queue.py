@@ -131,6 +131,8 @@ class DialogueQueue:
         while self._heap:
             candidate = heapq.heappop(self._heap)
             speaker_id = candidate.payload.get("speaker_id")
+            if not isinstance(speaker_id, str):
+                continue
 
             if speaker_id:
                 last_speak = self._recent_npc_speak.get(speaker_id, 0)

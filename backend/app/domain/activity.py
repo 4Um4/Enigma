@@ -42,7 +42,7 @@ class ActivityType(str, Enum):
     эталоном, а не мигрируемым случаем (ТЗ 7.2)."""
 
     EAT = "eat"
-    # ADR-O-389 (WORK, S256): обслуживание заказа. Материализуется
+    # ADR-O-391 (WORK, S256): обслуживание заказа. Материализуется
     # work-pass Фазы 0 (services/economy/work_orders.py): цель — заказ,
     # не WorldObject (D6: эль — эконом-онтология goods). Desire-онсет
     # конвертера для SERVE сознательно не используется.
@@ -82,7 +82,7 @@ class ActivityStep:
 
     def __post_init__(self) -> None:
         if not isinstance(self.step_kind, StepKind):
-            object.__setattr__(self, "step_kind", StepKind(self.step_kind))
+            object.__setattr__(self, "step_kind", StepKind(self.step_kind))  # type: ignore[unreachable]
         if int(self.duration_ticks) < 1:
             object.__setattr__(self, "duration_ticks", 1)
 
@@ -122,7 +122,7 @@ class SuccessCriterion:
 
     def __post_init__(self) -> None:
         if not isinstance(self.kind, SuccessCriterionKind):
-            object.__setattr__(self, "kind", SuccessCriterionKind(self.kind))
+            object.__setattr__(self, "kind", SuccessCriterionKind(self.kind))  # type: ignore[unreachable]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -166,13 +166,14 @@ class ActivityState:
 
     def __post_init__(self) -> None:
         if not isinstance(self.activity_type, ActivityType):
-            object.__setattr__(self, "activity_type", ActivityType(self.activity_type))
+            object.__setattr__(self, "activity_type", ActivityType(self.activity_type))  # type: ignore[unreachable]
         if not isinstance(self.interruption_policy, InterruptionPolicy):
-            object.__setattr__(
+            object.__setattr__(  # type: ignore[unreachable]
                 self, "interruption_policy", InterruptionPolicy(self.interruption_policy)
             )
         if not self.activity_id:
             raise ValueError("ActivityState без activity_id — нарушение детерминизма")
+        # mypy: unreachable в __post_init__ frozen-dataclass — ожидаемо (все ветки покрыты isinstance)
         if not self.desire_id:
             raise ValueError("ActivityState без desire_id — нарушение ACTIVITY_ONSET_FACT")
 

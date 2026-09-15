@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /project/backend/app/services/events/npc_dialogue_subscriber.py
 Назначение: Слушает NPC_SPOKE события, замыкая цикл восприятия для NPC-NPC диалогов
     (эмоции, память, отношения).
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any
+from typing import Any, Optional, Tuple
 
 from app.domain.communication import SELF_TALK_SENTINEL
 from app.domain.player_epistemics import SurfaceEvent, SurfaceKind
@@ -45,6 +45,7 @@ class NpcDialogueSubscriber:
         discovery_bridge_provider: Any = None,  # E2 (S256): канал EAVESDROP
         tick_provider: Any = None,  # H-01 FIX: callable() -> int (симуляционный тик)
         dialogue_update_extractor: Any = None,  # BUG-DL-09: Для извлечения claims/questions
+        subject_resolver: Any = None,  # P7-B: Callable[[topic], SubjectRef] (симметрия E1)
     ) -> None:
         self.memory = memory_manager
         self.relationships = relationship_store
@@ -63,6 +64,51 @@ class NpcDialogueSubscriber:
         self._get_tick = tick_provider or (lambda: 0)
         self._extractor = dialogue_update_extractor
         self._get_discovery_bridge = discovery_bridge_provider
+        self._subject_resolver = subject_resolver
+
+    def _resolve_eavesdrop_label(
+        self, speaker: str, topic: str, payload: dict
+    ) -> Optional[Tuple[Optional[str], Optional[str]]]:
+        """P7-B: провенанс-метка EAVESDROP — знание спикера, не текст
+        реплики (PROVENANCE, NOT STRINGS). FULL ⇔ приватная громкость
+        {secret, whisper} (единый whisper-класс по materializer:32);
+        иначе CLUE; без проводки/знания/при ошибке — (None, None):
+        поведение E2 (observation only) сохраняется (fail-open)."""
+        if self._subject_resolver is None or self._get_npc_state is None:
+            return None, None
+        try:
+            from app.services.npc.knowledge_retrieval import retrieve_knowledge
+            from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
+
+            _states = self._get_npc_state() or []
+            _speaker_raw = next(
+                (
+                    n
+                    for n in _states
+                    if isinstance(n, dict)
+                    and (n.get("npc_id") or n.get("id")) == speaker
+                ),
+                None,
+            )
+            if _speaker_raw is None:
+                return None, None
+            _speaker_state = load_l2_state_from_runtime_dict(_speaker_raw)
+            _subject = self._subject_resolver(topic or "")
+            _items = retrieve_knowledge(_speaker_state, _subject)
+            if not _items:
+                return None, None
+            _secret_id = _items[0].secret_id
+            _content_class = None
+            if payload.get("exposure") in ("secret", "whisper"):
+                from app.domain.player_epistemics import CONTENT_EAVESDROP_FULL
+
+                _content_class = CONTENT_EAVESDROP_FULL
+            return _secret_id, _content_class
+        except Exception as _e:
+            logger.warning(
+                f"[NPC_DIALOGUE_SUB] eavesdrop label failed ({speaker}): {_e}"
+            )
+            return None, None
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
@@ -127,8 +173,10 @@ class NpcDialogueSubscriber:
                     # E2 (S256, mini-ADR E2-1..E2-4): реплика ДОСТАВЛЕНА —
                     # мембрана S128/Р-Г пройдена, журнал игрока записан.
                     # Канал EAVESDROP: игрок не адресат (суверенитет E1) и
-                    # не говорящий. До P7 меток нет -> map_surface ->
-                    # observation only; mark_discovered недостижим (Р1).
+                    # не говорящий. P7-B (S259): метка по провенансу знания
+                    # спикера (secret_id/FULL при приватной громкости);
+                    # без проводки/знания -> observation only (E2-наследие).
+                    # mark_discovered недостижим вне Bridge (Р1).
                     if listener != "player" and speaker != "player":
                         try:
                             _bridge = (
@@ -137,13 +185,17 @@ class NpcDialogueSubscriber:
                                 else None
                             )
                             if _bridge is not None:
+                                # P7-B: метка по провенансу знания спикера
+                                _secret_id, _content_class = (
+                                    self._resolve_eavesdrop_label(speaker, topic, payload)
+                                )
                                 _bridge.process(
                                     SurfaceEvent(
                                         kind=SurfaceKind.EAVESDROP,
                                         tick=tick,
                                         source_id=speaker,
-                                        secret_id=None,
-                                        content_class=None,
+                                        secret_id=_secret_id,
+                                        content_class=_content_class,
                                         subject_hint=(topic or None),
                                     )
                                 )

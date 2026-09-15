@@ -126,18 +126,13 @@ class SpatialRegistry:
             project_root = Path(__file__).resolve().parents[4]
         except (IndexError, ValueError):
             project_root = Path(".")
-
-        candidate = (
-            project_root
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "compiled"
-            / "spatial_registry.json"
-        )
+        candidate = (project_root / "backend" / "data" / "campaigns" / f"{campaign_id}.json").resolve()
         if candidate.exists():
             return candidate
+        candidate_alt = (project_root / "data" / "campaigns" / f"{campaign_id}.json").resolve()
+        if candidate_alt.exists():
+            return candidate_alt
+        return None
 
     @classmethod
     def get_or_load(cls, campaign_id: str) -> Optional["SpatialRegistry"]:

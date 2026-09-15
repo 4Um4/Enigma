@@ -20,7 +20,7 @@ import copy
 import dataclasses
 import logging
 import uuid
-from typing import Any
+from typing import Any, Dict, cast
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     windups_created = 0
 
     for intent in ctx.communication_intents:
-        # ADR-O-389 (WORK, S256): INTENT→ORDER — единственная точка рождения
+        # ADR-O-391 (WORK, S256): INTENT→ORDER — единственная точка рождения
         # заказа из TRADE-интента (L-W2: DecisionHub не тронут — он по-прежнему
         # только выбирает). OFF (default) = ветка не исполняется, путь
         # байт-идентичен легаси (L-W5). ORDER родился → диалоговый трек
@@ -183,7 +183,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
 
             _req = DialogueRequest(
                 topic=intent.topic,
-                target_id=_target_id,
+                target_id=cast(str, _target_id),  # mypy: audience-ветка гарантирует str
                 exposure=intent.exposure_level,
                 intent_type=_intent_type,
                 emotional_state=intent.emotional_state,
@@ -229,7 +229,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 if t.get("tick", 0) >= ctx.tick_number - 1
             ]
             # Ручная сериализация, чтобы избежать проблем с frozen dataclasses и Enums
-            _task_dict = {
+            _task_dict: Dict[str, Any] = {
                 "task_id": _task.task_id,
                 "tick": _task.tick,
                 "counter": _task.counter,

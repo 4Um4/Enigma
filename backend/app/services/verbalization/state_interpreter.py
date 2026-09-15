@@ -188,7 +188,7 @@ def _inflect_to_feminine(word: str) -> str:
     try:
         inflected = variant.inflect({"femn", "nomn"})
         if inflected:
-            return inflected.word
+            return str(inflected.word)
     except Exception as e:
         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
 
@@ -239,7 +239,7 @@ class StateInterpreter:
             conditions=self._conditions_to_list(state.conditions, gender),
             can_speak=self.derive_can_speak(state.posture, state.conditions),
             can_move=self.derive_can_move(
-                state.posture, state.conditions, state.effective_hp
+                state.posture, state.conditions, int(state.effective_hp)
             ),
             gender=gender,
         )
@@ -302,7 +302,7 @@ class StateInterpreter:
         }
         return mapping.get(posture, "стоит")
 
-    def _get_gender(self, npc_state) -> str:
+    def _get_gender(self, npc_state: Any) -> str:
         """C5-FIX: нормализация gender для pymorphy3."""
         gender = getattr(npc_state, "gender", "male")
         if gender in ("неизвестен", "unknown", None, ""):

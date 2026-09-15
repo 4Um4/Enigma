@@ -79,9 +79,10 @@ class SemanticAction:
         # Нормализация str → enum на рождении объекта (В8: закрытый реестр).
         # Легальная запись в frozen dataclass (не runtime-мутация NPCState).
         if not isinstance(self.action_type, WorldActionType):
-            object.__setattr__(
+            object.__setattr__(  # type: ignore[unreachable]
                 self, "action_type", WorldActionType(self.action_type)
             )
+        # mypy: unreachable в __post_init__ frozen-dataclass — ожидаемо (все ветки покрыты isinstance)
 
     def to_dict(self) -> dict[str, Any]:
         return {

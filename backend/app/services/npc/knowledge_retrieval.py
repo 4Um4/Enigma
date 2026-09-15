@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple
+from typing import Any, Tuple
 
 from app.domain.subject_ref import SubjectKind, SubjectRef
 from app.models.npc_state import NPCState
@@ -88,7 +88,7 @@ def retrieve_knowledge(
     return tuple(items)
 
 
-def _match(m, subject: SubjectRef) -> MatchReason | None:
+def _match(m: Any, subject: SubjectRef) -> MatchReason | None:
     """Детерминированная категорийная лестница. Первое совпадение —
     итог. Порядок: EXACT_SECRET > PARTICIPANT > CANON_TOPIC."""
 
