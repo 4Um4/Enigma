@@ -495,7 +495,11 @@ class LifeEngine:
             # 2. Голод и Усталость: линейный рост (если были в пути)
             # ADR-S96.3: Унификация скорости роста потребностей. _NEED_DECAY_PER_TICK = 0.08 (шкала 0.0-1.0).
             # Для body_state (шкала 0-100) умножаем на 100.
-            hunger_rate = _NEED_DECAY_PER_TICK * 100.0  # 8.0 за тик
+            # S264 (выравнивание темпов): 8.0/тик = заполнение за ~12
+            # тиков — голод рос быстрее любой еды (EAT-осциллятор
+            # hunger=0.56, ТЗ-диагноз «не потребность, а осциллятор»).
+            # Реал-темп: заметный голод за ~половину дня (60 тиков):
+            hunger_rate = _NEED_DECAY_PER_TICK * 12.5  # ~1.0/тик
             # ADR-O-373: fatigue-reconcile DORMANT — skip-семантика усталости
             # уходит в BodyEngine-контур; catch-up физиологии = S2B.6/S2B.8.
 
@@ -1299,8 +1303,18 @@ class LifeEngine:
 
         for need_name, activity_name in _NEED_TO_ACTIVITY.items():
             if _outcome_mode:
-                # Насыщение — только outcome-фактом; здесь только рост
-                needs[need_name] = min(1.0, needs[need_name] + _NEED_DECAY_PER_TICK)
+                # S264 (владение, физиология-слой): при ЖИВОЙ деятельности
+                # потребность НЕ растёт — конвертер владеет доменом (её
+                # гасит терминал; рост во время еды = «ешь, а голод
+                # крепнет» — e7-зонд: +0.78 за путь к стойке). Третий слой
+                # владения: движение (Н-18) → реплики (post_decision) →
+                # физиология (здесь). OFF-путь не тронут.
+                _act_state = npc.get("activity_state")
+                _busy = isinstance(_act_state, dict) and bool(_act_state)
+                if not _busy:
+                    needs[need_name] = min(
+                        1.0, needs[need_name] + _NEED_DECAY_PER_TICK
+                    )
             elif activity_name in current_activity:
                 # Легаси: ярлык обнуляет (байт-идентично OFF-режиму)
                 needs[need_name] = 0.0

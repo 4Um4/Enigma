@@ -3,7 +3,7 @@
   "_type": "archetype",
   "_inherits": "_base_humanoid",
   "visible_markers": ["apron", "keys"],
-  "carried_objects": ["apron", "keys", "coin_pouch"],
+  "carried_objects": ["apron", "keys", "coin_pouch", "food", "Potables"],
   "body_profile": {
     "max_hp": 110,
     "abilities": {

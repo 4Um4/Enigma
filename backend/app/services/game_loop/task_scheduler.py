@@ -77,6 +77,8 @@ class TaskScheduler:
         self._spatial_query_service = None
         from app.services.execution.dialogue_queue import DialogueQueue
         self._dialogue_queue = DialogueQueue()
+        # S262: множество enqueue-дедупа (speaker, intent) — см. DLG_ENQ_DEDUP
+        self._enqueued_keys: set = set()
         # S203.4 (ADR-O-365, D-2): outbox терминалов task-исполнителя.
         # Воркеры пула НИКОГДА не пишут реестр (single-writer); sync-применение —
         # drain_commitment_outbox (вход execute_pending + безусловно из idle_tick).
@@ -333,6 +335,45 @@ class TaskScheduler:
                     _task_type = "ambient"
                     _priority = 5  # Низкий приоритет
 
+                # S262 (очередной затор): enqueue-дедуп спикер+интент —
+                # постоянные интенты (TRADE/CALL_FOR_HELP/OFFER_JOB каждый
+                # тик от одного NPC) забивали очередь до капа 20, TALK
+                # конкурировал со спамом в общем heap, ambient-потери
+                # каждый тик (замер: 2-3 OVERFLOW/тик). Дедуп при enqueue
+                # (а не dequeue): в очереди — не более одной задачи на
+                # (speaker, intent); дубли skip с наблюдаемостью.
+                # SpeechScheduler-pacing остаётся тормозом темпа; этот
+                # гейт — тормозом заполнения. Множество живёт на
+                # scheduler'е, очищается при dequeue/mark_completed.
+                _enq_key = (speaker_id, _intent_type)
+                if _enq_key in self._enqueued_keys:
+                    # S262-багфикс (молчаливое исчезновение): дедуп-skip
+                    # ОБЯЗАН завершать задачу честно — иначе интент висит
+                    # в NPC-стейте без исполнителя → from_legacy-валидатор
+                    # «intent without target» → TICK_CRASH (поймано тик-1
+                    # superbox_social_deterministic). Протокол DEDUP-ветки:
+                    # canonical → CANCELLED в реестре обязательств.
+                    if _task_type == "canonical":
+                        self._record_task_outcome(speaker_id, "CANCELLED")
+                    logger.info(
+                        "[DLG_ENQ_DEDUP] skip дубликата: speaker=%s intent=%s",
+                        speaker_id, _intent_type,
+                    )
+                    continue
+                # S262: overflow-наблюдаемость (L4; закрывает молчаливую
+                # потерю Н-56): при enqueue на полной очереди — WARNING.
+                _queue_full = (
+                    self._dialogue_queue.pending_count() >= 20
+                    if hasattr(self._dialogue_queue, "pending_count")
+                    else False
+                )
+                if _queue_full:
+                    logger.warning(
+                        "[DLG_QUEUE_OVERFLOW] enqueue при полной очереди "
+                        f"(pending>=20, speaker={speaker_id}, "
+                        f"intent={task_dict.get('payload', {}).get('intent_type', '?')})"
+                    )
+                self._enqueued_keys.add(_enq_key)
                 self._dialogue_queue.enqueue(
                     task_type=_task_type,
                     payload={
@@ -353,9 +394,22 @@ class TaskScheduler:
         # ADR-O-343: Жёсткий лимит 1 задача на тик для размеренного пейсинга (Human Pacing).
         # В сочетании с SpeechScheduler (2 сек) это даёт плавную последовательность реплик.
         # _MAX_TASKS_PER_TICK moved to module level (021)
+        # S262 (DLG-стабилизация, приказ Мастера): адаптивный дренаж —
+        # при переполнении очереди (>10) лимит 3/тик, иначе базовый 1.
+        # Честный pacing остаётся за SpeechScheduler (2 тика/спикер);
+        # дренаж лишь перестаёт душить очередь: enqueue (интент/NPC/тик)
+        # стабильно превышал дренаж 1/тик → очередь на капе 20 →
+        # молчаливая потеря задач (DLG_QUEUE OVERFLOW, Н-56) → реплики-
+        # лотерея (25/3/0/0 в замерах S262).
+        _pending_now = (
+            self._dialogue_queue.pending_count()
+            if hasattr(self._dialogue_queue, "pending_count")
+            else 0
+        )
+        _drain_limit = _MAX_TASKS_PER_TICK + 2 if _pending_now > 10 else _MAX_TASKS_PER_TICK
         _processed_count = 0
 
-        while _processed_count < _MAX_TASKS_PER_TICK:
+        while _processed_count < _drain_limit:
             _eligible = self._dialogue_queue.dequeue_next(game_time_seconds=_game_time)
             if not _eligible:
                 break
@@ -374,14 +428,20 @@ class TaskScheduler:
 
             if not _admitted:
                 if _reason == "PACING":
-                    # Возвращаем в очередь для следующего тика и прерываем цикл (ждём wall-clock)
+                    # Возвращаем в очередь для следующего тика.
+                    # S262 (F2-регрессия): break был корректен для wall-clock-
+                    # pacing (2 сек реального ожидания); на game-time оси
+                    # (2 тика) PACING ОДНОГО спикера не должен блокировать
+                    # чужие задачи — иначе первая непрошедшая разрывает
+                    # весь дренаж (processed=1 при 20 ожидающих, S262-замер).
+                    # continue: следующий кандидат очереди.
                     self._dialogue_queue.enqueue(
                         task_type=_task_type,
                         payload=_eligible.payload,
                         priority=-_eligible.priority, # heapq инвертирует обратно
                         game_time_seconds=_game_time
                     )
-                    break
+                    continue
                 elif _reason == "DEDUP":
                     # Уничтожаем спам-дубликат
                     if _task_type == "canonical":

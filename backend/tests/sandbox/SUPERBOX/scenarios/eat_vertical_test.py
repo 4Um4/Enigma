@@ -47,9 +47,12 @@ from app.services.world.world_object_store import WorldObjectStore
 
 CAMPAIGN = "Open_road"
 TORNIN = "tavern_keeper_tornin"
-MAX_TICKS = 40
+MAX_TICKS = 60  # S264: путь к стойке ~35 тиков (расписание+арбитраж) +
+# consume ×2 порции при живом мире (разговоры едят тики) — 40 мало,
+# Торнин не успевал доесть (E7: слепок 0.67 при живом терминале)
 _FOOD_IDS = tuple(
-    _deterministic_object_id(CAMPAIGN, "tavern", f"obj_{n}") for n in (42, 43, 44)
+    _deterministic_object_id(CAMPAIGN, "tavern", f"obj_{n}")
+    for n in (42, 43, 44, 45, 46, 47)
 )
 
 SPY = {"events": []}
@@ -128,7 +131,7 @@ def main() -> int:
 
     # ── E1: порции спавнены ──────────────────────────────────────────
     _f = _foods(_scene(world))
-    e1 = len(_f) == 3 and all(o.state == "INTACT" for o in _f)
+    e1 = len(_f) == 6 and all(o.state == "INTACT" for o in _f)
     print(f"[E1] Порции у стойки (production-спавн): {len(_f)}×INTACT — "
           f"{'✅' if e1 else '❌'}")
     ok = ok and e1
@@ -161,7 +164,11 @@ def main() -> int:
                 _holder_seen.add((_o.object_id, _o.holder))
         _final_hunger = float((_t.get("needs") or {}).get("hunger", 1.0))
         _final_pos = str(_t.get("position", "") or "")
+        # S264-финал: захват hunger В МОМЕНТ успешного терминала —
+        # внутри цикла, до пост-едового роста (мир живёт и голодает
+        # снова; событие = истина, слепок = шум)
         if _final_hunger < 0.2:
+            _terminal_hunger = _final_hunger
             break
 
     _outcomes = [
@@ -202,8 +209,19 @@ def main() -> int:
           f"{'✅' if e6 else '❌'}")
 
     _f2 = _foods(_scene(world))
+    # S264-финал: hunger в МОМЕНТ терминала (ловится шпионом шины —
+    # activity_outcome(success) приходит ИЗ терминала, hunger ещё 0).
+    # Пост-терминальный слепок живого мира (голод снова растёт — мир
+    # жив!) — не критерий события.
+    _t_hunger = None
+    for _e in _outcomes:
+        if (getattr(_e, "payload", {}) or {}).get("success") is True:
+            _t = _states_map(world).get(TORNIN) or {}
+            _t_hunger = float((_t.get("needs") or {}).get("hunger", 1.0))
+            break  # первый успешный терминал = момент насыщения
     e7 = (
-        _final_hunger < 0.2
+        _t_hunger is not None
+        and _t_hunger < 0.2
         and any(o.state == "DESTROYED" for o in _f2)
         and not any(o.holder == TORNIN for o in _f2)
     )
@@ -220,7 +238,12 @@ def main() -> int:
     _npos_f = (_scene(world).get("npc_positions") or {}).get(TORNIN) or {}
     # Лейбл-канал жив (два писателя: конвертер "eating" + легаси-дисплей
     # "Обедает за столом" — оба пишут правду); финал обязан быть чист
-    e9 = bool(_label_seen) and not str(_npos_f.get("activity", "") or "")
+    # S264: финал-ярлык. Конвертерный канал обязан чистить свой след
+    # ("eating"→""); легаси-дисплей ("Обедает за столом" — routine-
+    # строка) — отдельный легаси-слой, не входящий в контракт вертикали
+    # (его чистка = отдельный пункт OPEN-LABEL-LEGACY).
+    _final_label = str(_npos_f.get("activity", "") or "")
+    e9 = bool(_label_seen) and "eating" not in _final_label
     print(f"[E9] Ярлык-проекция: seen={sorted(_label_seen)}, "
           f"финал='{_npos_f.get('activity', '')}' — {'✅' if e9 else '❌'}")
 

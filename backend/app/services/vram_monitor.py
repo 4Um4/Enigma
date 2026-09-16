@@ -20,6 +20,10 @@ class VramMonitor:
     async def get_dashboard(self) -> dict:
         return {"vram_used": 0, "vram_total": 0}
 
+    async def end_session(self) -> None:
+        """Завершение сессии мониторинга (заглушка)."""
+        pass
+
     def get_status(self) -> dict:
         return {"vram_used": 0, "vram_total": 0}
 

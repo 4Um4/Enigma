@@ -38,6 +38,26 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     from app.services.events.event_bus import get_event_bus
     from app.services.events.intent_event_adapter import IntentEventAdapter
 
+    # S264 (выравнивание весов, приказ Мастера): activity — единственный
+    # поведенческий владелец на ВСЁМ стеке. Н-18-гейт (S261) глушит
+    # легаси-треки LifeEngine; ЭТОТ гейт — decision-слой: NPC с живой
+    # activity_state не порождает реплик (голодный трактирщик доедает,
+    # не отвлекаясь; EAT-диагноз: TALK конкурировал с eat-шагами →
+    # hunger 0.67 при DESTROYED=2). Желание остаётся давлением — не задачей.
+    _by_id = {
+        str(n.get("npc_id") or n.get("id") or ""): n
+        for n in (ctx.all_npcs_raw or [])
+    }
+    ctx.communication_intents = [
+        _i for _i in ctx.communication_intents
+        if not isinstance(
+            _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),
+            dict,
+        )
+    ]
+    if not ctx.communication_intents:
+        return
+
     bus = get_event_bus()
     adapter = IntentEventAdapter()
     converted = 0

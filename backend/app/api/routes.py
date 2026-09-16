@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, cast
 
 from app.core.config import settings
 
@@ -302,7 +302,7 @@ async def set_content_policy(payload: dict) -> dict:
 
 
 @router.get("/system/status")
-def system_status(game_loop=Depends(get_game_loop)) -> dict:
+def system_status(game_loop: Any = Depends(get_game_loop)) -> dict:
     llm_status = check_llm_health(use_cache=False)
     memory_sessions = len(player_session_service._sessions)
     sessions_dir = os.path.join(
@@ -329,7 +329,7 @@ def system_status(game_loop=Depends(get_game_loop)) -> dict:
 
 
 @router.post("/api/debug/llm/restart")
-async def restart_llm():
+async def restart_llm() -> dict:
     """Перезапуск llama-server при падении. Используется лаунчером и recovery-механизмом."""
     try:
         from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
@@ -462,7 +462,7 @@ async def llm_select(model_key: str) -> dict:
 
 
 @router.get("/system/requirements")
-def system_requirements(game_loop=Depends(get_game_loop)) -> dict:
+def system_requirements(game_loop: Any = Depends(get_game_loop)) -> dict:
     report = game_loop.system_requirements.check()
     return {"meets": report.meets, **report.details}
 
@@ -474,14 +474,14 @@ def readiness_status() -> ReadinessReport:
 
 @router.post("/campaign/load", response_model=CampaignLoadResponse)
 def load_campaign(
-    request: CampaignLoadRequest, game_loop=Depends(get_game_loop)
+    request: CampaignLoadRequest, game_loop: Any = Depends(get_game_loop)
 ) -> CampaignLoadResponse:
     return game_loop.load_campaign(request.campaign_id, request.world_id)
 
 
 @router.post("/game/skip_time/{campaign_id}")
 def skip_time(
-    campaign_id: str, ticks: int = 10, game_loop=Depends(get_game_loop)
+    campaign_id: str, ticks: int = 10, game_loop: Any = Depends(get_game_loop)
 ) -> dict:
     """
     Промотка времени (Time Skip) — вызывает TimeSkipExecutor.
@@ -634,7 +634,7 @@ async def import_knowledge(
 
 
 @router.post("/avatar/gender")
-async def set_avatar_gender(payload: dict, game_loop=Depends(get_game_loop)):
+async def set_avatar_gender(payload: dict, game_loop: Any = Depends(get_game_loop)) -> dict:
     """ADR-GENDER: Эндпоинт смены пола аватара."""
     gender = payload.get("gender", "male")
     game_loop.avatar_service.set_gender(gender)
@@ -643,7 +643,7 @@ async def set_avatar_gender(payload: dict, game_loop=Depends(get_game_loop)):
 
 @router.post("/game/turn", response_model=ChatTurnResponse)
 async def game_turn(
-    request: ChatTurnRequest, game_loop=Depends(get_game_loop)
+    request: ChatTurnRequest, game_loop: Any = Depends(get_game_loop)
 ) -> ChatTurnResponse:
     if request.actions:
         player_name = request.actions[0].player_name
@@ -655,23 +655,23 @@ async def game_turn(
                 detail=f"Игрок '{player_name}' не активен. Пожалуйста, выберите персонажа.",
             )
     try:
-        return await game_loop.run_turn(request)
+        return cast(ChatTurnResponse, await game_loop.run_turn(request))
     except RuntimeError as exc:
         raise HTTPException(status_code=412, detail=str(exc))
 
 
 @router.get("/game/end_screen/{campaign_id}")
-def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> Dict[str, Any]:
+def get_end_screen(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> Dict[str, Any]:
     """Возвращает финальный экран оценки игрока (MVP Mini-game). Чистое чтение."""
     if not game_loop.mvp_controller:
         return {"error": "MVP controller not initialized"}
 
     # V8-MVP-3: Сериализация вынесена в MvpTavernController
     # 8.1 FIX: Теперь отдаёт текстовые поля для UI
-    return game_loop.mvp_controller.serialize_end_screen()
+    return cast(Dict[str, Any], game_loop.mvp_controller.serialize_end_screen())
 
 @router.post("/game/finalize/{campaign_id}")
-def finalize_campaign(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
     """Финализирует кампанию: собирает WorldStateDiff и сохраняет его в GameLoop для будущей кампании."""
     if not game_loop.mvp_controller:
         return {"error": "MVP controller not initialized"}
@@ -971,7 +971,7 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
 
             # Универсальная конвертация: Dataclass / Pydantic / Dict
             ws = result.world_snapshot
-            if is_dataclass(ws):
+            if is_dataclass(ws) and not isinstance(ws, type):
                 _ws_dict = asdict(ws)
             elif hasattr(ws, "model_dump"):  # Pydantic v2
                 _ws_dict = ws.model_dump()
@@ -1057,13 +1057,13 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
 def session_state(
-    campaign_id: str, game_loop=Depends(get_game_loop)
+    campaign_id: str, game_loop: Any = Depends(get_game_loop)
 ) -> SessionInterfaceState:
     state = game_loop.session_state(campaign_id)
     state.players = [
         char.name for char in character_service.list_characters(campaign_id)
     ]
-    return state
+    return cast(SessionInterfaceState, state)
 
 
 @router.get("/npcs/{campaign_id}")
@@ -1175,7 +1175,7 @@ def add_interface_fact(campaign_id: str, request: dict) -> dict:
         category=request.get("category", "lore"),
         tags=request.get("tags", []),
     )
-    return {"status": "ok", "fact": fact.model_dump()}
+    return {"status": "ok", "fact": fact.model_dump() if fact else None}
 
 
 @router.get("/interface/sessions/{campaign_id}")
@@ -1231,18 +1231,21 @@ class NewGameRequest(BaseModel):
     source_campaign_id: Optional[str] = None
 
 @router.post("/game/new/{campaign_id}")
-def new_game(campaign_id: str, request: NewGameRequest, game_loop=Depends(get_game_loop)) -> dict:
+def new_game(campaign_id: str, request: NewGameRequest, game_loop: Any = Depends(get_game_loop)) -> dict:
     """ADR-O-146: New Game = сброс runtime мира к чистому static."""
-    return game_loop.new_game(
-        campaign_id=campaign_id,
-        continuity_mode=request.continuity_mode,
-        source_campaign_id=request.source_campaign_id
+    return cast(
+        dict,
+        game_loop.new_game(
+            campaign_id=campaign_id,
+            continuity_mode=request.continuity_mode,
+            source_campaign_id=request.source_campaign_id
+        ),
     )
 
 
 @router.post("/game/{campaign_id}/scene_state")
 def update_scene_state(
-    campaign_id: str, scene_state: dict = Body(...), game_loop=Depends(get_game_loop)
+    campaign_id: str, scene_state: dict = Body(...), game_loop: Any = Depends(get_game_loop)
 ) -> dict:
     """B1.4-FIX + R2-В (S244): единый приёмник GameLoop.save_scene_state.
 
@@ -1257,7 +1260,7 @@ def update_scene_state(
 
 @router.post("/player/session/{campaign_id}", response_model=PlayerSessionResponse)
 def create_player_session(
-    campaign_id: str, request: dict, game_loop=Depends(get_game_loop)
+    campaign_id: str, request: dict, game_loop: Any = Depends(get_game_loop)
 ) -> PlayerSessionResponse:
     player_name = request.get("player")
     if not player_name:
@@ -1289,7 +1292,7 @@ def select_player(request: PlayerSelectRequest) -> PlayerSelectResponse:
 
 # ── ADR-O-330: Spatial Observatory API ──────────────────────────────
 @router.post("/spatial/observatory")
-async def spatial_observatory_inspect(payload: dict = Body(...)):
+async def spatial_observatory_inspect(payload: dict = Body(...)) -> dict:
     """
     Принимает черновик карты (editor_data) и опционально агентов (agents_data),
     прогоняет их через канонический Spatial Kernel и возвращает ObservatoryDTO.

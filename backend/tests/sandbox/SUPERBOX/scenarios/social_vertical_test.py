@@ -34,8 +34,27 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.config import settings
 
-# Изоляция saves ДО импорта сервисов (IPT-паттерн)
+# Изоляция saves ДО импорта сервисов (IPT-паттерн; урок H5 из ADR-O-378)
 settings.saves_dir = tempfile.mkdtemp(prefix="social_diag_")
+
+# S262 (урок контракта D): полная изоляция — data-копия тоже! Живой
+# data/sessions/world_tick.json накапливал sim_tick между прогонами
+# (паттерн «перемежающихся миров»: 25/3/0/0 реплик при живом S1-EMA),
+# стартовые позиции NPC расходились → резолвер-порог 5м то ловил, то нет.
+# Паттерн iron_river_ab (S261): копия data/ + settings.data_dir на неё.
+import shutil as _sh
+from pathlib import Path as _P
+
+_data_src = _P(settings.data_dir)
+_data_tmp = _P(tempfile.mkdtemp(prefix="social_data_"))
+_sh.copytree(
+    _data_src, _data_tmp, dirs_exist_ok=True,
+    ignore=_sh.ignore_patterns("replay.db", "logs"),
+)
+_wt = _data_tmp / "sessions" / "Open_road" / "world_tick.json"
+if _wt.exists():
+    _wt.unlink()
+settings.data_dir = str(_data_tmp)
 
 # Пара флагов Living Activity (контур желаний) — как в eat/work: это СУЩЕСТВУЮЩАЯ
 # конфигурация dev-профиля, не новый гейт
@@ -66,11 +85,17 @@ EMA_LOG = []          # (tick, {npc: ema}) — дифы дают фактиче�
 DECISIONS_LOG = []    # (tick, npc, winner) — только через публичный стейт задач
 
 
+SPY_SPOKE_TOTAL = 0  # S262: счётчик в момент прихода — immune к clear()
+SPY_SPOKE_EVENTS = []  # S262: полный список (async-пул публикует после
+# расчётной точки цикла — 25/3 в замере; пары берём отсюда)
+
 def _spy(event):
     SPY["events"].append(event)
-    # [S2-PAYLOAD] S259-DIAG: фактические ключи payload NPC_SPOKE — разводит
-    # кандидатов (a) payload-ключи проектора vs (b) маршрутизация дельт
+    # [S2-PAYLOAD] S259-DIAG: фактические ключи payload NPC_SPOKE
     if str(getattr(event, "type", "")) == "npc_spoke":
+        global SPY_SPOKE_TOTAL
+        SPY_SPOKE_TOTAL += 1
+        SPY_SPOKE_EVENTS.append(event)
         _pl = getattr(event, "payload", {}) or {}
         print(
             f"[S2-PAYLOAD] source_attr={getattr(event, 'source', '?')!r} "
@@ -101,6 +126,20 @@ def _quiet():
 
 
 def _tick(world):
+    # [POOL-DIAG] S262: очередь задач ДО тика + пул жив? — разводит
+    # «задачи не создаются» vs «пул молчит»
+    _sched = getattr(world.game_loop, "_task_scheduler", None)
+    _q = getattr(_sched, "_dialogue_queue", None)
+    _pending = _q.pending_count() if _q and hasattr(_q, "pending_count") else -1
+    _pool = getattr(_sched, "_executor_pool", None)
+    _pool_alive = not _pool._shutdown if _pool else None
+    if _pending > 0 or _pool_alive is False:
+        _proc = getattr(_sched, "total_processed_tasks", 0)
+        _fail = getattr(_sched, "failed_tasks", 0)
+        print(
+            f"[POOL-DIAG] pending={_pending} pool={_pool_alive} "
+            f"processed={_proc} failed={_fail}"
+        )
     return world.game_loop.idle_tick(CAMPAIGN)
 
 
@@ -207,6 +246,13 @@ def main() -> int:
     # ── S1/S2: живые тики, пассивные сэмплы ──────────────────────────
     _spoke_events = []
     for _t in range(MAX_TICKS):
+        # [SPY-IN] S262: содержимое SPY на ВХОДЕ в итерацию — разводит
+        # «clear() в тиковом пути стирает до :221» vs «события реально
+        # приходят только после возврата idle_tick»
+        if _t > 0 and SPY["events"]:
+            _types_in = [str(getattr(e, "type", "?")) for e in SPY["events"][:6]]
+            if "npc_spoke" in _types_in:
+                print(f"[SPY-IN] t={_t} ВХОД: {len(SPY['events'])} ev, есть npc_spoke — clear() в тике стирает!")
         _ema_now = _ema_map(world)
         EMA_LOG.append((_t, dict(_ema_now)))
         _tick(world)
@@ -220,6 +266,12 @@ def main() -> int:
         _new = [e for e in SPY["events"]
                 if str(getattr(e, "type", "")) == "npc_spoke"]
         _spoke_events.extend(_new)
+        # [SPY-DIAG] S262: содержимое SPY на момент фильтрации — разводит
+        # «события не приходят» vs «приходят, но type не матчит» vs
+        # «приходят после clear» (async executor-pool)
+        if SPY["events"]:
+            print(f"[SPY-DIAG] t={_t} spy_n={len(SPY['events'])} "
+                  f"types={[str(getattr(e, 'type', '?')) for e in SPY['events'][:5]]}")
         SPY["events"].clear()
         # останов: после первой зафиксированной NPC_SPOKE ещё +8 тиков
         # на наблюдение gain/последствий
@@ -228,6 +280,21 @@ def main() -> int:
                 _tick(world)
                 EMA_LOG.append((len(EMA_LOG), dict(_ema_map(world))))
             break
+
+    # S262: дренажное окно executor-пула (P2-5): реплики публикуются
+    # worker-потоком ВНЕ тика — детерминизм прибора = дождаться пула.
+    # Порог 2.0с > любого wizard-latency артефакта; cycle-wait, не sleep:
+    import time as _time_mod
+
+    _deadline = _time_mod.monotonic() + 2.0
+    while SPY_SPOKE_TOTAL < 1 and _time_mod.monotonic() < _deadline:
+        _time_mod.sleep(0.05)
+
+    # [SCENE-DUMP] S262-финал: реплики в самой сцене (минуя шину/шпиона) —
+    # разводит «слеп шпион» vs «пуст мир». recent_dialogues пишет
+    # task_scheduler при материализации Артефакта (ADR-O-313).
+    _rd = (_scene(world).get("recent_dialogues") or [])
+    print(f"[SCENE-DUMP] recent_dialogues={len(_rd)}; первые={[(d.get('speaker_id'), d.get('target_id')) for d in _rd[:4]]}")
 
     # ── обработка S1: цепь давления ───────────────────────────────────
     _ema_rows = [row for row in EMA_LOG if isinstance(row[1], dict) and row[1]]
@@ -251,7 +318,11 @@ def main() -> int:
           f"{'✅ (цепь активна)' if s1 else '❌/⚠️ (см. разбор)'}")
 
     # ── S2: кто получил gain/decay после каждой NPC_SPOKE ────────────
-    print(f"[S2] NPC_SPOKE событий: {len(_spoke_events)}")
+    print(
+        f"[S2] NPC_SPOKE событий: цикл={len(_spoke_events)}, "
+        f"всего-через-шпион={SPY_SPOKE_TOTAL}"
+    )
+    _spoke_events_total = SPY_SPOKE_TOTAL  # S2-S3 используют полную сумму
     _gain_recipients = []
     for _e in _spoke_events:
         _spk = getattr(_e, "source", "?")

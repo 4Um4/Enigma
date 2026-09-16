@@ -31,6 +31,7 @@ REASON_NEED = "need"
 REASON_BELIEF = "belief"
 REASON_AFFECTION = "affection"
 REASON_EXPRESSION = "expression"
+REASON_GRIEVANCE = "grievance"  # R7/CS14: холодное последействие вреда
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,47 @@ def stop_hostile(
     return DesiredChange(
         who=who,
         reason=REASON_THREAT,
+        state_type=STATE_TYPE_BEHAVIOR,
+        target_of_change=target,
+        addressee=target,
+        method_weights=dict(method_weights),
+    )
+
+
+def acquire_resource(
+    who: str,
+    addressee: str,
+    method_weights: Dict[str, float],
+) -> DesiredChange:
+    """Фабрика среза 2 (R6): «who хочет поднять свой ресурс (еда)».
+
+    Первое ЖИВОЕ контрактное различение CS3/CS10: target_of_change
+    (who — чьё состояние меняется) ≠ addressee (B — capability-
+    источник, через кого воздействие). Срез-1: совпадали; здесь —
+    никогда (проситель ≠ кормилец)."""
+    return DesiredChange(
+        who=who,
+        reason=REASON_NEED,
+        state_type=STATE_TYPE_RESOURCE,
+        target_of_change=who,
+        addressee=addressee,
+        method_weights=dict(method_weights),
+    )
+
+
+def grievance_hold(
+    who: str,
+    target: str,
+    method_weights: Dict[str, float],
+) -> DesiredChange:
+    """Фабрика среза 3 (R7): «who требует последействия за вред от
+    target». CS14: обида — ПРОЕКЦИЯ накопленного вреда по осям
+    RelationshipStore (trust-дефицит × fear-свидетельство), не
+    сущность. Горячая угроза — территория threat-фабрики (CS15);
+    здесь target == addressee (совпадение частное, как в срезе-1)."""
+    return DesiredChange(
+        who=who,
+        reason=REASON_GRIEVANCE,
         state_type=STATE_TYPE_BEHAVIOR,
         target_of_change=target,
         addressee=target,

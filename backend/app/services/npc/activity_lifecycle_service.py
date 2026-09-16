@@ -438,8 +438,22 @@ def _advance_body_action(
     _need_name = _spec.success.need_name if _spec else ""
     _needs = npc.get("needs")
     if _need_name and isinstance(_needs, dict) and _need_name in _needs:
-        _rate = 1.0 / max(1, int(step.duration_ticks))
-        _needs[_need_name] = max(0.0, float(_needs[_need_name]) - _rate)
+        # S264 (выравнивание темпов, приказ Мастера «плавно и
+        # последовательно»): порция гасит ПОТРЕБНОСТЬ ПОЛНОСТЬЮ,
+        # распределённо по длительности шага — прежний rate=1/duration
+        # списывал всего 0.33 за порцию при фоне голода +0.08/тик →
+        # еда слабее голода вдвое → вечные 0.67 (EAT-диагноз S264).
+        # Единая еда = полное насыщение (реал-семантика); темп «сколько
+        # тиков жуём» остаётся duration-контролем плавности.
+        _current = float(_needs[_need_name])
+        _per_tick = _current / max(1, int(step.duration_ticks))
+        _needs[_need_name] = max(0.0, _current - _per_tick)
+        # S264: гасим ОБЕ истины голода (LEGACY-HUNGER :508 — body_state
+        # — писатель LifeEngine; без синхронизации рост перетирает гашение)
+        _bs = npc.get("body_state")
+        if _need_name == "hunger" and isinstance(_bs, dict) and "hunger" in _bs:
+            _bs_current = float(_bs["hunger"])
+            _bs["hunger"] = max(0.0, _bs_current - (_bs_current / max(1, int(step.duration_ticks))))
     if _tick - state.step_started_tick >= int(step.duration_ticks):
         _consume_terminal(ctx, orchestrator, npc, state)
 

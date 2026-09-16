@@ -576,6 +576,10 @@ class NpcTickPipeline:
             # проекция в Modifier Contract. None/ошибка = no-op (срез
             # аддитивен; мир без угроз не меняется).
             _causal_modifiers: Optional[Dict[str, float]] = None
+            # R6 (ADR-O-395): rel-view общий для причинных продюсеров
+            # (угроза R5 + голод R6); вынесен из try среза-1, чтобы
+            # исключение в threat-блоке не осиротило hunger-блок.
+            _rel_view: Dict[str, Dict[str, float]] = {}
             try:
                 from app.domain.epistemic_dispositions import (
                     get_epistemic_disposition,
@@ -584,7 +588,6 @@ class NpcTickPipeline:
                     ThreatDesiredChangeProducer,
                 )
 
-                _rel_view: Dict[str, Dict[str, float]] = {}
                 if state.relationship_store is not None and state.campaign_id:
                     _all_rel = state.relationship_store.get(
                         state.campaign_id, npc_id
@@ -595,12 +598,28 @@ class NpcTickPipeline:
                             _rel_view[_t[1]] = _rv
                 _belief_src = getattr(_epistemic_ctx, "trigger_proposition", None) if _epistemic_ctx else None
                 _dc = ThreatDesiredChangeProducer.resolve(
-                    state=state,
+                    # S264-фикс (живая проводка R5, класс D-R6-LIVE-PROBE):
+                    # продюсер написан под NPC-state (perceptual_kernel,
+                    # effective_hp, drives) — получал TickState → гейт
+                    # threat=0.0 → вечный None (документированная ≠ живая
+                    # причинность; 4-й случай класса за S262-S264).
+                    # state_l2 — тот же экземпляр, что получает DecisionHub
+                    # ниже по циклу.
+                    state=state_l2,
                     rel=_rel_view,
                     disposition=get_epistemic_disposition(
                         getattr(profile_l0, "archetype", "commoner")
                     ),
-                    allies=len(getattr(_allies_cache, "get", lambda _k: [])(npc_id)) if isinstance(_allies_cache, dict) else 0,
+                    # DEBT-R5-ALLIES: исходная проводка ссылалась на
+                    # _allies_cache, не существующий в этом скоупе —
+                    # threat-блок был мёртв в живом конвейере с мержа
+                    # S261 (NameError → no-op каждый тик; пойман живым
+                    # зондом R6). Минимальное воскрешение: изолированный
+                    # NPC (allies=0) — семантика продюсера сохранена;
+                    # настоящий источник союзников — OpportunityContext
+                    # (ADR-O-366, perceived_allies, строится ниже по
+                    # потоку :676+) — проводка при его постройке.
+                    allies=0,
                     belief_source=_belief_src,
                 )
                 _causal_modifiers = ThreatDesiredChangeProducer.to_modifiers(_dc) or None
@@ -613,6 +632,135 @@ class NpcTickPipeline:
                 logger.warning(
                     f"[CAUSAL_SLICE] producer failed (no-op) for {npc_id}: {_causal_err}"
                 )
+
+            # R6 CAUSAL SLICE 2b-i (ADR-O-395): hunger-проводка зеркально
+            # срезу-1. Приоритет причин: угроза (R5) > голод (R6) —
+            # дооценка только если угроза молчала. Гейт NEED_GATE ДО
+            # distance-вычислений (дешёвый вход; сытый NPC = ноль
+            # spatial-запросов). Production-режим = capability-вакуум
+            # (goods пусты, находка R6) → None → инертно до контента.
+            # 2b-ii (addressee→_resolve_target) — SOCIAL-сессия S262+.
+            if _causal_modifiers is None:
+                try:
+                    from app.core.constants import GOODS_PRICES
+                    from app.services.npc.causal_slice_hunger import (
+                        NEED_GATE,
+                        HungerDesiredChangeProducer,
+                    )
+
+                    # Production-источник голода: body_state["hunger"]
+                    # (0-100, LEGACY до S2B.10 — LifeEngine:498-508, только
+                    # чтение); fallback — needs-слой desire_generator (0-1).
+                    # Двухисточниковая правда закрыта приоритетом, не слиянием.
+                    _body_state = (_npc_dict_for_write or {}).get("body_state", {}) or {}
+                    _hunger_raw = _body_state.get("hunger", None)
+                    if _hunger_raw is not None:
+                        _hunger = max(0.0, min(1.0, float(_hunger_raw) / 100.0))
+                    else:
+                        _needs_view = (_npc_dict_for_write or {}).get("needs", {}) or {}
+                        _hunger = float(_needs_view.get("hunger", 0.0))
+                    if _hunger >= NEED_GATE:
+                        _opp_will = getattr(state, "will_state", None)
+                        _will_str = (
+                            _opp_will.value
+                            if hasattr(_opp_will, "value")
+                            else str(_opp_will or "free")
+                        )
+                        _eco_map = getattr(state, "economic_profiles_map", {}) or {}
+                        _dist_view: Dict[str, float] = {}
+                        if state.spatial_query is not None and len(_eco_map) > 1:
+                            for _nid in _eco_map:
+                                if _nid == npc_id:
+                                    continue
+                                try:
+                                    _dist_view[_nid] = float(
+                                        state.spatial_query.distance(npc_id, _nid)
+                                    )
+                                except Exception:
+                                    _dist_view[_nid] = float("inf")
+                        _dc_h = HungerDesiredChangeProducer.resolve(
+                            who=npc_id,
+                            hunger=_hunger,
+                            own_profile=_eco_map.get(npc_id),
+                            profiles=_eco_map,
+                            distances=_dist_view,
+                            rel=_rel_view,
+                            food_price=float(GOODS_PRICES.get("food", 2.0)),
+                            archetype=getattr(profile_l0, "archetype", "commoner"),
+                            will_state=_will_str,
+                        )
+                        _causal_modifiers = (
+                            HungerDesiredChangeProducer.to_modifiers(_dc_h) or None
+                        )
+                        if _dc_h is not None:
+                            logger.info(
+                                f"[CAUSAL_SLICE_HUNGER] npc={npc_id} "
+                                f"desired_change={_dc_h.state_type}:"
+                                f"{_dc_h.target_of_change}→{_dc_h.addressee} "
+                                f"methods={_dc_h.method_weights}"
+                            )
+                except Exception as _hunger_err:
+                    logger.warning(
+                        f"[CAUSAL_SLICE_HUNGER] producer failed (no-op) "
+                        f"for {npc_id}: {_hunger_err}"
+                    )
+
+            # R7 CAUSAL SLICE 3 (ADR-O-396): grievance-проводка. Каскад
+            # причин: threat (R5) > hunger (R6) > grievance (R7) — обида
+            # дооценивается только когда мир спокоен и сыт. CS15: горячая
+            # фаза отсечена внутри продюсера (тот же THREAT_GATE).
+            if _causal_modifiers is None:
+                try:
+                    from app.domain.epistemic_dispositions import (
+                        get_epistemic_disposition,
+                    )
+                    from app.services.npc.causal_slice_grievance import (
+                        GrievanceDesiredChangeProducer,
+                    )
+
+                    _dc_g = GrievanceDesiredChangeProducer.resolve(
+                        who=npc_id,
+                        state=state,
+                        rel=_rel_view,
+                        disposition=get_epistemic_disposition(
+                            getattr(profile_l0, "archetype", "commoner")
+                        ),
+                        # DEBT-R5-ALLIES: союзники = 0 до проводки
+                        # OpportunityContext (см. DEBT в threat-блоке)
+                        allies=0,
+                    )
+                    # R7 интерференс-оборона (урок p7_e1): обида —
+                    # направленный СОЦИАЛЬНЫЙ акт; если вредителя нет в
+                    # сцене и нет ни одного слушателя (изолированная
+                    # сцена), продюсер честно молчит — зеркально W5
+                    # hunger-среза (кандидат без физического пути не
+                    # кандидат). Системное решение — 2b-ii: addressee→
+                    # _resolve_target (координация с SOCIAL-сессией).
+                    if _dc_g is not None:
+                        _g_others = {
+                            _n.get("npc_id") or _n.get("id")
+                            for _n in (state.all_npcs_raw or [])
+                        } - {npc_id}
+                        if not _g_others:
+                            _dc_g = None
+                    _causal_modifiers = (
+                        GrievanceDesiredChangeProducer.to_modifiers(_dc_g) or None
+                    )
+                    if _dc_g is not None:
+                        logger.info(
+                            f"[CAUSAL_SLICE_GRIEVANCE] npc={npc_id} "
+                            f"desired_change={_dc_g.state_type}:"
+                            f"{_dc_g.target_of_change} "
+                            f"methods={_dc_g.method_weights}"
+                        )
+                except Exception as _griev_err:
+                    logger.warning(
+                        f"[CAUSAL_SLICE_GRIEVANCE] producer failed (no-op) "
+                        f"for {npc_id}: {_griev_err}"
+                    )
+
+            # R6: дубликат-черновик hunger-блока удалён (двойное применение
+            # патча; урок D-R6-DUPLICATE-PATCH). Единственный блок — выше.
 
             # S198 FIX: SLEEP_GUARD не должен полностью обрывать каузальную цепь.
             # Если drives is None (спящий NPC), используем fallback на base_drives,

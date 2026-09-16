@@ -11,6 +11,7 @@ path: /project/backend/tests/sandbox/iron_river_ab.py
 Основные сущности: _RUNNER (код подпроцесса), main
 Запуск: cd backend; python tests/sandbox/iron_river_ab.py
 """
+import os
 import subprocess
 import sys
 
@@ -26,6 +27,11 @@ from app.core.config import settings
 # Урок WinError 112 + хаос-урок: исключаем ТОЛЬКО replay.db и logs —
 # наблюдательные артефакты; память NPC (jsonl/SQLite) — каузальный вход,
 # обрезка недопустима (кросс-прогонный MISMATCH на пустых входах).
+# ФИНАЛЬНЫЙ ФИКС ИЗОЛЯЦИИ: settings.data_dir на temp-копию —
+# LifeEngine.sessions_dir (life_engine:245) строится ОТ settings.data_dir
+# (НЕ от аргумента build_game_loop!) → без подмены TemporalEngine писал
+# world_tick.json в ЖИВОЙ backend/data/sessions → RUN2 наследовал sim_tick
+# RUN1 (+150) → систематический MISMATCH. Диагноз iron_river_trace.
 _data_src = Path(settings.data_dir)
 _data_tmp = Path(tempfile.mkdtemp(prefix="ab_f4_data_"))
 _ignore = shutil.ignore_patterns("replay.db", "logs")
@@ -34,6 +40,8 @@ atexit.register(lambda: shutil.rmtree(_data_tmp, ignore_errors=True))
 _wt = _data_tmp / "sessions" / "Open_road" / "world_tick.json"
 if _wt.exists():
     _wt.unlink()
+# ЕДИНСТВЕННОЕ ДОБАВЛЕНИЕ к прежнему патчу:
+settings.data_dir = str(_data_tmp)
 settings.saves_dir = tempfile.mkdtemp(prefix="ab_f1_")
 os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
 os.environ["DESIRES_ENABLED"] = "1"
@@ -61,10 +69,28 @@ print("HASH " + hashlib.sha256(json.dumps(canon(scene), sort_keys=True, default=
 def main() -> int:
     hashes = []
     for i in range(2):
+        if i == 1:
+            import time as _t
+
+            _t.sleep(3.0)  # Phase B: охлаждение RUN2 (ОС-разогрев/интерливинг)
+        _env = dict(os.environ)
+        # Phase B/F5-зонд: фиксация PYTHONHASHSEED — разводит set-порядки
+        # (P1-класс IRON RIVER) от async-остатков (P2-5)
+        _env["PYTHONHASHSEED"] = "0"
         r = subprocess.run(
             [sys.executable, "-c", _RUNNER],
-            capture_output=True, text=True, cwd=".",
+            capture_output=True, text=True, cwd=".", env=_env,
         )
+        # WIN-урок (48 утечек): подпроцессный atexit+rmtree не справляется
+        # с открытыми SQLite-хэндлами на Windows — родитель дочищает
+        # префиксные каталоги после КАЖДОГО RUN (процесс вышел — хэндлы закрыты)
+        import glob
+        import shutil as _sh
+
+        for _p in glob.glob(
+            os.path.join(os.environ.get("TEMP", "."), "ab_f4_data_*")
+        ):
+            _sh.rmtree(_p, ignore_errors=True)
         line = next((l for l in r.stdout.splitlines() if l.startswith("HASH ")), "")
         if not line:
             print(f"RUN{i+1}: ERR")

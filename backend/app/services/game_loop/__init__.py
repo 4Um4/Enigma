@@ -1458,7 +1458,15 @@ class GameLoop:
         # ADR-O-313: Execution Framework. Материализация отложенных задач (LLM и др.)
         # Работаем с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus
         # (напр. SocialInputProjector) попали в финальный unlock_tick.
-        if _auth_scene and _auth_scene.get("pending_tasks"):
+        # S262 (idle-немота, корень): гейт «pending_tasks в сцене» — рудимент
+        # BUG-CORE-010 (задачи переехали в DialogueQueue, поле сцены пусто) →
+        # idle-мир НИКОГДА не дренажировал очередь: интенты рождались каждый
+        # тик, очередь капилась на 20, реплики — лотерея worker-таймингов
+        # (25/3/0/0 замеров S262). Фикс: безусловный вызов — execute_pending
+        # сам идемпотентен (внутри process_tasks: пусто → честный return),
+        # а dequeue-очередь живёт в синглтоне scheduler'а. Pacing-гейт
+        # SpeechScheduler остаётся честным тормозом (2 тика/спикер).
+        if _auth_scene:
             self._get_task_scheduler().execute_pending(_auth_scene, campaign_id)
 
         # S203.4 (ADR-O-365, D-2): БЕЗУСЛОВНЫЙ sync-дренаж outbox — тихие тики
@@ -2070,7 +2078,7 @@ class GameLoop:
 
         from dataclasses import asdict, is_dataclass
 
-        if is_dataclass(_avatar_state):
+        if is_dataclass(_avatar_state) and not isinstance(_avatar_state, type):
             _avatar_dict = asdict(_avatar_state)
             _avatar_dict["npc_id"] = "player"
             _avatar_dict["id"] = "player"
@@ -2172,7 +2180,7 @@ class GameLoop:
                 self, actions, shared_context, scene_state, _ctx, campaign_id, location
             )
             logger.warning(
-                f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}"
+                f"[DEBUG DM] is_valid={getattr(dm_result, 'is_valid', None)}, scene_context={getattr(dm_result, 'scene_context', None)}, error={getattr(dm_result, 'error', None)}"
             )
 
             import dataclasses as _dc
@@ -2401,10 +2409,11 @@ class GameLoop:
                 }
                 _death_ws = {"avatar_state": _death_avatar_dict}
                 try:
-                    _cached = self.life_engine.get_npc_states(campaign_id)
+                    _engine = self._get_life_engine()
+                    _cached = _engine.get_npc_states(campaign_id) if _engine else None
                     if _cached:
                         _death_ws["npc_positions"] = {
-                            n.get("npc_id", n.get("id", f"npc_{i}")): n
+                            str(n.get("npc_id") or n.get("id") or f"npc_{i}"): n
                             for i, n in enumerate(_cached)
                             if isinstance(n, dict)
                         }
@@ -2459,7 +2468,8 @@ class GameLoop:
             _sheet_str = getattr(_match, "stats", {}) if _match else {}  # noqa: ENIGMA002
             _str_score = _sheet_str.get("STR", 10) if isinstance(_sheet_str, dict) else 10
 
-            _topo_data = self.scene_manager._persistence.load_scene(campaign_id)
+            _persistence = self.scene_manager._persistence  # noqa: ENIGMA002
+            _topo_data = _persistence.load_scene(campaign_id) if _persistence else None
             if not _topo_data or not _topo_data.get("player_body_topology"):
                 _topo = BodyTopologyService.create_topology("player", strength_score=_str_score)
                 _old_inv = _topo_data.get("player_inventory_snapshot", {}) if _topo_data else {}

@@ -881,6 +881,14 @@ class NPCState:
                 Intent.OBSERVE,
                 Intent.FLEE,
                 Intent.EXPLAIN,
+                # S262 (idle-краш guard_borko): broadcast-интенты не требуют
+                # персонального адресата — их семантика 'all' (S254:
+                # SPREAD_RUMOR→'all' — живой production-прецедент; P6-зонды
+                # S256). Резолвер на idle возвращает None (actor=сам NPC),
+                # валидатор крашил тик пустой комнаты. Target-обязательные
+                # (TALK/WARN/TRADE/...) — по-прежнему строгие.
+                Intent.SPREAD_RUMOR,
+                Intent.CALL_FOR_HELP,
             ):
                 raise ValueError(
                     f"NPC {self.npc_id} has intent {self.intent.name} without target"
