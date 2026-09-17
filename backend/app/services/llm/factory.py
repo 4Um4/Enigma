@@ -111,7 +111,9 @@ class ProviderFactory:
         agent_settings = agent_map.get(agent_name, settings)
         # Не перезаписываем server_url из runtime_ports — используем settings
         server_url = None
-        model_key = agent_settings.agent_model_map.get(
+        # getattr: agent_settings типизирован как BaseSettings, поле живёт в Settings
+        _agent_model_map = getattr(agent_settings, "agent_model_map", settings.agent_model_map)  # noqa: ENIGMA002
+        model_key = _agent_model_map.get(
             agent_name,
             settings.agent_model_map.get(agent_name, "qwen_7b"),
         )

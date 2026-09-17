@@ -5,6 +5,11 @@ from pathlib import Path
 sys.path.insert(0, ".")
 from app.core.config import settings
 
+# S268: прибор обязан мерить ядро без реального LLM. Dialogue-подписчик берёт
+# глобальный router напрямую (хак _executor._router не работает), поэтому
+# глушим через settings — router.py:77 читает provider_type отсюда.
+settings.available_models["qwen_7b"].provider_type = "mock"
+
 _d = Path(tempfile.mkdtemp(prefix="perf_"))
 shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
                 ignore=shutil.ignore_patterns("replay.db", "logs"))

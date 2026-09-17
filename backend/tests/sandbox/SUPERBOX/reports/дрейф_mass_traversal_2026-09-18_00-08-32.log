@@ -1,0 +1,75 @@
+
+============================================================
+DRIFT LABORATORY — Mode: mass_traversal
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_lq6m5_ux
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_lq6m5_ux\saves
+
+--- MODE A: Mass Traversal (200 ticks) ---
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='behind_bar' ss_loc='tavern' resolved='tavern' was='tavern'
+[DIAG_WALLS] npc=guard_borko b=tavern:exit_east bxy=(14.00,3.80) pos='kitchen' cur=(16.70,3.78) dist=2.70
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='corner_table' cur=(11.50,11.00) dist=7.62
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:node_17' ss_loc='tavern' resolved='tavern' was='tavern'
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:fireplace' ss_loc='tavern' resolved='tavern' was='tavern'
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:fireplace' ss_loc='tavern' resolved='tavern' was='tavern'
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:exit_south' ss_loc='tavern' resolved='tavern' was='tavern'
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:right_table' cur=(10.50,6.50) dist=4.42
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:exit_south' ss_loc='tavern' resolved='tavern' was='tavern'
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:node_16' ss_loc='tavern' resolved='tavern' was='tavern'
+[EATDIAG-SYNC] scene='tavern' in_positions=True ss_pos='tavern:node_16' ss_loc='tavern' resolved='tavern' was='tavern'
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:fireplace' cur=(10.50,3.00) dist=3.59
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='tavern:node_16' ss_loc='market_square' resolved='tavern' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(12.33,2.33) dist=41.85
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(13.55,3.85) dist=39.93
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(14.76,5.37) dist=38.02
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:node_16' cur=(13.50,3.00) dist=0.94
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(15.98,6.89) dist=36.11
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(17.19,8.41) dist=34.20
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(18.41,9.93) dist=32.30
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(19.63,11.45) dist=30.41
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(20.84,12.97) dist=28.52
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(22.06,14.49) dist=26.64
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(23.27,16.01) dist=24.77
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(24.49,17.53) dist=22.91
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(25.70,19.05) dist=21.07
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(26.92,20.57) dist=19.25
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(28.13,22.09) dist=17.46
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(29.35,23.61) dist=15.71
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(30.56,25.13) dist=14.00
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(31.88,28.42) dist=10.60
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:square_center' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(31.98,30.18) dist=8.83
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.09,31.95) dist=7.07
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.19,33.71) dist=5.30
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:exit_north' cur=(32.29,35.47) dist=3.53
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:exit_north' cur=(32.40,37.24) dist=1.77
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(-99.00,-99.00) dist=190.62
+[EATDIAG-SYNC] scene='market_square' in_positions=True ss_pos='market_square:node_7' ss_loc='market_square' resolved='market_square' was='market_square'

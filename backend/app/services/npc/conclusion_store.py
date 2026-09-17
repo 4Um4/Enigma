@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.domain.conclusions import (
     CONCLUSION_SOURCE_DIRECT,
@@ -167,7 +167,7 @@ class ConclusionStore:
         return records
 
     @classmethod
-    def from_dict(cls, data: Optional[List[Dict[str, object]]]) -> "ConclusionStore":
+    def from_dict(cls, data: Optional[List[Dict[str, Any]]]) -> "ConclusionStore":
         """Восстановление из scene_state (прецедент EpistemicStore.from_dict:
         невалидная запись -> warning + skip, сцена жива). Заполняет напрямую,
         минуя apply (цензус apply — только гейт)."""

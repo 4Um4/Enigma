@@ -71,11 +71,11 @@ class DMResponseNormalizer:
                 logger.info(f"[CONTENT_POLICY] Profanity detected (root='{root}'). Replacing with fallback.")
                 # BUG-CORE-025 FIX: Детерминированный выбор через KernelRNG (salt=text для уникальности).
                 _rng = KernelRNG(tick=0, npc_id="dm_normalizer", salt=text)
-                return _rng.choice([
+                return str(_rng.choice([
                     "Происходит неловкое молчание.",
                     "Собеседник замолкает, подбирая слова.",
                     "В воздухе повисает напряжение."
-                ])
+                ]))
 
         return text
 
@@ -115,7 +115,7 @@ class DMResponseNormalizer:
         # ADR-O-322: Восстановление npc_schema (speech/text)
         if "speech" in result or "text" in result or "narrative" in result:
             _txt = result.get("speech") or result.get("text") or result.get("narrative")
-            _txt = _txt.strip()
+            _txt = str(_txt or "").strip()
             return DMOutput(dm_text=DMResponseNormalizer._apply_content_policy_filter(_txt), schema_type="npc_schema")
 
         # ADR-O-313: DM-агент не генерирует реплики NPC.

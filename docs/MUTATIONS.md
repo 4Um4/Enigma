@@ -1159,7 +1159,86 @@ IPT: батарея-в-прогоне. КРАСНЫЕ ИНВАРИАНТЫ: см
 📁 domain/world_epoch.py (NEW), tests/test_world_epoch.py (NEW 5), docs/audits/TEMPORAL_EPOCH_DEEPCOPY_MAP.md (NEW), docs/adr/ADR-TEMPORAL-EPOCH.md (NEW), pipeline_runner (PR-1), npc_tick_pipeline (PR-2/3 + локация-гейт + СИНХРО), activity_lifecycle_service (мост + гейт + СИНХРО), work_orders (локация-гейт + needs-синхро), scene_state_manager (PR-4 → откат), SUPERBOX/scenarios (6 диагностических зондов NEW), docs/MUTATIONS.md (эта запись)
 IPT: 43/45. КРАСНЫЕ: traversals=None + dialogue-init
 
-
+### S267: FIX EAT — опровержение диагноза передачи; полная каузальная цепь Living Activity в multi-location tick | ✅ IPT 45/45, канон MATCH, EAT 9/9 (×2 стабильных прогона + чистый)
+🎯 Диагноз передачи S266 (§6: «СИНХРО-блок в начале run_activity_lifecycle,
+   гашение теряется, кэш читает 1.00») ОПРОВЕРГНУТ рантаймом. 17 зондов,
+   6 опровергнутых гипотез: needs-синхро здоров (merged-объект + update_cache
+   доносят), терминал пишет корректно, FAILTERM-лента и VANISH-казни —
+   симптомы ДРУГОЙ цепи. E6/E7 красные были НЕ про гашение.
+⚙️ РЕАЛЬНАЯ ПРИЧИННАЯ ЦЕПЬ (пять швов, все зондированы):
+   (1) stale editor-спавн Торнина в market_square (npcs[].ref_id, пустая
+       позиция) + V8-SP-19-sync без валидации → знакопеременная локация
+       кэша каждый тик (EATDIAG-SYNC: was='tavern'/'market_square');
+   (2) orchestrator-блок 1 (синхронизация всех сцен → all_npcs_raw) —
+       порядок сцен решал, чья stale-запись победит;
+   (3) мусорная запись Торнина в market-сцене (тик 8, 'tavern:node_16'
+       в чужой сцене — apply-осадок, DEBT ниже) → ghost-скан S186 поверил
+       location_id-полю против живой позиции → del из tavern (npc_positions),
+       npc-dict: pop position (SC-3) → ЛИМБО: ME получает cur_pos='' —
+       pathfinding невозможен, тихий дроп ×52 тика (EATDIAG-ME/GATE1);
+   (4) activity-goal: domain=ROUTINE, priority=0.5 — НИЖЕ расписания 0.6
+       (против закона L5 и life_engine:1198 «need=0.8 выше schedule»);
+   (5) adjacency (W2 IS_ADJACENT_TO) недостижима структурно → available=[]
+       ×22 (EATDIAG-ADJ) → step_idx=0 вечно (EATDIAG-STEP).
+⚙️ 8 ФИКСОВ (все верифицированы полным вертикалем E1-E9+C1):
+   F1 life_engine sync-валидация: живая позиция-префикс авторитетнее
+      location_id сцены (writer-side V8-SP-19);
+   F2 orchestrator-блок 1: порядок-независимый гейт по живой позиции
+      (writer-side ADR-O-347; первая версия отклонила безпрефиксные
+      легальные позиции 'behind_bar' — откат 68→69, урок ниже);
+   F3 ActivityState.home_location (домен §12.1-константа, onset, гейм-гейт
+      конвертера) — деятельность адресована сцене онсета;
+   F4 _build_goal: goal адресует home-сцену (было: битый npc.location_id
+      → goal в чужой граф → A_STAR-тишина);
+   F5 L5-калибровка: EAT = domain=SURVIVAL + priority=PRIORITY_REACTIVE
+      (0.8; было ROUTINE/0.5);
+   F6 Гейт① (simulation): activity-goals вперёд, schedule-интенцы того
+      же актора дедуплицированы (ограничение: конфликт «eat vs sleep»
+      каталога v2 — открытый пункт desires-арбитража);
+   F7 ghost-скан S186 (ГЛАВНЫЙ УДАР): позиция-префикс текущей сцены
+      опровергает призрачность (writer-side V8-SP-19) — лимбо убито;
+   F8 movement_engine: npc_positions Optional None-guard (Pylance +
+      runtime-краш при scene_state truthy ∧ npc_positions None).
+⚙️ ПРОВЕРЕНЫ И ЧИСТЫ (зонды сняты): CommitmentArbiter (activity cand_prio=6,
+   inc=None → PASS стабильно; self-lock гипотеза опровергнута), Гейт②,
+   S139.3-арбитраж внутри process_intents.
+📁 domain/activity.py (+_KEY_AS_HOME, +home_location round-trip),
+   services/npc/activity_lifecycle_service.py (F3/F4/F5 + импорт),
+   services/npc/life_engine.py (F1), services/tick_orchestrator.py (F2/F7),
+   services/phases/simulation.py (F6), services/spatial/movement_engine.py (F8),
+   tests/sandbox/SUPERBOX/scenarios/eat_vertical_test.py (гейты без изменений)
+🧪 Гейты: EAT 9/9 ×2 стабильных + чистый финальный; канон MATCH
+   57126949… (новая детерминированная траектория; старый хеш — траектория
+   багованного мира); IPT 45/45 (0 CRITICAL); WORK/SOCIAL не тронуты.
+🧹 Зонды: 17 диагностических (EATDIAG-*), все сняты, чистый прогон
+   без EATDIAG-вывода.
+📌 DEBT-S267-GHOST-SOURCE: первоисточник мусорной записи — apply чужого
+   SceneChange в market-сцену (осадок spread_rumor-материализации второго
+   прохода; dual-rail не маршрутизирует по target_location_id). Лечится
+   маршрутизацией apply_change/проекции по target_location_id (зона SSM
+   dual-rail, ADR-O-201/204). Эскалация Мастеру; поражающая цепь разорвана
+   F7 (мусор больше не переносит NPC), но мусор копится — отдельный вертикаль.
+⚠️ УРОКИ (все нарушены в цикле, все дорого оплачены):
+   (1) Зонд = код: вставка без py_compile → NameError → except L4 «degraded,
+       tick continues» → конвертер мёртв весь прогон, тишина вместо вердикта
+       (прогон 44 потерян). Диагностика верифицируется как прод-патч.
+   (2) Фикс писателя без инвентаризации ФОРМ данных: первая версия F2
+       потребовала ':' в позициях — а 'behind_bar' (легальная нативная
+       форма) отсекалась → обвал онсета 67-69. Инвентаризация форм
+       обязательна ДО гейта.
+   (3) Три патча без промежуточного полного вертикального гейта —
+       повторение урока S266 №2 (слои правок поверх правок). Догнан
+       только на 67-м прогоне.
+   (4) Канон MATCH мусорного мира воспроизводим и не есть здоровье
+       (хеш сменился после фиксов — это ПРАВИЛЬНО: траектория изменилась).
+   (5) Диагноз передачи ≠ диагноз: каждый пункт §6 проверен рантаймом
+       до патча — два из трёх опровергнуты.
+→ СЛЕДУЮЩИЙ ШАГ мандата TEMPORAL EPOCH: PR-5 (snapshot → WorldView в
+   TickState). Главный аргумент цикла: класс «нестабильная кэш-идентичность
+   NPC в multi-location tick» (двойные/пересоздаваемые экземпляры, три
+   писателя локации, ghost-переносы) закрыт 8 точечными латками — WorldView
+   (сцена как часть immutable epoch, NPC-экземпляр един на epoch) убивает
+   класс целиком.
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
@@ -1173,5 +1252,4 @@ IPT: 43/45. КРАСНЫЕ: traversals=None + dialogue-init
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-
 

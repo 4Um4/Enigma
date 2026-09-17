@@ -25,6 +25,11 @@ _KEY_STEP_INDEX = "step_index"
 _KEY_STEP_STARTED = "step_started_tick"
 _KEY_STARTED_TICK = "started_tick"
 _KEY_POLICY = "interruption_policy"
+# S267: сцена онсета (адрес сцены, где цель реально существует).
+# Гейт мульти-локационного конвертера читает ЕГО, а не ненадёжный
+# mid-tick npc.location_id (foodfate/VANISH-класс: loc перезаписан
+# чужим проходом — активность казнится чужой сценой).
+_KEY_AS_HOME = "home_location"
 
 _KEY_SK_KIND = "step_kind"
 _KEY_SK_ACTION = "action_type"
@@ -163,6 +168,7 @@ class ActivityState:
     step_started_tick: int = -1
     started_tick: int = 0
     interruption_policy: InterruptionPolicy = InterruptionPolicy.STUB
+    home_location: str = ""  # S267: пусто = легаси-состояние, гейт fallback
 
     def __post_init__(self) -> None:
         if not isinstance(self.activity_type, ActivityType):
@@ -188,6 +194,7 @@ class ActivityState:
             _KEY_STEP_STARTED: int(self.step_started_tick),
             _KEY_STARTED_TICK: int(self.started_tick),
             _KEY_POLICY: self.interruption_policy.value,
+            _KEY_AS_HOME: self.home_location,
         }
 
     @staticmethod
@@ -202,6 +209,7 @@ class ActivityState:
             step_started_tick=int(d.get(_KEY_STEP_STARTED, -1)),
             started_tick=int(d.get(_KEY_STARTED_TICK, 0)),
             interruption_policy=d.get(_KEY_POLICY, InterruptionPolicy.STUB.value),
+            home_location=str(d.get(_KEY_AS_HOME, "") or ""),
         )
 
     @staticmethod

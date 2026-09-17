@@ -222,8 +222,13 @@ class MovementEngine:
                 # SceneStateManager и EventCompiler становятся чистыми потребителями.
                 # S91.1: Cross-location routing intercept (ДОЛГ 6.2)
                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
-                _npc_pos_data = npc_positions.get(intent.actor_id, {}) if scene_state else {}
-                _pos_str = _npc_pos_data.get("position", "")
+                # S267 (типизация/граница): npc_positions — Optional; при
+                # scene_state truthy и npc_positions None старое выражение
+                # падало .get() на None (Pylance reportOptionalMemberAccess).
+                _npc_pos_data = (
+                    (npc_positions or {}).get(intent.actor_id) or {}
+                ) if scene_state else {}
+                _pos_str = str(_npc_pos_data.get("position") or "")
                 current_loc = _npc_pos_data.get("location_id")
                 if current_loc is None:
                     current_loc = scene_state.get("location_id", "") if scene_state else ""
@@ -235,6 +240,9 @@ class MovementEngine:
                         logger.debug(f"[CROSS_LOC_SYNC] npc={intent.actor_id} syncing current_loc='{current_loc}' to pos_loc='{_pos_loc}'")
                         current_loc = _pos_loc
                 # ADR-FIX: Надёжно определяем целевую локацию из префикса target_node_id (напр. "city_gate:exit_west")
+                # S268: дефолт-инициализация — все ветки ниже перезаписывают; страховка
+                # от unbound (Pylance reportPossiblyUnboundVariable) и от L4-тишины (урок S267)
+                target_loc = intent.location_id or current_loc
                 if ":" in intent.target_node_id:
                     target_loc = intent.target_node_id.split(":")[0]
                 else:
@@ -263,26 +271,15 @@ class MovementEngine:
                     else:
                         target_loc = intent.location_id or current_loc
 
-                if getattr(intent, "actor_id", "") == "guard_borko":  # noqa: ENIGMA002
-                    _ss = "YES" if scene_state else "NO"
-                    logger.debug(f"[BORKO_CROSS] tick={tick} target_node={intent.target_node_id} intent_loc={getattr(intent, 'location_id', 'N/A')} cur_loc={current_loc} target_loc={target_loc} scene_state={_ss}")
                 if scene_state and current_loc and target_loc != current_loc:
-                    logger.debug(f"[BORKO_CROSS_IN] tick={tick} ENTERED CROSS_LOC_INTERCEPT block")
                     current_svc = self._resolve_spatial_service(
                         current_loc, campaign_id, scene_state
                     )
                     if current_svc:
                         logger.debug(f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}")
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
-                        # TODO: временный зонд DIAG_WALLS; будет удалено после: пиннинг застревания у выхода
-                        if boundary_node is not None:
-                            _zd = npc_positions.get(intent.actor_id, {}) if npc_positions else {}
-                            _zl = _zd.get("local_position", {})
-                            _zx = _zl.get("x", -99.0) if isinstance(_zl, dict) else -99.0
-                            _zy = _zl.get("y", -99.0) if isinstance(_zl, dict) else -99.0
-                            print(f"[DIAG_WALLS] npc={intent.actor_id} b={boundary_node.node_id} bxy=({boundary_node.x:.2f},{boundary_node.y:.2f}) pos={_zd.get('position', '')!r} cur=({_zx:.2f},{_zy:.2f}) dist={math.hypot(boundary_node.x - _zx, boundary_node.y - _zy):.2f}")
+
                         logger.debug(f"[DIAG_BOUNDARY] result={boundary_node}")
-                        logger.debug(f"[BORKO_CROSS_BOUNDARY] tick={tick} boundary_node={boundary_node}")
                         if boundary_node:
                             if not target_loc:
                                 logger.error(f"[CROSS_LOC_MATERIALIZE] target_loc is empty for {intent.actor_id}! Skipping.")
@@ -295,10 +292,6 @@ class MovementEngine:
                             _cur_y = _lp.get("y", 0.0) if isinstance(_lp, dict) else 0.0
 
                             _dist_to_boundary = math.hypot(boundary_node.x - _cur_x, boundary_node.y - _cur_y)
-                            if True:
-                                # P7-MVP FIX: Защита от MagicMock в тестах
-                                if hasattr(boundary_node, "x") and isinstance(boundary_node.x, (int, float)):
-                                    logger.debug(f"[BORKO_DIST] tick={tick} cur_xy=({_cur_x:.1f}, {_cur_y:.1f}) boundary_xy=({boundary_node.x:.1f}, {boundary_node.y:.1f}) dist={_dist_to_boundary:.2f}")
 
                             # S-145 FIX: Материализация если NPC стоит на boundary node ИЛИ очень близко к ней.
                             _is_at_boundary = (_npc_pos_data.get("position", "") == boundary_node.node_id)

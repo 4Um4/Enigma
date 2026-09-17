@@ -1,0 +1,110 @@
+
+============================================================
+DRIFT LABORATORY — Mode: mass_traversal
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_rwoui3cf
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_rwoui3cf\saves
+
+--- MODE A: Mass Traversal (200 ticks) ---
+[DIAG_WALLS] npc=guard_borko b=tavern:exit_east bxy=(14.00,3.80) pos='kitchen' cur=(16.70,3.78) dist=2.70
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='corner_table' cur=(11.50,11.00) dist=7.62
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:right_table' cur=(10.50,6.50) dist=4.42
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:fireplace' cur=(10.50,3.00) dist=3.59
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(13.55,3.85) dist=39.93
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(14.76,5.37) dist=38.02
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:node_16' cur=(13.50,3.00) dist=0.94
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(15.98,6.89) dist=36.11
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(17.19,8.41) dist=34.20
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(18.41,9.93) dist=32.30
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(19.63,11.45) dist=30.41
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(20.84,12.97) dist=28.52
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(22.06,14.49) dist=26.64
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(23.27,16.01) dist=24.77
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(24.49,17.53) dist=22.91
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(25.70,19.05) dist=21.07
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(26.92,20.57) dist=19.25
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(28.13,22.09) dist=17.46
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(29.35,23.61) dist=15.71
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(30.56,25.13) dist=14.00
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(31.88,28.42) dist=10.60
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(31.98,30.18) dist=8.83
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.09,31.95) dist=7.07
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.19,33.71) dist=5.30
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:exit_north' cur=(32.29,35.47) dist=3.53
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:exit_north' cur=(32.40,37.24) dist=1.77
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(-99.00,-99.00) dist=190.62
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.50,39.00) dist=0.00
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=blacksmith_orm b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall_west' cur=(6.00,8.00) dist=9.04
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.50,39.00) dist=0.00
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(12.33,2.33) dist=41.85
+[DIAG_WALLS] npc=blacksmith_orm b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=guard_borko b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:exit_south' cur=(10.00,1.00) dist=4.88
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:exit_south' cur=(10.00,1.00) dist=4.88
+[DIAG_WALLS] npc=merchant_goran b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(11.17,1.67) dist=43.00
+[DIAG_WALLS] npc=merchant_goran b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(17.23,9.02) dist=33.65
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=tavern_keeper_tornin b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.50,39.00) dist=0.00
+[DIAG_WALLS] npc=merchant_goran b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:square_center' cur=(31.78,26.65) dist=12.37
+[DIAG_WALLS] npc=merchant_goran b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:node_7' cur=(32.50,39.00) dist=0.00
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DIAG_WALLS] npc=merchant_goran b=tavern:exit_east bxy=(14.00,3.80) pos='tavern:main_hall' cur=(6.50,5.50) dist=7.69
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_rwoui3cf
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: mass_traversal
+======================================================================
+
+  Всего сравнений (comparisons): 334
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 28.6 сек
+  Скорость: 12 сравнений/сек, 7.0 тиков/сек

@@ -71,6 +71,17 @@ class DialogueQueue:
         is_canonical = (task_type == "canonical")
         current_size = len(self._heap)
 
+        # BUG-05 backpressure (мягкий порог, аудит релиза): при заполнении
+        # >=70% ambient-задачи не ставятся вовсе — очередь держит запас для
+        # canonical, а WARNING-шторм на жёстком лимите (634 дропа/сессия на
+        # медленном LLM) заменяется ранним INFO-дропом.
+        if not is_canonical and current_size >= int(self.MAX_PENDING_TASKS * 0.7):
+            logger.info(
+                f"[DLG_QUEUE] Backpressure: dropped ambient task {task_id} "
+                f"preemptively ({current_size}/{self.MAX_PENDING_TASKS} >= 70%)."
+            )
+            return task_id
+
         if current_size >= self.MAX_PENDING_TASKS:
             if not is_canonical:
                 # Ambient overflow → DROP

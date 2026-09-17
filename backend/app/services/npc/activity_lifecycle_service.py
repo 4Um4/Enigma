@@ -22,12 +22,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.domain.activity import ActivityState, ActivityStep, ActivityType, StepKind
 from app.domain.desire import Desire
-from app.domain.movement import IntentDomain, MacroMovementGoal, PRIORITY_NEEDS
+from app.domain.movement import IntentDomain, MacroMovementGoal, PRIORITY_NEEDS, PRIORITY_REACTIVE
 from app.domain.semantic_action import WorldActionType
 from app.domain.world_object import ObjectRelationKind, WorldObject
 from app.models.spatial_contracts import NodeRole
 from app.services.npc.activity_catalog import ACTIVITY_CATALOG, _SPEC_BY_TYPE
 from app.services.scene_change import ChangeType, SceneChange
+from app.domain.activity import _KEY_AS_HOME  # S267: гейм-гейт активности
 from app.services.world.affordance_resolver import AffordanceResolver, effective_state
 from app.services.world.world_object_store import WorldObjectStore
 
@@ -188,14 +189,26 @@ def _find_target(
 def _build_goal(
     npc: Dict[str, Any], state: ActivityState, step: ActivityStep
 ) -> MacroMovementGoal:
+    # S267: адрес движения — сцена-дом активности, не mid-tick npc.location_id
+    # (VANISH-класс: loc перезаписан чужим проходом → goal уходит в чужой граф,
+    # узел не резолвится, движение молча не исполняется).
+    _goal_loc = str(state.home_location or npc.get("location_id") or npc.get("location") or "")
+    # S267 (L5-калибровка): деятельность потребности — домен SURVIVAL и
+    # DRF-приоритет потребности (0.8, уровень need-intent :1198), не 0.5
+    # (ниже расписания 0.6 — еда проигрывала движению по расписанию,
+    # арбитр оставлял incumbent, adjacency недостижима структурно,
+    # лента EATDIAG-ADJ: available=[] ×22). SPEC priority_hint=6.0
+    # (SURVIVAL≈6, шкала s203.4) читается арбитром через domain при
+    # включённом enforcement — политика и код арбитра не меняются.
+    _survival = state.activity_type is ActivityType.EAT
     return MacroMovementGoal(
         actor_id=_npc_id(npc),
         target_node_id=str(step.target_ref),
         from_node_id=str(npc.get("position", "") or ""),
-        location_id=str(npc.get("location_id") or npc.get("location") or ""),
+        location_id=_goal_loc,
         reason=f"activity:{state.activity_type.value}:{state.desire_id}:{state.target_ref}",
-        domain=IntentDomain.ROUTINE,
-        priority=PRIORITY_NEEDS,
+        domain=IntentDomain.SURVIVAL if _survival else IntentDomain.ROUTINE,
+        priority=PRIORITY_REACTIVE if _survival else PRIORITY_NEEDS,
     )
 
 
@@ -212,22 +225,10 @@ def _terminate(
     ТОЛЬКО здесь (для success), никогда ярлыком."""
     _tick = ctx.tick_number
     _nid = _npc_id(npc)
-    # S267-DIAG2 (временный зонд, удаляется после вердикта E6):
-    # fail-терминалы Торнина (timeout/taken/unavailable) — слепая зона TERM-зонда
-    if _nid == "tavern_keeper_tornin":
-        print(f"[EATDIAG-FAILTERM] tick={_tick} success={success} "
-              f"reason={reason!r} activity={state.activity_type.value}")
     if success:
         _spec = _SPEC_BY_TYPE.get(state.activity_type)
         _need_name = _spec.success.need_name if _spec else ""
         _needs = npc.get("needs")
-        # S267-DIAG (временный зонд, удаляется после вердикта E7):
-        # какой канал реально получает гашение терминала
-        print(f"[EATDIAG-TERM] tick={_tick} npc={_nid} need={_need_name!r} "
-              f"has_needs={isinstance(_needs, dict)} "
-              f"has_key={(_need_name in _needs) if isinstance(_needs, dict) else False} "
-              f"val={_needs.get(_need_name) if isinstance(_needs, dict) else None} "
-              f"npc_obj={id(npc)}")
         if _need_name and isinstance(_needs, dict) and _need_name in _needs:
             _needs[_need_name] = 0.0
         for _d in npc.get("desires") or []:
@@ -314,13 +315,6 @@ def _advance(
     ):
         _target_obj = _get_object(ctx.scene_state, state.target_ref)
         _owner = _npc_id(npc)
-        # S267-DIAG3 (временный зонд, удаляется после вердикта E6):
-        if _target_obj is None and _npc_id(npc) == "tavern_keeper_tornin":
-            _sswo = ctx.scene_state.get("world_objects") if isinstance(ctx.scene_state, dict) else None
-            print(f"[EATDIAG-VANISH] tick={_tick} target={state.target_ref} "
-                  f"ctx_loc={ctx.scene_state.get('location_id')!r} "
-                  f"wo_type={type(_sswo).__name__} wo_len={len(_sswo) if hasattr(_sswo, '__len__') else 'NA'} "
-                  f"wo_keys={list(_sswo.keys())[:6] if isinstance(_sswo, dict) else 'NA'}")
         if (
             _target_obj is None
             or getattr(_target_obj, "state", "") == "DESTROYED"
@@ -357,17 +351,7 @@ def _advance_move(
     """Движение = побочный эффект. Прибытие определяется АВТОРИТЕТОМ W2:
     искомое объектное действие доступно в resolve() ⇒ adjacency выполнена."""
     _nid = _npc_id(npc)
-    # S267-DIAG2 (временный зонд, удаляется после вердикта E6):
-    # где именно висит MOVE Торнина: settled / объект / координата / узел
-    _settled = _is_settled(ctx.scene_state, _nid)
-    if _nid == "tavern_keeper_tornin":
-        _pobj = _get_object(ctx.scene_state, state.target_ref)
-        print(f"[EATDIAG-MOVE] tick={ctx.tick_number} settled={_settled} "
-              f"step_idx={state.step_index} target={state.target_ref} "
-              f"obj_state={getattr(_pobj, 'state', 'NO_OBJ')} "
-              f"holder={getattr(_pobj, 'holder', 'NO_OBJ')} "
-              f"xy={_npc_xy(npc)} at_node={_at_node(npc, step.target_ref)}")
-    if not _settled:
+    if not _is_settled(ctx.scene_state, _nid):
         return None  # в пути — ждём прибытия (следующий тик проверит settled)
     _obj = _get_object(ctx.scene_state, state.target_ref)
     if _obj is None:
@@ -421,11 +405,6 @@ def _advance_object_action(
         _terminate(ctx, orchestrator, npc, state, success=False, reason="bad_action")
         return
     _actions = AffordanceResolver.resolve(_obj, _view, _npc_xy(npc))
-    # S267-DIAG2 (временный зонд, удаляется после вердикта E6):
-    if _npc_id(npc) == "tavern_keeper_tornin":
-        print(f"[EATDIAG-OBJ] tick={ctx.tick_number} wanted={_wanted} "
-              f"available={[a.action_type for a in _actions]} "
-              f"xy={_npc_xy(npc)}")
     if not any(a.action_type == _wanted for a in _actions):
         _terminate(ctx, orchestrator, npc, state, success=False, reason="take_unavailable")
         return
@@ -581,6 +560,9 @@ def _onset_for_desire(
         step_started_tick=_tick,
         started_tick=_tick,
         interruption_policy=spec.interruption_policy,
+        home_location=str(
+            (ctx.scene_state.get("location_id") if isinstance(ctx.scene_state, dict) else "") or ""
+        ),
     )
     npc["activity_state"] = _state.to_dict()
     _emit_label_change(
@@ -640,11 +622,6 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
             _nid = _n.get("npc_id") or _n.get("id") or ""
             _act = _n.get("activity_state")
             _cached_npc = _by_id.get(_nid)
-            # S267-DIAG (временный зонд, удаляется после вердикта E7):
-            # разрешение npc_id при merge кэш<->ctx
-            print(f"[EATDIAG-MERGE] npc_id={_n.get('npc_id')!r} "
-                  f"id={_n.get('id')!r} resolved={_nid!r} "
-                  f"found={_cached_npc is not None}")
             if _cached_npc is not None:
                 if isinstance(_act, dict):
                     _cached_npc["activity_state"] = _act
@@ -679,7 +656,19 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
             # их тик придёт на своей локации.
             _npc_loc = str(_npc.get("location_id") or _npc.get("location") or "")
             _ctx_loc = str((_ss.get("location_id") if isinstance(_ss, dict) else "") or "")
-            if _ctx_loc and _npc_loc and _npc_loc != _ctx_loc:
+            # S267-ГОМЕ-ГЕЙТ: активная деятельность адресована сцене онсета,
+            # не текущему npc.location_id (который mid-tick перезаписывается
+            # чужими проходами — VANISH-факт S267). Гейм-гейт: home=пусто
+            # (легаси) → старое поведение; home=сцена → гейт по нему.
+            _gate_loc = _ctx_loc
+            _raw_state = _npc.get("activity_state")
+            if (
+                isinstance(_raw_state, dict)
+                and str(_raw_state.get(_KEY_AS_HOME, "") or "")
+                and _ctx_loc
+            ):
+                _gate_loc = str(_raw_state[_KEY_AS_HOME])
+            if _ctx_loc and _gate_loc and _gate_loc != _ctx_loc:
                 continue
             _raw = _npc.get("activity_state")
             if isinstance(_raw, dict):

@@ -82,6 +82,13 @@ class EventCompiler:
             # Shadow compiler НЕ должен создавать новый traversal — он должен только зафиксировать spatial resolution.
             if getattr(change, "cause", "") == "traversal_complete":  # noqa: ENIGMA002
                 result = self._compile_traversal_completion(snapshot, change)
+            # FIX BUG-12: boundary_arrival — факт прибытия в boundary-узел
+            # (FIX-6c: NPC стоит в двери текущей локации, dwell до переноса).
+            # Точное равенство выше эти cause не ловит — route в boundary
+            # snap, который резолвит без поиска в основном графе.
+            elif "boundary_arrival" in getattr(change, "cause", ""):  # noqa: ENIGMA002
+                _b_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+                result = self._compile_boundary_snap(snapshot, change, None, _b_loc, svc)
             else:
                 # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
                 # Не зависит от cause (traversal_complete, teleport, sync и т.д.).
@@ -107,9 +114,17 @@ class EventCompiler:
                 f"traversal={result.traversal.status if result.traversal else 'none'}"
             )
         else:
+            # Зонд BUG-12 (Часть VIII.5, ВРЕМЕННЫЙ): кто пишет value с
+            # префиксом локации без target_location_id? TODO: удалить после
+            # постановки диагноза.
+            # Постоянный диагностический контекст (родился зондом BUG-12,
+            # оставлен по решению Мастера): cause/target_loc в каждой FAILED
+            # строке — мгновенная локализация dual-rail отказов.
             logger.warning(
                 f"[SHADOW_COMPILER] FAILED: target={change.target} "
-                f"field={change.field} value={change.value}"
+                f"field={change.field} value={change.value} "
+                f"cause={getattr(change, 'cause', '')} "
+                f"target_loc={getattr(change, 'target_location_id', '')} type={change.type.value}"
             )
 
         return result
@@ -138,24 +153,71 @@ class EventCompiler:
         target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
         target_node_id = change.value
 
+        # FIX BUG-12: value может нести префикс локации ("tavern:exit_south",
+        # "market_square:square_center"). Префикс отрезается и СТАНОВИТСЯ
+        # target_loc — узел резолвится голым именем в графе целевой локации.
+        # Пустой target_location_id писателя (boundary_arrival) с префиксом
+        # значения = честный кросс-локационный указатель.
+        if isinstance(target_node_id, str) and ":" in target_node_id:
+            _prefix, _bare = target_node_id.split(":", 1)
+            if _bare:
+                target_loc = _prefix
+                target_node_id = _bare
+
         # ADR-O-201.4: Cross-location traversal completion (boundary transition)
         # Если цель в другой локации, текущий svc (текущей локации) её не найдёт.
         # Делегируем в _compile_boundary_snap, который умеет делать snap без поиска в графе.
         if target_loc != snapshot.location_id:
             return self._compile_boundary_snap(snapshot, change, None, target_loc, svc)
 
-        # Lookup target node (same logic as _compile_position_change)
+        # FIX BUG-12 (финал): если граф текущего svc пуст или не содержит
+        # целевой узел — мы в ЧУЖОМ чанке (тик живёт в одной локации, NPC
+        # завершил переход в другой). Legacy уже снапнул позицию (см.
+        # докстринг). Shadow фиксирует факт завершения без пересчёта
+        # геометрии чужого графа (ADR-O-201.4: snap без поиска в графе).
         node = svc.get_node(target_node_id) or svc.get_node(
             f"{target_loc}:{target_node_id}"
         )
         if node is None:
+            logger.info(
+                f"[SHADOW_COMPILER] traversal_complete cross-chunk: node {target_node_id!r} "
+                f"не в графе svc (loc={snapshot.location_id}) — фиксация факта без геометрии"
+            )
+            _xy = getattr(change, "target_local_xy", None) or (0.0, 0.0)
+            return ThickSceneChange(
+                change_type=change.type.value,
+                target=change.target,
+                field=change.field,
+                value=change.value,
+                cause=change.cause,
+                tick=change.tick,
+                target_local_xy=getattr(change, "target_local_xy", None),
+                spatial=SpatialResolution(
+                    source_location=target_loc,
+                    target_location=target_loc,
+                    source_node="",
+                    target_node="",
+                    source_xy=_xy,
+                    target_xy=_xy,
+                ),
+                motion=MotionPlan(
+                    is_teleport=True,  # snap, not movement
+                    is_path_blocked=False,
+                    waypoints=(),
+                    distance=0.0,
+                    duration_ticks=0,
+                    speed=0.0,
+                ),
+                traversal=None,
+            )
             # ADR-O-314: Если целевой узел не найден (невалидный boundary target),
             # фолбэчим на entrance локации, чтобы NPC не завис и не ломал snapshot.
             fallback_node_id = f"{target_loc}:entrance"
             node = svc.get_node(fallback_node_id)
             if node is None:
                 logger.warning(
-                    f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id} (fallback {fallback_node_id} also missing)"
+                    f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id} "
+                    f"(fallback {fallback_node_id} also missing)"
                 )
                 return None
             logger.warning(
@@ -275,8 +337,20 @@ class EventCompiler:
         if target_loc != snapshot.location_id or "cross_loc_materialize" in getattr(change, "cause", ""):  # noqa: ENIGMA002
             return self._compile_boundary_snap(snapshot, change, None, target_loc, svc)
 
-        node = svc.get_node(change.value) or svc.get_node(
-            f"{target_loc}:{change.value}"
+        # FIX BUG-12: value может нести префикс локации ("market_square:node_7"),
+        # не совпадающий с target_loc/snapshot (рассинхрон писателя). Нормализуем:
+        # префикс локации отрезается, и узел резолвится в ЦЕЛЕВОЙ локации.
+        _value = change.value
+        if isinstance(_value, str) and ":" in _value:
+            _prefix, _bare = _value.split(":", 1)
+            if svc.get_node(_bare) is not None:
+                # Префикс локации в value: узел резолвится в голом графе
+                # целевой локации (prefix == target_loc) или переносит
+                # target_loc на префикс (prefix != target_loc).
+                target_loc = _prefix
+                _value = _bare
+        node = svc.get_node(_value) or svc.get_node(
+            f"{target_loc}:{_value}"
         )
         if node is None:
             logger.warning(
@@ -907,7 +981,8 @@ class EventCompiler:
         # Приоритет 2: Позиция NPC в snapshot (state_t)
         npc_data = snapshot.npc_positions.get(change.target)
         if npc_data:
-            return npc_data.get("position", "")
+            _pos = npc_data.get("position", "")
+            return _pos if isinstance(_pos, str) else None
         return None
 
     @staticmethod

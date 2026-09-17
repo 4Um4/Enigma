@@ -64,8 +64,11 @@ class SocialDecayHandler:
                 current_trust = float(rel_data.get("trust", 0.0))
                 current_fear = float(rel_data.get("fear", 0.0))
                 # Базовое значение: из base_vals, из rel_data, или текущее (нет дрейфа)
+                _base_trust_raw = base_vals.get(
+                    target, rel_data.get("base_trust", current_trust)
+                )
                 base_trust = float(
-                    base_vals.get(target, rel_data.get("base_trust", current_trust))
+                    _base_trust_raw if _base_trust_raw is not None else current_trust
                 )
                 # Fear drift к нулю — страх не должен застревать навсегда
                 base_fear = 0.0

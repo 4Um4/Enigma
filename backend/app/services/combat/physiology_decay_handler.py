@@ -108,6 +108,8 @@ class PhysiologyDecayHandler:
 
             # Perceptual Kernel — чтение текущих активных причин
             pk = npc.get("perceptual_kernel", {})
+            if not isinstance(pk, dict):
+                pk = {}
             current_threat = float(pk.get("threat_gradient", 0.0))
             current_uncertainty = float(pk.get("uncertainty", 0.0))
             current_anomaly = float(pk.get("anomaly_score", 0.0))
@@ -283,4 +285,8 @@ def _closing_drift(current: float, target: float) -> float:
 def _get_statuses(npc: NPCStateSnapshot) -> list:
     """Извлекает текущие статусы из снапшота."""
     # V8-PSY-14 FIX: Статусы хранятся в body_state, а не в root-level
-    return npc.get("body_state", {}).get("statuses", [])
+    body_state = npc.get("body_state", {})
+    if not isinstance(body_state, dict):
+        return []
+    raw_statuses = body_state.get("statuses", [])
+    return list(raw_statuses)

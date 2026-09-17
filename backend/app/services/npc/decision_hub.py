@@ -800,6 +800,24 @@ class DecisionHub:
             pending_response_target=pending_response_target,
             epistemic_context=epistemic_context, # S197: Передаём для выбора цели убеждения
         )
+        # BUG-01 слой 1 (§ENIGMA-006): intent без target после резолва —
+        # Unresolved Reference, не ошибка. Деградация до OBSERVE на CREATE:
+        # сломанный intent не достигает ни NPCState-валидатора (слой 2,
+        # npc_state.py), ни коммуникационного конвейера. Список исключений
+        # = зеркало whitelist валидатора (target-free интенты легальны).
+        if intent_target is None and best_intent not in (
+            Intent.IDLE,
+            Intent.OBSERVE,
+            Intent.FLEE,
+            Intent.EXPLAIN,
+            Intent.SPREAD_RUMOR,
+            Intent.CALL_FOR_HELP,
+            Intent.REQUEST_SERVICE,
+        ):
+            logger.info(
+                f"[INTENT_DEGRADE] {state.npc_id}: {best_intent.value} без target → OBSERVE"
+            )
+            best_intent = Intent.OBSERVE
         deltas = self._compute_deltas(state, personality, event, best_intent)
         narrative = None  # факт создаётся через MemoryManager.apply(), не здесь
 
@@ -1934,7 +1952,7 @@ class DecisionHub:
                     f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=warn target={_prop.subject_id} "
                     f"predicate={getattr(_prop.predicate, 'value', _prop.predicate)}"
                 )
-                return _prop.subject_id
+                return str(_prop.subject_id)
 
         if all_npc_ids is None:
             all_npc_ids = []

@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     hardcore_mode: bool = True  # DEPRECATED: заменено на ContentPolicy
     user_settings_path: Path = BASE_DIR / "config" / "user_settings.yaml"
 
+    # Приватные кэши (pydantic private attributes) — типизация для mypy
+    _gpu_layers_cache: Optional[int] = None
+
     @property
     def effective_gpu_layers(self) -> int:
         """Динамически вычисляет ngl из gpu_profile.json (Дополнение А, п. А.4)."""

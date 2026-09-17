@@ -274,7 +274,8 @@ class SqliteMemoryStore:
                 ).fetchone()
             if row is None:
                 return {}
-            return json.loads(row["payload_json"])
+            loaded = json.loads(row["payload_json"])
+            return loaded if isinstance(loaded, dict) else {}
         except (sqlite3.Error, json.JSONDecodeError) as e:
             logger.error(f"[SQLITE] load_state from {collection} failed: {e}")
             return {}
@@ -410,7 +411,7 @@ class SqliteMemoryStore:
         self,
         mem_id: str,
         campaign_id: str,
-        mem_data: Dict[str, Any],
+        mem_data: Any,
     ) -> None:
         """Сохраняет EventMemory в структурированную таблицу."""
         import dataclasses
@@ -610,4 +611,4 @@ class SqliteMemoryStore:
     def close(self) -> None:
         if self._conn:
             self._conn.close()
-            self._conn = None
+            self._conn = None  # type: ignore[assignment]

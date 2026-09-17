@@ -19,6 +19,7 @@ from app.services.social.social_fabric_tracker import SocialFabricTracker
 from app.services.social.fate_tracker import FateTracker
 from app.models.fate import FateOutcome
 from app.models.fate import FateTrajectory, FateOutcome
+from app.models.end_screen import EndScreenData
 from app.services.social.faction_alignment_tracker import FactionAlignmentTracker
 from app.services.social.dilemma_engine import DilemmaEngine
 from app.services.social.evaluation_engine import EvaluationEngine
@@ -228,7 +229,7 @@ class MvpTavernController:
         """Проверяет, покинул ли игрок локацию."""
         return self.exit_trigger.check_exit(scene_state)
 
-    def build_end_screen(self):
+    def build_end_screen(self) -> EndScreenData:
         """Собирает данные для финального экрана."""
         if self.truth_state is None:
             raise RuntimeError("TruthState not loaded")
@@ -249,7 +250,7 @@ class MvpTavernController:
             campaign_id=self._campaign_id or ""
         )
 
-    def build_world_diff(self):
+    def build_world_diff(self) -> Any:
         """Собирает WorldStateDiff для передачи в следующую кампанию."""
         if self.truth_state is None:
             raise RuntimeError("TruthState not loaded")

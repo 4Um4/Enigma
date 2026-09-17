@@ -83,7 +83,16 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
 
     _activity_goals = run_activity_lifecycle(ctx, orchestrator)
     if _activity_goals:
-        life_intents = list(life_intents or []) + list(_activity_goals)
+        # S267 (L5): деятельность потребности вытесняет schedule-движение
+        # того же NPC (потребность > расписание, закон L5; need-intent
+        # уже несёт 0.8 > 0.6 — life_engine:1198). Activity-goals ВПЕРЕДИ
+        # schedule-интенцов; дубликаты schedule-целей того же актора
+        # не перекрывают деятельность.
+        _activity_actors = {g.actor_id for g in _activity_goals}
+        life_intents = list(_activity_goals) + [
+            _i for _i in (life_intents or [])
+            if getattr(_i, "actor_id", "") not in _activity_actors
+        ]
 
     # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
     # Намерения расписания обрабатываются через MovementEngine, порождая TraversalState.

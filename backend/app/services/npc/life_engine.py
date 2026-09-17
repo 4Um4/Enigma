@@ -581,6 +581,36 @@ class LifeEngine:
                         _resolved_loc = _pos_loc
                     elif _ss_loc:
                         _resolved_loc = _ss_loc
+                # S267 (ADR-O-347 для писателя): запись в npc_positions чужой
+                # сцены не владеет NPC, если его позиция префиксована другой
+                # локацией (editor-JSON может числить NPC на нескольких
+                # картах — EATDIAG-SYNC: пустая stale-запись market_square
+                # отравляла кампан-кэш на каждом проходе, перезаписывая
+                # 'tavern:node_16' → 'market_square'). Префикс живой
+                # позиции = авторитет (V8-SP-19-семантика, применённая
+                # к писателю, а не только к читателю).
+                if (
+                    _resolved_loc
+                    and _ss_pos
+                    and ":" in _ss_pos
+                    and _resolved_loc != _ss_pos.split(":")[0]
+                    and "exit_" not in _ss_pos
+                ):
+                    _resolved_loc = _ss_pos.split(":")[0]
+                # S267 (ADR-O-347 для писателя): сцена N владеет записью NPC
+                # только если её позиция префиксована ЭТОЙ локацией или пуста-
+                # без-конкурирующего префикса. Сцене market_square запрещено
+                # перезаписывать location_id NPC, чья живая позиция гласит
+                # 'tavern:...' (факт EATDIAG-SYNC: пустая stale-запись в чужой
+                # сцене отравляла кампан-кэш на каждом проходе).
+                if (
+                    _resolved_loc
+                    and _ss_pos
+                    and ":" in _ss_pos
+                    and _resolved_loc != _ss_pos.split(":")[0]
+                    and "exit_" not in _ss_pos
+                ):
+                    _resolved_loc = _ss_pos.split(":")[0]
 
                 if _resolved_loc:
                     if npc.get("location_id") != _resolved_loc:

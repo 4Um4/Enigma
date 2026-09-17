@@ -7,6 +7,19 @@
 [Dirs]
 Name: "{app}\backend\logs"; Flags: uninsneveruninstall
 
+; Аудит релиза (V3): переустановка поверх старой версии не удаляет файлы,
+; исчезнувшие из пакета. Очистка исторического мусора. {app}\data НЕ трогаем
+; — там рантайм-зона (error_log, enigma_memory.db, combat_log).
+[InstallDelete]
+Type: files; Name: "{app}\eatlog_out.txt"
+Type: files; Name: "{app}\eatlog_out2.txt"
+Type: files; Name: "{app}\Math_GAME.md"
+Type: files; Name: "{app}\TODO.md"
+Type: files; Name: "{app}\frontend\map_editor\data_manager.py.bak"
+Type: filesandordirs; Name: "{app}\backup_s256"
+Type: filesandordirs; Name: "{app}\backup_s259"
+Type: filesandordirs; Name: "{app}\backend\backend"
+
 [Setup]
 AppName=Bloodloom
 AppVersion={#AppVersion}
@@ -49,7 +62,7 @@ Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU)"; Types: fu
 
 [Files]
 ; 1. Ядро игры (Берем из временной папки staging, где лежат .pyc)
-Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload,saves,saves_census,runtime_cache,dist,*.db,*.db-shm,*.db-wal"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
+Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload,saves,saves_census,runtime_cache,dist,*.db,*.db-shm,*.db-wal,backend\data\campaigns\test_campaign,config\calibration,build_graph.py,backend\backend"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
 
 ; 1.1 Портативный Python — S210: payload-пайплайн не автоматизирован (payload/
 ; не создаётся сборкой). До его реализации установщик — dev-дистрибутив:

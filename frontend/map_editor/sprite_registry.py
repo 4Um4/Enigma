@@ -115,8 +115,29 @@ class SpriteRegistry:
             arr = pygame.surfarray.pixels3d(result)
             alpha = pygame.surfarray.pixels_alpha(result)
             
-            # Удаление фона по порогу
+            # Удаление фона по порогу (легаси S176)
             mask = (arr[:,:,0] > threshold) & (arr[:,:,1] > threshold) & (arr[:,:,2] > threshold)
+
+            # FIX BUG-07 (В1б, решение Мастера): авто-детект фона по угловым
+            # пикселям тайла. Порог из данных (часто дефолт 220) не берёт
+            # нестандартные фоны (бежевый 226,232,189: синий канал < 220).
+            # Если 4 угла однородны (допуск 24/канал) и непрозрачны — фон
+            # удаляется по цвету угла независимо от threshold; порог остаётся
+            # страховочной маской. Альфа-листы (углы прозрачны) не трогаем.
+            _corner_alphas = [int(alpha[0, 0]), int(alpha[0, -1]), int(alpha[-1, 0]), int(alpha[-1, -1])]
+            if any(_corner_alphas):
+                _ref = [int(arr[0, 0, 0]), int(arr[0, 0, 1]), int(arr[0, 0, 2])]
+                _uniform = all(
+                    max(abs(int(arr[cy, cx, i]) - _ref[i]) for i in range(3)) <= 24
+                    for cy, cx in ((0, 0), (0, -1), (-1, 0), (-1, -1))
+                )
+                if _uniform:
+                    _bg_dist = (
+                        (arr[:, :, 0].astype(int) - _ref[0]) ** 2
+                        + (arr[:, :, 1].astype(int) - _ref[1]) ** 2
+                        + (arr[:, :, 2].astype(int) - _ref[2]) ** 2
+                    )
+                    mask = mask | (_bg_dist <= 24 * 24 * 3)
             alpha[mask] = 0
             
             # Прозрачным пикселям задаем чёрный цвет (убирает гало при масштабировании)

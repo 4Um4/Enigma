@@ -97,13 +97,23 @@ robocopy . $StagingDir /E `
     /XD .venv .git .github .vscode .githooks .hypothesis .pytest_cache .mypy_cache .ruff_cache `
         build dist logs reports __pycache__ "Models LLM" payload `
         saves saves_census runtime_cache test_data diagnostics _archive `
-        docs architecture scripts tests Tests lint `
-    /XF *.pyc *.log *.spec *.db *.db-shm *.db-wal *_crash.log `
+        docs scripts tests Tests lint `
+        backup_s256 backup_s259 `
+    /XF *.pyc *.log *.spec *.db *.db-shm *.db-wal *_crash.log *.bak eatlog_out*.txt Math_GAME.md TODO.md `
         arch_out*.txt refs_report.txt deps_*.json drift_logs*.txt `
         *.iss *.ps1 mypy.ini ruff.toml pytest.ini pyproject.toml `
         .gitignore .gitattributes .pre-commit-config.yaml > $null
 
 Write-Host "✅ Исходный код скопирован во временную папку" -ForegroundColor Green
+
+# Content-gate (аудит релиза, BUG-04): архитектурные YAML-контракты
+# обязательны в релизе — runtime читает их (signal_causes.yaml и др.).
+# Пустая architecture/ = сборка запрещена.
+ $ArchYaml = Get-ChildItem "$StagingDir\architecture" -Filter "*.yaml" -Recurse -ErrorAction SilentlyContinue
+if (-not $ArchYaml -or @($ArchYaml).Count -eq 0) {
+    Write-Host "❌ Content-gate: architecture/*.yaml отсутствует в staging — сборка прервана!" -ForegroundColor Red; exit
+}
+Write-Host "✅ Content-gate: architecture/$(@($ArchYaml).Count) yaml в staging" -ForegroundColor Green
 
 # 2.7 S210 (BUILD-P1): payload-звено — портативный Python для установщика.
 # enigma_setup.iss требует payload\python\*, но оркестратор его никогда не

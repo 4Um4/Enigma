@@ -70,7 +70,7 @@ def _pred_state_is(
     и исполнением — устаревшее действие обязано провалиться здесь.
     """
     (expected_state,) = args
-    return effective_state(obj) == expected_state
+    return bool(effective_state(obj) == expected_state)
 
 
 def _pred_is_adjacent_to(

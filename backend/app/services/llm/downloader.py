@@ -6,7 +6,7 @@ import json
 import logging
 import urllib.request
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 from app.core.config import BASE_DIR
 
@@ -23,7 +23,7 @@ _REMOTE_SIZE_CACHE_TIME: Dict[str, float] = {}
 
 _VRAM_CACHE: int = 0
 
-def _init_vram_cache():
+def _init_vram_cache() -> None:
     """Фоновая инициализация кэша VRAM, чтобы не блокировать первый запрос."""
     global _VRAM_CACHE
     _VRAM_CACHE = _get_vram_mb()
@@ -103,39 +103,6 @@ def _get_remote_size(url: str, key: str) -> int:
     except Exception as _e:
         logger.debug(f"[REMOTE_SIZE] tree api fail: key={key} err={_e}")
     return 0
-    """Делает HEAD запрос для получения размера файла. Кэширует на 5 минут."""
-    import time
-    _now = time.time()
-    if key in _REMOTE_SIZE_CACHE and _now - _REMOTE_SIZE_CACHE_TIME.get(key, 0) < 300:
-        return _REMOTE_SIZE_CACHE[key]
-    try:
-        _req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Bloodloom/0.5.3"})
-        with urllib.request.urlopen(_req, timeout=5) as _resp:
-            _size = int(_resp.headers.get("Content-Length", 0) or 0)
-            if _size <= 0:
-                _size = int(_resp.headers.get("x-linked-size", 0) or 0)
-            if _size > 0:
-                _REMOTE_SIZE_CACHE[key] = _size
-                _REMOTE_SIZE_CACHE_TIME[key] = _now
-                return _size
-    except Exception as e:
-        # HEAD-проба не удалась (CDN/сеть) — наблюдаемо, управление уходит в Range-fallback (L4)
-        logger.debug(f"[LLM-SIZE] HEAD-проба не удалась, Range-fallback: {url}: {e}")
-    # Fallback: запрос 1 байта через Range — полный размер в Content-Range ("bytes 0-0/4683073920")
-    try:
-        _req = urllib.request.Request(url, headers={"User-Agent": "Bloodloom/0.5.3", "Range": "bytes=0-0"})
-        with urllib.request.urlopen(_req, timeout=5) as _resp:
-            _cr = _resp.headers.get("Content-Range", "")
-            if "/" in _cr:
-                _size = int(_cr.split("/")[-1])
-                _REMOTE_SIZE_CACHE[key] = _size
-                _REMOTE_SIZE_CACHE_TIME[key] = _now
-                return _size
-    except Exception as e:
-        # Обе пробы размера не дали результат — размер UNKNOWN (0), отказ наблюдаем (L4);
-        # «скачано» на пустом/битом файле останется невозможным: валидация требует размер >1 МБ
-        logger.debug(f"[LLM-SIZE] размер не определён (HEAD и Range не удались): {url}: {e}")
-    return 0
 
 def _update_remote_sizes_once() -> None:
     """Один проход по всем моделям: определяет размеры на сервере.
@@ -187,7 +154,8 @@ def get_llm_sources() -> Dict:
         return {}
     try:
         with open(LLM_SOURCES_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            loaded: Dict[str, Any] = json.load(f)
+            return loaded
     except Exception as e:
         logger.error(f"Ошибка чтения {LLM_SOURCES_FILE}: {e}")
         return {}
@@ -287,14 +255,14 @@ def get_model_status() -> Dict:
             }
     return status
 
-def _reporthook(block_num: int, block_size: int, total_size: int, model_key: str):
+def _reporthook(block_num: int, block_size: int, total_size: int, model_key: str) -> None:
     """Callback для urllib.urlretrieve для вычисления процентов."""
     if total_size > 0:
         downloaded = block_num * block_size
         progress = min(100.0, (downloaded / total_size) * 100.0)
         _DOWNLOAD_STATUS[model_key] = round(progress, 1)
 
-def _download_split_model(model_key: str, info: dict, target_path, url: str, parts: int, force: bool) -> bool:
+def _download_split_model(model_key: str, info: dict, target_path: Path, url: str, parts: int, force: bool) -> bool:
     """Скачивает все части сплит-модели (HF-канон {base}-0000N-of-0000M.gguf).
     Общий прогресс — по суммарным байтам. llama-server грузит сплиты нативно:
     в -m передаётся первая часть, остальные подхватываются из той же папки."""

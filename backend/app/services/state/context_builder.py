@@ -76,6 +76,6 @@ def get_npc_context(context: Dict[str, Any], npc_id: str) -> Optional[Dict[str, 
     Используется npc_agent вместо поиска по списку вручную.
     """
     for ctx in context.get("npc_contexts", []):
-        if ctx.get("npc_id") == npc_id:
+        if isinstance(ctx, dict) and ctx.get("npc_id") == npc_id:
             return ctx
     return None

@@ -149,7 +149,7 @@ class ReactionSubscriber:
         for et in _REACTION_EVENT_TYPES:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
+    def _on_event(self, event: EventDTO) -> Optional[EventDTO]:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
         self._pending_events.append(event)
         return None
@@ -410,7 +410,7 @@ class ReactionSubscriber:
 
                     # 2. Социальная реакция (страх, доверие)
                     if fear_delta != 0.0 or trust_delta != 0.0:
-                        social_kwargs = {
+                        social_kwargs: Dict[str, Any] = {
                             "npc_id": npc_id,
                             # v1 backward compat
                             "fear_delta": fear_delta,
@@ -477,7 +477,7 @@ class ReactionSubscriber:
             f"all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
         )
         return {
-            npc.get("id") or npc.get("npc_id")
+            str(npc.get("id") or npc.get("npc_id"))
             for npc in ctx.all_npcs_raw
             if npc.get("id") or npc.get("npc_id")
         }

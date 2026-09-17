@@ -11,7 +11,7 @@ path: /project/backend/app/domain/world_epoch.py
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, ItemsView, Iterator, KeysView, List, Optional, ValuesView
 
 
 class WorldEpoch:
@@ -23,6 +23,12 @@ class WorldEpoch:
     """
 
     __slots__ = ("epoch_id", "_state", "_npcs")
+
+    # PEP 526-аннотации (без присваивания — совместимы с __slots__):
+    # дают mypy типы атрибутов, устанавливаемых через object.__setattr__.
+    epoch_id: int
+    _state: Dict[str, Any]
+    _npcs: List[Dict[str, Any]]
 
     def __init__(self, epoch_id: int, state: Dict[str, Any],
                  npcs: Optional[List[Dict[str, Any]]] = None):
@@ -64,7 +70,9 @@ class WorldView:
 
     __slots__ = ("_epoch",)
 
-    def __init__(self, epoch: WorldEpoch):
+    _epoch: "WorldEpoch"
+
+    def __init__(self, epoch: WorldEpoch) -> None:
         object.__setattr__(self, "_epoch", epoch)
 
     # ── dict-compat READ (бесплатно, ноль копий) ──
@@ -78,19 +86,19 @@ class WorldView:
     def __contains__(self, key: str) -> bool:
         return key in self._epoch.state
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         return self._epoch.state.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[Any]:
         return self._epoch.state.values()
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         return self._epoch.state.items()
 
     def __len__(self) -> int:
         return len(self._epoch.state)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self._epoch.state)
 
     # ── Свойства эпохи ──

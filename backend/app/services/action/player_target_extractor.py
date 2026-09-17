@@ -23,7 +23,7 @@ TODO: интегрировать с LifeEngine для получения реа�
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.services.spatial.spatial_runtime import euclidean_distance
 
@@ -32,6 +32,10 @@ logger = logging.getLogger(__name__)
 
 class PlayerTargetExtractor:
     """S.0 — Определение, к кому обращается игрок."""
+
+    # Ленивый pymorphy3 MorphAnalyzer (PEP 526-аннотация, инициализируется
+    # один раз на класс в _extract_by_descriptors)
+    _morph_analyzer: Any
 
     # ── Константы ───────────────────────────────────────────────────────────
     _ROLE_KEYWORDS: Dict[str, List[str]] = {
@@ -850,7 +854,7 @@ class PlayerTargetExtractor:
                     if dist <= _voice_radius
                 }
                 if _audible_candidates:
-                    _nearest_id = min(_audible_candidates, key=_audible_candidates.get)
+                    _nearest_id = min(_audible_candidates, key=lambda k: _audible_candidates[k])
                     _nearest_dist = _audible_candidates[_nearest_id]
                     for ctx in npc_contexts:
                         if ctx.get("npc_id") == _nearest_id:

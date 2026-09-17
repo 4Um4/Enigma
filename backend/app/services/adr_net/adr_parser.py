@@ -154,16 +154,16 @@ def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (A
         for filename in os.listdir(audits_dir):
             if filename.endswith(".md") and "IMPACT" in filename:
                 filepath = os.path.join(audits_dir, filename)
-                node = parse_impact_audit(filepath)
-                if node:
-                    if node.adr_id in all_adrs:
+                audit_node = parse_impact_audit(filepath)
+                if audit_node:
+                    if audit_node.adr_id in all_adrs:
                         # Обновляем существующий
-                        existing = all_adrs[node.adr_id]
-                        existing.title = node.title
-                        existing.files = node.files
-                        existing.adr_type = node.adr_type
+                        existing = all_adrs[audit_node.adr_id]
+                        existing.title = audit_node.title
+                        existing.files = audit_node.files
+                        existing.adr_type = audit_node.adr_type
                     else:
-                        all_adrs[node.adr_id] = node
+                        all_adrs[audit_node.adr_id] = audit_node
                         
     return all_adrs
 

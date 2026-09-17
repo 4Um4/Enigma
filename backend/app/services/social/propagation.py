@@ -25,6 +25,14 @@ from app.models.state_delta import (
 
 logger = logging.getLogger(__name__)
 
+# FIX BUG-06: конверсия шкал и капа дельты слуха (§10 — запрещены магические
+# множители). SOCIAL_TO_NPC_STRESS_SCALE = 100 (шкала 0-1 → 0-100);
+# SOCIAL_STRESS_CAP = 25.0 (один слух ≤ четверти шкалы: STRESS_DELTA_SCALE
+# 0.25 × конверсия). Per-listener персонализация — в SocialEngine
+# (_distort_intensity по trust); личностный множитель — DEBT (S72 п.7).
+SOCIAL_TO_NPC_STRESS_SCALE: float = 100.0
+SOCIAL_STRESS_CAP: float = 25.0
+
 
 def propagate_social_rumors(
     social_engine: Any,
@@ -105,14 +113,23 @@ def propagate_social_rumors(
             # v2: Разделяем на EMOTION (stress) и SOCIAL (trust)
             # SocialEngine дельты в диапазоне ~0-1, NPCState — 0-100
             if pr.stress_delta != 0.0:
+                # FIX BUG-06: конверсия шкал 0-1 (SocialEngine) → 0-100 (NPCState)
+                # именованной константой, не магическим ×100 (§10). Капа 25.0:
+                # один слух не может добавить более четверти шкалы стресса
+                # (STRESS_DELTA_SCALE=0.25 × 100, симметрично продюсеру).
+                # Per-listener персонализация уже внутри продюсера
+                # (_distort_intensity: trust ±амплитуда); личностный множитель
+                # (fear/willpower, §ENIGMA-S72 п.7) — долг после прокидки
+                # профилей в SocialEngine.
+                _stress_100 = min(pr.stress_delta * SOCIAL_TO_NPC_STRESS_SCALE, SOCIAL_STRESS_CAP)
                 deltas.append(
                     StateDeltas(
                         npc_id=pr.npc_id,
                         # v1 backward compat
-                        stress_delta=pr.stress_delta * 100,
+                        stress_delta=_stress_100,
                         # v2 domain-tagged payload
                         domain=DeltaDomain.EMOTION,
-                        payload=EmotionPayload(stress_delta=pr.stress_delta * 100),
+                        payload=EmotionPayload(stress_delta=_stress_100),
                         source="social_propagation",
                     )
                 )

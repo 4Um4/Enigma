@@ -9,7 +9,7 @@ path: backend/app/services/phases/movement_bridge.py
 """
 
 import logging
-from typing import Any, List
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,8 @@ def process_movement_intents(
     from app.domain.movement import LocalSteeringGoal
     from app.services.spatial.movement_engine import MovementEngine
 
-    _merged_intents = []
-    _per_npc = {}
+    _merged_intents: List[Any] = []
+    _per_npc: Dict[Any, List[Any]] = {}
     for i in movement_intents:
         _nid = getattr(i, "npc_id", None)  # noqa: ENIGMA002
         if _nid:

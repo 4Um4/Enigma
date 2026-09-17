@@ -510,15 +510,49 @@ class TickOrchestrator:
 
         if all_npcs_raw:
             # 1. Синхронизация с scene_state (для NPC, которые уже materialized)
+            # S267: карта живых позиций NPC — СОБСТВЕННЫЙ префикс позиции
+            # npc-дикта = авторитет локации (V8-SP-19-семантика). Порядок
+            # итерации сцен не должен решать, чья stale-запись победит.
+            _npc_pos_by_id: dict = {}
+            for _npc in all_npcs_raw or []:
+                _cid = _npc.get("npc_id") or _npc.get("id") or ""
+                if _cid:
+                    _npc_pos_by_id[_cid] = str(_npc.get("position") or "")
             for _scene in _all_scenes.values():
                 _npc_positions = _scene.get("npc_positions", {})
+                _scene_loc = _scene.get("location_id", "")
                 for _npc_id, _entry in _npc_positions.items():
-                    self._npc_runtime_locations[_npc_id] = _scene.get("location_id", _entry.get("location_id"))
+                    _entry_pos = str(_entry.get("position") or "")
+                    # (а) префикс записи противоречит её собственной сцене —
+                    # запись не владеет (мусор в данных сцены);
+                    if (
+                        _entry_pos
+                        and ":" in _entry_pos
+                        and _scene_loc
+                        and "exit_" not in _entry_pos
+                        and _entry_pos.split(":")[0] != _scene_loc
+                    ):
+                        continue
+                    # (б) запись пуста/без префикса, но ЖИВАЯ позиция NPC
+                    # префиксована другой локацией — stale-спавн editor JSON
+                    # в чужой сцене (факт S267: market-запись Торнина с
+                    # pos='' перезаписывала живой 'tavern:node_16' при
+                    # любом порядке сцен);
+                    if (
+                        (not _entry_pos or ":" not in _entry_pos)
+                        and _scene_loc
+                    ):
+                        _live_pos = _npc_pos_by_id.get(_npc_id, "")
+                        if _live_pos and ":" in _live_pos and "exit_" not in _live_pos:
+                            _live_loc = _live_pos.split(":")[0]
+                            if _live_loc and _live_loc != _scene_loc:
+                                continue
+                    self._npc_runtime_locations[_npc_id] = _scene_loc
                     for _npc in all_npcs_raw:
                         _npc_config_id = _npc.get("npc_id") or _npc.get("id")
                         if _npc_config_id == _npc_id:
-                            _npc["location_id"] = _entry.get("location_id", _scene.get("location_id"))
-                            _npc["location"] = _entry.get("location", _scene.get("location_id"))
+                            _npc["location_id"] = _scene_loc
+                            _npc["location"] = _scene_loc
                             break
 
             # 2. S186 V2: Синхронизация с pending transfers (для NPC, которые в очереди)
@@ -1000,10 +1034,20 @@ class TickOrchestrator:
                         _d_entry["location_id"] = _d_neighbor
                         logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → S186 transfer to {_d_neighbor}")
                     _dwell_map.pop(_d_id, None)
+        # S267 (V8-SP-19 для ghost-скана): запись с position, префиксованным
+        # ТЕКУЩЕЙ сценой — НЕ призрак, а мусорное location_id-поле (класс
+        # S267: чужой apply создал запись 'tavern:node_16' в market-сцене →
+        # ghost-скан «перенёс» Торнина, del из tavern → лимбо: npc-dict без
+        # position, ME слеп, adjacency недостижима — лента EATDIAG-GATE1
+        # tick 8→9). Призрак = позиция НЕ подтверждает текущую сцену.
         _ghosts = [
             (npc_id, entry)
             for npc_id, entry in list(_npc_positions.items())
-            if entry.get("location_id", _current_loc) != _current_loc and npc_id != "player"
+            if npc_id != "player"
+            and entry.get("location_id", _current_loc) != _current_loc
+            and not (
+                str(entry.get("position") or "").startswith(f"{_current_loc}:")
+            )
         ]
 
         if not _ghosts:

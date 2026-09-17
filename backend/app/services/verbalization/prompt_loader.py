@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from app.core.config import settings
+from app.core.config import BASE_DIR
 
 # Кэш загруженных промптов
 _prompt_cache: dict[str, str] = {}
@@ -30,7 +30,7 @@ def load_system_prompt(filename: str, use_cache: bool = True) -> str:
     # Абсолютный или относительный путь
     path = Path(filename)
     if not path.is_absolute():
-        path = Path(settings.BASE_DIR) / filename
+        path = BASE_DIR / filename
 
     if not path.exists():
         raise FileNotFoundError(f"Файл промпта не найден: {path}")

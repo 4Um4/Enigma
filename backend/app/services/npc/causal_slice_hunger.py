@@ -126,7 +126,7 @@ class HungerDesiredChangeProducer:
             w = {k: round(v * _factor, 4) for k, v in w.items()}
             _drift = round(1.0 - sum(w.values()), 6)
             if _drift != 0.0:
-                _top = max(w, key=w.get)
+                _top = max(w, key=lambda k: w[k])
                 w[_top] = round(w[_top] + _drift, 4)
 
         # Viability (W4): все способы мертвы (враг + нечем платить +

@@ -267,7 +267,9 @@ class LocalCausalSolver:
             return {}
 
         # Маппинг NPC_id -> их сырые данные для получения observer_state
-        npc_data_map = {d.get("npc_id"): d for d in all_npcs_raw if d.get("npc_id")}
+        npc_data_map = {
+            str(d.get("npc_id")): d for d in all_npcs_raw if d.get("npc_id")
+        }
 
         # Словарь аккумуляции феноменов для каждого наблюдателя
         observer_phenomena: Dict[str, List[PerceivedPhenomenon]] = {}
@@ -381,7 +383,7 @@ class LocalCausalSolver:
         visible_blood = False
         dominant_sound = None
         anomaly_score = 0.0
-        nearby_entities = set()
+        nearby_entities: set[str] = set()
 
         for phen in phenomena:
             # 1. УГРОЗА: Физическая или когнитивная угроза

@@ -889,6 +889,12 @@ class NPCState:
                 # (TALK/WARN/TRADE/...) — по-прежнему строгие.
                 Intent.SPREAD_RUMOR,
                 Intent.CALL_FOR_HELP,
+                # Аудит релиза (BUG-01): REQUEST_SERVICE при краше резолвера
+                # цели приходит без target — семантика broadcast ('all'),
+                # аналогично S262. Target-обязательные (TALK/WARN/TRADE) —
+                # по-прежнему строгие. Слой 2 из двух: слой 1 (DecisionHub
+                # деградация при target=None) — отдельным шагом.
+                Intent.REQUEST_SERVICE,
             ):
                 raise ValueError(
                     f"NPC {self.npc_id} has intent {self.intent.name} without target"

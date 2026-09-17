@@ -9,7 +9,12 @@ import logging
 import urllib.request
 from typing import Any, Dict, Optional
 
-from app.services.llm.provider import GenerationParams, LlmProvider  # BUG-DLG-041 FIX: Исправлен импорт (llm_provider → provider)
+from app.services.llm.provider import (
+    GenerationParams,
+    LlmProvider,
+    ProviderInfo,
+    ProviderType,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +38,20 @@ class OpenAICompatibleProvider(LlmProvider):
 
     def is_available(self) -> bool:
         return self._available
+
+    def get_info(self) -> ProviderInfo:
+        """Метаданные провайдера (реализация абстракции LlmProvider)."""
+        return ProviderInfo(
+            name="openai_compatible",
+            provider_type=ProviderType.OPENAI,
+            endpoint=self._endpoint,
+            model_name=self._model_name,
+            is_available=self.is_available(),
+        )
+
+    def get_provider_type(self) -> ProviderType:
+        """Тип провайдера (реализация абстракции LlmProvider)."""
+        return ProviderType.OPENAI
 
     def complete(
         self, prompt: str, params: Optional[GenerationParams] = None, system_prompt: Optional[str] = None
@@ -88,7 +107,8 @@ class OpenAICompatibleProvider(LlmProvider):
             try:
                 with _opener.open(req, timeout=60) as response:
                     resp_data = json.loads(response.read().decode("utf-8"))
-                    return resp_data["choices"][0]["message"]["content"].strip()
+                    _content: str = resp_data["choices"][0]["message"]["content"]
+                    return _content.strip()
             except urllib.error.HTTPError as e:
                 if e.code in (429, 503) and attempt < 3:
                     wait_time = 2 ** attempt
@@ -100,3 +120,6 @@ class OpenAICompatibleProvider(LlmProvider):
             except Exception as e:
                 logger.error(f"[OPENAI_PROVIDER] Request failed: {e}")
                 raise
+        # mypy: цикл retry всегда завершается return/raise; эта точка недостижима,
+        # но нужна для проверки "missing return statement".
+        raise RuntimeError("[OPENAI_PROVIDER] Все попытки запроса исчерпаны")

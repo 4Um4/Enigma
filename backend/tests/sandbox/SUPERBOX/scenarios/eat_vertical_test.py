@@ -163,12 +163,6 @@ def main() -> int:
             if _o.holder:
                 _holder_seen.add((_o.object_id, _o.holder))
         _final_hunger = float((_t.get("needs") or {}).get("hunger", 1.0))
-        # S267-DIAG (временный зонд, удаляется после вердикта E7):
-        # тождество канала чтения + реальные ключи id
-        print(f"[EATDIAG-TEST] i={_} hunger={_final_hunger:.2f} "
-              f"npc_obj={id(_t)} npc_id={_t.get('npc_id')!r} "
-              f"id_field={_t.get('id')!r} "
-              f"needs={dict(_t.get('needs') or {})}")
         _final_pos = str(_t.get("position", "") or "")
         # S264-финал: захват hunger В МОМЕНТ успешного терминала —
         # внутри цикла, до пост-едового роста (мир живёт и голодает

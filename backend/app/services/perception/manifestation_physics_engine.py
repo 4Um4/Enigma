@@ -113,7 +113,7 @@ class ManifestationPhysicsEngine:
         )
 
     def _compute_gaze(
-        self, fear: float, threat: float, inhib: float, traversal: Dict[str, Any]
+        self, fear: float, threat: float, inhib: float, traversal: Dict[str, Any] | None
     ) -> GazeManifestation:
         # Избегание зрительного контакта: страх, стыд, подчинение
         avoidance = min(1.0, (fear * 0.5) + (inhib * 0.4))
@@ -143,7 +143,7 @@ class ManifestationPhysicsEngine:
         )
 
     def _compute_breathing(
-        self, stress: float, pain: float, fear: float, traversal: Dict[str, Any]
+        self, stress: float, pain: float, fear: float, traversal: Dict[str, Any] | None
     ) -> BreathingManifestation:
         rate = 14.0 + (stress / 100.0 * 8.0) + (fear * 6.0)
         if traversal and traversal.get("status") == "MOVING":
@@ -156,7 +156,7 @@ class ManifestationPhysicsEngine:
         )
 
     def _compute_movement(
-        self, traversal: Dict[str, Any], fatigue: float, pain: float, shock: float
+        self, traversal: Dict[str, Any] | None, fatigue: float, pain: float, shock: float
     ) -> MovementManifestation:
         if not traversal or traversal.get("status") != "MOVING":
             return MovementManifestation()
