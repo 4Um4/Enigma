@@ -1118,12 +1118,33 @@ class GameScreen:
                 import copy
 
                 for npc_id, new_data in _new_positions.items():
+                    # ADR-019: Frontend — авторитет визуальной позиции игрока.
+                    # idle-снапшот собирается до FE-push → позиция игрока в нём
+                    # устаревшая на 1 цикл; перезапись давала «магнит» (откат
+                    # игрока каждый тик). Позиция player живёт только в FE +
+                    # санкционированном push (routes:1246 whitelist).
+                    if npc_id == "player":
+                        continue
                     # ADR-0014: Атомарная замена вместо shallow merge.
                     # Shallow merge убивал движение: если бэкенд не присылал local_position,
                     # старые координаты оставались навсегда, и рендерер рисовал призраков.
                     scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(
                         new_data
                     )
+                # FIX-RC2-FE: снапшот — полное множество NPC сцены. Без удаления
+                # отсутствующих ушедшие в другую локацию оставались на рендере вечно.
+                _fe_positions = scene_state.setdefault("npc_positions", {})
+                for _stale_id in list(_fe_positions.keys()):
+                    # MAGNET-FIX: player отсутствует в idle-снапшоте по
+                    # контракту (бэкенд отдаёт npc_positions без player —
+                    # доказано merged-логами всех сессий). Deletion стирал
+                    # запись каждый тик → _player_xy падал в fallback
+                    # (5.0,5.0) → «телепорт к стойке» + «магнит» при ходьбе.
+                    # Позиция player живёт только в FE + push (routes:1246).
+                    if _stale_id == "player":
+                        continue
+                    if _stale_id not in _new_positions:
+                        del _fe_positions[_stale_id]
                     # TASK 2: Visual Revision Counter — логируем только если координаты реально изменились
                     _old_lp = (
                         scene_state.get("npc_positions", {})

@@ -1,0 +1,13 @@
+tick=6 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=12 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=13 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=15 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=16 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=16 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=18 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=18 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=20 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=21 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=22 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=24 loc=market_square wo=2 trg_in=False ss_type=dict
+tick=24 loc=market_square wo=2 trg_in=False ss_type=dict

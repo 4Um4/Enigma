@@ -1,0 +1,67 @@
+
+============================================================
+DRIFT LABORATORY — Mode: quick_debug
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mxgoyix8
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mxgoyix8\saves
+
+--- MODE 0: Quick Debug (3 ticks) ---
+[DIAG_WALLS] npc=guard_borko b=tavern:exit_east bxy=(8.22,12.45) pos='kitchen' cur=(16.70,3.78) dist=12.13
+[DIAG_WALLS] npc=thief_shadow b=tavern:exit_east bxy=(8.22,12.45) pos='corner_table' cur=(11.50,11.00) dist=3.59
+[DIAG_P0_EXTRACT] tick=1 npc=blacksmith_orm removed; remaining=['guard_borko', 'maid_lusya', 'merchant_goran', 'player', 'tavern_keeper_tornin', 'thief_shadow']
+[DIAG_P0_COMMIT] tick=1 loc=tavern final_npc_keys=['blacksmith_orm', 'guard_borko', 'maid_lusya', 'merchant_goran', 'player', 'tavern_keeper_tornin', 'thief_shadow']
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='market_square:exit_north' cur=(32.50,39.00) dist=0.00
+[DIAG_P0_EXTRACT] tick=2 npc=blacksmith_orm removed; remaining=['player']
+[DIAG_WALLS] npc=merchant_goran b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(-99.00,-99.00) dist=190.62
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(-99.00,-99.00) dist=190.62
+[DIAG_P0_COMMIT] tick=2 loc=tavern final_npc_keys=['guard_borko', 'maid_lusya', 'merchant_goran', 'player', 'tavern_keeper_tornin', 'thief_shadow']
+[DIAG_WALLS] npc=merchant_goran b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(-99.00,-99.00) dist=190.62
+[DIAG_WALLS] npc=blacksmith_orm b=market_square:exit_north bxy=(32.50,39.00) pos='' cur=(31.78,26.65) dist=12.37
+[DIAG_P0_COMMIT] tick=3 loc=tavern final_npc_keys=['blacksmith_orm', 'guard_borko', 'maid_lusya', 'merchant_goran', 'player', 'tavern_keeper_tornin', 'thief_shadow']
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_mxgoyix8
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: quick_debug
+======================================================================
+
+  Всего сравнений (comparisons): 14
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 0.4 сек
+  Скорость: 35 сравнений/сек, 7.4 тиков/сек

@@ -22,6 +22,15 @@ BELIEF_DECAY_TAU: float = 100.0
 # Порог забывания: если вес упал ниже этого значения, убеждение стирается.
 BELIEF_FORGET_THRESHOLD: float = 0.05
 
+# FIX-RC3 (P0/P1): системные источники телеметрии — НЕ сущности.
+# Убеждение (L2.5) — это отношение к источнику давления. Телеметрия движков
+# (стадии BreakProgressEngine, combat-события) кристаллизовалась как
+# "персистентный источник fear" → 7×fear(weight=1.0) на NPC → драйв fear 0.82
+# → flee-цикл каждый тик → S139-байпас расписания (P1) и churn (P0).
+# Расширение реестра — только через мини-ADR (прецедент ADR-O-362).
+_SYSTEM_SOURCE_PREFIXES: tuple[str, ...] = ("break_progress:",)
+_SYSTEM_SOURCE_IDS: frozenset = frozenset({"combat"})
+
 
 class BeliefCrystallizationEngine:
     """
@@ -70,6 +79,12 @@ class BeliefCrystallizationEngine:
                 )
 
         for evidence in evidence_list:
+            # FIX-RC3 (P0/P1): телеметрия движков не является сущностью —
+            # кристаллизация убеждений из неё запрещена (мембрана L1.5 → L2.5).
+            _src = evidence.source_id or ""
+            if _src in _SYSTEM_SOURCE_IDS or _src.startswith(_SYSTEM_SOURCE_PREFIXES):
+                logger.debug(f"[L2.5] Skipped system-source evidence: source={_src}")
+                continue
             # Определение направления эффекта (угроза или помощь)
             # Отрицательный эффект = угроза -> fear
             # Положительный эффект = помощь -> trust

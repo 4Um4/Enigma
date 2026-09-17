@@ -325,7 +325,10 @@ class SceneStateManager:
         if self._tick_campaign_id == campaign_id:
             # Дополнение Б: Обновляем словарь сцен, а не одиночный слот
             _loc_id = result_snapshot.get("location_id", "default")
+            self._strip_husk_npcs(result_snapshot)
             self._tick_scenes[_loc_id] = copy.deepcopy(result_snapshot)
+            # S266-ОТКАТ: несущий deepcopy (Temporal alias, класс A).
+            # PR-5 только после полной Epoch-границы.
             try:
                 _recog = self._tick_scenes[_loc_id].get("player_recognition", {})
                 _time_out = self._tick_scenes[_loc_id].get("game_time_seconds", "MISSING")
@@ -484,6 +487,8 @@ class SceneStateManager:
         # Пустой location_id = без фильтра (для синхронизации позиции)
         if location_id and scene.get("location_id") != location_id:
             return None
+        # FIX-RC2-v2: оболочки не попадают в RAM при загрузке
+        self._strip_husk_npcs(scene)
         # Гарантируем актуальные local_position при каждой загрузке
         self._enrich_local_positions(campaign_id, scene)
         # Обогащаем spatial_walls/obstacles из editor JSON, если их нет
@@ -527,11 +532,55 @@ class SceneStateManager:
     # save_scene_state
     # ─────────────────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _strip_foreign_npcs(scene_state: dict) -> None:
+        """FIX-RC2: сцена не персистит чужих NPC (double presence).
+
+        Извлечение (S186) чистит RAM, но призрак успевал вернуться в коммит
+        (стале-порядок фаз / write-back) — NPC жил в двух сценах сразу
+        и вечно оставался видим в исходной локации. Владелец NPC — сцена
+        его location_id (S186_INJECT); чужие записи удаляются на границе
+        персистентности.
+        """
+        _loc = scene_state.get("location_id", "")
+        _positions = scene_state.get("npc_positions")
+        if not _loc or not isinstance(_positions, dict):
+            return
+        for _nid in list(_positions.keys()):
+            _entry = _positions.get(_nid)
+            _entry_loc = _entry.get("location_id") if isinstance(_entry, dict) else None
+            if _entry_loc and _entry_loc != _loc:
+                del _positions[_nid]
+
+    @staticmethod
+    def _strip_husk_npcs(scene_state: dict) -> int:
+        """FIX-RC2-v2: пустые записи-оболочки переноса (loc/pos/local = None).
+
+        Реальный NPC всегда имеет пространственные данные (SC-1..SC-5).
+        Оболочка без всего — призрак S186-переноса: заморожена на рендере
+        и создаёт double presence в персистенте.
+        """
+        _positions = scene_state.get("npc_positions")
+        if not isinstance(_positions, dict):
+            return 0
+        _removed = 0
+        for _nid in list(_positions.keys()):
+            _e = _positions.get(_nid)
+            if not isinstance(_e, dict):
+                continue
+            _lp = _e.get("local_position")
+            _has_xy = isinstance(_lp, dict) and _lp.get("x") is not None
+            if not (_e.get("location_id") or _e.get("position") or _has_xy):
+                del _positions[_nid]
+                _removed += 1
+        return _removed
+
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         """Сохраняет SceneState через PersistencePort (Устав 4.2.1).
         ADR-SCENE-LOCK: Если тик заблокирован, обновляет кэш вместо записи на диск.
         Персист произойдёт в unlock_tick()."""
         scene_state.pop("snapshot_tick", None)
+        self._strip_husk_npcs(scene_state)
         # TICK-SCOPED IDENTITY: Внутри тика обновляем кэш, НЕ пишем на диск.
         # Запись на диск происходит один раз в unlock_tick().
         if self._tick_locked and self._tick_campaign_id == campaign_id:
@@ -1630,11 +1679,15 @@ class SceneStateManager:
 
         # S1-FIX (INV-COMMIT-CARDINALITY): Фаза 10 не пишет в БД напрямую.
         # Она только обновляет кэш в RAM. Запись на диск происходит 1 раз в unlock_tick().
-        import copy
         if self._tick_campaign_id == campaign_id:
             _loc_id = scene_state.get("location_id", "default")
+            import copy
             self._tick_scenes[_loc_id] = copy.deepcopy(scene_state)
             # ADR-O-309: SceneStateManager — единственный источник state_t-1.
+            # S266-ОТКАТ: deepcopy ЗДЕСЬ несущий (класс A) — docstring
+            # commit_tick_result предупреждал: без копии alias протекает
+            # (Temporal Isolation, L4). Удаляется только в PR-5, когда
+            # Epoch-граница построена полностью (WorldView в TickState).
             self._last_committed_npcs = copy.deepcopy(npc_dicts or [])
         return 2
 

@@ -94,17 +94,52 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                         )
 
             # Факт 1: Каузальная позиция (semantic truth, NO geometry)
-            completion_changes.append(
-                SceneChange(
-                    type=ChangeType.NPC_POSITION,
-                    target=npc_id,
-                    field="position",
-                    value=_entry_node,
-                    cause="cross_loc_materialize:traversal_complete" if _is_boundary else "traversal_complete",
-                    tick=current_tick,
-                    target_location_id=_target_location_id,  # ДОЛГ 6.2
+            # FIX-6c: boundary-приход НЕ переносит мгновенно (закрытие ДОЛГА 6.2
+            # в части видимости): NPC встаёт В дверь (position=boundary,
+            # local_position=дверь — виден игроку на узле В, не на Б) и ждёт
+            # BOUNDARY_DWELL_TICKS; перенос делает S186 по boundary_dwell.
+            if _is_boundary:
+                completion_changes.append(
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=npc_id,
+                        field="position",
+                        value=target_node,
+                        cause="boundary_arrival:traversal_complete",
+                        tick=current_tick,
+                    )
                 )
-            )
+                completion_changes.append(
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=npc_id,
+                        field="local_position",
+                        value={"x": wp[-1][0], "y": wp[-1][1]},
+                        cause="boundary_arrival:traversal_complete",
+                        tick=current_tick,
+                    )
+                )
+                from app.core.constants import BOUNDARY_DWELL_TICKS
+                _scene_ref = getattr(ctx, "scene_state", None)
+                if _scene_ref is not None:
+                    _bd = _scene_ref.setdefault("boundary_dwell", {})
+                    _bd[npc_id] = {
+                        "ready_tick": current_tick + BOUNDARY_DWELL_TICKS,
+                        "neighbor": _neighbor,
+                    }
+                    logger.info(f"[BOUNDARY_DWELL] npc={npc_id} at {target_node}; transfer at tick {current_tick + BOUNDARY_DWELL_TICKS}")
+            else:
+                completion_changes.append(
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=npc_id,
+                        field="position",
+                        value=_entry_node,
+                        cause="traversal_complete",
+                        tick=current_tick,
+                        target_location_id=_target_location_id,  # ДОЛГ 6.2
+                    )
+                )
 
             # Факт 2: Визуальная позиция — только intra-location.
             # ДОЛГ 6.2: Boundary transition НЕ эмитит local_position.

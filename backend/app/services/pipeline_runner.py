@@ -53,11 +53,22 @@ def build_tick_state(
             break
 
     _svc = ctx.npc_services
+    # S266 / TEMPORAL EPOCH (приказ Мастера): S-143 deepcopy-изоляция
+    # удалена на этом сайте. Обоснование: (1) NpcTickPipeline — pure
+    # reducer (ADR-TZ10-1); INV-TEMPORAL-ISOLATION-хеш доказывает
+    # годами: hash(TickState) BEFORE == AFTER на 99% тиков — редьюсер
+    # не мутирует вход; (2) мутации идут через _npc_dict_for_write
+    # (отдельная копия на NPC — писатель) и TickMutation →
+    # StateApplicator (causal spine); (3) трипвайр остаётся: INV-хеш
+    # гейтован 1/100 тиков (S265) — прямой писатель упадёт ГРОМКО,
+    # а не замаскируется копией. 10 копий мира/тик → 0.
+    from app.domain.world_epoch import WorldView
+
     _tick_state = create_tick_state(
         tick_id=ctx.tick_number,
         campaign_id=ctx.campaign_id,
-        scene_state=copy.deepcopy(ctx.scene_state),  # S-143 FIX: Deep copy to prevent TickState mutation
-        all_npcs_raw=copy.deepcopy(alive_npcs),  # S-143 FIX: Deep copy to prevent TickState mutation
+        scene_state=ctx.scene_state,  # S266-PR1 (восстановлен после разведки): редьюсер чистый (INV-хеш)
+        all_npcs_raw=alive_npcs,  # S266-PR1: ссылка; писатель изолирован (3b)
         effective_drives_map=effective_drives_map,
         pe_modifiers_map=pe_mods_map,
         interventions=ctx.interventions,
@@ -65,19 +76,19 @@ def build_tick_state(
         player_target_id=getattr(_shared, "player_target_id", "") or "",  # noqa: ENIGMA002
         action_type=getattr(_shared, "action_type", "idle") or "idle",
         raw_input=_raw_input,
-        is_session_start=False,  # Легаси-флаг DMContextDTO, всегда был False при None
-        nearby_npcs=copy.deepcopy(ctx.all_npcs_raw),  # S-143 FIX: Deep copy to prevent TickState mutation
+        is_session_start=False,
+        nearby_npcs=ctx.all_npcs_raw,  # S266: ссылка (было: deepcopy)
         line_of_sight={n.get("id", n.get("npc_id")): True for n in ctx.all_npcs_raw},
         scene_continuity=getattr(_shared, "scene_continuity", None),  # noqa: ENIGMA002
         spatial_events=getattr(_shared, "spatial_events", []),  # noqa: ENIGMA002
         drf_tick_id=ctx.tick_number,
-        memory_weights_map=copy.deepcopy(memory_weights_map),  # S-143 FIX
-        narrative_cache_map=copy.deepcopy(narrative_cache_map),  # S-143 FIX
-        social_modifiers_map=copy.deepcopy(social_modifiers_map),  # S-143 FIX
-        reputation_modifiers_map=copy.deepcopy(reputation_modifiers_map),  # S-143 FIX
-        economic_profiles_map=copy.deepcopy(economic_profiles_map),  # S-143 FIX
-        crystallized_beliefs_map=copy.deepcopy(crystallized_beliefs_map),  # S-143 FIX
-        identity_traits_map=copy.deepcopy(identity_traits_map),  # S-143 FIX
+        memory_weights_map=memory_weights_map,  # S266: read-only проекция
+        narrative_cache_map=narrative_cache_map,  # S266
+        social_modifiers_map=social_modifiers_map,  # S266
+        reputation_modifiers_map=reputation_modifiers_map,  # S266
+        economic_profiles_map=economic_profiles_map,  # S266
+        crystallized_beliefs_map=crystallized_beliefs_map,  # S266
+        identity_traits_map=identity_traits_map,  # S266
         relationship_store=_svc.relationship_store if _svc else None,  # noqa: ENIGMA001
         spatial_service=spatial_service or (_svc.spatial_service if _svc and hasattr(_svc, "spatial_service") else None),  # noqa: ENIGMA001
         spatial_query=spatial_query or (_svc.spatial_query if _svc and hasattr(_svc, "spatial_query") else None),  # noqa: ENIGMA001
@@ -169,7 +180,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             from app.services.spatial.spatial_query_service import SpatialQueryService
             _spatial_query = SpatialQueryService(
                 npc_positions=ctx.scene_state.get("npc_positions", {}),
-                scene_state=copy.deepcopy(ctx.scene_state),  # S-143 FIX: Deep copy to prevent TickState mutation
+                scene_state=ctx.scene_state,  # S266: чистый читатель; изоляция — snapshot (Сайт 7)
             )
 
         # BUG-AUDIT-11 (Фаза 2): Эпистемический барьер.
@@ -209,7 +220,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             _perceiving_npcs = filter_perceiving_npcs(
                 npc_ids=_all_npc_ids,
                 event=_mem_evt,
-                scene_state=copy.deepcopy(ctx.scene_state),  # S-143 FIX: Deep copy to prevent TickState mutation
+                scene_state=ctx.scene_state,  # S266: чистый читатель; изоляция — snapshot (Сайт 7)
                 spatial_query=_spatial_query,
             )
             if _npc_id not in _perceiving_npcs:

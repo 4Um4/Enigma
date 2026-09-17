@@ -48,7 +48,9 @@ class EventCompiler:
     """
 
     # Константы — совпадают с legacy apply_change
-    _DEFAULT_SPEED: float = 2.0
+    # FIX-6b-2: 2.0 м/тик = пересечение зала за 1 сек реального времени —
+    # ходьба неразличима («исчезают мгновенно»). 0.7 ≈ прогулочный шаг.
+    _DEFAULT_SPEED: float = 0.7
     _TELEPORT_THRESHOLD: float = 0.1
     _JITTER_RANGE: float = 0.4
 

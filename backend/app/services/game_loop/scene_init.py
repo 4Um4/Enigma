@@ -367,21 +367,26 @@ def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
     FIX: Читаем из авторитетного источника (SQLite), а не из JSON-зеркала,
     чтобы избежать рассинхрона и постоянного пересоздания сцены с дефолтным временем.
     """
-    if loop.scene_manager._persistence:
-        try:
-            scene = loop.scene_manager._persistence.load_scene(campaign_id)
-            if scene and scene.get("location_id"):
-                return scene["location_id"]
-        except Exception as e:
-            logger.warning(f"[GAME_LOOP] Ошибка получения location_id из SQLite: {e}")
-    else:
-        try:
-            existing = loop.scene_manager._read_campaign_json(campaign_id)
-            raw = existing.get("scene_state", existing)
-            if isinstance(raw, dict) and raw.get("location_id"):
-                return raw["location_id"]
-        except Exception as e:
-            logger.warning(f"[GAME_LOOP] Ошибка получения location_id из JSON: {e}")
+    # FIX-WALLS: load_scene() («первая попавшаяся» сцена, sqlite:206) удалён —
+    # при живых мульти-локациях он возвращал случайную сцену → ротация активной
+    # локации → фронтенд получал снапшот чужой локации («NPC сквозь стену»).
+    # Приоритет: metadata.current_location (пишется игрок-ходами, routes:927)
+    # → find_starting_location (детерминированная) → DEFAULT_LOCATION_ID.
+    from app.services.campaign_state_service import get_campaign_state_service
+
+    try:
+        _cs = get_campaign_state_service().get_campaign_state(campaign_id)
+        _player_loc = _cs.metadata.get("current_location") if _cs else None
+        if _player_loc:
+            return _player_loc
+    except Exception as e:
+        logger.warning(f"[GAME_LOOP] current_location lookup failed: {e}")
+
+    try:
+        return loop.scene_manager.find_starting_location(campaign_id)
+    except Exception as e:
+        logger.warning(f"[GAME_LOOP] find_starting_location failed: {e}")
+
     from app.core.constants import DEFAULT_LOCATION_ID
 
     return DEFAULT_LOCATION_ID

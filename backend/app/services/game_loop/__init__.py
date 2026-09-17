@@ -737,6 +737,18 @@ class GameLoop:
         except Exception as e:
             logger.warning(f"[NEW_GAME] RelationshipStore reset failed: {e}")
 
+        # === 3b. СБРОС УБЕЖДЕНИЙ L2.5 (FIX-RC3 / P3: old memories = 0) ===
+        # enigma_memory.db не чистился NEW_GAME: убеждения прошлых сессий
+        # переживали рестарт и душили драйвы нового мира.
+        try:
+            _belief_store = getattr(self._tick_orch, "crystallized_belief_store", None)
+            if _belief_store is not None:
+                _belief_store.reset_campaign(campaign_id)
+                removed.append("sqlite:crystallized_beliefs")
+                logger.info(f"[NEW_GAME] BeliefStore cleared for '{campaign_id}'")
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] BeliefStore reset failed: {e}")
+
         # === 4. СБРОС СЕССИИ ===
         try:
             from app.services.player_session_service import player_session_service
@@ -776,6 +788,23 @@ class GameLoop:
         _scene_for_commit = None
         try:
             _scene_for_commit = self.scene_manager.reinit_campaign(campaign_id)
+            # FIX-WALLS-2: seed авторитета локации игрока при new_game.
+            # Без current_location в metadata idle-путь угадывает активную
+            # локацию («первую попавшуюся», sqlite:206) → ротация сцен →
+            # фронтенд получает снапшот чужой локации («NPC сквозь стену»).
+            # Стартовая локация = где заспавнен игрок (reinit возвращает её).
+            try:
+                if isinstance(_scene_for_commit, dict) and _scene_for_commit.get("location_id"):
+                    from app.services.campaign_state_service import get_campaign_state_service
+
+                    _cs = get_campaign_state_service().get_campaign_state(campaign_id)
+                    if _cs:
+                        _cs.metadata["current_location"] = _scene_for_commit["location_id"]
+                        logger.info(
+                            f"[NEW_GAME] current_location seeded: {_scene_for_commit['location_id']}"
+                        )
+            except Exception as _seed_err:
+                logger.warning(f"[NEW_GAME] current_location seed failed: {_seed_err}")
         except Exception as e:
             logger.warning(f"[NEW_GAME] Scene reinit failed: {e}")
 
@@ -1288,6 +1317,26 @@ class GameLoop:
         if not _active_loc:
             _active_loc = DEFAULT_LOCATION_ID
 
+        # FIX-WALLS: авторитет локации игрока для idle-пути. Без этого активная
+        # локация угадывается через load_scene() («первую попавшуюся», sqlite:206)
+        # → при живых мульти-локациях активная скачет между сценами → фронтенд
+        # получает снапшот ЧУЖОЙ локации → NPC рисуются в чужой системе
+        # координат («гуляют сквозь стену»). metadata.current_location пишется
+        # игрок-ходами (routes:927). Явный location_id (replay) не перекрывается.
+        if location_id is None:
+            try:
+                from app.services.campaign_state_service import get_campaign_state_service
+
+                _cs = get_campaign_state_service().get_campaign_state(campaign_id)
+                _player_loc = _cs.metadata.get("current_location") if _cs else None
+                if _player_loc and _player_loc != _active_loc:
+                    logger.info(
+                        f"[IDLE_TICK] Player location authority: {_active_loc} → {_player_loc}"
+                    )
+                    _active_loc = _player_loc
+            except Exception as _loc_err:
+                logger.warning(f"[IDLE_TICK] player location lookup failed: {_loc_err}")
+
         # S186 FIX: Если запрошенная локация не была инициализирована в БД,
         # инициализируем её принудительно, чтобы TickOrchestrator смог её тикнуть.
         _active_scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
@@ -1308,6 +1357,34 @@ class GameLoop:
                     _location_ids = list(set(_all_locs + [_active_loc]))
         except Exception as e:
             logger.warning(f"[IDLE_TICK] Failed to get all locations: {e}")
+
+        # FIX-RC1 (P0): цель cross-location переноса обязана тикать, иначе
+        # _pending_transfers не дренируется (S186) и NPC зависает в лимбо.
+        # 1) Реестр мог не вернуть полный список — дополняем всеми
+        #    СУЩЕСТВУЮЩИМИ сценами кампании.
+        # 2) Сцена-цель может не существовать — создаём ДО lock, наследуя
+        #    tick/game_time активной сцены (паттерн _load_or_create_scene,
+        #    не сырой initialize_scene с tick=0).
+        try:
+            _sm_persistence = getattr(self.scene_manager, "_persistence", None)
+            if _sm_persistence is not None:
+                for _loc_key in _sm_persistence.load_all_scenes(campaign_id):
+                    if _loc_key not in _location_ids:
+                        _location_ids.append(_loc_key)
+            for _ploc in list(getattr(self._tick_orch, "_pending_transfers", {}).keys()):
+                if not _ploc:
+                    continue
+                if self.scene_manager.get_scene_state(campaign_id, _ploc) is None:
+                    _target_scene = self.scene_manager.initialize_scene(campaign_id, _ploc, "12:00")
+                    if _active_scene:
+                        _target_scene["tick"] = _active_scene.get("tick", 0)
+                        _target_scene["game_time_seconds"] = _active_scene.get("game_time_seconds", 43200.0)
+                    self.scene_manager.save_scene_state(campaign_id, _target_scene)
+                    logger.info(f"[IDLE_TICK] S186: создана сцена цели переноса {_ploc}")
+                if _ploc not in _location_ids:
+                    _location_ids.append(_ploc)
+        except Exception as e:
+            logger.warning(f"[IDLE_TICK] S186 target-scene ensure failed: {e}")
 
         # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
         self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
@@ -1413,6 +1490,7 @@ class GameLoop:
 
         # Коммит результатов оркестратора (если ядро не сделало это само)
         if result and result.final_scene_state is not None:
+
             # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
             if result.status == "ok" and hasattr(self._tick_orch, '_epistemic_store') and self._tick_orch._epistemic_store:
                 result.final_scene_state["epistemic_records"] = self._tick_orch._epistemic_store.to_dict()

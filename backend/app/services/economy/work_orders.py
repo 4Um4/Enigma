@@ -231,13 +231,30 @@ def run_work_orders_pass(ctx: Any, orchestrator: Any) -> None:
     """
     if not work_enabled():
         return
+    # S266-W5: заказы живут в per-location сценах; активная сцена —
+    # только одна за тик. Прежний единственный источник (ctx.scene_state)
+    # прятал orders от SERVE при смене активной локации (wo_5 born в
+    # tavern, актив = market → SERVE никогда → W5/W3 красные). Сбор со
+    # ВСЕХ сцен оркестратора; материализация — только на сцене заказа.
     orders = ctx.scene_state.get(_ORDERS_KEY)
+    if not isinstance(orders, dict) or not orders:
+        _sm = getattr(orchestrator, "_scene_manager", None)
+        _all = getattr(_sm, "_tick_scenes", None) or {}
+        for _sc in _all.values():
+            if not isinstance(_sc, dict):
+                continue
+            _o_sc = _sc.get(_ORDERS_KEY)
+            if isinstance(_o_sc, dict) and _o_sc:
+                orders = _o_sc
+                break
+
     if not isinstance(orders, dict) or not orders:
         return
 
     _by_id = {
         str(n.get("npc_id") or n.get("id") or ""): n for n in ctx.all_npcs_raw or []
     }
+    _ctx_loc = str(ctx.scene_state.get("location_id", "") or "") if isinstance(ctx.scene_state, dict) else ""
     for _oid in sorted(orders):
         _o = orders[_oid]
         if _o.get("status") not in (
@@ -249,6 +266,12 @@ def run_work_orders_pass(ctx: Any, orchestrator: Any) -> None:
         _npc = _by_id.get(_seller)
         if _npc is None:
             continue
+        # S266-W5: SERVE материализуется на СЦЕНЕ заказа (продавец
+        # должен быть там телом); иначе конвертер чужой локации не
+        # увидит деятельность (тот же локация-гейт, что в конвертере).
+        _npc_loc = str(_npc.get("location_id") or _npc.get("location") or "")
+        if _ctx_loc and _npc_loc and _npc_loc != _ctx_loc:
+            continue  # продавец не здесь — заказ обслужит свой тик-локация
         if isinstance(_npc.get("activity_state"), dict):
             continue  # занят — заказ ждёт (давление, не потеря)
         _bs = _npc.get("body_state")

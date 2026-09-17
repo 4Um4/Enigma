@@ -777,6 +777,10 @@ class TickOrchestrator:
                 logger.info(f"[S186_INJECT] Importing NPC={_npc_id} into {_current_loc}")
                 _npc_positions[_npc_id] = _entry
                 self._npc_runtime_locations[_npc_id] = _current_loc
+                # FIX-EC-2 (защита): багаж из предыдущей сцены не пересекает
+                # границу локации — intent очищается и в entry очереди.
+                _entry.pop("intent", None)
+                _entry.pop("intent_target", None)
 
                 # S186 FIX: Обновляем только location_id в полном стейте NPC.
                 # Пространственные поля (position, local_position) обновляются через SceneStateManager.
@@ -984,6 +988,18 @@ class TickOrchestrator:
         """
         _current_loc = ctx.scene_state.get("location_id", "")
         _npc_positions = ctx.scene_state.get("npc_positions", {})
+        # FIX-6c: пауза в дверях — по истечении BOUNDARY_DWELL_TICKS помечаем
+        # NPC соседней локацией: штатный ghost-скан ниже делает S186-перенос.
+        _dwell_map = ctx.scene_state.get("boundary_dwell")
+        if isinstance(_dwell_map, dict) and _dwell_map:
+            for _d_id, _d_info in list(_dwell_map.items()):
+                if ctx.tick_number >= _d_info.get("ready_tick", 0):
+                    _d_entry = _npc_positions.get(_d_id)
+                    _d_neighbor = _d_info.get("neighbor", "")
+                    if _d_entry and _d_neighbor:
+                        _d_entry["location_id"] = _d_neighbor
+                        logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → S186 transfer to {_d_neighbor}")
+                    _dwell_map.pop(_d_id, None)
         _ghosts = [
             (npc_id, entry)
             for npc_id, entry in list(_npc_positions.items())
@@ -1017,11 +1033,19 @@ class TickOrchestrator:
                         # §4.1 FIX: Используем pop вместо прямого присваивания, чтобы не триггерить INV-POSITION-MUTATION
                         n["current_node"] = ""
                         n.pop("position", None)
+                        # FIX-EC-2: Перенос = прежние намерения недействительны.
+                        # Stale intent (block_path из таверны) материализовал NPC
+                        # ОБРАТНО в исходную локацию из тика цели (ping-pong);
+                        # stale TRADE без target ронял тик валидатором
+                        # npc_state:878 ("TRADE without target", tick=33).
+                        n.pop("intent", None)
+                        n.pop("intent_target", None)
                         break
 
             # 2. Удаляем NPC из scene_state исходной локации (из RAM)
             if npc_id in _npc_positions:
                 del _npc_positions[npc_id]
+
 
             # BUG-SLEEP-013 FIX + S203.3 (Stage 2A): транзит NPC в старой локации
             # останавливается легально. Н-46c: был тихий pop (parent-лаг реестра);
@@ -1843,11 +1867,19 @@ class TickOrchestrator:
 
         # 3. Execute: Сборка TickState и вызов Pure Reducer
         # ADR-123: Death Lock. Мёртвые полностью исключаются из reasoning pipeline.
+        # FIX-EC (ADR-O-347): локация для фильтра (в этом методе нет _current_loc)
+        _current_loc = ctx.scene_state.get("location_id", "")
         _alive_npcs = [
             n
             for n in (ctx.all_npcs_raw or ctx.npc_states)
+            if (
+                (n.get("npc_id") or n.get("id")) == "player"
+                or n.get("location_id", "") == _current_loc
+                or n.get("location") == _current_loc
+            )
             if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
-        ]
+                ]
+
 
         # DEEP-015 FIX: Мёртвый код ExpectationStore (Active Inference) удалён.
         # Хранилище никогда не инициализировалось, блоки всегда были no-op.
@@ -1959,18 +1991,21 @@ class TickOrchestrator:
             "line_of_sight": _tick_state.line_of_sight,
         }
         # S179 FIX: Хэш по каждому полю отдельно, чтобы точно определить источник мутации
-        _hashes_before = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()}
-        _ts_hash_before = hash(tuple(sorted(_hashes_before.items())))
+        # S265 (P2 IRON RIVER): INV-хеш — гейт 1/100 тиков (проба остаётся
+        # трипвайром; полный хеш 2×json.dumps(мир) = ~2.4% тика)
+        _do_hash = (ctx.tick_number % 100 == 0)
+        _hashes_before = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()} if _do_hash else {}
+        _ts_hash_before = hash(tuple(sorted(_hashes_before.items()))) if _do_hash else 0
 
         _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
         ctx.tick_mutation = _mutation
 
-        _hashes_after = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()}
-        _ts_hash_after = hash(tuple(sorted(_hashes_after.items())))
+        _hashes_after = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()} if _do_hash else {}
+        _ts_hash_after = hash(tuple(sorted(_hashes_after.items()))) if _do_hash else 0
         ctx.tick_state_hash_before = _ts_hash_before
         ctx.tick_state_hash_after = _ts_hash_after
 
-        if _ts_hash_before != _ts_hash_after:
+        if _do_hash and _ts_hash_before != _ts_hash_after:
             _mutated_fields = [k for k in _hashes_before if _hashes_before[k] != _hashes_after.get(k)]
             logger.error(f"[PROBE_FAIL_PRE] INV-TEMPORAL-ISOLATION: Mutated fields: {_mutated_fields}")
             ctx.tick_state_mutated_fields = _mutated_fields

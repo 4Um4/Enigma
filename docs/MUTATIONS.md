@@ -1154,6 +1154,13 @@ IPT: батарея-в-прогоне. КРАСНЫЕ ИНВАРИАНТЫ: см
 📁 domain/desired_change.py (REASON_GRIEVANCE + grievance_hold), services/npc/causal_slice_grievance.py (NEW), npc_tick_pipeline.py (проводка R7 + контекст-гейт), tests/gameplay/test_r7_causal_slice_grievance.py (NEW, 10)
 ⚠️ Долги: SLICE-2b-ii (эскалация SOCIAL S264: системное лечение intent-without-target) · калибровка spread_rumor-доминанты (0.49 у guard — кандидат Calibration Lab) · ExperienceTrace-канал вреда (npc_threatens не попадает в переживания) · DEBT-R5-ALLIES наследуется
 
+### S266: TEMPORAL EPOCH — Phase 1 (карта + ядро + PR-1/2/3) + локация-гейты + drift-инструменты | 🟡 WORK ✅ SOCIAL ✅ канон MATCH · EAT 🔴 (§6-фикс известен) · IPT 43/45 · perf 22.9-144 мс
+🎯 Мандат Мастера: полный переход ENIGMA на Temporal Epoch Architecture (не оптимизация — новая модель времени). Цель: 10k тиков ≤ 15 мин (лучше 5). Артефакты: WorldEpoch/WorldView (5/5), DEEPCOPY_MAP (~35-49 копий, 3 несущих), ADR-TEMPORAL-EPOCH. Удалено ~28 deepcopy безопасно (PR-1/2/3: pipeline_runner 10→0; npc_tick_pipeline Сайты 2/3a/4 ~24→0). Локация-гейты (конвертер + work-pass) закрыли мульти-локационные баги (vanish/W5-зависание). Несущие копии (SSM ×2, snapshot, писатель) определены, НЕ тронуты (MISMATCH-доказательство).
+📁 domain/world_epoch.py (NEW), tests/test_world_epoch.py (NEW 5), docs/audits/TEMPORAL_EPOCH_DEEPCOPY_MAP.md (NEW), docs/adr/ADR-TEMPORAL-EPOCH.md (NEW), pipeline_runner (PR-1), npc_tick_pipeline (PR-2/3 + локация-гейт + СИНХРО), activity_lifecycle_service (мост + гейт + СИНХРО), work_orders (локация-гейт + needs-синхро), scene_state_manager (PR-4 → откат), SUPERBOX/scenarios (6 диагностических зондов NEW), docs/MUTATIONS.md (эта запись)
+IPT: 43/45. КРАСНЫЕ: traversals=None + dialogue-init
+
+
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`

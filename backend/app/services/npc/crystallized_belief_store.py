@@ -83,6 +83,24 @@ class CrystallizedBeliefStore:
             self._beliefs.clear()
             self._loaded = False
 
+    def reset_campaign(self, campaign_id: str) -> None:
+        """FIX-RC3/P3 (NEW_GAME): полная очистка убеждений кампании.
+
+        Убеждения L2.5 — память прошлого мира и живут в enigma_memory.db,
+        переживая NEW_GAME (сцена чистилась, сторе — нет). Страхи прошлых
+        сессий возвращались fear-стеком → flee-цикл → подавление расписания.
+        """
+        self._beliefs.clear()
+        self._loaded = True  # RAM пуст; ленимовая загрузка старых данных запрещена
+        if self._store is not None:
+            try:
+                self._store.execute(
+                    "DELETE FROM crystallized_beliefs WHERE campaign_id = ?",
+                    (campaign_id,),
+                )
+            except Exception as e:
+                _logger.error(f"[BELIEF_STORE] reset_campaign failed: {e}", exc_info=True)
+
     def get_beliefs(self, npc_id: str) -> List[CrystallizedBelief]:
         """Чтение убеждений NPC для передачи в резолвер."""
         self._ensure_loaded()

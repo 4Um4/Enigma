@@ -184,6 +184,9 @@ TICKS_PER_DAY: Final[int] = 24  # 1 тик = 1 час игрового, 24 ти�
 
 # BUG-P3-07: Вынос хардкода окна подготовки атаки
 ATTACK_WINDUP_DURATION_TICKS = 2
+# FIX-6c: пауза NPC в дверном проёме перед cross-location переносом
+# (визуальная непрерывность: дошёл → постоял → ушёл, не «испарился»)
+BOUNDARY_DWELL_TICKS = 2
 # S209 (Vertical Slice): подготовка кражи — окно обнаружения для свидетелей.
 STEAL_WINDUP_DURATION_TICKS = 2
 

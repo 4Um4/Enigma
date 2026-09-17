@@ -180,7 +180,14 @@ def _execute_handler(
 
         # BUG-CORE-007 FIX: SimpleNamespace должен содержать scene_state,
         # иначе social_input_projector упадёт с AttributeError.
-        ctx.shared_context = SimpleNamespace(scene_state=ctx.scene_state)
+        # PHASE8-SOCIAL-CID FIX: подписчики Фазы 8 читают
+        # shared_context.campaign_id напрямую (social_subscriber:205, без
+        # getattr-guard в отличие от :130). Fallback-namespace без поля ронял
+        # social-обработчик на каждом тике с NPC_SPOKE при shared_context=None
+        # (97 крашей за сессию 20260917_105916, события Фазы 8 терялись).
+        ctx.shared_context = SimpleNamespace(
+            scene_state=ctx.scene_state, campaign_id=ctx.campaign_id
+        )
 
     if (
         not hasattr(ctx.shared_context, "spatial_query")

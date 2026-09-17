@@ -274,6 +274,13 @@ class MovementEngine:
                     if current_svc:
                         logger.debug(f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}")
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
+                        # TODO: временный зонд DIAG_WALLS; будет удалено после: пиннинг застревания у выхода
+                        if boundary_node is not None:
+                            _zd = npc_positions.get(intent.actor_id, {}) if npc_positions else {}
+                            _zl = _zd.get("local_position", {})
+                            _zx = _zl.get("x", -99.0) if isinstance(_zl, dict) else -99.0
+                            _zy = _zl.get("y", -99.0) if isinstance(_zl, dict) else -99.0
+                            print(f"[DIAG_WALLS] npc={intent.actor_id} b={boundary_node.node_id} bxy=({boundary_node.x:.2f},{boundary_node.y:.2f}) pos={_zd.get('position', '')!r} cur=({_zx:.2f},{_zy:.2f}) dist={math.hypot(boundary_node.x - _zx, boundary_node.y - _zy):.2f}")
                         logger.debug(f"[DIAG_BOUNDARY] result={boundary_node}")
                         logger.debug(f"[BORKO_CROSS_BOUNDARY] tick={tick} boundary_node={boundary_node}")
                         if boundary_node:
@@ -295,7 +302,19 @@ class MovementEngine:
 
                             # S-145 FIX: Материализация если NPC стоит на boundary node ИЛИ очень близко к ней.
                             _is_at_boundary = (_npc_pos_data.get("position", "") == boundary_node.node_id)
-                            if _is_at_boundary or _dist_to_boundary < 1.5:
+                            if _is_at_boundary:
+                                # FIX-6c: стоит В двери → пауза BOUNDARY_DWELL_TICKS,
+                                # перенос делает S186 по boundary_dwell (tick_orchestrator).
+                                from app.core.constants import BOUNDARY_DWELL_TICKS
+                                _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+                                if intent.actor_id not in _dwell_map:
+                                    _dwell_map[intent.actor_id] = {
+                                        "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+                                        "neighbor": target_loc,
+                                    }
+                                    logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} at {boundary_node.node_id}; transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+                                continue
+                            if _dist_to_boundary < 1.5:
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
 
@@ -825,7 +844,12 @@ class MovementEngine:
         _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
 
         # V8-SP-24 FIX: Boundary node micro_snap deadlock
-        if getattr(next_node, "role", None) == NodeRole.BOUNDARY:  # noqa: ENIGMA002
+        # FIX-6b-1 (walk-to-door): материализация только если boundary
+        # РЕАЛЬНО близко. Раньше следующий waypoint=boundary давал мгновенный
+        # портал из любой точки (borko: 10.8 м от exit_east → «ниндзя»).
+        # Иначе — обычный шаг вниз: NPC доходит пешком, портал срабатывает
+        # в главной ветке (_dist_to_boundary < 1.5) у самого проёма.
+        if getattr(next_node, "role", None) == NodeRole.BOUNDARY and _dist < 1.5:  # noqa: ENIGMA002
             _b_info = svc.get_boundary_info(next_node.node_id) or {}
             _materialize_target_loc = _b_info.get("neighbor_chunk", "")
             _entry_hint = _b_info.get("entry_node_hint", "") or f"{_materialize_target_loc}:entrance"
@@ -836,14 +860,29 @@ class MovementEngine:
                     _active_travs = scene_state.get("active_traversals", {}) if scene_state else {}
                     if isinstance(_active_travs, dict) and intent.actor_id in _active_travs:
                         del _active_travs[intent.actor_id]
-                    return [SceneChange(
-                        type=ChangeType.NPC_POSITION, target=intent.actor_id,
-                        field="position", value=_target_node_obj.node_id,
-                        cause=f"cross_loc_materialize:{intent.reason}", tick=tick,
-                        target_location_id=_materialize_target_loc,
-                        target_local_xy=(_target_node_obj.x, _target_node_obj.y),
-                        traversal_proposal=None,
-                    )]
+                    # FIX-6c: встаём в boundary-узел и ждём BOUNDARY_DWELL_TICKS
+                    # (перенос делает S186); визуально NPC стоит в двери.
+                    from app.core.constants import BOUNDARY_DWELL_TICKS
+                    _dwell_map_ms = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+                    _dwell_map_ms[intent.actor_id] = {
+                        "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+                        "neighbor": _materialize_target_loc,
+                    }
+                    return [
+                        SceneChange(
+                            type=ChangeType.NPC_POSITION, target=intent.actor_id,
+                            field="position", value=next_node.node_id,
+                            cause=f"boundary_arrival:{intent.reason}", tick=tick,
+                            traversal_proposal=None,
+                        ),
+                        SceneChange(
+                            type=ChangeType.NPC_POSITION, target=intent.actor_id,
+                            field="local_position",
+                            value={"x": next_node.x, "y": next_node.y},
+                            cause=f"boundary_arrival:{intent.reason}", tick=tick,
+                            traversal_proposal=None,
+                        ),
+                    ]
             logger.error(f"[MICRO_SNAP_BOUNDARY_DEADLOCK] npc={intent.actor_id} next_node={next_node.node_id}")
             return []
 

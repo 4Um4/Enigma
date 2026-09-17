@@ -148,6 +148,7 @@ class NpcTickPipeline:
         _npc_ids_in_pipeline = [n.get("npc_id") or n.get("id") for n in (_npcs_to_process or [])]
         logger.warning(f"[S198_PIPELINE_ENTER] is_player_turn={_is_player_turn} count={len(_npc_ids_in_pipeline)} ids={_npc_ids_in_pipeline}")
 
+
         logger.debug(
             f"[SHI_TRACE_2] NpcTickPipeline.run ENTERED. is_player_turn={_is_player_turn} npcs_to_process={len(_npcs_to_process or [])} nearby_npcs={len(state.nearby_npcs or [])} all_npcs={len(state.all_npcs_raw or [])}"
         )
@@ -167,7 +168,9 @@ class NpcTickPipeline:
             _is_attack_target = npc_id == _attack_target
 
             # S1 FIX: Используем deepcopy для проверки слуха, чтобы избежать мутации оригинального npc
-            state_l2 = load_l2_state_from_runtime_dict(copy.deepcopy(dict(npc))) if npc_id else None  # noqa: ENIGMA001
+            state_l2 = load_l2_state_from_runtime_dict(dict(npc)) if npc_id else None  # noqa: ENIGMA001
+            # S266: shallow dict() достаточно — load_l2 строит НОВЫЙ объект;
+            # deepcopy копировал весь профиль ради конструктора
 
             if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
                 # P1-02: NPC не видит, но может слышать.
@@ -222,12 +225,14 @@ class NpcTickPipeline:
             # None = нет данных в SQLite → JSON-fallback (контракт
             # load_narrative_from_sqlite).
             _sqlite_cache = state.narrative_cache_map.get(npc_id)
+            # S265-фикс (мертвая работа): второй вызов затирал SQLite-кэш
+            # первого — двойная гидратация L2 на NPC/тик (2622 вызова/100
+            # тиков, RUST_CANDIDATE §III-6). Удалён; результат идентичен
+            # (второй вызов перезаписывал первый тем же входом).
             state_l2 = load_l2_state_from_runtime_dict(
                 _npc_dict_for_write,
                 narrative_cache_override=_sqlite_cache,
             )
-
-            state_l2 = load_l2_state_from_runtime_dict(_npc_dict_for_write)
 
             age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
 
@@ -240,7 +245,7 @@ class NpcTickPipeline:
                 target_id=state.player_target_id or "player",
                 current_tick=state.tick_id,
                 scene_continuity=state.scene_continuity,
-                scene_state=copy.deepcopy(state.scene_state),
+                scene_state=state.scene_state,  # S266-PR2: чистый читатель; изоляция — Сайт 1 (TickState)
                 relationship_store=state.relationship_store,
             )
 
@@ -971,6 +976,23 @@ class NpcTickPipeline:
                 # SLEEP_FIX_V3 #2: reactive SLEEP_GUARD проверяет _should_sleep
                 # (вычислен выше в V3-1), а не routine["current"]. NPC в transit
                 # тоже защищён от реактивных движений.
+                # FIX-EC-3: Target-обязательный intent без резолвнутой цели
+                # (пустая комната: TRADE/TALK в city_gate кроме player-стаба)
+                # ронял тик валидатором npc_state:878 ("TALK without target").
+                # Деградация в observe — тот же паттерн, что SLEEP_GUARD ниже.
+                if (
+                    _intent_value in ("talk", "trade", "warn", "accuse", "praise", "blackmail")
+                    and not decision.intent_target
+                ):
+                    logger.warning(
+                        f"[INTENT_DEGRADE] npc={npc_id}: {_intent_value} без цели (пустая комната) → observe"
+                    )
+                    _intent_value = "observe"
+                    import dataclasses
+
+                    from app.models.npc_state import Intent
+                    decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.OBSERVE, intent_target=None))
+
                 if _intent_value in _MOVE_INTENTS and _should_sleep:
                     logger.info(f"[SLEEP_GUARD] npc={npc_id} scheduled=sleeping, blocking reactive movement={_intent_value}")
                     _intent_value = "idle"
@@ -984,7 +1006,7 @@ class NpcTickPipeline:
                         npc_id=npc_id,
                         intent=_intent_value,
                         intent_target=decision.intent_target or "player",
-                        scene_state=copy.deepcopy(state.scene_state),
+                        scene_state=state.scene_state,  # S266-PR2: чистый читатель; изоляция — Сайт 1 (TickState)
                         location_id=state.scene_state.get("location_id", ""),
                         spatial_service=state.spatial_service,
                         spatial_query=state.spatial_query,
@@ -997,7 +1019,7 @@ class NpcTickPipeline:
                                     intent_value=_intent_value,
                                     npc_id=npc_id,
                                     intent_target=decision.intent_target,
-                                    scene_state=copy.deepcopy(state.scene_state),
+                                    scene_state=state.scene_state,  # S266-PR2: чистый читатель; изоляция — Сайт 1 (TickState)
                                     spatial_service=state.spatial_service,
                                     location_id=state.scene_state.get("location_id", ""),
                                 )
@@ -1063,7 +1085,7 @@ class NpcTickPipeline:
                     hub_event=_event_for_interp,
                     player_target_id=state.player_target_id or "player",
                     player_text=state.raw_input,
-                    scene_state=copy.deepcopy(state.scene_state),
+                    scene_state=state.scene_state,  # S266-PR2: чистый читатель; изоляция — Сайт 1 (TickState)
                     campaign_id=state.campaign_id,
                 )
                 if _mem_evt:
@@ -1387,6 +1409,13 @@ def _resolve_reactive_movement(
     ADR-102: Единственный источник графа — SpatialService. load_graph удалён.
     ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
+    # FIX-PLAYER-AGENCY: аватар игрока не двигается автономно. Реактивный
+    # flee для "player" — авто-бегство без ввода: аватар перебегал локации
+    # в обход игрок-хода (метаданные локации не обновлялись → камера и
+    # сцена расходились). Движение игрока — только через игрок-действия.
+    if npc_id == "player":
+        return None
+
     from app.domain.movement import (
         PRIORITY_REACTIVE,
         LocalSteeringGoal,

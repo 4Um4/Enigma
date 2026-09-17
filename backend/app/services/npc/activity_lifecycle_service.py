@@ -126,7 +126,7 @@ def _get_object(scene_state: Dict[str, Any], object_id: str) -> Optional[WorldOb
         return WorldObjectStore.get(scene_state, object_id)
     except Exception as exc:
         # Отсутствие цели — легальный исход (target_vanished), не тихий None (L4)
-        logger.debug(f"[ACTIVITY] get_object {object_id}: {exc}")
+        logger.info(f"[ACTIVITY] get_object {object_id}: {type(exc).__name__}: {exc}")
         return None
 
 
@@ -212,10 +212,22 @@ def _terminate(
     ТОЛЬКО здесь (для success), никогда ярлыком."""
     _tick = ctx.tick_number
     _nid = _npc_id(npc)
+    # S267-DIAG2 (временный зонд, удаляется после вердикта E6):
+    # fail-терминалы Торнина (timeout/taken/unavailable) — слепая зона TERM-зонда
+    if _nid == "tavern_keeper_tornin":
+        print(f"[EATDIAG-FAILTERM] tick={_tick} success={success} "
+              f"reason={reason!r} activity={state.activity_type.value}")
     if success:
         _spec = _SPEC_BY_TYPE.get(state.activity_type)
         _need_name = _spec.success.need_name if _spec else ""
         _needs = npc.get("needs")
+        # S267-DIAG (временный зонд, удаляется после вердикта E7):
+        # какой канал реально получает гашение терминала
+        print(f"[EATDIAG-TERM] tick={_tick} npc={_nid} need={_need_name!r} "
+              f"has_needs={isinstance(_needs, dict)} "
+              f"has_key={(_need_name in _needs) if isinstance(_needs, dict) else False} "
+              f"val={_needs.get(_need_name) if isinstance(_needs, dict) else None} "
+              f"npc_obj={id(npc)}")
         if _need_name and isinstance(_needs, dict) and _need_name in _needs:
             _needs[_need_name] = 0.0
         for _d in npc.get("desires") or []:
@@ -302,6 +314,13 @@ def _advance(
     ):
         _target_obj = _get_object(ctx.scene_state, state.target_ref)
         _owner = _npc_id(npc)
+        # S267-DIAG3 (временный зонд, удаляется после вердикта E6):
+        if _target_obj is None and _npc_id(npc) == "tavern_keeper_tornin":
+            _sswo = ctx.scene_state.get("world_objects") if isinstance(ctx.scene_state, dict) else None
+            print(f"[EATDIAG-VANISH] tick={_tick} target={state.target_ref} "
+                  f"ctx_loc={ctx.scene_state.get('location_id')!r} "
+                  f"wo_type={type(_sswo).__name__} wo_len={len(_sswo) if hasattr(_sswo, '__len__') else 'NA'} "
+                  f"wo_keys={list(_sswo.keys())[:6] if isinstance(_sswo, dict) else 'NA'}")
         if (
             _target_obj is None
             or getattr(_target_obj, "state", "") == "DESTROYED"
@@ -338,7 +357,17 @@ def _advance_move(
     """Движение = побочный эффект. Прибытие определяется АВТОРИТЕТОМ W2:
     искомое объектное действие доступно в resolve() ⇒ adjacency выполнена."""
     _nid = _npc_id(npc)
-    if not _is_settled(ctx.scene_state, _nid):
+    # S267-DIAG2 (временный зонд, удаляется после вердикта E6):
+    # где именно висит MOVE Торнина: settled / объект / координата / узел
+    _settled = _is_settled(ctx.scene_state, _nid)
+    if _nid == "tavern_keeper_tornin":
+        _pobj = _get_object(ctx.scene_state, state.target_ref)
+        print(f"[EATDIAG-MOVE] tick={ctx.tick_number} settled={_settled} "
+              f"step_idx={state.step_index} target={state.target_ref} "
+              f"obj_state={getattr(_pobj, 'state', 'NO_OBJ')} "
+              f"holder={getattr(_pobj, 'holder', 'NO_OBJ')} "
+              f"xy={_npc_xy(npc)} at_node={_at_node(npc, step.target_ref)}")
+    if not _settled:
         return None  # в пути — ждём прибытия (следующий тик проверит settled)
     _obj = _get_object(ctx.scene_state, state.target_ref)
     if _obj is None:
@@ -392,6 +421,11 @@ def _advance_object_action(
         _terminate(ctx, orchestrator, npc, state, success=False, reason="bad_action")
         return
     _actions = AffordanceResolver.resolve(_obj, _view, _npc_xy(npc))
+    # S267-DIAG2 (временный зонд, удаляется после вердикта E6):
+    if _npc_id(npc) == "tavern_keeper_tornin":
+        print(f"[EATDIAG-OBJ] tick={ctx.tick_number} wanted={_wanted} "
+              f"available={[a.action_type for a in _actions]} "
+              f"xy={_npc_xy(npc)}")
     if not any(a.action_type == _wanted for a in _actions):
         _terminate(ctx, orchestrator, npc, state, success=False, reason="take_unavailable")
         return
@@ -578,12 +612,74 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
     Возвращает MOVE-цели для life_intents — ДО Гейта① (simulation.py)."""
     if not _activity_enabled():
         return []
+    # S266-РАННЕЕ: если deepcopy-слой потерял world_objects (усечение
+    # между create_tick_context и Фазой 0.7), восстановить subtree из
+    # SSOT — SSM _tick_scenes (факт foodfate: SSM жив, ctx пуст).
+    _ss = ctx.scene_state
+    if isinstance(_ss, dict) and not _ss.get("world_objects"):
+        _sm = getattr(orchestrator, "_scene_manager", None)
+        if _sm is not None:
+            _loc = _ss.get("location_id", "")
+            _live = (_sm._tick_scenes or {}).get(_loc)
+            if isinstance(_live, dict):
+                _wo = _live.get("world_objects")
+                if _wo:
+                    _ss["world_objects"] = _wo
+    # S266-Н18-СИНХРО: activity_state записывается конвертером в
+    # ctx.all_npcs_raw, а H-18-гейт LifeEngine читает свой кэш —
+    # ДВА экземпляра dict (гипотеза, доказанная eatdiag: гейт слеп).
+    # Синхронизация: пробрасываем activity_state из ctx-словарей
+    # в npc_states (кэш LifeEngine) — гейт начинает видеть деятельность.
+    _states = getattr(orchestrator, "_get_life_engine", lambda: None)()
+    if _states:
+        _cached = _states.get_npc_states(ctx.campaign_id) if hasattr(_states, "get_npc_states") else []
+        _by_id = {n.get("npc_id") or n.get("id"): n for n in (_cached or []) if isinstance(n, dict)}
+        for _n in (ctx.all_npcs_raw or []):
+            if not isinstance(_n, dict):
+                continue
+            _nid = _n.get("npc_id") or _n.get("id") or ""
+            _act = _n.get("activity_state")
+            _cached_npc = _by_id.get(_nid)
+            # S267-DIAG (временный зонд, удаляется после вердикта E7):
+            # разрешение npc_id при merge кэш<->ctx
+            print(f"[EATDIAG-MERGE] npc_id={_n.get('npc_id')!r} "
+                  f"id={_n.get('id')!r} resolved={_nid!r} "
+                  f"found={_cached_npc is not None}")
+            if _cached_npc is not None:
+                if isinstance(_act, dict):
+                    _cached_npc["activity_state"] = _act
+                else:
+                    # S266-ФИНАЛ: терминал popped activity_state из ctx —
+                    # кэш обязан увидеть завершение (иначе вечный busy
+                    # и кэш-голод расходится с ctx-гашением).
+                    _cached_npc.pop("activity_state", None)
+                # S266-ДВУСТОРОННЯЯ needs-синхронизация: кэш-письма
+                # (тест-инъекции, легаси) → ctx (W5); ctx-гашения
+                # (терминал/consume) → кэш (E7: hunger=1.00 при
+                # DESTROYED=2 — гасили в ctx, читали из кэша).
+                _cached_needs = _cached_npc.get("needs")
+                _ctx_needs = _n.get("needs")
+                if isinstance(_cached_needs, dict) and isinstance(_ctx_needs, dict):
+                    _merged = dict(_cached_needs)
+                    _merged.update(_ctx_needs)
+                    _cached_npc["needs"] = _merged
+                    _n["needs"] = _merged
     _goals: List[MacroMovementGoal] = []
     try:
         for _npc in ctx.all_npcs_raw or []:
             if not isinstance(_npc, dict):
                 continue
             if not _npc_id(_npc):
+                continue
+            # S266-локация-гейт: конвертер работает на СЦЕНЕ ctx
+            # (active_location). NPC из ДРУГИХ локаций здесь чужие:
+            # их цель (порция tavern) недостижима из market_square-сцены
+            # → ложный target_vanished (ctx_probe: loc=market_square
+            # при живых порциях в tavern). Пропускаем не-местных;
+            # их тик придёт на своей локации.
+            _npc_loc = str(_npc.get("location_id") or _npc.get("location") or "")
+            _ctx_loc = str((_ss.get("location_id") if isinstance(_ss, dict) else "") or "")
+            if _ctx_loc and _npc_loc and _npc_loc != _ctx_loc:
                 continue
             _raw = _npc.get("activity_state")
             if isinstance(_raw, dict):

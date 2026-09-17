@@ -1,0 +1,76 @@
+
+============================================================
+DRIFT LABORATORY — Mode: long_horizon
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_dsluu1kq
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_dsluu1kq\saves
+
+--- MODE D: Long Horizon (100000 ticks) ---
+  tick=   1000 (  1.0%) | comparisons=    1130 | A=0 B=0 | 45.2s
+  tick=   2000 (  2.0%) | comparisons=    1507 | A=0 B=0 | 82.3s
+  tick=   3000 (  3.0%) | comparisons=    1880 | A=0 B=0 | 126.8s
+  tick=   4000 (  4.0%) | comparisons=    2106 | A=0 B=0 | 166.4s
+  tick=   5000 (  5.0%) | comparisons=    2106 | A=0 B=0 | 198.7s
+  tick=   6000 (  6.0%) | comparisons=    2106 | A=0 B=0 | 230.7s
+  tick=   7000 (  7.0%) | comparisons=    2300 | A=0 B=0 | 264.4s
+  tick=   8000 (  8.0%) | comparisons=    2677 | A=0 B=0 | 301.1s
+  tick=   9000 (  9.0%) | comparisons=    3052 | A=0 B=0 | 340.0s
+  tick=  10000 ( 10.0%) | comparisons=    3427 | A=0 B=0 | 378.0s
+  tick=  11000 ( 11.0%) | comparisons=    3800 | A=0 B=0 | 415.9s
+  tick=  12000 ( 12.0%) | comparisons=    4177 | A=0 B=0 | 460.0s
+  tick=  13000 ( 13.0%) | comparisons=    4266 | A=0 B=0 | 493.9s
+  tick=  14000 ( 14.0%) | comparisons=    4266 | A=0 B=0 | 524.5s
+  tick=  15000 ( 15.0%) | comparisons=    4266 | A=0 B=0 | 555.0s
+  tick=  16000 ( 16.0%) | comparisons=    4597 | A=0 B=0 | 591.2s
+  tick=  17000 ( 17.0%) | comparisons=    4970 | A=0 B=0 | 629.4s
+  tick=  18000 ( 18.0%) | comparisons=    5347 | A=0 B=0 | 669.0s
+  tick=  19000 ( 19.0%) | comparisons=    5720 | A=0 B=0 | 704.5s
+  tick=  20000 ( 20.0%) | comparisons=    6097 | A=0 B=0 | 744.3s
+  tick=  21000 ( 21.0%) | comparisons=    6426 | A=0 B=0 | 787.0s
+  tick=  22000 ( 22.0%) | comparisons=    6426 | A=0 B=0 | 818.1s
+  tick=  23000 ( 23.0%) | comparisons=    6426 | A=0 B=0 | 848.9s
+  tick=  24000 ( 24.0%) | comparisons=    6517 | A=0 B=0 | 881.2s
+  tick=  25000 ( 25.0%) | comparisons=    6890 | A=0 B=0 | 917.0s
+  tick=  26000 ( 26.0%) | comparisons=    7267 | A=0 B=0 | 952.9s
+  tick=  27000 ( 27.0%) | comparisons=    7640 | A=0 B=0 | 991.9s
+  tick=  28000 ( 28.0%) | comparisons=    8017 | A=0 B=0 | 1027.6s
+  tick=  29000 ( 29.0%) | comparisons=    8390 | A=0 B=0 | 1070.8s
+  tick=  30000 ( 30.0%) | comparisons=    8586 | A=0 B=0 | 1109.1s
+  tick=  31000 ( 31.0%) | comparisons=    8586 | A=0 B=0 | 1141.9s
+  tick=  32000 ( 32.0%) | comparisons=    8586 | A=0 B=0 | 1173.3s
+  tick=  33000 ( 33.0%) | comparisons=    8810 | A=0 B=0 | 1207.2s
+  tick=  34000 ( 34.0%) | comparisons=    9187 | A=0 B=0 | 1243.5s
+  tick=  35000 ( 35.0%) | comparisons=    9562 | A=0 B=0 | 1281.6s
+  tick=  36000 ( 36.0%) | comparisons=    9937 | A=0 B=0 | 1318.9s
+  tick=  37000 ( 37.0%) | comparisons=   10310 | A=0 B=0 | 1356.8s
+  tick=  38000 ( 38.0%) | comparisons=   10687 | A=0 B=0 | 1400.8s
+  tick=  39000 ( 39.0%) | comparisons=   10746 | A=0 B=0 | 1433.6s
+  tick=  40000 ( 40.0%) | comparisons=   10746 | A=0 B=0 | 1464.5s
+  tick=  41000 ( 41.0%) | comparisons=   10746 | A=0 B=0 | 1495.6s
+  tick=  42000 ( 42.0%) | comparisons=   11107 | A=0 B=0 | 1531.8s
+  tick=  43000 ( 43.0%) | comparisons=   11480 | A=0 B=0 | 1567.5s
+  tick=  44000 ( 44.0%) | comparisons=   11857 | A=0 B=0 | 1607.4s
+  tick=  45000 ( 45.0%) | comparisons=   12230 | A=0 B=0 | 1643.3s
+  tick=  46000 ( 46.0%) | comparisons=   12607 | A=0 B=0 | 1684.4s
+  tick=  47000 ( 47.0%) | comparisons=   12906 | A=0 B=0 | 1725.4s
+  tick=  48000 ( 48.0%) | comparisons=   12906 | A=0 B=0 | 1758.0s
+  tick=  49000 ( 49.0%) | comparisons=   12906 | A=0 B=0 | 1790.6s
+  tick=  50000 ( 50.0%) | comparisons=   13027 | A=0 B=0 | 1823.0s
+  tick=  51000 ( 51.0%) | comparisons=   13400 | A=0 B=0 | 1858.8s
+  tick=  52000 ( 52.0%) | comparisons=   13777 | A=0 B=0 | 1895.7s
+  tick=  53000 ( 53.0%) | comparisons=   14150 | A=0 B=0 | 1934.6s
+  tick=  54000 ( 54.0%) | comparisons=   14527 | A=0 B=0 | 1970.7s
+  tick=  55000 ( 55.0%) | comparisons=   14900 | A=0 B=0 | 2014.6s
+  tick=  56000 ( 56.0%) | comparisons=   15066 | A=0 B=0 | 2051.6s
+  tick=  57000 ( 57.0%) | comparisons=   15066 | A=0 B=0 | 2082.6s
+  tick=  58000 ( 58.0%) | comparisons=   15066 | A=0 B=0 | 2113.7s
+  tick=  59000 ( 59.0%) | comparisons=   15320 | A=0 B=0 | 4309.6s
+  tick=  60000 ( 60.0%) | comparisons=   15697 | A=0 B=0 | 4349.2s
+  tick=  61000 ( 61.0%) | comparisons=   16072 | A=0 B=0 | 4389.8s
+  tick=  62000 ( 62.0%) | comparisons=   16447 | A=0 B=0 | 4429.2s
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_dsluu1kq
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.
