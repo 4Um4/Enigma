@@ -12,7 +12,7 @@ settings.available_models["qwen_7b"].provider_type = "mock"
 
 _d = Path(tempfile.mkdtemp(prefix="perf_"))
 shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+                ignore=shutil.ignore_patterns("replay.db*", "logs"))
 _wt = _d / "sessions" / "Open_road" / "world_tick.json"
 if _wt.exists():
     _wt.unlink()
@@ -29,6 +29,7 @@ for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
            "app.services.game_loop", "app.services.game_loop.task_scheduler",
            "app.services.npc.npc_tick_pipeline", "app.services.npc.state_applicator",
            "app.services.events.social_subscriber",
+           "app.services.npc.domain_phases",  # S268: [ECO]-спам на hot-path
            "pymorphy3.opencorpora_dict.wrapper"):
     logging.getLogger(_n).setLevel(logging.CRITICAL)
 

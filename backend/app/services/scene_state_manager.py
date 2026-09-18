@@ -326,7 +326,18 @@ class SceneStateManager:
             # Дополнение Б: Обновляем словарь сцен, а не одиночный слот
             _loc_id = result_snapshot.get("location_id", "default")
             self._strip_husk_npcs(result_snapshot)
-            self._tick_scenes[_loc_id] = copy.deepcopy(result_snapshot)
+            # PR-7/S268 (ADR-TEMPORAL-EPOCH): deepcopy = броня до-эпохи против
+            # temporal alias (до PR-6b result_snapshot мог алиасить мутируемый
+            # input). Теперь result_snapshot = overlay.commit() — свежесобранный
+            # dict; overlay умирает с execute(), epoch иммутабелен → алиас-
+            # протечка невозможна ПО ПОСТРОЕНИЮ. EPOCH_OWNERSHIP_ENFORCEMENT:
+            # OFF = legacy-броня (поведение байт-в-байт); ON = 0 копий
+            # (ownership-move; доказанная миграция → дефолт ON, мандат XIII)
+            import os as _os
+            if _os.environ.get("EPOCH_OWNERSHIP_ENFORCEMENT", "0") == "1":
+                self._tick_scenes[_loc_id] = result_snapshot
+            else:
+                self._tick_scenes[_loc_id] = copy.deepcopy(result_snapshot)
             # S266-ОТКАТ: несущий deepcopy (Temporal alias, класс A).
             # PR-5 только после полной Epoch-границы.
             try:
@@ -1267,6 +1278,24 @@ class SceneStateManager:
 
             elif ct == ChangeType.NPC_POSITION:
                 pos = scene_state.setdefault("npc_positions", {})
+                # FIX-ATOMIC (приказ Мастера, forensic bsf_trace): SceneChange
+                # для NPC, ОТСУТСТВУЮЩЕГО в этой сцене, = источник torn-state
+                # (thief_shadow: копия с city_gate-координатами в tavern при
+                # живой копии в city_gate, тики 33+). Легальный вход в новую
+                # локацию — только cross_loc_materialize (S186 INJECT пишет
+                # entry напрямую). Остальное — громкий отказ, NPC не трогаем.
+                if (
+                    change.target not in pos
+                    and not getattr(change, "cause", "").startswith(
+                        ("cross_loc_materialize", "boundary_arrival")
+                    )
+                ):
+                    logger.error(
+                        f"[ATOMIC_GUARD] npc={change.target} отсутствует в сцене "
+                        f"'{scene_state.get('location_id', '?')}'; field={change.field} "
+                        f"cause='{getattr(change, 'cause', '')}' — отклонено (torn-write)"
+                    )
+                    return True
                 entry = pos.setdefault(change.target, {})
                 _old_position = entry.get("position", "")
 
@@ -1682,7 +1711,12 @@ class SceneStateManager:
         if self._tick_campaign_id == campaign_id:
             _loc_id = scene_state.get("location_id", "default")
             import copy
-            self._tick_scenes[_loc_id] = copy.deepcopy(scene_state)
+            # PR-7/S268: тот же паттерн ownership-move (см. commit_tick_result)
+            import os as _os
+            if _os.environ.get("EPOCH_OWNERSHIP_ENFORCEMENT", "0") == "1":
+                self._tick_scenes[_loc_id] = scene_state
+            else:
+                self._tick_scenes[_loc_id] = copy.deepcopy(scene_state)
             # ADR-O-309: SceneStateManager — единственный источник state_t-1.
             # S266-ОТКАТ: deepcopy ЗДЕСЬ несущий (класс A) — docstring
             # commit_tick_result предупреждал: без копии alias протекает

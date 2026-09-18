@@ -14,6 +14,7 @@ path: /project/backend/tests/sandbox/iron_river_ab.py
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 _RUNNER = r"""
 import sys, tempfile, types, os, hashlib, json, shutil, atexit
@@ -32,7 +33,13 @@ from app.core.config import settings
 # (НЕ от аргумента build_game_loop!) → без подмены TemporalEngine писал
 # world_tick.json в ЖИВОЙ backend/data/sessions → RUN2 наследовал sim_tick
 # RUN1 (+150) → систематический MISMATCH. Диагноз iron_river_trace.
-_data_src = Path(settings.data_dir)
+# S268 (вердикт Мастера): вход Contract D консервируется фикстурой.
+# Путь приходит через env из внешнего раннера (в -c контексте __file__
+# не существует). Живая кампания мутируется игровыми сессиями → канон
+# плыл (три смены за S268). Финальный критерий миграции — прогон на
+# ЖИВОЙ кампании; фикстура — рабочая база.
+_fixture = os.environ.get("ENIGMA_FIXTURE_DIR", "")
+_data_src = Path(_fixture) if _fixture and Path(_fixture).exists() else Path(settings.data_dir)
 _data_tmp = Path(tempfile.mkdtemp(prefix="ab_f4_data_"))
 _ignore = shutil.ignore_patterns("replay.db", "logs")
 shutil.copytree(_data_src, _data_tmp, dirs_exist_ok=True, ignore=_ignore)
@@ -77,6 +84,11 @@ def main() -> int:
         # Phase B/F5-зонд: фиксация PYTHONHASHSEED — разводит set-порядки
         # (P1-класс IRON RIVER) от async-остатков (P2-5)
         _env["PYTHONHASHSEED"] = "0"
+        # S268: путь консервированной фикстуры Contract D (env — единственный
+        # канал в _RUNNER/-c контекст)
+        _env["ENIGMA_FIXTURE_DIR"] = str(
+            Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "campaign_open_road"
+        )
         r = subprocess.run(
             [sys.executable, "-c", _RUNNER],
             capture_output=True, text=True, cwd=".", env=_env,

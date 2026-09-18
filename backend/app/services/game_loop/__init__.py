@@ -339,6 +339,12 @@ class GameLoop:
 
         # S189: Epistemic Core Integration (ADR-O-354).
         self._register_epistemic_core(_rel_store)
+        # SPATIAL-KNOWLEDGE-01: ранняя регистрация — store обязан быть на
+        # orchestrator ДО первых relocation-тиков (borko уходит в тиках ~26;
+        # ленивые вызовы после первого player-хода оставляли P4 с None).
+        if getattr(self._tick_orch, "_epistemic_store", None) is None:
+            logger.info("[GAME_LOOP] SPATIAL-KNOWLEDGE: ранний проброс store — ленивая регистрация не успевала")
+            self._register_epistemic_core(_rel_store)
 
         self._tick_orch.add_idle_handler(SocialDecayHandler())
 

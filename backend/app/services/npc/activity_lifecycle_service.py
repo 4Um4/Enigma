@@ -464,9 +464,39 @@ def _advance_body_action(
         # S264: гасим ОБЕ истины голода (LEGACY-HUNGER :508 — body_state
         # — писатель LifeEngine; без синхронизации рост перетирает гашение)
         _bs = npc.get("body_state")
+        _bs_hunger_tick = 0.0
         if _need_name == "hunger" and isinstance(_bs, dict) and "hunger" in _bs:
             _bs_current = float(_bs["hunger"])
-            _bs["hunger"] = max(0.0, _bs_current - (_bs_current / max(1, int(step.duration_ticks))))
+            _bs_hunger_tick = _bs_current / max(1, int(step.duration_ticks))
+            _bs["hunger"] = max(0.0, _bs_current - _bs_hunger_tick)
+        # S268/PR-7+1 (E7-фикс, §11.5): npc здесь — _npc_dict_for_write
+        # (deepcopy-копия Фазы 5, pipeline:217): локальное гашение умирает
+        # с копией, насыщение не накапливается (E7 hunger=1.00). Гасим
+        # КАНОНИЧЕСКИЙ экземпляр (life-кэш — владелец обеих истин, §13.3)
+        # через _canon_npcs (ссылки на оригиналы, run_activity_lifecycle).
+        _canon = getattr(ctx, "_canon_npcs", None) or {}
+        _orig = _canon.get(_npc_id(npc))
+        if _orig is not None and _orig is not npc and isinstance(_orig, dict):
+            _o_needs = _orig.get("needs")
+            if isinstance(_o_needs, dict) and _need_name in _o_needs:
+                _oc = float(_o_needs[_need_name])
+                _o_needs[_need_name] = max(0.0, _oc - _oc / max(1, int(step.duration_ticks)))
+            _o_bs = _orig.get("body_state")
+            if _need_name == "hunger" and isinstance(_o_bs, dict) and "hunger" in _o_bs:
+                _obc = float(_o_bs["hunger"])
+                _o_bs["hunger"] = max(0.0, _obc - _obc / max(1, int(step.duration_ticks)))
+        # S268: третья истина — nutrition (S2B.4, 0-100, SSOT body_state) —
+        # растёт легальной дельтой (съедено = сытость; StateApplicator:1090).
+        # payload СТРОГО типизированный (LOCKED v1 — dict-произвол запрещён).
+        if _need_name == "hunger" and _bs_hunger_tick > 1e-9 and getattr(ctx, "delta_buffer", None) is not None:
+            from app.models.delta_payloads import PhysiologyPayload
+            from app.models.state_delta import DeltaDomain, StateDeltas
+            ctx.delta_buffer.append(StateDeltas(
+                npc_id=_npc_id(npc),
+                domain=DeltaDomain.PHYSIOLOGY,
+                payload=PhysiologyPayload(nutrition_delta=+_bs_hunger_tick),
+                source=f"activity_eat:{state.target_ref}",
+            ))
     if _tick - state.step_started_tick >= int(step.duration_ticks):
         _consume_terminal(ctx, orchestrator, npc, state)
 
@@ -616,6 +646,9 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
     if _states:
         _cached = _states.get_npc_states(ctx.campaign_id) if hasattr(_states, "get_npc_states") else []
         _by_id = {n.get("npc_id") or n.get("id"): n for n in (_cached or []) if isinstance(n, dict)}
+        # S268/E7: канонические экземпляры (life-кэш, ссылки) — гашение
+        # потребностей владельцем, а не копией Фазы 5 (см. _advance_body_action)
+        setattr(ctx, "_canon_npcs", _by_id)
         for _n in (ctx.all_npcs_raw or []):
             if not isinstance(_n, dict):
                 continue

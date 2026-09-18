@@ -1897,6 +1897,32 @@ class LifeEngine:
             return [], None
         new_location, new_position, activity_display = resolved
 
+        # FIX-SCENE (atomicity, bsf-forensic): activity/visible пишутся ТОЛЬКО
+        # когда NPC фактически в целевой локации. Расписание, указывающее в
+        # чужую локацию, обслуживает relocation-канал (RELOCATE → ходьба →
+        # дверь → dwell → S186). Прямая запись в чужую сцену рождала
+        # torn-state и WORLD_VANISH (thief_shadow, tick 30→33).
+        _actual_loc = npc.get("location_id") or npc.get("location", "")
+        if new_location and _actual_loc and new_location != _actual_loc:
+            # SPATIAL-KNOWLEDGE-01 P2: cross-loc schedule ≠ «ничего не делать» —
+            # это relocation через МАКРО-канал: MacroMovementGoal к boundary
+            # (ходьба до двери, dwell, S186), затем на следующем такте
+            # активность применится уже на месте. Никаких activity/visible
+            # в чужую сцену.
+            logger.info(
+                f"[LIFE_ENGINE] {npc_id}: schedule '{new_activity}' требует {new_location}, "
+                f"NPC физически в {_actual_loc} → cross-loc relocation intent"
+            )
+            _target_node = new_position if new_position else f"{new_location}:entrance"
+            intent = MacroMovementGoal(
+                actor_id=npc_id,
+                from_node_id=npc.get("position", "") or f"{_actual_loc}:{npc.get('current_node', 'entrance')}",
+                target_node_id=_target_node,
+                target_local_xy=None,
+                domain=IntentDomain.ROUTINE,
+            )
+            return [], intent
+
         # BUG-DRIFT-010 FIX: Нормализуем target_node_id, добавляя префикс локации.
         # Без этого movement_engine в исходной локации не может однозначно определить target_loc
         # и гоняет NPC по boundary-узлам бесконечно ("батут" S186_TRANSFER).

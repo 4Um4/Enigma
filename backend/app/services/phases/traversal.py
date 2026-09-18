@@ -126,6 +126,9 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                     _bd[npc_id] = {
                         "ready_tick": current_tick + BOUNDARY_DWELL_TICKS,
                         "neighbor": _neighbor,
+                        # SPATIAL-KNOWLEDGE-01: via — какой выход пройден
+                        # (источник direct-experience P4' в tick_orchestrator)
+                        "via": target_node,
                     }
                     logger.info(f"[BOUNDARY_DWELL] npc={npc_id} at {target_node}; transfer at tick {current_tick + BOUNDARY_DWELL_TICKS}")
             else:

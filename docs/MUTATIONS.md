@@ -1272,11 +1272,96 @@ write-guard ×6, carrier) — новый орган. WorldView в хеш-наб�
 Долги: intent.location_id мутация движком (movement_engine:261); sentinel-стаб
 blacksmith_orm pos='' ~150 wall-check/тик (эскалация: родственник DEBT-GHOST-SOURCE?);
 SLOPE-шум ±6 мс (класс DEBT-QUIESCE, порог эскалации +5 мс ×2 прогона подряд).
+⚙️ ADDENDUM (внетиковая координация): канон сменился 57126949… → fb4f4a3c… —
+верифицировано чтением диффов: параллельный пакет легитимных каузальных фиксов
+(BUG-13 атомарный S186 transfer в tick_orchestrator — родственник DEBT-GHOST-SOURCE;
+удаление entrance-fallback в event_compiler; BUG-05-v2 backpressure ratio;
+S72-7 личностный множитель слуха). Вклад PR-5/6a в смену хеша = 0 (мои файлы —
+структурные пассажиры, гварды WorldView недостижимы из живого пути; H1/H2 опровергнуты
+grep'ом). Новый канон подтверждён Мастером. Н-55/sentinel-наблюдения подлежат ревизии
+после BUG-13 (вероятный источник устранён той же рукой).
 📁 dom/world_epoch (канон, без изменений), dom/tick (+epoch_id/world_view), 
 svc/pipeline_runner (живая врезка WorldView), svc/spatial/movement_engine (гигиена),
 tests/sandbox/micro/test_epoch_view.py (новый), tests/sandbox/perf_probe.py (mock-прибор)
-
-
+⚙️ ADDENDUM №2 (PR-6a/6b: TickOverlay + WORLD SNAPSHOT + STM-фикс):
+Транспорт тика переведён на Overlay: ctx.scene_state = TickOverlay(epoch)
+(dict-подкласс: isinstance-совместимость — 10 гвардов сцены; shadow-read
+epoch→overlay; мутации в mutation_log; терминальный commit() в orchestrator
+перед TickResultDTO — единая точка, SSM deepcopy без изменений).
+ЧЕТЫРЕ УРОКА ТРАНСПОРТА (по одному краху каждый):
+(1) Immutable-класс с __setattr__-гвардом ОБЯЗАН иметь __deepcopy__
+(_reconstruct идёт через setattr; сообщение об ошибке не имеет права
+читать ещё не существующие атрибуты);
+(2) isinstance(x, dict) — часть контракта scene_state, не прихоть:
+duck-typed overlay дал «пустой dict» от SCENE_CONTRACT-гвардов → потеря
+мира → EAT-churn 159 событий;
+(3) dict-подкласс с переопределённым обходом: dict(self)/update(self)
+теряют быстрый путь PyDict_Merge → рекурсия; только super().keys();
+(4) stale-алиас мембраны: SpatialQueryService._npc_positions =
+слепок locked сцены → ложный can_observe=False → молчаливая смерть
+STM (INV-DIALOGUE-STM). Фикс: алиас на живой dict тика.
+ЗАКОН (приказ Мастера): causal proof не зависит от живого мира;
+A/B на живом world = два разных эксперимента. WORLD SNAPSHOT:
+tests/fixtures/campaign_open_road + fixture_loader.py (env-канал,
+прецедент iron_river); переведены iron_river + eat_vertical.
+КАНОН-ХЕШИ ДНЯ (каждая смена подписана): 57126949→fb4f4a3c (чужие
+каузальные фиксы BUG-13/BUG-05-v2/S72-7), →5cb43cfd (fixture-вход),
+→e41dab66 (type-фикс overlay), →d20ec87f (STM-фикс: диалог-контур
+ожил). База: d20ec87f ×2, IPT 45/45, perf ~72-80 плоско, 10k ≈ 13 мин.
+E6/E7 (TAKE/голод tornin): красны на ОБОИХ транспортах при одном мире
+(честный A/B на фикстуре) — болезнь = класс §6 (пересоздание npc-
+экземпляров, гашение в умирающий dict; id(npc) уникален каждый тик —
+зонд). НЕ баг транспорта: входной сигнал следующего участка (§11.5
+NPC tick transport), который класс закрывает целиком. Объектная
+плоскость уже спасена overlay (DESTROYED переживает тики, E8/E9 ✓).
+📁 dom/world_epoch (Overlay+deepcopy-контракты+гварды×7),
+svc/tick_utils (overlay-транспорт+STM-алиас), svc/dto (scene_overlay),
+svc/tick_orchestrator (терминальный commit), tests/fixtures/ (WS),
+tests/sandbox/fixture_loader.py, micro/test_epoch_view (5 тестов),
+iron_river+eat_vertical (fixture-вход)
+⚙️ ADDENDUM №3 (PR-7a + E7-фикс + guard_bed: закрытие фронтов дня):
+PR-7a (SSM deepcopy :329/:1703): env-гвард EPOCH_OWNERSHIP_ENFORCEMENT.
+Фазы: OFF b968c3fd×2 / ON b968c3fd×2 — OFF≡ON ПОБАЙТОВО (ownership-move
+каузально невидим — доказательная база для дефолта ON после §11.11).
+Чистая пара: OFF 71.5 / ON 80.1 — ON сейчас дороже (живой алиас греет
+данные для следующего input_snapshot) → ДЕФОЛТ ОСТАЁТСЯ OFF до снятия
+генератора копий. Урок: не снимать защиту раньше угрозы; порядок §11
+восстановлен. 
+E7-ФИКС (§11.5 миниатюра): гашение голода писало в _npc_dict_for_write
+(deepcopy-копия Фазы 5, pipeline:217) — умирало с копией. Фикс: гашение
+в канонический экземпляр (life-кэш) через ctx._canon_npcs + третья
+истина nutrition — легальной дельтой StateDeltas(PHYSIOLOGY,
+PhysiologyPayload) — первый потребитель дельта-канала потребностей.
+АНТИ-УРОК: черновик с payload=dict проглотился бы StateApplicator
+молча (LOCKED v1) — пойман чтением контракта (§13.1). EAT 9/9.
+GUARD_BED-ФРОНТ (archaeology 12 шагов): вечный «Node not found»
+borko → churn → перф-хвост. Ложные версии отвергнуты поочерёдно
+(устаревшая компиляция → дыра компилятора → дыра формата артефакта).
+ИСТИНА: event_compiler резолвил через snapshot.spatial_service —
+заморозку тика, а snapshot-сервис = инъекция GameLoop ОДИН РАЗ
+(tick_orchestrator:217-229, кэш-приоритет), собран ДО 15.08; fp-кэш
+фабрики не участвует. ADR-048 VIOLATION warning живёт в аварийной
+ветке, а нарушение — в приоритетной. Фикс: компилятор резолвит через
+SpatialFactory.build_for_campaign (живой авторитет, кэш-хит O(1))
+с scene_state=snapshot'а (BUG-SPATIAL-029 overlay сохранён).
+РЕЗУЛЬТАТ: отказы исчезли, канон 6c42d9c1×2 (легитимный сдвиг —
+стражник встаёт на пост), EAT 9/9, IPT ✅. Попутно: PERF-эпоха дня
+63.8→49.7 (лучший, чинка болезней мира) → финальные 70.8 (мир живее
+— borko ходит); 10k ≈ 12 мин, цель ≤15 удержана, ≤5 в прямой
+видимости через §11.
+WORLD SNAPSHOT (приказ Мастера): fixture_loader.py + фикстура
+campaign_open_road; iron_river + eat_vertical переведены; закон
+«causal proof не зависит от живого мира» — живой A/B запрещён.
+СЛЕДСТВИЕ-ЗАКОН (предложение Мастеру): SpatialFactory — единственный
+канал svc для потребителей (ADR-048-имплементация); инъекция-без-
+инвалидации = нарушение. Кандидат INV: count(source nodes) ==
+count(резолв авторитета) при первом старте локации.
+Долги: needs-дельта-ADR (1 кейс, ждёт второй — Two-Domain);
+sleep-канал проверен — легален; [ECO]-спам заглушён в приборе;
+WAL-суффиксы в ignore-паттернах приборов (replay.db* — fix applied).
+📁 svc/event_compiler (ADR-048-фикс), svc/scene_state_manager (7a-гварды),
+svc/npc/activity_lifecycle (E7), tests/fixtures + fixture_loader (WS),
+perf_probe/iron_river (приборы), micro/test_epoch_view (5 тестов)
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
@@ -1290,4 +1375,7 @@ tests/sandbox/micro/test_epoch_view.py (новый), tests/sandbox/perf_probe.py
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
+
+
+
 

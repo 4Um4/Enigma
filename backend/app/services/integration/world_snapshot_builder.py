@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from app.domain.presentation import EmbodiedStatusDTO, PerceivedNarrativeDTO
 from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
@@ -176,7 +176,7 @@ class WorldSnapshotBuilder:
     }
 
     def _convert_perception(
-        self, domain_perception, tick: int = 0
+        self, domain_perception: Any, tick: int = 0
     ) -> Optional[PlayerPerceptionDTO]:
         """Конвертация domain PlayerPerceptionDTO → API PlayerPerceptionDTO.
 
@@ -192,7 +192,7 @@ class WorldSnapshotBuilder:
         # Если уже API DTO — пропускаем (isinstance не сработает при одинаковых именах,
         # проверяем по наличию поля peripheral_cues)
         if hasattr(domain_perception, "peripheral_cues"):
-            return domain_perception
+            return cast("PlayerPerceptionDTO", domain_perception)
 
         peripheral_cues = []
         active_perceptions = []

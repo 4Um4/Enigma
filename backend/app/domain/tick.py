@@ -16,11 +16,19 @@ from app.domain.snapshot import WorldSnapshotDTO
 
 
 def frozen(x: Any) -> Any:
-    """Рекурсивная структурная заморозка: list → tuple. dict остаётся dict (для pickle)."""
+    """S268-АТАКА3: list → tuple на ВСЕХ уровнях; dict возвращается
+    as-is (без рекурсивного пересбора). Семантика идентична прежней:
+    dict и раньше оставался мутируемым dict (пересборка создавала
+    НОВЫЙ dict с теми же мутируемыми значениями — фиктивная заморозка
+    за O(всего дерева); 4.8M вызовов/сессия). Инвариант pickle/JSON
+    сохранён: ключи/типы не меняются. Писателей замороженных dict'ов
+    не существует (INV-хеш-трипвайр ловит мутацию редюсера громко)."""
     if isinstance(x, list):
         return tuple(frozen(v) for v in x)
     if isinstance(x, dict):
-        return {k: frozen(v) for k, v in x.items()}
+        return x
+    if isinstance(x, tuple):
+        return tuple(frozen(v) for v in x)
     return x
 
 

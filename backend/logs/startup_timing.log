@@ -377,3 +377,118 @@
 [TIMING] +  6.53с  servers ready
 [TIMING] +  6.56с  menu display created — START-TO-MENU TOTAL
 [TIMING] +  6.57с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.60с  zombie-kill done
+[TIMING] +  2.16с  backend Popen issued
+[TIMING] + 10.67с  llm health OK
+[TIMING] + 10.68с  backend health OK
+[TIMING] + 10.68с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] + 10.68с  servers ready
+[TIMING] + 10.88с  menu display created — START-TO-MENU TOTAL
+[TIMING] + 10.93с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.32с  zombie-kill done
+[TIMING] +  1.89с  backend Popen issued
+[TIMING] +  4.34с  llm health OK
+[TIMING] +  6.37с  backend health OK
+[TIMING] +  6.37с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.37с  servers ready
+[TIMING] +  6.42с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.44с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.34с  zombie-kill done
+[TIMING] +  1.91с  backend Popen issued
+[TIMING] +  4.34с  llm health OK
+[TIMING] +  6.69с  backend health OK
+[TIMING] +  6.69с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.69с  servers ready
+[TIMING] +  6.73с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.74с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.31с  zombie-kill done
+[TIMING] +  1.90с  backend Popen issued
+[TIMING] +  4.34с  llm health OK
+[TIMING] +  6.66с  backend health OK
+[TIMING] +  6.66с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.66с  servers ready
+[TIMING] +  6.69с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.70с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.81с  zombie-kill done
+[TIMING] +  2.41с  backend Popen issued
+[TIMING] +  6.35с  llm health OK
+[TIMING] +  9.29с  backend health OK
+[TIMING] +  9.29с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  9.31с  servers ready
+[TIMING] +  9.34с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  9.35с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.32с  zombie-kill done
+[TIMING] +  1.90с  backend Popen issued
+[TIMING] +  8.58с  backend health OK
+[TIMING] +  8.59с  llm health OK
+[TIMING] +  8.59с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  8.59с  servers ready
+[TIMING] +  8.68с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  8.69с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.88с  zombie-kill done
+[TIMING] +  2.47с  backend Popen issued
+[TIMING] +  9.07с  backend health OK
+[TIMING] +  9.65с  wait loop done (backend_ok=True, llm_ok=False)
+[TIMING] +  9.65с  servers ready
+[TIMING] +  9.75с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  9.76с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.68с  zombie-kill done
+[TIMING] +  2.29с  backend Popen issued
+[TIMING] +  5.01с  llm health OK
+[TIMING] +  8.07с  backend health OK
+[TIMING] +  8.07с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  8.07с  servers ready
+[TIMING] +  8.10с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  8.11с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.27с  zombie-kill done
+[TIMING] +  1.87с  backend Popen issued
+[TIMING] +  8.05с  llm health OK
+[TIMING] +  8.17с  backend health OK
+[TIMING] +  8.17с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  8.17с  servers ready
+[TIMING] +  8.23с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  8.27с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.45с  zombie-kill done
+[TIMING] +  2.04с  backend Popen issued
+[TIMING] +  4.20с  llm health OK
+[TIMING] +  6.81с  backend health OK
+[TIMING] +  6.81с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.81с  servers ready
+[TIMING] +  6.84с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.85с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.33с  zombie-kill done
+[TIMING] +  1.91с  backend Popen issued
+[TIMING] +  5.82с  llm health OK
+[TIMING] +  8.73с  backend health OK
+[TIMING] +  8.73с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  8.73с  servers ready
+[TIMING] +  8.78с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  8.79с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  1.30с  zombie-kill done
+[TIMING] +  2.90с  backend Popen issued
+[TIMING] +  9.24с  backend health OK
+[TIMING] +  9.76с  wait loop done (backend_ok=True, llm_ok=False)
+[TIMING] +  9.76с  servers ready
+[TIMING] +  9.79с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  9.80с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.60с  zombie-kill done
+[TIMING] +  2.45с  backend Popen issued
+[TIMING] +  6.73с  llm health OK
+[TIMING] + 12.05с  backend health OK
+[TIMING] + 12.05с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] + 12.05с  servers ready
+[TIMING] + 12.12с  menu display created — START-TO-MENU TOTAL
+[TIMING] + 12.18с  CDS observer init done

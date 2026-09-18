@@ -308,10 +308,31 @@ class EventCompiler:
         # E1: target_loc resolution
         target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
 
-        # E2: Spatial service из snapshot (НЕ build_for_location!)
-        svc = snapshot.spatial_service
+        # E2: Spatial service — ЧЕРЕЗ ФАБРИКУ (S268-фикс, ADR-048 Single
+        # Spatial Authority). Прежняя доктрина «НЕ build_for_location»
+        # защищала от O(сборки) на каждый event — фабричный кэш с
+        # fp-инвалидацией её снимает: кэш-хит O(1), fp-проверка = хеш файла.
+        # Snapshot-сервис — заморозка тика (ADR-CAUSAL-SPINE): собран
+        # единожды инъекцией и не переживает изменения source-топологии
+        # (city_gate guard_bed 15.08 → «Node not found» при живом свежем
+        # резолве — доказано зондом SpatialFactory). Компилятор обязан
+        # резолвить через ЖИВОЙ авторитет. scene_state из snapshot —
+        # для BUG-SPATIAL-029 overlay-обновления (динамические узлы сцены).
+        from app.services.spatial.spatial_factory import SpatialFactory
+        # S268-фикс-дофикс: WorldSnapshot не хранит scene_state (DTO из
+        # подмножеств) — собираем минимальную сцену для overlay из
+        # легальных полей снапшота (BUG-SPATIAL-029: динамические узлы)
+        _ov_scene = {
+            "npc_positions": getattr(snapshot, "npc_positions", {}) or {},
+            "world_objects": getattr(snapshot, "world_objects", {}) or {},
+        }
+        svc = SpatialFactory.build_for_campaign(
+            campaign_id=snapshot.campaign_id,
+            location_id=target_loc or snapshot.location_id,
+            scene_state=_ov_scene,
+        )
         if svc is None:
-            logger.warning("[SHADOW_COMPILER] No spatial service in snapshot")
+            logger.warning("[SHADOW_COMPILER] No spatial service for target")
             return None
 
         # E3: Node lookup — ONLY for same-location movement

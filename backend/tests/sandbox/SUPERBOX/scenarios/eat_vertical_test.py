@@ -33,6 +33,15 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.config import settings
 
+# S268 (приказ Мастера): causal-доказательство не зависит от живого мира.
+# WORLD SNAPSHOT-фикстура (паттерн iron_river): data_dir → консервированный
+# срез; RUN A == RUN B = одно начальное состояние. Живой мир остаётся
+# для exploration/manual play, не для acceptance.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests.sandbox.fixture_loader import FIXTURE_DIR, has_fixture
+
+if has_fixture():
+    settings.data_dir = str(FIXTURE_DIR)
 # Изоляция saves ДО импорта сервисов (IPT-паттерн; урок H5 из ADR-O-378)
 settings.saves_dir = tempfile.mkdtemp(prefix="eat_slice_")
 

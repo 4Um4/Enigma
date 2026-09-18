@@ -23,7 +23,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from app.services.logging_tools import jsonl_log
 
@@ -39,6 +39,10 @@ from app.services.llm.provider import (
     LlmProvider,
     ProviderType,
 )
+
+if TYPE_CHECKING:
+    # Циклический импорт: provider_manager импортирует router — только для типов.
+    from app.services.llm.provider_manager import ModelPool, ProviderManager
 
 
 @dataclass
@@ -136,6 +140,7 @@ class ModelRouter:
     """
 
     _instance: Optional["ModelRouter"] = None
+    _initialized: bool
 
     def __new__(cls) -> "ModelRouter":
         """Singleton pattern for global router access."""
@@ -152,8 +157,8 @@ class ModelRouter:
         self._registry: dict[str, ModelConfig] = _init_registry()
         self._pool: dict[str, ModelConfig] = _init_registry()
         self._providers: dict[str, Any] = {}
-        self._provider_manager = None
-        self._model_pool = None  # Lazy initialization для ModelPool
+        self._provider_manager: Optional["ProviderManager"] = None
+        self._model_pool: Optional["ModelPool"] = None  # Lazy initialization для ModelPool
         self._current_model_key = None  # Текущая активная модель (для legacy-методов)
         self._capability_map = DEFAULT_AGENT_CAPABILITY_MAP.copy()
         self._lazy_loading = True
@@ -171,7 +176,7 @@ class ModelRouter:
         self._request_in_progress = False
         self._initialized = True
 
-    def _get_model_pool(self):
+    def _get_model_pool(self) -> "ModelPool":
         """Lazy initialization of ModelPool."""
         if self._model_pool is None:
             from app.services.llm.provider_manager import get_model_pool
@@ -179,7 +184,7 @@ class ModelRouter:
             self._model_pool = get_model_pool()
         return self._model_pool
 
-    def _get_provider_manager(self):
+    def _get_provider_manager(self) -> "ProviderManager":
         """Lazy initialization of ProviderManager (legacy)."""
         if self._provider_manager is None:
             from app.services.llm.provider_manager import get_provider_manager
@@ -188,12 +193,12 @@ class ModelRouter:
         return self._provider_manager
 
     @property
-    def model_pool(self):
+    def model_pool(self) -> "ModelPool":
         """Get the model pool."""
         return self._get_model_pool()
 
     @property
-    def provider_manager(self):
+    def provider_manager(self) -> "ProviderManager":
         """Get the provider manager (legacy)."""
         return self._get_provider_manager()
 
@@ -401,7 +406,7 @@ class ModelRouter:
 
         raise RuntimeError(f"No provider available for capability: {capability}")
 
-    def _get_or_create_provider(self, model_key: str, model_config: ModelConfig):
+    def _get_or_create_provider(self, model_key: str, model_config: ModelConfig) -> Any:
         """Get or create a provider for the model."""
         from app.services.llm.factory import ProviderFactory
 

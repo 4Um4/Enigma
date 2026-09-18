@@ -94,3 +94,19 @@ def test_tick_overlay_pr6():
     nxt = ov.commit()
     assert nxt["a"] == 2 and nxt["c"] == [] and nxt["b"] == {"deep": True}
     assert ep.state["a"] == 1  # committed epoch N не мутировал (главный закон)
+    # S268-урок: type-совместимость — часть контракта scene_state
+    assert isinstance(ov, dict)  # isinstance-гварды сцены обязаны пропускать
+
+
+def test_deepcopy_contracts():
+    """S268: immutable → self; overlay → материализованный dict."""
+    import copy
+    ep = WorldEpoch(3, {"a": 1})
+    assert copy.deepcopy(ep) is ep
+    assert copy.deepcopy(ep.view()) is ep.view()
+    ov = TickOverlay(ep)
+    ov["b"] = 2
+    snap = copy.deepcopy(ov)
+    assert isinstance(snap, dict) and snap == {"a": 1, "b": 2}
+    ov["a"] = 9
+    assert snap["a"] == 1  # снимок оторван от overlay

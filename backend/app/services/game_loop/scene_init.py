@@ -24,7 +24,7 @@ def _resolve_initial_time(
     Приоритет: preserved_game_time (аккумулирует дни) > campaign_state > 07:00.
     """
     if preserved_game_time is not None:
-        return Calendar.format_time(preserved_game_time)
+        return Calendar.format_time(int(preserved_game_time))
     if campaign_state:
         return campaign_state.metadata.get("time_of_day", "07:00")
     return "07:00"

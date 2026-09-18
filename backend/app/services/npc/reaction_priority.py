@@ -75,8 +75,8 @@ try:
 
     _SCENE_CHANGE_AVAILABLE = True
 except ImportError:
-    SceneChange = None
-    ChangeType = None
+    SceneChange = None  # type: ignore[assignment,misc]
+    ChangeType = None  # type: ignore[assignment,misc]
     _SCENE_CHANGE_AVAILABLE = False
 
 

@@ -403,6 +403,27 @@ def create_tick_context(
     # S83.1: Tick = Pure Function Evaluation. Freeze input snapshot.
     input_snapshot = copy.deepcopy(scene_state)
 
+    # PR-6b (S268): Overlay-транспорт тика. Фазы пишут в TickOverlay
+    # (duck-typed dict), читают через shadow-read (epoch → overlay).
+    # Каждая мутация — в mutation_log (наблюдаемость, мандат VIII).
+    # Терминальная материализация — orchestrator, единая точка перед
+    # сборкой TickResultDTO (overlay.commit() → dict для SSM deepcopy).
+    from app.domain.world_epoch import TickOverlay, WorldEpoch
+    _epoch = WorldEpoch(tick_number, input_snapshot)
+    _overlay = TickOverlay(_epoch)
+
+    # S268/STM-FIX: мембрана диалог-подписчика читает
+    # shared_context.spatial_query._npc_positions — слепок locked сцены
+    # начала тика (_sync_shared_context_with_scene, вне overlay). Движения
+    # тика живут в overlay-мире → мембрана сравнивала устаревшие позиции
+    # → ложный can_observe=False → молчаливая смерть STM
+    # (INV-DIALOGUE-STM). Алиас на живой вложенный dict тика: shadow-read
+    # отдаёт epoch-объект, фазы мутируют его на месте — алиас всегда
+    # актуален в течение тика.
+    _sq = getattr(shared_context, "spatial_query", None)
+    if _sq is not None and hasattr(_sq, "_npc_positions"):
+        _sq._npc_positions = input_snapshot.setdefault("npc_positions", {})
+
     # KERNEL-ISOLATION: factory для per-NPC deterministic RNG.
     _rng_factory = lambda npc_id: KernelRNG(tick=tick_number, npc_id=npc_id, salt="tick_context_factory")
 
@@ -435,7 +456,8 @@ def create_tick_context(
         logger.debug("SpatialQueryService missing in shared_context (tick_utils). Falling back or IPT/DriftLab.")
     ctx = _TickContext(
         campaign_id=campaign_id,
-        scene_state=input_snapshot,
+        scene_state=_overlay,  # PR-6b: TickOverlay (dict-compat); терминал — orchestrator
+        scene_overlay=_overlay,
         tick_number=tick_number,
         interventions=interventions,
         npc_services=npc_services,

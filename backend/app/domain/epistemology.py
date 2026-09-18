@@ -21,6 +21,11 @@ class Predicate(Enum):
     HELPED = "helped"
     # S199: Second-Order ToM. Агент верит, что другой агент утверждает P.
     ASSERTS = "asserts"
+    # SPATIAL-KNOWLEDGE-01 (mini-ADR, мандат «способность узнавать мир»):
+    # «subject_id прошёл через boundary-узел subject в направлении object_id».
+    # Субъект — наблюдаемый актор, объект — целевая локация. Единственный
+    # spatial-предикат реестра; расширение — отдельной ревизией.
+    EXITS_TO = "exits_to"
 
 
 class SpeechAct(Enum):

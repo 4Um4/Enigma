@@ -21,7 +21,7 @@ class DynamicAffordanceField:
     2. Soft Trace Layer: Поведенческие следы (накопление и decay).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Слой 1: Hard Overrides (region -> zone_id -> type -> DeformationRecord)
         self._hard_overrides: Dict[str, Dict[str, Dict[str, DeformationRecord]]] = {}
         # Слой 2: Soft Traces (region -> zone_id -> trace_type -> accumulated float)
