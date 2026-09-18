@@ -67,6 +67,9 @@ def create_tick_state(
     epistemic_context_resolver: Optional[Any] = None,
     # ADR-O-378 (G2 v1): per-NPC факты W2 (v1: weapon_access) для редюсера
     affordance_facts_map: Optional[Dict[str, bool]] = None,
+    # ADR-TEMPORAL-EPOCH (PR-5): эпоха и её read-only проекция
+    epoch_id: int = -1,
+    world_view: Any = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -118,6 +121,8 @@ def create_tick_state(
         affordance_facts_map=frozen(affordance_facts_map)
         if affordance_facts_map
         else {},
+        epoch_id=epoch_id,
+        world_view=world_view,
     )
 
 
@@ -148,6 +153,10 @@ class TickState:
     scene_continuity: Optional[Any] = None
     spatial_events: Tuple[Any, ...] = ()
     drf_tick_id: int = -1
+    # ADR-TEMPORAL-EPOCH (PR-5): идентификатор эпохи + read-only проекция.
+    # Ответ на вопрос «в какой реальности возник этот факт».
+    epoch_id: int = -1
+    world_view: Any = None
 
     # TZ-10: Preloaded Data (загружаются Orchestrator ДО вызова run)
     memory_weights_map: Any = field(
