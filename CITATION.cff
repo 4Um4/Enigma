@@ -1,16 +1,12 @@
-cff-version: 1.2.0
-message: >-
-  If you use ENIGMA in your research, please cite this paper.
-type: article
+cff-version: 1.1.0
+type: software
 title: >-
   Executable Epistemic Contracts in Deterministic Agent Simulation:
   The ENIGMA Architecture
 authors:
   - family-names: Gritsaenko
     given-names: Mikhail
-    alias: 4Um4
     affiliation: Independent Researcher
-    website: https://github.com/4Um4
 version: 1.0.0
 doi: 10.5281/zenodo.22831764
 date-released: "2026-09-18"
