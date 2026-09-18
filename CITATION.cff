@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: >-
+  If you use ENIGMA in your research, please cite this paper.
+type: article
+title: >-
+  Executable Epistemic Contracts in Deterministic Agent Simulation:
+  The ENIGMA Architecture
+authors:
+  - family-names: Gritsaenko
+    given-names: Mikhail
+    alias: 4Um4
+    affiliation: Independent Researcher
+    website: https://github.com/4Um4
+version: 1.0.0
+date-released: "2026-09-18"
+license: CC-BY-4.0
+url: "https://github.com/4Um4/Enigma"
+repository-code: "https://github.com/4Um4/Enigma"
+abstract: >-
+  In most modern LLM-based agent simulations, agent beliefs are implemented as
+  prompts, and belief divergence arises as a side effect of stochastic text
+  generation rather than as a designed property. We present ENIGMA, a
+  deterministic multi-agent architecture in which belief divergence is a
+  first-class, causally efficacious, and executably verifiable property.
+  The methodological contribution is executable epistemic contracts (SUPERBOX):
+  scenarios that turn epistemic claims about the system into binary,
+  reproducible verdicts. The work is positioned as a systems contribution and
+  a runnable reference implementation, not as a new psychological theory.
+keywords:
+  - deterministic agent simulation
+  - epistemics
+  - belief revision
+  - executable contracts
+  - provenance
+  - LLM agents
+  - Theory of Mind
