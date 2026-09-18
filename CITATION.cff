@@ -1,5 +1,6 @@
 cff-version: 1.1.0
-type: software
+message: >-
+  If you use ENIGMA in your research, please cite this repository and the paper.
 title: >-
   Executable Epistemic Contracts in Deterministic Agent Simulation:
   The ENIGMA Architecture
