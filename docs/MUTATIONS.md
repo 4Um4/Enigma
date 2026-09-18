@@ -1240,6 +1240,44 @@ IPT: 43/45. КРАСНЫЕ: traversals=None + dialogue-init
    (сцена как часть immutable epoch, NPC-экземпляр един на epoch) убивает
    класс целиком.
 
+### S268: TEMPORAL EPOCH · PR-5 (Сайт 7: WorldView в TickState) + гигиена hot-path | ✅ IPT 45/45
+🎯 Миграция Temporal Epoch (мандат Мастера, S266→S268): epoch-носитель впервые живой в
+редюсере. Попутно: перф-гигиена, закрытие Н-55, честный benchmark-прибор.
+⚙️ Гигиена: (1) чужой недоснятый зонд DIAG_WALLS удалён (movement_engine, передача S267
+«0 зондов» неточна); (2) Н-55 закрыт — BORKO-хардкод-дебаг ×3 блока + мёртвый `if True:`
+(лицензия Мастера «чинить по дороге»); (3) defensive-init `target_loc` — латентный unbound
+(Pylance) устранён до выстрела, инвентаризация форм подтвердила полноту ветвления;
+(4) perf_probe: LLM глушится через settings.provider_type=mock (хак _executor._router был
+мёртв — dialogue-подписчик берёт глобальный router). ПРОФИЛЬ (cProfile, 53s/301 тик):
+deepcopy 19.5M вызовов ~38% тика (топ: SSM.commit 6.5s, create_tick_context 3.5s,
+phase_9 4.2s) — численное подтверждение мандата; SpatialFactory ~10 сборок/тик ~14%;
+LLM — фоновый пул, НЕ критический путь (cProfile-артефакт сериализации потоков).
+БАЗА S268: 65.4-66.0 мс/тик плоско; 10k ≈ 11 мин — цель ≤15 мин формально достигнута до
+миграции (22.9 из передачи = цифра до EAT-органов и F-фиксов, устарела).
+⚙️ PR-5: (1) домен/world_epoch.py (S266-канон: WorldEpoch+WorldView, move-semantics,
+__setattr__-гварды) признан единственным словарём; мой черновик domain/epoch.py =
+дубль → удалён до первого импорта (Anti-Race поймал); (2) недоврезанный шов S266
+завершён — мёртвый импорт WorldView (pipeline_runner:64) обрёл потребителя;
+(3) TickState + epoch_id/world_view (дефолты нейтральны для старых вызовов);
+(4) build_tick_state строит WorldEpoch(tick_number, ctx.scene_state, alive_npcs) →
+view() → редюсер; ctx.scene_state = deepcopy-срез (input_snapshot) — единственная
+реальность Фазы 5, семантика честная; (5) micro-тест test_epoch_view.py (read-through,
+write-guard ×6, carrier) — новый орган. WorldView в хеш-набор Инварианта III сознательно
+не включён (read-only по построению, включение = ложный шум). Полная семантика
+«Epoch не владеет мутациями» — терминал PR-6 (TickOverlay, обещан docstring'ом world_epoch
+с S266, в файле отсутствует = doc drift): 17 легаси-писателей ctx.scene_state — цель.
+Открытия: frozen() оставляет dict мутируемым на вложенных уровнях (TickState иммутабелен
+наполовину) — в DEEPCOPY_MAP; фоллбэк shared_context шарит живой SSM-dict
+(tick_utils:446-459, легализованный alias M1) — аргумент за Overlay, закрыть в PR-6.
+Долги: intent.location_id мутация движком (movement_engine:261); sentinel-стаб
+blacksmith_orm pos='' ~150 wall-check/тик (эскалация: родственник DEBT-GHOST-SOURCE?);
+SLOPE-шум ±6 мс (класс DEBT-QUIESCE, порог эскалации +5 мс ×2 прогона подряд).
+📁 dom/world_epoch (канон, без изменений), dom/tick (+epoch_id/world_view), 
+svc/pipeline_runner (живая врезка WorldView), svc/spatial/movement_engine (гигиена),
+tests/sandbox/micro/test_epoch_view.py (новый), tests/sandbox/perf_probe.py (mock-прибор)
+
+
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`

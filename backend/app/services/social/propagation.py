@@ -32,6 +32,28 @@ logger = logging.getLogger(__name__)
 # (_distort_intensity по trust); личностный множитель — DEBT (S72 п.7).
 SOCIAL_TO_NPC_STRESS_SCALE: float = 100.0
 SOCIAL_STRESS_CAP: float = 25.0
+# S72-7: личностный множитель стресса от слуха (§ENIGMA-S72 п.7 —
+# «эмоция = энергия, личность = направление разрядки»). Канонический
+# источник: psyche["pressure_resistance"] NPCState (0-100, clamp :875,
+# пишется StateApplicator'ом, персистентен — критерий Editor→Runtime:
+# ключ редактор-пишем, не archetype). pressure_resistance гасит давление
+# слуха; множитель = 1 - PR/100 * SPAN, clamp [1-SPAN, 1].
+PERSONALITY_STRESS_SPAN: float = 0.5
+
+
+def _listener_stress_multiplier(psyche: Any) -> float:
+    """Личностный множитель стресса слушателя.
+
+    psyche — dict из all_npcs_raw (канонический сериализат NPCState).
+    Отсутствие психики/ключа = 1.0 (честный no-personality, не молчаливый).
+    """
+    if not isinstance(psyche, dict):
+        return 1.0
+    _pr = psyche.get("pressure_resistance")
+    if not isinstance(_pr, (int, float)):
+        return 1.0
+    _clamped = max(0.0, min(100.0, float(_pr)))
+    return 1.0 - (_clamped / 100.0) * PERSONALITY_STRESS_SPAN
 
 
 def propagate_social_rumors(
@@ -104,6 +126,19 @@ def propagate_social_rumors(
 
     deltas: List[StateDeltas] = []
 
+    # S72-7: psyche слушателей — канонический сериализат NPCState
+    # (all_npcs_raw_snapshot; формат чтения по образцу dm_agent: npc_id|id).
+    _psyche_by_id: dict = {}
+    _anr = getattr(shared_context, "all_npcs_raw_snapshot", None) if shared_context else None
+    if _anr is None and isinstance(shared_context, dict):
+        _anr = shared_context.get("all_npcs_raw_snapshot")
+    if _anr:
+        for _npc in _anr:
+            if isinstance(_npc, dict):
+                _pid = _npc.get("npc_id") or _npc.get("id", "")
+                if _pid:
+                    _psyche_by_id[_pid] = _npc.get("psyche")
+
     if _social_results:
         for pr in _social_results:
             # Не перезаписываем прямых свидетелей
@@ -121,7 +156,14 @@ def propagate_social_rumors(
                 # (_distort_intensity: trust ±амплитуда); личностный множитель
                 # (fear/willpower, §ENIGMA-S72 п.7) — долг после прокидки
                 # профилей в SocialEngine.
-                _stress_100 = min(pr.stress_delta * SOCIAL_TO_NPC_STRESS_SCALE, SOCIAL_STRESS_CAP)
+                # S72-7: личностный множитель (pressure_resistance гасит
+                # слух; отсутствие психики = 1.0). Порядок: личность →
+                # конверсия шкал → капа.
+                _mult = _listener_stress_multiplier(_psyche_by_id.get(pr.npc_id))
+                _stress_100 = min(
+                    pr.stress_delta * _mult * SOCIAL_TO_NPC_STRESS_SCALE,
+                    SOCIAL_STRESS_CAP,
+                )
                 deltas.append(
                     StateDeltas(
                         npc_id=pr.npc_id,

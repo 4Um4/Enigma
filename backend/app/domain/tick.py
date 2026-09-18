@@ -153,8 +153,8 @@ class TickState:
     scene_continuity: Optional[Any] = None
     spatial_events: Tuple[Any, ...] = ()
     drf_tick_id: int = -1
-    # ADR-TEMPORAL-EPOCH (PR-5): идентификатор эпохи + read-only проекция.
-    # Ответ на вопрос «в какой реальности возник этот факт».
+    # ADR-TEMPORAL-EPOCH (PR-5/S268): идентификатор эпохи + read-only проекция.
+    # Ответ на вопрос «в какой реальности возник этот факт» (мандат VII).
     epoch_id: int = -1
     world_view: Any = None
 

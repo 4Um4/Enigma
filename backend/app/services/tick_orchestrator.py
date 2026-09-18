@@ -1031,9 +1031,29 @@ class TickOrchestrator:
                     _d_entry = _npc_positions.get(_d_id)
                     _d_neighbor = _d_info.get("neighbor", "")
                     if _d_entry and _d_neighbor:
+                        # BUG-13 (атомарность): location_id, извлечение из
+                        # npc_positions и постановка в pending_transfers — ОДНИМ
+                        # актом. Раньше location_id мутировался сразу, а del из
+                        # npc_positions откладывался до ghost-скана → окно
+                        # torn-state: NPC «в market» с координатами tavern
+                        # (SC-4 PROBE_FAIL). Позиция префиксована старой
+                        # локацией — переносится как есть, target-локация
+                        # восстанавливает при материализации.
                         _d_entry["location_id"] = _d_neighbor
-                        logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → S186 transfer to {_d_neighbor}")
-                    _dwell_map.pop(_d_id, None)
+                        self._pending_transfers.setdefault(_d_neighbor, {})[_d_id] = _d_entry
+                        if not hasattr(self, "_npc_runtime_locations"):
+                            self._npc_runtime_locations = {}
+                    self._npc_runtime_locations[_d_id] = _d_neighbor
+                    if _d_id in _npc_positions:
+                        del _npc_positions[_d_id]
+                    if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                        for _n in ctx.all_npcs_raw:
+                            if _n.get("npc_id") == _d_id or _n.get("id") == _d_id:
+                                _n["location_id"] = _d_neighbor
+                                _n["location"] = _d_neighbor
+                                break
+                    logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → atomic S186 transfer to {_d_neighbor}")
+                _dwell_map.pop(_d_id, None)
         # S267 (V8-SP-19 для ghost-скана): запись с position, префиксованным
         # ТЕКУЩЕЙ сценой — НЕ призрак, а мусорное location_id-поле (класс
         # S267: чужой apply создал запись 'tavern:node_16' в market-сцене →

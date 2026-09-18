@@ -44,12 +44,21 @@ class DialogueQueue:
     # ENIGMA-ARCH-027: Базовый эксплуатационный лимит размера очереди.
     # В будущем выносится в CalibrationProfile.
     MAX_PENDING_TASKS = 20
+    # BUG-05-v2: доля заполнения, с которой ambient-задачи дропаются
+    # превентивно (мягкий backpressure). Переопределяется конструктором —
+    # точка подключения CalibrationProfile (ENIGMA-ARCH-027).
+    DEFAULT_BACKPRESSURE_RATIO: float = 0.7
 
-    def __init__(self) -> None:
+    def __init__(self, backpressure_ratio: float = DEFAULT_BACKPRESSURE_RATIO) -> None:
         self._heap: list[QueuedDialogue] = []
         self._minute_count: int = 0
         self._minute_start: float = 0.0  # симуляционное время (game_time_seconds)
         self._recent_npc_speak: dict[str, float] = {}  # npc_id -> last_speak_game_time
+        if not (0.0 < backpressure_ratio <= 1.0):
+            raise ValueError(
+                f"backpressure_ratio must be in (0, 1], got {backpressure_ratio}"
+            )
+        self._backpressure_ratio = backpressure_ratio
 
     def enqueue(self, task_type: str, payload: dict, priority: int, game_time_seconds: float) -> str:
         """Добавить задачу в очередь с учётом BackpressurePolicy (ENIGMA-ARCH-027).
@@ -75,7 +84,7 @@ class DialogueQueue:
         # >=70% ambient-задачи не ставятся вовсе — очередь держит запас для
         # canonical, а WARNING-шторм на жёстком лимите (634 дропа/сессия на
         # медленном LLM) заменяется ранним INFO-дропом.
-        if not is_canonical and current_size >= int(self.MAX_PENDING_TASKS * 0.7):
+        if not is_canonical and current_size >= int(self.MAX_PENDING_TASKS * self._backpressure_ratio):
             logger.info(
                 f"[DLG_QUEUE] Backpressure: dropped ambient task {task_id} "
                 f"preemptively ({current_size}/{self.MAX_PENDING_TASKS} >= 70%)."

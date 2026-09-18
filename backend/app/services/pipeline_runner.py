@@ -62,7 +62,14 @@ def build_tick_state(
     # StateApplicator (causal spine); (3) трипвайр остаётся: INV-хеш
     # гейтован 1/100 тиков (S265) — прямой писатель упадёт ГРОМКО,
     # а не замаскируется копией. 10 копий мира/тик → 0.
-    from app.domain.world_epoch import WorldView
+    from app.domain.world_epoch import WorldEpoch, WorldView
+
+    # PR-5 (S268): Epoch-носитель для Фазы 5. ctx.scene_state — deepcopy-срез
+    # (input_snapshot, create_tick_context) — единственная реальность редюсера.
+    # Write-пути у WorldView нет (по построению). Легаси-писатели ctx.scene_state
+    # (17 точек) — цель миграции PR-6 (TickOverlay, docstring world_epoch.md
+    # обещает его с S266). До PR-6: контракт + INV-хеш-трипвайр (S265).
+    _world_view = WorldView(WorldEpoch(ctx.tick_number, ctx.scene_state, alive_npcs))
 
     _tick_state = create_tick_state(
         tick_id=ctx.tick_number,
@@ -99,6 +106,8 @@ def build_tick_state(
         epistemic_store=epistemic_store, # S189: Epistemic Core
         epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
         affordance_facts_map=affordance_facts_map, # ADR-O-378 (G2 v1): pass-through
+        epoch_id=ctx.tick_number,  # PR-5 (S268): Temporal Epoch carrier
+        world_view=_world_view,    # PR-5 (S268): read-only проекция эпохи
     )
     return _tick_state
 

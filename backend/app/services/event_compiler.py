@@ -210,20 +210,6 @@ class EventCompiler:
                 ),
                 traversal=None,
             )
-            # ADR-O-314: Если целевой узел не найден (невалидный boundary target),
-            # фолбэчим на entrance локации, чтобы NPC не завис и не ломал snapshot.
-            fallback_node_id = f"{target_loc}:entrance"
-            node = svc.get_node(fallback_node_id)
-            if node is None:
-                logger.warning(
-                    f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id} "
-                    f"(fallback {fallback_node_id} also missing)"
-                )
-                return None
-            logger.warning(
-                f"[SHADOW_COMPILER] traversal_complete: node {target_node_id} not found, fallback to {fallback_node_id}"
-            )
-            target_node_id = fallback_node_id
 
         target_xy = (node.x, node.y)
         # Source = same as target — movement completed, NPC is AT target
