@@ -3,7 +3,27 @@
 > Детерминированный каузальный движок симуляции: агенты, состояние мира, восприятие,
 > память, убеждения, решения и нарратив, возникающий из их рассогласования.
 
-**Статус:** экспериментальный исследовательский прототип · **Версия:** `0.5.4.0.8` · Ветка `V.0.5.4.0.8_Железная_река`
+**Статус:** экспериментальный исследовательский прототип · **Версия:** `0.5.4.0.9` · Ветка `V.0.5.4.0.9_Железная_река_2`
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22831764.svg)](https://doi.org/10.5281/zenodo.22831764)
+
+### 📄 Paper
+
+**Executable Epistemic Contracts in Deterministic Agent Simulation: The ENIGMA Architecture** —
+Gritsaenko, M. (2026). Preprint. [Read (PDF)](https://doi.org/10.5281/zenodo.22831764) · [DOI: 10.5281/zenodo.22831764](https://doi.org/10.5281/zenodo.22831764)
+
+### 🔁 Reproduction
+
+Архитектурные контракты, ADR-атлас и математическая модель — в статье. Инварианты
+воспроизводимы без LLM-сервера: `python backend/tests/IPT.py` (core invariant probes),
+сценарии SUPERBOX — `backend/tests/sandbox/SUPERBOX/`.
+
+### 🧠 SUPERBOX
+
+Executable epistemic contracts: end-to-end сценарии, превращающие эпистемические
+утверждения о системе в бинарные вердикты (belief → intent → action → world event).
+Ключевой вердикт: `goran_vertical_slice_test` (12/12) — полная каузальная петля
+кражи, наблюдения, убеждения и обвинения без единой инъекции.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22831764.svg)](https://doi.org/10.5281/zenodo.22831764)
 

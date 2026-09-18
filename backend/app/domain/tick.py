@@ -16,11 +16,19 @@ from app.domain.snapshot import WorldSnapshotDTO
 
 
 def frozen(x: Any) -> Any:
-    """Рекурсивная структурная заморозка: list → tuple. dict остаётся dict (для pickle)."""
+    """S268-АТАКА3: list → tuple на ВСЕХ уровнях; dict возвращается
+    as-is (без рекурсивного пересбора). Семантика идентична прежней:
+    dict и раньше оставался мутируемым dict (пересборка создавала
+    НОВЫЙ dict с теми же мутируемыми значениями — фиктивная заморозка
+    за O(всего дерева); 4.8M вызовов/сессия). Инвариант pickle/JSON
+    сохранён: ключи/типы не меняются. Писателей замороженных dict'ов
+    не существует (INV-хеш-трипвайр ловит мутацию редюсера громко)."""
     if isinstance(x, list):
         return tuple(frozen(v) for v in x)
     if isinstance(x, dict):
-        return {k: frozen(v) for k, v in x.items()}
+        return x
+    if isinstance(x, tuple):
+        return tuple(frozen(v) for v in x)
     return x
 
 
@@ -67,6 +75,9 @@ def create_tick_state(
     epistemic_context_resolver: Optional[Any] = None,
     # ADR-O-378 (G2 v1): per-NPC факты W2 (v1: weapon_access) для редюсера
     affordance_facts_map: Optional[Dict[str, bool]] = None,
+    # ADR-TEMPORAL-EPOCH (PR-5): эпоха и её read-only проекция
+    epoch_id: int = -1,
+    world_view: Any = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -118,6 +129,8 @@ def create_tick_state(
         affordance_facts_map=frozen(affordance_facts_map)
         if affordance_facts_map
         else {},
+        epoch_id=epoch_id,
+        world_view=world_view,
     )
 
 
@@ -148,6 +161,10 @@ class TickState:
     scene_continuity: Optional[Any] = None
     spatial_events: Tuple[Any, ...] = ()
     drf_tick_id: int = -1
+    # ADR-TEMPORAL-EPOCH (PR-5/S268): идентификатор эпохи + read-only проекция.
+    # Ответ на вопрос «в какой реальности возник этот факт» (мандат VII).
+    epoch_id: int = -1
+    world_view: Any = None
 
     # TZ-10: Preloaded Data (загружаются Orchestrator ДО вызова run)
     memory_weights_map: Any = field(

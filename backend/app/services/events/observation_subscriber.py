@@ -33,6 +33,10 @@ _OBSERVATION_SIGHT_RADIUS: float = 10.0
 # ADR-O-360.
 _OBSERVABLE_EVENT_PREDICATES: dict[str, Predicate] = {
     "theft": Predicate.STOLE,
+    # SPATIAL-KNOWLEDGE-01 P3: «X прошёл через boundary в направлении Y».
+    # payload: actor=X (source), target_id=Y (целевая локация). Свидетели —
+    # те, кто ВИДИТActor в момент ухода (LOS-мембрана та же).
+    "npc_exited_location": Predicate.EXITS_TO,
 }
 
 # ObservationSubscriber сам себе testimony: повторное наблюдение того же

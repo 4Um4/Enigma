@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 from app.services.error_interpreter import get_error_interpreter
@@ -458,7 +458,14 @@ class ProviderManager:
         return self._startup_complete
 
     def register_provider(
-        self, key, name, provider, provider_type, path, endpoint=None, **kwargs
+        self,
+        key: str,
+        name: str,
+        provider: Any,
+        provider_type: Any,
+        path: str,
+        endpoint: Optional[str] = None,
+        **kwargs: Any,
     ) -> ModelProvider:
         with self._providers_lock:
             mp = ModelProvider(
@@ -484,7 +491,7 @@ class ProviderManager:
         return None
 
     def get_provider_for_capability(
-        self, capability: str, preferred_keys=None
+        self, capability: str, preferred_keys: Optional[List[str]] = None
     ) -> Optional[ModelProvider]:
         cap_enum = (
             Capability(capability)
@@ -513,7 +520,7 @@ class ProviderManager:
         self._startup_complete = True
         return results
 
-    def _create_and_register_provider(self, key, model_config) -> ModelProvider:
+    def _create_and_register_provider(self, key: str, model_config: Any) -> ModelProvider:
         from app.services.llm.factory import ProviderFactory
 
         pt = ProviderType(getattr(model_config, "provider_type", "llama_cpp"))
@@ -588,14 +595,20 @@ def get_pool_manager() -> tuple[ModelPool, ProviderManager]:
 
 
 class ErrorInterpreter:
-    def handle(self, exc, context=None, agent_name=None, model_key=None):
+    def handle(
+        self,
+        exc: BaseException,
+        context: Any = None,
+        agent_name: Any = None,
+        model_key: Any = None,
+    ) -> tuple[str, str]:
         import traceback
 
         human_msg = "".join(traceback.format_exception_only(type(exc), exc)).strip()
         return human_msg, "Check logs / restart / validate model pool"
 
 
-async def warm_up_all(pool: ModelPool):
+async def warm_up_all(pool: ModelPool) -> None:
     for key in pool.list_model_configs().keys():
         try:
             await pool.get_model_async(key)

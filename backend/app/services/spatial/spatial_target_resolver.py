@@ -124,6 +124,11 @@ class SpatialTargetResolver:
             )
             
         # LEGACY BRIDGE: get_furthest() пока остаётся стратегией выбора макро-цели.
+        if not location_id:
+            return ResolvedSpatialTarget(
+                intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
+                mode=None, resolution_reason="FLEE threat has no location_id"
+            )
         furthest_ref = self._spatial_service.get_furthest(
             zone_id=location_id,
             origin_xy=threat_xy,

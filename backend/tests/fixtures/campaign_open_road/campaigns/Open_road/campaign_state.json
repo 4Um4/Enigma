@@ -1,0 +1,1134 @@
+{
+  "scene_state": {
+    "location_id": "tavern",
+    "objects": {
+      "obj_0": {
+        "name": "Барная стойка #1",
+        "type": "bar",
+        "state": "intact",
+        "position": {
+          "x": 4.778010666666667,
+          "y": 3.8218479999999992
+        },
+        "size": {
+          "w": 4.59,
+          "h": 1.49,
+          "d": 1.2
+        },
+        "interactable": true
+      },
+      "obj_2": {
+        "name": "Стол #3",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 12.025,
+          "y": 7.85
+        },
+        "size": {
+          "w": 1.5,
+          "h": 1.5,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_5": {
+        "name": "Декорация №1",
+        "type": "decoration",
+        "state": "intact",
+        "position": {
+          "x": 6.602141203703703,
+          "y": 12.597125771604938
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_6": {
+        "name": "Декорация №2",
+        "type": "decoration",
+        "state": "intact",
+        "position": {
+          "x": 9.530478395061728,
+          "y": 12.657407407407408
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_7": {
+        "name": "Стол №3",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 5.325,
+          "y": 10.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_8": {
+        "name": "Стол №4",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 7.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_9": {
+        "name": "Стол №5",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 9.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_10": {
+        "name": "Стол №6",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 5.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_11": {
+        "name": "Стол №7",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 7.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_12": {
+        "name": "Стол №8",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 9.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_13": {
+        "name": "Стул №3",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 7.8
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_14": {
+        "name": "Стул №4",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 7.95,
+          "y": 6.225
+        },
+        "size": {
+          "w": 0.52,
+          "h": 0.53,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_15": {
+        "name": "Стул №5",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 9.25,
+          "y": 8.975
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_16": {
+        "name": "Стул №6",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 6.95,
+          "y": 8.9
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_17": {
+        "name": "Стул №7",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.45,
+          "y": 8.549999999999999
+        },
+        "size": {
+          "w": 1.38,
+          "h": 1.12,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_18": {
+        "name": "Стул №8",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 7.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_19": {
+        "name": "Стул №9",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 4.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_20": {
+        "name": "Стул №10",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 5.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_21": {
+        "name": "Стул №11",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 5.375,
+          "y": 9.2
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_22": {
+        "name": "Стул №12",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 5.35,
+          "y": 10.775
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_23": {
+        "name": "Стул №13",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 4.5,
+          "y": 7.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_24": {
+        "name": "Стул №14",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 2.5,
+          "y": 7.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_25": {
+        "name": "Стул №15",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 3.475,
+          "y": 8.15
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_26": {
+        "name": "Стул №16",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 3.55,
+          "y": 9.775
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_27": {
+        "name": "Стол №9",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 16.736111111111114,
+          "y": 1.2166666666666668
+        },
+        "size": {
+          "w": 4.18,
+          "h": 1.19,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_29": {
+        "name": "Стул №17",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 15.012916666666666,
+          "y": 1.7468055555555555
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_33": {
+        "name": "Табурет №1",
+        "type": "stool",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 9.5
+        },
+        "size": {
+          "w": 0.4,
+          "h": 0.4,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_34": {
+        "name": "Костер №1",
+        "type": "campfire",
+        "state": "intact",
+        "position": {
+          "x": 10.0,
+          "y": 3.0
+        },
+        "size": {
+          "w": 2.05,
+          "h": 1.38,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_35": {
+        "name": "Стул №18",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 18.28125,
+          "y": 1.6875
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_36": {
+        "name": "Кровать №1",
+        "type": "bed",
+        "state": "intact",
+        "position": {
+          "x": 15.406185699588475,
+          "y": 7.2321463477366255
+        },
+        "size": {
+          "w": 2.0,
+          "h": 1.0,
+          "d": 0.6
+        },
+        "interactable": true
+      },
+      "obj_37": {
+        "name": "Кровать №2",
+        "type": "bed",
+        "state": "intact",
+        "position": {
+          "x": 18.396350951646088,
+          "y": 7.088165509259259
+        },
+        "size": {
+          "w": 2.0,
+          "h": 1.0,
+          "d": 0.6
+        },
+        "interactable": true
+      },
+      "obj_38": {
+        "name": "Дверь переход №1",
+        "type": "door_transition",
+        "state": "intact",
+        "position": {
+          "x": 8.075000000000003,
+          "y": 13.0
+        },
+        "size": {
+          "w": 2.5,
+          "h": 0.2,
+          "d": 2.2
+        },
+        "interactable": true
+      },
+      "obj_41": {
+        "name": "Дверь №3",
+        "type": "door",
+        "state": "intact",
+        "position": {
+          "x": 14.0,
+          "y": 3.125
+        },
+        "size": {
+          "w": 0.2,
+          "h": 2.94,
+          "d": 2.2
+        },
+        "interactable": true
+      },
+      "candles_main": {
+        "name": "свечи",
+        "state": "unlit",
+        "count": 0,
+        "interactable": true,
+        "owner": null
+      }
+    },
+    "npc_positions": {
+      "maid_lusya": {
+        "name": "Люся",
+        "location_id": "tavern",
+        "position": "node_17",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 7.98736111111111,
+          "y": 1.8263888888888888
+        },
+        "editor_room_id": "room_0"
+      },
+      "blacksmith_orm": {
+        "name": "Кузнец Орм",
+        "location_id": "tavern",
+        "position": "fireplace",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 10.5,
+          "y": 4.0
+        },
+        "editor_room_id": "room_0"
+      },
+      "tavern_keeper_tornin": {
+        "name": "Торнин Серебряная Луна",
+        "location_id": "tavern",
+        "position": "behind_bar",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 4.5,
+          "y": 2.5
+        },
+        "editor_room_id": "room_0"
+      },
+      "merchant_goran": {
+        "name": "Купец Горан",
+        "location_id": "tavern",
+        "position": "right_table",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 10.1,
+          "y": 6.1
+        },
+        "editor_room_id": "room_1"
+      },
+      "guard_borko": {
+        "name": "Стражник Борко",
+        "location_id": "tavern",
+        "position": "kitchen",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 16.700000000000003,
+          "y": 3.7750000000000004
+        },
+        "editor_room_id": "room_0"
+      },
+      "thief_shadow": {
+        "name": "Тень",
+        "location_id": "tavern",
+        "position": "corner_table",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 11.5,
+          "y": 11.0
+        },
+        "editor_room_id": "room_0"
+      },
+      "player": {
+        "name": "player",
+        "location_id": "tavern",
+        "position": "entrance",
+        "activity": "",
+        "visible": true,
+        "local_position": {
+          "x": 8.204957561728396,
+          "y": 11.90991512345679
+        }
+      }
+    },
+    "environment": {
+      "light_level": "dim",
+      "noise_level": "silent",
+      "time_of_day": "08:00",
+      "weather_inside": "cool_fresh"
+    },
+    "player_body_topology": null,
+    "active_effects": [],
+    "player_position": "стоит",
+    "player_target_npc": null,
+    "player_target_npc_name": null,
+    "player_target_object": null,
+    "player_distances": {},
+    "environment_modifiers": {
+      "light": 0.4,
+      "noise": 0.0,
+      "density": 0.3,
+      "danger": 0.1
+    },
+    "spatial_walls": [
+      {
+        "x1": 0.5,
+        "y1": 13.0,
+        "x2": 0.5,
+        "y2": 0.5
+      },
+      {
+        "x1": 14.0,
+        "y1": 13.0,
+        "x2": 9.325000000000003,
+        "y2": 13.0
+      },
+      {
+        "x1": 6.825000000000003,
+        "y1": 13.0,
+        "x2": 0.5,
+        "y2": 13.0
+      },
+      {
+        "x1": 14.0,
+        "y1": 0.5,
+        "x2": 14.0,
+        "y2": 1.655
+      },
+      {
+        "x1": 14.0,
+        "y1": 4.595,
+        "x2": 14.0,
+        "y2": 13.0
+      },
+      {
+        "x1": 0.5,
+        "y1": 0.5,
+        "x2": 14.0,
+        "y2": 0.5
+      },
+      {
+        "x1": 14.0,
+        "y1": 8.0,
+        "x2": 14.0,
+        "y2": 4.595
+      },
+      {
+        "x1": 14.0,
+        "y1": 1.6550000000000002,
+        "x2": 14.0,
+        "y2": 0.5
+      },
+      {
+        "x1": 19.5,
+        "y1": 8.0,
+        "x2": 14.0,
+        "y2": 8.0
+      },
+      {
+        "x1": 19.5,
+        "y1": 0.5,
+        "x2": 19.5,
+        "y2": 8.0
+      },
+      {
+        "x1": 14.0,
+        "y1": 0.5,
+        "x2": 19.5,
+        "y2": 0.5
+      }
+    ],
+    "spatial_obstacles": [
+      {
+        "x": 2.583010666666667,
+        "y": 3.1768479999999992,
+        "w": 4.39,
+        "h": 1.29,
+        "id": "obj_0",
+        "type": "bar",
+        "blocks_los": true,
+        "passability": {
+          "walk": false,
+          "jump_over": false,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.375,
+        "y": 7.199999999999999,
+        "w": 1.3,
+        "h": 1.3,
+        "id": "obj_2",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 4.675,
+        "y": 9.65,
+        "w": 1.3,
+        "h": 0.7,
+        "id": "obj_7",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.85,
+        "y": 6.65,
+        "w": 1.3,
+        "h": 0.7,
+        "id": "obj_8",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.85,
+        "y": 8.65,
+        "w": 1.3,
+        "h": 0.7,
+        "id": "obj_9",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.35,
+        "y": 4.65,
+        "w": 1.3,
+        "h": 0.7,
+        "id": "obj_10",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.35,
+        "y": 6.65,
+        "w": 1.3,
+        "h": 0.7,
+        "id": "obj_11",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.35,
+        "y": 8.65,
+        "w": 1.3,
+        "h": 0.7,
+        "id": "obj_12",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.85,
+        "y": 7.6499999999999995,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_13",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.79,
+        "y": 6.06,
+        "w": 0.32,
+        "h": 0.33,
+        "id": "obj_14",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 9.1,
+        "y": 8.825,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_15",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 6.8,
+        "y": 8.75,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_16",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.86,
+        "y": 8.089999999999998,
+        "w": 1.18,
+        "h": 0.9200000000000002,
+        "id": "obj_17",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.85,
+        "y": 6.85,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_18",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.85,
+        "y": 4.35,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_19",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.85,
+        "y": 5.35,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_20",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 5.225,
+        "y": 9.049999999999999,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_21",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 5.199999999999999,
+        "y": 10.625,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_22",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 4.35,
+        "y": 6.85,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_23",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.35,
+        "y": 6.85,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_24",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 3.325,
+        "y": 8.0,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_25",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 3.4,
+        "y": 9.625,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_26",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 14.746111111111114,
+        "y": 0.7216666666666668,
+        "w": 3.9799999999999995,
+        "h": 0.99,
+        "id": "obj_27",
+        "type": "table",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 14.862916666666665,
+        "y": 1.5968055555555556,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_29",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.9,
+        "y": 9.4,
+        "w": 0.2,
+        "h": 0.2,
+        "id": "obj_33",
+        "type": "stool",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 18.13125,
+        "y": 1.5375,
+        "w": 0.3,
+        "h": 0.3,
+        "id": "obj_35",
+        "type": "chair",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 14.506185699588475,
+        "y": 6.832146347736625,
+        "w": 1.8,
+        "h": 0.8,
+        "id": "obj_36",
+        "type": "bed",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": false,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 17.49635095164609,
+        "y": 6.6881655092592585,
+        "w": 1.8,
+        "h": 0.8,
+        "id": "obj_37",
+        "type": "bed",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": false,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      }
+    ],
+    "active_traversals": {},
+    "tick": 0,
+    "game_time_seconds": 28800
+  }
+}

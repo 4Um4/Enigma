@@ -300,14 +300,37 @@ class MovementEngine:
                                 # перенос делает S186 по boundary_dwell (tick_orchestrator).
                                 from app.core.constants import BOUNDARY_DWELL_TICKS
                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+                                # FIX-6g: гасим intent и здесь (симметрично dist-ветке),
+                                # иначе block_path каждый тик возрождается и гоняет
+                                # NPC маятником через boundary (borko tavern↔city_gate).
+                                npc_positions[intent.actor_id].pop("intent", None)
+                                npc_positions[intent.actor_id].pop("intent_target", None)
                                 if intent.actor_id not in _dwell_map:
                                     _dwell_map[intent.actor_id] = {
                                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
                                         "neighbor": target_loc,
+                                        "via": boundary_node.node_id,
                                     }
                                     logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} at {boundary_node.node_id}; transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
                                 continue
                             if _dist_to_boundary < 1.5:
+                                # FIX-6c+6e: «почти у двери» → пауза в проёме.
+                                # КЛЮЧЕВОЕ: intent гасится (иначе каждый тик
+                                # пересоздаёт dwell с новым ready_tick —
+                                # вечная пауза, доказано логами tick 22→27).
+                                from app.core.constants import BOUNDARY_DWELL_TICKS
+                                _dwell_near = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
+                                if intent.actor_id not in _dwell_near:
+                                    _dwell_near[intent.actor_id] = {
+                                        "ready_tick": tick + BOUNDARY_DWELL_TICKS,
+                                        "neighbor": target_loc,
+                                        "via": boundary_node.node_id,
+                                    }
+                                    logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} near {boundary_node.node_id} (dist={_dist_to_boundary:.2f}); transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+                                npc_positions[intent.actor_id].pop("intent", None)
+                                npc_positions[intent.actor_id].pop("intent_target", None)
+                                continue
+                            if False:  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
 

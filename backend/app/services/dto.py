@@ -76,7 +76,9 @@ class _TickContext:
     """Внутренний контекст тика — живёт только внутри execute()."""
 
     campaign_id: str = ""
-    scene_state: dict = field(default_factory=dict)
+    scene_state: Any = field(default_factory=dict)
+    # PR-6b (S268): явная ручка overlay для терминальной материализации
+    scene_overlay: Any = None
     tick_number: int = 0
     # ADR-134: Instance-level bus
     # P0-1/P0-2 FIX: Добавлен дефолт для предотвращения краша при partial init в game_loop

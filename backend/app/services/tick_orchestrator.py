@@ -745,6 +745,11 @@ class TickOrchestrator:
             ):
                 ctx.scene_state["conclusions"] = self._conclusion_store.to_dict()
 
+            # PR-6b (S268): терминальная материализация overlay → dict.
+            # Один акт (атомарность транспорта): после этой строки все
+            # читатели (:752+) и Фаза 10 (SSM deepcopy) видят плоский dict.
+            if getattr(ctx, "scene_overlay", None) is not None:
+                ctx.scene_state = ctx.scene_overlay.commit()
             final_snapshot = ctx.scene_state
 
             # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
@@ -822,6 +827,65 @@ class TickOrchestrator:
                 if _full_npc:
                     _full_npc["location_id"] = _current_loc
                     _full_npc["location"] = _current_loc
+                # SPATIAL-KNOWLEDGE-01 P4: DIRECT_EXPERIENCE — вошедший NPC
+                # сам узнал, через какой выход пришёл. Self-authored запись:
+                # не телепатия, не мировой факт — личный опыт с provenance.
+                _ep_store = getattr(self, "_epistemic_store", None)
+                # TODO: временный зонд SK-1; будет удалено после: отладки P4-проводки
+                print(f"[DIAG_SK1] npc={_npc_id} store={'YES' if _ep_store else 'NO'} "
+                      f"scene_keys={list((ctx.scene_state.get('npc_positions', {}) or {}).get(_npc_id, {}).keys())[:12]} "
+                      f"via={ (ctx.scene_state.get('npc_positions', {}) or {}).get(_npc_id, {}).get('_via_boundary', '<absent>') }")
+                if _ep_store is not None:
+                    from app.domain.epistemology import (
+                        EpistemicRecord,
+                        Predicate,
+                        Proposition,
+                    )
+
+                    _boundary = ""
+                    _pos = ctx.scene_state.get("npc_positions", {}) if isinstance(ctx.scene_state, dict) else {}
+                    _p_entry = _pos.get(_npc_id) or {}
+                    if isinstance(_p_entry, dict):
+                        _boundary = _p_entry.pop("_via_boundary", "") or ""
+                    if not _boundary:
+                        # второй носитель: full-state NPC (переживает перезапись entry)
+                        for _n in ctx.all_npcs_raw or []:
+                            if _n.get("npc_id") == _npc_id or _n.get("id") == _npc_id:
+                                _boundary = _n.pop("_via_boundary", "") or ""
+                                break
+                    if _boundary:
+                        _prop = Proposition(
+                            subject_id=_npc_id,
+                            predicate=Predicate.EXITS_TO,
+                            object_id=_current_loc,
+                            polarity=True,
+                        )
+                        _existing = _ep_store.get(_npc_id, _prop)
+                        _first_tick = (
+                            getattr(_existing, "first_observed_tick", ctx.tick_number)
+                            if _existing
+                            else ctx.tick_number
+                        )
+                        _new_conf = (
+                            min(1.0, (getattr(_existing, "confidence", 0.0) or 0.0) + 0.3)
+                            if _existing
+                            else 0.7
+                        )
+                        _ep_store.upsert(
+                            EpistemicRecord(
+                                agent_id=_npc_id,
+                                proposition=_prop,
+                                confidence=_new_conf,
+                                source_id=_npc_id,
+                                source_claim_id=f"direct:{_npc_id}:{_boundary}:{ctx.tick_number}",
+                                first_observed_tick=_first_tick,
+                                last_updated_tick=ctx.tick_number,
+                            )
+                        )
+                        logger.info(
+                            f"[SPATIAL_KNOWLEDGE] npc={_npc_id} DIRECT_EXPERIENCE: "
+                            f"{_boundary} → {_current_loc} conf={_new_conf:.2f}"
+                        )
 
 
         ctx.all_npcs_raw = [
@@ -1027,12 +1091,95 @@ class TickOrchestrator:
         _dwell_map = ctx.scene_state.get("boundary_dwell")
         if isinstance(_dwell_map, dict) and _dwell_map:
             for _d_id, _d_info in list(_dwell_map.items()):
+                # FIX-6e: дедлайн — если 5+ тиков после ready_tick переноса
+                # нет (потерян S186-контур), переносим принудительно.
+                _d_deadline = _d_info.get("ready_tick", 0) + 5
+                if ctx.tick_number >= _d_deadline:
+                    logger.warning(f"[BOUNDARY_DWELL] npc={_d_id} deadline missed → forced transfer to {_d_info.get('neighbor')}")
+                    _d_entry_f = _npc_positions.get(_d_id)
+                    if _d_entry_f and _d_info.get("neighbor"):
+                        _d_entry_f["location_id"] = _d_info["neighbor"]
+                    _dwell_map.pop(_d_id, None)
+                    continue
                 if ctx.tick_number >= _d_info.get("ready_tick", 0):
                     _d_entry = _npc_positions.get(_d_id)
                     _d_neighbor = _d_info.get("neighbor", "")
+                    # SPATIAL-KNOWLEDGE-01: переносим «через какой выход» для
+                    # direct-experience записи вошедшего (P4).
+                    _d_via = _d_info.get("via", "")
+                    if _d_via:
+                        # SPATIAL-KNOWLEDGE-01 P4': direct-experience пишется
+                        # ЗДЕСЬ — NPC физически стоит в проёме и переходит.
+                        # INJECT-точка ненадёжна: два конкурирующих канала
+                        # материализации (relocation-intent / dwell) — via
+                        # теряется в гонке (зонд DIAG_SK1, сессия 20:13).
+                        _ep_store = getattr(self, "_epistemic_store", None)
+                        if _ep_store is not None:
+                            from app.domain.epistemology import (
+                                EpistemicRecord,
+                                Predicate,
+                                Proposition,
+                            )
+
+                            _prop = Proposition(
+                                subject_id=_d_id,
+                                predicate=Predicate.EXITS_TO,
+                                object_id=_d_info.get("neighbor", ""),
+                                polarity=True,
+                            )
+                            _existing = _ep_store.get(_d_id, _prop)
+                            _new_conf = (
+                                min(1.0, (getattr(_existing, "confidence", 0.0) or 0.0) + 0.3)
+                                if _existing
+                                else 0.7
+                            )
+                            _ep_store.upsert(EpistemicRecord(
+                                agent_id=_d_id,
+                                proposition=_prop,
+                                confidence=_new_conf,
+                                source_id=_d_id,
+                                source_claim_id=f"direct:{_d_id}:{_d_via}:{ctx.tick_number}",
+                                first_observed_tick=(
+                                    getattr(_existing, "first_observed_tick", ctx.tick_number)
+                                    if _existing
+                                    else ctx.tick_number
+                                ),
+                                last_updated_tick=ctx.tick_number,
+                            ))
+                            logger.info(
+                                f"[SPATIAL_KNOWLEDGE] npc={_d_id} DIRECT_EXPERIENCE: "
+                                f"{_d_via} → {_d_info.get('neighbor')} conf={_new_conf:.2f}"
+                            )
+                    if _d_entry is not None:
+                        _d_entry.pop("_via_boundary", None)  # носитель больше не нужен
                     if _d_entry and _d_neighbor:
+                        # BUG-13 (атомарность): location_id, извлечение из
+                        # npc_positions и постановка в pending_transfers — ОДНИМ
+                        # актом. Раньше location_id мутировался сразу, а del из
+                        # npc_positions откладывался до ghost-скана → окно
+                        # torn-state: NPC «в market» с координатами tavern
+                        # (SC-4 PROBE_FAIL). Позиция префиксована старой
+                        # локацией — переносится как есть, target-локация
+                        # восстанавливает при материализации.
                         _d_entry["location_id"] = _d_neighbor
-                        logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → S186 transfer to {_d_neighbor}")
+                        self._pending_transfers.setdefault(_d_neighbor, {})[_d_id] = _d_entry
+                        if not hasattr(self, "_npc_runtime_locations"):
+                            self._npc_runtime_locations = {}
+                    self._npc_runtime_locations[_d_id] = _d_neighbor
+                    if _d_id in _npc_positions:
+                        del _npc_positions[_d_id]
+                    if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                        for _n in ctx.all_npcs_raw:
+                            if _n.get("npc_id") == _d_id or _n.get("id") == _d_id:
+                                _n["location_id"] = _d_neighbor
+                                _n["location"] = _d_neighbor
+                                break
+                    logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → atomic S186 transfer to {_d_neighbor}")
+                    # FIX-6f: запись стирается ТОЛЬКО после фактического
+                    # переноса. Раньше pop стоял на уровне цикла и стирал
+                    # dwell каждый тик до готовности → ready_tick бесконечно
+                    # пересоздавался movement_engine (доказано: transfer at
+                    # tick 13→19 без единого "dwell complete").
                     _dwell_map.pop(_d_id, None)
         # S267 (V8-SP-19 для ghost-скана): запись с position, префиксованным
         # ТЕКУЩЕЙ сценой — НЕ призрак, а мусорное location_id-поле (класс
@@ -1658,7 +1805,7 @@ class TickOrchestrator:
         Безопасен для вызова между тиками.
         """
         if not hasattr(self, "_tick_thick_changes"):
-            self._tick_thick_changes = []
+            self._tick_thick_changes: list[Any] = []
         result = self._tick_thick_changes
         self._tick_thick_changes = []
         return result

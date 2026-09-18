@@ -155,7 +155,7 @@ def run_dm_phase(
                 )
 
     # Rule 47: Инициализация ДО условных веток — Python Scoping Trap
-    _sem_payload = {}
+    _sem_payload: Dict[str, Any] = {}
 
     # Публикация + STM + время — только при валидном результате
     if dm_result.is_valid:
