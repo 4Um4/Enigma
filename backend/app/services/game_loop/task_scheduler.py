@@ -279,10 +279,10 @@ class TaskScheduler:
             from app.services.game_loop.speech_scheduler import SpeechScheduler
             self._speech_scheduler = SpeechScheduler(self._memory_manager)
 
-        from app.domain.intent_profiles import requires_llm_materialization
         # [GC-I01-E2] GC-INTERRUPT-01: причина прерывания (закон №16, локальный
         # импорт — прецедент файла; шрам-закон №1: поверхность перед использованием).
         from app.domain.action_commitment import INTERRUPT_TASK_STALE_INTENT
+        from app.domain.intent_profiles import requires_llm_materialization
 
         for task_dict in pending:
             if task_dict.get("kind") == "dialogue":

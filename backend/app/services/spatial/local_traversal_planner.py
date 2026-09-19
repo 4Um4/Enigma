@@ -10,17 +10,14 @@ import math
 from typing import List, Tuple
 
 from app.domain.traversal import (
-    BodyCapabilities,
     LocalGeometry,
     Obstacle,
-    Pose,
-    TraversalFeasibility,
     TraversalMode,
     TraversalPlan,
     TraversalQuery,
     TraversalSegment,
 )
-from app.services.spatial.geometry_kernel import point_in_rect, segment_to_rect_min_dist_sq, segments_distance_sq
+from app.services.spatial.geometry_kernel import segment_to_rect_min_dist_sq, segments_distance_sq
 from app.services.spatial.transition_topology_solver import TransitionTopologySolver
 from app.services.spatial.traversal_transition_kernel import TraversalTransitionKernel
 

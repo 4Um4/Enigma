@@ -11,7 +11,6 @@
 from pathlib import Path
 
 import pytest
-
 from app.core.config import BASE_DIR
 from app.services.calibration.scenario_player import (
     Scenario,

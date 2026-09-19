@@ -82,6 +82,7 @@ def main() -> int:
 
         # ── R3: direct-experience записан в production-точке ─────────────
         import inspect
+
         from app.services import tick_orchestrator as _orch
 
         src = inspect.getsource(_orch.TickOrchestrator._run_core_phases)

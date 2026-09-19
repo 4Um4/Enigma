@@ -3,24 +3,42 @@ map_editor/tools/interaction.py
 Обработка взаимодействия (клики, удаление, выбор) с объектами на карте.
 """
 import math
-import pygame
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 
+import pygame
 from core.commands import (
-    AddWallCommand, AddRoomCommand, AddObjectCommand, AddPassageCommand,
-    AddLabelCommand, AddNpcCommand, AddNodeCommand, AddConnectionCommand,
-    RemoveWallCommand, RemoveRoomCommand, RemoveObjectCommand,
-    RemoveNpcCommand, RemoveLabelCommand, RemoveNodeCommand,
-    CompoundCommand
+    AddConnectionCommand,
+    AddLabelCommand,
+    AddNodeCommand,
+    AddNpcCommand,
+    AddObjectCommand,
+    AddPassageCommand,
+    AddRoomCommand,
+    AddWallCommand,
+    CompoundCommand,
+    RemoveLabelCommand,
+    RemoveNodeCommand,
+    RemoveNpcCommand,
+    RemoveObjectCommand,
+    RemoveRoomCommand,
+    RemoveWallCommand,
 )
 from core.geometry import Geometry
-from ui.dialogs import ModalDialog
+from data_manager import OBJECT_PRESETS, DataManager
 from ui.components import COLORS
-from data_manager import DataManager, OBJECT_PRESETS
+from ui.dialogs import ModalDialog
+
 from tools.constants import (
-    TOOL_WALL, TOOL_ROOM, TOOL_OBJECT, TOOL_PASSAGE,
-    TOOL_LABEL, TOOL_NPC, TOOL_NODE, TOOL_SPAWN, TOOL_DELETE
+    TOOL_DELETE,
+    TOOL_LABEL,
+    TOOL_NODE,
+    TOOL_NPC,
+    TOOL_OBJECT,
+    TOOL_PASSAGE,
+    TOOL_ROOM,
+    TOOL_SPAWN,
+    TOOL_WALL,
 )
 
 SCALE = 20

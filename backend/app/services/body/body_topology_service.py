@@ -5,9 +5,10 @@ path: /project/backend/app/services/body/body_topology_service.py
 Основные сущности: BodyTopologyService
 """
 import os
+from typing import Dict, List, Optional
+
 import yaml
-from typing import Dict, List, Optional, Tuple
-from app.domain.body import BodyTopology, BodySlot, Item, EncumbranceLevel
+from app.domain.body import BodySlot, BodyTopology, Item
 
 # Константы ключей YAML
 _YAML_TOPOLOGY_KEY = "human_body_topology"
@@ -21,7 +22,7 @@ _YAML_HIDDEN = "hidden"
 
 class BodyTopologyService:
     """Сервис управления физической топологией тела."""
-    
+
     _topology_template: Optional[Dict] = None
     _encumbrance_rules: Optional[Dict] = None
 
@@ -32,10 +33,10 @@ class BodyTopologyService:
             return
         if not os.path.exists(yaml_path):
             raise FileNotFoundError(f"BodyTopology YAML не найден: {yaml_path}")
-        
+
         with open(yaml_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-        
+
         cls._topology_template = data.get(_YAML_TOPOLOGY_KEY, {})
         cls._encumbrance_rules = data.get(_YAML_ENCUMBRANCE_KEY, {})
 
@@ -56,42 +57,42 @@ class BodyTopologyService:
             for hand_data_item in hand_data:
                 slot = cls._parse_slot(hand_data_item)
                 topology.hands[slot.slot_id] = slot
-            
+
         # Парсинг пояса (List)
         belt_data = template.get(_YAML_BELT)
         if belt_data is not None:
             topology.belt = [cls._parse_slot(d) for d in belt_data]
         else:
             topology.belt = []
-        
+
         # Парсинг карманов (List)
         pockets_data = template.get(_YAML_POCKETS)
         if pockets_data is not None:
             topology.pockets = [cls._parse_slot(d) for d in pockets_data]
         else:
             topology.pockets = []
-        
+
         # Парсинг рюкзака (List)
         backpack_data = template.get(_YAML_BACKPACK)
         if backpack_data is not None:
             topology.backpack = [cls._parse_slot(d) for d in backpack_data]
         else:
             topology.backpack = []
-        
+
         # Парсинг надетого (Dict)
         worn_data = template.get(_YAML_WORN)
         if worn_data is not None:
             for worn_data_item in worn_data:
                 slot = cls._parse_slot(worn_data_item)
                 topology.worn[slot.slot_id] = slot
-            
+
         # Парсинг скрытых (List)
         hidden_data = template.get(_YAML_HIDDEN)
         if hidden_data is not None:
             topology.hidden = [cls._parse_slot(d) for d in hidden_data]
         else:
             topology.hidden = []
-        
+
         return topology
 
     @staticmethod
@@ -120,23 +121,23 @@ class BodyTopologyService:
         slot = next((s for s in topology.all_slots() if s.slot_id == slot_id), None)
         if not slot:
             return False
-            
+
         # Проверка замка
         if slot.is_locked:
             return False
-            
+
         # Проверка типа
         if slot.item_type_restriction and item.item_type != slot.item_type_restriction:
             return False
-            
+
         # Проверка габаритов
         if item.bulk > slot.max_bulk:
             return False
-            
+
         current_items = topology.contents.get(slot_id, ())
         if len(current_items) >= slot.capacity:
             return False
-            
+
         # Добавление
         topology.contents[slot_id] = current_items + (item,)
         return True
@@ -147,7 +148,7 @@ class BodyTopologyService:
         slot = next((s for s in topology.all_slots() if s.slot_id == slot_id), None)
         if not slot:
             return None
-            
+
         current_items = topology.contents.get(slot_id, ())
         for i, item in enumerate(current_items):
             if item.item_id == item_id:
@@ -159,17 +160,17 @@ class BodyTopologyService:
 
     @staticmethod
     def transfer_item(
-        source: BodyTopology, 
-        source_slot_id: str, 
-        target: BodyTopology, 
-        target_slot_id: str, 
+        source: BodyTopology,
+        source_slot_id: str,
+        target: BodyTopology,
+        target_slot_id: str,
         item_id: str
     ) -> bool:
         """Перенос предмета между аватарами (торговля, кража)."""
         item = BodyTopologyService.remove_item(source, source_slot_id, item_id)
         if not item:
             return False
-            
+
         if BodyTopologyService.add_item(target, target_slot_id, item):
             return True
         # Откат, если не удалось положить
@@ -185,7 +186,7 @@ class BodyTopologyService:
         slot = next((s for s in topology.all_slots() if s.slot_id == slot_id), None)
         if not slot:
             return []
-            
+
         # Если слот требует осмотра и проверка провалена — пусто
         if slot.requires_inspection:
             if slot.is_locked and slot.lock_difficulty:
@@ -193,14 +194,14 @@ class BodyTopologyService:
                     return []
             elif slot.visibility < 0.1 and inspection_skill < 10:
                 return []
-                
+
         items = list(topology.contents.get(slot_id, ()))
-        
+
         # Concealment (например, плащ) скрывает часть содержимого
         if slot.concealment > 0:
             visible_count = int(len(items) * (1.0 - slot.concealment))
             return items[:visible_count]
-            
+
         return items
 
     @staticmethod
@@ -219,13 +220,13 @@ class BodyTopologyService:
                 Item(**item_data) if isinstance(item_data, dict) else item_data
                 for item_data in items_list
             )
-            
+
         topology = BodyTopology(
             avatar_id=data.get("avatar_id", "player"),
             strength_score=data.get("strength_score", 10),
             contents=contents
         )
-        
+
         # Восстанавливаем слоты (они frozen dataclass)
         for hand_id, hand_data in data.get("hands", {}).items():
             topology.hands[hand_id] = BodySlot(**hand_data)
@@ -239,5 +240,5 @@ class BodyTopologyService:
             topology.worn[worn_id] = BodySlot(**worn_data)
         for hidden_data in data.get("hidden", []):
             topology.hidden.append(BodySlot(**hidden_data))
-            
+
         return topology

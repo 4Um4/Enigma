@@ -2,7 +2,6 @@
 import tempfile
 from pathlib import Path
 
-import pytest
 from app.services.scene_state_manager import SceneStateManager
 
 

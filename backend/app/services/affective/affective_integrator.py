@@ -59,7 +59,7 @@ def integrate_affective_pressure(
     # M-25 FIX: Guard against NaN/Inf propagation
     import math
     if math.isnan(pk_load) or math.isinf(pk_load):
-        logger.error(f"[AFFECTIVE] NaN/Inf detected in pk_load. Resetting to 0.0.")
+        logger.error("[AFFECTIVE] NaN/Inf detected in pk_load. Resetting to 0.0.")
         pk_load = 0.0
 
     # 2. Active Inference: Ошибка предсказания (Surprise)

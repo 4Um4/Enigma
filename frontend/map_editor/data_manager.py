@@ -10,17 +10,9 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # M1/Phase1: Импортируем NPC-данные из нового модуля
-from data.npc_data import (
-    NPC_SPRITE_MAP,
-    load_npc_individuals,
-    load_npc_visual_casting,
-    save_npc_visual_casting,
-    load_npc_calibration,
-    save_npc_calibration,
-)
 
 logger = logging.getLogger(__name__)
 

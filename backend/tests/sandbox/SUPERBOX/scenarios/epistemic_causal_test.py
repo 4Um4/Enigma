@@ -24,13 +24,10 @@ logger = logging.getLogger("EPISTEMIC_CAUSAL_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
+from app.domain.epistemology import Predicate, Proposition
 from app.domain.events import EventDTO
-from app.domain.epistemology import Proposition, Predicate
-from app.services.npc.epistemic_store import EpistemicStore
-from app.services.npc.belief_revision_engine import BeliefRevisionEngine
-from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+from app.services.events.event_types import EventType
+from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"

@@ -22,13 +22,13 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
 from app.services.events.observation_subscriber import ObservationSubscriber
+from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
 from app.services.npc.trust_based_reliability_provider import (
-    TrustBasedReliabilityProvider,
     DIRECT_OBSERVATION_RELIABILITY,
+    TrustBasedReliabilityProvider,
 )
-from app.services.memory.relationship_store import RelationshipStore
 from app.services.spatial.spatial_query_service import SpatialQueryService
 
 CAMPAIGN_ID = "observation_test"
@@ -148,10 +148,9 @@ def main():
         print("    ❌ FAIL"); ok = False
 
     # ── T5: observation vs вражеское testimony ──────────────────────
-    from app.services.events.claim_event_subscriber import ClaimEventSubscriber
     # тот же store/engine; публикуем testimony от врага на ту же пропозицию
     # (через прямой вызов engine, минуя шину — шинный путь уже покрыт IPT)
-    from app.domain.epistemology import ClaimEvent, Proposition, Predicate
+    from app.domain.epistemology import ClaimEvent, Predicate, Proposition
     prop = Proposition(subject_id="player", predicate=Predicate.STOLE,
                        object_id="gold_chest", polarity=True)
     enemy_claim = ClaimEvent(event_id="e1", claim_id="c1", speaker_id="npc_enemy",

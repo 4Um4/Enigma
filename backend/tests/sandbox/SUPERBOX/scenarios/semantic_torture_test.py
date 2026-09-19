@@ -10,11 +10,9 @@
 import asyncio
 import atexit
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 # S203 FIX: Корректный расчёт глубины пути (parents[4] указывает на backend/)
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
@@ -38,9 +36,7 @@ except Exception as e:
     _llm_ok = False
 
 from app.domain.intent_profile import IntentSemanticField
-from app.domain.epistemology import Proposition, Predicate, SocialIntent, SpeechAct
 from app.services.input.intent_compressor import IntentCompressor
-from app.services.input.llm_compressor_client import LLMCompressorClient
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -300,7 +296,6 @@ CONTEXT_DEPENDENT = [
 # === ЗАПУСК ===
 
 async def run_test():
-    from app.core.config import settings
     from app.services.input.llm_compressor_client import LlamaCppCompressorClient
     
     llm_client = LlamaCppCompressorClient()

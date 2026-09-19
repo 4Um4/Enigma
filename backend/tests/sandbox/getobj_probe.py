@@ -1,6 +1,12 @@
 """S266: прямой вызов _get_object/WorldObjectStore.get на живой сцене —
 исключение? пустой subtree? возвращаемый None? Без логгеров-посредников."""
-import sys, tempfile, types, os, shutil, logging, traceback
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import traceback
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")
@@ -48,6 +54,7 @@ except Exception as ex:
 
 # 4) А теперь — на deepcopy-снимке (как в реальном тике)
 import copy
+
 snap = copy.deepcopy(sc)
 try:
     obj3 = WorldObjectStore.get(snap, TARGET)

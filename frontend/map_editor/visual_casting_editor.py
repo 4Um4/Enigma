@@ -8,12 +8,13 @@ path: /frontend/map_editor/visual_casting_editor.py
 import os
 import tkinter as tk
 from tkinter import filedialog
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pygame
-from ui_components import COLORS, Button, TextInput
 from data_manager import STANDARD_EXPRESSIONS
 from sprite_registry import sprite_registry
+from ui_components import COLORS, Button
+
 
 class VisualCastingEditor:
     """Визуальный инструмент для назначения портретов (Sprite Picker)."""
@@ -107,7 +108,7 @@ class VisualCastingEditor:
         if self.current_rect and self.sheet_name and self._selected_direction:
             r = self.current_rect
             asset = [
-                self.sheet_name, r.x, r.y, r.w, r.h, 
+                self.sheet_name, r.x, r.y, r.w, r.h,
                 self.threshold, self.outline
             ]
             self._directions[self._selected_direction] = asset

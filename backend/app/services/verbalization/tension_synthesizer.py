@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Tuple
+
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
-from app.models.npc_state import NPCState
 
 
 @dataclass(frozen=True)

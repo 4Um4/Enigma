@@ -4,6 +4,7 @@
 """
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class BodyCapabilities:
     radius: float = 0.35

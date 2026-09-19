@@ -5,7 +5,6 @@ path: /project/backend/tests/test_avatar_status.py
 Основные сущности: test_need_mapper, test_avatar_status_builder
 """
 import pytest
-
 from app.domain.presentation import NeedSeverity
 from app.models.economy import EconomicProfile, Need, NeedType
 from app.services.economy.need_presentation_mapper import NeedPresentationMapper

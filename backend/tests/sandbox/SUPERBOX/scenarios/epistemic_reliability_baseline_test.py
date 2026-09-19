@@ -35,8 +35,8 @@ logger = logging.getLogger("RELIABILITY_BASELINE")
 logger.setLevel(logging.INFO)
 
 from app.domain.events import EventDTO
-from app.services.events.event_types import EventType
 from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+from app.services.events.event_types import EventType
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver

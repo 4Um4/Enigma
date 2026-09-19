@@ -8,12 +8,12 @@
 import logging
 from typing import List, Optional
 
+from app.domain.epistemology import Predicate, Proposition
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.truth_state import TruthState
+from app.services.player_cognition.legacy_bridge import PropositionMatcher
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
-from app.services.player_cognition.legacy_bridge import PropositionMatcher
-from app.domain.epistemology import Proposition, Predicate
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ class NpcConfessionParser:
     def _record_confession(self, npc_id: str, secret_id: str, reply_text: str, tick: int, target_id: str) -> None:
         if not self._truth:
             return
-            
+
         obs = self._log.add(
             tick=tick,
             observation_type="npc_confession",

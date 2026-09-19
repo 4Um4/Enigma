@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from app.domain.identity_events import TraitDriftEvent
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
-from app.models.npc_state import NPCState, NPCStateAdapter, EmotionTag
+from app.models.npc_state import EmotionTag, NPCState, NPCStateAdapter
 from app.models.will import WillState
 from app.services.npc.break_progress_engine import BreakProgressEngine
 
@@ -198,7 +198,7 @@ def evaluate_behavior_and_identity(
             _player_rel = (
                 _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
             )
-            
+
             # V8-PSY-6 + M1b.3.4: БЕЗУСЛОВНАЯ гидратация (кэш = projection,
             # sticky-путь закрыт; store жив всегда post-cutover)
             if relationship_store:

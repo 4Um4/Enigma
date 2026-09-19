@@ -9,8 +9,6 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from app.models.pipeline_context import PipelineContext
 
 

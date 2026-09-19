@@ -33,8 +33,8 @@ logging.getLogger("app.services.execution.dialogue_materializer").setLevel(loggi
 logging.getLogger("app.services.events.claim_event_subscriber").setLevel(logging.DEBUG)
 logging.getLogger("app.services.npc.epistemic_store").setLevel(logging.DEBUG)
 
+from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
 from app.services.game_loop_builder import build_game_loop
-from app.domain.epistemology import Proposition, Predicate, EpistemicRecord
 from app.services.npc.epistemic_store import EpistemicStore
 from app.services.spatial.spatial_query_service import SpatialQueryService
 
@@ -90,7 +90,7 @@ def setup_world(game_loop, inject_lie: bool):
             _npc_pos[_npc_id]["activity"] = "idle"
             
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_npc_pos, 
+        npc_positions=_npc_pos,
         scene_state=_scene
     )
         
@@ -229,7 +229,7 @@ def run_test():
         logger.error(f"FAIL: C intent did not change! Control={intent_c_control}, Treatment={intent_c_treat}")
         return False
         
-    logger.info(f"PASS: C intent changed due to epistemic causal loop!")
+    logger.info("PASS: C intent changed due to epistemic causal loop!")
     logger.info(f"  Control: {intent_c_control}")
     logger.info(f"  Treatment: {intent_c_treat}")
 

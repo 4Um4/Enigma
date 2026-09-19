@@ -8,11 +8,11 @@ path: backend/tests/sandbox/SUPERBOX/scenarios/smoke_goran_alpha.py
 Зависимости: app.services.events.event_bus, game_loop_builder, logging
 Основные сущности: CausalState, QueueLogHandler, run_smoke, analyze_results
 """
+import logging
 import sys
 import tempfile
-import logging
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))

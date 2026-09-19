@@ -9,8 +9,6 @@
 import os
 import re
 
-import pytest
-
 # Динамическое вычисление путей относительно расположения тестового файла
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _APP_DIR = os.path.abspath(os.path.join(_BASE_DIR, "..", "app"))

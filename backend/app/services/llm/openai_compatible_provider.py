@@ -7,7 +7,7 @@
 import json
 import logging
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from app.services.llm.provider import (
     GenerationParams,
@@ -100,7 +100,7 @@ class OpenAICompatibleProvider(LlmProvider):
 
         # H-15 FIX: Bypass env proxies (согласованность с LlamaCppProvider)
         _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        
+
         # H-13 FIX: Retry с exponential backoff для 429/503
         import time
         for attempt in range(1, 4):

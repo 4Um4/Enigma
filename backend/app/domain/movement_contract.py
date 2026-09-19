@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List, Optional, Tuple
+
 # BUG-DOMAIN-PURITY FIX (§1.2): Убираем импорт из models, используем Any для аннотации типа
 
 
@@ -39,15 +40,15 @@ class MovementFailure(Enum):
 class MovementTrace:
     """Чёрный ящик движения (S-141). Фиксирует каждый шаг перемещения NPC."""
     actor_id: str
-    
+
     source_position: Optional[Tuple[float, float]] = None
     source_node: Optional[Any] = None
-    
+
     target_node: Optional[Any] = None
-    
+
     path_status: PathStatus = PathStatus.NO_PATH
     path_nodes: List[Any] = field(default_factory=list)
-    
+
     traversal_created: bool = False
     failure: MovementFailure = MovementFailure.NONE
     reason: str = ""

@@ -19,7 +19,6 @@ path: /project/backend/tests/test_commitment_ssm_integration.py
 from types import SimpleNamespace
 
 import pytest
-
 from app.domain.traversal_schema import TraversalProposal
 from app.services.scene_change import ChangeType, SceneChange
 from app.services.scene_state_manager import SceneStateManager

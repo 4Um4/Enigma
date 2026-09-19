@@ -5,15 +5,19 @@
 Поскольку в старой системе Anchor ID часто совпадает с Node ID (или ролью узла), наш первый адаптер будет использовать существующие методы SpatialService (get_node и resolve_node), но возвращать уже новый,
 чистый DTO ResolvedSpatialTarget. Это позволит нам начать использовать новую онтологию без поломки старого движка.
 """
-from typing import Dict, Optional, Tuple
-
 import logging
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 from app.domain.spatial_target import (
-    SpatialTargetIntent, ResolvedSpatialTarget, TargetResolutionStatus, SpatialTargetType, SpatialResolutionMode
+    ResolvedSpatialTarget,
+    SpatialResolutionMode,
+    SpatialTargetIntent,
+    SpatialTargetType,
+    TargetResolutionStatus,
 )
 from app.services.spatial.spatial_service import SpatialService
+
 
 def _extract_xy(entry: Optional[Dict]) -> Optional[Tuple[float, float]]:
     """Строгое и безопасное извлечение координат из разных форматов позиций."""
@@ -42,8 +46,8 @@ class SpatialTargetResolver:
         self._spatial_service = spatial_service
 
     def resolve(
-        self, 
-        intent: SpatialTargetIntent, 
+        self,
+        intent: SpatialTargetIntent,
         npc_positions: Optional[Dict[str, Dict]] = None,
         actor_id: Optional[str] = None,
         location_id: Optional[str] = None
@@ -53,10 +57,10 @@ class SpatialTargetResolver:
         """
         if intent.target_type == SpatialTargetType.ANCHOR:
             return self._resolve_anchor_target(intent, location_id)
-            
+
         if intent.target_type == SpatialTargetType.REGION and intent.reason == "flee":
             return self._resolve_flee_target(intent, npc_positions, actor_id, location_id)
-        
+
         return ResolvedSpatialTarget(
             intent=intent,
             resolution_status=TargetResolutionStatus.UNAVAILABLE,
@@ -71,10 +75,10 @@ class SpatialTargetResolver:
                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
                 mode=None, resolution_reason="Anchor target_id is missing"
             )
-            
+
         # 1. Пытаемся найти узел по точному ID (если Anchor привязан к node_id)
         node = self._spatial_service.get_node(target_id)
-        
+
         # 2. Если нет, пытаемся найти по семантической роли (например, "bar")
         if not node:
             from app.models.spatial_contracts import NodeRole
@@ -84,13 +88,13 @@ class SpatialTargetResolver:
                 node = self._spatial_service.resolve_node(role=role_enum, origin_zone=location_id)
             except ValueError as e:
                 logger.debug(f"NodeRole not found for target_id={target_id}: {e}")  # Строка не соответствует ни одной роли NodeRole
-            
+
         if not node:
             return ResolvedSpatialTarget(
                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
                 mode=None, resolution_reason=f"Anchor {target_id} not found in graph"
             )
-            
+
         return ResolvedSpatialTarget(
             intent=intent,
             resolution_status=TargetResolutionStatus.RESOLVED,
@@ -113,16 +117,16 @@ class SpatialTargetResolver:
                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
                 mode=None, resolution_reason=f"FLEE threat {threat_id} not found"
             )
-            
+
         threat_xy = _extract_xy(npc_positions.get(threat_id))
         actor_xy = _extract_xy(npc_positions.get(actor_id)) if actor_id else None  # noqa: ENIGMA001
-        
+
         if not threat_xy:
             return ResolvedSpatialTarget(
                 intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
                 mode=None, resolution_reason=f"FLEE threat {threat_id} has no position"
             )
-            
+
         # LEGACY BRIDGE: get_furthest() пока остаётся стратегией выбора макро-цели.
         if not location_id:
             return ResolvedSpatialTarget(
@@ -134,7 +138,7 @@ class SpatialTargetResolver:
             origin_xy=threat_xy,
             exclude_node_ids=set()
         )
-        
+
         if furthest_ref:
             # Если нашли дальний узел — возвращаем макро-цель
             return ResolvedSpatialTarget(
@@ -145,7 +149,7 @@ class SpatialTargetResolver:
                 anchor_node_id=furthest_ref.node_id,
                 resolution_reason="FLEE resolved to furthest node"
             )
-            
+
         # Fallback: если графа нет или узел не найден — вычисляем микро-вектор (Micro-FLEE)
         if actor_xy:
             _dx = actor_xy[0] - threat_xy[0]
@@ -163,7 +167,7 @@ class SpatialTargetResolver:
                     position=micro_pos,
                     resolution_reason="FLEE resolved to micro-position"
                 )
-                
+
         return ResolvedSpatialTarget(
             intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
             mode=None, resolution_reason="FLEE failed: no macro node and no actor pos for micro"

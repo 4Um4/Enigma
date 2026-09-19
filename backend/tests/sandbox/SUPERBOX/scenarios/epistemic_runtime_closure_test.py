@@ -9,7 +9,6 @@ SUPERBOX-015: Runtime Epistemic Closure for Player.
 
 import logging
 import sys
-import time
 from pathlib import Path
 
 # Настройка путей
@@ -21,16 +20,14 @@ logger = logging.getLogger("EPISTEMIC_RUNTIME_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.domain.events import EventDTO
 from app.domain.execution import Artifact
-from app.domain.epistemology import Predicate
-from app.services.events.event_types import EventType
-from app.services.events.event_bus import get_event_bus
 from app.services.events.claim_event_subscriber import ClaimEventSubscriber
-from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
+from app.services.events.event_bus import get_event_bus
+from app.services.events.event_types import EventType
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
+from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
 from app.services.spatial.spatial_query_service import SpatialQueryService
 
 CAMPAIGN_ID = "Open_road"
@@ -57,8 +54,8 @@ def run_test():
     spatial_query = SpatialQueryService(npc_positions=mock_positions)
     
     subscriber = ClaimEventSubscriber(
-        engine=engine, 
-        store=store, 
+        engine=engine,
+        store=store,
         spatial_query_provider=lambda: spatial_query
     )
 

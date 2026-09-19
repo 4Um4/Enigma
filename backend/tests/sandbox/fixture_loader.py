@@ -11,7 +11,6 @@ path: backend/tests/sandbox/fixture_loader.py
 
 Запуск: python -m py_compile backend/app/services/tick_utils.py backend/tests/sandbox/fixture_loader.py
 """
-import os
 from pathlib import Path
 
 FIXTURE_DIR = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "campaign_open_road"
@@ -20,6 +19,17 @@ FIXTURE_DIR = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "camp
 def has_fixture() -> bool:
     """Фикстура консервирована и полна (sessions/world_tick присутствуют)."""
     return FIXTURE_DIR.exists() and (FIXTURE_DIR / "sessions").exists()
+
+
+def consume_fixture(settings) -> None:
+    """Подключает фикстуру как data_dir с ЧИСТОЙ гарантией:
+    runtime-хвосты (logs, world_tick.json) тест-прогона не мутируют
+    консервант (урок S268: logs/*.jsonl и world_tick ползли в
+    фикстуру). Вызывать ДО импорта сервисов."""
+    settings.data_dir = str(FIXTURE_DIR)
+    _wt = FIXTURE_DIR / "sessions" / "Open_road" / "world_tick.json"
+    if _wt.exists():
+        _wt.unlink()
 
 
 def fixture_env() -> dict:

@@ -2,7 +2,6 @@
 Назначение: Если мы переведем дальние локации в облегченный режим (LOD), нам нужно будет пропускать тяжелые фазы (память, решения, события) и оставлять только физиологию (LifeEngine) и время.
 """
 
-import time
 import logging
 from collections import deque
 from typing import List, Optional
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class AdaptiveTickLoader:
     """Дополнение Б (п. Б.11): Автоматический LOD (Level of Detail) для тика."""
-    
+
     SLOW_TICK_THRESHOLD_MS = 500
     LOD_ACTIVATION_SAMPLES = 5
     LOD_DEACTIVATION_SAMPLES = 50
@@ -24,7 +23,7 @@ class AdaptiveTickLoader:
 
     def record_tick(self, duration_ms: float, npc_count: int) -> None:
         self._tick_history.append({'duration': duration_ms, 'npc_count': npc_count})
-        
+
         if duration_ms > self.SLOW_TICK_THRESHOLD_MS:
             self._consecutive_slow += 1
             self._consecutive_fast = 0

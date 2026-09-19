@@ -932,8 +932,8 @@ def test_delta_gate_emits_chronicaler_event(tmp_path: Path) -> None:
     """E2.0-b: успешное применение публикует EXPERIENCE_DELTA_COMMITTED
     с trace_id/causal_parent — Chronicaler получает причинную трассу.
     Отказ (вне whitelist) события НЕ публикует."""
-    from app.services.events.event_bus import get_event_bus
     from app.domain.state_delta_proposal import StateDeltaProposal
+    from app.services.events.event_bus import get_event_bus
     from app.services.memory.delta_gate import DeltaGate
 
     bus = get_event_bus()
@@ -988,10 +988,10 @@ def test_threaten_produces_gated_delta() -> None:
     from app.models.delta_payloads import PerceptionPayload
     from app.models.state_delta import DeltaDomain, StateDeltas
     from app.services.events import reaction_subscriber as _rs
-    from app.services.events.event_types import EventType
 
     # Сигнатура по факту: ReactionSubscriber(event_bus) — шина обязательна
     from app.services.events.event_bus import get_event_bus as _gb
+    from app.services.events.event_types import EventType
 
     sub = _rs.ReactionSubscriber(_gb())
     evt = EventDTO.create(
@@ -1120,15 +1120,14 @@ def test_witness_threat_gated_with_own_trace() -> None:
     trace (event:npc:witness), не смешиваясь с target-треком. Один
     event → две именованные проекции (AG1-INV-TRACE-ONCE в полной
     форме: цель и свидетель — разные причинные следствия)."""
-    import tempfile
     from types import SimpleNamespace
 
-    from app.services.events import reaction_subscriber as _rs
     from app.domain.events import EventDTO
-    from app.services.events.event_bus import get_event_bus as _gb
-    from app.services.events.event_types import EventType
     from app.models.delta_payloads import PerceptionPayload
     from app.models.state_delta import DeltaDomain, StateDeltas
+    from app.services.events import reaction_subscriber as _rs
+    from app.services.events.event_bus import get_event_bus as _gb
+    from app.services.events.event_types import EventType
 
     captured = []
 
@@ -1184,13 +1183,12 @@ def test_reaction_telepathy_guard_observable() -> None:
     """AG1-D11: fallback-телепатия наблюдаема (WARNING), легитимный
     путь — perceiving_npcs из Фазы 8 (reduction:253). §ENIGMA-003:
     [] = «никто не увидел» (валидно, не fallback), None = сбой сбора."""
-    import tempfile
     from types import SimpleNamespace
 
     from app.domain.events import EventDTO
+    from app.models.state_delta import StateDeltas
     from app.services.events import reaction_subscriber as _rs
     from app.services.events.event_bus import get_event_bus as _gb
-    from app.models.state_delta import StateDeltas
 
     # Пустая проекция: [] → реакции НЕ генерируются (никто не видел)
     bus = _gb()

@@ -1,5 +1,10 @@
 """S266-разведка: где застревает eat-активность Торнина (ACTIVITY-лог)."""
-import sys, tempfile, types, os, shutil, logging
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

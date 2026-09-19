@@ -7,14 +7,18 @@ path: /project/backend/tests/sandbox/f3_combat_smoke.py
 Зависимости: app.services.game_loop_builder, app.domain.events.EventDTO
 Запуск: cd backend; python tests/sandbox/f3_combat_smoke.py
 """
-import sys, tempfile, types, os, json, shutil
+import json
+import shutil
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")
-from app.core.config import settings
-
 # LLM-free: глушим шум ДО сборки мира
 import logging
+
+from app.core.config import settings
 
 logging.basicConfig(level=logging.WARNING)
 for _name in (

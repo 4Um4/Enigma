@@ -9,9 +9,9 @@ import logging
 from difflib import SequenceMatcher
 from typing import Optional
 
+from app.domain.epistemology import Predicate, Proposition
 from app.domain.intent_profile import IntentSemanticField
-from app.domain.epistemology import Proposition, Predicate
-from app.models.player_action import PlayerAction, ActionType
+from app.models.player_action import ActionType, PlayerAction
 from app.models.truth_state import TruthState
 
 logger = logging.getLogger(__name__)
@@ -34,25 +34,25 @@ class PropositionMatcher:
     def match(self, prop: Optional[Proposition], target_id: str) -> Optional[str]:
         if not prop or not self._truth:
             return None
-        
+
         best_match_id = None
         best_match_score = 0.0
         threshold = 0.2  # Порог семантической близости
-        
+
         for secret_id, secret in self._truth.secrets.items():
             participants = getattr(secret, "participants", [])
             if target_id not in participants:
                 continue
-            
+
             canon = getattr(secret, "canonical_truth", "").lower()
             template = self._predicate_templates.get(prop.predicate, "")
-            
+
             # Вычисляем семантическую близость между канонической правдой и шаблоном предиката
             score = self._similarity(canon, template)
             if score > best_match_score and score > threshold:
                 best_match_score = score
                 best_match_id = secret_id
-                
+
         return best_match_id
 
 def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state: Optional[TruthState]) -> PlayerAction:
@@ -73,10 +73,10 @@ def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state:
         "GIVE": ActionType.HELP, # Дать = помочь в MVP
         "UNCERTAIN": ActionType.DIALOGUE,
     }
-    
+
     _action_type_str = intent.action.value if intent.action else "UNCERTAIN"
     _player_action_type = _act_mapping.get(_action_type_str, ActionType.DIALOGUE)
-    
+
     # Если есть social_intent или speech_act, уточняем
     if intent.social_intent:
         _si = intent.social_intent.value
@@ -86,13 +86,13 @@ def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state:
             # Если игрок угрожает, чтобы узнать секрет, это BLACKMAIL
             if intent.speech_act and intent.speech_act.value == "threat":
                 _player_action_type = ActionType.BLACKMAIL
-                
+
     # Мост для PropositionMatcher
     _secret_id = None
     if truth_state and intent.proposition:
         matcher = PropositionMatcher(truth_state)
         _secret_id = matcher.match(intent.proposition, intent.target or "")
-        
+
     return PlayerAction(
         action_id=f"player_act_{tick}",
         tick=tick,

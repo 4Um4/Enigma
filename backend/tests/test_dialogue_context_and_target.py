@@ -4,7 +4,7 @@ cd backend
 python -m pytest tests/test_dialogue_context_and_target.py -v
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from app.domain.communication import DialogueRequest, ExposureLevel

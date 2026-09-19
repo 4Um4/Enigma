@@ -5,7 +5,7 @@ path: backend/app/services/replay/replay_recorder.py
 Зависимости: app.services.replay.replay_store
 """
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

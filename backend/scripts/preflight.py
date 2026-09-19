@@ -10,13 +10,13 @@ sys.path.insert(0, str(project_root / "backend"))
 
 def preflight():
     print("=== ENIGMA PRE-FLIGHT CHECK ===\n")
-    
+
     from app.core.config import settings
+    from app.core.constants import DEFAULT_LOCATION_ID
     from app.services.game_loop_builder import build_game_loop
-    from app.core.constants import DEFAULT_LOCATION_ID, GAME_TICK_INTERVAL_SECONDS
-    
+
     errors = []
-    
+
     # 1. Server starts without errors & MVP Controller loaded
     print("[1/8] Server startup & MVP Controller...")
     try:
@@ -66,7 +66,7 @@ def preflight():
         scene = game_loop.scene_manager.get_scene_state("Open_road", loc_id) or {}
         svc = SpatialFactory.build_for_campaign("Open_road", loc_id, scene)
         assert svc is not None, f"SpatialService for {loc_id} not built"
-        
+
         for npc in npcs:
             npc_id = npc.get("id", npc.get("npc_id", "unknown"))
             sleep = npc.get("activity_map", {}).get("sleeping")
@@ -86,17 +86,17 @@ def preflight():
     try:
         ft = game_loop.mvp_controller.faction_tracker
         assert ft is not None, "FactionAlignmentTracker is None"
-        print(f"  ✅ Faction tracker initialized")
+        print("  ✅ Faction tracker initialized")
     except Exception as e:
         errors.append(f"❌ Faction IDs validation failed: {e}")
 
     # 6. EventBus subscriptions (N2: TICK_COMPLETED exists)
     print("[6/8] EventBus subscriptions...")
     try:
-        from app.services.events.event_types import EventType
         from app.services.events.event_bus import get_event_bus
+        from app.services.events.event_types import EventType
         assert EventType.TICK_COMPLETED in EventType.__members__.values(), "TICK_COMPLETED missing in EventType"
-        
+
         _bus = get_event_bus()
         subs = _bus._handlers.get(EventType.TICK_COMPLETED.value, [])
         assert len(subs) > 0, "No subscribers for TICK_COMPLETED"
@@ -109,10 +109,10 @@ def preflight():
     try:
         for _ in range(5):
             game_loop.idle_tick("Open_road")
-        
+
         ft_calls = len(game_loop.mvp_controller.fate_tracker.get_all_states())
         assert ft_calls > 0, "❌ FateTracker not called in 5 ticks — M-03"
-        
+
         scene = game_loop.scene_manager.get_scene_state("Open_road", DEFAULT_LOCATION_ID)
         pending = len(scene.get("pending_tasks", []))
         assert pending < 50, f"❌ pending_tasks={pending} after 5 ticks — R-01"
@@ -129,7 +129,7 @@ def preflight():
         sys.exit(1)
     else:
         print("\n=== ✅ ALL PRE-FLIGHT CHECKS PASSED ===")
-        print(f"Open http://localhost:8000/health during playtest for live monitoring")
+        print("Open http://localhost:8000/health during playtest for live monitoring")
         sys.exit(0)
 
 if __name__ == "__main__":

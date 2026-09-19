@@ -31,9 +31,9 @@ logger = logging.getLogger("EPISTEMIC_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
 from app.domain.events import EventDTO
+from app.services.events.event_types import EventType
+from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"
@@ -60,7 +60,7 @@ def run_epistemic_test():
     relationship_store = game_loop.memory_manager._relationships
 
     # Базовый замер (Tick 0)
-    print(f"\n[2/5] Замер базовых отношений (C -> B)...")
+    print("\n[2/5] Замер базовых отношений (C -> B)...")
     _ = game_loop.idle_tick(CAMPAIGN_ID, LOCATION_ID)
     _pair_data = relationship_store.get_pair(CAMPAIGN_ID, NPC_C, NPC_B)
     baseline_trust = _pair_data.get("trust", 0.0) if _pair_data else 0.0

@@ -6,7 +6,8 @@ path: /project/backend/app/services/npc/epistemic_store.py
 """
 
 import logging
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, List, Optional, Tuple
+
 from app.domain.epistemology import EpistemicRecord, Proposition
 
 logger = logging.getLogger(__name__)

@@ -7,14 +7,16 @@
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_observer_causality.py; cd ..
 """
 
-import pytest
 from typing import Optional
-from app.services.events.event_bus import EventBus
+
+import pytest
 from app.domain.events import EventDTO
 from app.services.events.claim_event_subscriber import ClaimEventSubscriber
-from app.services.npc.epistemic_store import EpistemicStore
-from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
+from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+from app.services.npc.epistemic_store import EpistemicStore
+
 
 class MockSpatialQuery:
     def __init__(self, positions, distances):

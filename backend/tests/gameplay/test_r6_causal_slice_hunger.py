@@ -20,7 +20,6 @@ from app.domain.desired_change import (
 )
 from app.services.economy.profile_factory import create_profile_from_npc
 from app.services.npc.causal_slice_hunger import (
-    NEED_GATE,
     HungerDesiredChangeProducer,
 )
 

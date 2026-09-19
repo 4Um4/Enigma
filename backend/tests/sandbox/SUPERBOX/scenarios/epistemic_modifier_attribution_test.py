@@ -12,8 +12,8 @@ Treatment: final_score (с ложью).
 
 import logging
 import sys
-from pathlib import Path
 from math import isclose
+from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
@@ -22,10 +22,9 @@ logging.basicConfig(level=logging.WARNING, format='%(levelname)s:%(name)s:%(mess
 logger = logging.getLogger("EPISTEMIC_ATTRIBUTION_TEST")
 logger.setLevel(logging.INFO)
 
-from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
 from app.domain.events import EventDTO
-from app.domain.epistemology import Proposition, Predicate
+from app.services.events.event_types import EventType
+from app.services.game_loop_builder import build_game_loop
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
 
 CAMPAIGN_ID = "Open_road"

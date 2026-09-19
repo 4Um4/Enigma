@@ -7,11 +7,11 @@
 from __future__ import annotations
 
 import logging
-import random
 from typing import Iterable
-from app.services.npc.kernel_rng import KernelRNG
+
 from app.domain.communication import DialogueRequest
 from app.domain.execution import Artifact, QueuedTask
+from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 

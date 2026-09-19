@@ -5,7 +5,7 @@ map_editor/data/npc_data.py
 
 import json
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
 
 # Путь к реальным NPC из конфига
 _NPC_INDIVIDUALS_DIR = (

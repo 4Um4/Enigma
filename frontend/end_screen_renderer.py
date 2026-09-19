@@ -7,11 +7,9 @@ path: /frontend/end_screen_renderer.py
 """
 
 import pygame
-from constants import (
-    COLOR_TEXT_DEFAULT, COLOR_TEXT_DIM, COLOR_TEXT_MUTED,
-    COLOR_JOURNAL_TITLE, COLOR_DEATH_TITLE
-)
+from constants import COLOR_DEATH_TITLE, COLOR_JOURNAL_TITLE, COLOR_TEXT_DEFAULT, COLOR_TEXT_DIM, COLOR_TEXT_MUTED
 from i18n import t
+
 
 class EndScreenRenderer:
     def __init__(self, screen: pygame.Surface):

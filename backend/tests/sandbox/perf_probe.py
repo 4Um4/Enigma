@@ -1,5 +1,11 @@
 """S265: замер цены тика ДО/ПОСЛЕ фиксов (LLM-глушок полный)."""
-import sys, tempfile, types, os, shutil, time, logging
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import time
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

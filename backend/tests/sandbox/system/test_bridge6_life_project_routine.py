@@ -9,7 +9,6 @@ path: /project/backend/tests/sandbox/system/test_bridge6_life_project_routine.py
 Запуск: cd backend; python -m pytest tests/sandbox/system/test_bridge6_life_project_routine.py -v; cd ..
 """
 import pytest
-from app.models.npc_state import NPCState
 from app.services.npc.life_engine import LifeEngine
 
 

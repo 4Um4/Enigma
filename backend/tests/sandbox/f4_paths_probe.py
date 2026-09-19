@@ -1,6 +1,9 @@
 """F4-зонд: фактические пути счётчика тиков vs изоляция харнесса.
 RUN-паттерн A/B (temp saves_dir) — куда реально ляжет world_tick.json?"""
-import sys, tempfile, types, os
+import os
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

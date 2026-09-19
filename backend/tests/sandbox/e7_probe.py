@@ -1,5 +1,9 @@
 """S264-финал: E7-диагноз (needs vs body_state hunger) + R5-живость."""
-import sys, tempfile, types, os, shutil
+import os
+import shutil
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

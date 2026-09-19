@@ -5,6 +5,7 @@ L3-P1: EffectiveDrives эфемерны.
 """
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
+
 class L3EphemeralProbe(Probe):
     name = "INV-L3-EPHEMERAL"
     severity = "ERROR"
@@ -19,7 +20,7 @@ class L3EphemeralProbe(Probe):
                     passed=False,
                     details=f"scene_state contains persisted L3 key: '{key}' at tick {ctx.tick_id}"
                 )
-                
+
         # 2. Проверяем npc_dicts (all_npcs_raw)
         for npc in ctx.all_npcs_raw:
             if not isinstance(npc, dict):
@@ -33,5 +34,5 @@ class L3EphemeralProbe(Probe):
                         passed=False,
                         details=f"NPC '{nid}' dict contains persisted L3 key: '{key}' at tick {ctx.tick_id}"
                     )
-                    
+
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

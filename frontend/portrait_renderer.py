@@ -10,7 +10,6 @@ from typing import Any, List, Optional
 
 import pygame
 from sprite_registry import sprite_registry
-from expression_resolver import ExpressionResult
 
 logger = logging.getLogger(__name__)
 
@@ -89,10 +88,10 @@ class PortraitRenderer:
                 _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
                 _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
                 _surf = sprite_registry.get_rect(
-                    sprite_info[0], 
-                    int(sprite_info[1]), 
-                    int(sprite_info[2]), 
-                    int(sprite_info[3]), 
+                    sprite_info[0],
+                    int(sprite_info[1]),
+                    int(sprite_info[2]),
+                    int(sprite_info[3]),
                     int(sprite_info[4]),
                     _t,
                     _o

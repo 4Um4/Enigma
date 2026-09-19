@@ -6,8 +6,8 @@ from __future__ import annotations
 Единственная легальная точка маппинга (closed-world lattice).
 """
 
-from enum import Enum
 import logging
+from enum import Enum
 from typing import Optional
 
 logger = logging.getLogger(__name__)

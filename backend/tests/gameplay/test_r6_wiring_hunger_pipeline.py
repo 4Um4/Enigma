@@ -12,12 +12,10 @@
 #   tests.gameplay.harness (если есть — иначе прямой вызов проводки)
 # Основные сущности: проводка HungerDesiredChangeProducer в pipeline
 
-import pytest
 from unittest.mock import MagicMock
 
 from app.services.economy.profile_factory import create_profile_from_npc
 from app.services.npc.causal_slice_hunger import HungerDesiredChangeProducer
-
 
 # ── Мир-W1: голодный A, торговец со стоком, 3м, trust 60 ──
 A = "begg"
@@ -184,7 +182,6 @@ class TestPipelineBlock:
         """P3: production-источник — body_state["hunger"] шкалы 0-100
         (LEGACY до S2B.10): 80.0 → 0.8 → гейт пройден. Нужды-слой —
         fallback. Закрывает двухисточниковую правду приоритетом."""
-        from app.services.npc.causal_slice_hunger import NEED_GATE
         # 80/100 = 0.8 ≥ 0.5: сток есть → канал жив
         dc = HungerDesiredChangeProducer.resolve(
             who=A, hunger=80.0 / 100.0,

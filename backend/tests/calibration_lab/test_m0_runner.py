@@ -13,7 +13,6 @@ path: backend/tests/calibration_lab/test_m0_runner.py
 from pathlib import Path
 
 import pytest
-
 from app.services.calibration.experiment_runner import (
     ExperimentConfig,
     ExperimentRunner,

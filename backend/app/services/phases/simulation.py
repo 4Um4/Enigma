@@ -88,10 +88,22 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
         # уже несёт 0.8 > 0.6 — life_engine:1198). Activity-goals ВПЕРЕДИ
         # schedule-интенцов; дубликаты schedule-целей того же актора
         # не перекрывают деятельность.
+        # SPATIAL-KNOWLEDGE-01 / SHADOW-RELOCATION (мандат): фильтр обязан
+        # выбрасывать только КОНФЛИКТУЮЩИЕ schedule-инты (та же целевая
+        # локация). Cross-loc relocation (target в другой локации —
+        # schedule:guarding_gate → city_gate при activity.home=tavern) —
+        # НЕ дубликат: проглатывание замыкало NPC в таверне навсегда
+        # (forensic RCB: intent рождён LifeEngine и умирал здесь).
         _activity_actors = {g.actor_id for g in _activity_goals}
+        _activity_loc_by_actor = {
+            g.actor_id: str(getattr(g, "location_id", "") or "").split(":")[0]
+            for g in _activity_goals
+        }
         life_intents = list(_activity_goals) + [
             _i for _i in (life_intents or [])
             if getattr(_i, "actor_id", "") not in _activity_actors
+            or str(getattr(_i, "location_id", "") or "").split(":")[0]
+            != _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")
         ]
 
     # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
@@ -117,6 +129,8 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
         if _loc_id and _spatial_svc:
             me = MovementEngine()
             me.set_spatial_service(_spatial_svc)
+            # Phase C: персональные знания для PERSONAL_ROUTE GATE
+            me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
             spatial_changes = me.process_intents(
                 life_intents,
                 tick=ctx.tick_number,

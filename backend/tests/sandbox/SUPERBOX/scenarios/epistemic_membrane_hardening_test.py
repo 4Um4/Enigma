@@ -22,10 +22,10 @@ logger = logging.getLogger("EPISTEMIC_MEMBRANE_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
+from app.domain.epistemology import Predicate, Proposition
 from app.domain.events import EventDTO
-from app.domain.epistemology import Proposition, Predicate
+from app.services.events.event_types import EventType
+from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"
@@ -37,7 +37,6 @@ NPC_C = "merchant_goran"   # x=6.0, y=8.0   (Nearby, ~5.3 distance)
 def inject_lie(game_loop):
     """Публикует ложь в EventBus. Target = NPC_B (Far)."""
     from app.services.game_loop.scene_init import ensure_scene_initialized
-    from app.services.spatial.spatial_factory import SpatialFactory
     from app.services.spatial.spatial_query_service import SpatialQueryService
     
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
@@ -46,7 +45,7 @@ def inject_lie(game_loop):
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
         
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}), 
+        npc_positions=_scene.get("npc_positions", {}),
         scene_state=_scene
     )
     

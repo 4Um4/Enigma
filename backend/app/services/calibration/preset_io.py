@@ -20,9 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from yaml import safe_load
-
 from app.core import constants as _default_constants
+from yaml import safe_load
 
 # ── Реестры валидации ────────────────────────────────────────────────────
 

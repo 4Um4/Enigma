@@ -16,8 +16,8 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.domain.constants import _DEFAULT_ACTION_RADIUS, action_perception_radius
 from app.domain.communication import ExposureLevel
+from app.domain.constants import _DEFAULT_ACTION_RADIUS, action_perception_radius
 
 
 def main() -> int:
@@ -56,6 +56,8 @@ def main() -> int:
 
     # ── P4: интегральная мембрана ────────────────────────────────────
     # THEFT игрока с честным radius=3.0: близкий свидетель слышит, дальний — нет.
+    from app.domain.events import EventDTO
+    from app.services.events.event_types import EventType
     from app.services.events.observation_subscriber import ObservationSubscriber
     from app.services.npc.belief_revision_engine import BeliefRevisionEngine
     from app.services.npc.epistemic_store import EpistemicStore
@@ -63,8 +65,6 @@ def main() -> int:
         TrustBasedReliabilityProvider,
     )
     from app.services.spatial.spatial_query_service import SpatialQueryService
-    from app.domain.events import EventDTO
-    from app.services.events.event_types import EventType
 
     # Двойная мембрана честности: radius события (reaction/social-канал —
     # проверяется самим EventDTO) + sight-радиус observation-канала.

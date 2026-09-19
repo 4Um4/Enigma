@@ -61,7 +61,7 @@ class ShadowMetrics:
 
 def run_affordance_shadow(
     tick: int,
-    snapshot,
+    snapshot: Any,
     all_npcs_raw: Iterable[Dict[str, Any]],
     location_id: str,
 ) -> Tuple[int, ShadowMetrics]:
@@ -120,7 +120,7 @@ def run_affordance_shadow(
 
 def run_affordance_shadow_guarded(
     tick: int,
-    snapshot,
+    snapshot: Any,
     all_npcs_raw: Iterable[Dict[str, Any]],
     location_id: str,
 ) -> Tuple[int, ShadowMetrics]:

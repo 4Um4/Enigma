@@ -58,15 +58,15 @@ from app.services.llm.provider_manager import initialize_model_pool
 
 initialize_model_pool()
 
-from app.api.routes import _xray_memory
-from app.models.schemas import ChatTurnRequest, PlayerAction
-from app.services.game_loop_builder import build_game_loop
-
 # ── Конфигурация ─────────────────────────────────────────────────────
 # E1.4: имя из CLI; XRayProbe в сейвах — прошлый аватар, не конфликтуем
 # с ним по умолчанию (перезаписывать чужой аватар со старта — дурной тон;
 # при несовпадении будет warning, как сейчас, — безвреден)
 import sys as _sys
+
+from app.api.routes import _xray_memory
+from app.models.schemas import ChatTurnRequest, PlayerAction
+from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN = "Open_road"
 LOCATION = "tavern"

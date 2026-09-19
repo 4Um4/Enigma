@@ -4,9 +4,10 @@
 LiveClock — для production (использует time.time / datetime.now).
 FakeClock — для replay (использует game_time_seconds).
 """
-import time
 import datetime
+import time
 from typing import Protocol, runtime_checkable
+
 
 @runtime_checkable
 class Clock(Protocol):

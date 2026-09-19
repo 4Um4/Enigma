@@ -4,7 +4,7 @@
 Зависимости: typing, app.models.last_words, app.models.fate, app.models.social_fabric
 """
 
-from typing import Dict, Optional
+from typing import Optional
 
 from app.models.fate import FateOutcome
 from app.models.last_words import LastWord, LastWordTone

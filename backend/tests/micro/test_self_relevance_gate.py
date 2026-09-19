@@ -20,7 +20,6 @@
 """
 
 import pytest
-
 from app.domain.epistemology import (
     ClaimEvent,
     Predicate,
@@ -28,7 +27,6 @@ from app.domain.epistemology import (
 )
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
-
 
 _RELIABILITY = 0.8
 

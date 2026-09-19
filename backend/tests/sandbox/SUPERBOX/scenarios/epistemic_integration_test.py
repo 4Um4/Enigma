@@ -8,9 +8,9 @@ SUPERBOX-007: Контрактная интеграция EpistemicContext в De
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_integration_test.py
 """
 
-import sys
-import logging
 import dataclasses
+import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -22,7 +22,8 @@ logger = logging.getLogger("EPISTEMIC_INTEGRATION_TEST")
 
 # Импорты ENIGMA
 from app.domain.decision_context import DecisionContext
-from app.domain.epistemology import EpistemicContext, EpistemicRecord, Proposition
+from app.domain.epistemology import EpistemicContext
+
 
 def run_test():
     print("\n" + "="*60)

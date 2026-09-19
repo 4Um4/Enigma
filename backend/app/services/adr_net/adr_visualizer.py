@@ -6,7 +6,7 @@ path: /project/backend/app/services/adr_net/adr_visualizer.py
 Основные сущности: ADRVisualizer
 """
 import logging
-from typing import Any
+
 import networkx as nx
 
 logger = logging.getLogger(__name__)
@@ -20,12 +20,12 @@ class ADRVisualizer:
     def to_mermaid(self) -> str:
         """Конвертирует граф в формат Mermaid (graph TD)."""
         lines = ["graph TD"]
-        
+
         for node_id, data in self.graph.nodes(data=True):
             node_type = data.get("node_type", "UNKNOWN")
             label = ""
             shape = "[[]]" # Default shape
-            
+
             if node_type == "ADR":
                 label = f"{node_id}: {data.get('title', '')}"
                 shape = '["{label}"]' # Rectangle
@@ -38,17 +38,17 @@ class ADRVisualizer:
             else:
                 label = node_id
                 shape = '["{label}"]'
-                
+
             # Mermaid не любит спецсимволы в ID, заменяем
             safe_id = node_id.replace(":", "_").replace("/", "_").replace("\\", "_").replace(".", "_").replace(" ", "_")
             lines.append(f"    {safe_id}{shape.format(label=label)}")
-            
+
         for u, v, data in self.graph.edges(data=True):
             edge_type = data.get("edge_type", "RELATED_TO")
             safe_u = u.replace(":", "_").replace("/", "_").replace("\\", "_").replace(".", "_")
             safe_v = v.replace(":", "_").replace("/", "_").replace("\\", "_").replace(".", "_")
             lines.append(f'    {safe_u} -->|{edge_type}| {safe_v}')
-            
+
         return "\n".join(lines)
 
     def save_mermaid(self, output_path: str) -> None:

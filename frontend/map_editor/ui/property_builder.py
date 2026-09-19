@@ -2,9 +2,9 @@
 map_editor/ui/property_builder.py
 Генерация содержимого панели свойств (PropertyPanel) в зависимости от выбранного объекта.
 """
-from typing import Any, Dict, List, Optional
 from data_manager import load_npc_visual_casting
 from sprite_registry import sprite_registry
+
 
 class PropertyBuilder:
     """Строит словарь свойств для PropertyPanel на основе текущего выбора."""

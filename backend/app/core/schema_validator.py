@@ -41,11 +41,11 @@ def validate_all_schemas(game_loop=None) -> None:
                 logger.warning("[SCHEMA] TruthState failed to load (is None) — MVP features disabled.")
             elif len(ts.secrets) == 0:
                 logger.warning("[SCHEMA] TruthState loaded with 0 secrets — MVP might be incomplete.")
-            
+
             # N2: TICK_COMPLETED subscription
             try:
-                from app.services.events.event_types import EventType
                 from app.services.events.event_bus import get_event_bus
+                from app.services.events.event_types import EventType
                 _bus = get_event_bus()
                 subs = _bus._subscribers.get(EventType.TICK_COMPLETED, [])
                 if len(subs) == 0:

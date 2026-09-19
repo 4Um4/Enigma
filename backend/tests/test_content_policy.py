@@ -7,12 +7,9 @@
 
 Запуск: cd backend; python -m pytest tests/test_content_policy.py -v -p no:cacheprovider; cd ..
 """
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-from app.core.config import settings
-from app.core.content_policy import ContentLevel, ContentPolicy
+from app.core.content_policy import ContentPolicy
 from app.services.verbalization.dm_response_normalizer import DMResponseNormalizer
 
 # --- Тест 1: Глобальный фильтр мата ---

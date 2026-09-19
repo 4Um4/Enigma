@@ -10,9 +10,8 @@ path: backend/tests/calibration_lab/test_m0_metrics.py
 Запуск: cd backend; python -m pytest tests/calibration_lab/test_m0_metrics.py  -q --tb=line; cd ..
 """
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from app.services.calibration.metrics import build_metrics_bundle
 from app.services.calibration.metrics.character_change import CharacterChangeRate
 from app.services.calibration.metrics.decision_diversity import DecisionDiversity
 from app.services.calibration.metrics.event_responsiveness import (

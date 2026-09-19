@@ -6,13 +6,12 @@
 # Зависимости: app.services.input.intent_compressor (fast-path, offline)
 # Основные сущности: test_p3_*
 import pytest
-
 from app.domain.epistemology import SpeechAct
 from app.domain.subject_ref import SubjectKind
 from app.services.input.intent_compressor import (
     IntentCompressor,
-    extract_subject,
     _is_question,
+    extract_subject,
 )
 
 

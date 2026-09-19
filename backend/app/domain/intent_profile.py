@@ -79,6 +79,7 @@ class CrowdThreatLevel(float, Enum):
 
 from app.domain.epistemology import Proposition, SocialIntent, SpeechAct
 
+
 class IntentSemanticField(BaseModel):
     """Слой 1: Вероятностная реконструкция намерения. Не команда, а поле.
     S199: Расширенный семантический контракт. Frozen=True (Pure Reducer, ADR-TZ10-1).

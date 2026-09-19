@@ -295,7 +295,7 @@ def main() -> int:
         # (2) СМЕРТЬ ДО FLUSH: задача жертвы создаётся тиком player-turn в
         #     pending_tasks; перенос в DialogueQueue делает только
         #     execute_pending — авторим смерть ДО него, гейт бьёт на dequeue,
-        #     до пула/LLM (mid-generation interrupt by construction).   
+        #     до пула/LLM (mid-generation interrupt by construction).
         # (3) СВИДЕТЕЛЬ БЕЗ ТИКОВ: каждый тик плодит новый ambient-задник.
         try:
             _sched._dialogue_queue._heap.clear()

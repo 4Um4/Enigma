@@ -9,10 +9,10 @@ SUPERBOX-013: Строгая проверка коммутативности.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/modifier_commutativity_test.py
 """
 
-import sys
-import logging
-from pathlib import Path
 import copy
+import logging
+import sys
+from pathlib import Path
 
 # Настройка путей
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
@@ -23,6 +23,7 @@ logger = logging.getLogger("COMMUTATIVITY_TEST")
 
 # Импорты ENIGMA
 from app.services.npc.decision_hub import DecisionHub
+
 
 def run_test():
     print("\n" + "="*60)

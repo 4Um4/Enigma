@@ -11,9 +11,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 import math
+import os
 from typing import Any, Dict, List, Optional
 
 from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, MovementIntent
+from app.domain.movement_contract import (
+    MovementFailure,
+    MovementTrace,
+    PathStatus,
+)
 from app.domain.traversal import (
     LocalGeometry,
     Pose,
@@ -21,12 +27,6 @@ from app.domain.traversal import (
     TraversalPlan,
     TraversalQuery,
 )
-from app.domain.movement_contract import (
-    MovementFailure,
-    MovementTrace,
-    PathStatus,
-)
-import os
 
 # S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
 # default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
@@ -46,7 +46,6 @@ from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
 
 logger = logging.getLogger(__name__)
 
-from app.errors import SimulationIntegrityError
 
 # S131: Радиус восприятия для локальной геометрии.
 # В будущем должен браться из BodyCapabilities или PerceptionKernel.
@@ -67,10 +66,16 @@ class MovementEngine:
         self._spatial_service: Optional[Any] = None
         # S131: LocalTraversalPlanner — честная физика проходимости (Embodied Traversal)
         self._planner = LocalTraversalPlanner()
+        # Phase C: персональный эпистемический store (DI, как spatial_service)
+        self._epistemic_store: Optional[Any] = None
 
     def set_spatial_service(self, svc: Any) -> None:
         """Инъекция SpatialService для A* с учётом оверлея."""
         self._spatial_service = svc
+
+    def set_epistemic_store(self, store: Any) -> None:
+        """Phase C: персональные пространственные знания актора."""
+        self._epistemic_store = store
 
     # ── Spatial Intent Gate: единый пространственный арбитр ────────────
     # ADR-138: Spatial eligibility logic ЗАПРЕЩЕНА нигде кроме этого метода.
@@ -191,6 +196,36 @@ class MovementEngine:
             f"[GATE_B1] total_intents={_pre_gate_count} accepted={len(intents)} rejected={_pre_gate_count - len(intents)}"
         )
 
+        # MOVEMENT-V2 Гейт B1.5 (мандат Phase A): traversal не прерывается
+        # без INTERRUPT-семантики. NPC с активным MOVING traversal:
+        # макро-инты ДРУГИХ производителей отбрасываются (дошёл до цели —
+        # рождён следующий тактом); исключение — INTERRUPT/priority supersede
+        # (reason-маркер "interrupt"), обрабатывается существующим конвейером.
+        # Forensic RCB: бесконечный перезапуск движения proactive/need-интентами
+        # не давал schedule-traversal дожить до boundary (2-3 тика пути).
+        if scene_state:
+            _active_travs_pre = scene_state.get("active_traversals", {})
+            if isinstance(_active_travs_pre, dict) and _active_travs_pre:
+                _filtered: list = []
+                for _it in intents:
+                    if not isinstance(_it, MacroMovementGoal):
+                        _filtered.append(_it)
+                        continue
+                    _trav = _active_travs_pre.get(_it.actor_id)
+                    if (
+                        isinstance(_trav, dict)
+                        and _trav.get("status") == "MOVING"
+                        and "interrupt" not in getattr(_it, "reason", "")
+                    ):
+                        logger.debug(
+                            f"[GATE_B1_5] npc={_it.actor_id} traversal MOVING "
+                            f"(target={_trav.get('target_node')}) — intent "
+                            f"'{getattr(_it, 'reason', '')}' отклонён (no-interrupt)"
+                        )
+                        continue
+                    _filtered.append(_it)
+                intents = _filtered
+
         changes: List[SceneChange] = []
 
         # ADR-060: Строгое разделение физик. LOD0 не требует графа локации.
@@ -244,7 +279,77 @@ class MovementEngine:
                 # от unbound (Pylance reportPossiblyUnboundVariable) и от L4-тишины (урок S267)
                 target_loc = intent.location_id or current_loc
                 if ":" in intent.target_node_id:
-                    target_loc = intent.target_node_id.split(":")[0]
+                    # PERSONAL-ROUTE GATE (Phase C): целевая локация intent'а —
+                    # из префикса target ИЛИ из поля location_id (P2-intents
+                    # несут кросс-локацию в location_id без префикса target).
+                    _intent_target_loc = (
+                        intent.target_node_id.split(":")[0]
+                        if ":" in intent.target_node_id
+                        else getattr(intent, "location_id", "")
+                    )
+                    target_loc = (
+                        intent.target_node_id.split(":")[0]
+                        if ":" in intent.target_node_id
+                        else (getattr(intent, "location_id", "") or current_loc)
+                    )
+                    _gate_actor_present = intent.actor_id in (npc_positions or {})
+                    if _intent_target_loc and _intent_target_loc != current_loc and _gate_actor_present:
+                        # PERSONAL-ROUTE GATE (Phase C): cross-loc навигация
+                        # только по личному графу NPC. UNKNOWN → adjacency/
+                        # intercept НЕ выполняются; causal-маркер для будущего
+                        # exploration. Same-loc не гейтится (восприятие «здесь»).
+                        # GATE-SCOPE: гейтится только актор, ФИЗИЧЕСКИ
+                        # присутствующий в этой сцене. Отсутствующий в
+                        # npc_positions — offscreen/призрак (player-стаб
+                        # city_gate, задача №5): его intent не наш — не режем,
+                        # не спамим, не валидируем.
+                        if intent.actor_id not in (npc_positions or {}):
+                            logger.debug(
+                                f"[PERSONAL_ROUTE] npc={intent.actor_id} offscreen — gate skipped"
+                            )
+                        else:
+                            from app.services.npc.personal_route_resolver import (
+                                resolve_personal_route,
+                            )
+
+                        _route = resolve_personal_route(
+                            intent.actor_id, self._epistemic_store,
+                            current_loc, _intent_target_loc,
+                        )
+                        if _route.status != "KNOWN_ROUTE":
+                            logger.info(
+                                f"[UNKNOWN_ROUTE] npc={intent.actor_id} "
+                                f"from={current_loc} to={_intent_target_loc} "
+                                f"known_edges={_route.known_edges} "
+                                f"reason=no_personal_route"
+                            )
+                            continue
+                        logger.info(
+                            f"[PERSONAL_ROUTE] npc={intent.actor_id} KNOWN "
+                            f"{current_loc}→{_intent_target_loc} via={_route.path} "
+                            f"conf={_route.min_confidence:.2f}"
+                        )
+                        from app.services.npc.personal_route_resolver import (
+                            resolve_personal_route,
+                        )
+
+                        _route = resolve_personal_route(
+                            intent.actor_id, self._epistemic_store,
+                            current_loc, target_loc,
+                        )
+                        if _route.status != "KNOWN_ROUTE":
+                            logger.info(
+                                f"[UNKNOWN_ROUTE] npc={intent.actor_id} "
+                                f"from={current_loc} to={target_loc} "
+                                f"known_edges={_route.known_edges} "
+                                f"reason=no_personal_route"
+                            )
+                            continue
+                        logger.info(
+                            f"[PERSONAL_ROUTE] npc={intent.actor_id} KNOWN "
+                            f"{current_loc}→{target_loc} via={_route.path} "
+                            f"conf={_route.min_confidence:.2f}"
+                        )
                 else:
                     # BUG-SPATIAL-035 FIX: Если target_node_id не имеет префикса (напр. "tent_1"),
                     # ищем узел в текущей и смежных локациях для корректного определения target_loc.
@@ -339,9 +444,14 @@ class MovementEngine:
                                     logger.warning(f"[CROSS_LOC_INTERCEPT] target_svc is None for {target_loc}, skipping materialize for {intent.actor_id}")
                                     continue
 
-                                # Ищем целевой узел в новой локации (строгий контракт, без случайных fallback'ов)
-                                # BUG-SPATIAL-001 FIX: Используем оригинальный target (напр. guard_bed), а не переписанный boundary node.
-                                _original_target = getattr(intent, 'original_target_node_id', intent.target_node_id)
+                                # MOVEMENT-V2 (I-MV2): semantic destination — из
+                                # final_*; fallback на legacy original_target.
+                                _fin_loc = getattr(intent, "final_location_id", "") or ""
+                                _fin_node = getattr(intent, "final_node_id", "") or ""
+                                if _fin_loc and _fin_node:
+                                    _original_target = f"{_fin_loc}:{_fin_node}"
+                                else:
+                                    _original_target = getattr(intent, 'original_target_node_id', intent.target_node_id)
                                 _target_node_id_short = _original_target.split(":")[-1]
                                 target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(f"{target_loc}:{_target_node_id_short}")
 
@@ -415,8 +525,22 @@ class MovementEngine:
                             # BUG-SPATIAL-001 FIX: Сохраняем оригинальный target перед перезаписью.
                             # Иначе materialize lookup не найдёт кровать в target loc.
                             if not hasattr(intent, 'original_target_node_id'):
-                                intent.original_target_node_id = intent.target_node_id
+                                setattr(intent, 'original_target_node_id', intent.target_node_id)
                             intent.target_node_id = boundary_node.node_id.split(":")[-1]
+                            # MOVEMENT-V2 (I-MV2): semantic destination фиксируется
+                            # ПРИ ПЕРВОМ intercept (final_* пуст = target ещё не
+                            # резолвился cross-loc). Waypoint-перезаписи далее
+                            # не трогают final_*.
+                            if (
+                                not getattr(intent, "final_location_id", "")
+                                and hasattr(intent, "original_target_node_id")
+                            ):
+                                _orig = intent.original_target_node_id
+                                if ":" in _orig:
+                                    intent.final_location_id, intent.final_node_id = _orig.split(":", 1)
+                                else:
+                                    intent.final_location_id = target_loc
+                                    intent.final_node_id = _orig
                             # Возвращаем intent.location_id = current_loc, чтобы интент обработался в контексте текущей локации.
                             # S186_TRANSFER использует npc_positions["location_id"], а не intent.location_id.
                             intent.location_id = current_loc
@@ -619,7 +743,7 @@ class MovementEngine:
         Если геометрия была доступна, но план отклонён (физический запрет) — этот метод не вызывается.
         """
         # N4 FIX: defensive default для segment_arc_heights, чтобы избежать NameError
-        segment_arc_heights = []
+        segment_arc_heights: List[float] = []
         path = svc.find_path(source_xy, target_node_obj) if hasattr(svc, "find_path") else None  # noqa: ENIGMA001
         if not path or len(path) < 2:
             return MovementPlanResult(
@@ -787,7 +911,7 @@ class MovementEngine:
         # BUG-SPATIAL-032 FIX: Нормализуем target_node_id, отрезая префикс локации, чтобы избежать двойного префикса.
         _target_node_id_short = intent.target_node_id.split(":")[-1]
         target_node_obj = svc.get_node(_target_node_id_short) or svc.get_node(intent.target_node_id) or svc.get_node(f"{intent.location_id}:{_target_node_id_short}")
-        
+
         # BUG-SPATIAL-035 FIX: Если узел не найден в текущей локации, ищем в смежных (adjacency).
         # Это позволяет NPC ходить спать/работать в соседние чанки (напр. guard_borko -> city_gate).
         if not target_node_obj and scene_state:
@@ -822,7 +946,7 @@ class MovementEngine:
 
         # S140: Ищем топологический маршрут через A*
         path_nodes = svc.find_path(source_xy, target_node_obj)
-        
+
         # S-141: Инициализируем MovementTrace для диагностики
         _trace = MovementTrace(
             actor_id=intent.actor_id,
@@ -830,29 +954,29 @@ class MovementEngine:
             source_node=source_node_obj,
             target_node=target_node_obj
         )
-        
+
         # S140.1 FIX: Если A* вернул ровно 1 узел — NPC уже стоит на цели.
         if path_nodes and len(path_nodes) == 1:
             _trace.path_status = PathStatus.ALREADY_AT_TARGET
             logger.debug(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=ALREADY_AT_TARGET node={path_nodes[0].node_id}")
             return []
-            
+
         if not path_nodes or len(path_nodes) < 2:
             _trace.path_status = PathStatus.NO_PATH
             _trace.failure = MovementFailure.NO_PATH
             _trace.reason = f"A* no path to {intent.target_node_id}"
             logger.warning(f"[MOVEMENT_TRACE] npc={intent.actor_id} failure={_trace.failure.value} reason={_trace.reason}")
             return []
-        
+
         _trace.path_status = PathStatus.VALID_PATH
         _trace.path_nodes = path_nodes
-        
+
         if intent.actor_id == "guard_borko":
             logger.debug(f"[BORKO_ASTAR] current_pos={current_pos} source_xy={source_xy} target={target_node_obj.node_id} path={[n.node_id for n in path_nodes]}")
 
         # Берём первый шаг маршрута (следующий waypoint)
         next_node = path_nodes[1]
-        
+
         # V8-SP-16.1 FIX: Убрано случайное смещение (_offset_x/_offset_y).
         # Оно уводило NPC за стены (CLEARANCE_FAIL) при движении к boundary nodes.
         target_xy = (next_node.x, next_node.y)
@@ -940,10 +1064,10 @@ class MovementEngine:
         )
         _trace.traversal_created = True
         logger.info(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=VALID_PATH path_len={len(path_nodes)} traversal=CREATED")
-        
+
         # NEW-ORIENT-001 FIX: Вычисляем угол поворота тела к цели и добавляем SceneChange.
         _heading = math.atan2(target_xy[1] - source_xy[1], target_xy[0] - source_xy[0])
-        
+
         return [
             SceneChange(
                 type=ChangeType.NPC_POSITION,

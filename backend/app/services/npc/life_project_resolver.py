@@ -5,7 +5,6 @@ path: backend/app/services/npc/life_project_resolver.py
 Основные сущности: LifeProjectResolver
 """
 
-from typing import Optional
 
 from app.models.npc_state import NPCState
 

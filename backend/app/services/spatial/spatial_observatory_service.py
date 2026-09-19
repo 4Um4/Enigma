@@ -7,15 +7,24 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.errors import SimulationIntegrityError
 from app.domain.observatory import (
-    ObservatoryAgentDTO, ObservatoryCausalDiagnosticDTO, ObservatoryEdgeDTO,
-    ObservatoryNodeDTO, ObservatoryPathDTO, ObservatoryResolutionDTO,
-    ObservatorySpatialIntentDTO, ObservatoryTopologyDTO, SpatialObservatoryDTO
+    ObservatoryAgentDTO,
+    ObservatoryCausalDiagnosticDTO,
+    ObservatoryEdgeDTO,
+    ObservatoryNodeDTO,
+    ObservatoryPathDTO,
+    ObservatoryResolutionDTO,
+    ObservatorySpatialIntentDTO,
+    ObservatoryTopologyDTO,
+    SpatialObservatoryDTO,
 )
 from app.domain.spatial_target import (
-    SpatialTargetIntent, SpatialTargetType, TargetResolutionStatus, SpatialResolutionMode
+    SpatialResolutionMode,
+    SpatialTargetIntent,
+    SpatialTargetType,
+    TargetResolutionStatus,
 )
+from app.errors import SimulationIntegrityError
 from app.models.spatial_contracts import NodeRole
 from app.services.spatial.spatial_service import SpatialService
 from app.services.spatial.spatial_target_resolver import SpatialTargetResolver
@@ -74,7 +83,7 @@ class SpatialObservatoryService:
                     message=str(e)
                 ),)
             )
-        
+
         if not svc:
             return SpatialObservatoryDTO(
                 topology=ObservatoryTopologyDTO(nodes=(), edges=()),
@@ -84,22 +93,22 @@ class SpatialObservatoryService:
                     message="SpatialService failed to build from editor_data"
                 ),)
             )
-            
+
         # 2. Собираем топологию (S-OBS-03 / TEMPORARY INTERNAL PROJECTION)
         topo_nodes, topo_edges = self._extract_topology(svc)
-        
+
         # 3. Разрешаем цели и пути для каждого NPC
         resolver = SpatialTargetResolver(svc)
         agent_projections = []
         global_diagnostics = []
-        
+
         for npc_id, data in agents_data.items():
             pos = self._extract_pos(data)
             intent_data = data.get("intent")
-            
+
             agent_dto = ObservatoryAgentDTO(actor_id=npc_id, position=pos)
             diagnostics = []
-            
+
             if intent_data and pos:
                 intent = SpatialTargetIntent(
                     target_type=SpatialTargetType[intent_data.get("target_type", "ANCHOR")],
@@ -108,14 +117,14 @@ class SpatialObservatoryService:
                     confidence=float(intent_data.get("confidence", 0.5)),
                     context_ref=intent_data.get("context_ref")
                 )
-                
+
                 resolved = resolver.resolve(
-                    intent, 
-                    npc_positions=agents_data, 
-                    actor_id=npc_id, 
+                    intent,
+                    npc_positions=agents_data,
+                    actor_id=npc_id,
                     location_id=location_id
                 )
-                
+
                 if resolved.resolution_status != TargetResolutionStatus.RESOLVED:
                     diagnostics.append(ObservatoryCausalDiagnosticDTO(
                         phase="RESOLUTION", status=resolved.resolution_status.value,
@@ -131,7 +140,7 @@ class SpatialObservatoryService:
                             code=path_dto.failure_reason or "PATH_BLOCKED",
                             message="A* failed to find a route"
                         ))
-                    
+
                     agent_dto = ObservatoryAgentDTO(
                         actor_id=npc_id, position=pos,
                         intent=ObservatorySpatialIntentDTO(
@@ -147,10 +156,10 @@ class SpatialObservatoryService:
                         path=path_dto,
                         diagnostics=tuple(diagnostics)
                     )
-                    
+
             agent_projections.append(agent_dto)
             global_diagnostics.extend(diagnostics)
-            
+
         return SpatialObservatoryDTO(
             topology=ObservatoryTopologyDTO(nodes=tuple(topo_nodes), edges=tuple(topo_edges)),
             agents=tuple(agent_projections),
@@ -168,7 +177,7 @@ class SpatialObservatoryService:
                 zone_id=node_ref.zone_id,
                 is_boundary=(node_ref.role == NodeRole.BOUNDARY)
             ))
-            
+
         edges = []
         for from_id, to_ids in svc._connections.items():
             for to_id in to_ids:
@@ -181,9 +190,9 @@ class SpatialObservatoryService:
         return nodes, edges
 
     def _calculate_path(
-        self, 
-        svc: SpatialService, 
-        start_xy: Tuple[float, float], 
+        self,
+        svc: SpatialService,
+        start_xy: Tuple[float, float],
         target_xy: Tuple[float, float],
         target_node_id: Optional[str],
         mode: Optional[SpatialResolutionMode]
@@ -191,13 +200,13 @@ class SpatialObservatoryService:
         """Точно повторяет логику MovementEngine для вызова find_path."""
         if mode == SpatialResolutionMode.LOCAL_POSITION:
             return ObservatoryPathDTO(
-                status="LOCAL_STEERING", points=(start_xy, target_xy), 
+                status="LOCAL_STEERING", points=(start_xy, target_xy),
                 node_ids=(), failure_reason=None
             )
-            
+
         if not target_node_id:
             return ObservatoryPathDTO(
-                status="BLOCKED", points=(), node_ids=(), 
+                status="BLOCKED", points=(), node_ids=(),
                 failure_reason="MISSING_TARGET_NODE_ID"
             )
 
@@ -205,17 +214,17 @@ class SpatialObservatoryService:
         target_node = svc.get_node(target_node_id)
         if not target_node:
             return ObservatoryPathDTO(
-                status="BLOCKED", points=(), node_ids=(), 
+                status="BLOCKED", points=(), node_ids=(),
                 failure_reason="TARGET_NODE_NOT_FOUND"
             )
-            
+
         path_refs = svc.find_path(start_xy, target_node)
         if not path_refs:
             return ObservatoryPathDTO(
-                status="BLOCKED", points=(), node_ids=(), 
+                status="BLOCKED", points=(), node_ids=(),
                 failure_reason="A_STAR_FAILED"
             )
-            
+
         return ObservatoryPathDTO(
             status="OK",
             points=tuple((n.x, n.y) for n in path_refs),

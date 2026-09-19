@@ -4,18 +4,24 @@ map_editor/editor_core.py
 """
 
 import json
-import math
 import threading
-import urllib.request
 import urllib.error
+import urllib.request
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import pygame
 from campaign_manager import CampaignManager
+from core.commands import (
+    PasteCommand,
+    RenameCommand,
+    SimpleNodeUpdateCommand,
+    TogglePassabilityCommand,
+    UndoManager,
+)
+from core.geometry import Geometry
 from data_manager import (
-    NPC_SPRITE_MAP,
     OBJECT_PRESETS,
     DataManager,
     load_npc_individuals,
@@ -30,34 +36,6 @@ from ui_components import (
     PropertyPanel,
     ToggleButton,
 )
-from core.geometry import Geometry
-from core.commands import (
-    AddWallCommand,
-    AddNodeCommand,
-    AddConnectionCommand,
-    AddLabelCommand,
-    AddNpcCommand,
-    AddObjectCommand,
-    AddPassageCommand,
-    AddRoomCommand,
-    AddWallCommand,
-    CompoundCommand,
-    MirrorObjectCommand,
-    MoveEntityCommand,
-    PasteCommand,
-    RemoveLabelCommand,
-    RemoveNodeCommand,
-    RemoveNpcCommand,
-    RemoveObjectCommand,
-    RemoveRoomCommand,
-    RemoveWallCommand,
-    RenameCommand,
-    ResizeObjectCommand,
-    RotateObjectCommand,
-    SimpleNodeUpdateCommand,
-    TogglePassabilityCommand,
-    UndoManager,
-)
 
 # === Константы редактора ===
 SCALE = 40  # пикселей в 1 метре
@@ -71,9 +49,18 @@ MODE_LOCAL = "local"  # Редактирование локации
 
 # Инструменты
 from tools.constants import (
-    TOOL_SELECT, TOOL_WALL, TOOL_ROOM, TOOL_OBJECT, TOOL_PASSAGE,
-    TOOL_LABEL, TOOL_NPC, TOOL_SPAWN, TOOL_DELETE, TOOL_NODE,
-    MODE_WORLD, MODE_LOCAL, MODE_LAB
+    MODE_LAB,
+    MODE_LOCAL,
+    MODE_WORLD,
+    TOOL_DELETE,
+    TOOL_LABEL,
+    TOOL_NODE,
+    TOOL_NPC,
+    TOOL_OBJECT,
+    TOOL_PASSAGE,
+    TOOL_ROOM,
+    TOOL_SPAWN,
+    TOOL_WALL,
 )
 
 # Цвета объектов
@@ -749,7 +736,7 @@ class EditorCore:
 
         self._show_toast("Запрос симуляции...")
         # Временно устанавливаем пустой словарь, чтобы _update_observatory не вышел сразу
-        self.observatory_data = {}  
+        self.observatory_data = {}
         self._spatial_dirty = True
         self._last_edit_time = 0  # 0 заставит немедленно отправить запрос
         self._update_observatory()

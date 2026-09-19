@@ -63,6 +63,7 @@ def test_t1_reset_relationships():
 # ---------- T2 (№2a): поле контракта существует, getattr шва жив ----------
 def test_t2_contract_field():
     from dataclasses import fields
+
     from app.services.npc.npc_tick_contracts import NpcTickServices
     f = {x.name for x in fields(NpcTickServices)}
     assert "crystallized_belief_store" in f, f

@@ -7,9 +7,9 @@
 
 import os
 import subprocess
-import pytest
+
+from app.errors import MissingProvenanceError
 from app.models.npc_state import NPCState
-from app.errors import ArchitecturalViolationError, MissingProvenanceError
 
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app"))
 
@@ -46,7 +46,6 @@ class TestStage0Invariants:
 class TestStage1Invariants:
     def test_I1_2_provenance_required(self):
         # Проверяем, что класс MissingProvenanceError доступен
-        from app.errors import MissingProvenanceError
         assert MissingProvenanceError is not None
 
     def test_I1_4_causal_ledger_api_exists(self):

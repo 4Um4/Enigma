@@ -35,9 +35,7 @@ from app.services.vram_monitor import get_vram_monitor
 
 logger = logging.getLogger(__name__)
 
-from app.services.llm.provider import LlmProvider, ProviderInfo, ProviderType
-from app.services.llm.provider import CAPABILITY_MODEL_PREFERENCES, Capability
-
+from app.services.llm.provider import CAPABILITY_MODEL_PREFERENCES, Capability, LlmProvider, ProviderInfo, ProviderType
 
 
 class ProviderStatus(str, Enum):

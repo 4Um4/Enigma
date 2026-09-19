@@ -10,8 +10,8 @@ SUPERBOX-006: Контракт EpistemicContext.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_context_test.py
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -22,9 +22,8 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message
 logger = logging.getLogger("EPISTEMIC_CONTEXT_TEST")
 
 # Импорты ENIGMA
-from app.domain.epistemology import (
-    EpistemicRecord, Proposition, Predicate, EpistemicContext
-)
+from app.domain.epistemology import EpistemicContext, EpistemicRecord, Predicate, Proposition
+
 
 def project_beliefs_to_context(agent_id: str, beliefs: list) -> EpistemicContext:
     """

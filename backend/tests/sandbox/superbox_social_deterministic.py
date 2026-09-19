@@ -10,12 +10,12 @@ path: /project/backend/tests/sandbox/superbox_social_deterministic.py
 Зависимости: app.services.game_loop_builder, threading (sync-замена пула)
 Запуск: cd backend; python tests/sandbox/superbox_social_deterministic.py
 """
+import logging
+import os
+import shutil
 import sys
 import tempfile
 import types
-import os
-import shutil
-import logging
 from pathlib import Path
 
 # S262-урок: файл в backend/tests/sandbox/ → backend = parents[2]

@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 from app.domain.traversal import BodyCapabilities, TransitionCandidate, TraversalFeasibility, TraversalMode
 

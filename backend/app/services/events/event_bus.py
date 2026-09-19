@@ -133,7 +133,7 @@ class EventBus:
                             f"[EVENT_BUS] Обработчик упал (попытка 2/2): {handler.__qualname__} → {e}. Sending to DLQ.",
                             exc_info=True
                         )
-            
+
             if not _success:
                 self._dlq.append(event)
                 if len(self._dlq) > 100:  # Ограничиваем размер DLQ

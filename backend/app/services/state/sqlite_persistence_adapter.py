@@ -48,6 +48,10 @@ class SqlitePersistenceAdapter(PersistencePort):
         self._db_path = db_path
         self._conn: Optional[sqlite3.Connection] = None
         self._lock = threading.RLock()
+        # S268-ЭСКАЛАЦИЯ3: read-кэш load_all_scenes (см. load_all_scenes);
+        # инвалидируется бампом _cache_gen в atomic_commit/atomic_commit_all
+        self._all_scenes_cache: Dict[str, tuple] = {}
+        self._cache_gen: int = 0
         self._init_db()
 
     def _get_conn(self) -> sqlite3.Connection:
@@ -60,6 +64,10 @@ class SqlitePersistenceAdapter(PersistencePort):
             )
             # WAL mode — читатели не блокируют писателей
             self._conn.execute("PRAGMA journal_mode=WAL")
+            # S268-ЭНДУРАНС: fsync-на-коммит → NORMAL (WAL-семантика:
+            # атомарность против краша процесса сохранена; риск только
+            # при отключении питания ОС). 8.5 fsync/тик → 0.
+            self._conn.execute("PRAGMA synchronous=NORMAL")
             self._conn.execute("PRAGMA foreign_keys=ON")
         return self._conn
 
@@ -97,7 +105,11 @@ class SqlitePersistenceAdapter(PersistencePort):
             )
 
     def _select(self, key: str) -> Any:
-        """SELECT одной записи. None если не найдена. Может вернуть dict или list."""
+        """SELECT одной записи. None если не найдена. Может вернуть dict или list.
+        S268-урок №8 (повтор): read-кэш _select с прямой ссылкой давал
+        порчу потребителями-мутаторами (канон MISMATCH a20ea79f/a7649364).
+        Deep-copy-возврат = дорог; прямой = опасен. Оставлено БЕЗ кэша
+        до Epoch-финала (решение по измеренному отказу)."""
         with self._lock:
             conn = self._get_conn()
             row = conn.execute(
@@ -121,6 +133,8 @@ class SqlitePersistenceAdapter(PersistencePort):
                 _loc_id = scene_state.get("location_id", "default") if isinstance(scene_state, dict) else "default"
                 self._upsert(f"scene:{campaign_id}:{_loc_id}", scene_state)
                 self._get_conn().commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша load_all_scenes
+                self._cache_gen += 1
                 logger.debug(f"[SQLITE_PERSISTENCE] Scene saved: {campaign_id}:{_loc_id}")
             except sqlite3.Error as e:
                 logger.error(f"[SQLITE_PERSISTENCE] Error saving scene: {e}")
@@ -133,6 +147,8 @@ class SqlitePersistenceAdapter(PersistencePort):
             try:
                 self._upsert(f"scene:{campaign_id}:{location_id}", scene_state)
                 self._get_conn().commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша
+                self._cache_gen += 1
             except sqlite3.Error as e:
                 logger.error(f"[SQLITE_PERSISTENCE] Error saving scene_at: {e}")
                 self._get_conn().rollback()
@@ -143,6 +159,8 @@ class SqlitePersistenceAdapter(PersistencePort):
             try:
                 self._upsert("npcs:major", npc_dicts)
                 self._get_conn().commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша
+                self._cache_gen += 1
                 logger.debug(f"[SQLITE_PERSISTENCE] NPCs saved: {len(npc_dicts)} records")
             except sqlite3.Error as e:
                 logger.error(f"[SQLITE_PERSISTENCE] Error saving NPCs: {e}")
@@ -161,6 +179,8 @@ class SqlitePersistenceAdapter(PersistencePort):
             try:
                 self._upsert(f"runtime:{session_id}", npc_dicts)
                 self._get_conn().commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша
+                self._cache_gen += 1
                 logger.debug(
                     f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
                 )
@@ -189,6 +209,8 @@ class SqlitePersistenceAdapter(PersistencePort):
                     (f"scene:{campaign_id}", f"runtime:{campaign_id}", f"events_tick:{campaign_id}"),
                 )
                 conn.commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша (удаление сцен!)
+                self._cache_gen += 1
                 logger.info(f"[SQLITE_PERSISTENCE] Campaign deleted: {campaign_id}")
             except sqlite3.Error as e:
                 logger.error(
@@ -213,9 +235,19 @@ class SqlitePersistenceAdapter(PersistencePort):
         return cast(Optional[Dict[str, Any]], self._select(f"scene:{campaign_id}:{location_id}"))
 
     def load_all_scenes(self, campaign_id: str) -> Dict[str, Dict[str, Any]]:
-        """Загружает все локации кампании."""
+        """Загружает все локации кампании.
+        S268-ЭСКАЛАЦИЯ3: read-кэш с инвалидацией ПО ЗАПИСИ того же
+        адаптера (_upsert/atomic_commit_all бампят _cache_gen). Ничего
+        «вроде одинакового»: каждый writer обязан инвалиждировать
+        (единый файл — контракт замкнут). INV-SAVE-LOAD гейт."""
         with self._lock:
             try:
+                _cached = self._all_scenes_cache.get(campaign_id)
+                if _cached is not None and _cached[0] == self._cache_gen:
+                    # Верхнеуровневая копия: вызывающий может мутировать
+                    # возвращённый dict локаций (не трогая вложенные) —
+                    # кэш не должен подставляться под чужие мутации.
+                    return dict(_cached[1])
                 _conn = self._get_conn()
                 _cursor = _conn.cursor()
                 _prefix = f"scene:{campaign_id}:%"
@@ -225,6 +257,7 @@ class SqlitePersistenceAdapter(PersistencePort):
                 for _key, _value in _rows:
                     _loc_id = _key.split(":")[-1]
                     _result[_loc_id] = json.loads(_value)
+                self._all_scenes_cache[campaign_id] = (self._cache_gen, _result)
                 return _result
             except Exception as e:
                 logger.error(f"[SQLITE_PERSISTENCE] Error loading all scenes: {e}")
@@ -268,6 +301,8 @@ class SqlitePersistenceAdapter(PersistencePort):
                 if events is not None:
                     self._upsert(f"events_tick:{campaign_id}", events)
                 conn.commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша load_all_scenes
+                self._cache_gen += 1
                 logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit OK: {campaign_id}:{_loc_id}")
                 return True
             except sqlite3.Error as e:
@@ -295,6 +330,8 @@ class SqlitePersistenceAdapter(PersistencePort):
                 if events is not None:
                     self._upsert(f"events_tick:{campaign_id}", events)
                 conn.commit()
+                # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша load_all_scenes
+                self._cache_gen += 1
                 logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit ALL OK: {campaign_id} ({len(all_scenes)} scenes)")
                 return True
             except sqlite3.Error as e:

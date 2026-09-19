@@ -5,10 +5,9 @@
 """
 from __future__ import annotations
 
-import sys
-import atexit
 import asyncio
-import json
+import atexit
+import sys
 from pathlib import Path
 
 # Добавляем backend/app в path (вычисляем путь относительно текущего файла)
@@ -33,10 +32,11 @@ except ModuleNotFoundError as e:
     print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). MVP продолжает работу без LLM.")
 
 from app.services.llm.provider_manager import initialize_model_pool
+
 initialize_model_pool()
 
-from app.services.game_loop_builder import build_game_loop
 from app.models.schemas import ChatTurnRequest, PlayerAction
+from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"
@@ -132,7 +132,7 @@ async def main():
                     _npc_positions[_k] = _v
                 
                 for _pid, _v in _ws_npcs.items():
-                    if _pid == "player": 
+                    if _pid == "player":
                         continue
                     # Универсально извлекаем local_position из DTO, dict или dataclass
                     _npc_pos = getattr(_v, "local_position", None)

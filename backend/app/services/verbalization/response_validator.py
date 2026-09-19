@@ -149,7 +149,7 @@ class ResponseValidator:
 
         cyrillic_chars = sum(1 for c in text if "\u0400" <= c <= "\u04ff")
         ascii_chars = sum(1 for c in text if c.isascii() and c.isalpha())
-        
+
         # BUG-FB-008 FIX: Ослаблена проверка. Текст считается не-русским ТОЛЬКО если:
         # кириллицы меньше 30% И ASCII-букв больше 50%.
         # Ранее порог был 50%, из-за чего одно английское слово могло забраковать текст.

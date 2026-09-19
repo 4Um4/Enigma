@@ -8,7 +8,6 @@ path: backend/app/services/pipeline_runner.py
 Основные сущности: build_tick_state, run_pipeline, build_npc_contexts_from_intents
 """
 
-import copy
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -133,14 +132,14 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     for _intent in _phase_5_intents:
         if _intent not in _merged_intents:
             _merged_intents.append(_intent)
-            
+
     # SLEEP_FIX: Если NPC спит, блокируем все движения, кроме schedule.
     # Это предотвращает перехват сна проактивными интентами от WorldTickEngine.
     _sleeping_npcs = set()
     for _n in (ctx.all_npcs_raw or []):
         if _n.get("routine", {}).get("current") in ("sleeping", "resting"):
             _sleeping_npcs.add(_n.get("npc_id") or _n.get("id"))
-            
+
     if _sleeping_npcs:
         _filtered_intents = []
         for _intent in _merged_intents:
@@ -154,7 +153,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         ctx.movement_intents = _filtered_intents
     else:
         ctx.movement_intents = _merged_intents
-        
+
     ctx.significant_events = mutation.npc_deltas or []
 
     # [GC-I01-E1b-fix3] Committer-S1: дельты TickMutation едут в буфер применения
@@ -168,7 +167,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
 
     # Применение L1 Drift Events (Append-only Chronicle)
     _svc = ctx.npc_services
-    
+
     if mutation.l1_drift_events and _svc and _svc.memory_manager:
         _chronicle = getattr(_svc.memory_manager, "l1_chronicle", None) or getattr(_svc.memory_manager, "_l1_chronicle", None)  # noqa: ENIGMA002
         if _chronicle:
@@ -343,7 +342,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # Если NPC не создал CommunicationIntent, его scores_trace всё равно должен попасть в npc_contexts.
     # Молчание — это не отсутствие когнитивного состояния.
     _existing_ctx_ids = {c.get("npc_id") for c in ctx.npc_contexts}
-    
+
     for _npc_id, _trace in mutation.scores_trace_map.items():
         if _npc_id in _existing_ctx_ids:
             continue
@@ -358,7 +357,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         )
         if not _npc_dict:
             continue
-            
+
         _profile_l0 = personality_from_legacy(_npc_dict)
         _empty_deltas = StateDeltas(
             npc_id=_npc_id,

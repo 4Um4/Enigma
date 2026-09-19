@@ -29,7 +29,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -38,13 +38,35 @@ sys.path.insert(0, str(_ROOT))
 
 # Автоматический запуск/остановка LLM для DriftLab
 import atexit
+import logging as _logging
+
+# S268-ЭНДУРАНС-СКОРОСТЬ: доменные INFO/WARNING-логгеры (ECO ×6-8,
+# SOCIAL_EMA ×2, S198 ×1-2 на тик) на 10k тиков = 100k+ форматирований
+# и консольных флешей — замеренная цена деградации конвейера ×2-4
+# (профиль _prof_conv). Глушим до ERROR только в лаборатории
+# (диагностический контур; INV-SILENT-FAILURE не задет — errors живы).
+for _dn in ("app.services.npc.domain_phases",
+            "app.services.events.social_subscriber",
+            "app.services.game_loop",
+            "app.services.npc.npc_tick_pipeline",
+            "app.services.phases.movement_bridge",
+            "app.services.scene_state_manager"):
+    _logging.getLogger(_dn).setLevel(_logging.ERROR)
 
 from scripts.llm_server_manager import kill_llama_server, start_llama_server
 
-_llm_ok = start_llama_server()
-if not _llm_ok:
-    print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
-atexit.register(kill_llama_server)
+# S268-ЭНДУРАНС: LLM под env-контролем. DRIFT_NO_LLM=1 → детерминизм-
+# режимы идут БЕЗ llama-server (диалоги деградируют по ADR-113 честно,
+# ретраи видны в логах) — endurance-кампания перестаёт зависеть от
+# LLM-латентности (главный съедатель часов на 10k).
+if os.environ.get("DRIFT_NO_LLM", "1") == "1":
+    print("[DRIFT_LAB] DRIFT_NO_LLM=1 — llama-server не запускается (endurance-режим)")
+    atexit.register(lambda: None)
+else:
+    _llm_ok = start_llama_server()
+    if not _llm_ok:
+        print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
+    atexit.register(kill_llama_server)
 
 
 # ─── Конфигурация ───────────────────────────────────────────────────────
@@ -71,6 +93,8 @@ class DriftConfig:
 
     # replay determinism
     replay_determinism_ticks: int = 10_000  # 2 × 10k тиков с одинаковым seed
+    replay_determinism_ticks_short: int = 10_000  # S268: полное 10k×2 —
+        # целевой режим; выбор через DRIFT_TICKS (env) ниже
 
     # projection parity (CSSE Stage 2)
     projection_parity_ticks: int = 10_000  # 10k тиков dual-reality sync
@@ -293,6 +317,41 @@ class DriftLaboratory:
             # S129 FIX: Передаём реальный data_dir (статические данные), а не пустой temp.
             # Изолировать нужно только saves_dir (runtime-мутации).
             _real_data_dir = Path(self._original_data_dir) if self._original_data_dir else Path(settings.data_dir)
+            # S268-ЭНДУРАНС-ФИКС (MISMATCH: narrative_cache 'origin/sad' vs
+            # 'secret_origin' — Run B стартовал из мира, загрязнённого
+            # Run A через ЖИВОЙ data_dir: часть записи уходит туда
+            # относительными путями от cwd). Изоляция: каждый ран —
+            # СВЕЖАЯ копия data_dir; world_tick сброшен (прецедент
+            # iron_river D-3/F4).
+            _data_dst = Path(tempfile.mkdtemp(prefix="drift_lab_data_"))
+            shutil.copytree(_real_data_dir, _data_dst, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns("replay.db*", "logs", "__pycache__"))
+            _wt = _data_dst / "sessions" / "Open_road" / "world_tick.json"
+            if _wt.exists():
+                _wt.unlink()
+            settings.data_dir = str(_data_dst)
+            self._data_temp_dir = str(_data_dst)
+            self._game_loop = build_game_loop(data_dir=_data_dst)
+            # S268-ЭНДУРАНС: в DRIFT_NO_LLM-режиме диалоговый контур
+            # переключается на mock ДО сборки (router читает settings —
+            # factory.py:77), ретраи/таймауты исчезают из endurance.
+            if os.environ.get("DRIFT_NO_LLM", "1") == "1":
+                try:
+                    settings.environment = "development"
+                    for _m in settings.available_models.values():
+                        _m.provider_type = "mock"
+                    # S268-ЭНДУРАНС: mock имитирует сетевую задержку
+                    # (response_delay_sec=0.1 + потоковая по-токенная) —
+                    # на 10k тиков это минуты чистого time.sleep.
+                    # Эндуранс меряет причинность, не сеть → delay=0.
+                    from app.services.llm.mock_provider import MockConfig
+                    _mc = MockConfig()
+                    _mc.response_delay_sec = 0.0
+                    _mc.simulate_streaming = False
+                    import app.services.llm.mock_provider as _mp
+                    _mp._default_endurance_config = _mc  # для create_mock_provider
+                except Exception as _e:  # noqa: ENIGMA001
+                    logger.warning(f"[DRIFT_LAB] mock-LLM setup skipped: {_e}")
             self._game_loop = build_game_loop(data_dir=_real_data_dir)
 
             # Доступ к внутреннему TickOrchestrator для чтения drift_stats
@@ -350,6 +409,11 @@ class DriftLaboratory:
                     print(f"[DRIFT_LAB] Temp dir cleaned (retry): {self._temp_dir}")
                 except Exception:
                     print(f"[DRIFT_LAB] Temp dir сохранён для ручной очистки: {self._temp_dir}")
+
+        # S268-ЭНДУРАНС: уборка data-копии рана
+        if hasattr(self, "_data_temp_dir") and os.path.exists(self._data_temp_dir):
+            shutil.rmtree(self._data_temp_dir, ignore_errors=True)
+            print(f"[DRIFT_LAB] Data temp dir cleaned: {self._data_temp_dir}")
 
     def _restore_settings(self) -> None:
         """Восстанавливает оригинальные настройки. Безопасен при повторном вызове."""
@@ -829,9 +893,17 @@ class DriftLaboratory:
         2. random.seed(REPLAY_SEED) → setup → Run B (N ticks) → hash
         3. MATCH или MISMATCH с диагностикой
         """
+        # S268: env-выбор длины (short = вердикт TODAY, полный — кампания)
+        import os as _os
         import random
-
-        ticks = self.config.replay_determinism_ticks
+        ticks = (self.config.replay_determinism_ticks_short
+                 if _os.environ.get("DRIFT_SHORT") == "1"
+                 else self.config.replay_determinism_ticks)
+        # S269-КАЛИБРОВКА: DRIFT_TICKS в Mode E — короткий замерный забег
+        # (оба рана одинаково; вердикт не зависит от длины). Прецедент — Mode F.
+        _t_env = _os.environ.get("DRIFT_TICKS")
+        if _t_env:
+            ticks = int(_t_env)
 
         print(f"\n--- MODE E: Replay Determinism Audit (2 × {ticks} ticks) ---")
         print(f"  [REPLAY] Seed: {_REPLAY_SEED}")
@@ -921,8 +993,8 @@ class DriftLaboratory:
         Сравнивает текущий код с записанной сессией.
         Использует ReplayPlayer для воспроизведения тиков и поиска дрейфа.
         """
-        from app.services.replay.replay_store import ReplayStore
         from app.services.replay.replay_player import ReplayPlayer
+        from app.services.replay.replay_store import ReplayStore
 
         print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
 
@@ -935,10 +1007,10 @@ class DriftLaboratory:
 
         store = ReplayStore(db_path)
         player = ReplayPlayer(
-            store, 
-            self._game_loop, 
-            session_id, 
-            self.config.campaign_id, 
+            store,
+            self._game_loop,
+            session_id,
+            self.config.campaign_id,
             self.config.location_id
         )
 
@@ -1310,7 +1382,8 @@ class DriftLaboratory:
         Если MATCH → RCOC invariant verified → порядок потребления = физический закон.
         Если MISMATCH → скрытая энтропия → investigation required before ФАЗА 3.
         """
-        ticks = self.config.replay_determinism_ticks
+        # S268-ЭНДУРАНС: длина из env DRIFT_TICKS (по умолчанию 10_000)
+        ticks = int(os.environ.get("DRIFT_TICKS", str(self.config.replay_determinism_ticks)))
 
         print("\n--- MODE F: RNG Consumption Order Contract Audit ---")
         print(f"  [RCOC] Seed: {_REPLAY_SEED}")
@@ -1873,7 +1946,7 @@ def main(mode: str = "long_horizon", session_id: str = None) -> None:
             print("\n" + "=" * 60)
             print("📁 REPLAY SESSION RECORDED")
             print(f"   Session ID: {lab._replay_session_id}")
-            print(f"   Команда для сравнения:")
+            print("   Команда для сравнения:")
             print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
             print("=" * 60 + "\n")
         needed = 100_000 - result.total_comparisons

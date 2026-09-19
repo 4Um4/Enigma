@@ -7,11 +7,11 @@ path: /backend/app/services/verbalization/dm_response_normalizer.py
 
 import json
 import logging
-import random
-from app.services.npc.kernel_rng import KernelRNG
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
+
+from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 

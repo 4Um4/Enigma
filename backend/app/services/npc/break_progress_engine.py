@@ -44,7 +44,6 @@ from app.core.constants import (
     BREAK_SUPPORT_PRESSURE_REDUCTION,
     BREAK_WILL_BROKEN_PRESSURE_THRESHOLD,
 )
-
 from app.models.npc_state import NPCState, WillState
 
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,

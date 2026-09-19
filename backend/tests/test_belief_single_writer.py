@@ -5,8 +5,9 @@
 """
 
 import pytest
-from app.models.npc_state import NPCState
 from app.errors import ArchitecturalViolationError
+from app.models.npc_state import NPCState
+
 
 class TestBeliefSingleWriter:
     def test_direct_write_raises_error(self):

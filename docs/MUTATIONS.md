@@ -1362,6 +1362,25 @@ WAL-суффиксы в ignore-паттернах приборов (replay.db* �
 📁 svc/event_compiler (ADR-048-фикс), svc/scene_state_manager (7a-гварды),
 svc/npc/activity_lifecycle (E7), tests/fixtures + fixture_loader (WS),
 perf_probe/iron_river (приборы), micro/test_epoch_view (5 тестов)
+⚙️ ADDENDUM №5 (PR-8: вердикт невозможности в текущей модели + карта границы):
+PR-8 commit-move ИССЛЕДОВАН и ЗАКРЫТ как недостижимый в текущей
+  двух-реальностной модели: final_scene_state не «умирает» после
+  commit — он перерождается в shared_context.scene_state следующего
+  тика (npc_orchestration:255/265), downstream мутирует его
+  (game_loop:1502 — epistemic-допись ПОСЛЕ orchestrator'а = второй
+  writer поля epistemic_records — DOUBLE-TRUTH-риск, эскалация).
+  SSM-deepcopy (:340/:1719) изолирует персистентный снимок от живого
+  мира — несущая изоляция, не мусор.
+  СЛЕДСТВИЕ: путь к 20-24 мс лежит ТОЛЬКО через Epoch-финал (единая
+  модель committed=live + Delta-журнал; оценка −25-35% → 26-30 мс;
+  20-24 — после ядра). Это стратегическая граница, зафиксирована.
+  УРОК №9: «источник умирает после commit» — проверяется по ВСЕЙ
+  цепи downstream (DTO → GameLoop → shared_context), не по локальной
+  видимости; перерождение объекта в следующую реальность = продолжение
+  жизни.
+
+
+
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`

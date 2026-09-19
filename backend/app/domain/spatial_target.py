@@ -1,7 +1,8 @@
 # path: backend/app/domain/spatial_target.py
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
-from dataclasses import dataclass
+
 
 class SpatialTargetType(Enum):
     NPC = "NPC"

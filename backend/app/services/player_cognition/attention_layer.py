@@ -102,12 +102,11 @@ def _stochastic_roll(score: float) -> bool:
     0.3–0.7: зона неопределённости (roll)
     0.7–1.0: замечено (95%)
     """
-    import random
 
     # Фикс L2: Детерминированный RNG на основе score (stateless функция без доступа к tick)
     from app.services.npc.kernel_rng import KernelRNG
     _rng = KernelRNG(tick=0, npc_id="player_attention", salt=str(score))
-    
+
     if score >= _HARD_ATTENTION_THRESHOLD:
         return _rng.random() < 0.95
     elif score <= _SOFT_ATTENTION_THRESHOLD:

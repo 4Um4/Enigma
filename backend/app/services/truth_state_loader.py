@@ -7,7 +7,7 @@
 import json
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Dict, Optional, Set
+from typing import Dict, Optional, Set
 
 from app.models.truth_state import RelationType, Secret, TruthRelation, TruthState
 

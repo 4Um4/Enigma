@@ -6,8 +6,9 @@ path: /project/backend/app/services/npc/belief_revision_engine.py
 """
 
 import logging
-from typing import Protocol, Optional
-from app.domain.epistemology import ClaimEvent, EpistemicRecord, Proposition, Predicate
+from typing import Optional, Protocol
+
+from app.domain.epistemology import ClaimEvent, EpistemicRecord
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class BeliefRevisionEngine:
             source=claim.speaker_id,
             context=_context
         )
-        
+
         # Базовый вес утверждения (в будущем может зависеть от speech_act)
         incoming_confidence = reliability * _CLAIM_WEIGHT
 
@@ -83,7 +84,7 @@ class BeliefRevisionEngine:
             else:
                 # Независимое подтверждение (больший буст)
                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
-            
+
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=claim.proposition,

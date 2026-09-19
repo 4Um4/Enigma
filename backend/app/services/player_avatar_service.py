@@ -22,7 +22,7 @@ PlayerAvatarService — живой аватар персонажа игрока.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.character import CharacterProfile
@@ -93,7 +93,7 @@ class PlayerAvatarService:
             # B1.3-FIX: Загрузка журнала из файла в кэш (если есть)
             if "dialog_journal" in data:
                 self._dialog_journals[campaign_id] = data["dialog_journal"]
-            return data
+            return cast(dict, data)
         except Exception as e:
             # P0-D (S208): violation обязан быть различим от игровой ошибки
             # до деградации в None (диагностический след для CDS).

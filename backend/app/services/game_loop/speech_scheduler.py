@@ -7,7 +7,6 @@ path: /backend/app/services/game_loop/speech_scheduler.py
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -94,7 +93,7 @@ class SpeechScheduler:
         payload = task_dict.get("payload", {})
         target_id = payload.get("target_id", "all")
         pair_key = f"{speaker_id}->{target_id}"
-        
+
         if pair_key in self._admitted_contexts:
             del self._admitted_contexts[pair_key]
             logger.debug(f"[SPEECH_SCHED] Reset context for {pair_key} due to execution failure.")

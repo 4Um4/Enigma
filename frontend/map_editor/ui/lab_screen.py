@@ -3,13 +3,14 @@ map_editor/ui/lab_screen.py
 Полноэкранный интерфейс Лаборатории калибровки психики (Вариант B).
 Управляет запуском симуляции, отображает графики и состояние NPC в реальном времени.
 """
-import sys
 import os
-import pygame
+import sys
 from typing import Optional
 
-from ui.components import Button, COLORS
+import pygame
 from tools.constants import MODE_LOCAL
+
+from ui.components import COLORS, Button
 from ui.graphs import BarChart, LineGraph
 
 # Вычисляем абсолютный путь к папке backend и добавляем в sys.path
@@ -55,7 +56,7 @@ class LabScreen:
 
     def enter(self):
         """Вызывается при переходе в режим Лаборатории."""
-        from app.services.calibration.experiment_runner import ExperimentRunner, ExperimentConfig
+        from app.services.calibration.experiment_runner import ExperimentConfig, ExperimentRunner
         self.runner = ExperimentRunner()
         
         # В будущем: брать пресет из настроек UI

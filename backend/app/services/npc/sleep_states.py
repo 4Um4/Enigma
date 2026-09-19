@@ -6,6 +6,7 @@
 
 from enum import Enum
 
+
 class SleepState(str, Enum):
     AWAKE = "awake"
     SLEEPING = "sleeping"

@@ -6,8 +6,8 @@ V8-PSY-1: Тест прокидывания L1Chronicle через TickOrchestra
 Запуск: cd backend; python -m pytest tests/test_l1_chronicle_wiring.py -v; cd ..
 """
 
-import pytest
 from unittest.mock import MagicMock
+
 
 def test_state_applicator_accepts_l1_chronicle():
     """Проверяет, что StateApplicator корректно принимает и хранит l1_chronicle."""

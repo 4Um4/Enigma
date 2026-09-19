@@ -7,7 +7,6 @@
 
 from unittest.mock import MagicMock
 
-from app.domain.desired_change import DesiredChange
 from app.services.npc.causal_slice_grievance import (
     GrievanceDesiredChangeProducer,
 )

@@ -7,7 +7,6 @@
 from typing import Dict, List, Optional
 
 from app.models.fate import FateEvent, FateOutcome, FateState, FateTrajectory
-from app.models.social_fabric import RelationshipSnapshot
 
 
 class FateTracker:

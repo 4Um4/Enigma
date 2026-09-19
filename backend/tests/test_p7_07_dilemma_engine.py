@@ -6,9 +6,10 @@
 """
 
 import pytest
-from app.services.social.dilemma_engine import DilemmaEngine
-from app.models.dilemma import MoralDilemma, DilemmaSide, FateConsequence, DilemmaChoice
+from app.models.dilemma import DilemmaChoice, DilemmaSide, FateConsequence, MoralDilemma
 from app.models.fate import FateOutcome
+from app.services.social.dilemma_engine import DilemmaEngine
+
 
 class TestP707DilemmaEngine:
     @pytest.fixture

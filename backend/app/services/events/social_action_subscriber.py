@@ -6,7 +6,6 @@ path: /project/backend/app/services/events/social_action_subscriber.py
 """
 
 import logging
-from typing import Any
 
 from app.domain.events import EventDTO
 from app.services.events.event_bus import EventBus

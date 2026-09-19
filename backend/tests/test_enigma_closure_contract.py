@@ -6,10 +6,7 @@
 Запуск: cd backend; python -m pytest tests/test_enigma_closure_contract.py tests/test_causal_contract_sandboxes.py -v; cd ..
 """
 
-import ast
 import os
-
-import pytest
 
 # Динамическое вычисление путей относительно расположения тестового файла
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))

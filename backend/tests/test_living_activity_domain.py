@@ -7,15 +7,12 @@ Round-trip и детерминизм доменных сущностей Living 
 import dataclasses
 import unittest
 
-from app.domain.desire import Desire, DesireSource, ProvenanceEntry
 from app.domain.activity import (
     ActivityState,
-    ActivityStep,
     ActivityType,
-    InterruptionPolicy,
     StepKind,
 )
-
+from app.domain.desire import Desire, DesireSource, ProvenanceEntry
 
 # Реальная runtime-структура (как её пишет DesireGenerator)
 REAL_DESIRE_DICT = {

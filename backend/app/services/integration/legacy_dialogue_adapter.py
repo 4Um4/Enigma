@@ -4,9 +4,11 @@ path: /project/backend/app/services/integration/legacy_dialogue_adapter.py
 Зависимости: app.domain.presentation
 Основные сущности: LegacyDialogueAdapter
 """
-from typing import List, Dict, Any
+from typing import List
+
 from app.domain.presentation import PerceivedNarrativeDTO
 from app.domain.snapshot import RecentDialogueDTO
+
 
 class LegacyDialogueAdapter:
     """

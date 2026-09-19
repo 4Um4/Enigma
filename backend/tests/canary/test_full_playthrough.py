@@ -9,12 +9,13 @@ path: /project/backend/tests/canary/test_full_playthrough.py
 
 Запуск: cd backend; python -m pytest tests/canary/test_full_playthrough.py -v; cd ..
 """
+
 import pytest
-from pathlib import Path
 from app.core.config import BASE_DIR
-from app.services.social.mvp_tavern_controller import MvpTavernController
-from app.models.player_action import PlayerAction, ActionType
+from app.models.player_action import ActionType, PlayerAction
 from app.services.events.event_bus import EventBus
+from app.services.social.mvp_tavern_controller import MvpTavernController
+
 
 @pytest.fixture
 def mvp_controller():

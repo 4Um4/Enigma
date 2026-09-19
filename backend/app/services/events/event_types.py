@@ -81,7 +81,7 @@ class EventType(str, Enum):
     PLAYER_ASKS_WHY = "player_asks_why"
     PLAYER_INTERACTS = "player_interacts"
     PLAYER_ATTACKS = "player_attacks"
-    
+
     # ── S4: Semantic Pipeline — социальные/экономические интенты ──────────
     OFFER_JOB = "offer_job"
     REQUEST_SERVICE = "request_service"

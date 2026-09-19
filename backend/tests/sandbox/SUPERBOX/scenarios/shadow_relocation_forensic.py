@@ -91,7 +91,7 @@ def main() -> int:
     (out_dir / "srf_snaps.json").write_text(
         json.dumps(snaps, ensure_ascii=False), encoding="utf-8")
     print(f"[SRF] маркеров={len(col.lines)} -> reports/srf_trace.txt", flush=True)
-    print(f"[SRF] снимков -> reports/srf_snaps.json", flush=True)
+    print("[SRF] снимков -> reports/srf_snaps.json", flush=True)
     return 0
 
 

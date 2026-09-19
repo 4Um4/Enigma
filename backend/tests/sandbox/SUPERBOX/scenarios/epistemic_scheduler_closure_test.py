@@ -21,21 +21,17 @@ logger = logging.getLogger("EPISTEMIC_SCHEDULER_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.domain.events import EventDTO
-from app.domain.execution import QueuedTask, TaskState, TaskKind, TaskPriority
 from app.domain.communication import DialogueRequest, ExposureLevel
-from app.domain.epistemology import Predicate
-from app.services.events.event_types import EventType
-from app.services.events.event_bus import get_event_bus
+from app.domain.execution import QueuedTask, TaskKind, TaskPriority, TaskState
 from app.services.events.claim_event_subscriber import ClaimEventSubscriber
-from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
+from app.services.events.event_bus import get_event_bus
+from app.services.events.event_types import EventType
+from app.services.game_loop.task_scheduler import TaskScheduler
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
+from app.services.npc.trust_based_reliability_provider import TrustBasedReliabilityProvider
 from app.services.spatial.spatial_query_service import SpatialQueryService
-from app.services.execution.dialogue_executor import DialogueExecutor
-from app.services.execution.dialogue_materializer import DialogueMaterializer
-from app.services.game_loop.task_scheduler import TaskScheduler
 
 CAMPAIGN_ID = "Open_road"
 NPC_A = "guard_borko"
@@ -62,8 +58,8 @@ def run_test():
     spatial_query = SpatialQueryService(npc_positions=mock_positions)
     
     subscriber = ClaimEventSubscriber(
-        engine=engine, 
-        store=store, 
+        engine=engine,
+        store=store,
         spatial_query_provider=lambda: spatial_query
     )
 
@@ -76,11 +72,11 @@ def run_test():
     # 3. Инициализация TaskScheduler через конструктор (он сам создаст Executor и Materializer)
     # Передаём router=None, чтобы сработал детерминированный fallback без LLM
     scheduler = TaskScheduler(
-        router=None, 
-        context_provider=None, 
-        economy_tracker=None, 
-        belief_store=None, 
-        memory_manager=None, 
+        router=None,
+        context_provider=None,
+        economy_tracker=None,
+        belief_store=None,
+        memory_manager=None,
         confession_parser=None
     )
 

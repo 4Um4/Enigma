@@ -20,6 +20,7 @@ Pipeline:
     PerceivedScene: UI
 """
 
+from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
 from app.services.player_cognition.attention_layer import PlayerFocus, apply_attention
 from app.services.player_cognition.cognitive_distortion import (
     PlayerDistortionInputs,
@@ -44,7 +45,6 @@ from app.services.player_cognition.types import (
     PerceivedEnvironment,
     PerceivedScene,
 )
-from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
 from app.services.player_cognition.uncertainty_layer import apply_uncertainty
 
 __all__ = [

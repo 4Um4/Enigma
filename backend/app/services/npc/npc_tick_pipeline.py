@@ -385,8 +385,8 @@ class NpcTickPipeline:
 
             if work_enabled():
                 from app.core.constants import GOODS_PRICES
-                from app.services.npc.desire_generator import _NEED_TO_DESIRE
                 from app.services.economy.work_orders import WORK_TRADE_PRESSURE_K
+                from app.services.npc.desire_generator import _NEED_TO_DESIRE
 
                 for _d in npc.get("desires") or []:
                     _subj = str(_d.get("subject_class", "") or "")
@@ -403,7 +403,7 @@ class NpcTickPipeline:
                         )
                 if _work_trade_pressure > 0.0:
                     logger.info(
-                        "[WORK] %s: trade pressure +%.3f (desire)", 
+                        "[WORK] %s: trade pressure +%.3f (desire)",
                         npc_id, _work_trade_pressure,
                     )
 
@@ -1046,7 +1046,9 @@ class NpcTickPipeline:
             # [GC-I01-E1b] Завершение S1: решение -> NPCState.intent через дельту.
             # Вне if decision.deltas: решение существует даже без дельт.
             # Тик = state.tick_id (тот же штамп, что у TraitDriftEvent ниже).
-            from app.models.state_delta import StateDeltas  # [GC-I01-E1b-fix1] локальный импорт (прецедент attack-ветки)
+            from app.models.state_delta import (
+                StateDeltas,  # [GC-I01-E1b-fix1] локальный импорт (прецедент attack-ветки)
+            )
             npc_deltas.append(
                 StateDeltas(
                     npc_id=npc_id,

@@ -3,8 +3,10 @@
 Контракт Probe и ProbeContext.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, List, Protocol, runtime_checkable, Optional
+from typing import Any, List, Optional, Protocol, runtime_checkable
+
 
 @dataclass(frozen=True)
 class ProbeContext:

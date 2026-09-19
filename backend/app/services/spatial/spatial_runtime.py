@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, Iterable, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_service import SpatialService

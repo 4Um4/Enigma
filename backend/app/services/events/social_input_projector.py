@@ -82,7 +82,7 @@ class SocialInputProjector:
             if event.type == EventType.NPC_SPOKE:
                 if _src:
                     deltas.append(self._mk_delta(_src, _INPUT_SPEAK))
-                
+
                 # V8-SOC-7 FIX: Если listener_ids не заполнены, вычисляем слушателей через perception_filter
                 _listeners = payload.get("listener_ids", [])
                 if not _listeners and _src:

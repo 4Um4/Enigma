@@ -6,12 +6,13 @@ path: /project/backend/app/services/npc/epistemic_context_resolver.py
 """
 
 import logging
-from app.domain.epistemology import EpistemicContext, EpistemicRecord, Predicate
+
+from app.domain.epistemology import EpistemicContext, Predicate
 from app.services.npc.epistemic_store import EpistemicStore
 
 logger = logging.getLogger(__name__)
 
-# S188: Архитектурный порог уверенности. 
+# S188: Архитектурный порог уверенности.
 # Убеждения ниже этого порога не формируют perceived threats/allies.
 CONFIDENCE_THRESHOLD = 0.5
 
@@ -42,7 +43,7 @@ class EpistemicContextResolver:
 
     def resolve(self, agent_id: str) -> EpistemicContext:
         records = self._store.get_all_for_agent(agent_id)
-        
+
         threats = []
         allies = []
         violations = 0
@@ -56,7 +57,7 @@ class EpistemicContextResolver:
         for record in records:
             if record.confidence < CONFIDENCE_THRESHOLD:
                 continue
-                
+
             pred = record.proposition.predicate
             subj = record.proposition.subject_id
 
@@ -125,7 +126,7 @@ class EpistemicContextResolver:
                 modifiers["warn"] = _epistemic_boost
                 modifiers["attack"] = _epistemic_boost
                 modifiers["block_path"] = round(_epistemic_boost * 0.5, 4)
-            
+
         # Союзники могут слегка повышать trade/help/approach
         if context.perceived_allies:
             _ally_boost = round(context.max_confidence * 0.2, 4)

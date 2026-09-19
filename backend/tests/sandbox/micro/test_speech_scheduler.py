@@ -4,14 +4,15 @@ path: /backend/tests/sandbox/micro/test_speech_scheduler.py
 
 Запуск: cd backend; python -m tests.sandbox.micro.test_speech_scheduler; cd ..
 """
-import sys
 import os
+import sys
 import time
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..')))
 
 from app.services.game_loop.speech_scheduler import SpeechScheduler
+
 
 def test_pacing_and_deduplication():
     """Сценарий: 6 NPC / 11 быстрых idle ticks не должны порождать лавину LLM-вызовов."""

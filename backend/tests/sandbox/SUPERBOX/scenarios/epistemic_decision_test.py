@@ -9,11 +9,10 @@ SUPERBOX-005: Изолированный тест Belief -> Decision.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_decision_test.py
 """
 
-import sys
-import logging
-from pathlib import Path
-from types import MappingProxyType
 import inspect
+import logging
+import sys
+from pathlib import Path
 
 # Настройка путей
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
@@ -24,13 +23,13 @@ logger = logging.getLogger("EPISTEMIC_DECISION_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.services.events.event_types import EventType
-from app.models.npc_state import NPCState
-from app.models.npc_profile import NPCProfileL0
+from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
 from app.domain.identity_events import EffectiveDrives
-from app.domain.epistemology import Proposition, Predicate, EpistemicRecord
+from app.models.npc_state import NPCState
+from app.services.events.event_types import EventType
+from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.epistemic_store import EpistemicStore
+
 
 def run_test():
     print("\n" + "="*60)

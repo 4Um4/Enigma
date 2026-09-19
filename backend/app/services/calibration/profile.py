@@ -7,6 +7,7 @@ path: backend/app/services/calibration/profile.py
 Основные сущности: CalibrationProfile
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 

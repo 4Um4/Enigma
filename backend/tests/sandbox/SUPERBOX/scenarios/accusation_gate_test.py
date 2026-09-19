@@ -20,6 +20,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.domain.epistemology import Predicate, Proposition
 from app.models.player_action import ActionType, PlayerAction
+from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
 from app.services.npc.epistemic_store import EpistemicStore
@@ -28,7 +29,6 @@ from app.services.player_cognition.action_consequence_compiler import (
 )
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
-from app.services.memory.relationship_store import RelationshipStore
 from app.services.social.social_fabric_tracker import SocialFabricTracker
 
 CAMP = "accusation_test"
@@ -50,7 +50,6 @@ def _make_compiler(rel_store, resolver):
 
 def _give_belief(store, engine, subject, conf_provider_value=0.8):
     """Игрок получает belief через живой движок ревизии (не инъекцию!)."""
-    from app.domain.events import EventDTO
     from app.domain.epistemology import ClaimEvent
     # создаём belief напрямую движком (claim от источника с высокой reliability)
     prop = Proposition(subject_id=subject, predicate=Predicate.STOLE,
