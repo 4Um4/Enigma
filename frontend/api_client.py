@@ -510,8 +510,9 @@ class DirectGameGateway:
     ) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
-            from game_loop_bridge import get_game_loop_bridge
             import importlib
+
+            from game_loop_bridge import get_game_loop_bridge
             WorldContinuityMode = importlib.import_module("app.models.world_continuity").WorldContinuityMode
 
             _bridge = get_game_loop_bridge()

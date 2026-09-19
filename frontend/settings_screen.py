@@ -4,10 +4,10 @@
 Основные сущности: SettingsScreen
 """
 
-import sys
 import json
-import urllib.request
+import sys
 import threading
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -18,11 +18,12 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
 import importlib
+
 settings = importlib.import_module("app.core.config").settings
 _content_policy_mod = importlib.import_module("app.core.content_policy")
 save_content_policy = _content_policy_mod.save_content_policy
 ContentPolicy = _content_policy_mod.ContentPolicy
-from display_manager import load_display_settings, save_display_settings, get_available_resolutions, create_window
+from display_manager import create_window, get_available_resolutions, load_display_settings, save_display_settings
 
 # === Минимальная цветовая схема ===
 _MENU_COLORS = {
@@ -326,7 +327,7 @@ class SettingsScreen:
                     _y_offset += list_btn_h + list_gap
 
         elif self._active_tab == "controls":
-            from keybindings import DEFAULT_KEYBINDS, load_keybinds, save_keybinds
+            from keybindings import load_keybinds
             self._keybinds = load_keybinds()
             list_btn_h = 40
             list_gap = 10
@@ -440,8 +441,9 @@ class SettingsScreen:
 
     def _show_download_modal(self, model_key: str):
         """Блокирует UI и показывает прогресс скачивания со скоростью и временем."""
-        import pygame
         import time
+
+        import pygame
         
         _font = pygame.font.SysFont("consolas", 24, bold=True)
         _small_font = pygame.font.SysFont("consolas", 16)
@@ -655,8 +657,9 @@ class SettingsScreen:
 
     def _test_llm_modal(self, model_key: str):
         """Отправляет тестовый промпт и показывает ответ модели с переносом слов."""
-        import pygame
         import textwrap
+
+        import pygame
         
         _dw, _dh = 700, 450
         _dx = (self.screen.get_width() - _dw) // 2

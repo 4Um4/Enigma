@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 from app.models.observation import EvidencePolarity, ObservationSourceType
-from app.models.player_belief import BeliefValue
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
 from app.services.social.evaluation_engine import EvaluationEngine

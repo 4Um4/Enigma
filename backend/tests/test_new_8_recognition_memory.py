@@ -2,7 +2,6 @@
 import tempfile
 from pathlib import Path
 
-import pytest
 from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
 
 

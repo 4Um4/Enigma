@@ -2,24 +2,18 @@
 map_editor/core/event_handler.py
 Обработка событий ввода: мышь, клавиатура, тулбар.
 """
+
 import pygame
-from typing import Any, Dict, Optional, Tuple
+from tools.constants import MODE_LAB, MODE_LOCAL, MODE_WORLD
 
 from core.commands import (
+    MirrorObjectCommand,
     MoveEntityCommand,
     ResizeObjectCommand,
     RotateObjectCommand,
-    MirrorObjectCommand,
-    SimpleNodeUpdateCommand,
-    RenameCommand,
-)
-from ui.dialogs import ModalDialog
-
-from tools.constants import (
-    TOOL_WALL, TOOL_ROOM, TOOL_NODE, MODE_WORLD, MODE_LOCAL, MODE_LAB
 )
 
-SCALE = 20 
+SCALE = 20
 ZOOM_STEP = 1.2
 MIN_ZOOM = 0.4
 MAX_ZOOM = 5.0

@@ -9,8 +9,8 @@ SUPERBOX-011: Универсальная композиция модификат
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/modifier_composition_test.py
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -22,15 +22,16 @@ logger = logging.getLogger("MODIFIER_COMPOSITION_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.services.events.event_types import EventType
-from app.models.npc_state import NPCState
-from app.domain.identity_events import EffectiveDrives
 from app.domain.decision_context import DecisionContext
 from app.domain.epistemology import EpistemicContext
+from app.domain.identity_events import EffectiveDrives
+from app.models.npc_state import NPCState
+from app.services.events.event_types import EventType
+from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
 from app.services.npc.kernel_rng import KernelRNG
 from app.services.npc.npc_loader import load_npc_profiles_from_config
+
 
 def run_test():
     print("\n" + "="*60)
@@ -67,7 +68,7 @@ def run_test():
     _rng_t = KernelRNG(tick=1, npc_id="guard_borko")
     hub_t = DecisionHub(rng=_rng_t)
     dec_t = hub_t.compute(
-        state=state, personality=personality, effective_drives=effective_drives, event=event, 
+        state=state, personality=personality, effective_drives=effective_drives, event=event,
         decision_ctx=DecisionContext(source="test"),
         social_modifiers=social_mods,
         epistemic_modifiers=epistemic_mods

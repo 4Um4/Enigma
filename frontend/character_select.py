@@ -217,8 +217,8 @@ class CharacterSelectScreen:
                                 "continuity_mode": self._continuity_mode
                             }
                     elif (
-                        event.key == pygame.K_c 
-                        and self._supports_continuity 
+                        event.key == pygame.K_c
+                        and self._supports_continuity
                         and not self._dialog_active
                     ):
                         # Переключение режима наследия мира (C)
@@ -530,8 +530,8 @@ class CharacterSelectScreen:
         if self._supports_continuity:
             toggle_hovered = self._btn_continuity_rect.collidepoint(pygame.mouse.get_pos())
             toggle_color = (
-                _COLORS["btn_primary_hover"] if toggle_hovered else 
-                _COLORS["btn_primary"] if self._continuity_mode == "continuous" else 
+                _COLORS["btn_primary_hover"] if toggle_hovered else
+                _COLORS["btn_primary"] if self._continuity_mode == "continuous" else
                 _COLORS["btn_secondary"]
             )
             pygame.draw.rect(self.screen, toggle_color, self._btn_continuity_rect, border_radius=6)

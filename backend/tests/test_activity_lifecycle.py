@@ -12,8 +12,8 @@ from unittest import mock
 
 from app.domain.activity import ActivityState, ActivityStep, ActivityType, StepKind
 from app.domain.world_object import ObjectRelationKind
-from app.services.npc import activity_lifecycle_service as als
 from app.services.action import commitment_registry as cr_mod
+from app.services.npc import activity_lifecycle_service as als
 from app.services.world.world_object_store import WorldObjectStore
 
 _FOOD_ID = "wo_test_food_001"

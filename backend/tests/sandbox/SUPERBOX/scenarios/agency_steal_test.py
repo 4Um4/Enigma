@@ -30,18 +30,15 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from app.domain.epistemology import Predicate
 from app.models.npc_profile import NPCProfileL0
 from app.models.npc_state import Intent, NPCState
-from app.services.economy.opportunity_engine import (
-    OpportunityContext,
-    OpportunityEngine,
-    OpportunityResult,
-)
-from app.services.npc.decision_hub import DecisionHub
-from app.services.spatial.spatial_query_service import SpatialQueryService
 
 # Калибровка OpportunityContext по формуле из Слом.md (археология S209):
 # attention↓ + distance↓ + weapon + allies → score ≥ OPPORTUNITY_THRESHOLD.
 # Точные веса/порог берём из движка, не дублируем (см. A2 — порог живой).
-from app.services.economy.opportunity_engine import OPPORTUNITY_THRESHOLD
+from app.services.economy.opportunity_engine import (
+    OpportunityResult,
+)
+from app.services.npc.decision_hub import DecisionHub
+from app.services.spatial.spatial_query_service import SpatialQueryService
 
 
 def _profile(archetype: str, desire: float = 0.3) -> NPCProfileL0:
@@ -90,6 +87,7 @@ def main() -> int:
     # ── A4: маршрутизация steal → windup (не диалоговый слой) ────────
     # Проверяем контракт Фазы 6 напрямую: условие маршрутизатора.
     import inspect
+
     from app.services.phases import post_decision as pd
     _src = inspect.getsource(pd)
     a4 = 'not in ("attack", "steal")' in _src and "_gate_intent_type in (\"attack\", \"steal\")" in _src
@@ -98,8 +96,8 @@ def main() -> int:
     ok = ok and a4
 
     # ── A5: релиз held intent → THEFT через adapter ──────────────────
-    from app.services.events.intent_event_adapter import IntentEventAdapter
     from app.domain.communication import CommunicationIntent, ExposureLevel
+    from app.services.events.intent_event_adapter import IntentEventAdapter
     # Кража максимально тихая: whisper (радиус события выведется из semantic —
     # честная мембрана для Reaction/Social подписчиков, не 999.0).
     # ExposureLevel — frozen dataclass с фабрикой from_semantic (археология S209),
@@ -124,7 +122,8 @@ def main() -> int:
     from app.services.npc.belief_revision_engine import BeliefRevisionEngine
     from app.services.npc.epistemic_store import EpistemicStore
     from app.services.npc.trust_based_reliability_provider import (
-        DIRECT_OBSERVATION_RELIABILITY, TrustBasedReliabilityProvider,
+        DIRECT_OBSERVATION_RELIABILITY,
+        TrustBasedReliabilityProvider,
     )
 
     positions = {

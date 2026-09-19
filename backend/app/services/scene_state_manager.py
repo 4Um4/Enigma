@@ -1711,6 +1711,7 @@ class SceneStateManager:
         if self._tick_campaign_id == campaign_id:
             _loc_id = scene_state.get("location_id", "default")
             import copy
+
             # PR-7/S268: тот же паттерн ownership-move (см. commit_tick_result)
             import os as _os
             if _os.environ.get("EPOCH_OWNERSHIP_ENFORCEMENT", "0") == "1":

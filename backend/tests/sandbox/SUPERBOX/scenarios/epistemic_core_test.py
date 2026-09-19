@@ -12,8 +12,8 @@ SUPERBOX-002: Чистые тесты эпистемического ядра.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_core_test.py
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -24,9 +24,10 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message
 logger = logging.getLogger("EPISTEMIC_CORE_TEST")
 
 # Импорты ENIGMA
-from app.domain.epistemology import Proposition, Predicate, SpeechAct, ClaimEvent, EpistemicRecord
-from app.services.npc.epistemic_store import EpistemicStore
+from app.domain.epistemology import ClaimEvent, Predicate, Proposition
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
+from app.services.npc.epistemic_store import EpistemicStore
+
 
 # --- Mock Провайдер надёжности ---
 class MockReliabilityProvider:

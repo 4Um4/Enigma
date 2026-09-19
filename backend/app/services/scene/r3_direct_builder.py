@@ -62,7 +62,7 @@ def build_r3_dm_frame(
     }
     # Epistemic Boundary: DM не читает внутренние уровни NPC (tier) из контекстов,
     # только локальную физическую видимость.
-    _tiers = {}
+    _tiers: Dict[str, Any] = {}
 
     # R5: Определяем успех физического действия из rules_agent
     _player_success = True  # VERBAL действия всегда "успешны" (нет броска)
@@ -128,7 +128,7 @@ def build_r3_dm_frame(
                 break  # берём первого игрока
 
     # Извлекаем observed_facts из PlayerPerceptionDTO (Фаза 9)
-    _observed_facts = []
+    _observed_facts: List[Any] = []
     _ws = getattr(shared_context, "world_snapshot", None)  # noqa: ENIGMA002
     if _ws and hasattr(_ws, "player_perception"):
         _observed_facts = getattr(_ws.player_perception, "observed_facts", [])  # noqa: ENIGMA002

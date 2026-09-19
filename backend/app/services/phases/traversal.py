@@ -64,7 +64,7 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                     if _neighbor:
                         _is_boundary = True
                         _target_location_id = _neighbor
-                        
+
                         # Приоритет 1: Используем entry_node_hint из boundary_info (SSOT от GraphCompiler).
                         # Это исключает дорогие и ломающиеся запросы к SpatialFactory в рантайме.
                         if _entry_hint:
@@ -285,4 +285,4 @@ def apply_with_shadow_observation(
     logger.debug(
         f"[GATE_E] phase={phase_label} validated={len(_shadow_results) if _shadow_results else 0} applied={_applied}"
     )
-    return _applied
+    return int(_applied)

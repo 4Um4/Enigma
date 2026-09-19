@@ -7,9 +7,11 @@ path: /frontend/focus_renderer.py
 """
 import math
 import random
+from typing import Optional
+
 import pygame
-from typing import Optional, Dict
 from constants import COLOR_MANIFEST_DEFAULT
+
 
 class FocusRenderer:
     """Рисует элементы фокуса внимания поверх сцены."""
@@ -31,7 +33,7 @@ class FocusRenderer:
                 _manif_color = _manif.get("color", COLOR_MANIFEST_DEFAULT)
                 _manif_surf = self.font_small.render(_manif_text, True, _manif_color)
                 screen.blit(
-                    _manif_surf, 
+                    _manif_surf,
                     (coords["sx"] - _manif_surf.get_width() // 2, coords["sy"] + coords["radius"] + 14)
                 )
 
@@ -161,8 +163,8 @@ class FocusRenderer:
                         # Прозрачность зависит от того, насколько чётко игрок услышал текст
                         _final_alpha = int(_alpha * max(0.2, _clarity))
                         _pending_bubbles.append({
-                            "x": _bub_x, "y": _bub_y, "w": _bub_w, "h": _bub_h, 
-                            "lines": _lines, "alpha": _final_alpha, 
+                            "x": _bub_x, "y": _bub_y, "w": _bub_w, "h": _bub_h,
+                            "lines": _lines, "alpha": _final_alpha,
                             "delivery_type": _delivery, "is_player": False,
                             "auditory_clarity": _clarity,
                             "is_slam": _bubble_data.get("attention_weight", 0.0) >= 1.0

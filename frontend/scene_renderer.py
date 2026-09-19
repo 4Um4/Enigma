@@ -13,14 +13,15 @@ path: /frontend/scene_renderer.py
 import logging
 
 logger = logging.getLogger(__name__)
+import json
 import math  # noqa: E402
 import random  # noqa: E402
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple  # noqa: E402
 
 import pygame  # noqa: E402
 from constants import (
     AGGRESSION_COLORS,
-    COLOR_MANIFEST_DEFAULT,
     COLOR_TEXT_DIM,
     FONT_NAME_MAIN,
     FONT_NAME_UI,
@@ -39,8 +40,6 @@ from game_types import (  # noqa: E402
     PerceivedEntity,
     PerceivedScene,
 )
-import json
-from pathlib import Path
 from map_editor.sprite_registry import get_entity_sprite, sprite_registry  # noqa: E402
 
 # S176: Путь к файлам кампаний для загрузки кастомных спрайтов
@@ -347,7 +346,7 @@ class SceneRenderer:
                     _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
                     _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
                     sprite = sprite_registry.get_rect(
-                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
+                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]),
                         int(sprite_info[3]), int(sprite_info[4]), _t, _o
                     )
                 elif len(sprite_info) >= 3:
@@ -523,7 +522,7 @@ class SceneRenderer:
                     _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
                     _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
                     sprite = sprite_registry.get_rect(
-                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), 
+                        sprite_info[0], int(sprite_info[1]), int(sprite_info[2]),
                         int(sprite_info[3]), int(sprite_info[4]), _t, _o
                     )
                 elif len(sprite_info) >= 3:

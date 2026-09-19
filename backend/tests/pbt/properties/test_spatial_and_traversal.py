@@ -3,15 +3,18 @@
 Property-тесты для SC-1 (Spatial Coherence) и ADR-TRAV-FSM (Zombie Traversals).
 """
 import sys
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any
 
 # Добавляем backend в path для импортов
 _BACKEND = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_BACKEND))
 
-from hypothesis import given, strategies as st, settings as hyp_settings
+from hypothesis import given
+from hypothesis import settings as hyp_settings
+from hypothesis import strategies as st
+
 
 @dataclass
 class MockProbeContext:

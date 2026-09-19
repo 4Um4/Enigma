@@ -23,7 +23,9 @@ routes_stream.py делает ровно три вещи:
 from __future__ import annotations
 
 import json
+from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 from app.services.campaign_state_service import get_campaign_state_service
 from app.services.game_loop_accessor import get_game_loop
@@ -42,7 +44,9 @@ def _sse(event: dict) -> str:
 
 
 @router.post("/game/action/stream")
-async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
+async def game_action_stream(
+    request: dict, game_loop: Any = Depends(get_game_loop)
+) -> StreamingResponse:
     """
     SSE эндпоинт — токены идут в браузер по мере генерации DM агента.
 
@@ -90,7 +94,7 @@ async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
         if saved:
             location = saved
 
-    async def event_generator():
+    async def event_generator() -> AsyncIterator[str]:
         """
         Простой генератор: вызывает orchestrator.stream_turn() и
         пересылает всё что оттуда приходит.

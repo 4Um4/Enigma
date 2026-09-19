@@ -15,7 +15,6 @@ import logging
 from typing import Any, Dict, Optional
 
 from app.services.events.event_types import EventType
-from app.services.game_loop.time_advance import advance_game_time
 from app.services.npc.decision_hub import EventContext as HubEventContext
 from app.services.scene.scene_event_layer import emit_and_accumulate_scene_events
 from app.services.spatial.player_target_pipeline import (
@@ -129,7 +128,7 @@ def run_dm_phase(
         logger.warning(
             f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}"
         )
-        
+
         # FIX: Пред-проверка дистанции для боя. DM-агент запускается раньше ImpactEngine,
         # поэтому мы должны сообщить ему о промахе заранее, чтобы он не галлюцинировал попадание.
         if "attack" in shared_context.action_type and shared_context.player_target_id:

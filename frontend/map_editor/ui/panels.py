@@ -3,8 +3,11 @@ map_editor/ui/panels.py
 Составные панели UI: Toolbar, PropertyPanel
 """
 from typing import Any, Dict, List, Optional
+
 import pygame
-from ui.components import Button, COLORS
+
+from ui.components import COLORS, Button
+
 
 class Toolbar:
     """Панель инструментов с группами кнопок"""

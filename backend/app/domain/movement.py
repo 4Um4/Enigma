@@ -55,6 +55,12 @@ class MacroMovementGoal:
         None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
     )
     intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
+    # MOVEMENT-V2 (мандат Phase A): семантическая цель — «ГДЕ ХОЧУ ОКАЗАТЬСЯ».
+    # Инвариант I-MV2: final_* НЕ мутируется навигацией (boundary/waypoint
+    # перезаписывают только target_node_id). Пусто = цель совпадает с
+    # target_node_id (обратная совместимость всех существующих создателей).
+    final_location_id: str = ""
+    final_node_id: str = ""
     # ADR-O-333: Embodied Traversal. Контракт физического тела для навигации.
     body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
     # ADR-XXXX: Инвариант единого владения причинностью. Один Intent → один process_intents() → одно будущее.

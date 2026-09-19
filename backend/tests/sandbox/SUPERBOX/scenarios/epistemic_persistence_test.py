@@ -22,11 +22,11 @@ logger = logging.getLogger("EPISTEMIC_PERSISTENCE_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
-from app.services.events.event_bus import get_event_bus
+from app.domain.epistemology import Predicate, Proposition
 from app.domain.events import EventDTO
-from app.domain.epistemology import Proposition, Predicate
+from app.services.events.event_bus import get_event_bus
+from app.services.events.event_types import EventType
+from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"
@@ -46,7 +46,7 @@ def inject_lie(game_loop):
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
         
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}), 
+        npc_positions=_scene.get("npc_positions", {}),
         scene_state=_scene
     )
     

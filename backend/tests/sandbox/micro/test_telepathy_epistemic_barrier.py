@@ -5,11 +5,13 @@ path: /project/backend/tests/micro/test_telepathy_epistemic_barrier.py
 
 Запуск: cd backend; python backend/tests/micro/test_telepathy_epistemic_barrier.py; cd ..
 """
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')))
 
-from app.domain.presentation import PerceivedNarrativeDTO, PerceivedManifestationDTO
+from app.domain.presentation import PerceivedNarrativeDTO
+
 
 def test_telepathy_barrier():
     """Эпистемический барьер: за стеной NPC не передаёт страх в текст или manifestations."""

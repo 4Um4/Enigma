@@ -13,7 +13,6 @@ Rule 125: Snapshot mutation после создания ЗАПРЕЩЕНА.
 """
 from __future__ import annotations
 
-import copy
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -96,15 +95,31 @@ def build_snapshot(
     SpatialService — reference (не rebuild, ADR-065).
     npc_positions / active_traversals — deep copy (гарантия immutability).
     """
-    # Deep copy — гарантия что мутация scene_state не повлияет на снимок
-    _npc_pos = copy.deepcopy(scene_state.get("npc_positions", {}))
-    _active_travs = copy.deepcopy(scene_state.get("active_traversals", {}))
+    # S268-АТАКА6: двухуровневая структурная копия вместо copy.deepcopy.
+    # Изоляция: уровни 1-2 — НОВЫЕ dict'ы (мутации сцены a["k"]=... и
+    # a["k"]["f"]=... не пробивают снапшот). Листья — общие ссылки:
+    # мутаций листьев in-place во всей системе нет (grep writers по
+    # вложенным путям пуст; INV-TEMPORAL-ISOLATION-трипвайр ловит
+    # появление громко). deepcopy-рекурсия с memo-делегатами устранена
+    # (главная цена была в ней). Риск-контракт: новые потребители
+    # обязаны не мутировать листья in-place — трипвайр + канон-хеш.
+    def _two_level_copy(src: Any) -> Any:
+        if not isinstance(src, dict):
+            return src
+        out: Dict[str, Any] = {}
+        for k, v in src.items():
+            out[k] = {kk: vv for kk, vv in v.items()} if isinstance(v, dict) else (
+                list(v) if isinstance(v, list) else v
+            )
+        return out
+    _npc_pos = _two_level_copy(scene_state.get("npc_positions", {}))
+    _active_travs = _two_level_copy(scene_state.get("active_traversals", {}))
     # S203.1 (Stage 2A): заморозка поведенческого владения (shadow-реестр).
-    _active_commitments = copy.deepcopy(scene_state.get("active_commitments", {}))
+    _active_commitments = _two_level_copy(scene_state.get("active_commitments", {}))
     # W1 (ADR-O-371): заморозка семантической топологии объектов.
     # Пассивная фотография subtree: стор не вызывается, ничего не
-    # вычисляется — тот же контракт, что и у остальных deep-copy полей.
-    _world_objects = copy.deepcopy(scene_state.get("world_objects", {}))
+    # вычисляется — тот же контракт, что и у остальных полей-снапшота.
+    _world_objects = _two_level_copy(scene_state.get("world_objects", {}))
 
     # BUG-FB-029 FIX: Детерминированный snapshot_id и created_at (вместо wall-clock и uuid4).
     _seed_str = f"{tick}:{campaign_id}:{location_id}".encode("utf-8")

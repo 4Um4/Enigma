@@ -12,7 +12,6 @@ path: /backend/app/services/reaction/reaction_rules.py
   attack + proximity → interaction_disrupted
 """
 
-import random
 from typing import Any, Dict, List
 
 from app.services.npc.decision_hub import DecisionResult, EventContext

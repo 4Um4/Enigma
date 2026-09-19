@@ -1,0 +1,45 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_pnz9avx1
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_pnz9avx1\saves
+
+--- MODE E: Replay Determinism Audit (2 × 10000 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+[DIAG_SK1] npc=blacksmith_orm store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit'] via=<absent>
+[DIAG_SK1] npc=thief_shadow store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit'] via=<absent>
+[DIAG_SK1] npc=blacksmith_orm store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit', 'current_node'] via=<absent>
+[DIAG_SK1] npc=blacksmith_orm store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit', 'current_node'] via=<absent>
+  [REPLAY] Run A: tick 2000/10000
+  [REPLAY] Run A: tick 4000/10000
+  [REPLAY] Run A: tick 6000/10000
+  [REPLAY] Run A: tick 8000/10000
+  [REPLAY] Run A: tick 10000/10000
+  [REPLAY] Run A complete: hash=5d6e322234f2bc20... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_pnz9avx1
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_cq6_84my
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_cq6_84my\saves
+
+  [REPLAY] === RUN B ===
+[DIAG_SK1] npc=blacksmith_orm store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit'] via=<absent>
+[DIAG_SK1] npc=thief_shadow store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit'] via=<absent>
+[DIAG_SK1] npc=blacksmith_orm store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit', 'current_node'] via=<absent>
+[DIAG_SK1] npc=blacksmith_orm store=YES scene_keys=['name', 'location_id', 'position', 'activity', 'visible', 'local_position', 'editor_room_id', 'body_heading', 'in_transit', 'current_node'] via=<absent>
+  [REPLAY] Run B: tick 2000/10000
+  [REPLAY] Run B: tick 4000/10000
+  [REPLAY] Run B: tick 6000/10000
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_cq6_84my

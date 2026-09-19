@@ -11,9 +11,9 @@ from __future__ import annotations
   - Фракции загружаются из config/world/factions.json.
 """
 
-import threading
 import json
 import logging
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, FrozenSet, List, Optional

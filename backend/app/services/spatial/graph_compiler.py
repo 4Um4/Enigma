@@ -16,11 +16,10 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
-from app.errors import SimulationIntegrityError
-import math
 from collections import deque
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.services.spatial.role_resolver import resolve_role
 
@@ -42,7 +41,6 @@ _ROLE_LEGACY_ALIASES: Dict[NodeRole, Set[str]] = {
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 
-from typing import Any, Dict, List, Set, Tuple
 def compile_graph(
     editor_data: Dict[str, Any],
     location_id: str,
@@ -229,16 +227,16 @@ def compile_graph(
                 # N5-style FIX: Гарантируем, что nodes_raw — это dict
                 if not isinstance(nodes_raw, dict):
                     nodes_raw = {}
-                
+
                 for nid, ndata in nodes_raw.items():
                     if not isinstance(ndata, dict):
                         continue
-                    
+
                     # Безопасно извлекаем значение, по умолчанию пустая строка
                     nav_label_raw = ndata.get("label", ndata.get("name", ""))
                     # Явно приводим к строке, так как JSON может содержать числа или списки
                     nav_label = str(nav_label_raw) if nav_label_raw else ""
-                    
+
                     if nav_label and nav_label.lower() == str(room_name).lower():
                         _nav_match = f"{location_id}:{nid}"
                         break
@@ -560,10 +558,10 @@ def _find_walls_for_door(editor_data: Dict[str, Any], door: Dict[str, Any]) -> L
     """
     door_pos = door.get("position", {})
     px, py = door_pos.get("x", 0), door_pos.get("y", 0)
-    
+
     found_walls: List[str] = []
     threshold = 0.5 # Порог дистанции
-    
+
     for wall in editor_data.get("walls", []):
         wid = wall.get("id")
         x1, y1 = wall.get("x1", 0), wall.get("y1", 0)
@@ -572,15 +570,15 @@ def _find_walls_for_door(editor_data: Dict[str, Any], door: Dict[str, Any]) -> L
         wall_len = (dx * dx + dy * dy) ** 0.5
         if wall_len == 0:
             continue
-            
+
         ux = dx / wall_len
         uy = dy / wall_len
         vx, vy = px - x1, py - y1
         perp_dist = abs(vx * (-uy) + vy * ux)
-        
+
         if perp_dist <= threshold:
             found_walls.append(wid)
-            
+
     return found_walls
 
 
@@ -599,14 +597,14 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
     # Разрезаем стены проёмами (двери)
     # S143 FIX §1: Дверь разрезает ВСЕ стены, проходящие через её координаты (решает проблему дубликатов стен)
     wall_openings: Dict[str, List[Dict[str, Any]]] = {}
-    
+
     # 1. Читаем проёмы из objects (двери-переходы между локациями)
     for obj in editor_data.get("objects", []):
         if not obj.get("passability", {}).get("walk", True):
             continue # Непроходимые объекты не могут быть дверными проёмами
         if obj.get("type") not in ("door", "door_transition"):
             continue
-            
+
         # S143 FIX §1: Дверь разрезает стену, только если она архитектурно привязана к ней (wall_id).
         # Если привязка есть — ищем ВСЕ стены на координате двери, чтобы разрезать дубликаты.
         # Если привязки нет — стена не разрезается, что приведет к INV-TOPOLOGY-WALL-CROSS.
@@ -625,18 +623,18 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         _dy = _door_pos.get("y", 0)
         _dw = _door_size.get("w", 1)
         _dh = _door_size.get("h", 1)
-        
+
         walls_for_door: List[str] = _find_walls_for_door(editor_data, obj)
         if explicit_wall_id and explicit_wall_id not in walls_for_door:
             walls_for_door.append(explicit_wall_id)
-            
+
         # Принудительно добавляем стены, пересекающие полигон двери
         for _wall in editor_data.get("walls", []):
             _wid = _wall.get("id")
             if _wid and _wid not in walls_for_door:
                 if _line_rect_intersect(_wall["x1"], _wall["y1"], _wall["x2"], _wall["y2"], _dx - _dw/2, _dy - _dh/2, _dw, _dh):
                     walls_for_door.append(_wid)
-            
+
         for wid in walls_for_door:
             wall_openings.setdefault(wid, []).append(obj)
 

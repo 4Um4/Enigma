@@ -5,11 +5,13 @@
 """
 
 from typing import Dict, List, Set
-from app.models.dilemma import MoralDilemma, DilemmaChoice, DilemmaResolution
+
+from app.models.dilemma import DilemmaChoice, DilemmaResolution, MoralDilemma
+
 
 class DilemmaEngine:
     """Управляет моральными дилеммами: Registered -> Triggered -> Resolved."""
-    
+
     def __init__(self) -> None:
         self._dilemmas: Dict[str, MoralDilemma] = {}
         self._triggered: Set[str] = set()

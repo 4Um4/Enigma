@@ -4,39 +4,38 @@
 Зависимости: Все созданные нами P7-компоненты.
 """
 
-from pathlib import Path
 import logging
-from typing import Optional, Dict, Any, List
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
-from app.services.truth_state_loader import TruthStateLoader
-from app.models.truth_state import TruthState
-from app.services.player_cognition.observation_log import ObservationLog
-from app.services.player_cognition.player_belief_model import PlayerBeliefModel
+from app.models.end_screen import EndScreenData
+from app.models.fate import FateOutcome, FateTrajectory
 from app.services.player_cognition.action_consequence_compiler import ActionConsequenceCompiler
 from app.services.player_cognition.cognitive_dissonance_tracker import CognitiveDissonanceTracker
-from app.services.social.social_fabric_tracker import SocialFabricTracker
-from app.services.social.fate_tracker import FateTracker
-from app.models.fate import FateOutcome
-from app.models.fate import FateTrajectory, FateOutcome
-from app.models.end_screen import EndScreenData
-from app.services.social.faction_alignment_tracker import FactionAlignmentTracker
+from app.services.player_cognition.observation_log import ObservationLog
+from app.services.player_cognition.player_belief_model import PlayerBeliefModel
 from app.services.social.dilemma_engine import DilemmaEngine
-from app.services.social.evaluation_engine import EvaluationEngine
-from app.services.social.last_words_system import LastWordsSystem
 from app.services.social.end_screen_builder import EndScreenDataBuilder
+from app.services.social.evaluation_engine import EvaluationEngine
 from app.services.social.exit_trigger import ExitTrigger
+from app.services.social.faction_alignment_tracker import FactionAlignmentTracker
+from app.services.social.fate_tracker import FateTracker
+from app.services.social.last_words_system import LastWordsSystem
+from app.services.social.social_fabric_tracker import SocialFabricTracker
 from app.services.state.world_diff_builder import WorldDiffBuilder
+from app.services.truth_state_loader import TruthStateLoader
+
 
 class MvpTavernController:
     """Фасад, объединяющий все системы миниигры для GameLoop."""
-    
+
     def __init__(self, canon_path: Path, event_bus: Optional[Any] = None, relationship_store: Optional[Any] = None) -> None:
         self._canon_path = canon_path
         self._event_bus = event_bus
         self._relationship_store = relationship_store
         self._campaign_id: Optional[str] = None
-        
+
         # Инициализация базовых трекеров
         # ENIGMA SELF-HEALING FIX: Загружаем канон сразу при создании контроллера (Fail Loud, Fail Early).
         # Это гарантирует, что TruthState доступен даже при загрузке сохранения (load_game), когда init_campaign не вызывается.
@@ -45,7 +44,7 @@ class MvpTavernController:
             raise RuntimeError(f"TruthState failed to load from {self._canon_path}. MVP pipeline is disabled.")
         TruthStateLoader.validate(self.truth_state)
         assert len(self.truth_state.secrets) > 0, "TruthState loaded with 0 secrets"
-        
+
         self.observation_log = ObservationLog()
         self.belief_model = PlayerBeliefModel()
         self.social_fabric = SocialFabricTracker()
@@ -53,14 +52,14 @@ class MvpTavernController:
         self.faction_tracker = FactionAlignmentTracker()
         self.dilemma_engine = DilemmaEngine()
         self.cognitive_dissonance = CognitiveDissonanceTracker()
-        
+
         # Сервисы
         self.evaluation_engine = EvaluationEngine()
         self.last_words_system = LastWordsSystem()
         self.end_screen_builder = EndScreenDataBuilder()
         self.exit_trigger = ExitTrigger()
         self.world_diff_builder = WorldDiffBuilder()
-        
+
         # P6/E3 (S255): игрок-петля — третий онтологический слой
         # (TruthState / NPC narrative_cache / PlayerEpistemicState).
         from app.models.player_epistemic_state import PlayerEpistemicState
@@ -86,7 +85,7 @@ class MvpTavernController:
             relationship_store=relationship_store,
             discovery_bridge=self.discovery_bridge  # P6/E3 (S255)
         )
-        
+
         # V8-MVP-12 FIX: Парсер признаний NPC
         from app.services.player_cognition.npc_confession_parser import NpcConfessionParser
         self.confession_parser = NpcConfessionParser(
@@ -117,7 +116,7 @@ class MvpTavernController:
     def init_campaign(self, campaign_id: str) -> None:
         """Сброс состояния для новой кампании (канон уже загружен в __init__)."""
         self._campaign_id = campaign_id
-        
+
         # M-02/M-12 FIX: Обновляем ссылки на truth_state в под-сервисах (на случай сброса состояния)
         self.action_compiler._truth = self.truth_state
         self.discovery_bridge._truth = self.truth_state  # P6/E3: паритет re-point
@@ -125,12 +124,13 @@ class MvpTavernController:
         # P2 FIX: Инжектируем RelationshipStore и campaign_id в ActionCompiler
         self.action_compiler._relationship_store = self._relationship_store
         self.action_compiler._campaign_id = self._campaign_id
-        
+
         # V8-MVP-18 TODO: Дилеммы должны загружаться из отдельного канона (dilemmas.json)
         # или расширения TruthState, когда они будут добавлены в JSON.
 
         # N11 FIX: Pre-seed фракций из factions.json
         import json
+
         from app.core.config import BASE_DIR
         factions_path = BASE_DIR / "config" / "world" / "factions.json"
         try:
@@ -159,18 +159,18 @@ class MvpTavernController:
             stability = max(0.0, min(1.0, 1.0 - (float(_psyche.get("stress", 0.0)) / 100.0)))
             threat = max(0.0, min(1.0, float(npc.get("perceptual_kernel", {}).get("threat_gradient", 0.0))))
             _fate_state = self.fate_tracker.update_state(npc_id, stability, threat)
-            
+
             if _fate_state and not _fate_state.resolved_fate:
                 _body = npc.get("body_state", {})
                 _hp = float(_body.get("current_hp", 100.0))
                 _status = _body.get("life_status", "ALIVE")
                 _traversals = ctx.get("active_traversals", {})
                 _is_leaving = npc_id in _traversals
-                
+
                 # 8.1 FIX: Судьбы разрешаются на основе физиологии и пространства
                 if _status == "DEAD":
                     self.fate_tracker.trigger_fate(
-                        npc_id=npc_id, outcome=FateOutcome.DEATH, 
+                        npc_id=npc_id, outcome=FateOutcome.DEATH,
                         tick=ctx.get("tick", 0), cause="vital_failure",
                         description=f"{npc_id} погиб из-за физиологического отказа."
                     )
@@ -186,7 +186,7 @@ class MvpTavernController:
                     )
                 elif _is_leaving:
                     self.fate_tracker.trigger_fate(
-                        npc_id=npc_id, outcome=FateOutcome.ESCAPE, 
+                        npc_id=npc_id, outcome=FateOutcome.ESCAPE,
                         tick=ctx.get("tick", 0), cause="left_location",
                         description=f"{npc_id} покинул локацию."
                     )
@@ -198,16 +198,16 @@ class MvpTavernController:
                     _crit_ticks = self.fate_tracker._critical_ticks.get(npc_id, 0)
                     if _crit_ticks >= 5:
                         self.fate_tracker.trigger_fate(
-                            npc_id=npc_id, outcome=FateOutcome.BROKEN, 
+                            npc_id=npc_id, outcome=FateOutcome.BROKEN,
                             tick=ctx.get("tick", 0), cause="critical_stability",
                             description=f"{npc_id} сломался из-за 5 тиков критического стресса."
                         )
-            
+
         # DilemmaEngine: проверяем триггеры
         if self.truth_state:
             discovered = list(getattr(self.truth_state, "discovered_secrets", set()))
             self.dilemma_engine.check_triggers(discovered)
-            
+
         # SocialFabric: устанавливаем baseline на первом тике
         if ctx.get("tick", 0) == 1:
             self._set_social_fabric_baseline(ctx.get("all_npcs_raw", []))
@@ -224,7 +224,7 @@ class MvpTavernController:
                 snap = RelationshipSnapshot(source_id=id1, target_id=id2, trust=0.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0)
                 self.social_fabric.set_baseline(id1, id2, snap)
                 self.social_fabric.set_baseline(id2, id1, snap)
-        
+
     def check_exit(self, scene_state: Dict[str, Any]) -> bool:
         """Проверяет, покинул ли игрок локацию."""
         return self.exit_trigger.check_exit(scene_state)
@@ -233,13 +233,13 @@ class MvpTavernController:
         """Собирает данные для финального экрана."""
         if self.truth_state is None:
             raise RuntimeError("TruthState not loaded")
-            
+
         evaluation = self.evaluation_engine.evaluate(
             truth=self.truth_state,
             beliefs=self.belief_model,
             observations=self.observation_log
         )
-        
+
         return self.end_screen_builder.build(
             evaluation=evaluation,
             contradictions=self.cognitive_dissonance.get_all_contradictions(),
@@ -254,7 +254,7 @@ class MvpTavernController:
         """Собирает WorldStateDiff для передачи в следующую кампанию."""
         if self.truth_state is None:
             raise RuntimeError("TruthState not loaded")
-            
+
         return self.world_diff_builder.build(
             truth_state=self.truth_state,
             fate_tracker=self.fate_tracker,
@@ -267,7 +267,7 @@ class MvpTavernController:
         """V8-MVP-3 FIX: Сериализует EndScreenData и трекеры в dict для API."""
         end_screen = self.build_end_screen()
         ev = end_screen.evaluation
-        
+
         _npc_fates_data = [
             {
                 "npc_id": f.npc_id,
@@ -279,7 +279,7 @@ class MvpTavernController:
                 } if f.last_word else None
             } for f in end_screen.npc_fates
         ]
-        
+
         _contradictions_data = [
             {
                 "contradiction_id": c.contradiction_id,
@@ -305,7 +305,7 @@ class MvpTavernController:
                 "fear_delta": d.fear_delta,
                 "cause": d.cause
             })
-        
+
         return {
             "exited": True,
             "score": ev.score,

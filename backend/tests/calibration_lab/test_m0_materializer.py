@@ -16,7 +16,6 @@ import types
 from pathlib import Path
 
 import pytest
-
 from app.services.calibration.preset_io import NpcOverride, Preset, load_preset
 from app.services.calibration.preset_materializer import (
     MaterializationError,

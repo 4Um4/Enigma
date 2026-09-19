@@ -7,7 +7,6 @@
 
 from typing import Any, Dict, List
 
-from app.models.fate import FateOutcome
 from app.models.player_belief import BeliefValue
 from app.models.truth_state import TruthState
 from app.models.world_state_diff import WorldStateDiff

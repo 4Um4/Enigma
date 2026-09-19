@@ -5,14 +5,16 @@
 Запуск: cd backend; python -m pytest tests/test_p7_13_world_diff.py -v -s; cd ..
 """
 
+# DEBT: WorldContinuityMode был удалён, мокаем для теста
+from enum import Enum
 from pathlib import Path
 
 import pytest
 from app.models.fate import FateOutcome
 from app.models.observation import EvidencePolarity, ObservationSourceType
 from app.models.social_fabric import RelationshipSnapshot
-# DEBT: WorldContinuityMode был удалён, мокаем для теста
-from enum import Enum
+
+
 class WorldContinuityMode(Enum):
     ISOLATED = "isolated"
     CONTINUOUS = "continuous"

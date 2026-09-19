@@ -156,7 +156,7 @@ class NPCSandbox:
                 penalty_per_tick=0.05,
                 creditor_id="thief_shadow"
             ))
-            print(f"[SANDBOX] Лор: Торнин должен 50.0G Гильдии Воров (срок: 72 тика)")
+            print("[SANDBOX] Лор: Торнин должен 50.0G Гильдии Воров (срок: 72 тика)")
         
         # Горан должен криминалам за провал поставки
         _goran_ep = eco_profiles.get("merchant_goran")
@@ -168,12 +168,12 @@ class NPCSandbox:
                 penalty_per_tick=0.08,  # Криминалы давят сильнее
                 creditor_id="criminals"
             ))
-            print(f"[SANDBOX] Лор: Горан должен 100.0G криминалам (срок: 48 тиков)")
+            print("[SANDBOX] Лор: Горан должен 100.0G криминалам (срок: 48 тиков)")
 
         # P8: L1/L2.5 Идентичность и Убеждения
+        from app.services.npc.belief_crystallization_engine import BeliefCrystallizationEngine
         from app.services.npc.l1_chronicle import L1Chronicle
         from app.services.npc.pattern_detector import PatternDetector
-        from app.services.npc.belief_crystallization_engine import BeliefCrystallizationEngine
         self.l1_chronicle = L1Chronicle(store=None)  # In-memory only
         self.pattern_detector = PatternDetector(chronicle=self.l1_chronicle)
         belief_engine = BeliefCrystallizationEngine()
@@ -384,9 +384,9 @@ class NPCSandbox:
                 # Вычисляем аффективное давление и фазовый переход эмоций
                 new_load = new_state.affective_load
                 try:
+                    from app.models.npc_state import _emotion_from_str
                     from app.services.affective.affective_integrator import integrate_affective_pressure
                     from app.services.affective.emotion_transition import resolve_emotion_transition
-                    from app.models.npc_state import _emotion_from_str
 
                     _drives_raw = profile_l0.drives_base or {}
                     _willpower_val = getattr(new_state, "willpower", 50) or 50
@@ -453,7 +453,7 @@ class NPCSandbox:
                         if _goran_ep and _borko_ep and _goran_ep.can_afford(5.0):
                             _goran_ep.spend(5.0)
                             _borko_ep.receive(5.0)
-                            print(f"[NIGHT] Взятка: Горан заплатил Борко 5.0G")
+                            print("[NIGHT] Взятка: Горан заплатил Борко 5.0G")
                             self.l1_chronicle.append(TraitDriftEvent(
                                 tick_id=tick, target_id="guard_borko", source_id="merchant_goran",
                                 effect_value=1.0, event_type="bribe"
@@ -463,7 +463,7 @@ class NPCSandbox:
                         if _goran_ep and _shadow_ep and _goran_ep.can_afford(10.0):
                             _goran_ep.spend(10.0)
                             _shadow_ep.receive(10.0)
-                            print(f"[NIGHT] Шантаж: Горан заплатил Тени 10.0G")
+                            print("[NIGHT] Шантаж: Горан заплатил Тени 10.0G")
                             self.l1_chronicle.append(TraitDriftEvent(
                                 tick_id=tick, target_id="merchant_goran", source_id="thief_shadow",
                                 effect_value=-1.0, event_type="blackmail"

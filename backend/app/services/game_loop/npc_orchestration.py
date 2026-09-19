@@ -209,7 +209,7 @@ def run_npc_orchestration(
             _current_scene = shared_context.scene_state
         else:
             _current_scene = _scene_manager.get_scene_state(campaign_id, _loc_id) if _scene_manager else None  # noqa: ENIGMA001
-        
+
         if _current_scene is None:
             continue
 
@@ -243,12 +243,12 @@ def run_npc_orchestration(
         # BUG-FB-031 FIX: Сохраняем world_snapshot из ядра в shared_context, чтобы не пересобирать его с нуля в GameLoop
         if hasattr(_loc_result, "world_snapshot") and _loc_result.world_snapshot is not None:
             shared_context.world_snapshot = _loc_result.world_snapshot
-        
+
         # Коммитим результат тика для каждой локации
         if _loc_result is not None and _loc_result.final_scene_state is not None and _scene_manager:
             if _scene_manager._tick_campaign_id == campaign_id:
                 _scene_manager.commit_tick_result(campaign_id, _loc_result.final_scene_state)
-        
+
         # Сохраняем результат активной локации
         if _loc_id == _active_loc:
             _tick_result = _loc_result

@@ -177,8 +177,8 @@ def main() -> int:
         # player_event (production-публикатор фазы 1, читает вектор из
         # контекста). Эквивалентно живому DM до LLM-зова.
         try:
-            from app.services.state.context_builder import build_context
             from app.models.intent_dto import IntentParametersDTO
+            from app.services.state.context_builder import build_context
             _shared2 = build_context()
             _shared2.scene_state = h.game_loop.scene_manager.get_scene_state(
                 CAMPAIGN, LOC_FALLBACK
@@ -247,9 +247,10 @@ def main() -> int:
         print(f"[S3.11] атакующий={_attacker} → адресат={_addressee}")
         _death_ok = False
         try:
+            import types as _types
+
             from app.domain.communication import CommunicationIntent, ExposureLevel
             from app.services.phases.post_decision import run_phase_6_post_decision
-            import types as _types
             _sc3 = h.game_loop.scene_manager.get_scene_state(CAMPAIGN, LOC_FALLBACK) or {}
             _intent = CommunicationIntent(
                 speaker=_attacker, audience=_addressee, topic="combat",
@@ -290,7 +291,7 @@ def main() -> int:
                     _death_ok = True
             print(f"[S3.12] смерть адресата — {'✅ (авторинг после атаки, β-fallback)' if _death_ok else '❌'}")
         else:
-            print(f"[S3.12] смерть адресата — ✅ (production hp<=0)")
+            print("[S3.12] смерть адресата — ✅ (production hp<=0)")
 
         # П. 13: диалог прекращается — liveness-гейт (замок ADR-O-387)
         _real_prov = _sched._npc_states_provider

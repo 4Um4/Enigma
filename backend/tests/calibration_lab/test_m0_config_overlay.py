@@ -10,16 +10,16 @@ path: backend/tests/calibration_lab/test_m0_config_overlay.py
 Запуск: cd backend; python -m pytest tests/calibration_lab/test_m0_config_overlay.py -v; cd ..
 """
 import pytest
-
 from app.core import constants as C
-# Импорт ДО overlay: гарантирует наличие from-import биндингов в sys.modules.
-from app.services.npc import decision_hub  # noqa: F401
 from app.services.calibration.config_overlay import (
     CalibrationOverlayError,
     audit_constant_bindings,
     overlay_active,
     overlay_constants,
 )
+
+# Импорт ДО overlay: гарантирует наличие from-import биндингов в sys.modules.
+from app.services.npc import decision_hub  # noqa: F401
 
 
 def test_m0_ac006_overlay_patches_and_restores() -> None:

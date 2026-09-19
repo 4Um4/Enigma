@@ -8,10 +8,8 @@
 
 import json
 import logging
-import math
 import os
 import time
-import types
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 
 import pytest

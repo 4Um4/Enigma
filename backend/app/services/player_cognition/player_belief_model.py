@@ -4,7 +4,7 @@
 Зависимости: typing, app.models.player_belief, app.models.observation
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from app.models.observation import EvidenceLink, EvidencePolarity, Observation
 from app.models.player_belief import BeliefValue, PlayerBelief

@@ -11,6 +11,7 @@ from __future__ import annotations
 import ast
 from typing import Any, Generator, List, Tuple, Type
 
+
 class EnigmaCustomRules:
     """Точка входа для Flake8."""
     name = "enigma-custom-rules"
@@ -52,7 +53,7 @@ class EnigmaVisitor(ast.NodeVisitor):
                     is_silent = True
                 elif isinstance(default, (ast.List, ast.Dict)) and len(getattr(default, 'elts', getattr(default, 'keys', []))) == 0:
                     is_silent = True
-                
+
                 if is_silent:
                     self.violations.append((
                         node.lineno, node.col_offset,

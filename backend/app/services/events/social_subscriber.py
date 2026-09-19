@@ -21,7 +21,7 @@ propagate_social_rumors() — чистая функция, возвращает 
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, List
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result

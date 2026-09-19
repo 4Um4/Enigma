@@ -16,11 +16,11 @@ path: backend/tests/sandbox/SUPERBOX/scenarios/smoke_goran_beta.py
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/smoke_goran_beta.py
 """
+import logging
 import sys
-import types
 import tempfile
 import time
-import logging
+import types
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
@@ -33,6 +33,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 sys.stdout.reconfigure(line_buffering=True)
 
 from app.core.config import settings
+
 settings.environment = "development"
 
 from app.domain.communication import CommunicationIntent, ExposureLevel

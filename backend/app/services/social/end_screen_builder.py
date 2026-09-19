@@ -4,15 +4,16 @@
 Зависимости: typing, app.models., app.services.
 """
 
-from typing import Any, List, Optional
+from typing import Any, List
+
+from app.models.cognitive_dissonance import Contradiction
 from app.models.end_screen import EndScreenData, NpcFateScreenData
 from app.models.evaluation import EvaluationResult
-from app.models.cognitive_dissonance import Contradiction
-from app.models.last_words import LastWord
+from app.services.social.end_screen_narrator import EndScreenNarrator
 from app.services.social.fate_tracker import FateTracker
 from app.services.social.last_words_system import LastWordsSystem
 from app.services.social.social_fabric_tracker import SocialFabricTracker
-from app.services.social.end_screen_narrator import EndScreenNarrator
+
 
 class EndScreenDataBuilder:
     def build(
@@ -25,11 +26,11 @@ class EndScreenDataBuilder:
         relationship_store: Any = None,
         campaign_id: str = ""
     ) -> EndScreenData:
-        
+
         npc_fates_data: List[NpcFateScreenData] = []
         fate_texts: List[str] = []
         relationship_texts: List[str] = []
-        
+
         for fate_state in fate_tracker.get_all_states():
             fate_texts.append(EndScreenNarrator.narrate_fate(fate_state.npc_id, fate_state))
             if fate_state.resolved_fate:
@@ -57,7 +58,7 @@ class EndScreenDataBuilder:
                 relationship_texts.append(
                     EndScreenNarrator.narrate_relationship(src, tgt, trust, fear)
                 )
-                
+
         return EndScreenData(
             evaluation=evaluation,
             npc_fates=npc_fates_data,

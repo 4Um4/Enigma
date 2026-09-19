@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
-
 from app.services.calibration.experiment_runner import (
     ExperimentConfig,
     ExperimentRunner,

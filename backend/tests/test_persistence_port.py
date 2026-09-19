@@ -1,7 +1,7 @@
 # tests/test_persistence_port.py
 """Тесты PersistencePort и SceneStateManager.commit()"""
 
-from unittest.mock import ANY, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from app.domain.identity_events import EffectiveDrives

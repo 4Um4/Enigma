@@ -52,12 +52,13 @@ TODO:
 - Добавить больше сценариев фиксации (эмоциональные, социальные правила).
 """
 
+import urllib.request
 from dataclasses import replace as dc_replace
 from unittest.mock import MagicMock
-import urllib.request
 
 import pytest
 from app.domain.identity_events import EffectiveDrives
+
 
 def is_llm_available():
     try:

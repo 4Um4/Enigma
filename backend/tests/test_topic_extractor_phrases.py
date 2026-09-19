@@ -4,7 +4,6 @@ cd C:\\DDD\\Codex\\VSC_Enigma\\Enigma\backend
 python -m pytest tests/test_topic_extractor_phrases.py -v
 """
 
-import pytest
 from app.services.npc.topic_extractor import extract_topic
 
 

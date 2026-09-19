@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from app.domain.presentation import EmbodiedStatusDTO, PerceivedNarrativeDTO
-from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
 from app.domain.snapshot import (
     ActivePerception,
     AvatarStateDTO,
@@ -26,6 +25,7 @@ from app.domain.snapshot import (
 from app.models.economy import EconomicProfile
 from app.services.economy.need_presentation_mapper import NeedPresentationMapper
 from app.services.integration.avatar_status_builder import AvatarStatusBuilder
+from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
 
 
 class WorldSnapshotBuilder:
@@ -342,7 +342,7 @@ class WorldSnapshotBuilder:
         if not isinstance(traversals, dict):
             return {}
         result = {}
-  
+
         for npc_id, trav in traversals.items():
             if (
                 trav.get("status") == "MOVING"

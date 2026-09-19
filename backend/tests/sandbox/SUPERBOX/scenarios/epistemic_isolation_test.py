@@ -15,8 +15,8 @@ Treatment: C получает ложь (B украл). EpistemicContext сфор
 
 import logging
 import sys
-from pathlib import Path
 from math import isclose
+from pathlib import Path
 
 # Настройка путей
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
@@ -27,10 +27,9 @@ logger = logging.getLogger("EPISTEMIC_ISOLATION_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
 from app.domain.events import EventDTO
-from app.domain.epistemology import Proposition, Predicate
+from app.services.events.event_types import EventType
+from app.services.game_loop_builder import build_game_loop
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
 
 CAMPAIGN_ID = "Open_road"

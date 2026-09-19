@@ -24,14 +24,14 @@ def detect_legacy_saves(saves_dir: Path) -> List[str]:
     legacy: List[str] = []
     if not saves_dir.exists():
         return legacy
-        
+
     for campaign_dir in saves_dir.iterdir():
         if not campaign_dir.is_dir():
             continue
         state_file = campaign_dir / 'campaign_state.json'
         if not state_file.exists():
             continue
-            
+
         try:
             with open(state_file, 'r', encoding='utf-8') as f:
                 state = json.load(f)
@@ -39,5 +39,5 @@ def detect_legacy_saves(saves_dir: Path) -> List[str]:
                 legacy.append(campaign_dir.name)
         except Exception as e:
             logger.warning(f"[SAVE_DETECTOR] Error reading {state_file}: {e}")
-            
+
     return legacy

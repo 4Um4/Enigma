@@ -1,5 +1,10 @@
 """S266-разведка: судьба порции wo_4eb400e3 (target_vanished при живом спавне)."""
-import sys, tempfile, types, os, shutil, logging
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

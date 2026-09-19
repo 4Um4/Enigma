@@ -7,6 +7,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
+
 @dataclass
 class CausalDriftReport:
     """Отчёт о дрейфе каузальной согласованности."""

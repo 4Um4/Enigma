@@ -4,11 +4,10 @@ path: backend/app/services/adr_net/adr_parser.py
 Назначение: Парсинг ADR Impact Audits и Master Index в структурированный граф (Этап 4.1).
 Зависимости: re, os, dataclasses
 """
+import logging
 import os
 import re
-import logging
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import List, Optional
 
 logger = logging.getLogger(__name__)
@@ -57,11 +56,11 @@ def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
     match = _ADR_LINE_REGEX.search(content)
     if not match:
         return None
-        
+
     adr_id = normalize_adr_id(match.group(1))
     adr_type = match.group(2)
     title = match.group(3).strip()
-    
+
     # Ищем Files
     files_match = _FILES_REGEX.search(content)
     files = []
@@ -70,7 +69,7 @@ def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
         # Разделяем по запятой и чистим backticks
         files = [f.strip().strip("`").strip() for f in raw_files.split(",")]
         files = [f for f in files if f]
-        
+
     return ADRNode(
         adr_id=adr_id,
         adr_type=adr_type,
@@ -87,11 +86,11 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
     except Exception as e:
         logger.debug(f"ADR file read error: {e}")
         return nodes
-        
+
     current_domain = ""
     current_law = ""
     current_files: List[str] = []
-    
+
     for i, line in enumerate(lines):
         if line.startswith("## DOM-"):
             current_domain = line.replace("##", "").strip().split(":")[0]
@@ -102,7 +101,7 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                 current_law = law_match.group(1)
                 law_title = law_match.group(2)
                 adr_ids_raw = law_match.group(3).split(",")
-                
+
                 # Ищем Files в следующих строках (до 5 строк вниз, чтобы не промахнуться при длинном описании)
                 current_files = []
                 for offset in range(1, 6):
@@ -113,13 +112,13 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                             current_files = [f.strip().strip("`").strip() for f in raw_files.split(",")]
                             current_files = [f for f in current_files if f]
                         break
-                
+
                 for adr_id_raw in adr_ids_raw:
                     adr_id_raw = adr_id_raw.strip()
                     if not adr_id_raw: continue
-                    
+
                     adr_id = normalize_adr_id(adr_id_raw)
-                        
+
                     node = ADRNode(
                         adr_id=adr_id,
                         adr_type="LAW",
@@ -129,13 +128,13 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                         files=current_files
                     )
                     nodes.append(node)
-                    
+
     return nodes
 
 def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (Architecture Decision Records).md") -> dict:
     """Собирает все ADR в словарь {adr_id: ADRNode}."""
     all_adrs = {}
-    
+
     # 1. Парсим Master Index для получения Laws и Domains
     if os.path.exists(master_index):
         law_nodes = parse_master_index(master_index)
@@ -148,7 +147,7 @@ def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (A
                 existing.laws.extend(node.laws)
                 if not existing.domain:
                     existing.domain = node.domain
-                    
+
     # 2. Парсим Impact Audits для получения Files и Descriptions
     if os.path.exists(audits_dir):
         for filename in os.listdir(audits_dir):
@@ -164,7 +163,7 @@ def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (A
                         existing.adr_type = audit_node.adr_type
                     else:
                         all_adrs[audit_node.adr_id] = audit_node
-                        
+
     return all_adrs
 
 if __name__ == "__main__":

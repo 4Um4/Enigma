@@ -4,15 +4,16 @@
 """
 
 import pytest
+from app.models.cognitive_dissonance import Contradiction
+from app.models.evaluation import EvaluationResult, SecretEvaluation
+from app.models.fate import FateOutcome
+from app.models.last_words import LastWordTone
+from app.models.social_fabric import RelationshipSnapshot
 from app.services.social.end_screen_builder import EndScreenDataBuilder
 from app.services.social.fate_tracker import FateTracker
 from app.services.social.last_words_system import LastWordsSystem
 from app.services.social.social_fabric_tracker import SocialFabricTracker
-from app.models.evaluation import EvaluationResult, SecretEvaluation
-from app.models.cognitive_dissonance import Contradiction
-from app.models.fate import FateOutcome
-from app.models.social_fabric import RelationshipSnapshot
-from app.models.last_words import LastWordTone
+
 
 class TestP710EndScreen:
     @pytest.fixture

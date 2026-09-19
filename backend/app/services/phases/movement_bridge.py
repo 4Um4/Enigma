@@ -13,6 +13,11 @@ from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
+# S268-Ф1b: de-dup store для UNRESOLVED-warnings (модульный уровень —
+# функция process_movement_intents не является методом, обращение к
+# self здесь вызывало NameError: name 'self' is not defined).
+_RESOLUTION_FAIL_SEEN: Dict[str, int] = {}
+
 
 def process_movement_intents(
     movement_intents: List[Any], ctx: Any, orchestrator: Any
@@ -66,7 +71,24 @@ def process_movement_intents(
                 )
 
                 if resolved.resolution_status != TargetResolutionStatus.RESOLVED:
-                    logger.warning(f"[MOVEMENT_BRIDGE] Target resolution failed for {intent.actor_id}: {resolved.resolution_reason}")
+                    # S268-Ф1b (endurance): de-dup warning — постоянный
+                    # UNRESOLVED-интент (FLEE-петля) спамил лог каждый тик
+                    # (8994 строки за прогон). Первый раз — WARNING с полным
+                    # диагнозом; далее — раз в 100 повторов, чтобы тренд
+                    # оставался наблюдаемым без затопления лога.
+                    _dedup_key = f"{intent.actor_id}:{resolved.resolution_reason}"
+                    _seen = _RESOLUTION_FAIL_SEEN
+                    _count = _seen.get(_dedup_key, 0) + 1
+                    _seen[_dedup_key] = _count
+                    if _count == 1 or _count % 100 == 0:
+                        logger.warning(f"[MOVEMENT_BRIDGE] Target resolution failed for {intent.actor_id}: {resolved.resolution_reason} (repeat #{_count})")
+                    if _count == 1:
+                        _actor_pos = (_npc_positions or {}).get(intent.actor_id)
+                        logger.warning(
+                            f"[MOVEMENT_BRIDGE][DIAG_F1] actor={intent.actor_id} "
+                            f"pos_entry={'MISSING' if _actor_pos is None else _actor_pos} "
+                            f"positions_n={len(_npc_positions or {})}"
+                        )
                     continue  # SA-4: Неразрешённая цель отбрасывается
 
                 if resolved.mode == SpatialResolutionMode.NAV_NODE:
@@ -111,6 +133,8 @@ def process_movement_intents(
         orchestrator._apply_drf_scoring_overlay(_merged_intents, ctx)
         me = MovementEngine()
         me.set_spatial_service(_spatial_svc)
+        # Phase C: персональные знания для PERSONAL_ROUTE GATE
+        me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
         spatial_changes = me.process_intents(
             _merged_intents,
             tick=ctx.tick_number,

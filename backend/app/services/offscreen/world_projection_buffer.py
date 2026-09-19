@@ -7,9 +7,8 @@ diff, generates WorldProjectionEvent[] как производный слой.
 """
 from __future__ import annotations
 
-import logging
-import uuid
 import hashlib
+import logging
 from typing import Any, Dict, List
 
 from app.domain.world_projection import ProjectionType, WorldProjectionEvent

@@ -6,7 +6,7 @@
 from typing import Any, Dict, List, Optional
 
 from app.domain.identity_events import CrystallizedBelief, EffectiveDrives
-from app.models.npc_state import NPCPersonality, NPCIdentityL1
+from app.models.npc_state import NPCIdentityL1, NPCPersonality
 
 # Множитель влияния убеждений (L2.5) на проекцию драйвов (L3)
 _BELIEF_MODIFIER: float = 0.5

@@ -21,9 +21,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from yaml import safe_load
-
 from app.contracts.interventions import InterventionEvent
+from yaml import safe_load
 
 # Действия, зарегистрированные в production-обработчике ядра
 # (_process_player_action): consequence-ветвь компилятора

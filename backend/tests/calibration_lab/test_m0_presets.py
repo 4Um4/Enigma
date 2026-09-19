@@ -15,7 +15,6 @@ import types
 from pathlib import Path
 
 import pytest
-
 from app.core import constants as C
 from app.services.calibration.preset_io import (
     CalibrationPresetError,

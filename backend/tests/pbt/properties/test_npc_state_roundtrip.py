@@ -5,9 +5,10 @@ Invariant 12.2 (WARA): to_persistence_dict обязан записывать К�
 
 Запуск: cd backend; python -m pytest tests/pbt/properties/test_npc_state_roundtrip.py -v; cd ..
 """
-from hypothesis import given, settings, HealthCheck
-from tests.pbt.strategies import npc_legacy_strategy
 from app.models.npc_state import NPCState, NPCStateAdapter
+from hypothesis import HealthCheck, given, settings
+from tests.pbt.strategies import npc_legacy_strategy
+
 
 @given(npc_dict=npc_legacy_strategy)
 @settings(max_examples=100, suppress_health_check=[HealthCheck.too_slow])

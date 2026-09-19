@@ -12,8 +12,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.domain.world_epoch import WorldEpoch, WorldView
 from app.domain.tick import create_tick_state
+from app.domain.world_epoch import WorldEpoch
 
 
 def test_worldview_read():
@@ -110,3 +110,24 @@ def test_deepcopy_contracts():
     assert isinstance(snap, dict) and snap == {"a": 1, "b": 2}
     ov["a"] = 9
     assert snap["a"] == 1  # снимок оторван от overlay
+
+
+def test_nested_mutation_DOCUMENTED_LIMITATION():
+    """S268 (требование Мастера): ФИКСАЦИЯ известной границы.
+
+    Гвард WorldView покрывает только ВЕРХНИЙ уровень: вложенные
+    структуры Epoch (state["npc_positions"]["borko"]["x"]) мутабельны
+    и обходят write-guard. Это историческая причина существования
+    deepcopy (input_snapshot — 7b-вердикт: изоляция несущая) —
+    снимается ТОЛЬКО Epoch-финалом (единая committed/live модель,
+    параллельная сессия). Тест ФИКСИРУЕТ текущее поведение как
+    известную границу: при Epoch-финале он ОБЯЗАН стать красным —
+    это маркер завершения миграции, не одобренная семантика."""
+    ep = WorldEpoch(1, {"npc_positions": {"borko": {"x": 1}}})
+    wv = ep.view()
+    # текущее поведение: вложенная мутация проходит МИМО гварда
+    wv["npc_positions"]["borko"]["x"] = 999
+    assert ep.state["npc_positions"]["borko"]["x"] == 999  # утечка задокументирована
+    # и через прямое свойство:
+    ep.state["npc_positions"]["borko"]["x"] = 1000
+    assert ep.state["npc_positions"]["borko"]["x"] == 1000

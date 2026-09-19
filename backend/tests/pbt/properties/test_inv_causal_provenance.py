@@ -4,7 +4,8 @@ Property Test: Инвариант I (Causal Provenance) для любого Inte
 
 Запуск: cd backend; python -m pytest tests/pbt/properties/test_inv_causal_provenance.py -v; cd ..
 """
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 from tests.pbt.strategies import npc_legacy_strategy
 from tests.pbt.validators import CausalProvenanceValidator
 

@@ -11,8 +11,8 @@ SUPERBOX-008: Детерминированный EpistemicContextResolver.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_resolver_test.py
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -23,9 +23,10 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message
 logger = logging.getLogger("EPISTEMIC_RESOLVER_TEST")
 
 # Импорты ENIGMA
-from app.domain.epistemology import EpistemicRecord, Proposition, Predicate
-from app.services.npc.epistemic_store import EpistemicStore
+from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
+from app.services.npc.epistemic_store import EpistemicStore
+
 
 def run_test():
     print("\n" + "="*60)

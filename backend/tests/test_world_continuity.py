@@ -5,9 +5,10 @@
 """
 
 import pytest
+from app.models.world_continuity import WorldContinuityMode
 from app.models.world_state_diff import WorldStateDiff
 from app.services.state.world_diff_applicator import WorldStateApplicator
-from app.models.world_continuity import WorldContinuityMode
+
 
 class TestWorldContinuity:
     """Проверка опциональности и изоляции персистентности."""

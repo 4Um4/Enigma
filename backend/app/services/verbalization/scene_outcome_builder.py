@@ -27,9 +27,8 @@ if TYPE_CHECKING:
 
 from app.models.npc_profile import NPCProfileL0
 from app.services.npc.decision_hub import DecisionResult
-from app.services.verbalization.verbal_stance import stance_from_decision
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
-from app.models.npc_state import NPCState
+from app.services.verbalization.verbal_stance import stance_from_decision
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Выходные структуры (SceneOutcome)

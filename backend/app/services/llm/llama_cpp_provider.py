@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import random
 import re
 import subprocess
 import threading
@@ -22,8 +21,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generator, Optional
-from app.services.npc.kernel_rng import KernelRNG
+from typing import Generator, Optional, cast
 
 from app.core.config import settings
 from app.services.llm.provider import (
@@ -32,6 +30,7 @@ from app.services.llm.provider import (
     ProviderType,
     StreamingLlmProvider,
 )
+from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +198,12 @@ class LlamaCppProvider(StreamingLlmProvider):
                     req, timeout=settings.llama_cpp_timeout_sec
                 ) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
-                    return body.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    return cast(
+                        str,
+                        body.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", ""),
+                    )
             except (
                 urllib.error.URLError,
                 ConnectionResetError,

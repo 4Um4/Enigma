@@ -7,8 +7,6 @@ path: backend/tests/sandbox/movement/test_topology_gate.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/movement/test_topology_gate.py -v ; cd ..
 """
-import pytest
-from app.errors import SimulationIntegrityError
 from app.services.spatial.graph_compiler import compile_graph
 
 

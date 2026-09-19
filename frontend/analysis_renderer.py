@@ -4,9 +4,9 @@ path: /frontend/analysis_renderer.py
 Зависимости: pygame, constants, i18n
 Основные сущности: AnalysisRenderer
 """
-import pygame
 import logging
 
+import pygame
 from constants import (
     COLOR_DEATH_TITLE,
     COLOR_JOURNAL_TITLE,
@@ -14,7 +14,6 @@ from constants import (
     COLOR_NPC_NAME,
     COLOR_TEXT_DEFAULT,
     COLOR_TEXT_MUTED,
-    COLOR_TEXT_OBS_LINE,
     COLOR_TEXT_OBS_TITLE,
     COLOR_TEXT_SCALE_HIGHLIGHT,
 )

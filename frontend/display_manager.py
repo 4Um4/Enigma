@@ -2,10 +2,10 @@
 Назначение: будет читать настройки из файла и применять их во всех экранах.
 """
 
-import pygame
-import os
-import yaml
 from pathlib import Path
+
+import pygame
+import yaml
 
 # Путь к файлу настроек (создается в папке игры)
 CONFIG_PATH = Path("config/user_settings.yaml")

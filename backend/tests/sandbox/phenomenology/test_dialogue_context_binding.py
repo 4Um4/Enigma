@@ -11,6 +11,7 @@ import pytest
 from app.services.input.intent_compressor import IntentCompressor
 from app.services.memory.dialogue_session import DialogueSession
 
+
 class MockLLMClient:
     """Mock LLM client для изоляции тестов IntentCompressor."""
     async def compress_intent(self, raw_text: str, scene_context: dict, dialogue_session=None) -> dict:

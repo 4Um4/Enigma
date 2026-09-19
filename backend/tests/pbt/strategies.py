@@ -3,8 +3,8 @@
 Генераторы данных (strategies) для property-based тестов.
 АDR-013: Объекты создаются через from_legacy, не через конструктор.
 """
+
 from hypothesis import strategies as st
-from typing import Dict, Any
 
 # Базовая стратегия: генерирует валидный psyche dict
 psyche_strategy = st.fixed_dictionaries({

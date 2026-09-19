@@ -32,7 +32,7 @@ class ActionSemanticResolver:
     def resolve(self, raw_text: str, tick: int, target_id: str) -> PlayerAction:
         """Разбирает текст игрока и возвращает структурированный PlayerAction."""
         text_lower = raw_text.lower()
-        
+
         # 1. Определение ActionType
         # S211: ACCUSE — ПЕРВЫМ (специфичнее шантажа: «обвиняю» не должно
         # проваливаться в blackmail-эвристику «угрожаю»).
@@ -44,17 +44,17 @@ class ActionSemanticResolver:
             _action_type = ActionType.HELP
         else:
             _action_type = ActionType.DIALOGUE
-            
+
         # 2. Поиск secret_id по совпадению корневых слов в каноне
         _secret_id = None
         if self._truth:
             for secret in self._truth.secrets.values():
                 if target_id not in secret.participants:
                     continue
-                
+
                 canon = secret.canonical_truth.lower()
                 sec_id = secret.secret_id.lower()
-                
+
                 # Эвристики совпадения
                 if "подвал" in text_lower and "подвал" in canon:
                     _secret_id = secret.secret_id

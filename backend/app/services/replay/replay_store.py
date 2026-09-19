@@ -4,16 +4,16 @@ path: backend/app/services/replay/replay_store.py
 Назначение: SQLite хранилище для записи и воспроизведения сессий (Подсистема 2, Этап 2.1).
 Зависимости: sqlite3, json, zlib
 """
-import sqlite3
 import json
-import zlib
-import uuid
-import time
 import logging
-from pathlib import Path
-from typing import Any, Optional, List, Dict
-
+import sqlite3
 import threading
+import time
+import uuid
+import zlib
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 logger = logging.getLogger(__name__)
 
 class ReplayStore:

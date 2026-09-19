@@ -26,15 +26,15 @@ class DialogueUpdate:
 
 class DialogueUpdateExtractor:
     """Извлекает structured update из реплики через LLM."""
-    
+
     def __init__(self, router: Any = None) -> None:
         self._router = router
-    
+
     def extract(self, stm_before: str, new_turn: str, partner: str) -> DialogueUpdate:
         """Извлекает structured update из реплики через LLM."""
         if self._router is None:
             return DialogueUpdate()
-        
+
         try:
             prompt = self._build_extraction_prompt(stm_before, new_turn, partner)
             from app.services.llm.provider import GenerationParams
@@ -45,7 +45,7 @@ class DialogueUpdateExtractor:
             )
             # Очищаем от markdown-разметки, если LLM обернула ответ
             cleaned_response = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-            
+
             try:
                 data = json.loads(cleaned_response)
             except json.JSONDecodeError:
@@ -58,7 +58,7 @@ class DialogueUpdateExtractor:
                         repaired_response += '}' * (repaired_response.count('{') - repaired_response.count('}'))
                     if repaired_response.count('[') > repaired_response.count(']'):
                         repaired_response += ']' * (repaired_response.count('[') - repaired_response.count(']'))
-                    
+
                     data = json.loads(repaired_response.replace("'", '"'), strict=False)
                 except Exception:
                     try:
@@ -82,7 +82,7 @@ class DialogueUpdateExtractor:
                     f"stm_len={len(stm_before)}"
                 )
             return DialogueUpdate()
-    
+
     def _build_extraction_prompt(self, stm_before: str, new_turn: str, partner: str) -> str:
         return f"""Проанализируй новую реплику в контексте диалога.
 Верни JSON с обновлением памяти диалога (STM).
@@ -104,7 +104,7 @@ class DialogueUpdateExtractor:
 }}
 
 JSON:"""
-    
+
     def _parse_update(self, data: dict) -> DialogueUpdate:
         return DialogueUpdate(
             topic=data.get("topic"),

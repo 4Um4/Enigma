@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 class DialogueConsolidator:
     """Создаёт текст summary из законченной DialogueSession для EventMemory."""
-    
+
     def __init__(self, llm_client: Optional[Any] = None) -> None:
         self._llm = llm_client
-    
+
     def consolidate(self, session: Any) -> Optional[str]:
         """Возвращает текст summary для EventMemory.
         
@@ -24,6 +24,6 @@ class DialogueConsolidator:
         """
         if not session.buffer or len(session.buffer) < 2:
             return None
-        
+
         # Fallback (без LLM) — structural summary
         return session.consolidate_to_event_memory_summary()  # type: ignore[no-any-return]

@@ -20,15 +20,20 @@ import math
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.domain.activity import ActivityState, ActivityStep, ActivityType, StepKind
+from app.domain.activity import (
+    _KEY_AS_HOME,  # S267: гейм-гейт активности
+    ActivityState,
+    ActivityStep,
+    ActivityType,
+    StepKind,
+)
 from app.domain.desire import Desire
-from app.domain.movement import IntentDomain, MacroMovementGoal, PRIORITY_NEEDS, PRIORITY_REACTIVE
+from app.domain.movement import PRIORITY_NEEDS, PRIORITY_REACTIVE, IntentDomain, MacroMovementGoal
 from app.domain.semantic_action import WorldActionType
 from app.domain.world_object import ObjectRelationKind, WorldObject
 from app.models.spatial_contracts import NodeRole
-from app.services.npc.activity_catalog import ACTIVITY_CATALOG, _SPEC_BY_TYPE
+from app.services.npc.activity_catalog import _SPEC_BY_TYPE, ACTIVITY_CATALOG
 from app.services.scene_change import ChangeType, SceneChange
-from app.domain.activity import _KEY_AS_HOME  # S267: гейм-гейт активности
 from app.services.world.affordance_resolver import AffordanceResolver, effective_state
 from app.services.world.world_object_store import WorldObjectStore
 

@@ -3,14 +3,14 @@ map_editor/render/map_renderer.py
 Отрисовка карты: сетка, локации, объекты, NPC, UI элементы.
 """
 import math
-import pygame
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from ui.components import COLORS, Dropdown
-from data_manager import OBJECT_PRESETS, DataManager
+import pygame
 from data.npc_data import NPC_SPRITE_MAP
+from data_manager import OBJECT_PRESETS, DataManager
 from sprite_registry import sprite_registry
-from tools.constants import TOOL_WALL, TOOL_ROOM, TOOL_NODE, MODE_WORLD, MODE_LOCAL
+from tools.constants import MODE_LOCAL, TOOL_ROOM, TOOL_WALL
+from ui.components import COLORS
 
 # Цвета объектов для отрисовки
 OBJECT_COLORS = {

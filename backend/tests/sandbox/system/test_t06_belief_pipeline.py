@@ -9,7 +9,6 @@ path: /project/backend/tests/sandbox/system/test_t06_belief_pipeline.py
 Запуск: cd backend; python -m pytest tests/sandbox/system/test_t06_belief_pipeline.py -v; cd ..
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 
@@ -19,13 +18,13 @@ def test_belief_modifies_decision():
     DecisionHub должен выбрать FLEE, а не APPROACH, потому что
     CrystallizedBeliefModifierResolver даёт flee +0.4, а approach -0.4.
     """
-    from app.services.npc.decision_hub import DecisionHub
-    from app.services.npc.crystallized_belief_modifier_resolver import (
-        CrystallizedBeliefModifierResolver,
-    )
     from app.domain.identity_events import CrystallizedBelief
     from app.domain.vital_state import LifeStatus
     from app.models.npc_state import Intent
+    from app.services.npc.crystallized_belief_modifier_resolver import (
+        CrystallizedBeliefModifierResolver,
+    )
+    from app.services.npc.decision_hub import DecisionHub
 
     # 1. Формируем убеждения (L2.5)
     beliefs = [

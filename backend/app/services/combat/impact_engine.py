@@ -137,7 +137,7 @@ def resolve_physical_impact(
         contact = ContactLevel.SOLID
     else:
         contact = _resolve_contact(attacker, intent, defender, rng)
-        
+
     if contact == ContactLevel.MISS:
         # Промах — атакующий тратит энергию, защитник нет
         deltas.append(

@@ -8,7 +8,7 @@ Physical слой материализуется перед Cognitive для с�
 """
 
 import logging
-from typing import Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 from app.domain.identity_events import TraitDriftEvent
 from app.domain.motion_core import TracePayload
@@ -27,7 +27,7 @@ def execute_reduction_phase(
     social_sub: Phase8Handler,
     homeostasis_sub: Optional[Phase8Handler] = None,
     social_input_proj: Optional[Phase8Handler] = None,
-    dynamic_field=None,
+    dynamic_field: Any = None,
     l1_chronicle=None,
     resolve_spatial_fn: Optional[Callable] = None,
 ) -> None:
@@ -241,8 +241,8 @@ def _apply_handler_result(
     ctx: _TickContext,
     result: Phase8Result,
     handler_name: str,
-    dynamic_field=None,
-    resolve_spatial_fn=None,
+    dynamic_field: Any = None,
+    resolve_spatial_fn: Any = None,
 ) -> None:
     """Применяет Phase8Result к _TickContext.
 

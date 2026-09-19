@@ -19,7 +19,7 @@ import heapq
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 if TYPE_CHECKING:
     from app.domain.traversal import LocalGeometry
@@ -560,7 +560,7 @@ class SpatialService:
 
         came_from: Dict[str, str] = {}
         g_score: Dict[str, float] = {start_node.node_id: 0.0}
-        
+
         # SLEEP_FIX: Отладка A*
         logger.debug(f"[FIND_PATH_ASTAR] start={start_node.node_id} target={target_id} start_connections={self._connections.get(start_node.node_id, set())}")
 
@@ -685,7 +685,7 @@ class SpatialService:
                     if _ox <= node.x <= _ox + _ow and _oy <= node.y <= _oy + _oh:
                         _is_safe = False
                         break
-            
+
             if _is_safe:
                 d = self.world_distance(origin_xy, node.xy)
                 if d < best_dist:

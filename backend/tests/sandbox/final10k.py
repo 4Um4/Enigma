@@ -1,6 +1,14 @@
 """S265-финал: 10 000 тиков — полный отчёт (время/наклон/канон/drift/
 живость мира). Прямой production-стек, полная изоляция, LLM-free."""
-import sys, tempfile, types, os, shutil, time, logging, hashlib, json
+import hashlib
+import json
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import time
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

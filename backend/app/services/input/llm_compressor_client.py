@@ -10,7 +10,7 @@ TODO: В будущем может потребоваться расширить
 
 import json
 import logging
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Dict, Optional, Protocol, cast
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class LlamaCppCompressorClient:
                 if json_match:
                     content = json_match.group(0)
 
-                return json.loads(content)
+                return cast(Dict[str, Any], json.loads(content))
         except json.JSONDecodeError as e:
             # S203 FIX: Логируем сырой ответ LLM, чтобы понять, почему парсинг падает.
             logger.error(f"[LLM_COMPRESSOR] JSONDecodeError: {e}. Raw content: {content if 'content' in locals() else 'N/A'}")

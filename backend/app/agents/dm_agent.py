@@ -47,7 +47,7 @@ _STOP_TOKENS = [
 ]
 
 # C3-FIX: MSG_ константы вынесены в app.core.constants
-from app.core.constants import MSG_MAX_REPLIES, MSG_NOTHING_HAPPENED, MSG_LLM_UNAVAILABLE
+from app.core.constants import MSG_LLM_UNAVAILABLE, MSG_MAX_REPLIES, MSG_NOTHING_HAPPENED
 
 MSG_ALREADY_SAID = "УЖЕ БЫЛО СКАЗАНО"
 MSG_REACTION_RULE = "ПРАВИЛО РЕАКЦИЙ"
@@ -245,7 +245,7 @@ class DmAgent:
         if not _has_target and not _has_stm and not _is_intro:
             # BUG-DLG-002 FIX: Не крашим pipeline, если резолвер цели упал. Продолжаем с generic narrative.
             logger.warning(
-                f"[DM_CONTRACT_WARN] NPC has no target and STM is empty. "
+                "[DM_CONTRACT_WARN] NPC has no target and STM is empty. "
                 "Proceeding with generic narrative."
             )
 

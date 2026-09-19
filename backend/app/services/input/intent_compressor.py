@@ -11,6 +11,7 @@ TODO: В будущем IntentCompressor может быть расширен д
 import re
 from typing import Any, Dict, Optional
 
+from app.domain.epistemology import Predicate, Proposition, SocialIntent, SpeechAct
 from app.domain.intent_profile import (
     ActionType,
     ConfidenceVector,
@@ -19,7 +20,6 @@ from app.domain.intent_profile import (
     SemanticAmbiguity,
     TargetZone,
 )
-from app.domain.epistemology import Proposition, Predicate, SocialIntent, SpeechAct
 from app.services.input.llm_compressor_client import LLMCompressorClient
 from app.services.memory.dialogue_session import DialogueSession
 
@@ -319,8 +319,9 @@ def _npc_display_names() -> dict[str, str]:
         return _M1_NPC_NAMES
     _names: dict[str, str] = {}
     try:
-        from app.services.npc.npc_loader import _CONFIG_NPC_ROOT
         import json as _json
+
+        from app.services.npc.npc_loader import _CONFIG_NPC_ROOT
 
         for _f in (_CONFIG_NPC_ROOT / "individuals").glob("*.json"):
             try:
@@ -488,7 +489,7 @@ class IntentCompressor:
         # ADR-035 FIX: Fast Path обязан генерировать вектор эмоций, иначе Труба Воли мертва
         _semantic = EmotionalVector()  # дефолт
         _social_intent = SocialIntent.NEUTRAL
-        
+
         if matched_action == ActionType.ATTACK:
             _semantic = EmotionalVector(aggression=0.8, confidence=0.8)
             _social_intent = SocialIntent.INTIMIDATE
@@ -573,7 +574,7 @@ class IntentCompressor:
         try:
             # S199/S200/S203: Fault-tolerant parsing. LLM может возвращать неизвестные значения.
             from enum import Enum
-            from typing import TypeVar, Type, Optional, Any
+            from typing import Any, Optional, Type, TypeVar
             _E = TypeVar("_E", bound=Enum)
 
             def _safe_enum(enum_cls: Type[_E], val: Optional[Any], default: Optional[_E] = None) -> Optional[_E]:

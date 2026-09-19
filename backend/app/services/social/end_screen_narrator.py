@@ -5,11 +5,13 @@ path: /project/backend/app/services/social/end_screen_narrator.py
 Основные сущности: EndScreenNarrator
 """
 from __future__ import annotations
+
 from app.models.fate import FateState
+
 
 class EndScreenNarrator:
     """Переводит сухие метрики в живой язык."""
-    
+
     @staticmethod
     def narrate_verdict(score: int) -> str:
         if score >= 80: return "Вы стали легендой Таверны Серебряной Луны. Ваше имя будут помнить долгие годы."
@@ -33,7 +35,7 @@ class EndScreenNarrator:
         traj = fate_state.fate_trajectory.value
         stab = fate_state.stability
         threat = fate_state.threat_level
-        
+
         if traj == "critical": return f"{npc_id} находится на грани гибели. Угроза вокруг него сгущается."
         if traj == "deteriorating":
             if threat > 0.5: return f"Жизнь {npc_id} висит на волоске. Он окружён врагами и опасностями."

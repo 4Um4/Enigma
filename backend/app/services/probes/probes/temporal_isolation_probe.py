@@ -5,6 +5,7 @@ Invariant III: Temporal Isolation. Входные данные тика не м�
 """
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
+
 class TemporalIsolationProbe(Probe):
     name = "INV-TEMPORAL-ISOLATION"
     severity = "ERROR"
@@ -12,7 +13,7 @@ class TemporalIsolationProbe(Probe):
     def check(self, ctx: ProbeContext) -> ProbeResult:
         hash_before = ctx.tick_state_hash_before
         hash_after = ctx.tick_state_hash_after
-        
+
         if hash_before is not None and hash_after is not None:
             if hash_before != hash_after:
                 _mutated = getattr(ctx, "tick_state_mutated_fields", None) or []  # noqa: ENIGMA002

@@ -1,6 +1,11 @@
 """S266-финал: dump ctx.scene_state в момент терминала (прямой в файл,
 без логгеров): location_id, world_objects, есть ли TARGET."""
-import sys, tempfile, types, os, shutil, logging
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

@@ -106,7 +106,7 @@ async def dashboard():
     <body>
         <div class="container">
             <h1>📊 ENIGMA Live Telemetry</h1>
-            
+
             <div class="card">
                 <h2>Simulation Core</h2>
                 <div class="metric"><span class="label">Status:</span> <span id="status" class="value">Loading...</span></div>
@@ -140,10 +140,10 @@ async def dashboard():
                 try {
                     const res = await fetch('/api/health');
                     const data = await res.json();
-                    
+
                     document.getElementById('status').textContent = data.status.toUpperCase();
                     document.getElementById('status').className = 'value ' + (data.status === 'ok' ? 'green' : 'red');
-                    
+
                     if(data.simulation) {
                         document.getElementById('tick').textContent = data.simulation.tick;
                         document.getElementById('time').textContent = data.simulation.game_time_seconds.toFixed(1);
@@ -476,7 +476,9 @@ def readiness_status() -> ReadinessReport:
 def load_campaign(
     request: CampaignLoadRequest, game_loop: Any = Depends(get_game_loop)
 ) -> CampaignLoadResponse:
-    return game_loop.load_campaign(request.campaign_id, request.world_id)
+    return cast(
+        CampaignLoadResponse, game_loop.load_campaign(request.campaign_id, request.world_id)
+    )
 
 
 @router.post("/game/skip_time/{campaign_id}")
@@ -488,7 +490,7 @@ def skip_time(
     Использует Policy B (остановка на значимом событии).
     """
     try:
-        return game_loop.skip_time(campaign_id, ticks)
+        return cast(dict, game_loop.skip_time(campaign_id, ticks))
     except Exception as e:
         import traceback
 
@@ -1270,7 +1272,7 @@ def create_player_session(
         raise HTTPException(
             status_code=404, detail=f"Персонаж '{player_name}' не найден"
         )
-    session = player_session_service.select_player(campaign_id, player_name)
+    player_session_service.select_player(campaign_id, player_name)
     # Сбрасываем флаг сессии — следующий ход будет session_start (сброс стресса NPC)
     game_loop.reset_session_flag(campaign_id)
     # Инициализируем сцену из editor JSON — чтобы Pygame мог рендерить до первого хода

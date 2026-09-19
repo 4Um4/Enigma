@@ -36,7 +36,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 if TYPE_CHECKING:
     from app.domain.events import EventDTO
     from app.domain.identity_events import EffectiveDrives
-    from app.models.npc_state import NPCIdentityL1
 
 
 # S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
@@ -831,10 +830,7 @@ class TickOrchestrator:
                 # сам узнал, через какой выход пришёл. Self-authored запись:
                 # не телепатия, не мировой факт — личный опыт с provenance.
                 _ep_store = getattr(self, "_epistemic_store", None)
-                # TODO: временный зонд SK-1; будет удалено после: отладки P4-проводки
-                print(f"[DIAG_SK1] npc={_npc_id} store={'YES' if _ep_store else 'NO'} "
-                      f"scene_keys={list((ctx.scene_state.get('npc_positions', {}) or {}).get(_npc_id, {}).keys())[:12]} "
-                      f"via={ (ctx.scene_state.get('npc_positions', {}) or {}).get(_npc_id, {}).get('_via_boundary', '<absent>') }")
+
                 if _ep_store is not None:
                     from app.domain.epistemology import (
                         EpistemicRecord,
@@ -892,6 +888,16 @@ class TickOrchestrator:
             n for n in (ctx.all_npcs_raw or [])
             if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
             and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
+            # PLAYER-STUB LAW (задача №5, мандат Phase C): player-запись в
+            # НЕактивной сцене — travel-метка, не актор. Реальный игрок тикается
+            # только в своей фактической локации (metadata.current_location
+            # = активная сцена). Стабы (city_gate при игроке в tavern) не
+            # порождают intents/decision/epistemic.
+            and not (
+                (n.get("npc_id") or n.get("id")) == "player"
+                and _current_loc != ctx.active_location_id
+                and getattr(ctx, "active_location_id", None)
+            )
         ]
         if hasattr(ctx, "npc_states") and ctx.npc_states:
             ctx.npc_states = [
@@ -1122,7 +1128,10 @@ class TickOrchestrator:
                             )
 
                             _prop = Proposition(
-                                subject_id=_d_id,
+                                # Phase C: subject = boundary-узел-ИСТОК
+                                # ("tavern:exit_east") — направленное ребро
+                                # from_loc → neighbor для personal routing.
+                                subject_id=_d_via,
                                 predicate=Predicate.EXITS_TO,
                                 object_id=_d_info.get("neighbor", ""),
                                 polarity=True,

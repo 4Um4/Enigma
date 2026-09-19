@@ -1914,12 +1914,26 @@ class LifeEngine:
                 f"NPC физически в {_actual_loc} → cross-loc relocation intent"
             )
             _target_node = new_position if new_position else f"{new_location}:entrance"
+            # SHADOW-RELOCATION (мандат, RCB-forensic): домен SURVIVAL —
+            # ходьба до двери (2-3 тика) не прерывается потребностями
+            # (L5: needs 0.8 > routine 0.6 рвали путь на полдороге).
+            # reason несёт schedule-семантику для арбитра/CROSS_LOC_INTERCEPT.
             intent = MacroMovementGoal(
                 actor_id=npc_id,
                 from_node_id=npc.get("position", "") or f"{_actual_loc}:{npc.get('current_node', 'entrance')}",
                 target_node_id=_target_node,
                 target_local_xy=None,
-                domain=IntentDomain.ROUTINE,
+                location_id=new_location,
+                reason=f"schedule:{new_activity}+relocation",
+                domain=IntentDomain.SURVIVAL,
+                # SPATIAL-KNOWLEDGE: relocation должен ВЫИГРЫВАть внутренний
+                # winner-выбор LifeEngine (было p=0.5 — проигрывал needs/other
+                # intent'ам того же актора, RCB: winner=p=0.5) и доводить NPC
+                # до двери за 2-3 тика.
+                priority=0.9,
+                # MOVEMENT-V2: semantic destination_immutable по I-MV2.
+                final_location_id=new_location,
+                final_node_id=new_position,
             )
             return [], intent
 
@@ -2060,7 +2074,20 @@ class LifeEngine:
         """
         npc_map: Dict[str, Any] = npc.get("activity_map", {})
 
+        # SPATIAL-KNOWLEDGE-01 P2 (восстановление приоритета-1, ADR-S85.1):
+        # data-driven запись activity_map[activity] = {location, position,
+        # display} — ЕДИНСТВЕННЫЙ источник cross-loc привязки активности
+        # (sleeping→city_gate, guarding_gate→city_gate). Без неё role-резолв
+        # зажимает NPC в текущей локации → relocation недостижим.
+        if activity in npc_map:
+            entry = npc_map[activity]
+            _loc = entry.get("location") or ""
+            _pos = entry.get("position") or ""
+            if _loc and _pos:
+                return (_loc, _pos, entry.get("display") or activity)
+
         # 1. Точное совпадение в activity_map (data-driven)
+
         if activity in npc_map:
             entry = npc_map[activity]
             return (entry["location"], entry["position"], entry["display"])

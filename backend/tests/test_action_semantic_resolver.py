@@ -5,8 +5,9 @@
 """
 
 import pytest
-from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
 from app.models.player_action import ActionType
+from app.services.player_cognition.action_semantic_resolver import ActionSemanticResolver
+
 
 class TestActionSemanticResolver:
     @pytest.fixture

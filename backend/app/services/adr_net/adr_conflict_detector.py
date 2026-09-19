@@ -6,8 +6,9 @@ path: /project/backend/app/services/adr_net/adr_conflict_detector.py
 Основные сущности: ADRConflictDetector
 """
 import logging
+from typing import Any, Dict, List
+
 import networkx as nx
-from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class ADRConflictDetector:
         simple_graph = nx.DiGraph()
         for u, v, data in self.graph.edges(data=True):
             simple_graph.add_edge(u, v)
-        
+
         cycles = list(nx.simple_cycles(simple_graph))
         if cycles:
             logger.warning(f"[ADR_NET] Detected {len(cycles)} cyclic dependencies!")
@@ -36,7 +37,7 @@ class ADRConflictDetector:
         for u, v, data in self.graph.edges(data=True):
             if data.get("edge_type") == "IMPLEMENTS":
                 file_implementers.setdefault(v, []).append(u)
-        
+
         for file_id, adrs in file_implementers.items():
             if len(adrs) > 1:
                 # IPT-CLEANUP: Уточнённая логика Double Truth detection.

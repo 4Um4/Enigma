@@ -43,11 +43,8 @@ logging.getLogger("app.services.events.claim_event_subscriber").setLevel(logging
 logging.getLogger("app.services.npc.epistemic_store").setLevel(logging.DEBUG)
 logging.getLogger("app.services.npc.belief_revision_engine").setLevel(logging.DEBUG)
 
+from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
 from app.services.game_loop_builder import build_game_loop
-from app.services.events.event_types import EventType
-from app.services.events.event_bus import get_event_bus
-from app.domain.events import EventDTO
-from app.domain.epistemology import Proposition, Predicate, EpistemicRecord
 from app.services.spatial.spatial_query_service import SpatialQueryService
 
 CAMPAIGN_ID = "Open_road"
@@ -67,7 +64,7 @@ def inject_lie(game_loop):
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
         
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}), 
+        npc_positions=_scene.get("npc_positions", {}),
         scene_state=_scene
     )
     

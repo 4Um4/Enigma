@@ -5,11 +5,10 @@
 Запуск: cd backend; python -m pytest tests/test_p7_01_truth_state.py -v -s; cd ..
 """
 
-import os
 from pathlib import Path
 
 import pytest
-from app.models.truth_state import RelationType, Secret, TruthRelation, TruthState
+from app.models.truth_state import Secret, TruthState
 from app.services.truth_state_loader import TruthStateLoader
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

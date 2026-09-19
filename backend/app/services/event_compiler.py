@@ -88,7 +88,19 @@ class EventCompiler:
             # snap, который резолвит без поиска в основном графе.
             elif "boundary_arrival" in getattr(change, "cause", ""):  # noqa: ENIGMA002
                 _b_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
-                result = self._compile_boundary_snap(snapshot, change, None, _b_loc, svc)
+                # MX-1 FIX v3: scene_state целевой локации — из SSM (владелец
+                # сцен). Factory требует scene_state обязательным (fingerprint).
+                from app.services.scene_state_manager import get_scene_state_manager
+                from app.services.spatial.spatial_factory import SpatialFactory
+
+                _ssm = get_scene_state_manager()
+                _target_scene = _ssm.get_scene_state(snapshot.campaign_id, _b_loc) or {}
+                _svc_b = SpatialFactory.build_for_campaign(
+                    campaign_id=snapshot.campaign_id,
+                    location_id=_b_loc,
+                    scene_state=_target_scene,
+                )
+                result = self._compile_boundary_snap(snapshot, change, None, _b_loc, _svc_b)
             else:
                 # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
                 # Не зависит от cause (traversal_complete, teleport, sync и т.д.).
@@ -386,13 +398,13 @@ class EventCompiler:
         """
         # S-142 FIX: Кросс-локационный перенос (snap) не является traversal.
         _explicit_target_loc = getattr(change, "target_location_id", "")  # noqa: ENIGMA002
-        # S-142.2: Доверяем cause от MovementEngine (SSOT физики). 
+        # S-142.2: Доверяем cause от MovementEngine (SSOT физики).
         # Если он пометил change как cross_loc_materialize — это snap, даже если snapshot desync'нут.
         _is_cross_loc_snap = "cross_loc_materialize" in getattr(change, "cause", "")  # noqa: ENIGMA002
-        
+
         if _is_cross_loc_snap or (_explicit_target_loc and _explicit_target_loc != snapshot.location_id):
             _target_loc = _explicit_target_loc or snapshot.location_id
-            
+
             # S-142.1: Честный source_xy из snapshot. Нельзя подставлять (0.0, 0.0) — это ложный факт.
             _src_xy = (0.0, 0.0)
             _npc_pos = snapshot.npc_positions.get(change.target, {})
@@ -411,7 +423,7 @@ class EventCompiler:
             )
             # ADR-O-326: cross_loc_materialize по определению означает пересечение границы.
             # is_boundary всегда True, чтобы совпадать с legacy_is_boundary.
-            
+
             # Резолвим честный entry_node через SpatialService текущей локации.
             # change.value может быть граничным узлом текущей локации (напр. tavern:exit_east),
             # но entry_node должен указывать на узел входа в новой локации (напр. city_gate:entry_west).

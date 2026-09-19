@@ -12,9 +12,8 @@ SUPERBOX-009: Доказательство RED разрыва EpistemicContext -
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_decision_gap_test.py
 """
 
-import sys
 import logging
-import dataclasses
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -26,12 +25,13 @@ logger = logging.getLogger("EPISTEMIC_GAP_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.services.events.event_types import EventType
-from app.models.npc_state import NPCState
-from app.domain.identity_events import EffectiveDrives
 from app.domain.decision_context import DecisionContext
 from app.domain.epistemology import EpistemicContext
+from app.domain.identity_events import EffectiveDrives
+from app.models.npc_state import NPCState
+from app.services.events.event_types import EventType
+from app.services.npc.decision_hub import DecisionHub, EventContext
+
 
 def run_test():
     print("\n" + "="*60)
@@ -93,7 +93,7 @@ def run_test():
     # Вычисляем модификаторы через Resolver
     from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
     # Создаем временный пустой store для инициализации resolver, т.к. to_modifiers работает с context
-    resolver = EpistemicContextResolver(store=None) 
+    resolver = EpistemicContextResolver(store=None)
     epistemic_mods = resolver.to_modifiers(epistemic_ctx)
     
     try:
@@ -130,7 +130,7 @@ def run_test():
         print("🎉 ЭПИСТЕМИЧЕСКАЯ ПРИЧИННОСТЬ ПОДТВЕРЖДЕНА (по весу решения)!")
         print("="*60)
     else:
-        print(f"  ❌ РАЗРЫВ ПОДТВЕРЖДЁН: DecisionHub проигнорировал EpistemicContext.")
+        print("  ❌ РАЗРЫВ ПОДТВЕРЖДЁН: DecisionHub проигнорировал EpistemicContext.")
         print(f"     Оба решения: {decision_c.intent.value} (score: {score_c:.2f} vs {score_t:.2f})")
         print("\n" + "="*60)
         print("⚠️ ВЫВОД: DecisionHub не имеет кода для обработки epistemic_context.")

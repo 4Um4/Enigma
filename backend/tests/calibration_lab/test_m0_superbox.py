@@ -12,7 +12,6 @@ path: backend/tests/calibration_lab/test_m0_superbox.py
 from pathlib import Path
 
 import pytest
-
 from app.services.calibration.superbox_adapter import SuperboxAdapter
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]

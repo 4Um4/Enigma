@@ -3,8 +3,10 @@
 Этот контракт полностью изолирован от внутренних NodeRef и SceneState. Он содержит только то, что нужно рисовать на экране.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Optional, Tuple
+
 
 @dataclass(frozen=True)
 class ObservatoryNodeDTO:

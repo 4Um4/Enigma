@@ -1,9 +1,11 @@
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
-from app.services.perception.narrative_projector import NarrativeProjector
 from app.domain.presentation import PerceptionContext
+from app.services.perception.narrative_projector import NarrativeProjector
+
 
 def test_telepathy_barrier():
     '''Projector должен затемнять текст, если NPC находится далеко (dist > 15.0).'''

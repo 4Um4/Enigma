@@ -7,17 +7,16 @@
 Запуск: cd backend; python -m pytest tests/sandbox/phenomenology/test_dialogue_thread_continuity.py -v; cd ..
 """
 
-import pytest
-import uuid
 from unittest.mock import MagicMock
-from app.services.memory.memory_manager import MemoryManager
-from app.services.memory.dialogue_update_extractor import DialogueUpdateExtractor, DialogueUpdate
-from app.services.memory.dialogue_consolidator import DialogueConsolidator
-from app.services.memory.dialogue_session import DialogueSession
+
 from app.domain.events import EventDTO
 from app.services.events.npc_dialogue_subscriber import NpcDialogueSubscriber
-from app.services.execution.dialogue_executor import DialogueExecutor, DialogueContractViolation
+from app.services.execution.dialogue_executor import DialogueExecutor
 from app.services.game_loop.task_scheduler import TaskScheduler
+from app.services.memory.dialogue_consolidator import DialogueConsolidator
+from app.services.memory.dialogue_session import DialogueSession
+from app.services.memory.dialogue_update_extractor import DialogueUpdate, DialogueUpdateExtractor
+from app.services.memory.memory_manager import MemoryManager
 
 
 def test_meteor_scenario_thread_continuity():

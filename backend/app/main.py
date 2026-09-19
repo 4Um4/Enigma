@@ -21,8 +21,8 @@ os.environ["no_proxy"] = "localhost,127.0.0.1"
 import asyncio
 import logging
 import subprocess
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 

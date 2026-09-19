@@ -5,6 +5,7 @@ Invariant I: Causal Provenance. Любое изменение должно им�
 """
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
+
 class CausalProvenanceProbe(Probe):
     name = "INV-CAUSAL-PROVENANCE"
     severity = "ERROR"
@@ -16,7 +17,7 @@ class CausalProvenanceProbe(Probe):
 
         # Получаем список всех ID NPC, для которых сгенерированы L1 события
         l1_npc_ids = {getattr(e, "target_id", None) for e in getattr(mutation, "l1_drift_events", [])}  # noqa: ENIGMA002
-        
+
         # Проверяем дельты (npc_deltas)
         for delta in getattr(mutation, "npc_deltas", []):  # noqa: ENIGMA002
             delta_npc_id = getattr(delta, "npc_id", None)  # noqa: ENIGMA002

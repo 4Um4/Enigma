@@ -11,8 +11,8 @@ SUPERBOX-003: Интеграция ClaimEventSubscriber с реальным Even
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_eventbus_test.py
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -23,13 +23,14 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message
 logger = logging.getLogger("EPISTEMIC_BUS_TEST")
 
 # Импорты ENIGMA
-from app.domain.epistemology import Proposition, Predicate, EpistemicRecord
+from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
+from app.domain.events import EventDTO
+from app.services.events.claim_event_subscriber import ClaimEventSubscriber
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
-from app.domain.events import EventDTO
-from app.services.npc.epistemic_store import EpistemicStore
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
-from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+from app.services.npc.epistemic_store import EpistemicStore
+
 
 # --- Mock Провайдер надёжности ---
 class MockReliabilityProvider:

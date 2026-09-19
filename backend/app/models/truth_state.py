@@ -8,8 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from types import MappingProxyType
-from typing import Dict, List, Mapping, Optional, Set, Tuple
+from typing import List, Mapping, Set, Tuple
 
 
 class RelationType(str, Enum):
@@ -35,7 +34,7 @@ class Secret:
     confession_keywords: Tuple[str, ...] = field(default_factory=tuple) # V8-MVP-CK1 FIX: Ключевые слова для парсинга признаний NPC
     topics: Tuple[str, ...] = ()  # M1/P3: индекс предмета вопроса (НЕ discovery; закон ASKING != DISCOVERING)
 
-    
+
 @dataclass(frozen=True)
 class TruthRelation:
     source_secret_id: str

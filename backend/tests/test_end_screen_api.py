@@ -4,10 +4,11 @@
 Запуск: cd backend; python -m pytest tests/test_end_screen_api.py -v; cd ..
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+from app.models.player_action import ActionType, PlayerAction
 from app.services.social.mvp_tavern_controller import MvpTavernController
-from app.models.player_action import PlayerAction, ActionType
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CANON_PATH = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"

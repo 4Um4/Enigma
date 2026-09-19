@@ -7,7 +7,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from typing import Any, Dict, Literal, Optional, TypedDict
-from uuid import UUID, uuid4
+from uuid import UUID
 
 # ── Payload-типы (TypedDict — аннотации, не классы, не нарушают иерархию) ──
 
@@ -95,7 +95,7 @@ class EventDTO:
         if event_id is None:
             _seed_str = f"{event_type}:{source}:{_final_ts}".encode("utf-8")
             event_id = UUID(hex=hashlib.md5(_seed_str).hexdigest())
-        
+
         return cls(
             id=event_id,
             type=event_type,

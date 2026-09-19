@@ -5,11 +5,14 @@
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List, Optional
+
+from app.models.cognitive_dissonance import Contradiction
 from app.models.evaluation import EvaluationResult
 from app.models.last_words import LastWord
-from app.models.cognitive_dissonance import Contradiction
+
 
 @dataclass(frozen=True)
 class NpcFateScreenData:

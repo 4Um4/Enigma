@@ -21,9 +21,15 @@ class SpatialFactory:
     # S-03.1: Кэшируем SpatialService вместе с SHA-256 fingerprint
     _cache: Dict[Tuple[str, str], Tuple[SpatialService, str]] = {}
 
+    # S268-АТАКА5c: fp-кэш по (mtime, size) — os.stat на ~3 порядка
+    # дешевле SHA-256 полного файла + Path.resolve на каждый вызов.
+    # Инвалидация честная: любое изменение файла меняет mtime/size
+    # (контент-хеш оставляем как резерв для спорных случаев).
+    _fp_cache: Dict[Tuple[str, str], Tuple[str, float, int]] = {}
+
     @staticmethod
     def _get_map_fingerprint(campaign_id: str, location_id: str) -> str:
-        """Вычисляет SHA-256 от файла карты для надёжной инвалидации кэша."""
+        """Fingerprint карты: mtime+size кэшируются, SHA-256 — только при изменении."""
         project_root = Path(__file__).resolve().parents[4]
         campaign_dir = project_root / "frontend" / "map_editor" / "campaigns" / campaign_id
         loc_file = campaign_dir / "locations" / f"{location_id}.json"
@@ -31,7 +37,13 @@ class SpatialFactory:
             loc_file = campaign_dir / f"{location_id}.json"
         if not loc_file.exists():
             return ""
-        return hashlib.sha256(loc_file.read_bytes()).hexdigest()
+        _st = loc_file.stat()
+        _cached = SpatialFactory._fp_cache.get((campaign_id, location_id))
+        if _cached and _cached[1] == _st.st_mtime and _cached[2] == _st.st_size:
+            return _cached[0]
+        _fp = hashlib.sha256(loc_file.read_bytes()).hexdigest()
+        SpatialFactory._fp_cache[(campaign_id, location_id)] = (_fp, _st.st_mtime, _st.st_size)
+        return _fp
 
     @staticmethod
     def build_for_campaign(

@@ -11,8 +11,8 @@ LLM получает build_combat_context() и только нарративит
 import json
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
 from types import ModuleType
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from app.core.clock import get_clock
 from app.core.log_gate import file_logs_enabled

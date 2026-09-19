@@ -1,5 +1,10 @@
 """S266: W5-разведка — рождается ли второй TRADE-заказ после thirst."""
-import sys, tempfile, types, os, shutil, logging
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")

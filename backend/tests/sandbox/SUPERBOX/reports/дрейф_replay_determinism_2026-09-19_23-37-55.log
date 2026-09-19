@@ -1,0 +1,40 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_m4qpnmg0
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_m4qpnmg0\saves
+
+--- MODE E: Replay Determinism Audit (2 × 10000 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A: tick 2000/10000
+  [REPLAY] Run A: tick 4000/10000
+  [REPLAY] Run A: tick 6000/10000
+  [REPLAY] Run A: tick 8000/10000
+  [REPLAY] Run A: tick 10000/10000
+  [REPLAY] Run A complete: hash=45b69886cbaaeadc... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_m4qpnmg0: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_m4qpnmg0\\saves\\enigma_memory.db'
+[DRIFT_LAB] Temp dir сохранён для ручной очистки: C:\Users\lipir\AppData\Local\Temp\drift_lab_m4qpnmg0
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_650ky88m
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_kjyjutlw
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_kjyjutlw\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B: tick 2000/10000
+  [REPLAY] Run B: tick 4000/10000
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_kjyjutlw: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_kjyjutlw\\saves\\enigma_memory.db'

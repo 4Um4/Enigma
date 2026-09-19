@@ -14,9 +14,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
-from app.domain.desired_change import DesiredChange, stop_hostile
 from app.services.npc.causal_slice_threat import (
     ThreatDesiredChangeProducer,
 )

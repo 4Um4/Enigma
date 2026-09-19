@@ -3,8 +3,11 @@ map_editor/ui/dialogs.py
 Модальные окна: ModalDialog, CalibrationPanel
 """
 from typing import Any, Callable, Dict, List, Optional
+
 import pygame
-from ui.components import Button, COLORS, Slider, TextInput, Dropdown
+
+from ui.components import COLORS, Button, Dropdown, Slider, TextInput
+
 
 class ModalDialog:
     """Модальное окно с формой"""

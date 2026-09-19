@@ -4,14 +4,11 @@ path: /project/backend/app/services/perception/narrative_projector.py
 Зависимости: app.domain.presentation, math
 Основные сущности: NarrativeProjector
 """
-import math
 import logging
-from typing import List, Dict, Any
-from app.domain.presentation import (
-    PerceivedNarrativeDTO, 
-    PerceptionContext,
-    AvatarPerceptionProfile
-)
+import math
+from typing import Dict, List
+
+from app.domain.presentation import PerceivedNarrativeDTO, PerceptionContext
 from app.services.perception.auditory_distortion_policy import AuditoryDistortionPolicy
 
 logger = logging.getLogger(__name__)
@@ -30,8 +27,8 @@ class NarrativeProjector:
         self._distortion = AuditoryDistortionPolicy()
 
     def project(
-        self, 
-        raw_dialogues: List[Dict], 
+        self,
+        raw_dialogues: List[Dict],
         context: PerceptionContext
     ) -> List[PerceivedNarrativeDTO]:
         if not raw_dialogues:
@@ -45,7 +42,7 @@ class NarrativeProjector:
             speaker_id = d.get("speaker_id")
             text = d.get("text", "")
             event_id = d.get("event_id", "") # Ожидаем event_id снаружи!
-            
+
             dist = 999.0
             if speaker_id and speaker_id in context.speaker_positions:
                 s_x, s_y = context.speaker_positions[speaker_id]

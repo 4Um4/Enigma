@@ -16,6 +16,7 @@ path: backend/app/services/game_loop/time_advance.py
 
 import logging
 import re
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def advance_game_time(
     scene_state: dict,
     action_type: str,
     raw_input: str,
-    shared_context: dict | None = None,
+    shared_context: Any | None = None,
 ) -> None:
     """
     Фаза 4 — время продвигается от действий, не от тиков.

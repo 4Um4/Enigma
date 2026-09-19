@@ -5,6 +5,7 @@ SC-1..SC-8: Пространственная согласованность.
 """
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
+
 class SpatialCoherenceProbe(Probe):
     name = "INV-SC-1-8-SPATIAL-COHERENCE"
     severity = "ERROR"

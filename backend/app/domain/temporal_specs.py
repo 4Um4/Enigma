@@ -27,6 +27,7 @@ path: backend/app/domain/temporal_specs.py
     VALIDITY_RULES, SUCCESS_RULES
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 

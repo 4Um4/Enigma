@@ -12,6 +12,7 @@ NPC attack → stress + урон, intimidate → stress, help → stress reducti
 
 import logging
 from typing import Any
+
 from app.services.avatar_state_applicator import AvatarStateApplicator
 
 logger = logging.getLogger(__name__)

@@ -6,13 +6,14 @@ path: /project/backend/app/services/replay/replay_cli.py
 Основные сущности: CLI entry point
 """
 import argparse
-import sys
-import os
-import tempfile
 import logging
+import os
+import sys
+import tempfile
 
 logger = logging.getLogger(__name__)
 from pathlib import Path
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="ENIGMA Replay CLI")
@@ -33,37 +34,37 @@ def main() -> None:
     if args.command == "play":
         from app.core.config import settings
         from app.services.game_loop_builder import build_game_loop
-        from app.services.replay.replay_store import ReplayStore
         from app.services.replay.replay_player import ReplayPlayer
-        
+        from app.services.replay.replay_store import ReplayStore
+
         db_path = f"backend/data/replay/{args.session}.db"
         if not os.path.exists(db_path):
             logger.error(f"[ERROR] Replay DB not found: {db_path}")
             sys.exit(1)
-            
+
         store = ReplayStore(db_path)
-        
+
         # Изолируем saves в темп, чтобы не портить реальные сохранения
         temp_saves = tempfile.mkdtemp(prefix="replay_saves_")
         settings.saves_dir = temp_saves
         data_dir = Path(settings.data_dir)
-        
+
         game_loop = build_game_loop(data_dir)
-        
+
         # Дефолтные параметры кампании (как в IPT)
         campaign_id = "Open_road"
         location_id = "tavern"
-        
+
         player = ReplayPlayer(store, game_loop, args.session, campaign_id, location_id)
-        
+
         logger.info(f"[CLI] Starting replay for session {args.session} (tick {args.start} to {args.end or 'END'})")
         report = player.play(start_tick=args.start, end_tick=args.end, max_drift=args.max_drift)
-        
+
         logger.info("\n--- REPLAY REPORT ---")
         for k, v in report.items():
             logger.info(f"{k}: {v}")
         logger.info("---------------------")
-        
+
         if report["status"] == "SUCCESS":
             sys.exit(0)
         else:

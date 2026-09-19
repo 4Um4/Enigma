@@ -20,7 +20,7 @@ def main() -> None:
     impact_parser.add_argument("--file", required=True, help="Путь к файлу (например, backend/app/services/tick_orchestrator.py)")
 
     conflicts_parser = subparsers.add_parser("conflicts", help="Проверить граф на конфликты")
-    
+
     visualize_parser = subparsers.add_parser("visualize", help="Сгенерировать Mermaid-граф")
     visualize_parser.add_argument("--output", default="docs/_adr_graph.md", help="Путь к выходному файлу")
 
@@ -29,8 +29,8 @@ def main() -> None:
     # Добавляем корень проекта в sys.path
     sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-    from app.services.adr_net.adr_graph import ADRGraphBuilder
     from app.services.adr_net.adr_conflict_detector import ADRConflictDetector
+    from app.services.adr_net.adr_graph import ADRGraphBuilder
     from app.services.adr_net.adr_visualizer import ADRVisualizer
 
     builder = ADRGraphBuilder()
@@ -55,7 +55,7 @@ def main() -> None:
     elif args.command == "conflicts":
         detector = ADRConflictDetector(graph)
         results = detector.check_all()
-        
+
         cycles = results.get("cycles", [])
         if cycles:
             logger.warning("\n🔴 ОБНАРУЖЕНЫ ЦИКЛИЧЕСКИЕ ЗАВИСИМОСТИ:")

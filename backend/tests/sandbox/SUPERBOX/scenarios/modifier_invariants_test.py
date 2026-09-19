@@ -13,8 +13,8 @@ SUPERBOX-012: Формальные инварианты композиции м�
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/modifier_invariants_test.py
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Настройка путей
@@ -26,15 +26,16 @@ logger = logging.getLogger("MODIFIER_INVARIANTS_TEST")
 logger.setLevel(logging.INFO)
 
 # Импорты ENIGMA
-from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.services.events.event_types import EventType
-from app.models.npc_state import NPCState
-from app.domain.identity_events import EffectiveDrives
 from app.domain.decision_context import DecisionContext
 from app.domain.epistemology import EpistemicContext
+from app.domain.identity_events import EffectiveDrives
+from app.models.npc_state import NPCState
+from app.services.events.event_types import EventType
+from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.epistemic_context_resolver import EpistemicContextResolver
 from app.services.npc.kernel_rng import KernelRNG
 from app.services.npc.npc_loader import load_npc_profiles_from_config
+
 
 def get_warn_score(state, personality, effective_drives, event,
                    social_mods=None, epistemic_mods=None):
@@ -134,7 +135,7 @@ def run_test():
     coupling_error = abs(delta_es - (delta_e + delta_s))
     no_coupling_ok = coupling_error < 0.001
     
-    print(f"\n--- Сводка ---")
+    print("\n--- Сводка ---")
     print(f"  Изоляция (E):     {'✅' if isolation_e_ok else '❌'} Δ(E) = {delta_e:.4f}")
     print(f"  Изоляция (S):     {'✅' if isolation_s_ok else '❌'} Δ(S) = {delta_s:.4f}")
     print(f"  Аддитивность:     {'✅' if additivity_ok else '❌'} Δ(E+S) = {delta_es:.4f} = Δ(E)+Δ(S)")

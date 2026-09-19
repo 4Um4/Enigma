@@ -5,8 +5,10 @@ path: /project/backend/app/services/replay/replay_player.py
 Зависимости: app.services.replay.replay_store, app.services.replay.time_freezer
 Основные сущности: ReplayPlayer, ReplayDriftError
 """
-import logging, math
-from typing import Any, Optional, List, Dict
+import logging
+import math
+from typing import Any, Dict, List, Optional
+
 from app.services.replay.replay_store import ReplayStore
 from app.services.replay.time_freezer import frozen_time
 
@@ -32,12 +34,12 @@ class ReplayPlayer:
         Возвращает отчёт о дрейфе.
         """
         from app.core.config import settings
-        
+
         # Активируем LLM Cache (чтение)
         settings.replay_playback = True
         _old_replay_record = settings.replay_record
         settings.replay_record = False
-        
+
         # BUG-DRIFT-001 FIX: Сброс scene_state["tick"] до start_tick перед стартом воспроизведения
         # Иначе оркестратор инкрементирует tick с предыдущего значения (100), ломая детерминизм KernelRNG
         _scene = self.game_loop.get_scene_state(self.campaign_id, self.location_id)
@@ -49,7 +51,7 @@ class ReplayPlayer:
             if _recorded_first_tick:
                 _scene["game_time_seconds"] = _recorded_first_tick["game_time_seconds"]
             self.game_loop.save_scene_state(self.campaign_id, _scene)
-        
+
         total_drifts = 0
         replayed_ticks = 0
 
@@ -110,13 +112,13 @@ class ReplayPlayer:
     def _compare_results(self, actual_result: Any, recorded_snapshot: Any) -> List[str]:
         """Сравнивает текущий результат с записанным. Возвращает список отличий."""
         drifts = []
-        
+
         actual_snapshot_dict = actual_result.get("world_snapshot", {}) if isinstance(actual_result, dict) else {}
-        
+
         if actual_snapshot_dict and recorded_snapshot:
             actual_pos = {k: v.get("local_position", {}) for k, v in actual_snapshot_dict.get("npc_positions", {}).items()}
             recorded_pos = {k: v.get("local_position", {}) for k, v in recorded_snapshot.get("npc_positions", {}).items()}
-            
+
             # Сравниваем только пересекающиеся NPC (фильтрация по location_id в реплее может вызывать разницу ключей)
             common_keys = actual_pos.keys() & recorded_pos.keys()
             for npc_id in common_keys:
@@ -129,5 +131,5 @@ class ReplayPlayer:
                 ):
                     # BUG-DRIFT-003 FIX: Возвращаем детальный лог с координатами для REPLAY_DIAG
                     drifts.append(f"NPC={npc_id} ACTUAL={a_pos} RECORDED={r_pos}")
-                
+
         return drifts

@@ -29,9 +29,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 from app.services.calibration.config_overlay import overlay_active, overlay_constants
-from app.services.calibration.preset_io import Preset, load_preset
 from app.services.calibration.metrics import build_metrics_bundle
 from app.services.calibration.observability_tap import ObservabilityTap
+from app.services.calibration.preset_io import Preset, load_preset
 from app.services.calibration.preset_materializer import materialize_preset
 from app.services.calibration.scenario_player import ScenarioPlayer, load_scenario
 from app.services.game_loop_builder import build_game_loop
@@ -328,7 +328,7 @@ class ExperimentRunner:
         # материализацию в шину с новыми подписчиками → run1 ≠ run2.
         # Ядро вердикта AC-004: statuses/nan/final_npc_state/npc_captures.
         # Возврат l1 в вердикт — вместе с rel при quiesce (DEBT-QUIESCE).
-        if run_1.final_npc_state != run_2.final_npc_state:  
+        if run_1.final_npc_state != run_2.final_npc_state:
             diff.append("final_npc_state")
         if run_1.npc_captures != run_2.npc_captures:
             diff.append("npc_captures")
@@ -370,7 +370,7 @@ class ExperimentRunner:
             if config.scenario_path
             else None
         )
-        
+
         from app.services.events.event_bus import get_event_bus
         get_event_bus().clear()
 
@@ -394,7 +394,7 @@ class ExperimentRunner:
         # materialize_preset и overlay_constants держат контекст открытыми
         self._preset_ctx = materialize_preset(self._active_preset)
         self._preset_ctx.__enter__()
-        
+
         self._active_game_loop = build_game_loop(data_dir=self._orig_data_dir)
         # M1: зеркалирует P-MVP-1 из new_game. Без init_campaign у
         # action_compiler отсутствует _campaign_id — P2-мост в
@@ -406,7 +406,7 @@ class ExperimentRunner:
         self._active_tap = ObservabilityTap()
         self._active_metrics = build_metrics_bundle()
         self._active_tap.attach()
-        
+
         self._overlay_ctx = overlay_constants(
             self._active_preset.constants, require_loaded=_REQUIRE_LOADED
         )
@@ -442,10 +442,10 @@ class ExperimentRunner:
             tick_result = game_loop.idle_tick(config.campaign_id, interventions=interventions)
             self._statuses.append(str(tick_result.get("status", "unknown")))
             self._settle_async_dialogue_layer(game_loop, config)
-            
+
             self._npc_captures.append(copy.deepcopy(engine.get_npc_states(config.campaign_id)))
             self._rel_captures.append(game_loop.memory_manager.get_relationships(config.campaign_id))
-            
+
             tick_records = self._active_tap.take_tick_records()
             self._events_per_tick.append(len(tick_records))
             self._active_metrics.update(
@@ -475,13 +475,13 @@ class ExperimentRunner:
 
         self._final_quiesce(game_loop, tap)
         metrics = self._active_metrics.compute_all()
-        
+
         final_raw = self._npc_captures[-1] if self._npc_captures else []
         final_by_id = {
             n.get("id", n.get("npc_id", "unknown")): n for n in final_raw
         }
         nan_count = sum(_count_nan(n) for n in final_raw)
-        
+
         l1_event_count = 0
         chron = getattr(game_loop._tick_orch, "l1_chronicle", None)  # noqa: ENIGMA002
         if chron is not None:
@@ -544,7 +544,7 @@ class ExperimentRunner:
             events_per_tick=self._events_per_tick,
             metrics=metrics,
         )
-        
+
         # Очистка атрибутов состояния
         del self._active_game_loop
         del self._active_config

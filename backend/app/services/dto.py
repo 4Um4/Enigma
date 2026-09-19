@@ -107,6 +107,10 @@ class _TickContext:
     spatial_query: Optional[Any] = None
     # ADR-O-313: Проброс TaskScheduler для чтения свежих реплик (S128 FIX)
     task_scheduler: Optional[Any] = None
+    # PLAYER-STUB LAW (задача №5, Phase C): локация игрока для гейта стабов.
+    # Player-записи в НЕактивных сценах — travel-метки, не акторы: не
+    # порождают intents/decision/epistemic. Заполняется create_tick_context.
+    active_location_id: str = ""
 
     # S151: Экономический профиль игрока для сборки EmbodiedStatusDTO в Фазе 9
     eco_profile: Optional[Any] = None

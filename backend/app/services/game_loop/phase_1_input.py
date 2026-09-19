@@ -25,7 +25,7 @@ def _lemmatize(text: str) -> str:
     """Возвращает нормальную форму слова, если доступен pymorphy3."""
     if not _morph or not text:
         return text
-    return _morph.parse(text)[0].normal_form
+    return str(_morph.parse(text)[0].normal_form)
 
 from app.domain.events import EventDTO
 from app.domain.intent import IntentDTO, IntentParametersDTO

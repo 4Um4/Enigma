@@ -11,8 +11,6 @@
 Запускать ТОЛЬКО после применения шагов 1-4 этого ТЗ.
 """
 
-import os
-import subprocess
 import sys
 import time
 from pathlib import Path

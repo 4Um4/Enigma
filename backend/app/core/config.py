@@ -8,7 +8,7 @@
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
     from app.core.content_policy import ContentPolicy
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     min_ram_gb: int = 12
     enforce_system_requirements: bool = False
     orchestrator_workers: int = 2
-    
+
     # Подсистема 2: Replay System
     replay_mode: str = "passive"  # "off", "passive", "active"
     replay_playback: bool = False  # True для чтения из кэша

@@ -1,0 +1,73 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_e98_qfoq
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_e98_qfoq\saves
+
+--- MODE E: Replay Determinism Audit (2 × 10000 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A: tick 2000/10000
+  [REPLAY] Run A: tick 4000/10000
+  [REPLAY] Run A: tick 6000/10000
+  [REPLAY] Run A: tick 8000/10000
+  [REPLAY] Run A: tick 10000/10000
+  [REPLAY] Run A complete: hash=33ea06d51995ff2b... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_e98_qfoq
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_becr_hs5
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_becr_hs5\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B: tick 2000/10000
+  [REPLAY] Run B: tick 4000/10000
+  [REPLAY] Run B: tick 6000/10000
+  [REPLAY] Run B: tick 8000/10000
+  [REPLAY] Run B: tick 10000/10000
+  [REPLAY] Run B complete: hash=554985b56b865db1... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  🔴 REPLAY DETERMINISM: MISMATCH
+     Hash A: 33ea06d51995ff2b2d1bd8da4241b5ed047eb4d30ef9d06f27a61eedf6e29bea
+     Hash B: 554985b56b865db12a14e3b3d48b7a053170a0150ea56672783bde623c9329dc
+     Hidden entropy source detected — investigation required
+
+  [REPLAY] Диагностика расхождения:
+     NPC 'blacksmith_orm' [narrative_cache]: A=[{'event_type': 'secret_origin', 'target_id': '', 'emotion_tag': 'neutral', 'day': -1000, 'importanc
+                         B=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'sad', 'day': -1000, 'importance': 0.9, 'c
+     NPC 'guard_borko' [psyche]: A={'willpower': 45, 'breakpoint': 65, 'loyalty_true': 1.0, 'stress': 100.0, 'state': 'free', 'identity
+                         B={'willpower': 45, 'breakpoint': 65, 'loyalty_true': 1.0, 'stress': 100.0, 'state': 'free', 'identity
+     NPC 'merchant_goran' [psyche]: A={'willpower': 50, 'breakpoint': 70, 'loyalty_true': 45, 'stress': 100.0, 'state': 'free', 'identity_
+                         B={'willpower': 50, 'breakpoint': 70, 'loyalty_true': 45, 'stress': 100.0, 'state': 'free', 'identity_
+     NPC 'thief_shadow' [routine]: A={'schedule': {'18:00-06:00': 'observing', '06:00-18:00': 'sleeping'}, '//_note': 'Shadow — nocturnal
+                         B={'schedule': {'18:00-06:00': 'observing', '06:00-18:00': 'sleeping'}, '//_note': 'Shadow — nocturnal
+     scene['npc_positions']: A={'maid_lusya': {'name': 'Люся', 'location_id': 'tavern', 'position': 'tavern:main_hall', 'activity':
+                     B={'maid_lusya': {'name': 'Люся', 'location_id': 'tavern', 'position': 'tavern:main_hall', 'activity':
+     scene['recent_dialogues']: A=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+                     B=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_becr_hs5
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 0
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌

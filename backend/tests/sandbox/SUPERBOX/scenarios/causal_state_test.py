@@ -24,7 +24,6 @@ import sys
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional
 
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
@@ -316,8 +315,8 @@ def _run_group_D() -> Dict[str, str]:
     фабрика, не конструктор-мечты). Ожидание по контракту: ArchitecturalViolationError.
     Прогноз по коду (AUD-D4/DEBT-R9): D2/D3 пройдут молча — это диагноз, не
     провал экзамена."""
-    from app.models.npc_state import NPCStateAdapter
     from app.models.npc.beliefs import BeliefFragment, BeliefType
+    from app.models.npc_state import NPCStateAdapter
     from tests.gameplay.harness import TavernGameplayHarness
 
     outcomes: Dict[str, str] = {}
@@ -426,7 +425,7 @@ def run_causal_state_test() -> Dict[str, Any]:
     print(f"[A] intent={res_a.intent} | argmax={res_a.argmax} | move={res_a.movement} | PK@tick2={res_a.pk_at_measure} | {_format_scores(res_a.scores)}")
     print(f"[B] intent={res_b.intent} | argmax={res_b.argmax} | move={res_b.movement} | PK@tick2={res_b.pk_at_measure} | {_format_scores(res_b.scores)}")
     print(f"[C] intent={res_c.intent} | argmax={res_c.argmax} | move={res_c.movement} | PK@tick2={res_c.pk_at_measure} | {_format_scores(res_c.scores)}")
-    print(f"[ATTRIBUTION A−C] " + ", ".join(f"{k}={v:+.3f}" for k, v in sorted(_attr.items(), key=lambda kv: abs(kv[1]), reverse=True)[:6]))
+    print("[ATTRIBUTION A−C] " + ", ".join(f"{k}={v:+.3f}" for k, v in sorted(_attr.items(), key=lambda kv: abs(kv[1]), reverse=True)[:6]))
     print()
     for _k, _v in d_outcomes.items():
         print(f"[D] {_k}: {_v}")

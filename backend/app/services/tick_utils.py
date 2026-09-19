@@ -37,7 +37,7 @@ from app.services.events.event_types import EventType
 logger = logging.getLogger(__name__)
 
 
-def resolve_affected_npcs(event) -> list[str]:
+def resolve_affected_npcs(event: Any) -> list[str]:
     """Определяет список NPC затронутых событием."""
     affected: list[str] = []
     etype = event.type
@@ -202,7 +202,7 @@ def build_npc_snapshots(
     return snapshots
 
 
-def _reduce_additive(p1, p2):
+def _reduce_additive(p1: Any, p2: Any) -> Any:
     """Сливает два payload для ADDITIVE/BOUNDED_ADDITIVE доменов."""
     if p1 is None:
         return p2
@@ -378,11 +378,12 @@ def create_tick_context(
     interventions: list,
     npc_services: Any,
     drf_bus: "DRFBus",
-    all_npcs_raw: list = None,
+    all_npcs_raw: list[Any] | None = None,
     shared_context: Any = None,
     task_scheduler: Any = None,
     hub_event: Any = None,
     eco_profile: Any = None,  # S151: Профиль игрока для EmbodiedStatusDTO
+    active_location_id: str = "",  # PLAYER-STUB LAW: локация игрока (гейт стабов)
     mvp_controller: Any = None,  # ENIGMA SELF-HEALING: For MvpPipelineProbe (N1, M-03)
     epistemic_store: Any = None, # S189: Epistemic Core (ADR-O-354)
     epistemic_context_resolver: Any = None, # S189: Epistemic Core (ADR-O-354)
@@ -401,7 +402,15 @@ def create_tick_context(
     _epistemic_resolver = epistemic_context_resolver
 
     # S83.1: Tick = Pure Function Evaluation. Freeze input snapshot.
-    input_snapshot = copy.deepcopy(scene_state)
+    # S268-7b-ЭКСПЕРИМЕНТ: транспорт входа — A/B измерение (приказ:
+    # copy vs move на одном fixture+seed, не догма). move = передача
+    # владения живой сценой (SMOKE-уровень: SceneStateManager —
+    # единственный писатель до коммита; фазы получают overlay).
+    import os as _os
+    if _os.environ.get("EPOCH_INPUT_TRANSPORT", "copy") == "move":
+        input_snapshot = scene_state
+    else:
+        input_snapshot = copy.deepcopy(scene_state)
 
     # PR-6b (S268): Overlay-транспорт тика. Фазы пишут в TickOverlay
     # (duck-typed dict), читают через shadow-read (epoch → overlay).

@@ -4,7 +4,7 @@
 Зависимости: typing, app.models.observation
 """
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from app.models.observation import EvidenceLink, EvidencePolarity, Observation, ObservationSourceType
 

@@ -4,8 +4,7 @@ path: /project/backend/tests/test_world_epoch.py
     write-запрет, view/overlay разделение.
 """
 import pytest
-
-from app.domain.world_epoch import WorldEpoch, WorldView
+from app.domain.world_epoch import WorldEpoch
 
 
 def _mk_state():

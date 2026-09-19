@@ -3,6 +3,7 @@ map_editor/ui/components.py
 Базовые атомарные виджеты UI: Button, TextInput, Dropdown, Slider и т.д.
 """
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import pygame
 
 # === Цветовая схема ===

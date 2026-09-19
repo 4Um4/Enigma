@@ -11,7 +11,7 @@ import heapq
 import logging
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class DialogueQueue:
                     f"Queue is full ({current_size}/{self.MAX_PENDING_TASKS})."
                 )
                 return task_id  # Возвращаем ID, чтобы caller не падал, но в очередь не кладём
-            
+
             # Canonical overflow → PRESERVE
             # Ищем ambient задачу для вытеснения
             evicted_idx = -1
@@ -107,7 +107,7 @@ class DialogueQueue:
                 if item.task_type == "ambient":
                     evicted_idx = i
                     break
-            
+
             if evicted_idx != -1:
                 evicted_task = self._heap.pop(evicted_idx)
                 heapq.heapify(self._heap)  # Восстанавливаем инвариант кучи
