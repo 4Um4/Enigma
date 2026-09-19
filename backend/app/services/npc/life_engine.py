@@ -1955,13 +1955,31 @@ class LifeEngine:
             )
         ]
 
+        # VISIBILITY CONTRACT (мандат, k0t8yr): visible=False
+        # ⇔ is_sleeping(activity) И целевой узел — BED. Пробуждение
+        # (activity не-sleep) → immediate True. Никакого гистерезиса:
+        # пересчёт на КАЖДОЙ смене activity из authoritative state.
         going_to_sleep = is_sleeping(new_activity)
+        _on_bed = bool(
+            going_to_sleep
+            and new_position
+            and self._spatial_service is not None
+            and self._spatial_service.resolve_affordance(
+                affordance_type="sleep",
+                origin_xy=(
+                    npc.get("local_position", {}).get("x", 0.0),
+                    npc.get("local_position", {}).get("y", 0.0),
+                ),
+                origin_zone=npc.get("location_id"),
+                owner=npc_id,
+            )
+        )
         changes.append(
             SceneChange(
                 type=ChangeType.NPC_POSITION,
                 target=npc_id,
                 field="visible",
-                value=not going_to_sleep,
+                value=not (going_to_sleep and _on_bed),
                 cause="life_engine_schedule",
                 tick=tick,
             )

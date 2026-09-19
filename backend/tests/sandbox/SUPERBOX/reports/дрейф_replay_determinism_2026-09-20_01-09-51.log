@@ -12,3 +12,19 @@ DRIFT LABORATORY — Mode: replay_determinism
   [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
 
   [REPLAY] === RUN A ===
+  [REPLAY] Run A complete: hash=10402e65eaae8b7c... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_4776pnbx: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_4776pnbx\\saves\\enigma_memory.db'
+[DRIFT_LAB] Temp dir сохранён для ручной очистки: C:\Users\lipir\AppData\Local\Temp\drift_lab_4776pnbx
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_hmk7qtfu
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_l67w31y0
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_l67w31y0\saves
+
+  [REPLAY] === RUN B ===
