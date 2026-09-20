@@ -54,6 +54,8 @@ class DialogueQueue:
         self._minute_count: int = 0
         self._minute_start: float = 0.0  # симуляционное время (game_time_seconds)
         self._recent_npc_speak: dict[str, float] = {}  # npc_id -> last_speak_game_time
+        # ADR-O-399: монотонный ordering-counter для детерминированных task_id
+        self._dlg_seq: int = 0
         if not (0.0 < backpressure_ratio <= 1.0):
             raise ValueError(
                 f"backpressure_ratio must be in (0, 1], got {backpressure_ratio}"
@@ -68,7 +70,13 @@ class DialogueQueue:
         - Canonical overflow: PRESERVE (вытесняет ambient, если队列 полна).
         - Никакой деградации canonical -> ambient.
         """
-        task_id = f"dlg-{uuid.uuid4().hex[:8]}"
+        # ADR-O-399: task_id здесь — НЕ identity сущности и НЕ persistent ID,
+        # а детерминированный ordering key конкретного enqueue-потока
+        # (main-thread; последовательность enqueue детерминирована).
+        # uuid4 запрещён: ключ входит в каноническую сортировку outbox
+        # (прецедент ADR-O-365: domain/tasks.py).
+        task_id = f"dlg-{int(game_time_seconds)}-{self._dlg_seq:06d}"
+        self._dlg_seq += 1
         task = QueuedDialogue(
             priority=-priority,  # heapq = min-heap, инвертируем
             enqueued_at=game_time_seconds,

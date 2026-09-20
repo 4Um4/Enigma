@@ -150,7 +150,7 @@ class L1Chronicle:
             rows = self._store.query(
                 "SELECT target_id, tick_id, source_id, effect_value, observation_weight, event_type "
                 "FROM l1_chronicle_events "
-                "WHERE campaign_id = ? ORDER BY tick_id ASC",
+                "WHERE campaign_id = ? ORDER BY tick_id ASC, source_id ASC, id ASC",
                 (self._campaign_id,),
             )
             for row in rows:
@@ -266,7 +266,13 @@ class L1Chronicle:
                 "(campaign_id, target_id, tick_id, source_id, effect_value, observation_weight, event_type) "
                 "SELECT campaign_id, target_id, tick_id, source_id, effect_value, observation_weight, event_type "
                 "FROM l1_chronicle_events "
-                "WHERE campaign_id = ? AND tick_id < ?",
+                "WHERE campaign_id = ? AND tick_id < ? "
+                "AND NOT EXISTS (SELECT 1 FROM l1_chronicle_archive AS dst "
+                "WHERE dst.campaign_id = l1_chronicle_events.campaign_id "
+                "AND dst.target_id = l1_chronicle_events.target_id "
+                "AND dst.tick_id = l1_chronicle_events.tick_id "
+                "AND dst.source_id = l1_chronicle_events.source_id "
+                "AND dst.event_type = l1_chronicle_events.event_type)",
                 (self._campaign_id, _threshold),
             )
             # ADR-O-208 / Rule 28: L1Chronicle — строго append-only. Удаление запрещено.
@@ -304,7 +310,7 @@ class L1Chronicle:
                     "SELECT target_id, tick_id, source_id, effect_value, observation_weight, event_type "
                     "FROM l1_chronicle_archive "
                     "WHERE campaign_id = ? AND target_id = ? AND tick_id >= ? "
-                    "ORDER BY tick_id ASC",
+                    "ORDER BY tick_id ASC, source_id ASC, id ASC",
                     (self._campaign_id, npc_id, t_from),
                 )
                 archive_events = [

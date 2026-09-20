@@ -1,0 +1,6 @@
+[SLEEPF] body_state container: НЕ НАЙДЕН — fatigue-канал отключён
+
+[SLEEPF] ===== CANONICAL CASE: thief_shadow =====
+[SLEEPF] SLEEP START tick=8  END tick=2881  duration=2873 тиков
+[SLEEPF] PHYSIOLOGICAL SLEEP (sleep_onset_tick): НЕТ — сон был только behavioral label
+[SLEEPF] t=5 act='' pos=tavern:entrance vis=True loc=tavern || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: schedule 'sleeping' требует city_gate, NPC физически в tavern → cross-loc relocati || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something'

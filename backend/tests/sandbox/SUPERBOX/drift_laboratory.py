@@ -1,4 +1,4 @@
-"""
+﻿"""
 ENIGMA Drift Laboratory — Каузальная стресс-машина (ADR-O-201 ФАЗА 2.5)
 
 Запуск:
@@ -861,6 +861,21 @@ class DriftLaboratory:
         cleaned = _copy.deepcopy(scene_state)
         for key in _EXCLUDE_FROM_SCENE_HASH:
             cleaned.pop(key, None)
+        # ADR-O-399 (Option 1, lab-only canonical projection): порядок
+        # recent_dialogues — delivery/transport order, не входит в
+        # доказанный causal contract (расследование O399-COUNT: состав
+        # записей идентичен 96==96, A-only=0, расходится только
+        # interleaving). Сортируем ТОЛЬКО проекцию для хеша;
+        # scene_state["recent_dialogues"] не трогаем (runtime/UI/memory
+        # порядок сохраняется). При появлении consumer'а, использующего
+        # порядок как причинный сигнал, контракт пересмотреть (мини-ADR).
+        _rd = cleaned.get("recent_dialogues")
+        if isinstance(_rd, list):
+            cleaned["recent_dialogues"] = sorted(
+                _rd,
+                key=lambda d: (d.get("timestamp", 0), d.get("speaker_id", ""),
+                               d.get("target_id", ""), d.get("text", "")),
+            )
 
         # S269-ФИКС КЭНОН-ХЕША: real_ts — wall-clock метаданные момента
         # записи диалога (аналог last_save_real_time, который уже исключён
@@ -1051,6 +1066,20 @@ class DriftLaboratory:
         _engine_b = self._game_loop._get_life_engine()
         npcs_b = _engine_b.get_npc_states(self.config.campaign_id) if _engine_b else []
         hash_b = self._canonical_hash(scene_b, npcs_b)
+        # O399-CROSSDIFF (временный диагностический артефакт, удалить после
+        # локализации): финальные сцены обоих ранов → JSON для внешнего
+        # структурного дифа. Не участвует в runtime, не меняет scene/hash/порядок,
+        # не SSOT, не персистентное состояние — просто файл.
+        _snap_dir = Path(__file__).parent / "reports" / "o399_snaps"
+        _snap_dir.mkdir(parents=True, exist_ok=True)
+        _tag = _os.environ.get("O399_TAG", "run")
+        (_snap_dir / f"scene_{_tag}.json").write_text(
+            json.dumps({"scene_a": scene_a, "scene_b": scene_b,
+                        "hash_a": hash_a, "hash_b": hash_b},
+                       ensure_ascii=False, default=str),
+            encoding="utf-8",
+        )
+        print(f"[O399-CROSSDIFF] saved → reports/o399_snaps/scene_{_tag}.json")
         drift_b = dict(self._orchestrator._drift_stats)
         print(f"  [REPLAY] Run B complete: hash={hash_b[:16]}... npcs={len(npcs_b)}")
         print(

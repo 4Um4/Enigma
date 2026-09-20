@@ -1557,6 +1557,11 @@ class GameLoop:
         # (без pending_tasks) не создают backlog терминалов; окно до unlock_tick (F24).
         if _auth_scene:
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+        # ADR-O-399 (точка (б)): безусловный deterministic commit артефактов
+        # воркера — тихие тики не создают backlog (симметрия F23);
+        # pending_tasks == 0 не блокирует дренаж готовых артефактов.
+        if _auth_scene:
+            self._get_task_scheduler().drain_task_worker_outbox(_auth_scene)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict

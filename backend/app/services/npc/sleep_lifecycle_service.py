@@ -70,20 +70,46 @@ class SleepLifecycleService:
             if eligibility is not None and eligibility.eligible:
                 _body["sleep_onset_tick"] = tick
                 _body["wake_duration"] = 0
+                # SLEEP-SLICE (Y-проекция v2): лейбл рождается из ФАКТА onset.
+                # Канонический путь projection — SceneChange activity (тот же
+                # механизм, что у всех лейблов): routine.current (NPC-dict) +
+                # SceneChange (scene_state) синхронно. Возвращаем changes —
+                # caller применит штатно.
+                npc.setdefault("routine", {})["current"] = "sleeping"
+                _label_changes = [
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=npc.get("id", "unknown"),
+                        field="activity",
+                        value="sleeping",
+                        cause="sleep_onset_projection",
+                        tick=tick,
+                    )
+                ]
                 logger.info(
                     f"[SLEEP_ONSET] {npc.get('id', 'unknown')}: "
-                    f"физиологический сон начат (tick={tick})"
+                    f"физиологический сон начат (tick={tick}) — label projected"
                 )
+                # SLEEP-SLICE: лейбл-проекция доезжает до scene_state штатно
+                # (dual-rail через caller tick_orchestrator _apply_with_shadow_observation)
+                return _label_changes
 
             self._update_coupling_profile(npc)
             return []
 
-        # S2B6-B (В4): intent withdrawal — вторая разрешённая причина
-        # пробуждения (расписание покинуло sleep-строки): факт сна не
-        # переживает отмену поведенческого интента.
+        # S2B6-B (В4) + SLEEP-SLICE (вердикт Мастера): intent-withdrawal
+        # различает ОТМЕНУ интента и PENDING-фазу. going_to_sleep после
+        # onset — не отмена сна: need-контур перезаписывает лейбл pending'ом
+        # (shelter_urge ещё не насыщена), а физиологический факт
+        # (sleep_onset_tick) продолжает действовать до wake-threshold.
+        # Withdrawal — только когда интент ушёл вовсе (""/чужая activity).
         _routine = npc.get("routine", {})
         _current = _routine.get("current", "")
-        if not is_sleeping(_current):
+        if _current == "going_to_sleep":
+            # Pending-фаза поверх живого сна: НЕ withdrawal, НЕ wake.
+            # Recovery/wake-threshold продолжают работу (ветки ниже).
+            pass
+        elif not is_sleeping(_current):
             self._wake_from_sleep(npc, tick)
             self._publish_sleep_event("sleep_end", npc, tick)
             self._update_coupling_profile(npc)

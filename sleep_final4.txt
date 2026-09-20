@@ -1,0 +1,11 @@
+[SLEEPF] body_state container: НЕ НАЙДЕН — fatigue-канал отключён
+
+[SLEEPF] ===== FIXTURE CLASSIFICATION =====
+[SLEEPF] sleep-узлы из топологии: ['guard_bed', 'kitchen_bed_1', 'kitchen_bed_2', 'tent_1', 'tent_2', 'tent_3', 'tent_4', 'tent_5', 'tent_6', 'tent_7', 'tent_8', 'tent_9']
+[SLEEPF] maid_lusya: sleep-тиков=24 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+[SLEEPF] blacksmith_orm: sleep-тиков=2 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+[SLEEPF] tavern_keeper_tornin: sleep-тиков=527 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+[SLEEPF] merchant_goran: sleep-тиков=412 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+[SLEEPF] guard_borko: sleep-тиков=16 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+[SLEEPF] thief_shadow: sleep-тиков=2873 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+[SLEEPF] ВЕРДИКТ: валидных sleep-fixtures нет (все sleep-эпизоды без BED-позиции) — см. классификацию выше

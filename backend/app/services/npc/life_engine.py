@@ -43,7 +43,7 @@ import json
 import logging
 from collections import OrderedDict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     pass
@@ -921,7 +921,9 @@ class LifeEngine:
                 npc["location_id"] = npc.get("location", DEFAULT_LOCATION_ID)
         return npcs
 
-    def _extracted_from__load_npcs_14(self, arg0, campaign_id):
+    def _extracted_from__load_npcs_14(
+        self, arg0: Path, campaign_id: str
+    ) -> List[Any]:
         npcs = json.loads(arg0.read_text(encoding="utf-8-sig"))
         npcs = self._normalize_runtime_npcs(npcs)
         self._npc_cache[campaign_id] = npcs
@@ -1061,21 +1063,10 @@ class LifeEngine:
                 ],
                 None,
             ),
-            # NPC на мгновение выходит (в туалет, за товаром, на улицу)
-            (
-                "brief_exit",
-                [
-                    SceneChange(
-                        type=ChangeType.NPC_POSITION,
-                        target=npc_id,
-                        field="visible",
-                        value=False,
-                        cause="life_engine_random",
-                        tick=tick,
-                    ),
-                ],
-                None,
-            ),
+            # V-3a (вердикт Мастера, k0t8yr): brief_exit удалён целиком.
+            # Activity transition ≠ physical disappearance: False здесь был
+            # внеправов (позиция не меняется, sleeping+BED нет), обратного
+            # писателя не имел — 39 однотиковых миганий orm (SDF baseline).,
         ]
         # Событие wanders_to_bar только в таверне — иначе MovementEngine не найдёт узел
         if location != DEFAULT_LOCATION_ID:
@@ -1184,19 +1175,30 @@ class LifeEngine:
         _routine_dict = npc.get("routine", {})
         _scheduled_activity = self._get_current_activity(_routine_dict.get("schedule", {}), current_time)
         _has_activity = isinstance(npc.get("activity_state"), dict)
+        # SLEEP-SLICE: физиологический сон не перебивается need-driven
+        # (wake — исключительная компетенция wake-threshold Phase 0.6).
+        _physiologically_asleep = (
+            (npc.get("body_state") or {}).get("sleep_onset_tick") is not None
+        )
         if (
             IntentDomain.ROUTINE in _viable
             and _scheduled_activity != "sleeping"
+            and not _physiologically_asleep
             and not _has_activity
         ):
             self._tick_needs(npc)
-            if need_intent := self._check_need_driven_movement(npc):
+            need_intent, need_wake_changes = self._check_need_driven_movement(
+                npc, tick
+            )
+            if need_intent:
                 need_intent.domain = IntentDomain.ROUTINE
                 # S89: Need-driven OVERRIDE — критическая потребность перезаписывает schedule
                 # Модель: schedule = constitution, needs = emergency signals
                 # Когда потребность > threshold → schedule пропускается (не конкурирует)
                 need_intent.priority = 0.8  # PRIORITY_REACTIVE level — выше schedule
                 candidates.append(need_intent)
+                # VISIBILITY CONTRACT (V-2): wake-edge need-пути — парные SceneChange
+                changes.extend(need_wake_changes)
 
         # 2. Расписание: только если ROUTINE жизнеспособен И нет критической потребности
         # S89: Need override — если need_intent уже в кандидатах, schedule не генерируется
@@ -1271,27 +1273,42 @@ class LifeEngine:
                 if target_activity := _NEED_TO_ACTIVITY.get(
                     winner.reason.split(":")[1].split("=")[0], ""
                 ):
-                    activity_entry = npc.get("activity_map", {}).get(
-                        target_activity, {}
-                    )
-                    changes.append(
-                        SceneChange(
-                            type=ChangeType.NPC_POSITION,
-                            target=winner.npc_id,
-                            field="activity",
-                            value=activity_entry.get("display", target_activity),
-                            cause=f"life_engine_need_driven:{winner.reason}",
-                            tick=tick,
+                    # SLEEP-SLICE (вердикт Мастера): sleeping — не команда,
+                    # а факт физиологии. Need-driven sleep-лейбл НЕ пишется
+                    # при intent — иначе лейбл на не-BED позиции → resolver
+                    # no_bed → onset невозможен (ownership proof: fireplace
+                    # ×527). «going_to_sleep» — pending-статус в пути; лейбл
+                    # встанет проекцией после onset (Phase 0.6). Не-sleep
+                    # активности — как прежде (лейбл+current немедленно,
+                    # их позиции не обязаны предшествовать лейблу).
+                    if is_sleeping(target_activity):
+                        _routine = npc.setdefault("routine", {})
+                        if _routine.get("current") != "going_to_sleep":
+                            _routine["current"] = "going_to_sleep"
+                        # activity-SceneChange не пишем: активность для
+                        # наблюдателя останется прежней до arrival — честно.
+                    else:
+                        activity_entry = npc.get("activity_map", {}).get(
+                            target_activity, {}
                         )
-                    )
-                    # BUG SC FIX: Обновление routine.current при победе need-driven
-                    # Без этого routine.current остаётся на schedule activity, пока NPC
-                    # физически на need-driven позиции → DOUBLE TRUTH → Schedule Freeze
-                    # Голодный NPC решил есть → routine.current = "eating" →
-                    # _tick_needs сбросит hunger → schedule вернёт NPC на работу
-                    _routine = npc.setdefault("routine", {})
-                    _routine["current"] = target_activity
-                    _routine["mood"] = self._mood_for_activity(target_activity)
+                        changes.append(
+                            SceneChange(
+                                type=ChangeType.NPC_POSITION,
+                                target=winner.npc_id,
+                                field="activity",
+                                value=activity_entry.get("display", target_activity),
+                                cause=f"life_engine_need_driven:{winner.reason}",
+                                tick=tick,
+                            )
+                        )
+                        # BUG SC FIX: Обновление routine.current при победе need-driven
+                        # Без этого routine.current остаётся на schedule activity, пока NPC
+                        # физически на need-driven позиции → DOUBLE TRUTH → Schedule Freeze
+                        # Голодный NPC решил есть → routine.current = "eating" →
+                        # _tick_needs сбросит hunger → schedule вернёт NPC на работу
+                        _routine = npc.setdefault("routine", {})
+                        _routine["current"] = target_activity
+                        _routine["mood"] = self._mood_for_activity(target_activity)
             logger.debug(
                 f"[LIFE_ENGINE] {npc.get('id', '?')}: "
                 f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
@@ -1309,7 +1326,7 @@ class LifeEngine:
         """
         if "needs" not in npc:
             npc["needs"] = {}
-        needs = npc["needs"]
+        needs: Dict[str, Any] = npc["needs"]
         # Гарантируем что все потребности из маппинга присутствуют
         for need_name in _NEED_TO_ACTIVITY:
             if need_name not in needs:
@@ -1355,15 +1372,21 @@ class LifeEngine:
     def _check_need_driven_movement(
         self,
         npc: Dict[str, Any],
-    ) -> Optional["MacroMovementGoal"]:
+        tick: int,
+    ) -> Tuple[Optional["MacroMovementGoal"], List[SceneChange]]:
         """
-        Если потребность выше порога — возвращает MovementIntent.
+        Если потребность выше порога — возвращает (MovementIntent, wake_changes).
         Приоритет: самая критичная потребность.
         Конвертация в SceneChange — ответственность MovementEngine (Слой 2).
+
+        VISIBILITY CONTRACT (мандат k0t8yr, V-2): need-driven OVERRIDE срывает
+        сон — wake-edge того же класса, что arousal_gate. Выход из
+        sleeping/resting → парный SceneChange(visible=True,
+        cause="need_driven_wake"). Идемпотентный True легален.
         """
         needs = npc.get("needs", {})
         if not needs:
-            return None
+            return None, []
 
         activity_map = npc.get("activity_map", {})
         npc_id = npc.get("id", "unknown")
@@ -1378,7 +1401,7 @@ class LifeEngine:
         ]
 
         if not urgent_needs:
-            return None
+            return None, []
 
         # Самая срочной первой
         urgent_needs.sort(key=lambda x: x[1], reverse=True)
@@ -1386,7 +1409,7 @@ class LifeEngine:
 
         target_activity = _NEED_TO_ACTIVITY.get(need_name)
         if not target_activity:
-            return None
+            return None, []
 
         # S89: Диагностика need-driven
         _has_am = target_activity in activity_map
@@ -1459,7 +1482,7 @@ class LifeEngine:
                             )
 
         if not target_entry:
-            return None
+            return None, []
 
         target_node = target_entry.get("position", "")
         target_location = target_entry.get("location", "")
@@ -1473,7 +1496,7 @@ class LifeEngine:
             else f"{_loc}:{current_position}"
         )
         if _norm_target == _norm_current:
-            return None
+            return None, []
 
         logger.info(
             f"[LIFE_ENGINE] Need-driven: {npc_id} → {target_activity} "
@@ -1485,20 +1508,61 @@ class LifeEngine:
         # npc["position"] = target_node
         # if target_location:
         #     npc["location"] = target_location
-        npc.get("routine", {})["current"] = target_activity
+        # SLEEP-SLICE (X, латентный writer): routine.current=sleeping здесь
+        # воскрешал лейбл-до-факта в обход caller-фикса (:1270-зона). Лейбл —
+        # проекция onset (Phase 0.6). Pending-статус ставит caller.
+        if not is_sleeping(target_activity):
+            npc.get("routine", {})["current"] = target_activity
 
         from app.domain.movement import PRIORITY_NEEDS
 
-        # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
-        return MacroMovementGoal(
-            actor_id=npc_id,
-            target_node_id=target_node,
-            from_node_id=npc.get("position", ""),
-            location_id=target_location,
-            reason=f"need_driven:{need_name}={need_value:.2f}",
-            domain=IntentDomain.ROUTINE,
-            priority=PRIORITY_NEEDS,
-        )
+        # SLEEP-SLICE (X, вердикт Мастера): cross-loc need-driven использует
+        # ЕДИНУЮ relocation-форму schedule-рельса (:1970-1986) — иначе
+        # голый intent с чужим графом молча умирает в process_intents
+        # (ownership proof: goran 40+ intent'ов без RELOCATE/DWELL/S186).
+        _actual_loc = npc.get("location_id") or npc.get("location", "")
+        if target_location and _actual_loc and target_location != _actual_loc:
+            goal = MacroMovementGoal(
+                actor_id=npc_id,
+                from_node_id=npc.get("position", "") or f"{_actual_loc}:entrance",
+                target_node_id=target_node,
+                target_local_xy=None,
+                location_id=target_location,
+                reason=f"need_driven:{need_name}={need_value:.2f}+relocation",
+                domain=IntentDomain.SURVIVAL,
+                priority=0.9,
+                final_location_id=target_location,
+                final_node_id=target_node,
+            )
+        else:
+            # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
+            goal = MacroMovementGoal(
+                actor_id=npc_id,
+                target_node_id=target_node,
+                from_node_id=npc.get("position", ""),
+                location_id=target_location,
+                reason=f"need_driven:{need_name}={need_value:.2f}",
+                domain=IntentDomain.ROUTINE,
+                priority=PRIORITY_NEEDS,
+            )
+
+        # VISIBILITY CONTRACT (V-2, wake-edge): need-driven OVERRIDE срывает сон.
+        # Тот же класс перехода, что arousal_gate-wake — НЕ новый источник
+        # истины. Idемпотентный True легален (materialization-писатели пишут
+        # True так же). False здесь не пишем никогда — только wake.
+        _current_activity = npc.get("routine", {}).get("current", "")
+        if "sleeping" in _current_activity or "resting" in _current_activity:
+            return goal, [
+                SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=npc_id,
+                    field="visible",
+                    value=True,
+                    cause="need_driven_wake",
+                    tick=tick,
+                )
+            ]
+        return goal, []
 
     def _arousal_gate(self, npc: Dict[str, Any], tick: int) -> list[SceneChange]:
         """ADR-O-142A: Behavior transition gate — missing wake edge.
@@ -1820,6 +1884,15 @@ class LifeEngine:
         if not new_activity:
             return [], None
 
+        # SLEEP-SLICE (вердикт Мастера, vertical slice): после
+        # физиологического onset (sleep_onset_tick is not None) сон
+        # владеет NPC до wake-threshold Phase 0.6. Schedule/need-контуры
+        # НЕ перезаписывают routine.current спящего — иначе S2B6-B
+        # withdrawal убивает физиологию на следующем тике («спал пару
+        # тиков и вышел»). Лейбл — проекция факта, не authority.
+        if (npc.get("body_state") or {}).get("sleep_onset_tick") is not None:
+            return [], None
+
         # Bridge 6: LifeProject → schedule mutation
         # ADR-O-317: В состоянии LOST или SEARCHING NPC игнорирует расписание (кризис идентичности).
         _psyche = npc.get("psyche", {})
@@ -1883,11 +1956,12 @@ class LifeEngine:
                 logger.debug(
                     f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}"
                 )
-                # V8-PSY-FIX: Обновляем рутину на sleeping, чтобы DecisionHub подавил социализацию.
-                # Это позволяет apply_tick_recovery (Phase 2) давать x3 восстановление стресса,
-                # пока NPC не может дойти до кровати из-за высокого стресса. Когда стресс
-                # упадёт ниже 50, GAP9 пропустит сон и NPC дойдёт до кровати.
-                npc["routine"]["current"] = "sleeping"
+                # SLEEP-SLICE (вердикт Мастера): лейбл = проекция факта.
+                # Сон заблокирован (threat/stress) → «спит» писать нельзя —
+                # resolver на том же тике вернёт blocked_stress и лейбл
+                # будет лгать физиологии. DecisionHub-подавление и recovery
+                # остаются на существующих контурах (threat-driven домены,
+                # body_engine) — без лжелейбла.
                 return [], None
 
         resolved = self._resolve_position(npc, new_activity)
@@ -1960,11 +2034,15 @@ class LifeEngine:
         # (activity не-sleep) → immediate True. Никакого гистерезиса:
         # пересчёт на КАЖДОЙ смене activity из authoritative state.
         going_to_sleep = is_sleeping(new_activity)
-        _on_bed = bool(
-            going_to_sleep
-            and new_position
-            and self._spatial_service is not None
-            and self._spatial_service.resolve_affordance(
+        # Н-4 (вердикт Мастера): контракт «целевой узел — BED» — это ФАКТ
+        # совпадения resolved BED-node с целевой позицией, а не факт
+        # существования sleep-affordance где-то в локации. _bed_ref.node_id
+        # каноничен с префиксом ("location_id:editor_id", NodeRef), а
+        # new_position приходит в обоих форматах (activity_map — голый,
+        # spatial-путь — с префиксом; см. нормализацию need-driven) —
+        # сравнение по каноническому хвосту корректно для обоих.
+        _bed_ref = (
+            self._spatial_service.resolve_affordance(
                 affordance_type="sleep",
                 origin_xy=(
                     npc.get("local_position", {}).get("x", 0.0),
@@ -1973,6 +2051,15 @@ class LifeEngine:
                 origin_zone=npc.get("location_id"),
                 owner=npc_id,
             )
+            if (going_to_sleep and self._spatial_service is not None)
+            else None
+        )
+        _norm_node = lambda s: s.split(":")[-1] if s else s  # noqa: E731
+        _on_bed = bool(
+            going_to_sleep
+            and new_position
+            and _bed_ref
+            and _norm_node(_bed_ref.node_id) == _norm_node(new_position)
         )
         changes.append(
             SceneChange(
@@ -2016,6 +2103,20 @@ class LifeEngine:
             logger.debug(
                 f"[LIFE_ENGINE] {npc_id}: no-op movement (уже на {new_position})."
             )
+            # SLEEP-SLICE: прибытие на место sleep-активности — ставим
+            # отложенный лейбл (проекция факта позиции). Resolver Phase 0.6
+            # на этом же тике увидит sleep-intent + bed_ok + settled → onset.
+            if is_sleeping(new_activity):
+                routine = npc.setdefault("routine", {})
+                if routine.get("current") != new_activity:
+                    routine["current"] = new_activity
+                    routine["mood"] = self._mood_for_activity(new_activity)
+                    routine["interrupted"] = False
+                    routine["_sleep_start_tick"] = tick
+                    logger.info(
+                        f"[SLEEP_SLICE] {npc_id}: arrival on BED-node "
+                        f"{new_position} — sleep label projected"
+                    )
             return changes, None
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
@@ -2034,16 +2135,36 @@ class LifeEngine:
 
         # ── Обновляем NPC dict в памяти ────────────────────────────────────
         routine = npc.setdefault("routine", {})
-        routine["current"] = new_activity
-        routine["mood"] = self._mood_for_activity(new_activity)
-        if "interrupted" not in routine:
-            routine["interrupted"] = False
-        # SLEEP_FIX #6a: записываем _sleep_start_tick для расчёта depth сна
-        # в _arousal_gate. Без этого depth всегда 0.0 (TODO автора кода).
-        if new_activity == "sleeping":
-            routine["_sleep_start_tick"] = tick
-        else:
+        # SLEEP-SLICE (вердикт Мастера, Разрыв №0): лейбл = проекция факта.
+        # Sleep-лейбл НЕ ставится до прибытия на BED-узел: NPC «едет спать»,
+        # а не «спит». По прибытии no-op-guard (:2062) вернёт сюда на
+        # следующем тике — и лейбл встанет уже на факте. Не-sleep-активности
+        # лейблятся как прежде (их позиция не обязана предшествовать лейблу).
+        _sleep_label_pending = is_sleeping(new_activity) and _norm_new_pos != _norm_curr_pos
+        if _sleep_label_pending:
+            # SLEEP-SLICE (ownership proof шторма): пустой routine.current
+            # делал prev='' каждый тик → SCHED_TRACE-шторм + random-events
+            # на «спящем» (sleep-исключение :2342 не срабатывал на пустоте).
+            # «going_to_sleep» — фактический статус в пути к BED: не
+            # is_sleeping (resolver не увидит intent до arrival — гейты
+            # no_intent/travelling дублируют), не пустота (идемпотентность
+            # schedule сохранена: prev='going_to_sleep' == new → no CHANGE).
+            routine["current"] = "going_to_sleep"
+            routine["mood"] = self._mood_for_activity(new_activity)
+            if "interrupted" not in routine:
+                routine["interrupted"] = False
             routine.pop("_sleep_start_tick", None)
+        else:
+            routine["current"] = new_activity
+            routine["mood"] = self._mood_for_activity(new_activity)
+            if "interrupted" not in routine:
+                routine["interrupted"] = False
+            # SLEEP_FIX #6a: записываем _sleep_start_tick для расчёта depth сна
+            # в _arousal_gate. Без этого depth всегда 0.0 (TODO автора кода).
+            if new_activity == "sleeping":
+                routine["_sleep_start_tick"] = tick
+            else:
+                routine.pop("_sleep_start_tick", None)
         # ADR-049: Запрещена прямая мутация пространства из расписания.
         # NPC принял решение сменить активность (когнитивный слой),
         # но физическое перемещение к новой локации — задача MovementEngine.

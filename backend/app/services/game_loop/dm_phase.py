@@ -132,7 +132,7 @@ def run_dm_phase(
         # FIX: Пред-проверка дистанции для боя. DM-агент запускается раньше ImpactEngine,
         # поэтому мы должны сообщить ему о промахе заранее, чтобы он не галлюцинировал попадание.
         if "attack" in shared_context.action_type and shared_context.player_target_id:
-            _dist = _target.player_dists.get(shared_context.player_target_id, 0.0)
+            _dist = (_target.player_dists or {}).get(shared_context.player_target_id, 0.0)
             _MELEE_RANGE = 2.0
             if _dist > _MELEE_RANGE:
                 _combat_target_id = shared_context.player_target_id or "target"

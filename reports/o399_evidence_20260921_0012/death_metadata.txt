@@ -1,0 +1,28 @@
+﻿
+
+file          : o399final_l1_out
+bytes         : 1885
+lines         : 39
+last_log_line :   [REPLAY] Run B: tick 2000/3000
+last_tick     :   [REPLAY] Run B: tick 2000/3000
+
+file          : o399final_l1_err
+bytes         : 1683
+lines         : 9
+last_log_line : [PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] npc=merchant_goran cause=boundary_arrival:proactive_offer_job field=position Macro movement without proposal (ADR-O-323 violation)
+last_tick     : 
+
+file          : o399final_l1b_out
+bytes         : 6531
+lines         : 100
+last_log_line :   📄 Лог работы сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_replay_determinism_2026-09-20_23-37-01.log
+last_tick     :   [REPLAY] Run B: tick 2000/3000
+
+file          : o399final_l1b_err
+bytes         : 2059
+lines         : 11
+last_log_line : [PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] npc=merchant_goran cause=boundary_arrival:proactive_offer_job field=position Macro movement without proposal (ADR-O-323 violation)
+last_tick     : 
+
+
+

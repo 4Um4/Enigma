@@ -149,7 +149,15 @@ class MockProvider(StreamingLlmProvider):
         # (ADR-O-301) не затронут — закон только для kernel layer,
         # mock остаётся вне симуляционного контура детерминизма.
         def _deterministic_pick(options: list) -> str:
-            return options[hash(prompt_lower) % len(options)]
+            # ADR-O-399 Iter2: hash(str) солёный PER-PROCESS (PYTHONHASHSEED) —
+            # детерминизм внутри прогона, лотерея между процессами/сессиями.
+            # Стабильный хеш (md5, §15-нейтральный: не time, не random) —
+            # детерминирован между любыми процессами. Причина: DriftLab
+            # канон L0'-vs-L1' дрейфовал между сессиями (2f30fe2d / 59315285 /
+            # 63a5dd4f / 7a28bf7c при неизменном коде).
+            import hashlib as _hl
+            _idx = int(_hl.md5(prompt_lower.encode("utf-8")).hexdigest(), 16) % len(options)
+            return options[_idx]
 
         # Простая эвристика по ключевым словам
         if any(w in prompt_lower for w in ["атак", "удар", "бьёт", "меч"]):

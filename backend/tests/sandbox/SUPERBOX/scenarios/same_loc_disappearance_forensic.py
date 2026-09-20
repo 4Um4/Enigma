@@ -20,6 +20,7 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 
+from app.services.npc.sleep_states import is_sleeping
 from tests.gameplay.harness import TavernGameplayHarness
 
 _C = "Open_road"
@@ -106,6 +107,32 @@ def main() -> int:
                         rv = None
             # открытые хвосты не считаем (конец прогона — легально)
 
+        # ── INV-VIS-SLEEP-ONLY (k0t8yr, вердикт Мастера) ─────────────
+        # visible=False ⇔ is_sleeping(act). Любой не-сон с visible=False —
+        # внеправовое исчезновение (закрывает B-1 brief_exit и B-2
+        # need-driven stuck-False). wake_edges — позитивное подтверждение
+        # перехода sleeping → не-sleep с visible=True (need-driven wake /
+        # activity transition). Инвариант — гейт: нарушений > 0 → exit 1.
+        inv_violations: list = []
+        wake_edges = 0
+        for nid, rows in _trace.items():
+            prev_act = None
+            for r in rows:
+                act = str(r.get("act")) if r.get("present") else None
+                v = r.get("visible")
+                if v is False and act is not None and not is_sleeping(act):
+                    inv_violations.append((nid, r["tick"], act))
+                if (prev_act is not None and act is not None
+                        and is_sleeping(prev_act) and not is_sleeping(act)
+                        and v is True):
+                    wake_edges += 1
+                prev_act = act
+        _log(f"INV-VIS-SLEEP-ONLY: нарушений={len(inv_violations)} wake_edges={wake_edges}")
+        for _nid, _t, _act in inv_violations[:10]:
+            _log(f"  VIOLATION npc={_nid} t={_t} act={_act!r}")
+        if inv_violations:
+            _log("INV-VIS-SLEEP-ONLY: RED — внеправовые visible=False")
+
         print("[SDF] === PRESENCE GAPS (Case A/C) ===")
         any_p = False
         for nid, gs in presence_gaps.items():
@@ -141,7 +168,7 @@ def main() -> int:
             "visibility": {k: list(map(list, v)) for k, v in visibility_gaps.items()},
         }, ensure_ascii=False), encoding="utf-8")
         print(f"[SDF] summary -> {out/'sdf_summary.json'}")
-    return 0
+    return 1 if inv_violations else 0
 
 
 if __name__ == "__main__":

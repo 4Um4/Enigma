@@ -1,0 +1,69 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_asmwa2jr
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_asmwa2jr\saves
+
+--- MODE E: Replay Determinism Audit (2 × 800 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A complete: hash=6ce312c8aef96124... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_asmwa2jr: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_asmwa2jr\\saves\\enigma_memory.db'
+[DRIFT_LAB] Temp dir сохранён для ручной очистки: C:\Users\lipir\AppData\Local\Temp\drift_lab_asmwa2jr
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_ye3ip387
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_tljyfbsu
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_tljyfbsu\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B complete: hash=5c44981ec9fed5f8... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  🔴 REPLAY DETERMINISM: MISMATCH
+     Hash A: 6ce312c8aef96124501b958ebe9de428d45e7c0ceef028895286703197502ce5
+     Hash B: 5c44981ec9fed5f8985b6dd7143ac5b67067950ab36a789128fefe5b4dbc36ef
+     Hidden entropy source detected — investigation required
+
+  [REPLAY] Диагностика расхождения:
+     NPC 'blacksmith_orm' [body_state]: A={'current_hp': 100, 'energy': 100.0, 'hydration': 0.0, 'nutrition': 54.212499999997526, 'max_hp': 10
+                         B={'current_hp': 100, 'energy': 100.0, 'hydration': 0.0, 'nutrition': 54.212499999997526, 'max_hp': 10
+     NPC 'maid_lusya' [body_state]: A={'current_hp': 100, 'energy': 100.0, 'hydration': 0.0, 'nutrition': 57.56250000000272, 'max_hp': 100
+                         B={'current_hp': 100, 'energy': 100.0, 'hydration': 0.0, 'nutrition': 57.56250000000272, 'max_hp': 100
+     NPC 'maid_lusya' [emotion]: A=neutral
+                         B=angry
+     NPC 'maid_lusya' [psyche]: A={'willpower': 35, 'breakpoint': 55, 'loyalty_true': 0, 'stress': 100.0, 'state': 'free', 'identity_i
+                         B={'willpower': 35, 'breakpoint': 55, 'loyalty_true': 0, 'stress': 100.0, 'state': 'free', 'identity_i
+     NPC 'merchant_goran' [narrative_cache]: A=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'neutral', 'day': -1000, 'importance': 0.9
+                         B=[{'event_type': 'secret_origin', 'target_id': '', 'emotion_tag': 'neutral', 'day': -1000, 'importanc
+     scene['recent_dialogues']: A=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+                     B=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_tljyfbsu: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_tljyfbsu\\saves\\enigma_memory.db'
+[DRIFT_LAB] Temp dir сохранён для ручной очистки: C:\Users\lipir\AppData\Local\Temp\drift_lab_tljyfbsu
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_2mp1h7tf
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 0
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌

@@ -1,0 +1,12 @@
+[CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION
+[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.MEMORY_SUMMARIZATION

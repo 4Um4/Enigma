@@ -1,0 +1,7 @@
+[BSF] прогон 2880 тиков (ускоренный: снимок каждый 1-й из 3)...
+[BSF] ...tick 200, time=2.6ч
+[BSF] ...tick 400, time=3.1ч
+[BSF] ...tick 600, time=3.7ч
+[BSF] ...tick 800, time=4.2ч
+[BSF] ...tick 1000, time=4.8ч
+[BSF] ...tick 1200, time=5.3ч

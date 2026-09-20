@@ -8,6 +8,20 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from typing import Optional
+
+
+# ADR-O-399: атомарный контейнер результата worker-задачи. Не SSOT, не шина,
+# не manager — пассивные данные для deterministic commit на границе тика.
+@dataclass(frozen=True)
+class _TaskArtifactRecord:
+    submit_tick: int
+    task_id: str
+    events: tuple
+    dialogue_entry: Optional[dict]
+    economy_talks: tuple
+    speech_reset: Optional[dict]
 from typing import Dict, Optional
 
 from app.domain.communication import DialogueRequest
@@ -72,6 +86,12 @@ class TaskScheduler:
         self._executor_pool = ThreadPoolExecutor(max_workers=1)
         # ADR-O-342: Счётчик тихих отказов (для Causal Probes / IPT)
         self.failed_tasks = 0
+        # ADR-O-399: Task Worker Outbox. Lifetime = от submit до первой
+        # разрешённой drain boundary (может пересекать несколько тиков —
+        # completion-время воркера не является канонической категорией).
+        # Писатель push — воркер (под локом), потребитель — main-thread drain.
+        self._task_outbox: list = []
+        self._task_outbox_lock = threading.Lock()
         # ADR-O-343: Счётчик всех задач, попавших в обработку (для IPT INV-DIALOGUE-INIT)
         self.total_processed_tasks = 0
         self._spatial_query_service = None
@@ -191,6 +211,58 @@ class TaskScheduler:
                 interrupt_reason=_interrupt,
             )
 
+    def drain_task_worker_outbox(self, scene_state: dict) -> None:
+        """ADR-O-399: deterministic commit артефактов воркера (main thread).
+
+        Batch = артефакты, готовые к данной drain boundary (completion-время
+        в канон не входит). Порядок записей — сортировка по стабильному ключу
+        (submit_tick, task_id). Порядок эффектов per-record зеркалит прежнюю
+        последовательность воркера: events → economy → dialogue → speech_reset.
+        Две точки вызова: вход execute_pending + idle_tick до unlock_tick
+        (симметрия S203.4/F23); третья точка запрещена. Обе — безусловные:
+        pending_tasks == 0 не блокирует дренаж готовых артефактов.
+        """
+        if not self._task_outbox:
+            return
+        with self._task_outbox_lock:
+            batch = self._task_outbox
+            self._task_outbox = []
+        batch.sort(key=lambda _r: (_r.submit_tick, _r.task_id))
+        from app.services.events.event_bus import get_event_bus
+        _bus = get_event_bus()
+        for _rec in batch:
+            for _ev in _rec.events:
+                # ADR-O-399 Iter1: штамп событийного времени — submit_tick
+                # (main thread). Единственный легальный источник event-time
+                # для L1-датировки; arrival воркера в канон не входит.
+                _payload = getattr(_ev, "payload", None)
+                if isinstance(_payload, dict):
+                    _payload.setdefault("event_tick", _rec.submit_tick)
+                _bus.publish(_ev)
+            for _npc, _tick in _rec.economy_talks:
+                if self._economy_tracker:
+                    self._economy_tracker.record_talk(_npc, _tick)
+            if _rec.dialogue_entry is not None:
+                with self._dialogue_lock:
+                    self._recent_dialogues.append(_rec.dialogue_entry)
+                # ADR-O-313: зеркалирование в scene_state — только здесь, main thread
+                scene_state.setdefault("recent_dialogues", []).append(_rec.dialogue_entry)
+            if _rec.speech_reset is not None and hasattr(self, '_speech_scheduler'):
+                self._speech_scheduler.reset_context(_rec.speech_reset)
+
+    def _push_task_artifact(self, submit_tick: int, task_id: str, events: list,
+                            dialogue_entry, talks: list, speech_reset) -> None:
+        """ADR-O-399: единственный push воркера в outbox (данные, не эффекты)."""
+        with self._task_outbox_lock:
+            self._task_outbox.append(_TaskArtifactRecord(
+                submit_tick=submit_tick,
+                task_id=task_id,
+                events=tuple(events),
+                dialogue_entry=dialogue_entry,
+                economy_talks=tuple(talks),
+                speech_reset=speech_reset,
+            ))
+
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO.
 
@@ -257,7 +329,8 @@ class TaskScheduler:
 
         # Запускаем фоновую обработку
         self._executor_pool.submit(
-            self._process_tasks_async, scene_state, tasks_to_process
+            self._process_tasks_async, scene_state, tasks_to_process,
+            submit_tick=scene_state.get("tick", 0)
         )
 
         return True
@@ -265,6 +338,8 @@ class TaskScheduler:
     def execute_pending(self, scene_state: dict, campaign_id: str) -> None:
         """Берёт задачи из очереди с учётом rate limit и запускает в фоне."""
         # S203.4 (D-2): дренаж ДО разбора — терминалы прошлого цикла применяются
+        # ADR-O-399 (точка (а)): артефакты воркера коммитятся ДО dequeue новых задач
+        self.drain_task_worker_outbox(scene_state)
         # даже при пустой очереди этого вызова.
         self.drain_commitment_outbox(scene_state)
         pending = scene_state.get("pending_tasks", [])
@@ -477,13 +552,21 @@ class TaskScheduler:
             # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick.
             # Передаём _game_time явно, чтобы избежать гонки с мутирующим scene_state.
             self._executor_pool.submit(
-                self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type, _game_time
+                self._process_tasks_async, scene_state, [task_dict], campaign_id, _task_type, _game_time,
+                scene_state.get("tick", 0)
             )
             _processed_count += 1
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0):
-        """Фоновая обработка задач LLM."""
+    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0):
+        """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
         import time
+        import os as _os
+        # ADR-O-399 / §15.2-паттерн DRIFT_*: test-only латентность воркера.
+        # Моделирует время ГОТОВНОСТИ артефакта, не меняет его содержание —
+        # гейт controlled-latency детерминизма. Production default = 0.
+        _latency_ms = int(_os.environ.get("DRIFT_WORKER_LATENCY_MS", "0"))
+        if _latency_ms > 0:
+            time.sleep(_latency_ms / 1000.0)
 
         # S203.4: константы fail_reason для терминальных хуков (закон №16).
         # [GC-I01-E2] + INTERRUPT_TASK_STALE_INTENT (flee-гейт ниже).
@@ -492,11 +575,18 @@ class TaskScheduler:
             FAIL_TASK_ERROR,
             INTERRUPT_TASK_STALE_INTENT,
         )
-        bus = get_event_bus()
+        # ADR-O-399: bus воркеру больше не нужен — publish только в drain
+        # (main thread). Если это последнее использование get_event_bus в
+        # функции — импорт ниже не встречается (проверяет structural probe).
         if not campaign_id:
             campaign_id = scene_state.get("campaign_id", "")
 
         for task_dict in tasks:
+            # ADR-O-399: per-task коллекторы артефакта (сброс на каждой задаче)
+            _events_collected: list = []
+            _talks_collected: list = []
+            _dlg_entry = None
+            _speech_reset = None
             # B8 (пункт 10, №149/№151-ретракция): worker-гейт — последняя
             # точка прерывания mid-generation. Dispatch-гейты не покрывают
             # in-flight: задача сабмичена ДО смерти (владелец жил — гейты
@@ -613,8 +703,10 @@ class TaskScheduler:
                         if materializer:
                             try:
                                 events = materializer.materialize(artifact)
+                                # ADR-O-399: publish из воркера запрещён — события
+                                # уходят в артефакт, применяются в drain (main thread)
                                 for ev in events:
-                                    bus.publish(ev)
+                                    _events_collected.append(ev)
                             except Exception as mat_exc:
                                 logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
                                 events = []
@@ -626,7 +718,8 @@ class TaskScheduler:
                         if artifact.result_type == "dialogue_line" and events:
                             # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
                             if self._economy_tracker:
-                                self._economy_tracker.record_talk(ev.source, scene_state.get("tick", 0))
+                                # ADR-O-399: observable economy — в drain
+                                _talks_collected.append((ev.source, scene_state.get("tick", 0)))
                             import time
                             _dlg_entry = {
                                 "speaker_id": ev.source,
@@ -641,12 +734,10 @@ class TaskScheduler:
                                 # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
                                 "game_time": _game_time,
                             }
-                            with self._dialogue_lock:
-                                self._recent_dialogues.append(_dlg_entry)
+                            # ADR-O-399: append в RAM-кэш перенесён в drain (main thread);
+                            # _dlg_entry уходит в артефакт как есть
                             # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
-                            scene_state.setdefault("recent_dialogues", []).append(
-                                _dlg_entry
-                            )
+                            # ADR-O-399: зеркалирование в scene_state — только в drain
                     else:
                         logger.error(
                             f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
@@ -657,7 +748,8 @@ class TaskScheduler:
                         self.failed_tasks += 1
                         # ADR-O-343: Сбрасываем DEDUP в SpeechScheduler, чтобы NPC мог повторить попытку
                         if hasattr(self, '_speech_scheduler'):
-                            self._speech_scheduler.reset_context(task_dict)
+                            # ADR-O-399: мутация admission-состояния — в drain
+                            _speech_reset = task_dict
             except Exception as task_exc:
                 logger.error(f"[SCHEDULER] Crashed during task execution {task.task_id}: {task_exc}", exc_info=True)
                 if _task_type == "canonical":
@@ -665,8 +757,16 @@ class TaskScheduler:
                     self._record_task_outcome(task.owner_id, "FAILED", FAIL_TASK_CRASH)
                 self.failed_tasks += 1
                 if hasattr(self, '_speech_scheduler'):
-                    self._speech_scheduler.reset_context(task_dict)
+                    # ADR-O-399: reset admission-состояния — в drain (главный поток)
+                    _speech_reset = task_dict
                 break
+            finally:
+                # ADR-O-399: артефакт задачи уходит в outbox при любом исходе
+                # (success / failed / crash) — эффекты применит drain.
+                self._push_task_artifact(
+                    submit_tick, task.task_id, _events_collected,
+                    _dlg_entry, _talks_collected, _speech_reset,
+                )
 
     def _reconstruct_task(self, task_dict: dict) -> "Optional[QueuedTask]":
         """Собирает QueuedTask из словаря (после JSON сериализации).

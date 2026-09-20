@@ -1,0 +1,29 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_6epw2tlf
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_6epw2tlf\saves
+
+--- MODE E: Replay Determinism Audit (2 × 800 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A complete: hash=820f271f49544c84... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_6epw2tlf
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_fukekoad
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_f57rp187
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_f57rp187\saves
+
+  [REPLAY] === RUN B ===

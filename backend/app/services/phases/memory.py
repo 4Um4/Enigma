@@ -11,6 +11,7 @@
 
 import logging
 from dataclasses import replace
+from typing import Any, Dict
 
 from app.models.npc_state import NPCState
 from app.services.dto import _TickContext
@@ -20,7 +21,7 @@ from app.services.tick_utils import resolve_affected_npcs
 logger = logging.getLogger(__name__)
 
 
-def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
+def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
     """Выполнить Фазу 3: обновление памяти NPC.
 
     Args:
@@ -83,14 +84,14 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
     # ── Блок 3: Применение событий памяти к затронутым NPC ──
     for event in ctx.phase_2_events:
         for npc_id in resolve_affected_npcs(event):
-            npc_dict = next(
+            npc_state_dict: Dict[str, Any] | None = next(
                 (n for n in ctx.npc_states if n.get("id") == npc_id),
                 None,
             )
-            if not npc_dict:
+            if not npc_state_dict:
                 continue
 
-            npc_state = load_l2_state_from_runtime_dict(npc_dict)
+            npc_state = load_l2_state_from_runtime_dict(npc_state_dict)
             # apply() ищет npc_id в payload — инжектим
             new_payload = {**event.payload, "npc_id": npc_id}
             new_event = replace(event, payload=new_payload)
@@ -104,8 +105,8 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                 new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq
             )
             # Мост обратно: apply() обновил narrative_cache на NPCState,
-            # но Фаза 5 пересоздаёт NPCState из npc_dict (Устав §3.1)
-            NPCState.to_persistence_dict(npc_state, npc_dict)
+            # но Фаза 5 пересоздаёт NPCState из npc_state_dict (Устав §3.1)
+            NPCState.to_persistence_dict(npc_state, npc_state_dict)
             processed += 1
 
     # ── Блок 4: V8-MEM-1 FIX — Decay & Resonance (L3 Identity cascade) ──
