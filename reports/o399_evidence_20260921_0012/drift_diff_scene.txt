@@ -1,0 +1,1543 @@
+KEY = recent_dialogues
+
+A = [
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: наблюдение",
+  "timestamp": 43210,
+  "real_ts": 1789915697.7993221,
+  "game_time": 43210
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: власть",
+  "timestamp": 43220,
+  "real_ts": 1789915697.975164,
+  "game_time": 43220
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Мне нужно отдохнуть.",
+  "timestamp": 43210,
+  "real_ts": 1789915697.9204035,
+  "game_time": 43210
+ },
+ {
+  "speaker_id": "blacksmith_orm",
+  "target_id": "maid_lusya",
+  "text": "Староста вчера вызвал кузнеца посреди ночи. Что-то серьёзное.",
+  "timestamp": 43220,
+  "real_ts": 1789915698.097872,
+  "game_time": 43220
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "Знаешь, чем маг отличается от волшебника? Маг читает заклинания из книги, а волшебник — из постели.",
+  "timestamp": 43230,
+  "real_ts": 1789915698.2215207,
+  "game_time": 43230
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "maid_lusya",
+  "text": "Мой сосед женился на русалке. Говорит, счастлив. Говорит, только кровать постоянно мокрая. Говорит, не уверен, что из-за русалки.",
+  "timestamp": 43240,
+  "real_ts": 1789915698.3423302,
+  "game_time": 43240
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43350,
+  "real_ts": 1789915699.09096,
+  "game_time": 43350
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 43350,
+  "real_ts": 1789915699.2117207,
+  "game_time": 43350
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Поля за городом уже пожелтели — скоро уборка.",
+  "timestamp": 43340,
+  "real_ts": 1789915699.000719,
+  "game_time": 43340
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43360,
+  "real_ts": 1789915699.4410236,
+  "game_time": 43360
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> soliloquy: власть",
+  "timestamp": 43360,
+  "real_ts": 1789915699.5617626,
+  "game_time": 43360
+ },
+ {
+  "speaker_id": "blacksmith_orm",
+  "target_id": "guard_borko",
+  "text": "В монастыре на холме монахи варят пиво. Говорят, после третьей кружки видишь ангелов. После пятой — и ангелы тебя видят.",
+  "timestamp": 43350,
+  "real_ts": 1789915699.332675,
+  "game_time": 43350
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43370,
+  "real_ts": 1789915699.7920387,
+  "game_time": 43370
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43380,
+  "real_ts": 1789915700.0228457,
+  "game_time": 43380
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43390,
+  "real_ts": 1789915700.2459214,
+  "game_time": 43390
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43400,
+  "real_ts": 1789915700.461881,
+  "game_time": 43400
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: наблюдение",
+  "timestamp": 43410,
+  "real_ts": 1789915700.6723254,
+  "game_time": 43410
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: наблюдение",
+  "timestamp": 43410,
+  "real_ts": 1789915700.7927895,
+  "game_time": 43410
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: встреча",
+  "timestamp": 43420,
+  "real_ts": 1789915701.0028973,
+  "game_time": 43420
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: власть",
+  "timestamp": 43430,
+  "real_ts": 1789915701.2034304,
+  "game_time": 43430
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43450,
+  "real_ts": 1789915701.5133917,
+  "game_time": 43450
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: встреча",
+  "timestamp": 43470,
+  "real_ts": 1789915701.7852762,
+  "game_time": 43470
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Гарпия украла моего друга. Мы нашли его через неделю — он женился на ней. Говорит, она поёт ужасно, но готовит отлично. Каждый выбирает своё.",
+  "timestamp": 43460,
+  "real_ts": 1789915701.7187462,
+  "game_time": 43460
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43480,
+  "real_ts": 1789915702.0240495,
+  "game_time": 43480
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43480,
+  "real_ts": 1789915702.144352,
+  "game_time": 43480
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43500,
+  "real_ts": 1789915702.4511702,
+  "game_time": 43500
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43510,
+  "real_ts": 1789915702.660832,
+  "game_time": 43510
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43520,
+  "real_ts": 1789915702.873913,
+  "game_time": 43520
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: наблюдение",
+  "timestamp": 43560,
+  "real_ts": 1789915703.3311958,
+  "game_time": 43560
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: власть",
+  "timestamp": 43570,
+  "real_ts": 1789915703.5461621,
+  "game_time": 43570
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43580,
+  "real_ts": 1789915703.7541077,
+  "game_time": 43580
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43620,
+  "real_ts": 1789915704.1624305,
+  "game_time": 43620
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: наблюдение",
+  "timestamp": 43630,
+  "real_ts": 1789915704.3851504,
+  "game_time": 43630
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43640,
+  "real_ts": 1789915704.5919313,
+  "game_time": 43640
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43650,
+  "real_ts": 1789915704.7907143,
+  "game_time": 43650
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43660,
+  "real_ts": 1789915704.9829369,
+  "game_time": 43660
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43670,
+  "real_ts": 1789915705.1860943,
+  "game_time": 43670
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43680,
+  "real_ts": 1789915705.4175942,
+  "game_time": 43680
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43690,
+  "real_ts": 1789915705.6180284,
+  "game_time": 43690
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43700,
+  "real_ts": 1789915705.8406773,
+  "game_time": 43700
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43700,
+  "real_ts": 1789915705.9611797,
+  "game_time": 43700
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43710,
+  "real_ts": 1789915706.1953833,
+  "game_time": 43710
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43710,
+  "real_ts": 1789915706.316124,
+  "game_time": 43710
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43740,
+  "real_ts": 1789915706.6923285,
+  "game_time": 43740
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43740,
+  "real_ts": 1789915706.81277,
+  "game_time": 43740
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43750,
+  "real_ts": 1789915707.0284219,
+  "game_time": 43750
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43750,
+  "real_ts": 1789915707.1491077,
+  "game_time": 43750
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43760,
+  "real_ts": 1789915707.3849204,
+  "game_time": 43760
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43760,
+  "real_ts": 1789915707.5054247,
+  "game_time": 43760
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43770,
+  "real_ts": 1789915707.733778,
+  "game_time": 43770
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43780,
+  "real_ts": 1789915707.9686875,
+  "game_time": 43780
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: власть",
+  "timestamp": 43790,
+  "real_ts": 1789915708.1819377,
+  "game_time": 43790
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: власть",
+  "timestamp": 43800,
+  "real_ts": 1789915708.3976204,
+  "game_time": 43800
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43810,
+  "real_ts": 1789915708.640849,
+  "game_time": 43810
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: встреча",
+  "timestamp": 43820,
+  "real_ts": 1789915708.8641677,
+  "game_time": 43820
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43830,
+  "real_ts": 1789915709.1064513,
+  "game_time": 43830
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: наблюдение",
+  "timestamp": 43830,
+  "real_ts": 1789915709.2268662,
+  "game_time": 43830
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "guard_borko",
+  "text": "Оборотень спросил меня: 'Ты боишься меня?' Я сказал: 'Нет'. Он сказал: 'А зря — я вчера спал с твоей женой'. Я сказал: 'Значит, ты тоже боишься'.",
+  "timestamp": 43830,
+  "real_ts": 1789915709.3478148,
+  "game_time": 43830
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43840,
+  "real_ts": 1789915709.477013,
+  "game_time": 43840
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: наблюдение",
+  "timestamp": 43840,
+  "real_ts": 1789915709.5976868,
+  "game_time": 43840
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: встреча",
+  "timestamp": 43850,
+  "real_ts": 1789915709.82156,
+  "game_time": 43850
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: власть",
+  "timestamp": 43860,
+  "real_ts": 1789915710.0408123,
+  "game_time": 43860
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43860,
+  "real_ts": 1789915710.1612086,
+  "game_time": 43860
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43870,
+  "real_ts": 1789915710.3826075,
+  "game_time": 43870
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43880,
+  "real_ts": 1789915710.6077743,
+  "game_time": 43880
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43890,
+  "real_ts": 1789915710.8315237,
+  "game_time": 43890
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43900,
+  "real_ts": 1789915711.0562959,
+  "game_time": 43900
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 43900,
+  "real_ts": 1789915711.176796,
+  "game_time": 43900
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43910,
+  "real_ts": 1789915711.409742,
+  "game_time": 43910
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43920,
+  "real_ts": 1789915711.632414,
+  "game_time": 43920
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: встреча",
+  "timestamp": 43930,
+  "real_ts": 1789915711.8549395,
+  "game_time": 43930
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43940,
+  "real_ts": 1789915712.1519842,
+  "game_time": 43940
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 43960,
+  "real_ts": 1789915712.5137944,
+  "game_time": 43960
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 43970,
+  "real_ts": 1789915712.754259,
+  "game_time": 43970
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "Рыбаки говорят, улов падает — что-то изменилось в течениях.",
+  "timestamp": 43960,
+  "real_ts": 1789915712.634412,
+  "game_time": 43960
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 43980,
+  "real_ts": 1789915712.9861946,
+  "game_time": 43980
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 43990,
+  "real_ts": 1789915713.1957,
+  "game_time": 43990
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44000,
+  "real_ts": 1789915713.4294894,
+  "game_time": 44000
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44010,
+  "real_ts": 1789915713.6346443,
+  "game_time": 44010
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44020,
+  "real_ts": 1789915713.858933,
+  "game_time": 44020
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44030,
+  "real_ts": 1789915714.086469,
+  "game_time": 44030
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44040,
+  "real_ts": 1789915714.3011396,
+  "game_time": 44040
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44050,
+  "real_ts": 1789915714.5286794,
+  "game_time": 44050
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44060,
+  "real_ts": 1789915714.7539635,
+  "game_time": 44060
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44070,
+  "real_ts": 1789915714.9682724,
+  "game_time": 44070
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44080,
+  "real_ts": 1789915715.1896882,
+  "game_time": 44080
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44090,
+  "real_ts": 1789915715.408077,
+  "game_time": 44090
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44100,
+  "real_ts": 1789915715.6413965,
+  "game_time": 44100
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44110,
+  "real_ts": 1789915715.8612003,
+  "game_time": 44110
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44120,
+  "real_ts": 1789915716.0791135,
+  "game_time": 44120
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44130,
+  "real_ts": 1789915716.3186007,
+  "game_time": 44130
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44140,
+  "real_ts": 1789915716.5323763,
+  "game_time": 44140
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44180,
+  "real_ts": 1789915717.021246,
+  "game_time": 44180
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44190,
+  "real_ts": 1789915717.234278,
+  "game_time": 44190
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "В монастыре на холме монахи варят пиво. Говорят, после третьей кружки видишь ангелов. После пятой — и ангелы тебя видят.",
+  "timestamp": 44340,
+  "real_ts": 1789915718.690791,
+  "game_time": 44340
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Когда-то здесь был рынок рабов. Старики помнят запах.",
+  "timestamp": 44350,
+  "real_ts": 1789915718.8114588,
+  "game_time": 44350
+ }
+]
+
+B = [
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: наблюдение",
+  "timestamp": 43210,
+  "real_ts": 1789915977.7898877,
+  "game_time": 43210
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: власть",
+  "timestamp": 43220,
+  "real_ts": 1789915977.9562964,
+  "game_time": 43220
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Мне нужно отдохнуть.",
+  "timestamp": 43210,
+  "real_ts": 1789915977.9107218,
+  "game_time": 43210
+ },
+ {
+  "speaker_id": "blacksmith_orm",
+  "target_id": "maid_lusya",
+  "text": "Староста вчера вызвал кузнеца посреди ночи. Что-то серьёзное.",
+  "timestamp": 43220,
+  "real_ts": 1789915978.076799,
+  "game_time": 43220
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "Знаешь, чем маг отличается от волшебника? Маг читает заклинания из книги, а волшебник — из постели.",
+  "timestamp": 43230,
+  "real_ts": 1789915978.197567,
+  "game_time": 43230
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "maid_lusya",
+  "text": "Мой сосед женился на русалке. Говорит, счастлив. Говорит, только кровать постоянно мокрая. Говорит, не уверен, что из-за русалки.",
+  "timestamp": 43240,
+  "real_ts": 1789915978.318188,
+  "game_time": 43240
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43350,
+  "real_ts": 1789915979.0293684,
+  "game_time": 43350
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 43350,
+  "real_ts": 1789915979.1497562,
+  "game_time": 43350
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Поля за городом уже пожелтели — скоро уборка.",
+  "timestamp": 43340,
+  "real_ts": 1789915978.9640715,
+  "game_time": 43340
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43360,
+  "real_ts": 1789915979.3577452,
+  "game_time": 43360
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> soliloquy: власть",
+  "timestamp": 43360,
+  "real_ts": 1789915979.4782715,
+  "game_time": 43360
+ },
+ {
+  "speaker_id": "blacksmith_orm",
+  "target_id": "guard_borko",
+  "text": "В монастыре на холме монахи варят пиво. Говорят, после третьей кружки видишь ангелов. После пятой — и ангелы тебя видят.",
+  "timestamp": 43350,
+  "real_ts": 1789915979.2705116,
+  "game_time": 43350
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43370,
+  "real_ts": 1789915979.677168,
+  "game_time": 43370
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43380,
+  "real_ts": 1789915979.8817124,
+  "game_time": 43380
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43390,
+  "real_ts": 1789915980.08758,
+  "game_time": 43390
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43400,
+  "real_ts": 1789915980.2902431,
+  "game_time": 43400
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: наблюдение",
+  "timestamp": 43410,
+  "real_ts": 1789915980.4871962,
+  "game_time": 43410
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: наблюдение",
+  "timestamp": 43410,
+  "real_ts": 1789915980.607451,
+  "game_time": 43410
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: встреча",
+  "timestamp": 43420,
+  "real_ts": 1789915980.8059654,
+  "game_time": 43420
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: власть",
+  "timestamp": 43430,
+  "real_ts": 1789915981.0022748,
+  "game_time": 43430
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43450,
+  "real_ts": 1789915981.25904,
+  "game_time": 43450
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: встреча",
+  "timestamp": 43470,
+  "real_ts": 1789915981.5336404,
+  "game_time": 43470
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Гарпия украла моего друга. Мы нашли его через неделю — он женился на ней. Говорит, она поёт ужасно, но готовит отлично. Каждый выбирает своё.",
+  "timestamp": 43460,
+  "real_ts": 1789915981.4642177,
+  "game_time": 43460
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43480,
+  "real_ts": 1789915981.7491782,
+  "game_time": 43480
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43480,
+  "real_ts": 1789915981.869796,
+  "game_time": 43480
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43500,
+  "real_ts": 1789915982.2129338,
+  "game_time": 43500
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43510,
+  "real_ts": 1789915982.4134483,
+  "game_time": 43510
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: власть",
+  "timestamp": 43520,
+  "real_ts": 1789915982.6179767,
+  "game_time": 43520
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: наблюдение",
+  "timestamp": 43560,
+  "real_ts": 1789915983.0659292,
+  "game_time": 43560
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: власть",
+  "timestamp": 43570,
+  "real_ts": 1789915983.2624037,
+  "game_time": 43570
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43580,
+  "real_ts": 1789915983.4671686,
+  "game_time": 43580
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43620,
+  "real_ts": 1789915983.8466072,
+  "game_time": 43620
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: наблюдение",
+  "timestamp": 43630,
+  "real_ts": 1789915984.0629818,
+  "game_time": 43630
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43640,
+  "real_ts": 1789915984.2594845,
+  "game_time": 43640
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43650,
+  "real_ts": 1789915984.4716132,
+  "game_time": 43650
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43660,
+  "real_ts": 1789915984.6585805,
+  "game_time": 43660
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43670,
+  "real_ts": 1789915984.8549654,
+  "game_time": 43670
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43680,
+  "real_ts": 1789915985.067571,
+  "game_time": 43680
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43690,
+  "real_ts": 1789915985.2663226,
+  "game_time": 43690
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43700,
+  "real_ts": 1789915985.4842565,
+  "game_time": 43700
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43700,
+  "real_ts": 1789915985.60452,
+  "game_time": 43700
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43710,
+  "real_ts": 1789915985.8242226,
+  "game_time": 43710
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: встреча",
+  "timestamp": 43710,
+  "real_ts": 1789915985.9444976,
+  "game_time": 43710
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43740,
+  "real_ts": 1789915986.317215,
+  "game_time": 43740
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43740,
+  "real_ts": 1789915986.4376395,
+  "game_time": 43740
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43750,
+  "real_ts": 1789915986.6490653,
+  "game_time": 43750
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43750,
+  "real_ts": 1789915986.7697403,
+  "game_time": 43750
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43760,
+  "real_ts": 1789915986.9932897,
+  "game_time": 43760
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43760,
+  "real_ts": 1789915987.1138039,
+  "game_time": 43760
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "tavern_keeper_tornin",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> tavern_keeper_tornin: наблюдение",
+  "timestamp": 43770,
+  "real_ts": 1789915987.3285766,
+  "game_time": 43770
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43780,
+  "real_ts": 1789915987.5554683,
+  "game_time": 43780
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "soliloquy",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> soliloquy: власть",
+  "timestamp": 43790,
+  "real_ts": 1789915987.7583535,
+  "game_time": 43790
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: власть",
+  "timestamp": 43800,
+  "real_ts": 1789915987.9674852,
+  "game_time": 43800
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43810,
+  "real_ts": 1789915988.1845715,
+  "game_time": 43810
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: встреча",
+  "timestamp": 43820,
+  "real_ts": 1789915988.400566,
+  "game_time": 43820
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43830,
+  "real_ts": 1789915988.6359522,
+  "game_time": 43830
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: наблюдение",
+  "timestamp": 43830,
+  "real_ts": 1789915988.756282,
+  "game_time": 43830
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43840,
+  "real_ts": 1789915988.995973,
+  "game_time": 43840
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> blacksmith_orm: наблюдение",
+  "timestamp": 43840,
+  "real_ts": 1789915989.1167352,
+  "game_time": 43840
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "guard_borko",
+  "text": "Оборотень спросил меня: 'Ты боишься меня?' Я сказал: 'Нет'. Он сказал: 'А зря — я вчера спал с твоей женой'. Я сказал: 'Значит, ты тоже боишься'.",
+  "timestamp": 43830,
+  "real_ts": 1789915988.8769116,
+  "game_time": 43830
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: встреча",
+  "timestamp": 43850,
+  "real_ts": 1789915989.344988,
+  "game_time": 43850
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: власть",
+  "timestamp": 43860,
+  "real_ts": 1789915989.560155,
+  "game_time": 43860
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "guard_borko",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> guard_borko: власть",
+  "timestamp": 43860,
+  "real_ts": 1789915989.6804368,
+  "game_time": 43860
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "merchant_goran",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> merchant_goran: наблюдение",
+  "timestamp": 43870,
+  "real_ts": 1789915989.8964279,
+  "game_time": 43870
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43880,
+  "real_ts": 1789915990.1133692,
+  "game_time": 43880
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43890,
+  "real_ts": 1789915990.3391042,
+  "game_time": 43890
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43900,
+  "real_ts": 1789915990.5589721,
+  "game_time": 43900
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 43900,
+  "real_ts": 1789915990.679576,
+  "game_time": 43900
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43910,
+  "real_ts": 1789915990.9012628,
+  "game_time": 43910
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: наблюдение",
+  "timestamp": 43920,
+  "real_ts": 1789915991.11649,
+  "game_time": 43920
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: встреча",
+  "timestamp": 43930,
+  "real_ts": 1789915991.3391287,
+  "game_time": 43930
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "[Intent.SPREAD_RUMOR] guard_borko -> blacksmith_orm: власть",
+  "timestamp": 43940,
+  "real_ts": 1789915991.556205,
+  "game_time": 43940
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 43960,
+  "real_ts": 1789915991.8620539,
+  "game_time": 43960
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 43970,
+  "real_ts": 1789915992.0942216,
+  "game_time": 43970
+ },
+ {
+  "speaker_id": "guard_borko",
+  "target_id": "blacksmith_orm",
+  "text": "Рыбаки говорят, улов падает — что-то изменилось в течениях.",
+  "timestamp": 43960,
+  "real_ts": 1789915991.9827533,
+  "game_time": 43960
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 43980,
+  "real_ts": 1789915992.3281126,
+  "game_time": 43980
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 43990,
+  "real_ts": 1789915992.5313005,
+  "game_time": 43990
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44000,
+  "real_ts": 1789915992.7512658,
+  "game_time": 44000
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44010,
+  "real_ts": 1789915992.9488783,
+  "game_time": 44010
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44020,
+  "real_ts": 1789915993.1670043,
+  "game_time": 44020
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44030,
+  "real_ts": 1789915993.3774493,
+  "game_time": 44030
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44040,
+  "real_ts": 1789915993.5884414,
+  "game_time": 44040
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44050,
+  "real_ts": 1789915993.8047552,
+  "game_time": 44050
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44060,
+  "real_ts": 1789915994.0205092,
+  "game_time": 44060
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44070,
+  "real_ts": 1789915994.2312331,
+  "game_time": 44070
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44080,
+  "real_ts": 1789915994.4522562,
+  "game_time": 44080
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44090,
+  "real_ts": 1789915994.667471,
+  "game_time": 44090
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44100,
+  "real_ts": 1789915994.8875763,
+  "game_time": 44100
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44110,
+  "real_ts": 1789915995.1107085,
+  "game_time": 44110
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44120,
+  "real_ts": 1789915995.3151953,
+  "game_time": 44120
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44130,
+  "real_ts": 1789915995.545972,
+  "game_time": 44130
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: встреча",
+  "timestamp": 44140,
+  "real_ts": 1789915995.7626755,
+  "game_time": 44140
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: наблюдение",
+  "timestamp": 44180,
+  "real_ts": 1789915996.2809324,
+  "game_time": 44180
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> maid_lusya: власть",
+  "timestamp": 44190,
+  "real_ts": 1789915996.4994588,
+  "game_time": 44190
+ },
+ {
+  "speaker_id": "tavern_keeper_tornin",
+  "target_id": "maid_lusya",
+  "text": "В монастыре на холме монахи варят пиво. Говорят, после третьей кружки видишь ангелов. После пятой — и ангелы тебя видят.",
+  "timestamp": 44340,
+  "real_ts": 1789915997.9887779,
+  "game_time": 44340
+ },
+ {
+  "speaker_id": "merchant_goran",
+  "target_id": "blacksmith_orm",
+  "text": "Когда-то здесь был рынок рабов. Старики помнят запах.",
+  "timestamp": 44350,
+  "real_ts": 1789915998.1091576,
+  "game_time": 44350
+ }
+]

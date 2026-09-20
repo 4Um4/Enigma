@@ -3,11 +3,11 @@ ENIGMA SELF-HEALING (Level 5): Startup Schema Validation.
 Запускается при старте сервера. Если конфиги сломаны — сервер не запустится.
 """
 import logging
-from typing import List
+from typing import Any, List
 
 logger = logging.getLogger(__name__)
 
-def validate_all_schemas(game_loop=None) -> None:
+def validate_all_schemas(game_loop: Any = None) -> None:
     """Валидирует NPC configs, TruthState, Factions при старте."""
     errors: List[str] = []
 
@@ -47,15 +47,15 @@ def validate_all_schemas(game_loop=None) -> None:
                 from app.services.events.event_bus import get_event_bus
                 from app.services.events.event_types import EventType
                 _bus = get_event_bus()
-                subs = _bus._subscribers.get(EventType.TICK_COMPLETED, [])
+                subs = getattr(_bus, "_subscribers", {}).get(EventType.TICK_COMPLETED, [])
                 if len(subs) == 0:
                     errors.append("No subscribers for TICK_COMPLETED — M-03/N2 regression")
             except Exception as e:
                 errors.append(f"EventBus validation failed: {e}")
 
     if errors:
-        for e in errors:
-            logger.error(f"[SCHEMA] {e}")
+        for err in errors:
+            logger.error(f"[SCHEMA] {err}")
         # ENIGMA SELF-HEALING: На этапе внедрения логируем, но не блокируем запуск сервера,
         # чтобы не парализовать игру. В будущем переключится на RuntimeError.
         logger.warning(f"[SCHEMA] Validation finished with {len(errors)} errors (non-blocking).")

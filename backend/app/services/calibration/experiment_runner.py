@@ -149,6 +149,10 @@ def _restore_dir(root: Path, snap: "Dict[Path, bytes] | None") -> None:
 class ExperimentRunner:
     """Один эксперимент = один прогон. Параллельность — только процессы."""
 
+    # M1: объявление типа (атрибут создаётся в start(), удаляется в stop();
+    # hasattr-контракт сохранён — аннотация без значения не создаёт атрибут)
+    _active_game_loop: Optional[Any]
+
     def _invalidate_ram_caches(self) -> None:
         """Сброс RAM-синглтонов на входе каждого прогона: SpatialRegistry
         кэширует по mtime (статичная топология), сброс дешёвый и закрывает

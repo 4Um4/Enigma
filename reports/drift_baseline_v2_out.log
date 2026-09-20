@@ -1,0 +1,116 @@
+[DRIFT_LAB] DRIFT_NO_LLM=1 — llama-server не запускается (endurance-режим)
+
+🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA
+   Режим: Детерминизм воспроизведения (E)
+   ADR-O-201 ФАЗА 2.5 — наблюдение за дрейфом в runtime
+
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_pj0vtq8s
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_pj0vtq8s\saves
+
+--- MODE E: Replay Determinism Audit (2 × 10000 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A: tick 2000/10000
+  [REPLAY] Run A: tick 4000/10000
+  [REPLAY] Run A: tick 6000/10000
+  [REPLAY] Run A: tick 8000/10000
+  [REPLAY] Run A: tick 10000/10000
+  [REPLAY] Run A complete: hash=e0b34beb07c85994... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_pj0vtq8s
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_l03a_810
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mhwsimmi
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mhwsimmi\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B: tick 2000/10000
+  [REPLAY] Run B: tick 4000/10000
+  [REPLAY] Run B: tick 6000/10000
+  [REPLAY] Run B: tick 8000/10000
+  [REPLAY] Run B: tick 10000/10000
+  [REPLAY] Run B complete: hash=6140de242a2cc146... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  🔴 REPLAY DETERMINISM: MISMATCH
+     Hash A: e0b34beb07c859947191507051f2af72db1cdfe257d5bb869317cc1283b61f16
+     Hash B: 6140de242a2cc1468b485f036a85429ad919cc6c4fa4a5f10f70edb889aa13d4
+     Hidden entropy source detected — investigation required
+
+  [REPLAY] Диагностика расхождения:
+     NPC 'merchant_goran' [body_state]: A={'current_hp': 100, 'energy': 100.0, 'hydration': 0.0, 'nutrition': 0.0, 'max_hp': 100, 'pain': 0.0,
+                         B={'current_hp': 100, 'energy': 100.0, 'hydration': 0.0, 'nutrition': 0.0, 'max_hp': 100, 'pain': 0.0,
+     [S269] полный диф 'recent_dialogues' → C:\Users\lipir\AppData\Local\Temp\drift_diff_scene.txt
+     scene['recent_dialogues']: A=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+                     B=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_mhwsimmi
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_6yskqdha
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 20,000
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 1.56 час
+  Скорость: 4 сравнений/сек, 3.6 тиков/сек
+
+  Сохранение отчётов в: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports
+  📊 CSV сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_replay_determinism.csv
+  📝 Markdown-отчёт (вердикт реплея) сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_replay_determinism.md
+  📈 Графики сохранены: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_replay_determinism_*.png (3 файла)
+  📄 Лог работы сохранён: C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\reports\дрейф_replay_determinism_2026-09-20_16-31-41.log

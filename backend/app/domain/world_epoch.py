@@ -14,6 +14,108 @@ from __future__ import annotations
 from typing import Any, Dict, ItemsView, Iterator, KeysView, List, Optional, Tuple, ValuesView
 
 
+class ReadOnlyDict(dict):
+    """S269: dict-запись с запрещённой мутацией (громкий TypeError).
+    Подкласс — намеренно: isinstance(x, dict) — часть контракта
+    scene_state (урок PR-6a: 10 гвардов). Листья шарятся — копируется
+    только ownership boundary."""
+
+    def _ro(self) -> None:
+        raise TypeError("ReadOnlyDict is immutable: mutation goes through TickOverlay → commit → new epoch")
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        self._ro()
+
+    def __delitem__(self, key: Any) -> None:
+        self._ro()
+
+    def clear(self) -> None:
+        self._ro()
+
+    def pop(self, *args: Any, **kwargs: Any) -> Any:
+        self._ro()
+
+    def popitem(self) -> Any:
+        self._ro()
+
+    def setdefault(self, *args: Any, **kwargs: Any) -> Any:
+        self._ro()
+
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        self._ro()
+
+    def __deepcopy__(self, memo: Any) -> "ReadOnlyDict":
+        # S269-C1: immutable by construction → копия избыточна
+        # (прецедент: WorldEpoch.__deepcopy__ — «шаринг безопасен
+        # по построению»). Гварды дают громкий TypeError при любой
+        # попытке мутации — молчаливой смерти нет.
+        return self
+
+
+class ReadOnlyList(list):
+    """S269: list-аналог ReadOnlyDict (npcs и прочие списки состояния)."""
+
+    def _ro(self) -> None:
+        raise TypeError("ReadOnlyList is immutable: mutation goes through TickOverlay → commit → new epoch")
+
+    def __setitem__(self, index: Any, value: Any) -> None:
+        self._ro()
+
+    def __delitem__(self, index: Any) -> None:
+        self._ro()
+
+    def append(self, value: Any) -> None:
+        self._ro()
+
+    def extend(self, values: Any) -> None:
+        self._ro()
+
+    def insert(self, index: Any, value: Any) -> None:
+        self._ro()
+
+    def remove(self, value: Any) -> None:
+        self._ro()
+
+    def pop(self, index: Any = -1) -> Any:
+        self._ro()
+
+    def clear(self) -> None:
+        self._ro()
+
+    def reverse(self) -> None:
+        self._ro()
+
+    def sort(self, *args: Any, **kwargs: Any) -> None:
+        self._ro()
+
+    def __deepcopy__(self, memo: Any) -> "ReadOnlyList":
+        return self
+
+
+def _deep_seal(obj: Any) -> Any:
+    """S269: глубокая запечатка КОНТЕЙНЕРОВ (dict/list → ReadOnly-обёртки),
+    листья не копируются. Idempotent: уже запечатанное не переоборачивается."""
+    if isinstance(obj, (ReadOnlyDict, ReadOnlyList)):
+        return obj
+    if isinstance(obj, dict):
+        sealed = ReadOnlyDict(obj)  # мелкая: те же ключи/значения
+        for _k, _v in list(sealed.items()):
+            dict.__setitem__(sealed, _k, _deep_seal(_v))
+        return sealed
+    if isinstance(obj, list):
+        return ReadOnlyList(_deep_seal(_v) for _v in obj)
+    return obj
+
+def _shallow_of_root(obj: Any) -> Any:
+    """S269 v2: root остаётся живым объектом вызывающего (move-semantics
+    S266), вложенные контейнеры запечатываются."""
+    if isinstance(obj, dict):
+        return {k: _deep_seal(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_deep_seal(v) for v in obj]
+    return obj
+
+
 class WorldEpoch:
     """Immutable факт мира. READ-ONLY for eternity.
 
@@ -22,13 +124,14 @@ class WorldEpoch:
     мутировать, потому что он не предоставляет write-API.
     """
 
-    __slots__ = ("epoch_id", "_state", "_npcs")
+    __slots__ = ("epoch_id", "_state", "_npcs", "_sealed_cache")
 
     # PEP 526-аннотации (без присваивания — совместимы с __slots__):
     # дают mypy типы атрибутов, устанавливаемых через object.__setattr__.
     epoch_id: int
     _state: Dict[str, Any]
     _npcs: List[Dict[str, Any]]
+    _sealed_cache: Dict[str, Any]
 
     def __init__(self, epoch_id: int, state: Dict[str, Any],
                  npcs: Optional[List[Dict[str, Any]]] = None):
@@ -36,8 +139,16 @@ class WorldEpoch:
         # Epoch вызывающий обязан прекратить мутировать переданные dict.
         # Это контракт, enforcing — через WorldView (нет write-пути).
         object.__setattr__(self, "epoch_id", int(epoch_id))
+        # S269 v3 (гейты S266 против Мастер-гейта): _state — ЖИВАЯ ссылка
+        # без копий (контракт S266: test_epoch_state_not_isolated_dict +
+        # test_view_no_copy требуют e.state is s). Запечатка переносится
+        # на WorldView-чтение (кэш) — вложенная запись через VIEW громко
+        # невозможна; прямая запись в живую ссылку — контракт вызывающего
+        # (INV-TEMPORAL-ISOLATION). _npcs move-контракта не имеет —
+        # запечатывается глубоко здесь.
         object.__setattr__(self, "_state", state)
-        object.__setattr__(self, "_npcs", npcs or [])
+        object.__setattr__(self, "_npcs", _deep_seal(npcs or []))
+        object.__setattr__(self, "_sealed_cache", {})
 
     @property
     def state(self) -> Dict[str, Any]:
@@ -82,13 +193,26 @@ class WorldView:
     def __init__(self, epoch: WorldEpoch) -> None:
         object.__setattr__(self, "_epoch", epoch)
 
-    # ── dict-compat READ (бесплатно, ноль копий) ──
+    # ── dict-compat READ ──
+    # S269 v3: контейнерные значения отдаются ЗАПЕЧАТАННЫМИ (ReadOnly,
+    # кэш на эпохе — один объект на ключ). Вложенная запись через view
+    # громко невозможна (Мастер-гейт). Скаляры — как есть (ноль накладных).
+
+    def _sealed(self, key: str, value: Any) -> Any:
+        if not isinstance(value, (dict, list)):
+            return value
+        cache = self._epoch._sealed_cache
+        if key not in cache:
+            cache[key] = _deep_seal(value)
+        return cache[key]
 
     def __getitem__(self, key: str) -> Any:
-        return self._epoch.state[key]
+        return self._sealed(key, self._epoch.state[key])
 
     def get(self, key: str, default: Any = None) -> Any:
-        return self._epoch.state.get(key, default)
+        if key in self._epoch.state:
+            return self._sealed(key, self._epoch.state[key])
+        return default
 
     def __contains__(self, key: str) -> bool:
         return key in self._epoch.state
@@ -96,11 +220,11 @@ class WorldView:
     def keys(self) -> KeysView[str]:
         return self._epoch.state.keys()
 
-    def values(self) -> ValuesView[Any]:
-        return self._epoch.state.values()
+    def values(self) -> List[Any]:
+        return [self[k] for k in self._epoch.state.keys()]
 
-    def items(self) -> ItemsView[str, Any]:
-        return self._epoch.state.items()
+    def items(self) -> List[Tuple[str, Any]]:
+        return [(k, self[k]) for k in self._epoch.state.keys()]
 
     def __len__(self) -> int:
         return len(self._epoch.state)

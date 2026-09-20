@@ -1,0 +1,9 @@
+[CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] npc=merchant_goran cause=boundary_arrival:proactive_offer_job field=position Macro movement without proposal (ADR-O-323 violation)
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='blacksmith_orm', source_id='merchant_goran', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='maid_lusya', source_id='guard_borko', effect_value=-6.0, observation_weight=1.0, event_type='social_dialogue:ANGRY'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[L1_CHRONICLE] CRITICAL: failed to persist event TraitDriftEvent(tick_id=0, target_id='guard_borko', source_id='blacksmith_orm', effect_value=0.0, observation_weight=1.0, event_type='social_dialogue:NEUTRAL'): SQLite connection is not initialized.. In-memory state may diverge from SQLite.
+[NPC_DIALOGUE_SUB] relationship update failed: SQLite connection is not initialized.
+[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] npc=merchant_goran cause=boundary_arrival:proactive_offer_job field=position Macro movement without proposal (ADR-O-323 violation)

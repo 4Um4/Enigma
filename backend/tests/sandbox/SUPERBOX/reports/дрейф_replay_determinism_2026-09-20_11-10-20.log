@@ -1,0 +1,57 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_fjlxux_s
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_fjlxux_s\saves
+
+--- MODE E: Replay Determinism Audit (2 × 800 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A complete: hash=b2b8397a1fcf47bf... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_fjlxux_s
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_hl8scupp
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_hk4ob1lv
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_hk4ob1lv\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B complete: hash=b453ba3b97eebb55... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  🔴 REPLAY DETERMINISM: MISMATCH
+     Hash A: b2b8397a1fcf47bfae07cd6d7080634ecf9a213a26df08f6e3a422fdaaeaa039
+     Hash B: b453ba3b97eebb55a6a4ee9d0ce797ed59caf8e5abc2aaf6a0422ea18a300d88
+     Hidden entropy source detected — investigation required
+
+  [REPLAY] Диагностика расхождения:
+     scene['recent_dialogues']: A=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+                     B=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_hk4ob1lv
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_9hb94bqe
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 0
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌

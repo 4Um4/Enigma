@@ -56,7 +56,12 @@ class SleepOnsetResolver:
             return SleepOnsetEligibility(eligible=False, tick=tick, reason="dead")
 
         _current = (npc.get("routine") or {}).get("current", "")
-        if not is_sleeping(_current):
+        # SLEEP-SLICE (Y, вердикт Мастера): going_to_sleep — pending sleep
+        # intent, даёт право ПОПРОБОВАТЬ onset (bed_ok/settled/blocked-гейты
+        # ниже решают), но НЕ право считать NPC спящим. Лейбл "sleeping"
+        # встанет проекцией из факта onset (Phase 0.6). is_sleeping()
+        # глобально не расширяется — только трактовка этого резолвера.
+        if not (is_sleeping(_current) or _current == "going_to_sleep"):
             return SleepOnsetEligibility(eligible=False, tick=tick, reason="no_intent")
 
         if not bed_ok:

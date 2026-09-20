@@ -1,4 +1,4 @@
-"""
+﻿"""
 ENIGMA Drift Laboratory — Каузальная стресс-машина (ADR-O-201 ФАЗА 2.5)
 
 Запуск:
@@ -50,8 +50,15 @@ for _dn in ("app.services.npc.domain_phases",
             "app.services.game_loop",
             "app.services.npc.npc_tick_pipeline",
             "app.services.phases.movement_bridge",
-            "app.services.scene_state_manager"):
+            "app.services.scene_state_manager",
+            "app.services.npc.state_applicator"):
     _logging.getLogger(_dn).setLevel(_logging.ERROR)
+
+# S269-C3: диагностический fsync-канал _log_change (scene_changes.jsonl,
+# os.fsync на каждый apply_change ≈ 14 fsync/тик = 15 с из 145 с профиля)
+# в лаборатории отключён: измеряем каузальность, не телеметрию.
+# Канал в production жив (ENIGMA_DISABLE_FILE_LOGS — существующий гейт).
+os.environ.setdefault("ENIGMA_DISABLE_FILE_LOGS", "1")
 
 from scripts.llm_server_manager import kill_llama_server, start_llama_server
 
@@ -331,7 +338,6 @@ class DriftLaboratory:
                 _wt.unlink()
             settings.data_dir = str(_data_dst)
             self._data_temp_dir = str(_data_dst)
-            self._game_loop = build_game_loop(data_dir=_data_dst)
             # S268-ЭНДУРАНС: в DRIFT_NO_LLM-режиме диалоговый контур
             # переключается на mock ДО сборки (router читает settings —
             # factory.py:77), ретраи/таймауты исчезают из endurance.
@@ -352,7 +358,17 @@ class DriftLaboratory:
                     _mp._default_endurance_config = _mc  # для create_mock_provider
                 except Exception as _e:  # noqa: ENIGMA001
                     logger.warning(f"[DRIFT_LAB] mock-LLM setup skipped: {_e}")
-            self._game_loop = build_game_loop(data_dir=_real_data_dir)
+            # S269-ФИКС: единственная сборка ПОСЛЕ mock-настройки (S268
+            # заявлял «mock ДО сборки», код собирал до — дубль-сборка
+            # _real_data_dir случайно компенсировала порядок, перетирая
+            # и изоляцию data_dir, и подмену провайдеров; артефакт
+            # двойного патча, прецедент S207/S211)
+            self._game_loop = build_game_loop(data_dir=_data_dst)
+            # S269-ФИКС (доделывание S268-ЭНДУРАНС-ФИКС): удалён дубль сборки —
+            # вторая build_game_loop(_real_data_dir) перетирала изолированную
+            # сборку :335, оба рана работали на живом data_dir (канал MISMATCH
+            # narrative_cache 'origin' vs 'secret_origin'). Артефакт двойного
+            # патча (прецедент S207/S211: якорь обязан включать хвост).
 
             # Доступ к внутреннему TickOrchestrator для чтения drift_stats
             self._orchestrator = self._game_loop._tick_orch
@@ -381,6 +397,20 @@ class DriftLaboratory:
         Гарантированный restore даже при exception.
         SQLite соединения закрываются ДО удаления файлов.
         """
+        # 0. S269-QUIESCE (закрытие DEBT-QUIESCE из S213): дождаться
+        # диалогового ThreadPoolExecutor ДО закрытия SQLite. Иначе воркер
+        # исполняет задачу на закрытых коннектах → пост-teardown CRITICAL-шум
+        # ([L1_CHRONICLE], NPC_DIALOGUE_SUB, REPLAY_STORE — «Cannot operate
+        # on a closed database»). Порядок: сначала worker-хвост, потом БД.
+        try:
+            _ts = self._game_loop._get_task_scheduler()
+            _pool = getattr(_ts, "_executor_pool", None)
+            if _pool is not None:
+                _pool.shutdown(wait=True)
+                print("[DRIFT_LAB] Quiesce: dialogue executor drained")
+        except Exception as e:
+            print(f"[DRIFT_LAB] Quiesce skipped: {e}")
+
         # 1. Восстанавливаем настройки ВСЕГДА
         self._restore_settings()
 
@@ -831,6 +861,43 @@ class DriftLaboratory:
         cleaned = _copy.deepcopy(scene_state)
         for key in _EXCLUDE_FROM_SCENE_HASH:
             cleaned.pop(key, None)
+        # ADR-O-399 (Option 1, lab-only canonical projection): порядок
+        # recent_dialogues — delivery/transport order, не входит в
+        # доказанный causal contract (расследование O399-COUNT: состав
+        # записей идентичен 96==96, A-only=0, расходится только
+        # interleaving). Сортируем ТОЛЬКО проекцию для хеша;
+        # scene_state["recent_dialogues"] не трогаем (runtime/UI/memory
+        # порядок сохраняется). При появлении consumer'а, использующего
+        # порядок как причинный сигнал, контракт пересмотреть (мини-ADR).
+        _rd = cleaned.get("recent_dialogues")
+        if isinstance(_rd, list):
+            cleaned["recent_dialogues"] = sorted(
+                _rd,
+                key=lambda d: (d.get("timestamp", 0), d.get("speaker_id", ""),
+                               d.get("target_id", ""), d.get("text", "")),
+            )
+
+        # S269-ФИКС КЭНОН-ХЕША: real_ts — wall-clock метаданные момента
+        # записи диалога (аналог last_save_real_time, который уже исключён
+        # верхнеуровнево; real_ts вложен в элементы recent_dialogues и
+        # туда exclude не доставал). Поле каузального смысла не несёт —
+        # презентационная проекция Speech Bubbles (ADR-O-313), wall-clock
+        # там легален по §15.2. Структурное доказательство: 88/88 реплик
+        # A/B совпадают попарно по всем каузальным полям, различие только
+        # в real_ts (drift_diff_scene.txt, калибровка v6).
+        _REALTIME_META_KEYS = {"real_ts"}
+
+        def _strip_realtime_meta(obj: Any) -> None:
+            if isinstance(obj, dict):
+                for _k in _REALTIME_META_KEYS:
+                    obj.pop(_k, None)
+                for _v in obj.values():
+                    _strip_realtime_meta(_v)
+            elif isinstance(obj, list):
+                for _item in obj:
+                    _strip_realtime_meta(_item)
+
+        _strip_realtime_meta(cleaned)
 
         # NPC dicts — сортируем по npc_id для детерминированного порядка
         sorted_npcs = sorted(npc_dicts, key=lambda n: n.get("npc_id", n.get("id", "")))
@@ -873,6 +940,12 @@ class DriftLaboratory:
             va = scene_a.get(key)
             vb = scene_b.get(key)
             if va != vb:
+                # S269: 100 символов мало для дифа recent_dialogues —
+                # полный dump обоих значений в temp-файл
+                _dump = Path(tempfile.gettempdir()) / "drift_diff_scene.txt"
+                with open(_dump, "w", encoding="utf-8") as _f:
+                    _f.write(f"KEY = {key}\n\nA = {json.dumps(va, ensure_ascii=False, default=str, indent=1)}\n\nB = {json.dumps(vb, ensure_ascii=False, default=str, indent=1)}\n")
+                print(f"     [S269] полный диф '{key}' → {_dump}")
                 va_s = str(va)[:100]
                 vb_s = str(vb)[:100]
                 print(f"     scene['{key}']: A={va_s}")
@@ -914,11 +987,29 @@ class DriftLaboratory:
         random.seed(_REPLAY_SEED)
         run_a_interrupted = False
 
+        _t0 = time.time()
+        _ds = dict(self._orchestrator._drift_stats)
         try:
             for tick in range(1, ticks + 1):
                 self._run_idle_tick_direct()
                 if tick % 2_000 == 0:
                     print(f"  [REPLAY] Run A: tick {tick}/{ticks}")
+                # S269-Д2: progress-snapshots для отчётов (CSV/MD/графики).
+                # 1 мир-сравнение за тик; drift_* — накопительные C/D/E оркестратора.
+                # Интервал адаптивный: ~10 срезов на ран (50 тиков при 300,
+                # 500 при 10k) — короткие прогоны тоже оставляют данные.
+                if tick % max(50, ticks // 10) == 0:
+                    _d = self._orchestrator._drift_stats
+                    result.snapshots.append(DriftSnapshot(
+                        tick=tick,
+                        total_comparisons=tick,
+                        drift_A=_d.get("drift_A", 0) - _ds.get("drift_A", 0),
+                        drift_B=_d.get("drift_B", 0) - _ds.get("drift_B", 0),
+                        drift_C=_d.get("drift_C", 0) - _ds.get("drift_C", 0),
+                        drift_D=_d.get("drift_D", 0) - _ds.get("drift_D", 0),
+                        drift_E=_d.get("drift_E", 0) - _ds.get("drift_E", 0),
+                        elapsed_seconds=time.time() - _t0,
+                    ))
         except Exception as e:
             run_a_interrupted = True
             print(f"  [REPLAY] Run A INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
@@ -946,11 +1037,26 @@ class DriftLaboratory:
         random.seed(_REPLAY_SEED)
         run_b_interrupted = False
 
+        _ds_b = dict(self._orchestrator._drift_stats)
         try:
             for tick in range(1, ticks + 1):
                 self._run_idle_tick_direct()
                 if tick % 2_000 == 0:
                     print(f"  [REPLAY] Run B: tick {tick}/{ticks}")
+                # S269-Д2: снимки Run B; elapsed — от _t0 Run A (одна ось времени).
+                # tick < ticks: финальную точку пишет снимок после Run B complete
+                if tick % max(50, ticks // 10) == 0 and tick < ticks:
+                    _d = self._orchestrator._drift_stats
+                    result.snapshots.append(DriftSnapshot(
+                        tick=ticks + tick,
+                        total_comparisons=ticks + tick,
+                        drift_A=_d.get("drift_A", 0) - _ds_b.get("drift_A", 0),
+                        drift_B=_d.get("drift_B", 0) - _ds_b.get("drift_B", 0),
+                        drift_C=_d.get("drift_C", 0) - _ds_b.get("drift_C", 0),
+                        drift_D=_d.get("drift_D", 0) - _ds_b.get("drift_D", 0),
+                        drift_E=_d.get("drift_E", 0) - _ds_b.get("drift_E", 0),
+                        elapsed_seconds=time.time() - _t0,
+                    ))
         except Exception as e:
             run_b_interrupted = True
             print(f"  [REPLAY] Run B INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
@@ -960,11 +1066,35 @@ class DriftLaboratory:
         _engine_b = self._game_loop._get_life_engine()
         npcs_b = _engine_b.get_npc_states(self.config.campaign_id) if _engine_b else []
         hash_b = self._canonical_hash(scene_b, npcs_b)
+        # O399-CROSSDIFF (временный диагностический артефакт, удалить после
+        # локализации): финальные сцены обоих ранов → JSON для внешнего
+        # структурного дифа. Не участвует в runtime, не меняет scene/hash/порядок,
+        # не SSOT, не персистентное состояние — просто файл.
+        _snap_dir = Path(__file__).parent / "reports" / "o399_snaps"
+        _snap_dir.mkdir(parents=True, exist_ok=True)
+        _tag = _os.environ.get("O399_TAG", "run")
+        (_snap_dir / f"scene_{_tag}.json").write_text(
+            json.dumps({"scene_a": scene_a, "scene_b": scene_b,
+                        "hash_a": hash_a, "hash_b": hash_b},
+                       ensure_ascii=False, default=str),
+            encoding="utf-8",
+        )
+        print(f"[O399-CROSSDIFF] saved → reports/o399_snaps/scene_{_tag}.json")
         drift_b = dict(self._orchestrator._drift_stats)
         print(f"  [REPLAY] Run B complete: hash={hash_b[:16]}... npcs={len(npcs_b)}")
         print(
             f"  [REPLAY] Run B drift: C={drift_b.get('drift_C', 0)} D={drift_b.get('drift_D', 0)} E={drift_b.get('drift_E', 0)}"
         )
+        # S269-Д2: финальный snapshot — последняя точка оси (2N) с полным drift
+        result.snapshots.append(DriftSnapshot(
+            tick=ticks * 2,
+            total_comparisons=ticks * 2,
+            drift_C=drift_b.get("drift_C", 0),
+            drift_D=drift_b.get("drift_D", 0),
+            drift_E=drift_b.get("drift_E", 0),
+            elapsed_seconds=time.time() - _t0,
+            crashed_ticks=1 if run_a_interrupted or run_b_interrupted else 0,
+        ))
 
         # ── VERDICT ────────────────────────────────────────────────
         result.final_stats = {
@@ -1657,6 +1787,23 @@ class DriftReporter:
                         f"{s.elapsed_seconds:.2f}",
                     ]
                 )
+            # S269-Д2: вердиктная строка — CSV остаётся самодостаточным
+            # даже при пустых snapshots (требование: инструмент сохраняет
+            # выводы, а не только сырые числа)
+            _rv = self.result.final_stats.get("replay_verdict")
+            if _rv:
+                writer.writerow(
+                    [
+                        "VERDICT",
+                        _rv,
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                    ]
+                )
         print(f"  📊 CSV сохранён: {path}")
 
     # ─── Markdown-отчёт ────────────────────────────────────────────
@@ -1665,7 +1812,45 @@ class DriftReporter:
         """Генерирует человекочитаемый Markdown-отчёт на русском."""
         r = self.result
         last = r.snapshots[-1] if r.snapshots else None
-        if last is None:
+        if last is None and not r.final_stats.get("replay_verdict"):
+            return
+        lines = []
+        _rv = r.final_stats.get("replay_verdict")
+        if _rv:
+            # S269-Д2: replay-режимы раньше не оставляли ничего в MD
+            # (snapshots пуст → ранний return). Вердикт + автотекст-вывод:
+            # «выводы, а не цифры» — требование Мастера к инструменту.
+            _ha = str(r.final_stats.get("hash_a", "?"))
+            _hb = str(r.final_stats.get("hash_b", "?"))
+            _tk = r.final_stats.get("replay_ticks", "?")
+            _sd = r.final_stats.get("replay_seed", "?")
+            _ms = ""
+            _et = r.snapshots[-1].elapsed_seconds if r.snapshots else 0.0
+            if r.snapshots and _tk:
+                _ms = f", {float(_et) / (2 * int(_tk)) * 1000:.1f} мс/тик"
+            lines.append("# Лаборатория Дрейфа — Вердикт Реплея")
+            lines.append("")
+            lines.append(f"**Дата:** {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            lines.append(f"**Вердикт:** {'✅ MATCH — мир детерминирован' if _rv == 'MATCH' else '🔴 MISMATCH — скрытая энтропия'}")
+            lines.append("")
+            lines.append("| Параметр | Значение |")
+            lines.append("|---|---|")
+            lines.append(f"| Тики (A+B) | 2 × {_tk} |")
+            lines.append(f"| Seed | {_sd} |")
+            lines.append(f"| Hash Run A | `{_ha}` |")
+            lines.append(f"| Hash Run B | `{_hb}` |")
+            lines.append(f"| Время | {_et:.1f} сек{_ms} |")
+            lines.append("")
+            if _rv == "MATCH":
+                lines.append("**Вывод:** Мир воспроизводим при контролируемой энтропии на данной нагрузке. Артефакт валиден как baseline детерминизма; долгосрочный дрейф не обнаружен на прогоне.")
+            else:
+                lines.append("**Вывод:** Обнаружен скрытый источник энтропии (time/uuid/ordering/поздний writer). Прогон НЕ может считаться baseline. Обязателен каузальный разбор: первый divergent tick → состояние → writer → причина. Повторный полный прогон — только после фикса.")
+            lines.append("")
+            lines.append("---")
+            lines.append("*Авто-сгенерировано Лабораторией Дрейфа ENIGMA*")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+            print(f"  📝 Markdown-отчёт (вердикт реплея) сохранён: {path}")
             return
 
         lines = []

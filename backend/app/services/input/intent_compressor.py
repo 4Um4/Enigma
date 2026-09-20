@@ -9,7 +9,7 @@ TODO: В будущем IntentCompressor может быть расширен д
 """
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from app.domain.epistemology import Predicate, Proposition, SocialIntent, SpeechAct
 from app.domain.intent_profile import (
@@ -20,6 +20,7 @@ from app.domain.intent_profile import (
     SemanticAmbiguity,
     TargetZone,
 )
+from app.domain.subject_ref import SubjectKind, SubjectRef
 from app.services.input.llm_compressor_client import LLMCompressorClient
 from app.services.memory.dialogue_session import DialogueSession
 
@@ -278,12 +279,10 @@ def _extract_np_after_preposition(text: str) -> str | None:
     return None
 
 
-def extract_subject(raw_text: str):
+def extract_subject(raw_text: str) -> SubjectRef:
     """M1/P3: предмет вопроса → SubjectRef. Резолв: NPC (name_forms
     прецедент) → канон-тема → event-NP → UNKNOWN. Детерминировано;
     нерезолв сохраняет hint (N2). Не решает knows/reveals (P4/P5)."""
-    from app.domain.subject_ref import SubjectKind, SubjectRef
-
     np = _extract_np_after_preposition(raw_text)
     if not np:
         # «почему Горан нервничает?» — без предлога: первый токен после
@@ -378,7 +377,7 @@ def _resolve_canon_topic(np: str) -> str | None:
                 continue
             _t = _topic.lower()
             if _t in _low:
-                return _sec.secret_id
+                return cast(str, _sec.secret_id)
     return None
 
 

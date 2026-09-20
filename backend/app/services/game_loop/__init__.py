@@ -1557,6 +1557,11 @@ class GameLoop:
         # (без pending_tasks) не создают backlog терминалов; окно до unlock_tick (F24).
         if _auth_scene:
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+        # ADR-O-399 (точка (б)): безусловный deterministic commit артефактов
+        # воркера — тихие тики не создают backlog (симметрия F23);
+        # pending_tasks == 0 не блокирует дренаж готовых артефактов.
+        if _auth_scene:
+            self._get_task_scheduler().drain_task_worker_outbox(_auth_scene)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict
@@ -2848,6 +2853,26 @@ class GameLoop:
         - SqliteMemoryStore (enigma_memory.db)
         - TickOrchestrator cached SpatialService
         """
+        # 0. S269-QUIESCE (закрытие DEBT-QUIESCE, S213): собственный
+        # диалоговый executor переживал dispose и писал в закрытые SQLite
+        # (пост-teardown CRITICAL: [L1_CHRONICLE], NPC_DIALOGUE_SUB,
+        # REPLAY_STORE). Lifecycle: stop-produce → drain worker → потом БД.
+        # shutdown(wait=True) ждёт текущую задачу; повторный вызов = no-op
+        # (idempotent teardown). Диагностика вместо бесконечного ожидания.
+        if hasattr(self, "_task_scheduler"):
+            _sched = getattr(self, "_task_scheduler", None)
+            _pool = getattr(_sched, "_executor_pool", None)
+            if _pool is not None:
+                try:
+                    _pool.shutdown(wait=True, cancel_futures=True)
+                    print("[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)")
+                except TypeError:
+                    # Python < 3.9: без cancel_futures
+                    _pool.shutdown(wait=True)
+                    print("[GAME_LOOP] Quiesce: dialogue executor drained")
+                except Exception as e:
+                    print(f"[GAME_LOOP] DEBT-QUIESCE WARNING: drain failed: {e}")
+
         # 1. Persistence adapter (enigma_runtime.db) — через scene_manager
         if hasattr(self, "scene_manager") and self.scene_manager is not None:
             _persistence = getattr(self.scene_manager, "_persistence", None)  # noqa: ENIGMA002

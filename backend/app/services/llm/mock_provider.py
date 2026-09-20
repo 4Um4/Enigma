@@ -140,9 +140,28 @@ class MockProvider(StreamingLlmProvider):
 
         prompt_lower = prompt.lower()
 
+        # S269-ДЕТЕРМИНИЗМ (закрытие DEBT-MOCK из S213): выбор из пула —
+        # по стабильному хешу промпта, не random.choice. Второй домен
+        # пострадавших — DriftLab Mode E: ThreadPoolExecutor флапает
+        # порядком mock-вызовов между ранами, общая random-последовательность
+        # потребляется в разном порядке → MISMATCH при одинаковом seed.
+        # Хеш промпта инвариантен к порядку вызовов. KernelRNG ядра
+        # (ADR-O-301) не затронут — закон только для kernel layer,
+        # mock остаётся вне симуляционного контура детерминизма.
+        def _deterministic_pick(options: list) -> str:
+            # ADR-O-399 Iter2: hash(str) солёный PER-PROCESS (PYTHONHASHSEED) —
+            # детерминизм внутри прогона, лотерея между процессами/сессиями.
+            # Стабильный хеш (md5, §15-нейтральный: не time, не random) —
+            # детерминирован между любыми процессами. Причина: DriftLab
+            # канон L0'-vs-L1' дрейфовал между сессиями (2f30fe2d / 59315285 /
+            # 63a5dd4f / 7a28bf7c при неизменном коде).
+            import hashlib as _hl
+            _idx = int(_hl.md5(prompt_lower.encode("utf-8")).hexdigest(), 16) % len(options)
+            return options[_idx]
+
         # Простая эвристика по ключевым словам
         if any(w in prompt_lower for w in ["атак", "удар", "бьёт", "меч"]):
-            return random.choice(
+            return _deterministic_pick(
                 [
                     "[Mock] Удар попадает! Цель получает урон.",
                     "[Mock] Атака промахивается — противник уклонился.",
@@ -151,15 +170,15 @@ class MockProvider(StreamingLlmProvider):
             )
 
         if any(w in prompt_lower for w in ["осмотр", "осмотреть", "осматрива"]):
-            return random.choice(
+            return _deterministic_pick(
                 [
                     "[Mock] Ты осматриваешься: старые каменные стены, факелы, деревянный стол.",
-                    "[Mock] В комнате видно: сундук в углу, потухший камин, старую карту на стене.",
+                    "[Mock] В комнате видно: сундук в углу, потухший камин, старую карту на стену.",
                 ]
             )
 
         if any(w in prompt_lower for w in ["говор", "сказал", "спросил", "отвеч"]):
-            return random.choice(
+            return _deterministic_pick(
                 [
                     "[Mock] NPC задумчиво смотрит на тебя: 'Не знаю... может, стоит спросить у старосты.'",
                     "[Mock] 'За эту информацию придётся заплатить,' — процедил торговец.",
@@ -168,7 +187,7 @@ class MockProvider(StreamingLlmProvider):
 
         # Дефолт — из пула или статический
         return (
-            random.choice(self._config.response_pool)
+            _deterministic_pick(self._config.response_pool)
             if self._config.response_pool
             else self._config.default_response
         )
@@ -192,6 +211,12 @@ class MockProvider(StreamingLlmProvider):
         return ProviderType.MOCK
 
 
+# S269: модульный дефолт эндуранс-конфига. Лаборатория DriftLab задаёт
+# delay=0/streaming=False для endurance-режима. Поведение по умолчанию
+# не меняется (None → дефолтная MockConfig внутри MockProvider).
+_default_endurance_config: MockConfig | None = None
+
+
 def create_mock_provider(config: MockConfig | None = None) -> MockProvider:
     """Фабричная функция для создания Mock провайдера."""
-    return MockProvider(config)
+    return MockProvider(config or _default_endurance_config)

@@ -122,6 +122,11 @@ class NpcDialogueSubscriber:
         # H-01 FIX: Используем каноничный симуляционный тик (ctx.tick_number / scene_state["tick"])
         # вместо event.timestamp (wall-clock time), чтобы удовлетворить контракт L1Chronicle (INTEGER).
         tick = int(self._get_tick())
+        # ADR-O-399 Iter1: event_tick — событийное время, назначенное в
+        # submit (main thread), приезжает в payload при drain. Fallback на
+        # arrival-тик — fail-open (прецедент Р-Б2/S198: dict-события тестов
+        # без штампа сохраняют прежнее поведение).
+        _event_tick = int(payload.get("event_tick", 0) or 0)
 
         listener = payload.get("target_id")
         text = payload.get("text", "")
@@ -186,9 +191,10 @@ class NpcDialogueSubscriber:
                             )
                             if _bridge is not None:
                                 # P7-B: метка по провенансу знания спикера
-                                _secret_id, _content_class = (
-                                    self._resolve_eavesdrop_label(speaker, topic, payload)
-                                )
+                                _label = self._resolve_eavesdrop_label(
+                                    speaker, topic, payload
+                                ) or (None, None)
+                                _secret_id, _content_class = _label
                                 _bridge.process(
                                     SurfaceEvent(
                                         kind=SurfaceKind.EAVESDROP,
@@ -254,10 +260,12 @@ class NpcDialogueSubscriber:
                 # пусто — _process_canonical возьмёт content-hash fallback.
                 _event_id = str(getattr(event, "id", "") or "")
                 self._process_canonical(
-                    speaker, listener, text, tone, topic, tick, event_id=_event_id
+                    speaker, listener, text, tone, topic, tick, event_id=_event_id,
+                    event_tick=_event_tick,
                 )
             else:
-                self._process_ambient(speaker, listener, tone, topic, tick)
+                self._process_ambient(speaker, listener, tone, topic, tick,
+                                      event_tick=_event_tick)
         except Exception as e:
             logger.exception(
                 f"[NPC_DIALOGUE_SUB] failed for {listener} hearing {speaker}: {e}"
@@ -265,13 +273,14 @@ class NpcDialogueSubscriber:
 
     def _process_canonical(
         self,
-        speaker: str,
+        speaker: str,   
         listener: str,
         text: str,
         tone: str,
         topic: str,
         tick: int,
         event_id: str = "",
+        event_tick: int = 0,
     ) -> None:
         """Полная обработка canonical реплики (с текстом от LLM)."""
         _campaign_id = self._get_campaign_id()
@@ -421,7 +430,8 @@ class NpcDialogueSubscriber:
                     observation_weight=1.0,
                     event_type=f"social_dialogue:{tone}",
                 )
-                self._l1_chronicle.commit_tick_buffer([_drift_event], tick)
+                # ADR-O-399 Iter1: L1 — event-time (submit), не arrival
+                self._l1_chronicle.commit_tick_buffer([_drift_event], event_tick or tick)
 
         except Exception as rel_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] relationship update failed: {rel_err}")
@@ -433,6 +443,7 @@ class NpcDialogueSubscriber:
         tone: str,
         topic: str,
         tick: int,
+        event_tick: int = 0,
     ) -> None:
         """Упрощённая обработка ambient реплики (без LLM-конкретики)."""
         _campaign_id = self._get_campaign_id()
@@ -483,7 +494,8 @@ class NpcDialogueSubscriber:
                     observation_weight=1.0,
                     event_type=f"social_dialogue:{tone}",
                 )
-                self._l1_chronicle.commit_tick_buffer([_drift_event], tick)
+                # ADR-O-399 Iter1: L1 — event-time (submit), не arrival
+                self._l1_chronicle.commit_tick_buffer([_drift_event], event_tick or tick)
         except Exception as chron_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] L1Chronicle append failed: {chron_err}")
 

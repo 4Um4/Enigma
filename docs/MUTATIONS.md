@@ -1379,8 +1379,41 @@ PR-8 commit-move ИССЛЕДОВАН и ЗАКРЫТ как недостижи�
   видимости; перерождение объекта в следующую реальность = продолжение
   жизни.
 
-
-
+### S269: DriftLab → научный инструмент + Epoch seal + PERF-фронт deepcopy (cProfile-методология) | ✅ IPT 45/45, epoch 7/7, 10k×2 MATCH
+🎯 Приказ Мастера: довести DriftLab 10k до VERDICT; затем — «заставить каждый байт deepcopy иметь архитектурную причину». Запрет: не «убрать deepcopy», а доказуемо убрать объёмы работы при сохранении причинной изоляции.
+⚙️ (1) ДЕТЕРМИНИЗАЦИЯ DriftLab — 5 фиксов вечного MISMATCH, каждый по археологии: F1 дубль build_game_loop (артефакт двойного патча S268-WIP) перетирал изоляцию data_dir → изоляция ожила (канал narrative_cache 'origin' vs 'secret_origin' закрыт); F2 сборка ПОСЛЕ mock-настройки (S268-комментарий заявлял, код делал наоборот) → DRIFT_NO_LLM реален: 0 сетевых ходов; F3 _default_endurance_config объявлен в mock_provider и читается фабрикой → delay=0 жив (мёртвый атрибут, Pylance-улика); F4 random.choice в 4 пулах MockProvider → детерминированный pick по hash(prompt) (закрыт DEBT-MOCK из S213; Two-Domain: тесты + лаборатория); F5 real_ts (wall-clock метаданные записи диалога) выведен из канон-хеша рекурсивным strip (прецедент last_save_real_time; доказательство: 88/88 реплик A/B попарно идентичны по каузальным полям).
+⚙️ (2) SEAL EPOCH (Мастер-гейт вложенной защиты): ReadOnlyDict/ReadOnlyList (dict/list-подклассы — контракт isinstance сохранён, урок PR-6a), WorldView-чтение оборачивает контейнеры с кэшем на эпоху, npcs запечатан глубоко; move-semantics S266 сохранён (root = живая ссылка, разграничение зон: view запечатан, прямая запись в сырую ссылку — зона INV-TEMPORAL-ISOLATION). 7/7 тестов + IPT 45/45.
+⚙️ (3) A/B copy-vs-move (S268-7b исполнен измерением): copy+seal 79.9-90.2 мс/тик vs move 105.3-124.5 → move проигрывает на текущей границе (downstream-копии обходят живой растущий граф дороже входной deepcopy). Move остаётся за флагом до Epoch-финала.
+⚙️ (4) 10k×2 ФИНАЛ: MATCH, C/D/E=0, 0 крашей, 35.4 мин wall-clock — первый полный VERDICT кампании.
+⚙️ (5) DriftLab как инструмент: Д1 quiesce в GameLoop.dispose() + лаборатория (DEBT-QUIESCE закрыт: executor переживал dispose и писал в закрытые SQLite; lifecycle доказан двойным прогоном + A/B teardown внутри рана) → пост-teardown CRITICAL исчез; Д2 progress-snapshots Mode E (адаптивный интервал, глобальная ось 2N, финальный снимок) + вердикт-блок в MD с автотекстом-выводом + VERDICT-строка в CSV; Д3 — 3 PNG-графика впервые для replay-режима (было «Нет данных»).
+⚙️ (6) PERF-ФРОНТ cProfile (методология: профиль → call site → объём → зачем → последний consumer → изоляция? → benchmark → IPT → DriftLab): C1 ReadOnlyDict/List.__deepcopy__→self (шаринг immutable, прецедент WorldEpoch.__deepcopy__) — deepcopy 71.6→61.5 с; C2 SSM :1726 ленивый npc-снимок (потребитель WorldProjectionBuffer отключён AUDIT #10) — SSM.commit 19.7→7.75 с (−61%); C3 fsync-канал _log_change (scene_changes.jsonl, ~14 fsync/тик = 15.0 с) выключен в лаборатории через существующий гейт ENIGMA_DISABLE_FILE_LOGS (setdefault; production-канал жив) — 15.0→0.05 с. Чистая калибровка: 132.4 → 90.2 → 79.9-90 → 66.0 мс/тик (−50% за день); пара 10k×2 проекция ≈22 мин.
+⚙️ (7) Причинная нейтральность серии: hash 6875fa94 неизменен C1→C3 (байт-в-байт мир), IPT 45/45 после каждого кандидата, epoch 7/7, MATCH на каждом прогоне.
+⚙️ (8) Фиксация семантики (вердикт Мастера): C1/C2/C3 = LEGAL OPTIMIZATION; input boundary deepcopy = CURRENTLY RETAINED; commit:1720 ↔ input:413 = EPOCH-FINAL BOUNDARY (парная граница — не разбирать по одному сайту). «Доказано не то, что deepcopy нельзя трогать, а то, что три конкретных объёма можно убрать, сохранив изоляцию; полный move сейчас не выигрышный транспорт».
+📁 backend/app/domain/world_epoch.py (seal+__deepcopy__), backend/app/services/llm/mock_provider.py (F3/F4), backend/app/services/game_loop/__init__.py (quiesce dispose), backend/app/services/scene_state_manager.py (C2), backend/tests/sandbox/SUPERBOX/drift_laboratory.py (F1/F2/C3/Д1/Д2/Д3), backend/tests/test_world_epoch.py (+3 теста), reports/s269_profile*.pstats, reports/drift_*.log
+⚠️ Эскалации владельцам (не мои зоны): Э-[M1b.4.2] confirm_migration-цикл; epistemic double-writer game_loop:1502 vs orchestrator:739; read-cache листьев sqlite-адаптера («не мутируй листья» вместо владения); SSM :2309 relationship-deepcopy (RE-зона); ENIGMA_DISABLE_FILE_LOGS-дефолт в production — решение Мастера.
+⚠️ Уроки: (1) якорь БЫЛО — только из свежего чтения, не памяти (2 инцидента S211-класса, пойманы «такого кода нет»); после вставки — grep маркера ДО прогона; (2) гигиена процессов: Stop-Process перед каждым прогоном (зомби-обёртка держала лог-файл); (3) Tee+фильтр скрывает traceback — вердикт читать из артефактов с датой файла (старый MD выдал несостоявшийся прогон); (4) «симптом≠причина» на MISMATCH-каскаде: сеть→random-пул→real_ts — три слоя одной цепи; (5) измерение важнее идеологии: copy>move опроверг интуицию; (6) профили — парными прогонами в одном окне; matplotlib в _teardown-cumtime загрязняет TOP.
+IPT: ✅ 45/45 (финальный). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+⚙️ ADDENDUM №2 (baseline 10k×2 +scale-улика; первичный MATCH-статус 10k отозван):
+  Прогон v2 (16:31-18:05, 93.7 мин): 🔴 MISMATCH на 2×10k — Run A e0b34beb vs
+  Run B 6140de24; диф-ключи: merchant_goran body_state.nutrition + recent_dialogues
+  (состав/порядок; real_ts уже вне хеша). 800-тики MATCH всегда → источник растёт
+  с длиной истории. Гипотеза №1 (НЕ доказана): query_raw archive ORDER BY tick_id ASC
+  без вторичного детерминизма при равных tick_id → разный порядок событий → разная
+  кристаллизация. Задача №1 преемника: первый divergent tick → writer → причина
+  (dump-инструмент в _diagnose_mismatch жив). ПЕРФ-КРИВАЯ (CSV elapsed): маржинальная
+  цена тика 76 → 86 → … → 586 → 721 мс/тик (10× к концу); налог на историю ≈75%
+  прогона (5621 с vs 1380 с константных). O(N_history) на тик → O(N²) кампания —
+  красная зона E Мастера (NPC×history), улика py-spy ×2: sqlite_store:609 ←
+  l1_chronicle:308 ← integration:410 (Фаза 9, query_raw БЕЗ t_from = вся история,
+  неинкрементально; комментарий :300 «вся история для кристаллизации» — точка
+  архитектурного спора: L2.5 инкрементален по природе). SCALE-МИССИЯ преемника:
+  карта 6→600 NPC + history-map, watermark-инкремент (O(K)) вместо полного ре-скана,
+  hot/cold-history. ПРИНЦИП: сначала чинить (MISMATCH+налог), потом строить (scale).
+⚠️ Урок наблюдаемости (2 инцидента дня): реальный воркер = python3.13.exe —
+  Get-Process python его НЕ видит; stdout при Redirect БУФЕРИЗУЕТСЯ — «замерший
+  лог» ≠ смерть прогона; Stop-Process при живом фоновом прогоне убил ЖИВОЙ ран
+  (v1). Инструменты: py-spy dump/record/top (установлен); CPU-пульс двойным
+  замером. Подсказка внесена в Правила Фикса БАГОВ.md ЧАСТЬ XII.
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
@@ -1394,6 +1427,7 @@ PR-8 commit-move ИССЛЕДОВАН и ЗАКРЫТ как недостижи�
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
+
 
 
 

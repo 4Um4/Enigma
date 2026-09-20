@@ -1,0 +1,94 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_5iaxj2nm
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_5iaxj2nm\saves
+
+--- MODE E: Replay Determinism Audit (2 × 3000 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A: tick 2000/3000
+  [REPLAY] Run A complete: hash=a641808bb17b3c4a... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_5iaxj2nm
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_wrpwfd9b
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_0y1b4p5o
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_0y1b4p5o\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B: tick 2000/3000
+  [REPLAY] Run B complete: hash=274ef419c6a7b91e... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  🔴 REPLAY DETERMINISM: MISMATCH
+     Hash A: a641808bb17b3c4a1a1b85c09343b8ebc200fea28f24bacd18eb53933ae9ec7a
+     Hash B: 274ef419c6a7b91eabb91cc3f4cf0287ae4260e2ec900e4b46da293c646b2ccf
+     Hidden entropy source detected — investigation required
+
+  [REPLAY] Диагностика расхождения:
+     [S269] полный диф 'recent_dialogues' → C:\Users\lipir\AppData\Local\Temp\drift_diff_scene.txt
+     scene['recent_dialogues']: A=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+                     B=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_0y1b4p5o
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_z1bawvsv
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 6,000
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 8.0 мин
+  Скорость: 13 сравнений/сек, 12.5 тиков/сек

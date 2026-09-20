@@ -1,0 +1,11 @@
+[CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\scenarios\sleep_forensic.py", line 260, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\SUPERBOX\scenarios\sleep_forensic.py", line 161, in main
+    _loc_dir = Path(__file__).resolve().parents[4] / "frontend" / "map_editor" / "campaigns" / _C / "locations"
+               ^^^^
+NameError: name 'Path' is not defined

@@ -528,3 +528,48 @@
 [TIMING] +  6.77с  servers ready
 [TIMING] +  6.81с  menu display created — START-TO-MENU TOTAL
 [TIMING] +  6.83с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.29с  zombie-kill done
+[TIMING] +  1.88с  backend Popen issued
+[TIMING] +  5.51с  llm health OK
+[TIMING] +  9.94с  backend health OK
+[TIMING] +  9.94с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  9.94с  servers ready
+[TIMING] +  9.99с  menu display created — START-TO-MENU TOTAL
+[TIMING] + 10.03с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.26с  zombie-kill done
+[TIMING] +  1.84с  backend Popen issued
+[TIMING] +  4.26с  llm health OK
+[TIMING] +  6.56с  backend health OK
+[TIMING] +  6.56с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.56с  servers ready
+[TIMING] +  6.59с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.61с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.26с  zombie-kill done
+[TIMING] +  1.83с  backend Popen issued
+[TIMING] +  4.00с  llm health OK
+[TIMING] +  6.29с  backend health OK
+[TIMING] +  6.29с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.29с  servers ready
+[TIMING] +  6.32с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.33с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.33с  zombie-kill done
+[TIMING] +  1.90с  backend Popen issued
+[TIMING] +  4.02с  llm health OK
+[TIMING] +  6.31с  backend health OK
+[TIMING] +  6.31с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.31с  servers ready
+[TIMING] +  6.34с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.35с  CDS observer init done
+[TIMING] +  0.00с  main() start
+[TIMING] +  0.27с  zombie-kill done
+[TIMING] +  1.84с  backend Popen issued
+[TIMING] +  4.27с  llm health OK
+[TIMING] +  6.60с  backend health OK
+[TIMING] +  6.60с  wait loop done (backend_ok=True, llm_ok=True)
+[TIMING] +  6.60с  servers ready
+[TIMING] +  6.62с  menu display created — START-TO-MENU TOTAL
+[TIMING] +  6.64с  CDS observer init done

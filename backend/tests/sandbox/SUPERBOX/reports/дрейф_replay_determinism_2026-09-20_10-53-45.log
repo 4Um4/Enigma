@@ -1,0 +1,63 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_4g3mvq9w
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_4g3mvq9w\saves
+
+--- MODE E: Replay Determinism Audit (2 × 800 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A complete: hash=fb339f60537d7b5c... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_4g3mvq9w
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_wv_8qk48
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_047qgalp
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_047qgalp\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B complete: hash=5fdbadc7cd00e185... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  🔴 REPLAY DETERMINISM: MISMATCH
+     Hash A: fb339f60537d7b5cd951c9302232b1f3486175eeb21f1ebb924f7001e2a4f780
+     Hash B: 5fdbadc7cd00e185ac32f4631c7be6e0671d2f08a18ab047bf8b08e14ceb64cb
+     Hidden entropy source detected — investigation required
+
+  [REPLAY] Диагностика расхождения:
+     NPC 'blacksmith_orm' [narrative_cache]: A=[{'event_type': 'secret_origin', 'target_id': '', 'emotion_tag': 'neutral', 'day': -1000, 'importanc
+                         B=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'sad', 'day': -1000, 'importance': 0.9, 'c
+     NPC 'guard_borko' [narrative_cache]: A=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'neutral', 'day': -1000, 'importance': 0.9
+                         B=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'neutral', 'day': -1000, 'importance': 0.9
+     NPC 'maid_lusya' [narrative_cache]: A=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'traumatized', 'day': -1000, 'importance':
+                         B=[{'event_type': 'origin', 'target_id': '', 'emotion_tag': 'traumatized', 'day': -1000, 'importance':
+     scene['recent_dialogues']: A=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+                     B=[{'speaker_id': 'guard_borko', 'target_id': 'soliloquy', 'text': '[Intent.SPREAD_RUMOR] guard_borko 
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_047qgalp
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_ovw92t9y
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 0
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌

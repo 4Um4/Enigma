@@ -1723,12 +1723,31 @@ class SceneStateManager:
             # commit_tick_result предупреждал: без копии alias протекает
             # (Temporal Isolation, L4). Удаляется только в PR-5, когда
             # Epoch-граница построена полностью (WorldView в TickState).
-            self._last_committed_npcs = copy.deepcopy(npc_dicts or [])
+            # S269-C2 (AUDIT #10): _last_committed_npcs потребляется только
+            # WorldProjectionBuffer — консюмер ОТКЛЮЧЁН (VERDICT=OFF,
+            # _SHADOW_CAUSALITY_DISABLED, :1702-1707). Копия за тик ради
+            # мёртвого читателя = чистый расход. Ленивость: храним ссылку,
+            # deepcopy переносится в get_last_committed_npcs() при первом
+            # чтении. Если buffer вернут — семантика сохранится (геттер
+            # вернёт независимую копию), перф-потеря вернётся только
+            # с живым потребителем.
+            self._last_committed_npcs_src = npc_dicts or []
+            self._last_committed_npcs = None
         return 2
 
     def get_last_committed_npcs(self) -> list[dict]:
-        """Возвращает state_t-1 (committed snapshot) для WorldProjectionBuffer."""
-        return getattr(self, "_last_committed_npcs", [])  # noqa: ENIGMA002
+        """Возвращает state_t-1 (committed snapshot) для WorldProjectionBuffer.
+
+        S269-C2: ленивая deepcopy — копия создаётся при первом чтении,
+        не на каждом коммите (потребитель выключен AUDIT #10)."""
+        _cached = getattr(self, "_last_committed_npcs", None)
+        if _cached is not None:
+            return _cached
+        import copy as _copy
+        _copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))
+        object.__setattr__(self, "_last_committed_npcs", _copy_list) if hasattr(self, "__slots__") else setattr(self, "_last_committed_npcs", _copy_list)
+        self._last_committed_npcs = _copy_list
+        return _copy_list
 
     # ─────────────────────────────────────────────────────────────────────────
     # R2.1 — get_scene_events_block: блок для DM промпта
