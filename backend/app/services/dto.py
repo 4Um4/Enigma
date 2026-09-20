@@ -121,6 +121,10 @@ class _TickContext:
     # Подсистема 3: Хеши TickState для Инварианта III (Temporal Isolation)
     tick_state_hash_before: Optional[int] = None
     tick_state_hash_after: Optional[int] = None
+    # S265: поля, мутированные pipeline (диагностика PROBE_FAIL_PRE, INV-TEMPORAL-ISOLATION)
+    tick_state_mutated_fields: Optional[List[str]] = None
+    # SOUND_BLEED: кэш data_dir внутри тика (ранее getattr-legacy, теперь явное поле)
+    _cached_data_dir: Optional[str] = None
 
     # KERNEL-ISOLATION: per-tick RNG factory.
     # Создаёт KernelRNG для каждого NPC по запросу (lazy).

@@ -31,11 +31,14 @@ import time
 
 logger = logging.getLogger(__name__)
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from uuid import UUID
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 
 if TYPE_CHECKING:
     from app.domain.events import EventDTO
     from app.domain.identity_events import EffectiveDrives
+    from app.models.phase8 import Phase8Handler
+    from app.services.npc.life_engine import LifeEngine
 
 
 # S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
@@ -80,18 +83,22 @@ class TickOrchestrator:
     """
 
     def __init__(
-        self, scene_manager=None, memory_manager=None, event_bus=None, store=None
+        self,
+        scene_manager: Any = None,
+        memory_manager: Any = None,
+        event_bus: Any = None,
+        store: Any = None,
     ) -> None:
         self._scene_manager = scene_manager
         # DI: внешние сервисы (GameLoop передаёт свои инстансы)
         self._memory_manager = memory_manager
         self._event_bus = event_bus
         # Ленивая инициализация для оставшихся
-        self._life_engine = None
+        self._life_engine: Optional["LifeEngine"] = None
         # S188: SleepLifecycleService создаётся один раз, а не на каждый тик (PERF-SLEEP)
         self._sleep_lifecycle_svc: Any = None
-        self._snapshot_builder = None
-        self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
+        self._snapshot_builder: Optional[WorldSnapshotBuilder] = None
+        self._spatial_service: Optional["SpatialService"] = None  # ADR-029: Инъекция для CFRM ClusterGraph
         # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
         # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
         # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
@@ -185,13 +192,13 @@ class TickOrchestrator:
         self._equivalence_validator: EquivalenceValidator = EquivalenceValidator()
         self._drift_stats: Dict[str, int] = {"total_comparisons": 0}
 
-    def _get_life_engine(self):
+    def _get_life_engine(self) -> "LifeEngine":
         if self._life_engine is None:
             self._life_engine = get_life_engine()
         # Sprint 1.4: Возвращаем как LifeEngineInterface для будущей DI
         return self._life_engine
 
-    def _get_sleep_lifecycle_svc(self):
+    def _get_sleep_lifecycle_svc(self) -> Any:
         """S188: Возвращает инстанс SleepLifecycleService (DI)."""
         if self._sleep_lifecycle_svc is None:
             from app.services.npc.sleep_lifecycle_service import SleepLifecycleService
@@ -219,8 +226,9 @@ class TickOrchestrator:
             and ctx.npc_services.spatial_service
         ):
             self._spatial_service = ctx.npc_services.spatial_service
-            self._topology_provider.set_spatial_service(self._spatial_service)
-            return self._spatial_service
+            _svc = ctx.npc_services.spatial_service
+            self._topology_provider.set_spatial_service(_svc)
+            return cast("SpatialService", _svc)
 
         # 1.5. Кэш текущего тика: execute() создаёт _TickContext с npc_services (ADR-065).
         # Переиспользуем уже установленный сервис вместо аварийной сборки.
@@ -236,13 +244,17 @@ class TickOrchestrator:
                 )
                 from app.services.spatial.spatial_factory import SpatialFactory
 
-                self._spatial_service = SpatialFactory.build_for_campaign(
-                    campaign_id=ctx.campaign_id,
-                    location_id=_loc_id,
-                    scene_state=ctx.scene_state,
+                _built = cast(
+                    "SpatialService",
+                    SpatialFactory.build_for_campaign(
+                        campaign_id=ctx.campaign_id,
+                        location_id=_loc_id,
+                        scene_state=ctx.scene_state,
+                    ),
                 )
-                self._topology_provider.set_spatial_service(self._spatial_service)
-                return self._spatial_service
+                self._spatial_service = _built
+                self._topology_provider.set_spatial_service(_built)
+                return _built
             except Exception as e:
                 logger.error(
                     f"[SPATIAL_AUTHORITY] Crash during emergency build: {type(e).__name__}: {e}"
@@ -251,17 +263,17 @@ class TickOrchestrator:
 
         return None
 
-    def _get_memory_manager(self):
+    def _get_memory_manager(self) -> Any:
         if self._memory_manager is None:
             raise RuntimeError("MemoryManager не внедрён — передайте через конструктор")
         return self._memory_manager
 
-    def _get_event_bus(self):
+    def _get_event_bus(self) -> Any:
         if self._event_bus is None:
             self._event_bus = get_event_bus()
         return self._event_bus
 
-    def _get_snapshot_builder(self):
+    def _get_snapshot_builder(self) -> WorldSnapshotBuilder:
         if self._snapshot_builder is None:
             self._snapshot_builder = WorldSnapshotBuilder()
         return self._snapshot_builder
@@ -432,7 +444,7 @@ class TickOrchestrator:
     def execute(
         self,
         campaign_id: str,
-        scene_state: dict,
+        scene_state: Optional[dict],
         tick_number: int = 0,
         interventions: Optional[List["InterventionEvent"]] = None,
         npc_services: Optional[Any] = None,
@@ -1388,7 +1400,7 @@ class TickOrchestrator:
                         }
                         _mock_event = types.SimpleNamespace(payload=_directive_payload)
                         _directive_deltas = DirectiveInterpretationSubscriber().handle(
-                            _mock_event, ctx.all_npcs_raw
+                            cast("EventDTO", _mock_event), ctx.all_npcs_raw
                         )
                         if _directive_deltas:
                             ctx.delta_buffer.extend(_directive_deltas)
@@ -1404,37 +1416,29 @@ class TickOrchestrator:
                                 )
                                 if not _npc_state:
                                     continue
-                                if (
-                                    hasattr(delta.payload, "recent_directive_data")
-                                    and delta.payload.recent_directive_data
-                                ):
+                                _pl = delta.payload
+                                _rdd = getattr(_pl, "recent_directive_data", None)
+                                if _rdd:
                                     _npc_state.setdefault("perceptual_kernel", {})[
                                         "recent_directive"
-                                    ] = delta.payload.recent_directive_data
-                                if (
-                                    hasattr(delta.payload, "stress_delta")
-                                    and delta.payload.stress_delta != 0
-                                ):
+                                    ] = _rdd
+                                _sd = getattr(_pl, "stress_delta", 0)
+                                if _sd != 0:
                                     # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
                                     _psyche = _npc_state.setdefault("psyche", {})
-                                    _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + delta.payload.stress_delta))
-                                if (
-                                    hasattr(delta.payload, "fear_delta")
-                                    and delta.payload.fear_delta != 0
-                                ):
+                                    _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + _sd))
+                                _fd = getattr(_pl, "fear_delta", 0)
+                                if _fd != 0:
                                     _npc_state.setdefault("social_stats", {})[
                                         "fear_of_player"
                                     ] = (
                                         _npc_state.get("social_stats", {}).get(
                                             "fear_of_player", 0.1
                                         )
-                                        + delta.payload.fear_delta
+                                        + _fd
                                     )
-                                if (
-                                    hasattr(delta.payload, "shock_impulse")
-                                    and getattr(delta.payload, "shock_impulse", 0.0)
-                                    > 0.5
-                                ):
+                                _si = getattr(_pl, "shock_impulse", 0.0)
+                                if _si > 0.5:
                                     _npc_state.setdefault("body_state", {})[
                                         "shock_impulse"
                                     ] = (
@@ -1443,11 +1447,11 @@ class TickOrchestrator:
                                             "shock_impulse",
                                             0.0,
                                         )
-                                        + delta.payload.shock_impulse
+                                        + _si
                                     )
                                     _npc_state.setdefault("body_state", {})[
                                         "consciousness"
-                                    ] = max(0.0, 1.0 - delta.payload.shock_impulse)
+                                    ] = max(0.0, 1.0 - _si)
                     except Exception as e:
                         logger.error(
                             f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}",
@@ -1465,7 +1469,7 @@ class TickOrchestrator:
 
                 _spatial_svc = self._resolve_spatial_service(ctx)
                 if _spatial_svc:
-                    _fast_intents = [
+                    _fast_intents: List[Any] = [
                         LocalSteeringGoal(
                             actor_id=_fast_actor,
                             local_target_xy=_fast_target_xy,
@@ -1566,7 +1570,7 @@ class TickOrchestrator:
                 f"evt:{int(ctx.tick_number)}:player:{_target_id}:attack"
             )
             _attack_event = EventDTO(
-                id=_evt_id,
+                id=cast(UUID, _evt_id),
                 type=EventType.PLAYER_ATTACKED.value,
                 source="player",
                 timestamp=ctx.scene_state.get("game_time_seconds", 0.0),
@@ -1613,7 +1617,7 @@ class TickOrchestrator:
                     }
                     _mock_event = types.SimpleNamespace(payload=_directive_payload)
                     _directive_deltas = DirectiveInterpretationSubscriber().handle(
-                        _mock_event, ctx.all_npcs_raw
+                        cast("EventDTO", _mock_event), ctx.all_npcs_raw
                     )
                     if _directive_deltas:
                         ctx.delta_buffer.extend(_directive_deltas)
@@ -1630,44 +1634,37 @@ class TickOrchestrator:
                             )
                             if not _npc_state:
                                 continue
-                            if (
-                                hasattr(delta.payload, "compliance_bias_delta")
-                                and delta.payload.compliance_bias_delta != 0
-                            ):
+                            _pl = delta.payload
+                            _cb = getattr(_pl, "compliance_bias_delta", 0)
+                            if _cb != 0:
                                 _pk = _npc_state.setdefault("perceptual_kernel", {})
                                 _pk["compliance_bias"] = max(
                                     -1.0,
                                     min(
                                         1.0,
                                         _pk.get("compliance_bias", 0.0)
-                                        + delta.payload.compliance_bias_delta,
+                                        + _cb,
                                     ),
                                 )
-                            if (
-                                hasattr(delta.payload, "recent_directive_data")
-                                and delta.payload.recent_directive_data
-                            ):
+                            _rdd = getattr(_pl, "recent_directive_data", None)
+                            if _rdd:
                                 _npc_state.setdefault("perceptual_kernel", {})[
                                     "recent_directive"
-                                ] = delta.payload.recent_directive_data
-                            if (
-                                hasattr(delta.payload, "stress_delta")
-                                and delta.payload.stress_delta != 0
-                            ):
+                                ] = _rdd
+                            _sd = getattr(_pl, "stress_delta", 0)
+                            if _sd != 0:
                                 # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
                                 _psyche = _npc_state.setdefault("psyche", {})
-                                _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + delta.payload.stress_delta))
-                            if (
-                                hasattr(delta.payload, "fear_delta")
-                                and delta.payload.fear_delta != 0
-                            ):
+                                _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + _sd))
+                            _fd = getattr(_pl, "fear_delta", 0)
+                            if _fd != 0:
                                 _npc_state.setdefault("social_stats", {})[
                                     "fear_of_player"
                                 ] = (
                                     _npc_state.get("social_stats", {}).get(
                                         "fear_of_player", 0.1
                                     )
-                                    + delta.payload.fear_delta
+                                    + _fd
                                 )
                 except Exception as e:
                     logger.error(
@@ -1937,8 +1934,7 @@ class TickOrchestrator:
             if not npc_id:
                 continue
 
-            topic = ""
-            stm_text = ""
+            topic: Optional[str] = ""
 
             from app.services.npc.topic_extractor import extract_topic
 
@@ -2034,7 +2030,7 @@ class TickOrchestrator:
                     if isinstance(_projection, EffectiveDrives):
                         l3_raw = _projection
                     else:
-                        l3_raw = EffectiveDrives.from_dict(_projection)
+                        l3_raw = EffectiveDrives.from_dict(_projection)  # type: ignore[unreachable]
 
                     # ADR-O-208: L3-P1. CalibrationEngine — pass-through (ADR-O-211).
                     # L3 строго эфемерна. Чтение кэша drives_runtime запрещено.
@@ -2175,7 +2171,9 @@ class TickOrchestrator:
             affordance_facts_map=_affordance_facts_map, # ADR-O-378 (G2 v1): preloaded факты W2
         )
 
-        _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
+        _drf_ctx = DRFExecutionContext(
+            tick_id=ctx.tick_number, bus=cast("DRFBus", ctx.drf_bus)
+        )
 
         # Подсистема 3: Хеширование TickState до pipeline для Инварианта III (Temporal Isolation)
         import json
@@ -2347,7 +2345,7 @@ class TickOrchestrator:
             combat_sub=self._combat_sub,
             reaction_sub=self._reaction_sub,
             social_sub=self._social_sub,
-            homeostasis_sub=self._homeostasis_sub,
+            homeostasis_sub=cast("Phase8Handler", self._homeostasis_sub),
             social_input_proj=self._social_input_proj,
             dynamic_field=self._dynamic_field,
             l1_chronicle=_l1,
@@ -2431,12 +2429,15 @@ class TickOrchestrator:
         from app.domain.identity_events import TraitDriftEvent
 
         _all_delta_npc_ids = set()
-        for _d in (ctx.tick_mutation.npc_deltas or []):
+        # Фаза 5 всегда устанавливает tick_mutation до Фазы 10; cast — только типовой
+        # narrowing, runtime-поведение не меняется.
+        _tick_mutation = cast(Any, ctx.tick_mutation)
+        for _d in (_tick_mutation.npc_deltas or []):
             _d_npc_id = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
             if _d_npc_id:
                 _all_delta_npc_ids.add(_d_npc_id)
 
-        _l1_events = list(ctx.tick_mutation.l1_drift_events or [])
+        _l1_events = list(_tick_mutation.l1_drift_events or [])
         _processed_npc_ids = {e.target_id for e in _l1_events}
         for _npc_id in _all_delta_npc_ids:
             if _npc_id not in _processed_npc_ids:
@@ -2449,7 +2450,7 @@ class TickOrchestrator:
                 ))
                 _processed_npc_ids.add(_npc_id)
 
-        ctx.tick_mutation = dataclasses.replace(ctx.tick_mutation, l1_drift_events=_l1_events)
+        ctx.tick_mutation = dataclasses.replace(_tick_mutation, l1_drift_events=_l1_events)
 
         from app.services.phases.commit_phase import execute_persistence
         execute_persistence(ctx, self, getattr(ctx, "is_player_turn", False))
@@ -2466,7 +2467,7 @@ class TickOrchestrator:
         Единый overlay для idle и player путей.
         DRF — поле сил, не ярлык. Давление модулирует приоритет, не заменяет его.
         """
-        _claims = ctx.drf_bus.stream  # peek без drain (drain в phase 10)
+        _claims = cast("DRFBus", ctx.drf_bus).stream  # peek без drain (drain в phase 10)
         if not _claims:
             return
 
