@@ -569,6 +569,16 @@ Taboo: ❌ grievance-сущности/флаги (is_angry, planning_revenge)/Gr
 Status: ACTIVE (production-доказан живым probe; 2b-ii — координация)
 Files: `backend/app/domain/desired_change.py` (REASON_GRIEVANCE, grievance_hold), `backend/app/services/npc/causal_slice_grievance.py` (NEW), `backend/app/services/npc/npc_tick_pipeline.py` (проводка R7 + контекст-гейт), `backend/tests/gameplay/test_r7_causal_slice_grievance.py` (NEW, 10), `docs/audits/ADR-O-397_IMPACT.md`
 
+`ADR-O-398` [ONTO] **Seal Semantics, DriftLab Lifecycle & Legal Copy Optimization (S269)**
+Суть: (1) SEAL — immutability WorldEpoch по построению, не договорённости: ReadOnlyDict/ReadOnlyList (dict/list-подклассы — isinstance-контракт scene_state сохранён, урок PR-6a; мутация = громкий TypeError, молчаливой смерти нет); WorldView-чтение оборачивает контейнеры с кэшем на эпоху; move-semantics S266 сохранён (root = живая ссылка вызывающего; прямая запись в сырую ссылку — зона INV-TEMPORAL-ISOLATION, view = единственная легальная точка чтения фаз и она запечатана). Прецедент __deepcopy__: WorldEpoch/WorldView/ReadOnly* → return self («immutable by construction → шаринг безопасен»).
+(2) LIFECYCLE — TaskScheduler._executor_pool (ThreadPoolExecutor) не имел shutdown и переживал GameLoop.dispose(), писал в закрытые SQLite (пост-teardown CRITICAL, DEBT-QUIESCE из S213). Закон: dispose владельца ОБЯЗАН дренировать собственные воркеры ДО закрытия ресурсов: shutdown(wait=True, cancel_futures=True) первым шагом dispose; лабораторный quiesce — второй эшелон (idempotent). Бесконечный join запрещён — cancel_futures + диагностика.
+(3) LEGAL COPY — методология оптимизации копий: «каждый байт, который deepcopy копирует, обязан иметь архитектурную причину быть скопированным». Путь кандидата: cProfile → call site → объём → зачем существует копия → последний consumer → изоляция сохраняется? → benchmark → IPT → DriftLab MATCH. Принято (LEGAL OPTIMIZATION): C1 seal-shаринг (__deepcopy__→self на ReadOnly*), C2 ленивый npc-снимок SSM:1726 (потребитель WorldProjectionBuffer отключён AUDIT #10 — копия за тик ради мёртвого читателя недопустима), C3 fsync-лог-гейт лаборатории (диагностический channel ≠ персистентность; ENIGMA_DISABLE_FILE_LOGS — существующий гейт). ЗАФИКСИРОВАНО: input boundary deepcopy = CURRENTLY RETAINED (move проигрывает copy+seal на текущей границе — измерено, не мнение: 79.9-90.2 vs 105.3-124.5 мс/тик); commit:1720 ↔ input:413 = EPOCH-FINAL BOUNDARY — парная граница, не разбирать по одному сайту. Догма «deepcopy неприкосновенен» запрещена наравне с догмой «deepcopy убрать»: следующий кандидат — только по полной цепочке доказательства.
+Taboo: ❌ мутация ReadOnlyDict/List через прямой каст/обёртку в обход гварда (тихая смерть); ❌ расширение запечатки на root-уровень state (ломает move-semantics S266 — проверено тестом test_epoch_state_not_isolated_dict); ❌ dispose без drain своих воркеров; ❌ бесконечный join в teardown; ❌ удаление несущей копии (commit↔input пары) по одному сайту без Epoch-финала; ❌ оптимизация копий без полного цепочного доказательства (cProfile→consumer→изоляция→benchmark→IPT→DriftLab).
+Status: ACTIVE (все три пункта production-доказаны: IPT 45/45, epoch 7/7, DriftLab 10k×2 MATCH, hash 6875fa94 стабилен C1→C3, перф 132.4→66.0 мс/тик)
+Files: `backend/app/domain/world_epoch.py` (seal+__deepcopy__), `backend/app/services/game_loop/__init__.py` (dispose-quiesce), `backend/app/services/scene_state_manager.py` (C2), `backend/app/services/llm/mock_provider.py` (детерминированный pick, закрытие DEBT-MOCK S213), `backend/tests/sandbox/SUPERBOX/drift_laboratory.py` (изоляция+quiesce+fsync-гейт+snapshots), `backend/tests/test_world_epoch.py` (+3 теста вложенной защиты), `docs/audits/ADR-O-398_IMPACT.md`
+
+
+
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 
 **Уровни сравнения:**
@@ -599,7 +609,6 @@ Files: `backend/app/domain/desired_change.py` (REASON_GRIEVANCE, grievance_hold)
 
 *Версия: 7.0 (Unified & Expanded)*
 *Сессия: S201 | Инвариантов: 39 | DriftLab: 99k comparisons*
-
 
 
 
