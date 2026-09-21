@@ -129,7 +129,7 @@ class CombatSubscriber:
 
         deltas = []
         events_processed = 0
-        missed_targets = []  # Цели вне досягаемости — для DM
+        missed_targets: list[str] = []  # Цели вне досягаемости — для DM
 
         # Максимальная дистанция рукопашной атаки (м) + запас на weapon_reach
         # MVP FIX: Увеличено до 5.0, чтобы игрок мог атаковать после одного хода "подойти".
@@ -330,7 +330,6 @@ class CombatSubscriber:
         from app.models.idle_tick import NPCStateSnapshot
 
         psyche = npc.get("psyche", {})
-        ss = npc.get("social_stats", {})
         body_profile = npc.get("body_profile", {})
         body_state = npc.get("body_state", {})
 

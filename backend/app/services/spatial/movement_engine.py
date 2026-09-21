@@ -216,6 +216,7 @@ class MovementEngine:
                         isinstance(_trav, dict)
                         and _trav.get("status") == "MOVING"
                         and "interrupt" not in getattr(_it, "reason", "")
+                        and "+relocation" not in getattr(_it, "reason", "")
                     ):
                         logger.debug(
                             f"[GATE_B1_5] npc={_it.actor_id} traversal MOVING "
@@ -223,6 +224,40 @@ class MovementEngine:
                             f"'{getattr(_it, 'reason', '')}' отклонён (no-interrupt)"
                         )
                         continue
+                    # S273 (Phase-C-DEBT, relocation-supersede): relocation при
+                    # живом MOVING = supersede-кандидат (вердикт Мастера).
+                    # Инкумбент прерывается атомарно (два рельса, S203.3) —
+                    # иначе SSM-гвард ADR-130.1 (:1360-1366) молча уничтожит
+                    # новый traversal_proposal при живом MOVING (маятник
+                    # сменил бы этаж, GREEN не наступил). Природа инкумбента
+                    # из записи нечитаема (build_traversal_dict: cause-поля
+                    # нет) → supersede безусловный; churn = CALIBRATION-
+                    # метрика (ADR-O-365), измеряется RCB v3, не дизайним.
+                    if (
+                        isinstance(_trav, dict)
+                        and _trav.get("status") == "MOVING"
+                        and "+relocation" in getattr(_it, "reason", "")
+                    ):
+                        if TRAVERSAL_OWNERSHIP_ENFORCEMENT:
+                            from app.domain.traversal_schema import interrupt_traversal
+                            from app.domain.action_commitment import (
+                                INTERRUPT_PRIORITY_SUPERSEDE,
+                            )
+
+                            interrupt_traversal(
+                                scene_state, _it.actor_id,
+                                INTERRUPT_PRIORITY_SUPERSEDE, tick,
+                            )
+                        else:
+                            # Legacy: тихий pop + mirror (A/B-база, прецедент Н-46a :458-468)
+                            _active_travs_pre.pop(_it.actor_id, None)
+                            from app.services.action.commitment_registry import (
+                                CommitmentRegistry,
+                            )
+                            CommitmentRegistry.mirror_traversal_interrupted(
+                                scene_state, _it.actor_id, tick,
+                                "PRIORITY_SUPERSEDE",
+                            )
                     _filtered.append(_it)
                 intents = _filtered
 
@@ -279,77 +314,9 @@ class MovementEngine:
                 # от unbound (Pylance reportPossiblyUnboundVariable) и от L4-тишины (урок S267)
                 target_loc = intent.location_id or current_loc
                 if ":" in intent.target_node_id:
-                    # PERSONAL-ROUTE GATE (Phase C): целевая локация intent'а —
-                    # из префикса target ИЛИ из поля location_id (P2-intents
-                    # несут кросс-локацию в location_id без префикса target).
-                    _intent_target_loc = (
-                        intent.target_node_id.split(":")[0]
-                        if ":" in intent.target_node_id
-                        else getattr(intent, "location_id", "")
-                    )
-                    target_loc = (
-                        intent.target_node_id.split(":")[0]
-                        if ":" in intent.target_node_id
-                        else (getattr(intent, "location_id", "") or current_loc)
-                    )
-                    _gate_actor_present = intent.actor_id in (npc_positions or {})
-                    if _intent_target_loc and _intent_target_loc != current_loc and _gate_actor_present:
-                        # PERSONAL-ROUTE GATE (Phase C): cross-loc навигация
-                        # только по личному графу NPC. UNKNOWN → adjacency/
-                        # intercept НЕ выполняются; causal-маркер для будущего
-                        # exploration. Same-loc не гейтится (восприятие «здесь»).
-                        # GATE-SCOPE: гейтится только актор, ФИЗИЧЕСКИ
-                        # присутствующий в этой сцене. Отсутствующий в
-                        # npc_positions — offscreen/призрак (player-стаб
-                        # city_gate, задача №5): его intent не наш — не режем,
-                        # не спамим, не валидируем.
-                        if intent.actor_id not in (npc_positions or {}):
-                            logger.debug(
-                                f"[PERSONAL_ROUTE] npc={intent.actor_id} offscreen — gate skipped"
-                            )
-                        else:
-                            from app.services.npc.personal_route_resolver import (
-                                resolve_personal_route,
-                            )
-
-                        _route = resolve_personal_route(
-                            intent.actor_id, self._epistemic_store,
-                            current_loc, _intent_target_loc,
-                        )
-                        if _route.status != "KNOWN_ROUTE":
-                            logger.info(
-                                f"[UNKNOWN_ROUTE] npc={intent.actor_id} "
-                                f"from={current_loc} to={_intent_target_loc} "
-                                f"known_edges={_route.known_edges} "
-                                f"reason=no_personal_route"
-                            )
-                            continue
-                        logger.info(
-                            f"[PERSONAL_ROUTE] npc={intent.actor_id} KNOWN "
-                            f"{current_loc}→{_intent_target_loc} via={_route.path} "
-                            f"conf={_route.min_confidence:.2f}"
-                        )
-                        from app.services.npc.personal_route_resolver import (
-                            resolve_personal_route,
-                        )
-
-                        _route = resolve_personal_route(
-                            intent.actor_id, self._epistemic_store,
-                            current_loc, target_loc,
-                        )
-                        if _route.status != "KNOWN_ROUTE":
-                            logger.info(
-                                f"[UNKNOWN_ROUTE] npc={intent.actor_id} "
-                                f"from={current_loc} to={target_loc} "
-                                f"known_edges={_route.known_edges} "
-                                f"reason=no_personal_route"
-                            )
-                            continue
-                        logger.info(
-                            f"[PERSONAL_ROUTE] npc={intent.actor_id} KNOWN "
-                            f"{current_loc}→{target_loc} via={_route.path} "
-                            f"conf={_route.min_confidence:.2f}"
-                        )
+                    # S272 (N-1, PHASE-C-DEBT): экстракция target_loc — одна
+                    # точка для обеих форм (префикс target ИЛИ location_id).
+                    _intent_target_loc = intent.target_node_id.split(":")[0]
                 else:
                     # BUG-SPATIAL-035 FIX: Если target_node_id не имеет префикса (напр. "tent_1"),
                     # ищем узел в текущей и смежных локациях для корректного определения target_loc.
@@ -377,6 +344,54 @@ class MovementEngine:
                         target_loc = intent.location_id or current_loc
 
                 if scene_state and current_loc and target_loc != current_loc:
+                    # S272 PERSONAL-ROUTE GATE (единая точка, вердикт Мастера):
+                    # ЛЮБАЯ форма cross-loc intent (префикс target, location_id,
+                    # adjacency-lookup) проходит персональный гейт РОВНО ОДИН
+                    # РАЗ здесь. Н-1 закрыт (else-рельс больше не обход),
+                    # Н-2 закрыт (resolve ONCE), Н-3 закрыт (честный offscreen-
+                    # skip вместо мёртвой ветки). UNKNOWN — причинный сигнал
+                    # для Phase D Exploration.
+                    if intent.actor_id not in (npc_positions or {}):
+                        logger.debug(
+                            f"[PERSONAL_ROUTE] npc={intent.actor_id} offscreen — gate skipped"
+                        )
+                    else:
+                        from app.services.npc.personal_route_resolver import (
+                            resolve_personal_route,
+                        )
+
+                        _route = resolve_personal_route(
+                            intent.actor_id, self._epistemic_store,
+                            current_loc, target_loc,
+                        )
+                        if _route.status != "KNOWN_ROUTE":
+                            logger.info(
+                                f"[UNKNOWN_ROUTE] npc={intent.actor_id} "
+                                f"from={current_loc} to={target_loc} "
+                                f"known_edges={_route.known_edges} "
+                                f"reason=no_personal_route"
+                            )
+                            # Phase D Э-1: причинный сигнал route-failure для
+                            # следующего decision cycle. Транзиент-носитель в
+                            # записи актора (прецедент _via_boundary). Единственный
+                            # писатель — эта ветка: UNKNOWN остаётся единственной
+                            # точкой истины о факте route failure.
+                            _sig_entry = (npc_positions or {}).get(intent.actor_id)
+                            if isinstance(_sig_entry, dict):
+                                _sig_entry["_unknown_route"] = {
+                                    "from": current_loc,
+                                    "to": target_loc,
+                                    "known_edges": [
+                                        [_f, _t] for _f, _t in _route.known_edges
+                                    ],
+                                    "tick": tick,
+                                }
+                            continue
+                        logger.info(
+                            f"[PERSONAL_ROUTE] npc={intent.actor_id} KNOWN "
+                            f"{current_loc}→{target_loc} via={_route.path} "
+                            f"conf={_route.min_confidence:.2f}"
+                        )
                     current_svc = self._resolve_spatial_service(
                         current_loc, campaign_id, scene_state
                     )

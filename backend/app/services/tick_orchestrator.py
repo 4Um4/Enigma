@@ -2267,7 +2267,11 @@ class TickOrchestrator:
             TraversalExecutionSystem,
         )
 
-        TraversalExecutionSystem.advance(ctx.scene_state, ctx.tick_number)
+        # Phase D Э-2: SpatialService для arrival-seam (boundary-перцепция TES)
+        TraversalExecutionSystem.advance(
+            ctx.scene_state, ctx.tick_number,
+            spatial_service=self._resolve_spatial_service(ctx),
+        )
 
         deps = Phase0_5Deps(
             l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002

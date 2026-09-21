@@ -17,11 +17,15 @@ class TraversalExecutionSystem:
     """
 
     @staticmethod
-    def advance(scene_state: Dict[str, Any], current_tick: int) -> None:
+    def advance(
+        scene_state: Dict[str, Any],
+        current_tick: int,
+        spatial_service: Any = None,  # Phase D Э-2: перцепция дверей (is_boundary_node) — None = сим выключен
+    ) -> None:
         """Вызывается в Фазе 0.5. Продвигает все активные маршруты."""
         traversals = scene_state.get("active_traversals", {})
         if not traversals:
-            return
+            return 
 
         logger.debug(
             f"[TRAV_EXEC_ADVANCE] tick={current_tick} active_traversals={list(traversals.keys())}"
@@ -95,6 +99,32 @@ class TraversalExecutionSystem:
                 logger.info(
                     f"[TRAV_EXEC] COMPLETED: npc={npc_id} snapped to {target_xy} node={target_node_id}"
                 )
+                # Phase D Э-2 (Mechanism A, вердикт Мастера): arrival на
+                # boundary-узел без знания маршрута наружу = вход в существующий
+                # transfer-контур. Пишем ТОЛЬКО канонический dwell-payload
+                # (ready_tick/neighbor/via — форма movement_engine:414-418).
+                # neighbor — из boundary_map (физика двери, объект среды), НЕ из
+                # эпистемики NPC: сосед узнается после transfer через
+                # dwell-ветку EXITS_TO. Transfer/location/position/S186 — не
+                # здесь: единственный владелец исполнения — tick_orchestrator
+                # (_resolve_cross_location_transfers), прецедент «много
+                # producers, один executor» (ADR-O-363).
+                if spatial_service is not None and spatial_service.is_boundary_node(target_node_id):
+                    _dwell = scene_state.setdefault("boundary_dwell", {})
+                    if npc_id not in _dwell:
+                        _b_info = spatial_service.get_boundary_info(target_node_id) or {}
+                        _neighbor = _b_info.get("neighbor_chunk", "")
+                        if _neighbor:
+                            from app.core.constants import BOUNDARY_DWELL_TICKS
+                            _dwell[npc_id] = {
+                                "ready_tick": current_tick + BOUNDARY_DWELL_TICKS,
+                                "neighbor": _neighbor,
+                                "via": target_node_id,
+                            }
+                            logger.info(
+                                f"[BOUNDARY_DWELL] npc={npc_id} arrival-seam at {target_node_id}; "
+                                f"transfer at tick {current_tick + BOUNDARY_DWELL_TICKS}"
+                            )
             else:
                 # Маршрут активен — интерполяция по пути
                 progress = elapsed_ticks / duration_ticks if duration_ticks > 0 else 1.0

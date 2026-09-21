@@ -57,7 +57,7 @@ campaign_service = get_campaign_state_service()
 app_start_time = time.time()
 
 
-def _combat_response(state) -> CombatStateResponse:
+def _combat_response(state: Any) -> CombatStateResponse:
     return CombatStateResponse(
         campaign_id=state.campaign_id,
         combat_id=state.combat_id,
@@ -80,7 +80,7 @@ from fastapi.responses import HTMLResponse
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
+async def dashboard() -> str:
     # Простой Live Dashboard, опрашивающий /api/health
     return """
     <!DOCTYPE html>
@@ -197,7 +197,7 @@ async def dashboard():
     """
 
 @router.get("/health")
-async def health(request: Request, game_loop=Depends(get_game_loop)) -> dict:
+async def health(request: Request, game_loop: Any = Depends(get_game_loop)) -> dict:
     from app.services.llm.provider_manager import get_model_pool
 
     pool = get_model_pool()
@@ -499,7 +499,7 @@ def skip_time(
 
 
 @router.post("/game/idle_tick/{campaign_id}")
-def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+def idle_tick(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
     """
     Тик мира без действия игрока — вызывается pygame по таймеру.
     Делегирует GameLoop.idle_tick() → TickOrchestrator (10 фаз, Устав §3).
@@ -553,7 +553,7 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
 
 @router.post("/world/tick/{world_id}", response_model=WorldTickResponse)
 def force_world_tick(
-    world_id: str, game_loop=Depends(get_game_loop)
+    world_id: str, game_loop: Any = Depends(get_game_loop)
 ) -> WorldTickResponse:
     tick = game_loop.world_scheduler.maybe_tick(world_id, settings.world_tick_minutes)
     return WorldTickResponse(world_id=world_id, **tick)
@@ -610,7 +610,7 @@ async def import_knowledge(
     campaign_id: str = Form(...),
     kind: Literal["world", "rules", "characters", "npc", "campaign"] = Form(...),
     file: UploadFile = File(...),
-    game_loop=Depends(get_game_loop),
+    game_loop: Any = Depends(get_game_loop),
 ) -> KnowledgeIngestResponse:
     raw = await file.read()
     try:
@@ -685,7 +685,7 @@ def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop))
     return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True}
 
 # NEW-MEM-002 FIX: API endpoint для просмотра таблиц воспоминаний NPC
-def _xray_memory(game_loop, campaign_id: str, npc_id: str) -> Dict[str, Any]:
+def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any]:
     """Фаза A Шаг 9: рентген памяти NPC — все ветки рядом, одним запросом.
 
     Секции: SQLite-кэш (EventMemory), recall/suppressed (чистые функции),
@@ -777,7 +777,9 @@ def _xray_memory(game_loop, campaign_id: str, npc_id: str) -> Dict[str, Any]:
 
 
 @router.get("/debug/memories/{campaign_id}/{npc_id}")
-def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_loop)) -> Dict[str, Any]:
+def get_npc_memories(
+    campaign_id: str, npc_id: str, game_loop: Any = Depends(get_game_loop)
+) -> Dict[str, Any]:
     """Возвращает crystallized_beliefs, event_memories и рентген памяти NPC."""
     result: Dict[str, Any] = {"crystallized_beliefs": [], "event_memories": []}
 
@@ -824,7 +826,7 @@ def get_npc_memories(campaign_id: str, npc_id: str, game_loop=Depends(get_game_l
     return result
 
 @router.post("/game/action")
-async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
+async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) -> dict:
     try:
         player = request.get("player")
         campaign_id = request.get("campaign")
@@ -1069,7 +1071,7 @@ def session_state(
 
 
 @router.get("/npcs/{campaign_id}")
-def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+def get_npcs(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
     """Возвращает NPC текущей локации для NPC-панели фронтенда."""
     try:
         from app.services.npc.npc_loader import load_npcs_merged
@@ -1100,7 +1102,7 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
 
 
 @router.post("/import/world")
-async def import_world(file: UploadFile, game_loop=Depends(get_game_loop)) -> dict:
+async def import_world(file: UploadFile, game_loop: Any = Depends(get_game_loop)) -> dict:
     content = (await file.read()).decode("utf-8", errors="ignore")
     entry_id = game_loop.memory_manager.persist_world_canon(
         "manual",

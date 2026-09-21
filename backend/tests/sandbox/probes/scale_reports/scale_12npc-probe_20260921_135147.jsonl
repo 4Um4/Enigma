@@ -1,0 +1,3 @@
+{"step": "12npc-probe", "tick": 1, "ms": 139.532, "events": 1, "l1_calls": 18, "dialogues": 0, "ws_mb": 150.5}
+{"step": "12npc-probe", "tick": 2, "ms": 39.901, "events": 3, "l1_calls": 20, "dialogues": 1, "ws_mb": 151.0}
+{"step": "12npc-probe", "tick": 3, "ms": 41.43, "events": 5, "l1_calls": 22, "dialogues": 2, "ws_mb": 151.4}

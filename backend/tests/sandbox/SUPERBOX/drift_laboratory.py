@@ -1066,20 +1066,6 @@ class DriftLaboratory:
         _engine_b = self._game_loop._get_life_engine()
         npcs_b = _engine_b.get_npc_states(self.config.campaign_id) if _engine_b else []
         hash_b = self._canonical_hash(scene_b, npcs_b)
-        # O399-CROSSDIFF (временный диагностический артефакт, удалить после
-        # локализации): финальные сцены обоих ранов → JSON для внешнего
-        # структурного дифа. Не участвует в runtime, не меняет scene/hash/порядок,
-        # не SSOT, не персистентное состояние — просто файл.
-        _snap_dir = Path(__file__).parent / "reports" / "o399_snaps"
-        _snap_dir.mkdir(parents=True, exist_ok=True)
-        _tag = _os.environ.get("O399_TAG", "run")
-        (_snap_dir / f"scene_{_tag}.json").write_text(
-            json.dumps({"scene_a": scene_a, "scene_b": scene_b,
-                        "hash_a": hash_a, "hash_b": hash_b},
-                       ensure_ascii=False, default=str),
-            encoding="utf-8",
-        )
-        print(f"[O399-CROSSDIFF] saved → reports/o399_snaps/scene_{_tag}.json")
         drift_b = dict(self._orchestrator._drift_stats)
         print(f"  [REPLAY] Run B complete: hash={hash_b[:16]}... npcs={len(npcs_b)}")
         print(
@@ -1115,6 +1101,17 @@ class DriftLaboratory:
             print(f"     Hash B: {hash_b}")
             print("     Hidden entropy source detected — investigation required")
             self._diagnose_mismatch(scene_a, npcs_a, scene_b, npcs_b)
+
+        print("\n  ═══ ADR-O-399 LEGALITY MAP (S270, вердикт Мастера) ═══")
+        print("  Этот тест меряет РЕПЛЕЙ-детерминизм ВНУТРИ одной execution configuration.")
+        print("  ✅ ЛЕГАЛЬНО: межпроцессная воспроизводимость — md5-pick убил PYTHONHASHSEED-соль (A1==A2)")
+        print("  ✅ ЛЕГАЛЬНО: causal skeleton байт-в-байт при разной worker latency (4× структурный диф)")
+        print("  ⚠️  ЛЕГАЛЬНАЯ ГРАНИЦА: DRIFT_WORKER_LATENCY_MS каузально меняет СОСТАВ Experience")
+        print("     (arrival → STM/темы → DecisionHub → intents). Прогоны с РАЗНОЙ latency")
+        print("     ожидаемо дают MISMATCH — temporal boundary ADR-O-399 CLOSE, не баг.")
+        print("  ❌ НЕЛЕГАЛЬНО (регрессия → расследование): разные хеши при одинаковом")
+        print("     env/коде (соль вернулась); NPC-скелет в дифе при одинаковой latency.")
+        print("  Контракт: SAME input + SAME execution config → SAME canonical trajectory.")
 
     # ─── Mode H: Replay Compare (A/B against recorded session) ───
     def _mode_replay_compare(self, result: DriftResult, session_id: str) -> None:

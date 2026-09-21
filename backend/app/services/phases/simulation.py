@@ -33,6 +33,9 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     _spatial_svc = orchestrator._resolve_spatial_service(ctx)
     if _spatial_svc:
         engine.set_spatial_service(_spatial_svc)
+    # Phase D Э-3: персональное знание для frontier-выбора exploration
+    # (зеркало set_epistemic_store movement_engine:133 — один store на контур)
+    engine.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
 
     # DRF: Инъекция единой причинной шины в LifeEngine
     engine.set_claim_bus(ctx.drf_bus)

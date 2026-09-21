@@ -270,7 +270,11 @@ def aggregate_deltas(deltas: list) -> list:
         if not isinstance(d, StateDeltas):
             continue
 
-        policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
+        policy = (
+            DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
+            if d.domain is not None
+            else ReductionPolicy.ADDITIVE
+        )
 
         if policy == ReductionPolicy.PHYSICS_COMPOSITE:
             physics_deltas.append(d)
@@ -281,6 +285,7 @@ def aggregate_deltas(deltas: list) -> list:
     groups: dict[tuple, StateDeltas] = {}
 
     for d in algebraic_deltas:
+        key: tuple[Any, Any, Any]
         if d.domain is not None:
             key = (d.npc_id, d.domain, d.target)
         else:
@@ -288,7 +293,11 @@ def aggregate_deltas(deltas: list) -> list:
 
         if key in groups:
             existing = groups[key]
-            policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
+            policy = (
+                DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
+                if d.domain is not None
+                else ReductionPolicy.ADDITIVE
+            )
 
             if policy == ReductionPolicy.OVERWRITE and d.domain == DeltaDomain.IDENTITY:
                 existing.identity_integrity_delta += d.identity_integrity_delta
