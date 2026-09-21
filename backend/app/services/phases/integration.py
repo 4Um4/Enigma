@@ -406,15 +406,32 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
             if not _npc_id:
                 continue
 
-            # L1: Чтение сырой хроники
-            _l1_events = deps.l1_chronicle.query_raw(_npc_id)
-            if not _l1_events:
-                continue
+            # ADR-O-400: watermark-path за флагом. OFF = полный query_raw(t_from=0)
+            # — прежний путь байт-в-байт. ON: хвост хроники + инкрементальный state.
+            import os as _os
 
-            # L1.5: Детектирование паттернов (чистая статистика)
-            _evidence_list = deps.pattern_detector.detect(_l1_events)
-            if not _evidence_list:
-                continue
+            if _os.environ.get("PATTERN_WATERMARK", "0") == "1":
+                _wm_all = ctx.scene_state.setdefault("pattern_watermark_state", {})
+                from app.services.npc.pattern_state import WatermarkState
+
+                _st = _wm_all.get(_npc_id)
+                _state = WatermarkState.from_dict(_st) if _st else WatermarkState()
+                _tail = deps.l1_chronicle.query_raw(_npc_id, t_from=_state.last_seen_tick + 1)
+                _state.ingest_tail(_tail)
+                _wm_all[_npc_id] = _state.to_dict()
+                _evidence_list = _state.to_evidence()
+                if not _evidence_list:
+                    continue
+            else:
+                # L1: Чтение сырой хроники
+                _l1_events = deps.l1_chronicle.query_raw(_npc_id)
+                if not _l1_events:
+                    continue
+
+                # L1.5: Детектирование паттернов (чистая статистика)
+                _evidence_list = deps.pattern_detector.detect(_l1_events)
+                if not _evidence_list:
+                    continue
 
             # L0: Извлечение базовых драйвов для модуляции
             _drives_base = npc_dict.get(

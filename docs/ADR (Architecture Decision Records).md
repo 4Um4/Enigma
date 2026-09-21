@@ -598,7 +598,10 @@ event dating; worker completion timing → НЕ является причино�
 L1 event dating. speech_reset = 🔴 OPEN. Полная skeleton-publication
 из submit — итерация 2, только если расщепление скелета сохранится.
 
-
+`ADR-O-400` [ONTO] **Incremental PatternDetector State (Watermark, S273)** — History-tax (датасет v1.3: query_raw 42→78% L1-потока по оси H, onset ~3000 тиков, владелец integration.py:410 — единственный call site, t_from=0 → полное сканирование на каждой кристаллизации) устраняется инкрементальным state'ом достаточной статистики per (npc, source): n, cumulative (последовательный float — порядок потока), Σx/Σx² (Fraction — exactness contract, statistics.variance эталон), last_sign, sign_flips, first_seen (order contract). Equivalence gate доказал: полная история семантически не необходима, необходим достаточный state; текущий EvidenceOfPersistence (3 поля) им не является — наивный watermark отвергнут на гейте. Flag default OFF = no-op (прецедент S203.1). Equivalence oracle (побитовые сравнения + PBT на разбиениях H1/H2) ДО benchmark; A/B: skeleton equality на 24×3000/24×10k/60×3000 против зафиксированного baseline v1.3 — расхождение = NO-GO независимо от ускорения. Persistence: scene_state → Фаза 10 atomic commit (прецедент EpistemicStore S193), Fraction = (num, den), round-trip exact. Rule 28 не затронут (меняется объём повторного чтения, не хранение). Машинная эквивалентность float(exact) — гипотеза, закрываемая тестом, не постулат.
+  Taboo: ❌ Float-Σ²/Welford в первой реализации; ❌ расширение EvidenceOfPersistence; ❌ рефакторинг query_evidence в этой итерации; ❌ Rule 28; ❌ собственная SQLite watermark-state; ❌ флаг ON без oracle+skeleton; ❌ approx-сравнения в oracle.
+  Status: APPROVED FOR IMPLEMENTATION (behind flag, A/B-gated)
+  Files: docs/audits/ADR-O-400_IMPACT.md, backend/app/services/npc/pattern_detector.py, backend/app/services/phases/integration.py (call site), backend/app/domain/identity_events.py (только чтение контракта), backend/tests/ (oracle + PBT), backend/tests/sandbox/probes/ (A/B инструмент — готов)
 
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
