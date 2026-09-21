@@ -396,7 +396,11 @@ class TaskScheduler:
                             f"intent=flee → task INTERRUPTED (TASK_STALE_INTENT)"
                         )
                         continue
-                    self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time)
+                    # FIX (S271, предгейт P1): fast-path omitил submit_tick →
+                    # дефолт 0 → _TaskArtifactRecord.submit_tick=0 → event_tick=0
+                    # в drain. Симметрично process_tasks:333 и dequeue-пути :556 —
+                    # восстановление существующего контракта, не новая семантика.
+                    self._process_tasks_async(scene_state, [task_dict], campaign_id, "canonical", _game_time, scene_state.get("tick", 0))
                     continue
 
                 # S216 FIX (027.1): Классификация canonical/ambient через intent_profiles.
