@@ -275,6 +275,11 @@ class LifeEngine:
         # после TTL/LRU eviction — SQLite пишется, но никогда не читается.
         self._persistence: Optional[Any] = None
 
+        # Phase D Э-3: персональное знание для frontier-выбора exploration
+        # (чтение EXITS_TO — паттерн personal_route_resolver; писатели —
+        # production dwell-ветка/S186, резолвер store НЕ пишет).
+        self._epistemic_store: Optional[Any] = None
+
         self._claim_bus: Optional["DRFBus"] = None  # DRF Causal Bus
 
     def get_idle_pressure_map(self) -> dict:
@@ -295,6 +300,11 @@ class LifeEngine:
         # Пробрасываем в MovementEngine для A* с учётом оверлея
         if hasattr(self, "_movement_engine") and self._movement_engine:
             self._movement_engine.set_spatial_service(svc)
+
+    def set_epistemic_store(self, store: Any) -> None:
+        """Phase D Э-3: инъекция EpistemicStore (только чтение резолвером
+        frontier; writer'ы знания — production-контур dwell/S186, не здесь)."""
+        self._epistemic_store = store
 
     def set_persistence(self, persistence: Any) -> None:
         """ADR-128: Инъекция PersistencePort для read-back при cache miss.
@@ -663,6 +673,53 @@ class LifeEngine:
             # NPC должен остановиться (нет давления = нет движения, ADR-O-208 L3-P1).
             npc.pop("drive_vector", None)
 
+            # Phase D Э-3 (Mechanism A): consume причинного сигнала route-failure.
+            # Носитель — запись npc_positions ЖИВОГО scene_state (writer —
+            # UNKNOWN-ветка PERSONAL_ROUTE gate, единственный). Read+pop атомарно
+            # внутри тика: сигнал валиден один decision cycle (урок Э-1: вне
+            # tick-lock pop бьёт по persistence-копии). Сигнал НЕ второй канал
+            # решений: только transient pressure/source — intent уходит в общий
+            # кандид-контур (winner-выбор / арбитраж как есть).
+            _ss_entry = (scene_state or {}).get("npc_positions", {}).get(npc_id)
+            _unknown_sig = (
+                _ss_entry.get("_unknown_route", None)
+                if isinstance(_ss_entry, dict) else None
+            )
+            _exploration_intent = None
+            if _unknown_sig is not None:
+                from app.services.npc.exploration_target_resolver import (
+                    resolve_exploration_target,
+                )
+                _cur_loc = (
+                    (_ss_entry.get("location_id") if isinstance(_ss_entry, dict) else "")
+                    or scene_state.get("location_id", "")
+                )
+                _lp = _ss_entry.get("local_position") if isinstance(_ss_entry, dict) else None
+                _nx = float(_lp.get("x", 0.0)) if isinstance(_lp, dict) else 0.0
+                _ny = float(_lp.get("y", 0.0)) if isinstance(_lp, dict) else 0.0
+                _target = resolve_exploration_target(
+                    npc_id, self._epistemic_store, self._spatial_service,
+                    _cur_loc, (_nx, _ny),
+                )
+                logger.info(
+                    f"[EXPLORATION] npc={npc_id} consumed _unknown_route "
+                    f"from={_unknown_sig.get('from')} to={_unknown_sig.get('to')} "
+                    f"-> target={_target}"
+                )
+                if _target:
+                    _exploration_intent = MacroMovementGoal(
+                        actor_id=npc_id,
+                        target_node_id=_target,
+                        from_node_id=npc.get("position", ""),
+                        location_id=_cur_loc,
+                        reason="exploration:frontier",
+                        domain=IntentDomain.EXPLORATION,
+                        # Ниже relocation (0.9): при появлении знания мигрантский
+                        # relocation вытесняет exploration внутренним winner-выбором.
+                        # Выше random-wander'а LifeEngine — осмысленный сигнал.
+                        priority=0.45,
+                    )
+
             try:
                 # ── MAJOR: полная симуляция каждый тик ──────────────────────
                 if tier == "major":
@@ -686,6 +743,25 @@ class LifeEngine:
 
             except Exception as e:
                 logger.error(f"[LIFE_ENGINE] Ошибка при обработке NPC '{npc_id}': {e}")
+
+            # Phase D Э-3 (верdict-вариант 1, «сигнальная инерция»): сигнал
+            # живёт до первого тика, когда актор свободен. Погашение ТОЛЬКО
+            # при двух исходах: (а) exploration-интент рождён (давление
+            # конвертировано в намерение), (б) тик не дал ни одного intent
+            # (актор бездействовал) и exploration породился. Если тик дал
+            # intents (winner-выбор взял relocation/wander) — сигнал
+            # возвращается в носитель: неизвестность остаётся давлением.
+            if _exploration_intent is not None:
+                all_intents.append(_exploration_intent)
+                if isinstance(_ss_entry, dict):
+                    _ss_entry.pop("_unknown_route", None)
+            elif isinstance(_ss_entry, dict) and _unknown_sig is not None:
+                if intents:
+                    # Актор занят чем-то выше приоритетом: сигнал возвращён,
+                    # следующий тик попытается снова.
+                    pass
+                else:
+                    _ss_entry.pop("_unknown_route", None)
 
         # Кэш уже обновлён in-place (NPC — словари, изменения применились)
         if npcs_updated:

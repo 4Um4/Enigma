@@ -30,7 +30,13 @@ def _norm_node(s):
     # канон сравнения узлов (тот же, что в Н-4/мониторе): хвост без зоны
     return s.split(":")[-1] if s else s
 _LOCS = ("tavern", "city_gate", "market_square")
-_MAX_TICKS = 2880
+# FORCED-ONSET (вердикт Мастера): устраняем startup nondeterminism needs
+# (класс DEBT-QUIESCE — намеренно обходим, НЕ закрывая долг). Инъекция
+# ТОЛЬКО ВХОДА (прецедент S214 β-гибрид): shelter_urge=1.0 у same-loc
+# canonical NPC до первого тика; всю цепь дальше проходят реальные
+# production writer'ы. forced onset ≠ deterministic startup proof.
+_MAX_TICKS = 300
+_FORCED_SHELTER = ("maid_lusya", "tavern_keeper_tornin")
 _MARK_KEYS = ("SLEEP_ONSET", "sleep_end", "SCHED_TRACE", "NEED_TRACE",
               "GAP9", "NO_RESOLVE", "LIFE_ENGINE", "AROUSAL",
               "PERSONAL_ROUTE", "UNKNOWN_ROUTE", "S186", "BOUNDARY_DWELL",
@@ -134,11 +140,26 @@ def main() -> int:
     with TavernGameplayHarness(location="tavern") as h:
         sm = h.game_loop.scene_manager
         for tick in range(1, _MAX_TICKS + 1):
+            # FORCED-ONSET: инъекция перенесена ПОСЛЕ первого advance_ticks
+            # (probe-факт: до тика LEN=0, после — LEN=7, id совпадают).
             _tick[0] = tick
             h.advance_ticks(1)
             if tick == 1:
                 _find_npc_container(h.game_loop)
                 print(f"[SLEEPF] body_state container: {_body_path or 'НЕ НАЙДЕН — fatigue-канал отключён'}", flush=True)
+                # FORCED-ONSET: инъекция ПОСЛЕ первого advance_ticks —
+                # снапшот жив (LEN=7), id совпадают с _FORCED_SHELTER.
+                # Инъекция ТОЛЬКО входа (S214 β-гибрид); дальше — production.
+                _injected = []
+                for _n in h.game_loop._resolve_npcs_snapshot(_C) or []:
+                    if isinstance(_n, dict) and _n.get("id") in _FORCED_SHELTER:
+                        _n.setdefault("needs", {})["shelter_urge"] = 1.0
+                        _injected.append(_n.get("id"))
+                # Верификация живучести инъекции: чтение обратно + на тике 2
+                _back = {n2.get("id"): (n2.get("needs") or {}).get("shelter_urge")
+                         for n2 in (h.game_loop._resolve_npcs_snapshot(_C) or [])
+                         if isinstance(n2, dict) and n2.get("id") in _FORCED_SHELTER}
+                print(f"[SLEEPF] FORCED-ONSET: injected={_injected} back-read={_back}", flush=True)
             _capture_bodies(h, tick)
             for loc in _LOCS:
                 sc = sm.get_scene_state(_C, loc) or {}

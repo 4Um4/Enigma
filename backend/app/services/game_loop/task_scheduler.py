@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 
 # ADR-O-399: атомарный контейнер результата worker-задачи. Не SSOT, не шина,
@@ -22,7 +22,7 @@ class _TaskArtifactRecord:
     dialogue_entry: Optional[dict]
     economy_talks: tuple
     speech_reset: Optional[dict]
-from typing import Dict, Optional
+from typing import Dict
 
 from app.domain.communication import DialogueRequest
 from app.domain.execution import (
@@ -55,7 +55,7 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None, memory_manager=None, confession_parser=None, npc_states_provider=None):
+    def __init__(self, router: Any = None, context_provider: Any = None, economy_tracker: Any = None, belief_store: Any = None, memory_manager: Any = None, confession_parser: Any = None, npc_states_provider: Any = None) -> None:
         from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store, memory_manager=memory_manager, confession_parser=confession_parser)
@@ -163,7 +163,7 @@ class TaskScheduler:
             subject_resolver=subject_resolver,
         )
 
-    def set_spatial_query_service(self, sqs):
+    def set_spatial_query_service(self, sqs: Any) -> None:
         """Инъекция SpatialQueryService для Social Target Resolver."""
         self._spatial_query_service = sqs
 
@@ -228,7 +228,6 @@ class TaskScheduler:
             batch = self._task_outbox
             self._task_outbox = []
         batch.sort(key=lambda _r: (_r.submit_tick, _r.task_id))
-        from app.services.events.event_bus import get_event_bus
         _bus = get_event_bus()
         for _rec in batch:
             for _ev in _rec.events:
@@ -563,8 +562,8 @@ class TaskScheduler:
 
     def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0):
         """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
-        import time
         import os as _os
+        import time
         # ADR-O-399 / §15.2-паттерн DRIFT_*: test-only латентность воркера.
         # Моделирует время ГОТОВНОСТИ артефакта, не меняет его содержание —
         # гейт controlled-latency детерминизма. Production default = 0.
@@ -774,7 +773,7 @@ class TaskScheduler:
 
     def _reconstruct_task(self, task_dict: dict) -> "Optional[QueuedTask]":
         """Собирает QueuedTask из словаря (после JSON сериализации).
-        
+
         ENIGMA-ARCH-038: Строгая реконструкция без silent fallback'ов.
         Canonical reconstruction failure → FAILED / drop (никогда не raw dict).
         """

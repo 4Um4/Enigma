@@ -371,6 +371,21 @@ class MovementEngine:
                                 f"known_edges={_route.known_edges} "
                                 f"reason=no_personal_route"
                             )
+                            # Phase D Э-1: причинный сигнал route-failure для
+                            # следующего decision cycle. Транзиент-носитель в
+                            # записи актора (прецедент _via_boundary). Единственный
+                            # писатель — эта ветка: UNKNOWN остаётся единственной
+                            # точкой истины о факте route failure.
+                            _sig_entry = (npc_positions or {}).get(intent.actor_id)
+                            if isinstance(_sig_entry, dict):
+                                _sig_entry["_unknown_route"] = {
+                                    "from": current_loc,
+                                    "to": target_loc,
+                                    "known_edges": [
+                                        [_f, _t] for _f, _t in _route.known_edges
+                                    ],
+                                    "tick": tick,
+                                }
                             continue
                         logger.info(
                             f"[PERSONAL_ROUTE] npc={intent.actor_id} KNOWN "
