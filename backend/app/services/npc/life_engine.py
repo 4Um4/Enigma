@@ -1148,14 +1148,18 @@ class LifeEngine:
         # ADR-130: Movement Lock. Если NPC уже в активном транзите —
         # LifeEngine не генерирует новые интенты (ни schedule, ни need-driven).
         # Это предотвращает "бесконечный бег" и топологические дрейфы.
+        # S272 (вердикт Мастера): ИСКЛЮЧЕНИЕ — cross-loc relocation.
+        # Малый proactive-traversal не блокирует relocation навсегда
+        # (RCB-маятник: relocation перезапускается, но режется bypass'ом
+        # при живом 2-тиковом чурн-traversal). Семантика — reason-маркер
+        # "+relocation" (X-форма), не магическое число. Relocation-интент
+        # при живом traversal проходит B1.5 как supersede-кандидат.
+        _movement_lock_active = False
         if scene_state:
             _active_travs = scene_state.get("active_traversals", {})
             _my_trav = _active_travs.get(npc_id)
             if _my_trav and _my_trav.get("status") == "MOVING":
-                logger.debug(
-                    f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed — active traversal (target={_my_trav.get('target_node', '?')})"
-                )
-                return [], []
+                _movement_lock_active = True
 
         changes: list[SceneChange] = []
         intents: list["MacroMovementGoal"] = []
@@ -1243,6 +1247,19 @@ class LifeEngine:
         if candidates:
             candidates.sort(key=lambda i: i.priority, reverse=True)
             winner = candidates[0]
+            # S273 (Phase-C-DEBT, relocation-supersede): ADR-130 lock теперь
+            # фильтрует WINNER, а не глушит весь цикл. NPC в MOVING и победитель
+            # НЕ cross-loc relocation (reason-маркер "+relocation", X-форма
+            # schedule:2004 / need_driven:1534) → bypass, изоморфный ADR-130.
+            # Врезка ДО INTENT_SCHEDULE-лога и DRF-эмита: подавленный winner
+            # не публикует давление. Domain-предикат непригоден: caller
+            # перезаписывает SURVIVAL→ROUTINE (:1197/:1225) — единственный
+            # честный маркер = reason (факт, не выбор).
+            if _movement_lock_active and "+relocation" not in winner.reason:
+                logger.debug(
+                    f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed — active traversal (target={_my_trav.get('target_node', '?')})"
+                )
+                return [], []
             # ADR-049: LifeEngine больше не диктатор. Он не исполняет намерения сам.
             # Намерение передается в TickOrchestrator для прохождения каузального конвейера.
             logger.info(

@@ -38,7 +38,10 @@ def main() -> int:
                     k in m
                     for k in ("LIFE_ENGINE", "SCHED_TRACE", "RELOCATE", "BOUNDARY_DWELL",
                               "INTENT_DEGRADE", "DIAG_GAP9", "DIAG_S140", "NEED_TRACE",
-                              "cross-loc relocation", "ARBITER_REJECT")
+                              "cross-loc relocation", "ARBITER_REJECT",
+                              # S272: канал персонального гейта (был невидим —
+                              # PHASE-C-контракт не попадал в capture)
+                              "PERSONAL_ROUTE", "UNKNOWN_ROUTE", "SPATIAL_KNOWLEDGE")
                 ) and ("borko" in m or "NEED_TRACE" in m):
                     self.lines.append(f"{record.levelname}|{m[:240]}")
             except Exception:  # noqa: S110
@@ -83,6 +86,39 @@ def main() -> int:
             }
         })
         n.setdefault("routine", {})["current"] = "idle"
+        # S272 SEED (вердикт Мастера, Вариант A): тестовый вход — личное
+        # знание маршрута на пост. Инъекция через легальный production
+        # writer-контракт (tick_orchestrator:865-892: Proposition/EpistemicRecord/
+        # store.upsert — тот же путь, что DIRECT_EXPERIENCE P4'). Семантика:
+        # «стражник знает дорогу на пост». Продакшн-spawn-seed — отдельное
+        # решение в Phase D (не здесь).
+        _ep = getattr(getattr(h.game_loop, "_tick_orch", None), "_epistemic_store", None)
+        if _ep is None:
+            _RED.append("SEED: _epistemic_store недоступен в orchestrator")
+        else:
+            from app.domain.epistemology import (
+                EpistemicRecord,
+                Predicate,
+                Proposition,
+            )
+            _ep.upsert(EpistemicRecord(
+                agent_id=_nid,
+                proposition=Proposition(
+                    # Phase C-контракт: subject = boundary-узел-ИСТОК
+                    # (резолвер парсит frm = prefix до ":"); exit_east —
+                    # документированная дверь tavern (ТЗ, FIX-6d).
+                    subject_id="tavern:exit_east",
+                    predicate=Predicate.EXITS_TO,
+                    object_id="city_gate",
+                    polarity=True,
+                ),
+                confidence=0.9,
+                source_id=_nid,
+                source_claim_id=f"seed:{_nid}:tavern:exit_east:city_gate",
+                first_observed_tick=0,
+                last_updated_tick=0,
+            ))
+            _log(f"SEED: EXITS_TO tavern:exit_east → city_gate conf=0.9 для {_nid}")
         # L5: Needs(0.8) перезаписывают Schedule — форсируем сон:
         # ночное время (00:30) + body sleep_pressure (CouplingResolver).
         sc0 = h.game_loop.scene_manager.get_scene_state(_C, "tavern")

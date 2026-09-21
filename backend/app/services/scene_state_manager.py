@@ -1935,10 +1935,20 @@ class SceneStateManager:
                     x2, y2 = wp[_seg_idx + 1]
                     ix = x1 + (x2 - x1) * _seg_frac
                     iy = y1 + (y2 - y1) * _seg_frac
-                    entry["local_position"] = {"x": ix, "y": iy}
-                    entry["in_transit"] = (
-                        True  # Флаг для сервисов: координаты в движении
-                    )
+                    # S273-GAP12 (root-cause fix, вердикт Мастера: только А2):
+                    # xy НЕ пишем. TES (traversal_execution_system, Фаза 0.5,
+                    # tick_orchestrator:2270) — единственный владелец производной
+                    # координаты MOVING-NPC (ADR-O-315: «координата — производная»).
+                    # Этот второй вычислитель читал scene["tick"] вне tick-лока:
+                    # при elapsed<0 clamp(:1925) давал wp[0] — NPC навсегда
+                    # закреплялся в стартовом waypoint (RCB v3: 133 итераций
+                    # xy≡wp[0] до float-знака, relocation-петля). Потребителей
+                    # GAP12-интерполяции нет (аудит: GAP12 MOVING consumer =
+                    # NONE FOUND; заявленный контракт CFRM/ImpactEngine —
+                    # фантом, слои xy не читают). Флаг in_transit сохранён —
+                    # единственный живой потребитель:
+                    # behavior_manifestation_service:154 (флаг-семантика, не xy).
+                    entry["in_transit"] = True
                     continue
                 # Фоллбэк, если waypoints нет или структура битая
                 lp = entry.get("local_position", {})

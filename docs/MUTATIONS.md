@@ -1457,24 +1457,15 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. Гейт
 🎯 **S272 CLOSED. Коммит 9ecbac81. Эстафета S273 — WATERMARK (порядок Мастера):** первый шаг — НЕ код, а **equivalence gate PatternDetector**: является ли состояние EvidenceOfPersistence достаточной статистикой для `detect(H1+H2) == update(state(H1), H2)` (поля/агрегаты/окна/decay/порядок/зависимость от H1). Доказано → mini-ADR → implementation behind flag → A/B (baseline ДО изменения: 24×3000, 24×10k, 60×3000; causal skeleton equality — жёстко) → повторный benchmark. Не доказано → watermark ОТВЕРГНУТ по причинной семантике, ищем другой способ чтения, семантику не меняющий. Правило S273: **не оптимизировать query_raw механически — сохранить семантику PatternDetector, уменьшив объём повторно читаемой истории.** 163→70 мс с изменённой развилкой = FAIL; с совпавшим skeleton = выигрыш. 120/240/600 — заморозка до пост-watermark кривой.
 IPT: ✅ 45/45 (S272-гейты). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴.
 
-### S273: PHASE-C-DEBT — relocation-supersede фикс (Звенья 1+2+2b) | статус по прогонам
-🎯 Вердикт Мастера: bypass не глушит cross-loc relocation; инкумбент прерывается атомарно.
-⚙️ Археология (7 пакетов, всё свежими блоками): domain-перезапись SURVIVAL→ROUTINE в caller
-(:1197/:1225) → единственный честный маркер = "+relocation" в reason (X-форма schedule:2004 /
-need_driven:1534). SSM-гвард ADR-130.1 (:1360-1366) молча уничтожает proposal при живом MOVING
-→ явный supersede обязателен. interrupt_traversal: reason в реестре (PRIORITY_SUPERSEDE,
-traversal_schema:183, ADR-O-365); legacy-путь: mirror→interrupt→_terminate→FSM — reason
-verbatim (валидация = непустота, preview :288-293). D-1 parent-chain связывает
-supersede→materialization в том же тике.
-⚙️ Патчи: (1) life_engine winners-гвард: _movement_lock_active + "+relocation" not in
-winner.reason → return [],[] (до DRF-эмита); (2) B1.5: "+relocation" исключение из скипа;
-(3) B1.5: при живом MOVING relocation → двухветочный атомарный supersede (enforcement:
-interrupt_traversal(PRIORITY_SUPERSEDE); legacy: pop + mirror_traversal_interrupted).
-📁 life_engine.py (winners-этап), movement_engine.py (B1.5), тесты/артефакты — по прогонам.
-⚠️ Churn relocation↔relocation: природа инкумбента нечитаема (build_traversal_dict без
-cause-поля) → supersede безусловный; churn = CALIBRATION-метрика (ADR-O-365), измеряется
-RCB v3; защита (cause-поле) — только при регрессе, мини-ADR.
-IPT: ✅ 45/45 (до/после патчей). IMPORT-гейт: OK. RCB v3: <заполнить по прогону>.
+### S273: PHASE-C-DEBT CLOSED — relocation-supersede фикс + GAP12 root-cause fix | ✅ RCB GREEN=1, SPK 8/0, IPT 45/45, bsf dual GREEN; SDF = RED not-attributed
+🎯 Вердикт Мастера: bypass не глушит cross-loc relocation; инкумбент прерывается атомарно. Два независимо проверяемых звена: relocation-supersede и GAP12.
+⚙️ A. Relocation (Звенья 1+2+2b): (1) life_engine winners-гвард — ADR-130 lock фильтрует WINNER, не глушит цикл: `_movement_lock_active and "+relocation" not in winner.reason → return [], []` (до DRF-эмита); предикат — только reason (caller перезаписывает SURVIVAL→ROUTINE, domain непригоден — факт кода). (2) B1.5: relocation не скипается при MOVING (исключение "+relocation"). (3) B1.5 supersede-ветка: relocation при живом MOVING → атомарный двухрельсовый interrupt (enforcement: interrupt_traversal(PRIORITY_SUPERSEDE) — reason в реестре traversal_schema, ADR-O-365; legacy: pop + mirror_traversal_interrupted; chain верифицирована чтением: mirror→interrupt→_terminate→FSM, reason verbatim, D-1 parent-chain). **relocation bypass = VERIFIED; PRIORITY_SUPERSEDE = NOT EXERCISED (SUPERSEDED = 0)** — после GAP12-фикса traversal успевает завершиться до возникновения необходимости supersede; ветка в коде, позитивной трассы НЕТ — не заявлять как proven.
+⚙️ B. GAP12 root cause (А2, scene_state_manager `_enrich_local_positions`): второй вычислитель local_position для MOVING читал scene["tick"] вне tick-лока → elapsed<0 → clamp→wp[0] — NPC закреплялся в стартовом waypoint (RCB v3-1 RED: 133 итерации xy≡wp[0] до float-знака; SSM no-op-гвард по лейблу маскировал). Аудит: GAP12 MOVING consumer = NONE FOUND (заявленный контракт CFRM/ImpactEngine — фантом; единственный живой потребитель — behavior_manifestation_service флага in_transit). Фикс: xy-мутация удалена, in_transit сохранён. **TES — единственный runtime-владелец traversal-derived local_position (ADR-O-315).** Acceptance: RCB v3-2 GREEN=1/RED=0/exit=0; xy монотонно движется (16.71→…→33.77/9.52); wp[0]-персистенции нет; ALREADY_AT_TARGET 133→7; boundary dwell → S186 → city_gate; in_city=True; still_tavern=False.
+⚙️ C. Регресс: SPK GREEN=8 RED=0 GAP=0 exit0; IPT 45/45 0 CRITICAL exit0; bsf dual GREEN (full-day 2880 тиков: GREEN guard_borko + GREEN thief_shadow, FIRST_DIVERGENCE=0, atomicity RED=0; тест не имеет Итог-маркера — валидность по кодовым признакам; [:300]-обрезка final-дампа = штатная, не crash; Start-Process-пульс по обёртке лжёт — воркер python3.13, пульс по WS).
+⚠️ SDF: **RED current-run; S273 attribution = NOT ESTABLISHED; baseline comparison = INVALID** — fixture изменена в окне (2880→300 тиков + FORCED-ONSET, до нашего workstream). cause/class = **UNKNOWN-migrant**: schedule-мигрант без персонального знания честно блокируется Н-гейтом (UNKNOWN⇒BLOCK) и циклится (X-form early-return до писателя going_to_sleep; thief_shadow 299 плотных повторов prev=''). body_state-канал SDF сломан (container НЕ НАЙДЕН) → физиологический acceptance недостоверен. Класс — вход Phase D, не патч S273.
+📁 life_engine.py (winners-гвард), movement_engine.py (B1.5 bypass + supersede), scene_state_manager.py (GAP12 А2), relocation_causal_bridge_test.py (capture-каналы, окно S272-era), артефакты: rcb_v3_supersede.txt / rcb_v3_supersede_2.txt / spk_regress_s273.txt / sdf_regress_s273.txt / bsf_regress_s273*.txt.
+⚠️ Уроки: (1) инертный полупатч смещает блокировку этажом ниже с побочками — не «безопасен»; (2) валидный GREEN-контур вскрыл pre-existing root cause, маскируемый прежним багом; (3) docstring теста = канон команды запуска; (4) Start-Process-пульс по обёртке лжёт (python3.13-воркер по WS); (5) валидность теста = чтение его кода репортинга, не перенос маркеров из sibling-тестов; (6) probe-скрипты — только sandbox/probes, БД-путь parents[4] (cwd-зависимость saves/).
+IPT: ✅ 45/45 (финальный). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. Residual: UNKNOWN-migrant → Phase D; LABEL_XY_MISMATCH → deferred; SDF fixture canonicalization → отдельное решение Мастера; body_state channel → unresolved; probe cleanup — выполнен.
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
