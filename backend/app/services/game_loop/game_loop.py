@@ -930,6 +930,27 @@ class GameLoop:
             commit_distances=lambda cid, d: self._prev_player_distances.__setitem__(cid, d),
         )
 
+    def _build_npc_orch_deps(self):
+        """DEGOD Phase3-B2: контракт фазы NPC-оркестрации. B-состояния — через accessors,
+        C — через callables (lazy/DEFERRED ownership), rel_store — идентичный захваченный объект."""
+        from app.services.game_loop.npc_orchestration import NpcOrchDeps
+
+        return NpcOrchDeps(
+            character_service=self.character_service,
+            reputation_engine_getter=self._svc.get_reputation_engine,
+            social_engine_getter=self._svc.get_social_engine,
+            economic_profiles_getter=self._svc.get_or_create_economic_profiles,
+            economy_tracker=self._svc.economy_tracker,
+            world_tick_engine=self._world_tick_engine,
+            memory_manager=self.memory_manager,
+            rel_store=self._rel_store,
+            scene_manager=self.scene_manager,
+            load_npcs_with_runtime=self._load_npcs_with_runtime,
+            task_scheduler_getter=self._get_task_scheduler,
+            get_or_create_continuity=lambda cid: self._scene_continuities.setdefault(cid, __import__("app.services.verbalization.scene_continuity", fromlist=["SceneContinuity"]).SceneContinuity()),
+            crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),
+        )
+
     def _e1_relationship_reader(
         self, campaign_id: str, knower_id: str, recipient_id: str
     ) -> dict:
@@ -2623,7 +2644,7 @@ class GameLoop:
             )
             if dm_result.is_valid and dm_result.scene_context:
                 _player_result = run_npc_orchestration(
-                    self,
+                    self._build_npc_orch_deps(),
                     actions,
                     shared_context,
                     scene_state,
