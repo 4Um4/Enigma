@@ -679,8 +679,7 @@ def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop))
         return {"error": "MVP controller not initialized"}
 
     diff = game_loop.mvp_controller.build_world_diff()
-    game_loop._campaign_diffs[campaign_id] = diff
-    game_loop._save_diff_to_disk(campaign_id, diff)
+    game_loop._campaign_lifecycle.record_campaign_diff(campaign_id, diff)
 
     return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True}
 

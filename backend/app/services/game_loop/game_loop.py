@@ -315,6 +315,20 @@ class GameLoop:
         from app.services.world.time_skip_executor import TimeSkipExecutor
         self._time_skip = TimeSkipExecutor(self._tick_orch)
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
+        # DEGOD Phase3B: CampaignLifecycle — владелец жизненного цикла кампании
+        from app.services.game_loop.campaign_lifecycle import CampaignLifecycle
+
+        self._campaign_lifecycle = CampaignLifecycle(
+            scene_manager=scene_manager,
+            rel_store=memory_manager._relationships if memory_manager else None,
+            memory_manager=memory_manager,
+            tick_orch=self._tick_orch,
+            avatar_service=self.avatar_service,
+            mvp_controller=self.mvp_controller,
+            get_life_engine=self._get_life_engine,
+            load_npcs=self._load_npcs,
+            saves_dir=self._saves_dir,
+        )
         # DEGOD Phase3-3A.3: TurnPipeline — владелец фазовой машины player-turn
         from app.services.game_loop.turn_pipeline import TurnPipeline
 
