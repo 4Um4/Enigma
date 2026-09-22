@@ -154,6 +154,10 @@ class RelationshipStore:
             return 0
         data = self._load(campaign_id)
         count = len(data)
+        # DEGOD Phase3B.0-Seam2: RAM-кэш обязан сбрасываться ВЛАДЕЛЬЦЕМ
+        # (раньше new_game делал это снаружи через _cache напрямую; без этого
+        # _load отдавал протухшие отношения до LRU-вытеснения).
+        self._cache.pop(campaign_id, None)
         if count == 0:
             return 0
         # Сохраняем пустой словарь

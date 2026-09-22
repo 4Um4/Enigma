@@ -675,10 +675,8 @@ class GameLoop:
 
         # === 3. СБРОС ОТНОШЕНИЙ (RelationshipStore: кэш + диск) ===
         try:
-            rel_store = self.memory_manager._relationships
-            rel_store.reset_campaign(campaign_id)
-            if campaign_id in rel_store._cache:
-                del rel_store._cache[campaign_id]
+            self._rel_store.reset_campaign(campaign_id)
+            removed.append("relationships")
         except Exception as e:
             logger.warning(f"[NEW_GAME] RelationshipStore reset failed: {e}")
 
