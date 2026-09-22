@@ -1483,6 +1483,12 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. **S273 C
 ⚙️ Инфраструктурные находки: passport-протокол против moving platform (сосед менял tick_orchestrator/TES/life_engine/simulation в окне 01:26–02:05 → инвалидация env#1, A/B-rollback доказал hash-нейтральность правки), transient INV-TRAV-DICT классифицирован, ruff.toml fix=true обнаружен (гейты → --no-fix), git diff '>' = UTF-16 (→ checkout -- file).
 📁 backend/app/services/scene_state/* (новое), backend/app/services/scene_state_manager.py, docs/audits/DEGOD_*
 
+### S278-DEGOD: Turn Pipeline Ownership (Phase 3A, ADR-O-402) | ✅ IPT 45/45 на каждой итерации
+🎯 Ownership-redesign GameLoop: фазовая машина player-turn → turn_pipeline.py (736 строк, один вопрос); game_loop.py 2902→2224.
+⚙️ SeamA/SeamB: SSM-bridge _tick_scenes/_tick_campaign_id инкапсулирован (adopt_scene_for_tick/is_tick_locked_for). B1/B2: dm_phase/npc_orchestration де-связаны (DmPhaseDeps 7, NpcOrchDeps 13 — frozen, контракт принадлежит фазе; TurnServices элиминирован — NpcTickServices переиспользован per-turn). 3A.3: TurnPipeline (execute+6 фаз, 17 DI-полей, B-состояния через setter/provider).
+⚙️ Инциденты (уроки): коммит-message ≠ дифф (дважды — каркасные коммиты 73e1f528/ac433c33 с переключёнными call-sites до переноса тел = окно разрыва player-turn; fix — git diff --stat перед коммитом + «можно коммитить» отдельным сигналом); ruff F821 поймал живой god-reference до рантайма; F401 на re-export ≠ мёртвый импорт (сверять с картой consumers); moving-platform passport-протокол (env#1→env#3, A/B-rollback).
+📁 backend/app/services/game_loop/{turn_pipeline,dm_phase,npc_orchestration,game_loop,__init__}.py, backend/app/services/scene_state_manager.py
+
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`

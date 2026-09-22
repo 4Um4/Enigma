@@ -1,0 +1,97 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mssrqso_
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_mssrqso_\saves
+
+--- MODE E: Replay Determinism Audit (2 × 800 ticks) ---
+  [REPLAY] Seed: 54321
+  [REPLAY] Исключены из хеша: ['_version', 'campaign_id', 'last_save_real_time', 'snapshot_tick']
+
+  [REPLAY] === RUN A ===
+  [REPLAY] Run A complete: hash=b971b76763498924... npcs=6
+  [REPLAY] Run A drift: C=0 D=0 E=0
+
+  [REPLAY] Teardown Run A...
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_mssrqso_
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_xkfcxii4
+  [REPLAY] Setup Run B...
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_qooqpwy1
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_qooqpwy1\saves
+
+  [REPLAY] === RUN B ===
+  [REPLAY] Run B complete: hash=b971b76763498924... npcs=6
+  [REPLAY] Run B drift: C=0 D=0 E=0
+
+  ✅ REPLAY DETERMINISM: MATCH
+     hash=b971b76763498924e6c848eff710fd9849f89a2a4307cd9010cb7c17443ff589
+     World is deterministic under controlled entropy (seed=54321)
+
+  ═══ ADR-O-399 LEGALITY MAP (S270, вердикт Мастера) ═══
+  Этот тест меряет РЕПЛЕЙ-детерминизм ВНУТРИ одной execution configuration.
+  ✅ ЛЕГАЛЬНО: межпроцессная воспроизводимость — md5-pick убил PYTHONHASHSEED-соль (A1==A2)
+  ✅ ЛЕГАЛЬНО: causal skeleton байт-в-байт при разной worker latency (4× структурный диф)
+  ⚠️  ЛЕГАЛЬНАЯ ГРАНИЦА: DRIFT_WORKER_LATENCY_MS каузально меняет СОСТАВ Experience
+     (arrival → STM/темы → DecisionHub → intents). Прогоны с РАЗНОЙ latency
+     ожидаемо дают MISMATCH — temporal boundary ADR-O-399 CLOSE, не баг.
+  ❌ НЕЛЕГАЛЬНО (регрессия → расследование): разные хеши при одинаковом
+     env/коде (соль вернулась); NPC-скелет в дифе при одинаковой latency.
+  Контракт: SAME input + SAME execution config → SAME canonical trajectory.
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_qooqpwy1
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_4kwa4l1v
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: replay_determinism
+======================================================================
+
+  Всего сравнений (comparisons): 1,600
+  Крашенных тиков (crashed):     0
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   НЕТ ✅
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 1.7 мин
+  Скорость: 16 сравнений/сек, 16.0 тиков/сек

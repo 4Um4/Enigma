@@ -22,7 +22,7 @@ DEPRECATED модули, логика которых перенесена сюд
 """
 
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from app.core.constants import (
     DISTRUST_STRESS_THRESHOLD,
@@ -80,7 +80,8 @@ class InterpretationEngine:
         state: NPCState,
         event: EventContext,
         player_reputation: Optional[Dict[str, int]] = None,
-        drives_base: Dict[str, float] = None,
+        # NOTE(mypy): Optional-дефолт (PEP 484 no_implicit_optional).
+        drives_base: Optional[Dict[str, float]] = None,
     ) -> InterpretationResult:
         """
         Вычисляет как NPC воспринимает событие: искажения, угроза, драйвы.
@@ -99,7 +100,8 @@ class InterpretationEngine:
         )
 
         # ── 3. Драйвы (из npc_cognition.py) ───────────────────────────────
-        normalized_drives = self._normalize_drives(drives_base)
+        # NOTE(mypy): None-дефолт легален — _normalize_drives сам строит дефолтную карту.
+        normalized_drives = self._normalize_drives(drives_base or {})
         dominant_drive = self._get_dominant_drive(normalized_drives)
 
         return InterpretationResult(
@@ -126,8 +128,12 @@ class InterpretationEngine:
         trust_bias = 0.0
         salience_bias = 0.0
 
-        fear_value = state.relationship_cache.get("fear", 0.0)
-        trust_value = state.relationship_cache.get("trust", 0.0)
+        # NOTE(mypy): relationship_cache типизирован Dict[str, Dict[str, float]]
+        # (ADR-121: вложенный {target_id: {trust, fear}}), а код читает плоские
+        # ключи ("fear"/"trust") — runtime-факты SimpleNamespace/плоских кэшей.
+        # Any-прочтение не меняет поведение, только снимает ложноположительный тип.
+        fear_value: Any = state.relationship_cache.get("fear", 0.0)
+        trust_value: Any = state.relationship_cache.get("trust", 0.0)
 
         # Страх усиливает воспринимаемую угрозу
         if fear_value > 0:
@@ -246,4 +252,5 @@ class InterpretationEngine:
 
     def _get_dominant_drive(self, drives: Dict[str, float]) -> str:
         """Возвращает ключ с максимальным значением."""
-        return max(drives, key=drives.get)
+        # NOTE(mypy): dict.get имеет перегруженный тип — лямбда точнее для max().
+        return max(drives, key=lambda k: drives[k])

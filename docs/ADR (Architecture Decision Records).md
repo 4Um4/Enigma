@@ -608,6 +608,11 @@ L1 event dating. speech_reset = 🔴 OPEN. Полная skeleton-publication
 Status: ACTIVE
 Files: backend/app/services/scene_state_manager.py, backend/app/services/scene_state/* (6 модулей), docs/audits/DEGOD_PHASE0_MAP_SSM.md, docs/audits/DEGOD_S3_ITER1_DOSSIER.md
 
+`ADR-O-402` [STRUCT] **Turn Pipeline Ownership (Phase 3A)** — Фазовая машина player-turn выделена из GameLoop в turn_pipeline.py (execute + 6 фаз). Обратные зависимости dm_phase/npc_orchestration от поверхности GameLoop разорваны через фазовые контракты DmPhaseDeps/NpcOrchDeps (frozen, принадлежат фазам; TurnServices-контейнер элиминирован по red-flag). SSM tick-seam инкапсулирован (adopt_scene_for_tick/is_tick_locked_for) — Cross-File Bridge _tick_scenes закрыт. B-состояния GameLoop (_prev_player_distances, _scene_continuities, _current_tick, _background_tasks) — через accessors/setter/provider. Campaign Lifecycle — HOLD до отдельного ownership-design.
+❌ Taboo: game_loop как параметр фазовых модулей; универсальный services-контейнер; NpcTickServices с application-lifetime; смешение seam- и extraction-изменений в одном коммите; коммит при красном гейте.
+Status: ACTIVE
+Files: backend/app/services/game_loop/turn_pipeline.py, dm_phase.py, npc_orchestration.py, game_loop.py, __init__.py, scene_state_manager.py, docs/audits/DEGOD_PHASE0_MAP_game_loop.md
+
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 

@@ -1,0 +1,952 @@
+[SLEEPF] body_state container: НЕ НАЙДЕН — fatigue-канал отключён
+[SLEEPF] FORCED-ONSET: injected=['maid_lusya', 'tavern_keeper_tornin'] back-read={'maid_lusya': 1.0, 'tavern_keeper_tornin': 1.0}
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=False pos='tavern:node_16' cur='working'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=False pos='tavern:fireplace' cur='eating'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=False pos='tavern:kitchen' cur='going_to_sleep'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] maid_lusya urg=1.0 ROUTINE_viable=True sched='working' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+[SLEEPF-PROBE] tavern_keeper_tornin urg=1.0 ROUTINE_viable=True sched='eating' has_activity=False phys_asleep=True pos='tavern:kitchen_bed_1' cur='sleeping'
+
+[SLEEPF] ===== FIXTURE CLASSIFICATION =====
+[SLEEPF] sleep-узлы из топологии: ['guard_bed', 'kitchen_bed_1', 'kitchen_bed_2', 'tent_1', 'tent_2', 'tent_3', 'tent_4', 'tent_5', 'tent_6', 'tent_7', 'tent_8', 'tent_9']
+[SLEEPF] thief_shadow: sleep-тиков=293 на-BED=0 → SLEEP_FIXTURE_INVALID_NO_BED
+
+[SLEEPF] ===== CANONICAL CASE: thief_shadow =====
+[SLEEPF] SLEEP START tick=0  END tick=300  duration=293 тиков
+[SLEEPF] PHYSIOLOGICAL SLEEP (sleep_onset_tick): НЕТ — сон был только behavioral label
+[SLEEPF] t=1 act='talking_at_bar' pos=tavern:entrance vis=True loc=tavern || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: schedule 'sleeping' требует city_gate, NPC физически в tavern → cross-loc relocati || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'wanders_to_bar' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=tent_3 reason=schedule:sleeping+relocation || MOVEMENT:[PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=tavern:entrance reason=schedule:sleeping+relocation exa || traversal:[MOVEMENT_TRACE] npc=thief_shadow status=VALID_PATH path_len=3 traversal=CREATED || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:schedule:sleeping+rel
+[SLEEPF] t=2 act='talking_at_bar' pos=tavern:entrance vis=True loc=tavern
+[SLEEPF] t=3 act='talking_at_bar' pos=tavern:entrance vis=True loc=tavern || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=traversal_complete spatial=yes traversal= || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=local_position cause=traversal_complete spatial=yes trav
+[SLEEPF] t=4 act='talking_at_bar' pos=tavern:entrance vis=True loc=tavern || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: schedule 'sleeping' требует city_gate, NPC физически в tavern → cross-loc relocati || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=tent_3 reason=schedule:sleeping+relocation || BOUNDARY_DWELL:[BOUNDARY_DWELL] npc=thief_shadow near tavern:exit_east (dist=0.58); transfer at tick 6
+[SLEEPF] t=5 act='talking_at_bar' pos=tavern:entrance vis=True loc=tavern || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: schedule 'sleeping' требует city_gate, NPC физически в tavern → cross-loc relocati || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=tent_3 reason=schedule:sleeping+relocation
+[SLEEPF] t=6 act='' pos=? vis=None loc=? || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: schedule 'sleeping' требует city_gate, NPC физически в tavern → cross-loc relocati || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=tent_3 reason=schedule:sleeping+relocation || S186:[BOUNDARY_DWELL] npc=thief_shadow dwell complete → atomic S186 transfer to city_gate
+[SLEEPF] t=7 act='talking_at_bar' pos= vis=True loc=city_gate || S186:[S186_INJECT] Importing NPC=thief_shadow into city_gate
+[SLEEPF] t=8 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping || MOVEMENT:[PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=city_gate:gate_road reason=schedule:sleeping exact_xy=( || traversal:[MOVEMENT_TRACE] npc=thief_shadow status=VALID_PATH path_len=5 traversal=CREATED || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:schedule:sleeping spa
+[SLEEPF] t=9 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate
+[SLEEPF] t=10 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate
+[SLEEPF] t=11 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate
+[SLEEPF] t=12 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate
+[SLEEPF] t=13 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate
+[SLEEPF] t=14 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate
+[SLEEPF] t=15 act='sleeping' pos=city_gate:gate_road vis=True loc=city_gate || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=traversal_complete spatial=yes traversal= || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=local_position cause=traversal_complete spatial=yes trav
+[SLEEPF] t=16 act='sleeping' pos=city_gate:gate_arch vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping || MOVEMENT:[PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=city_gate:gate_arch reason=schedule:sleeping exact_xy=( || traversal:[MOVEMENT_TRACE] npc=thief_shadow status=VALID_PATH path_len=4 traversal=CREATED || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:schedule:sleeping spa
+[SLEEPF] t=17 act='sleeping' pos=city_gate:gate_arch vis=True loc=city_gate
+[SLEEPF] t=18 act='sleeping' pos=city_gate:gate_arch vis=True loc=city_gate
+[SLEEPF] t=19 act='sleeping' pos=city_gate:gate_arch vis=True loc=city_gate
+[SLEEPF] t=20 act='sleeping' pos=city_gate:gate_arch vis=True loc=city_gate
+[SLEEPF] t=21 act='sleeping' pos=city_gate:gate_arch vis=True loc=city_gate || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=traversal_complete spatial=yes traversal= || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=local_position cause=traversal_complete spatial=yes trav
+[SLEEPF] t=22 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping || MOVEMENT:[PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=city_gate:entrance reason=schedule:sleeping exact_xy=(3 || traversal:[MOVEMENT_TRACE] npc=thief_shadow status=VALID_PATH path_len=3 traversal=CREATED || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:schedule:sleeping spa
+[SLEEPF] t=23 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate
+[SLEEPF] t=24 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate
+[SLEEPF] t=25 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=traversal_complete spatial=yes traversal= || traversal:[SHADOW_COMPILER] compiled: target=thief_shadow field=local_position cause=traversal_complete spatial=yes trav
+[SLEEPF] t=26 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=27 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=28 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=29 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=30 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=31 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=32 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=33 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=34 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=35 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=36 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=37 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=38 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=39 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=40 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=41 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=42 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=43 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=44 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=45 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=46 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=47 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=48 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=49 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=50 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=51 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=52 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=53 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=54 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=55 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=56 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=57 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=58 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=59 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=60 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=61 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=62 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=63 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=64 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=65 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=66 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=67 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=68 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=69 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=70 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=71 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=72 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=73 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=74 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=75 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=76 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=77 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=78 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=79 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=80 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=81 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=82 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=83 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=84 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=85 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=86 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=87 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=88 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=89 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=90 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=91 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=92 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=93 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=94 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=95 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=96 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=97 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=98 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=99 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=100 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=101 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=102 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=103 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=104 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=105 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=106 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=107 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=108 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=109 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=110 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=111 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=112 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=113 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=114 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=115 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=116 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=117 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=118 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=119 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=120 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=121 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=122 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=123 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=124 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=125 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=126 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=127 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=128 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=129 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=130 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=131 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=132 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=133 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=134 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=135 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=136 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=137 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=138 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=139 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=140 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=141 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=142 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=143 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=144 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=145 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=146 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=147 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=148 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=149 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=150 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=151 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=152 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=153 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=154 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=155 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=156 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=157 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=158 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=159 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=160 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=161 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=162 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=163 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=164 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=165 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=166 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=167 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=168 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=169 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=170 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=171 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=172 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=173 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=174 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=175 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=176 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=177 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=178 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=179 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=180 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=181 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=182 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=183 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=184 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=185 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=186 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=187 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=188 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=189 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=190 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=191 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=192 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=193 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=194 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=195 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=196 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=197 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=198 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=199 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=200 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=201 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=202 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=203 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=204 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=205 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=206 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=207 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=208 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=209 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=210 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=211 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=212 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=213 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=214 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=215 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=216 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=217 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=218 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=219 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=220 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=221 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=222 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=223 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=224 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=225 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=226 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument' || INTENT_SCHEDULE:[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=thief_shadow target=city_gate:tent_3 reason=schedule:sleeping
+[SLEEPF] t=227 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=228 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=229 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=230 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=231 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=232 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=233 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=234 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=235 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=236 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something'
+[SLEEPF] t=237 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument'
+[SLEEPF] t=238 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=239 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=240 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=241 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=242 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=243 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=244 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=245 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=246 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=247 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=248 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=249 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=250 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=251 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'minor_argument'
+[SLEEPF] t=252 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=253 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=254 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=255 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=256 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=257 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=258 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=259 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=260 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=261 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=262 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=263 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=264 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=265 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=266 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=267 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=268 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=269 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=270 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=271 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=272 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=273 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=274 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE || LIFE_ENGINE:[LIFE_ENGINE] thief_shadow: случайное событие 'notices_something'
+[SLEEPF] t=275 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=276 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=277 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=278 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=279 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=280 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=281 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=282 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=283 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=284 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=285 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=286 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=287 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=288 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=289 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=290 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=291 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=292 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=293 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=294 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=295 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=296 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=297 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=298 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=299 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF] t=300 act='sleeping' pos=city_gate:entrance vis=True loc=city_gate || SCHED_TRACE:[SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+
+[SLEEPF] WRITER-КАНДИДАТЫ вокруг SLEEP END (t=300):
+[SLEEPF]   t=298 S186: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Тик #13599 для 'Open_road' (время: 12:00)
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: player → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=298 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=player target=tavern:kitchen_bed_2 reason=need_driven:shelter_urge=1.00
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Тик #13599 завершён: 0 SceneChange, 1 MovementIntent
+[SLEEPF]   t=298 S186: [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=[]
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Тик #13600 для 'Open_road' (время: 12:00)
+[SLEEPF]   t=298 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=guard_borko target=city_gate:guard_post reason=schedule:guarding_gate
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: merchant_goran → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=298 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=merchant_goran target=tent_2 reason=need_driven:shelter_urge=1.00
+[SLEEPF]   t=298 SCHED_TRACE: [SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: player → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=298 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=player target=tavern:kitchen_bed_2 reason=need_driven:shelter_urge=1.00+relocation
+[SLEEPF]   t=298 LIFE_ENGINE: [LIFE_ENGINE] Тик #13600 завершён: 2 SceneChange, 3 MovementIntent
+[SLEEPF]   t=298 UNKNOWN_ROUTE: [UNKNOWN_ROUTE] npc=player from=city_gate to=tavern known_edges=(('tavern', 'city_gate'),) reason=no_personal_route
+[SLEEPF]   t=298 UNKNOWN_ROUTE: [UNKNOWN_ROUTE] npc=merchant_goran from=city_gate to=tavern known_edges=(('tavern', 'city_gate'),) reason=no_personal_route
+[SLEEPF]   t=299 S186: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Тик #13601 для 'Open_road' (время: 12:00)
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: player → eating (need=hunger=1.00)
+[SLEEPF]   t=299 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=player target=tavern:right_table reason=need_driven:hunger=1.00
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Тик #13601 завершён: 1 SceneChange, 1 MovementIntent
+[SLEEPF]   t=299 S186: [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=[]
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Тик #13602 для 'Open_road' (время: 12:00)
+[SLEEPF]   t=299 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=guard_borko target=city_gate:guard_post reason=schedule:guarding_gate
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: merchant_goran → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=299 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=merchant_goran target=tent_2 reason=need_driven:shelter_urge=1.00
+[SLEEPF]   t=299 SCHED_TRACE: [SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: player → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=299 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=player target=tavern:kitchen_bed_2 reason=need_driven:shelter_urge=1.00+relocation
+[SLEEPF]   t=299 LIFE_ENGINE: [LIFE_ENGINE] Тик #13602 завершён: 2 SceneChange, 3 MovementIntent
+[SLEEPF]   t=299 UNKNOWN_ROUTE: [UNKNOWN_ROUTE] npc=player from=city_gate to=tavern known_edges=(('tavern', 'city_gate'),) reason=no_personal_route
+[SLEEPF]   t=299 traversal: [SHADOW_COMPILER] traversal_complete cross-chunk: node 'gate_arch' не в графе svc (loc=city_gate) — фиксация факта без геометрии
+[SLEEPF]   t=299 traversal: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=traversal_complete spatial=yes traversal=none
+[SLEEPF]   t=299 traversal: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=local_position cause=traversal_complete spatial=yes traversal=none
+[SLEEPF]   t=300 S186: [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Тик #13603 для 'Open_road' (время: 12:00)
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: player → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=300 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=player target=tavern:kitchen_bed_2 reason=need_driven:shelter_urge=1.00
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Тик #13603 завершён: 0 SceneChange, 1 MovementIntent
+[SLEEPF]   t=300 S186: [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=[]
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Тик #13604 для 'Open_road' (время: 12:00)
+[SLEEPF]   t=300 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=guard_borko target=city_gate:guard_post reason=schedule:guarding_gate
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: merchant_goran → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=300 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=merchant_goran target=tent_2 reason=need_driven:shelter_urge=1.00
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: blacksmith_orm → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=300 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=blacksmith_orm target=tent_1 reason=need_driven:shelter_urge=1.00
+[SLEEPF]   t=300 SCHED_TRACE: [SCHED_TRACE] npc=thief_shadow prev='going_to_sleep' new='sleeping' CHANGE
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Need-driven: player → sleeping (need=shelter_urge=1.00)
+[SLEEPF]   t=300 INTENT_SCHEDULE: [PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc=player target=tavern:kitchen_bed_2 reason=need_driven:shelter_urge=1.00+relocation
+[SLEEPF]   t=300 LIFE_ENGINE: [LIFE_ENGINE] Тик #13604 завершён: 2 SceneChange, 4 MovementIntent
+[SLEEPF]   t=300 UNKNOWN_ROUTE: [UNKNOWN_ROUTE] npc=player from=city_gate to=tavern known_edges=(('tavern', 'city_gate'),) reason=no_personal_route
+[SLEEPF]   t=300 UNKNOWN_ROUTE: [UNKNOWN_ROUTE] npc=merchant_goran from=city_gate to=tavern known_edges=(('tavern', 'city_gate'),) reason=no_personal_route
+
+[SLEEPF] ШТОРМ-КОНТРОЛЬ (prev='' SCHED_TRACE на NPC):
+[SLEEPF]   blacksmith_orm: всего=1 плотных повторов(<=3 тиков)=0
+[SLEEPF]   guard_borko: всего=6 плотных повторов(<=3 тиков)=2
+[SLEEPF]   maid_lusya: всего=1 плотных повторов(<=3 тиков)=0
+[SLEEPF]   merchant_goran: всего=1 плотных повторов(<=3 тиков)=0
+[SLEEPF]   tavern_keeper_tornin: всего=1 плотных повторов(<=3 тиков)=0
+[SLEEPF]   thief_shadow: всего=5 плотных повторов(<=3 тиков)=4
+[SLEEPF] ШТОРМ: GREEN (идемпотентность восстановлена)

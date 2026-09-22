@@ -257,6 +257,11 @@ def _determine_response_bias(
     if fear > aggression:
         return ResponseBias.FEAR
 
+    # FIX(mypy): функция контрактно возвращает ResponseBias, но при отсутствии
+    # доминирующего паттерна падала до implicit-None (latent AttributeError на
+    # distort-ветке). FREEZE — безопасный дефолт неопределённости (ступор).
+    return ResponseBias.FREEZE
+
 
 # --- СЛОЙ 3: AFFECTIVE DECAY (PHASE 0.5) ---
 
@@ -339,7 +344,10 @@ def apply_conditioning(
         # Если воля была сломлена (подчинение, неохота, диссоциация) — это унизительно
         is_submissive_state = will_response.state in (
             WillState.RELUCTANT,
-            WillState.SUBMISSION,
+            # FIX(mypy/runtime): WillState.SUBMISSION не существует (AttributeError
+            # при создании импринта свежей травмы). Подчинение = COMPLY (воля
+            # подавлена давлением) — семантически ближайший член объединённого enum.
+            WillState.COMPLY,
             WillState.BROKEN,
             WillState.CONDITIONED,
         )

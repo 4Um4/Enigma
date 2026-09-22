@@ -19,6 +19,7 @@ from app.domain.snapshot import (
     NPCPositionDTO,
     PeripheralCueDTO,
     PlayerPerceptionDTO,
+    RecentDialogueDTO,
     VisibleEventDTO,
     WorldSnapshotDTO,
 )
@@ -138,7 +139,9 @@ class WorldSnapshotBuilder:
         )
 
         # INV-DEF: Проверка инвариантов WorldSnapshot
-        _at = result.active_traversals
+        # NOTE(mypy): статически active_traversals — Dict (unreachable-детект гасит
+        # runtime-гейт INV-TRAV-DICT). Any-прочтение оставляет защиту живой.
+        _at: Any = result.active_traversals
         if not isinstance(_at, dict):
             from app.errors import SimulationIntegrityError
 
@@ -377,7 +380,7 @@ class WorldSnapshotBuilder:
 
     def _compute_ambient_phenomenology(
         self, all_npcs_raw: Optional[List[Dict]]
-    ) -> Optional[Dict[str, float]]:
+    ) -> Optional[Dict[str, Any]]:
         """Вычисляет феноменологическое давление среды на основе стресса и страха NPC (ADR-037)."""
         if not all_npcs_raw:
             return None
@@ -418,10 +421,14 @@ class WorldSnapshotBuilder:
         return ["look", "move", "talk"]
 
     def _empty_snapshot(
-        self, tick: int, recent_dialogues: Optional[List[Dict]] = None
+        self,
+        tick: int,
+        recent_dialogues: Optional[List[Dict]] = None,
     ) -> WorldSnapshotDTO:
         """Пустой снимок когда scene_state не загружен."""
-        result = WorldSnapshotDTO(
+        # FIX(mypy/runtime): результат собирался, но не возвращался — API отвечал
+        # null'ом при пустом scene_state (разрыв контракта WorldSnapshotDTO).
+        return WorldSnapshotDTO(
             tick=tick,
             version=0,
             last_event_id=None,
@@ -434,6 +441,10 @@ class WorldSnapshotBuilder:
             weather="unknown",
             time_of_day="day",
             game_time_seconds=0,
-            recent_dialogues=recent_dialogues or [],  # ADR-O-313: Проброс кэша реплик
+            # NOTE(mypy): legacy-совместимость (ADR-O-313) — пустой путь получает
+            # сырые dict-реплики; RecentDialogueDTO — str-Enum-совместимый контракт.
+            recent_dialogues=cast(
+                "List[RecentDialogueDTO]", recent_dialogues or []
+            ),  # ADR-O-313: Проброс кэша реплик
             active_traversals={},  # FIX: Гарантируем dict, иначе DTO возвращает None и ломает фронтенд
         )
