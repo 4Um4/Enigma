@@ -129,6 +129,20 @@ class TemporalEngine:
         self._ticks_since_save.pop(campaign_id, None)
         self._last_decay_tick.pop(campaign_id, None)
 
+    def reset_campaign(self, campaign_id: str) -> None:
+        """Полный сброс тиков кампании к нулю (DEGOD Phase3B.0-Seam4;
+        ранее new_game лез в _tick_cache напрямую и удалял world_tick.json снаружи).
+        Отли�ие от cleanup_campaign: гарантированный tick=0 даже при живом файле
+        (unlink + RAM), а не просто вытеснение из кэша."""
+        self.cleanup_campaign(campaign_id)
+        try:
+            path = self._tick_file_path(campaign_id)
+            if path.exists():
+                path.unlink()
+        except OSError as e:
+            logger.warning(f"[TEMPORAL] reset_campaign: unlink failed for {campaign_id}: {e}")
+        self._tick_cache[campaign_id] = 0
+
     def cleanup_all(self) -> None:
         """Очищает все RAM кэши тиков."""
         self._tick_cache.clear()

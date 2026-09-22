@@ -783,15 +783,8 @@ class GameLoop:
         # === 10. СБРОС TemporalEngine (tick=0 + удаление world_tick.json) ===
         try:
             engine_temporal = self._get_life_engine()._temporal
-            # cleanup_campaign: чистит RAM кэши + _last_decay_tick
-            engine_temporal.cleanup_campaign(campaign_id)
-            # Явно ставим tick=0 в RAM (иначе _load_tick прочитает старый с диска)
-            engine_temporal._tick_cache[campaign_id] = 0
-            # Удаляем world_tick.json с диска — следующий _load_tick вернёт 0
-            _wt_path = self._saves_dir / campaign_id / "world_tick.json"
-            if _wt_path.exists():
-                _wt_path.unlink()
-                removed.append("world_tick.json")
+            engine_temporal.reset_campaign(campaign_id)
+            removed.append("world_tick.json")
         except Exception as e:
             logger.warning(f"[NEW_GAME] TemporalEngine reset failed: {e}")
 
