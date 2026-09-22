@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 # True = DecisionResult → SceneOutcome → DMFrame → DM (1 LLM вызов)
 # False = legacy путь (удалён: npc_agent)
 # ─────────────────────────────────────────────────────────────────────────────
-R3_DIRECT_MODE: bool = True
+from app.services.game_loop.turn_pipeline import R3_DIRECT_MODE  # re-export (Phase3-3A.3)
 from app.core.config import settings
 from app.models.pipeline_context import PipelineContext
 from app.models.schemas import CampaignLoadResponse
@@ -347,6 +347,28 @@ class GameLoop:
         from app.services.world.time_skip_executor import TimeSkipExecutor
         self._time_skip = TimeSkipExecutor(self._tick_orch)
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
+        # DEGOD Phase3-3A.3: TurnPipeline — владелец фазовой машины player-turn
+        from app.services.game_loop.turn_pipeline import TurnPipeline
+
+        self._turn_pipeline = TurnPipeline(
+            memory_manager=self.memory_manager,
+            rel_store=self._rel_store,
+            scene_manager=self.scene_manager,
+            avatar_service=self.avatar_service,
+            dm_orchestrator=self.dm_orchestrator,
+            svc=self._svc,
+            mvp_controller=self.mvp_controller,
+            intent_compressor=self._intent_compressor,
+            tick_orch=self._tick_orch,
+            character_service=self.character_service,
+            world_scheduler=self.world_scheduler,
+            get_current_tick=self.get_current_tick,
+            get_life_engine=self._get_life_engine,
+            set_current_tick=self._set_current_tick,
+            spawn_world_tick_task=self._spawn_world_tick_task,
+            build_dm_phase_deps=self._build_dm_phase_deps,
+            build_npc_orch_deps=self._build_npc_orch_deps,
+        )
 
     def _get_spatial_query_for_subscriber(self):
         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
@@ -950,6 +972,33 @@ class GameLoop:
             get_or_create_continuity=lambda cid: self._scene_continuities.setdefault(cid, __import__("app.services.verbalization.scene_continuity", fromlist=["SceneContinuity"]).SceneContinuity()),
             crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),
         )
+
+    def _spawn_world_tick_task(self, world_id: str) -> dict:
+        """DEGOD Phase3-3A.3: lifecycle фоновых world-tick задач — GameLoop-owned.
+        TurnPipeline получает meta-результат, мутабельный set задач не покидает владельца."""
+        world_tick_meta = {"triggered": False, "events": []}
+        _task = asyncio.create_task(
+            asyncio.to_thread(
+                self.world_scheduler.maybe_tick,
+                world_id,
+                settings.world_tick_minutes,
+            )
+        )
+        if not hasattr(self, "_background_tasks"):
+            self._background_tasks = set()
+        self._background_tasks.add(_task)
+
+        def _on_task_done(t: asyncio.Task) -> None:
+            self._background_tasks.discard(t)
+            if not t.cancelled() and t.exception():
+                logger.error(f"[GAME_LOOP] Background task maybe_tick failed: {t.exception()}", exc_info=t.exception())
+
+        _task.add_done_callback(_on_task_done)
+        return world_tick_meta
+
+    def _set_current_tick(self, value: int) -> None:
+        """B-setter: _current_tick читается wiring-лямбдами подписчиков (владелец GameLoop)."""
+        self._current_tick = value
 
     def _e1_relationship_reader(
         self, campaign_id: str, knower_id: str, recipient_id: str
@@ -1581,7 +1630,7 @@ class GameLoop:
         _is_session_start_rest = req.campaign_id not in self._session_started_campaigns
         if _is_session_start_rest:
             self._session_started_campaigns.add(req.campaign_id)
-        state = await self._run_pipeline(
+        state = await self._turn_pipeline.execute(
             req.actions,
             req.campaign_id,
             req.world_id,
@@ -1889,7 +1938,7 @@ class GameLoop:
         yield {"type": "action_type", "value": action_type_str}
 
         # Теперь запускаем тяжёлый pipeline
-        state = await self._run_pipeline(
+        state = await self._turn_pipeline.execute(
             actions,
             campaign_id,
             world_id,
