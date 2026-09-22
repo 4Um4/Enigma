@@ -776,28 +776,7 @@ class GameLoop:
 
         # === 9. СБРОС MemoryManager (narrative_cache + dialogue sessions) ===
         try:
-            self.memory_manager.clear_all_dialogue_sessions(campaign_id)
-            # Сброс тик-счётчика MemoryManager
-            if hasattr(self.memory_manager, "_tick_counters"):
-                self.memory_manager._tick_counters.pop(campaign_id, None)
-            # P0 FIX: Очистка JSONL-файлов памяти кампании (data/campaign_memory_<id>.jsonl и session_memory_<id>.jsonl).
-            # Без этого LLM получает контекст из прошлых забегов (отравление контекста).
-            if hasattr(self.memory_manager, "_layered") and hasattr(
-                self.memory_manager._layered, "store"
-            ):
-                store = self.memory_manager._layered.store
-                # P1 FIX: Удаляем только хронику забега (playthrough). Канон (campaign_canon) переживает new_game.
-                for collection in [f"playthrough_{campaign_id}"]:
-                    if hasattr(store, "_collection_path"):
-                        fpath = store._collection_path(collection)
-                        if fpath.exists():
-                            fpath.unlink()
-                            logger.info(f"[NEW_GAME] Removed JSONL playthrough: {fpath}")
-                    elif hasattr(store, "delete_campaign"):
-                        store.delete_campaign(campaign_id)
-                        logger.info(f"[NEW_GAME] SQLite playthrough cleared for '{campaign_id}'")
-                if hasattr(store, "_recent_cache"):
-                    store._recent_cache.clear()
+            _mem_reset = self.memory_manager.reset_campaign_state(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] MemoryManager reset failed: {e}")
 
@@ -851,14 +830,8 @@ class GameLoop:
             logger.warning(f"[NEW_GAME] Memory reset failed: {e}")
 
         # === 12. ОЧИСТКА SQLITE ПАМЯТИ (старые воспоминания) ===
-        try:
-            _store = self.memory_manager._layered.store
-            if hasattr(_store, "delete_campaign"):
-                _deleted = _store.delete_campaign(campaign_id)
-                removed.append(f"sqlite:memories({_deleted})")
-                logger.info(f"[NEW_GAME] SQLite memories cleared: {_deleted} rows")
-        except Exception as e:
-            logger.warning(f"[NEW_GAME] SQLite memory cleanup failed: {e}")
+        removed.append(f"sqlite:memories({_mem_reset['sqlite_rows']})")
+        logger.info(f"[NEW_GAME] SQLite memories cleared: {_mem_reset['sqlite_rows']} rows")
 
         # P-MVP-1: Инициализация эпистемического фасада для новой кампании
         if self.mvp_controller:

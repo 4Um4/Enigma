@@ -166,6 +166,40 @@ class MemoryManager:
             else:
                 self._dialogue_sessions.pop(key, None)
 
+
+    def reset_campaign_state(self, campaign_id: str) -> dict:
+        """Полный сброс runtime-состояния памяти кампании (DEGOD Phase3B.0-Seam3;
+        ранее new_game делал это через internals: _tick_counters, _layered.store._collection_path,
+        _recent_cache). Идемпотентен. Канон (campaign_canon) переживает reset.
+        Возвращает сводку для отчёта new_game."""
+        result = {"playthrough_files": 0, "sqlite_rows": 0}
+        # 1. STM-сессии (публичный API)
+        self.clear_all_dialogue_sessions(campaign_id)
+        # 2. Тик-счётчик (владелец — MemoryManager)
+        if hasattr(self, "_tick_counters"):
+            self._tick_counters.pop(campaign_id, None)
+        # 3. Хранилище (второй уровень: LayeredMemory -> store)
+        if hasattr(self, "_layered") and hasattr(self._layered, "store"):
+            store = self._layered.store
+            # 3a. Хроника забега: JSONL или SQLite-вариант (канон переживает reset)
+            for collection in [f"playthrough_{campaign_id}"]:
+                if hasattr(store, "_collection_path"):
+                    fpath = store._collection_path(collection)
+                    if fpath.exists():
+                        fpath.unlink()
+                        result["playthrough_files"] += 1
+                        logger.info(f"[MEM_RESET] Removed JSONL playthrough: {fpath}")
+                elif hasattr(store, "delete_campaign"):
+                    store.delete_campaign(campaign_id)
+                    logger.info(f"[MEM_RESET] SQLite playthrough cleared for '{campaign_id}'")
+            if hasattr(store, "_recent_cache"):
+                store._recent_cache.clear()
+            # 3b. SQLite-воспоминания (безусловно; исторически отдельный блок 12)
+            if hasattr(store, "delete_campaign"):
+                result["sqlite_rows"] += store.delete_campaign(campaign_id) or 0
+        return result
+
+
     def add_pending_dialogue_memory(self, event: EventDTO) -> None:
         """Добавляет событие диалога в буфер отложенной записи в L2."""
         self._pending_dialogue_memories.append(event)
