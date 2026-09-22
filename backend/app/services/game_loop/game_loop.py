@@ -915,6 +915,21 @@ class GameLoop:
             return engine.get_npc_light_states(campaign_id)
         return []
 
+    def _build_dm_phase_deps(self):
+        """DEGOD Phase3-B1: контракт фазы DM собирается из владельцев.
+        _prev_player_distances — GameLoop-owned (кросс-turn), доступ только через accessors."""
+        from app.services.game_loop.dm_phase import DmPhaseDeps
+
+        return DmPhaseDeps(
+            load_npcs=self._load_npcs,
+            memory_manager=self.memory_manager,
+            dm_orchestrator=self.dm_orchestrator,
+            scene_manager=self.scene_manager,
+            l1_chronicle=self._tick_orch.l1_chronicle,
+            get_prev_distances=lambda cid: self._prev_player_distances.get(cid, {}),
+            commit_distances=lambda cid, d: self._prev_player_distances.__setitem__(cid, d),
+        )
+
     def _e1_relationship_reader(
         self, campaign_id: str, knower_id: str, recipient_id: str
     ) -> dict:
@@ -2191,7 +2206,13 @@ class GameLoop:
         _match = self.avatar_service.load_state(campaign_id, _player_name)
         try:
             dm_result = run_dm_phase(
-                self, actions, shared_context, scene_state, _ctx, campaign_id, location
+                self._build_dm_phase_deps(),
+                actions,
+                shared_context,
+                scene_state,
+                _ctx,
+                campaign_id,
+                location,
             )
             logger.warning(
                 f"[DEBUG DM] is_valid={getattr(dm_result, 'is_valid', None)}, scene_context={getattr(dm_result, 'scene_context', None)}, error={getattr(dm_result, 'error', None)}"
