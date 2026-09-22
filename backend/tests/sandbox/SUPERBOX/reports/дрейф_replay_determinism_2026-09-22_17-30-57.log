@@ -1,0 +1,6 @@
+
+============================================================
+DRIFT LABORATORY — Mode: replay_determinism
+============================================================
+[DRIFT_LAB] Quiesce skipped: 'DriftLaboratory' object has no attribute '_game_loop'
+[DRIFT_LAB] LifeEngine singleton reset

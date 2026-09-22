@@ -14,12 +14,13 @@ TODO: по мере миграции legacy-кода на v2 постепенн�
 """
 
 import logging
-from typing import List, Set, Union
+from typing import List, Set, Union, cast
 
 from app.models.delta_payloads import PerceptionPayload
 from app.models.state_delta import (
     DeltaDomain,
     EmotionPayload,
+    EmotionTag,
     SocialPayload,
     StateDeltas,
 )
@@ -58,7 +59,10 @@ class LegacyStateDeltaAdapter:
                 collapsed.emotion_delta += d.payload.emotion_delta
                 # В v1 эмоция перезаписывается (last-write-wins)
                 if d.payload.emotion_tag:
-                    collapsed.emotion_tag = d.payload.emotion_tag
+                    # NOTE(mypy): v2-таг приходит строкой (EmotionPayload.emotion_tag: str),
+                    # v1-поле типизировано Optional[EmotionTag]. EmotionTag — str-Enum,
+                    # строковые значения проходят сравнения/сериализацию 1-в-1 — cast.
+                    collapsed.emotion_tag = cast(EmotionTag, d.payload.emotion_tag)
                 if d.payload.new_trauma:
                     collapsed.new_trauma = d.payload.new_trauma
             elif d.domain == DeltaDomain.SOCIAL and isinstance(

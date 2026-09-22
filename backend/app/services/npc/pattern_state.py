@@ -35,7 +35,9 @@ class SourceStats:
         self._comp: float = 0.0  # компенсация Ноймайера (sum() в CPython 3.12+)
         self._sum_x: Fraction = Fraction(0)
         self._sum_x2: Fraction = Fraction(0)
-        self.last_sign: int = 0
+        # NOTE(mypy): знак из copysign — float; аннотация поля float.
+        # Начальное значение 0 (int) сохраняет прежнюю сериализацию до первого update().
+        self.last_sign: float = 0
         self.sign_flips: int = 0
         self.first_seen: int = first_seen
 

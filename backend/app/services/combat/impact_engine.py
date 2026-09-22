@@ -22,7 +22,7 @@ Force -> Tissue -> Pain -> Shock -> Functional Loss.
 """
 
 import random
-from typing import List
+from typing import Any, Dict, List, Tuple, cast
 
 from app.models.delta_payloads import InjuryDTO, PhysiologyPayload
 from app.models.idle_tick import NPCStateSnapshot
@@ -59,13 +59,17 @@ def _resolve_contact(
 
     # Вычисляем AC защитника: 10 + Dex mod + Armor mod
     # Если в snapshot нет ac, вычисляем его из dexterity
-    defender_dict = {}
+    defender_dict: Dict[str, Any] = {}
     if "ac" in defender:
-        defender_dict["ac"] = defender["ac"]
+        # NOTE(mypy): NPCStateSnapshot не объявляет ключ "ac" (TypedDict), но
+        # runtime-снапшоты combat-билдеров его несут (dynamic-ac сценарии) — Any-доступ.
+        defender_dict["ac"] = cast(Any, defender)["ac"]
     else:
         defender_abilities = defender.get("base_abilities", defender.get("abilities", {}))
         dex_score = defender_abilities.get("dexterity", 10.0)
-        dex_mod = ability_modifier(dex_score)
+        # NOTE(mypy): ability_modifier контрактно int, runtime несёт float-скор —
+        # приведение к int не меняет поведение (floor-семантика //2 сохраняется).
+        dex_mod = ability_modifier(int(dex_score))
         armor_mod = defender.get("modifiers", {}).get("ac", 0.0)
         # S123: High pain reduces dodge (AC). -1 AC for every 10 pain.
         pain = defender.get("pain", 0.0)
@@ -186,7 +190,9 @@ def resolve_physical_impact(
     hp_delta = -structural_damage
 
     # Травма (если урон существенный)
-    injuries = ()
+    # NOTE(mypy): injuries выводился как tuple[()] из пустого литерала —
+    # явная аннотация Tuple[InjuryDTO, ...] (совпадает с контрактом payload).
+    injuries: Tuple[InjuryDTO, ...] = ()
     functional_loss = 0.0
     if structural_damage > 15.0:
         functional_loss = structural_damage / 100.0

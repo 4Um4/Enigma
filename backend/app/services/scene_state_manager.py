@@ -30,24 +30,17 @@ SceneState хранится в:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import math
 import os
-import random
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from app.core.calendar import Calendar
 from app.core.config import settings
 from app.core.log_gate import file_logs_enabled
 from app.services.scene_change import ChangeType, SceneChange
 from app.services.spatial.geometry_kernel import point_in_rect
-
-# ADR-102: load_graph удалён — заменён на SpatialService
-from app.services.spatial.spatial_runtime import euclidean_distance
 from app.services.state.persistence_port import PersistencePort
 
 logger = logging.getLogger(__name__)
@@ -96,97 +89,34 @@ def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# ChangeValidator — проверка допустимости изменения
+# DEGOD ITER2: ChangeValidator и editor-locator экстрагированы в пакет
+# app/services/scene_state/ (change_validator.py, editor_locator.py).
+# Re-export сохраняет import-поверхность; call-sites self.validator / методы
+# класса не меняются.
 # ──────────────────────────────────────────────────────────────────────────────
-
-
-class ChangeValidator:
-    """
-    Проверяет допустимость SceneChange перед применением.
-    Возвращает (valid: bool, reason: str).
-    """
-
-    @staticmethod
-    def validate(scene_state: dict, change: SceneChange) -> tuple[bool, str]:
-        ct = change.type
-
-        if ct == ChangeType.OBJECT_STATE:
-            if change.target not in scene_state.get("objects", {}):
-                return False, f"Объект '{change.target}' не существует в SceneState"
-            return True, ""
-
-        if ct == ChangeType.OBJECT_REMOVE:
-            if change.target not in scene_state.get("objects", {}):
-                return False, f"Объект '{change.target}' не существует — нечего удалять"
-            return True, ""
-
-        if ct == ChangeType.OBJECT_ADD:
-            if change.target in scene_state.get("objects", {}):
-                return False, f"Объект '{change.target}' уже существует в SceneState"
-            return True, ""
-
-        if ct == ChangeType.OBJECT_MOVE:
-            if change.target not in scene_state.get("objects", {}):
-                return (
-                    False,
-                    f"Объект '{change.target}' не существует — нечего перемещать",
-                )
-            return True, ""
-
-        if ct in (ChangeType.NPC_POSITION, ChangeType.NPC_STATE):
-            return True, ""
-
-        if ct == ChangeType.ENVIRONMENT:
-            return True, ""
-
-        return True, ""
-
+from app.services.scene_state.change_validator import ChangeValidator
+from app.services.scene_state.environment_modifiers import (
+    _derive_environment_modifiers as _derive_environment_modifiers,
+)
+from app.services.scene_state.editor_locator import (
+    _find_editor_location as _find_editor_location_impl,
+)
+from app.services.scene_state.editor_locator import (
+    _find_first_editor_location as _find_first_editor_location_impl,
+)
+from app.services.scene_state.editor_locator import (
+    _find_starting_location as _find_starting_location_impl,
+)
+from app.services.scene_state.editor_locator import (
+    _nearest_node_to_xy as _nearest_node_to_xy_impl,
+)
 
 # ---------------------------------------------------------------------------
-# R4.4: производные модификаторы среды из time_variant + типа локации
+# R4.4: производные модификаторы среды — экстрагированы в
+# app/services/scene_state/environment_modifiers.py (DEGOD S3 ITER1).
+# Re-export сохраняет import-поверхность (внешний test-import:
+# tests/test_spatial_runtime_r4.py:10) и call-site initialize_scene.
 # ---------------------------------------------------------------------------
-
-_NOISE_MAP: dict[str, float] = {
-    "silent": 0.0,
-    "low": 0.2,
-    "moderate": 0.5,
-    "loud": 0.8,
-}
-
-_LIGHT_MAP: dict[str, float] = {
-    "dark": 0.0,
-    "torchlit": 0.2,
-    "dim": 0.4,
-    "natural": 0.7,
-    "bright": 1.0,
-}
-
-# Базовая плотность и опасность по типу локации
-_TYPE_MODIFIERS: dict[str, dict[str, float]] = {
-    "dungeon": {"density": 0.6, "danger": 0.6},
-    "market": {"density": 0.7, "danger": 0.1},
-    "tavern": {"density": 0.3, "danger": 0.1},
-    "gate": {"density": 0.2, "danger": 0.2},
-    "inn": {"density": 0.1, "danger": 0.0},
-}
-
-
-def _derive_environment_modifiers(
-    time_variant: dict,
-    location_type: str,
-) -> dict[str, float]:
-    """
-    R4.4: вычисляет environment_modifiers из time_variant и типа локации.
-    Заменяет захардкоженные нули — LOS и sound_reach теперь работают реально.
-    """
-    base = _TYPE_MODIFIERS.get(location_type, {"density": 0.0, "danger": 0.0})
-    return {
-        "light": _LIGHT_MAP.get(time_variant.get("light_level", "dim"), 0.4),
-        "noise": _NOISE_MAP.get(time_variant.get("noise_level", "low"), 0.2),
-        "density": base["density"],
-        "danger": base["danger"],
-    }
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # SceneStateManager
@@ -266,6 +196,36 @@ class SceneStateManager:
             scene = self.get_scene_state_uncached(campaign_id, _loc_id)
             if scene is not None:
                 self._tick_scenes[_loc_id] = scene
+
+    def adopt_scene_for_tick(self, campaign_id: str, location_id: str, scene_state: dict) -> None:
+        """Принимает НОВУЮ сцену (созданную init_scene_state) под tick-владение.
+
+        Зеркальна к lock_for_tick: та загружает и блокирует существующую сцену,
+        эта регистрирует только что собранную (первый визит локации). Тот же
+        TICK-SCOPED IDENTITY контракт: все последующие get_scene_state()
+        возвращают этот же dict; персист — в unlock_tick().
+        DEGOD Phase3-A: инкапсуляция прямых записей internals из GameLoop."""
+        self._tick_locked = True
+        self._tick_campaign_id = campaign_id
+        self._tick_scenes[location_id] = scene_state
+
+    def is_tick_locked_for(self, campaign_id: str) -> bool:
+        """Публичный predicate: тик-лок принадлежит этой кампании?
+        Заменяет внешние чтения internals (_tick_campaign_id) на границе
+        game_loop↔SSM (DEGOD Phase3-SeamB; зеркален adopt_scene_for_tick)."""
+        return self._tick_locked and self._tick_campaign_id == campaign_id
+
+    def reset_campaign_persistence(self, campaign_id: str) -> bool:
+        """Удаляет персистентное состояние кампании (scene+runtime).
+        Владелец операции — PersistencePort через SSM (DEGOD Phase3B.0-Seam1;
+        ранее new_game обращался к self._persistence напрямую)."""
+        if self._persistence is None:
+            logger.warning(
+                "[SCENE] reset_campaign_persistence: PersistencePort отсутствует — пропуск"
+            )
+            return False
+        self._persistence.delete_campaign(campaign_id)
+        return True
 
     def unlock_tick(self, campaign_id: str) -> None:
         """Разблокирует тик. Персистит кэш.
@@ -679,92 +639,10 @@ class SceneStateManager:
         npc_name: str,
         spatial_service: Optional[Any] = None,
     ) -> str:
-        """
-        Строит пространственный блок для промпта конкретного NPC.
+        """DEGOD ITER3: делегат — тело в scene_state/dm_presentation.py."""
+        from app.services.scene_state.dm_presentation import build_npc_context_block
 
-        NPC должен знать:
-          - Где сейчас стоит игрок и на каком расстоянии
-          - К нему ли обращается игрок или к кому-то другому
-          - Если не к нему — NPC молчит
-
-        Принцип: без этого блока модель галлюцинирует положение персонажей.
-        Работает для любого NPC — имена и id из аргументов, не хардкод.
-
-        Пример вывода:
-          ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:
-          - Ты: за стойкой, протираешь стаканы
-          - Игрок: на коленях, расстояние до тебя: ~0.5 м
-          - ИГРОК ОБРАЩАЕТСЯ ИМЕННО К ТЕБЕ — отвечай.
-          ВАЖНО: Игрок физически рядом (< 1 м) — ты не можешь одновременно
-          быть в другом месте сцены.
-        """
-        if not scene_state:
-            return ""
-
-        # ── Собственная позиция NPC ───────────────────────────────────────────
-        npc_positions = scene_state.get("npc_positions", {})
-        own_pos = npc_positions.get(npc_id, {})
-        pos_text = own_pos.get("position", "")
-        act_text = own_pos.get("activity", "")
-
-        # SpatialService v1.2 динамически резолвит лейблы узлов
-        pos_label = (
-            spatial_service.get_node_label(pos_text) if spatial_service else pos_text
-        )
-
-        _activity_map = {
-            "cleaning_tables": "убираешься",
-            "serving_tables": "обслуживаешь зал",
-            "observing": "наблюдаешь",
-            "guarding_gate": "несёшь стражу",
-            "sleeping": "спишь",
-            "haggling": "торгуешься",
-        }
-        act_label = _activity_map.get(act_text, act_text)
-        own_desc = ", ".join(p for p in [pos_label, act_label] if p)
-
-        # ── Позиция и расстояние игрока (ADR-048: вычисление из npc_positions) ──
-        player_pos = scene_state.get("player_position") or "рядом"
-        _player_data = scene_state.get("npc_positions", {}).get("player", {})
-        _npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
-        distance_m = euclidean_distance(_player_data, _npc_data)
-        dist_str = f"~{distance_m:.1f} м" if distance_m < 999.0 else "неизвестно"
-
-        lines = [
-            "ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:",
-            f"- Ты: {own_desc or 'в локации'}",
-            f"- Игрок: {player_pos}, расстояние до тебя: {dist_str}",
-        ]
-
-        # ── Кому обращается игрок ─────────────────────────────────────────────
-        target_id = scene_state.get("player_target_npc")
-        target_name = scene_state.get("player_target_npc_name")
-        target_obj = scene_state.get("player_target_object")
-
-        is_addressed = target_id == npc_id
-
-        if is_addressed:
-            lines.append(f"- ИГРОК ОБРАЩАЕТСЯ ИМЕННО К ТЕБЕ ({npc_name}) — отвечай.")
-            if target_obj:
-                lines.append(f"- Игрок взаимодействует с объектом: {target_obj}")
-        elif target_id:
-            # Игрок обращается к другому конкретному NPC
-            lines.append(
-                f"- Игрок обращается к {target_name or target_id}, НЕ к тебе. "
-                f"Ты МОЛЧИШЬ — не говори ничего вслух."
-            )
-        else:
-            # Нет явного адресата
-            lines.append("- Игрок не обращается ни к кому конкретно.")
-
-        # ── Предупреждение о физическом присутствии ───────────────────────────
-        if distance_m is not None and distance_m < 1.5:
-            lines.append(
-                "ВАЖНО: Игрок физически рядом с тобой (< 1.5 м). "
-                "Ты НЕ МОЖЕШЬ одновременно находиться в другом месте сцены."
-            )
-
-        return "\n".join(lines)
+        return build_npc_context_block(scene_state, npc_id, npc_name, spatial_service)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Загрузка шаблонов
@@ -786,122 +664,19 @@ class SceneStateManager:
         return self._templates_cache
 
     def _find_editor_location(self, campaign_id: str, location_id: str) -> dict | None:
-        """Ищет editor JSON с совпадающим location_id.
-        Поддерживает: точное совпадение, частичное совпадение label, пустой location_id."""
-        search_dirs = [
-            self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).resolve().parent.parent.parent.parent
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in loc_dir.glob("*.json"):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    lid = data.get("location_id", "")
-                    label = data.get("label", "")
-                    # Точное совпадение
-                    if lid == location_id or label == location_id:
-                        logger.info(
-                            f"[SCENE] Найден editor JSON: {json_file} для location_id={location_id}"
-                        )
-                        return data
-                    # Частичное совпадение label (в одну сторону)
-                    if label and location_id and (location_id.lower() in label.lower()):
-                        logger.info(
-                            f"[SCENE] Найден editor JSON по частичному label: {json_file}"
-                        )
-                        return data
-                    # Пустой location_id в файле — берём первую попавшуюся с rooms
-                    if not lid and location_id and data.get("rooms"):
-                        logger.info(
-                            f"[SCENE] Fallback на первый файл с rooms: {json_file}"
-                        )
-                        return data
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного editor JSON {json_file}: {e}")
-                    continue
-        return None
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _find_editor_location_impl(self.campaigns_dir, campaign_id, location_id)
+
 
     def _find_first_editor_location(self, campaign_id: str) -> dict | None:
-        """Возвращает первую найденную локацию из editor JSON — fallback при несовпадении location_id."""
-        search_dirs = [
-            self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).resolve().parent.parent.parent.parent
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in loc_dir.glob("*.json"):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("rooms") or data.get("walls"):
-                        logger.info(f"[SCENE] Fallback: первая локация из {json_file}")
-                        return data
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного location JSON {json_file}: {e}")
-                    continue
-        return None
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _find_first_editor_location_impl(self.campaigns_dir, campaign_id)
+
 
     def find_starting_location(self, campaign_id: str) -> str:
-        """Находит начальную локацию для кампании из editor JSON.
-        Приоритет: player_spawn + NPC → player_spawn → rooms/walls → 'tavern'."""
-        search_dirs = [
-            self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).resolve().parent.parent.parent.parent
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-        # Приоритет 1: локация с player_spawn И NPC (лучшая стартовая точка)
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in sorted(loc_dir.glob("*.json")):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("player_spawn") and data.get("npcs"):
-                        return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного JSON (NPC+spawn) {json_file}: {e}")
-                    continue
-        # Приоритет 2: локация с player_spawn (без NPC)
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in sorted(loc_dir.glob("*.json")):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("player_spawn"):
-                        return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного JSON (spawn only) {json_file}: {e}")
-                    continue
-        # Приоритет 3: первая локация с rooms/walls/nodes
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in sorted(loc_dir.glob("*.json")):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("rooms") or data.get("walls") or data.get("nodes"):
-                        return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного JSON (rooms/walls/nodes) {json_file}: {e}")
-                    continue
-        return "tavern"
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _find_starting_location_impl(self.campaigns_dir, campaign_id)
+
 
     def reinit_campaign(self, campaign_id: str) -> dict | None:
         """Переинициализация сцены кампании из editor JSON.
@@ -928,20 +703,8 @@ class SceneStateManager:
         return _build_spatial_data(editor_data)
 
     def _nearest_node_to_xy(self, editor_data: dict, x: float, y: float) -> str:
-        """Находит ближайший навигационный узел к координате XY."""
-        nodes = editor_data.get("nodes", {})
-        if not nodes:
-            return ""
-        best_node = ""
-        best_dist = float("inf")
-        for node_id, node_data in nodes.items():
-            nx = node_data.get("x", 0)
-            ny = node_data.get("y", 0)
-            dist = math.sqrt((nx - x) ** 2 + (ny - y) ** 2)
-            if dist < best_dist:
-                best_dist = dist
-                best_node = node_id
-        return best_node
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _nearest_node_to_xy_impl(editor_data, x, y)
 
     # initialize_scene
     # ─────────────────────────────────────────────────────────────────────────
@@ -949,270 +712,33 @@ class SceneStateManager:
     def initialize_scene(
         self, campaign_id: str, location_id: str, time_of_day: str = "12:00"
     ) -> dict:
-        """
-        Создаёт SceneState из шаблона локации с учётом времени суток.
-        Случайные вариации ±20% для count объектов.
-        Сохраняет в campaign_state.json и возвращает.
+        """DEGOD ITER4: делегат — тело в scene_state/scene_factory.py."""
+        from app.services.scene_state.scene_factory import build_initial_scene
 
-        S.0: добавлены поля player_target_npc, player_target_object,
-             player_position, player_distances.
-        """
         templates = self._load_templates()
         template = templates.get(location_id, {})
-
-        # === Пытаемся загрузить editor JSON с деталями карты ===
         editor_data = self._find_editor_location(campaign_id, location_id)
-
-        objects: dict = {}
-        npc_positions: dict = {}
-        player_spawn_node: str = ""
-        spatial_walls: list[dict] = []
-        spatial_obstacles: list[dict] = []
-
-        if editor_data:
-            # --- Объекты из editor JSON ---
-            for i, obj in enumerate(editor_data.get("objects", [])):
-                obj_id = obj.get("id", f"obj_{i}")
-                objects[obj_id] = {
-                    "name": obj.get("name", obj.get("type", "объект")),
-                    "type": obj.get("type", ""),
-                    "state": obj.get("properties", {}).get("open", True)
-                    and "intact"
-                    or "closed",
-                    "position": obj.get("position", {}),
-                    "size": obj.get("size", {}),
-                    "interactable": True,
-                }
-
-            # --- NPC из editor JSON — только те что на этой карте ---
-            for npc in editor_data.get("npcs", []):
-                ref_id = npc.get("ref_id", "")
-                if not ref_id:
-                    continue
-                pos = npc.get("position", {})
-                node = self._nearest_node_to_xy(
-                    editor_data, pos.get("x", 0), pos.get("y", 0)
-                )
-                npc_positions[ref_id] = {
-                    "name": _npc_id_to_display(ref_id),
-                    "location_id": location_id,
-                    "position": node,
-                    "activity": "",
-                    "visible": True,
-                    "local_position": {"x": pos.get("x", 0.0), "y": pos.get("y", 0.0)},
-                    "editor_room_id": npc.get("room_id", ""),
-                }
-
-            # --- Точка спавна игрока ---
-            if spawn := editor_data.get("player_spawn"):
-                player_spawn_node = self._nearest_node_to_xy(
-                    editor_data, spawn.get("x", 0), spawn.get("y", 0)
-                )
-                # S144 FIX: Игрок добавляется в npc_positions как полноправный агент (ADR-O-315).
-                # Без этого SpatialService и MovementEngine не могут разрешить цели, и все coords=None.
-                npc_positions["player"] = {
-                    "name": "player",
-                    "location_id": location_id,
-                    "position": player_spawn_node or "entrance",
-                    "activity": "",
-                    "visible": True,
-                    "local_position": {
-                        "x": spawn.get("x", 0.0),
-                        "y": spawn.get("y", 0.0),
-                    },
-                }
-            else:
-                # V8-SP-3 FIX: Если player_spawn отсутствует, спавним рядом с первым NPC.
-                # Это гарантирует валидность координат (SC-1) и наличие в графе локации.
-                _first_npc = next(iter(npc_positions.values()), None)
-                if _first_npc:
-                    npc_positions["player"] = {
-                        "name": "player",
-                        "location_id": location_id,
-                        "position": _first_npc.get("position", "entrance"),
-                        "activity": "",
-                        "visible": True,
-                        "local_position": _first_npc.get("local_position", {"x": 1.0, "y": 1.0}),
-                    }
-                else:
-                    # V8-SP-3 FALLBACK: Если NPC тоже нет, спавним на entrance с дефолтными координатами
-                    npc_positions["player"] = {
-                        "name": "player",
-                        "location_id": location_id,
-                        "position": "entrance",
-                        "activity": "",
-                        "visible": True,
-                        "local_position": {"x": 1.0, "y": 1.0},
-                    }
-
-            # --- Стены и блокирующие объекты для коллизий (делегирование в GraphCompiler) ---
-            spatial_walls, spatial_obstacles = self._build_spatial_data(editor_data)
-
-            logger.info(
-                f"[SCENE] Editor JSON: {len(objects)} объектов, "
-                f"{len(npc_positions)} NPC, spawn_node={player_spawn_node}"
-            )
-        else:
-            # --- Fallback: старая логика из location_templates.json ---
-            for obj_id, obj_data in template.get("default_objects", {}).items():
-                obj = dict(obj_data)
-                if "count" in obj and obj.get("interactable", False):
-                    base = obj["count"]
-                    delta = max(1, int(base * 0.2))
-                    # BUG-RNG-001 FIX: Детерминированный сид от location+obj для ADR-O-301.
-                    _seed_str = f"{location_id}:{obj_id}"
-                    _seed = int(hashlib.md5(_seed_str.encode("utf-8")).hexdigest(), 16)
-                    count = base + random.Random(_seed).randint(-delta, delta)
-                    for i in range(1, count + 1):
-                        instance = {k: v for k, v in obj.items() if k != "count"}
-                        instance["instance_of"] = obj_id
-                        instance["name"] = f"{obj['name']} #{i}"
-                        objects[f"{obj_id}_{i}"] = instance
-                else:
-                    objects[obj_id] = obj
-
-            for npc_id, pos_data in template.get("npc_defaults", {}).items():
-                if npc_id in npc_positions:
-                    # Дополняем editor JSON данными из шаблона (activity, visible)
-                    # Но НЕ перезаписываем local_position — он уже правильный из editor
-                    for k, v in pos_data.items():
-                        if k not in npc_positions[npc_id]:
-                            npc_positions[npc_id][k] = v
-                else:
-                    # NPC нет в editor JSON — это data integrity bug.
-                    # BUG-SPATIAL-006a FIX: Запрещено создавать фантомные позиции (0.0, 0.0) (SC-1).
-                    logger.error(
-                        f"[SCENE_INIT] NPC '{npc_id}' отсутствует в editor JSON локации '{location_id}'. "
-                        f"Создание позиции с (0.0, 0.0) запрещено. NPC пропущен."
-                    )
-                    continue
-
-        # --- Среда (всегда из шаблона — время/свет/шум) ---
-        time_variant = self._select_time_variant(template, time_of_day)
-        environment = {
-            "light_level": time_variant.get("light_level", "dim"),
-            "noise_level": time_variant.get("noise_level", "low"),
-            "time_of_day": time_of_day,
-            "weather_inside": time_variant.get("weather_inside", "neutral"),
-        }
-        if candle_data := time_variant.get("candles"):
-            base_count = candle_data.get("count", 0)
-            if base_count > 0:
-                delta = max(1, int(base_count * 0.2))
-                # BUG-RNG-001 FIX: Детерминированный сид от location+candles для ADR-O-301.
-                _seed_str = f"{location_id}:candles_main"
-                _seed = int(hashlib.md5(_seed_str.encode("utf-8")).hexdigest(), 16)
-                objects["candles_main"] = {
-                    "name": "свечи",
-                    "state": candle_data.get("state", "unlit"),
-                    "count": base_count + random.Random(_seed).randint(-delta, delta),
-                    "interactable": True,
-                    "owner": None,
-                }
-            else:
-                objects["candles_main"] = {
-                    "name": "свечи",
-                    "state": "unlit",
-                    "count": 0,
-                    "interactable": True,
-                    "owner": None,
-                }
-
-        scene_state = {
-            "location_id": location_id,
-            "objects": objects,
-            "npc_positions": npc_positions,
-            "environment": environment,
-            "player_body_topology": None,  # ТЗ Presentation v2.0: BodyTopology (сериализованный)
-            "active_effects": [],
-            # ── S.0: пространственный контекст игрока ────────────────────────
-            # Обновляется каждый ход через update_player_target()
-            # Используется в build_npc_context_block() и _build_scene_description()
-            "player_position": "стоит",  # текущая поза/позиция игрока
-            # BUG-SPATIAL-004 FIX: Блок пространственного контекста удалён (ADR-O-314).
-            # Игрок инициализируется в npc_positions как обычный агент.
-            "player_target_npc": None,  # id NPC к которому обращается
-            "player_target_npc_name": None,  # читаемое имя (для промпта)
-            "player_target_object": None,  # id объекта взаимодействия
-            "player_distances": {},  # {npc_id: float} метры
-            "environment_modifiers": _derive_environment_modifiers(
-                time_variant, template.get("type", "")
-            ),
-            # ── Пространственные данные для коллизий (из editor JSON) ─────
-            "spatial_walls": spatial_walls,
-            "spatial_obstacles": spatial_obstacles,
-            # ── ADR-019: Traversal Registry (процесс во времени, а не стейт) ──
-            "active_traversals": {},  # dict[npc_id, traversal_dict]
-            # ── S203.1 (Stage 2A): Behavioral Ownership Registry (shadow) ──
-            # Только НОВЫЕ сцены. Загруженные из persistence самовосстанавливаются
-            # через setdefault в CommitmentRegistry (ключи едут в atomic_commit,
-            # Foundation Freeze: scene_state round-trip без whitelist).
-            "active_commitments": {},  # dict[npc_id, commitment_dict] — только активные
-            "commitment_history": {},  # dict[npc_id, list] — bounded terminal (cap 10)
-            "commitment_ordinals": {},  # dict[npc_id, int] — монотонные счётчики идентичностей
-            # ── ADR-O-370 (RE M1a): субстрат потребностей — ПУСТОЙ корень ──
-            # Заполнение только через RelationshipStateStore (ленивые записи);
-            # загруженные сейвы самовосстанавливаются: ключ отсутствует →
-            # read-дефолты стора (Foundation Freeze, без whitelist).
-            "relationship_state": {},
-            # ── W1/W3 (ADR-O-371/O-376): семантическая объектная топология ──
-            # Пустой корень; заполнение — WorldObjectSpawner через
-            # WorldObjectStore.spawn (единственный путь записи), ниже.
-            # Загруженные сейвы не перезатираются (сейв выигрывает).
-            "world_objects": {},
-            # ── ADR-O-146: Новая игра начинается с tick=0, время 12:00 ──
-            "tick": 0,
-            # ── S139 FIX: SSOT времени — всегда инициализируем game_time_seconds ──
-            "game_time_seconds": Calendar.parse_hhmm(time_of_day),
-            # ─────────────────────────────────────────────────────────────────
-        }
-
-        # ── W3 (ADR-O-376): production-spawn семантических объектов ──
-        # editor objects → WorldObject (SpawnMapping; вердикт Мастера:
-        # door+door_transition→door, chair; state-проекция locked/open).
-        # Только НОВЫЕ сцены: загруженные сейвы возвращаются выше без
-        # спавна — сейв выигрывает. Локальный импорт — прецедент
-        # _build_spatial_data (нулевое влияние на import-граф SSM).
-        from app.services.world.world_object_spawner import WorldObjectSpawner
-        _spawn_report = WorldObjectSpawner.spawn_from_editor(
-            scene_state, campaign_id, location_id, editor_data)
-        if _spawn_report.spawned or _spawn_report.faults:
-            logger.info(f"[W3_SPAWN] {_spawn_report.summary()}")
-
+        scene_state = build_initial_scene(
+            campaign_id=campaign_id,
+            location_id=location_id,
+            time_of_day=time_of_day,
+            template=template,
+            editor_data=editor_data,
+            build_spatial_data=self._build_spatial_data,
+        )
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
             f"[SCENE] Инициализирована сцена '{location_id}' "
-            f"(время: {time_of_day}, объектов: {len(objects)}, NPC: {len(npc_positions)})"
+            f"(время: {time_of_day}, объектов: {len(scene_state.get('objects', {}))}, NPC: {len(scene_state.get('npc_positions', {}))})"
         )
         return scene_state
 
     @staticmethod
     def _select_time_variant(template: dict, time_of_day: str) -> dict:
-        try:
-            h, m = map(int, time_of_day.split(":"))
-            minutes = h * 60 + m
-        except (ValueError, AttributeError):
-            minutes = 12 * 60
+        """DEGOD ITER4: делегат — тело в scene_state/scene_factory.py (внешний потребитель: time_advance.py:98)."""
+        from app.services.scene_state.scene_factory import select_time_variant
 
-        for time_range, variant in template.get("time_variants", {}).items():
-            try:
-                start_str, end_str = time_range.split("-")
-                sh, sm = map(int, start_str.split(":"))
-                eh, em = map(int, end_str.split(":"))
-                start_min = sh * 60 + sm
-                end_min = eh * 60 + em
-                if start_min > end_min:
-                    if minutes >= start_min or minutes < end_min:
-                        return variant
-                else:
-                    if start_min <= minutes < end_min:
-                        return variant
-            except (ValueError, AttributeError) as e:
-                logger.debug(f"[SCENE] Пропуск time_variant {variant}: {e}")
-                continue
-
-        variants = list(template.get("time_variants", {}).values())
-        return variants[0] if variants else {}
+        return select_time_variant(template, time_of_day)
 
     # ─────────────────────────────────────────────────────────────────────────
     # validate_change
@@ -1755,39 +1281,10 @@ class SceneStateManager:
 
     @staticmethod
     def get_scene_events_block(scene_state: dict) -> str:
-        """R2.2.8: блок "уже произошло" для DM промпта. Canonical-aware."""
-        events = scene_state.get("scene_events", [])
-        if not events:
-            return ""
+        """DEGOD ITER3: делегат — тело в scene_state/dm_presentation.py."""
+        from app.services.scene_state.dm_presentation import get_scene_events_block
 
-        event_labels = {
-            "drop": "упал/уронили",
-            "break": "сломан/разбит",
-            "take": "подобран/взят",
-            "use": "используется",
-            "light": "зажжён",
-            "extinguish": "потушен",
-        }
-
-        lines = ["СОБЫТИЯ УЖЕ ПРОИЗОШЛИ В ЭТОЙ СЦЕНЕ (не повторять):"]
-        seen: set[tuple] = set()
-
-        for evt in events[-10:]:
-            etype = evt.get("event_type", evt.get("type", ""))
-            canonical = evt.get("canonical", evt.get("object_name", "").lower())
-            actor = evt.get("actor", "")
-            key = (etype, canonical)
-            if key in seen:
-                continue
-            seen.add(key)
-
-            label = event_labels.get(etype, etype)
-            obj_name = evt.get("object_name", canonical)
-            tick = evt.get("tick", "?")
-            actor_str = f" ({actor.split('_')[-1]})" if actor else ""
-            lines.append(f"- {obj_name} — {label}{actor_str} [ход {tick}]")
-
-        return "\n".join(lines) if len(lines) > 1 else ""
+        return get_scene_events_block(scene_state)
 
     def prune_dynamic_objects(
         self,
@@ -2126,191 +1623,10 @@ class SceneStateManager:
 
     @staticmethod
     def get_scene_description(scene_state: dict) -> str:
-        """
-        Формирует текстовое описание SceneState для DM промпта.
-        DM получает этот блок первым — он описывает ТОЛЬКО то что существует.
+        """DEGOD ITER3: делегат — тело в scene_state/dm_presentation.py."""
+        from app.services.scene_state.dm_presentation import get_scene_description
 
-        S.0: добавлены блок player_target и строгие правила реакций.
-        """
-        if not scene_state:
-            return ""
-
-        lines = ["Текущее состояние сцены (ТОЛЬКО ЭТИ объекты существуют в локации):"]
-
-        # ── Объекты (Salience Engine: фильтрация по важности) ─────────────
-        from app.models.scene_mode import determine_scene_mode
-        from app.services.scene.salience_engine import SalienceEngine
-
-        _raw_objects = scene_state.get("objects", {})
-        _sal_event = scene_state.get("_salience_event_type", "player_interacts")
-        _sal_stress = scene_state.get("_salience_max_stress", 0.0)
-        _sal_target = scene_state.get("_salience_target_object")
-
-        _filtered = SalienceEngine().get_filtered_objects(
-            objects=_raw_objects,
-            event_type=_sal_event,
-            max_npc_stress=_sal_stress,
-            player_target_object=_sal_target,
-        )
-
-        _scene_mode = determine_scene_mode(_sal_event, _sal_stress)
-        state_map = {
-            "intact": "цел",
-            "damaged": "повреждён",
-            "destroyed": "уничтожен",
-            "lit": "горит",
-            "unlit": "не горит",
-            "burning": "горит",
-            "open": "открыт",
-            "locked": "заперт",
-        }
-
-        # Группируем только отфильтрованные объекты
-        groups: dict = {}
-        for obj_id, obj in _filtered:
-            instance_of = obj.get("instance_of", obj_id)
-            if instance_of not in groups:
-                groups[instance_of] = {"obj": obj, "ids": [], "states": set()}
-            groups[instance_of]["ids"].append(obj_id)
-            groups[instance_of]["states"].add(obj.get("state", ""))
-
-        for base_id, group in groups.items():
-            obj = group["obj"]
-            name = obj.get("name", base_id)
-            count = len(group["ids"])
-            states = group["states"]
-
-            if len(states) == 1:
-                state_str = state_map.get(states.pop(), "")
-            else:
-                state_str = ", ".join(state_map.get(s, s) for s in states)
-
-            count_str = f" ×{count}" if count > 1 else ""
-            lines.append(f"- {name}{count_str}: {state_str}".rstrip(": "))
-
-        # Индикатор режима для отладки
-        logger.debug(
-            f"[SALIENCE_DEBUG] режим={_scene_mode.value}, объектов_до={len(_raw_objects)}, объектов_после={len(_filtered)}"
-        )
-
-        # ── Окружение ─────────────────────────────────────────────────────────
-        env = scene_state.get("environment", {})
-        if env:
-            light_map = {
-                "bright": "ярко освещено",
-                "dim": "полутёмно",
-                "dark": "темно",
-                "torchlit": "освещено факелами",
-                "natural": "естественный свет",
-            }
-            noise_map = {
-                "silent": "тихо",
-                "low": "негромкий шум",
-                "moderate": "шумно",
-                "loud": "очень шумно",
-            }
-            light = light_map.get(env.get("light_level", ""), "")
-            noise = noise_map.get(env.get("noise_level", ""), "")
-            weather = env.get("weather_inside", "")
-            env_parts = [p for p in [light, noise, weather] if p]
-            if env_parts:
-                lines.append(f"Обстановка: {', '.join(env_parts)}")
-
-        # ── Активные эффекты ──────────────────────────────────────────────────
-        for effect in scene_state.get("active_effects", []):
-            val = effect.get("value", {})
-            if isinstance(val, dict) and val.get("type"):
-                target = effect.get("target", "")
-                lines.append(f"⚠ Эффект: {target} — {val['type']}")
-
-        # ── NPC позиции ───────────────────────────────────────────────────────
-        npc_positions = scene_state.get("npc_positions", {})
-        if npc_positions:
-            lines.append("")
-            position_map = {
-                "behind_bar": "за стойкой",
-                "bar_area": "у стойки",
-                "main_hall": "в центре зала",
-                "fireplace": "у камина",
-                # ADR-0010: corner_table удалена. Микро-зоны не существуют в макро-графе.
-                "entrance": "у входа",
-                "kitchen": "на кухне",
-                "gate_post": "у ворот",
-                "stall_3": "у третьего прилавка",
-            }
-            for npc_id, pos in npc_positions.items():
-                if pos.get("state") == "dead":
-                    continue
-                position = position_map.get(
-                    pos.get("position", ""), pos.get("position", "")
-                )
-                visible = pos.get("visible", True)
-                npc_name = _npc_id_to_display(npc_id)
-                hidden_tag = "" if visible else " [скрыт]"
-                desc = f"{npc_name}: {position}"
-                lines.append(desc + hidden_tag)
-
-        lines.append("NPC которых нет в этом списке — в локации отсутствуют.")
-
-        # ── S.0: пространственный контекст игрока (для DM) ────────────────────
-        player_pos = scene_state.get("player_position")
-        target_npc_name = scene_state.get("player_target_npc_name")
-        target_npc_id = scene_state.get("player_target_npc")
-        target_obj = scene_state.get("player_target_object")
-        # ADR-048 Phase 3: Вычисляем дистанции из авторитетного словаря npc_positions
-        _player_data = scene_state.get("npc_positions", {}).get("player", {})
-        distances = {
-            nid: euclidean_distance(_player_data, ndata)
-            for nid, ndata in scene_state.get("npc_positions", {}).items()
-            if nid != "player" and euclidean_distance(_player_data, ndata) < 999.0
-        }
-
-        lines.append("")
-        lines.append("ПРОСТРАНСТВЕННЫЙ КОНТЕКСТ ИГРОКА:")
-        if player_pos:
-            lines.append(f"- Позиция игрока: {player_pos}")
-        if target_npc_name:
-            lines.append(f"- Игрок обращается к: {target_npc_name}")
-        elif target_npc_id:
-            lines.append(f"- Игрок обращается к: {_npc_id_to_display(target_npc_id)}")
-        # else: не показываем ложь "не обращается" — может быть имя в тексте действия
-        if target_obj:
-            lines.append(f"- Игрок взаимодействует с объектом: {target_obj}")
-        if distances:
-            # Интерпретация расстояния в слово (инвариант: LLM не видит координаты)
-            def _dist_to_word(d: float) -> str:
-                if d < 1.0:
-                    return "вплотную"
-                if d < 3.0:
-                    return "рядом"
-                if d < 6.0:
-                    return "близко"
-                return "в нескольких шагах" if d < 10.0 else "далеко"
-
-            dist_parts = [
-                f"{_npc_id_to_display(nid)}: {_dist_to_word(dist)}"
-                for nid, dist in distances.items()
-            ]
-            lines.append(f"- Расстояния: {', '.join(dist_parts)}")
-
-        lines.append("")
-        lines.append("ПРАВИЛА РЕАКЦИЙ NPC (ОБЯЗАТЕЛЬНО):")
-        if target_npc_name:
-            lines.append(
-                f"1. Игрок обратился к {target_npc_name} — "
-                f"ТОЛЬКО {target_npc_name} отвечает. Остальные NPC молчат."
-            )
-        # else: не показываем ложное правило "не назвал" — имя может быть в тексте действия
-        lines.append(
-            "2. NPC не может одновременно быть рядом с игроком "
-            "И делать что-то в другом месте сцены."
-        )
-        lines.append(
-            "3. Все позиции из блока NPC выше — абсолютная правда. "
-            "Не придумывай что NPC переместился если SceneState этого не зафиксировал."
-        )
-
-        return "\n".join(lines)
+        return get_scene_description(scene_state)
 
 
     def _sync_relationship_directed(self, scenes: Dict[str, Dict[str, Any]]) -> None:
@@ -2370,47 +1686,11 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Вспомогательная функция: npc_id → читаемое имя
+# DEGOD ITER2: npc_id → читаемое имя экстрагировано в
+# app/services/scene_state/npc_display_name.py. Re-export сохраняет
+# import-поверхность (dm_agent, recognition_layer, diagnose_spatial).
 # ──────────────────────────────────────────────────────────────────────────────
-
-# Кэш имён NPC загружаемых из config/npc/individuals/
-_NPC_NAME_CACHE: dict[str, str] = {}
-_NPC_NAME_CACHE_LOADED = False
-
-
-def _load_npc_names_cache() -> None:
-    """Загружает id→name из config/npc/individuals/ один раз."""
-    global _NPC_NAME_CACHE_LOADED
-    if _NPC_NAME_CACHE_LOADED:
-        return
-    try:
-        from app.services.npc.npc_loader import load_npcs_merged
-
-        npcs = load_npcs_merged()
-        for npc in npcs:
-            nid = npc.get("id", "")
-            name = npc.get("name", "")
-            if nid and name:
-                _NPC_NAME_CACHE[nid] = name
-    except (json.JSONDecodeError, KeyError, TypeError) as e:
-        logger.error(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
-    _NPC_NAME_CACHE_LOADED = True
-
-
-def _npc_id_to_display(npc_id: str) -> str:
-    """
-    Конвертирует npc_id в отображаемое имя.
-    Приоритет: config/npc → эвристика из id.
-    Generic: работает для любого npc_id без хардкода конкретных персонажей.
-    """
-    _load_npc_names_cache()
-    if npc_id in _NPC_NAME_CACHE:
-        return _NPC_NAME_CACHE[npc_id]
-    # Эвристика: последнее слово id с заглавной буквой
-    # "tavern_keeper_tornin" → "Tornin" → "Торнин" (если кириллица) или "Tornin"
-    parts = npc_id.split("_")
-    return parts[-1].capitalize() if parts else npc_id
-
+from app.services.scene_state.npc_display_name import _npc_id_to_display
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Глобальный синглтон

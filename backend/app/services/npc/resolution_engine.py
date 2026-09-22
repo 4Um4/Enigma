@@ -21,7 +21,7 @@ ResolutionLayer — стохастическое разрешение намер
 
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
     from app.domain.identity_events import EffectiveDrives
@@ -96,7 +96,8 @@ class ResolutionOutcome:
     surprise_emotion: Optional[str] = None  # "shocked", "relieved", "frustrated", None
 
     # Трейс для R4.2 калибровки
-    trace: Dict[str, float] = field(default_factory=dict)
+    # NOTE(mypy): трейс несёт и строковые поля (outcome: band.label) — Any-значения.
+    trace: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_success(self) -> bool:
@@ -247,7 +248,8 @@ class ResolutionEngine:
             drives = dict(personality.drives_base)
         if not drives:
             return 0.0
-        dominant = max(drives, key=drives.get)
+        # NOTE(mypy): dict.get имеет перегруженный тип — лямбда точнее для max().
+        dominant = max(drives, key=lambda k: drives[k])
         modifiers = {
             "control": +0.10,
             "significance": +0.05,
@@ -318,7 +320,8 @@ class ResolutionEngine:
             drives = dict(personality.drives_base)
         if not drives:
             return None
-        dominant = max(drives, key=drives.get)
+        # NOTE(mypy): dict.get имеет перегруженный тип — лямбда точнее для max().
+        dominant = max(drives, key=lambda k: drives[k])
 
         if gap < 0:
             # Ожидал успеха — получил провал
@@ -348,7 +351,7 @@ def apply_gap_learning(
     outcome: ResolutionOutcome,
     state: NPCState,
     learning_rate: float = 0.1,
-) -> Dict[str, float]:
+) -> Dict[str, Any]:
     """
     Конвертирует gap в дельты для StateApplicator.
     Вызывается после resolve() — передаётся в StateDeltas.
@@ -365,7 +368,8 @@ def apply_gap_learning(
     if abs(gap) < 0.1:
         return {}
 
-    deltas: Dict[str, float] = {}
+    # NOTE(mypy): значения смешанные (float-дельты + str-тэг эмоции) — Dict[str, Any].
+    deltas: Dict[str, Any] = {}
 
     if gap < 0:
         # Неожиданный провал → стресс + рост suspicious trait

@@ -7,7 +7,8 @@
 """
 
 import logging
-from typing import Any, Dict, List
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List
 
 from app.services.character.character_filter_applicator import apply_character_filter
 from app.services.events.event_bus import get_event_bus
@@ -17,8 +18,27 @@ from app.services.npc.npc_tick_contracts import NpcTickBuffer, NpcTickServices
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class NpcOrchDeps:
+    """Контракт зависимостей npc_orchestration (DEGOD Phase3-B2). Контракт принадлежит фазе.
+    A=DI; B=GameLoop-owned mutable (accessor); C=callable (ownership DEFERRED/lazy); D=уже захваченный объект."""
+    character_service: Any                          # A :42/:64
+    reputation_engine_getter: Callable[[], Any]     # A :65/:149/:368/:388
+    social_engine_getter: Callable[[str], Any]      # A :148
+    economic_profiles_getter: Callable[[str], Any]  # A :150/:390
+    economy_tracker: Any                            # A :396
+    world_tick_engine: Any                          # A :387
+    memory_manager: Any                             # A :146
+    rel_store: Any                                  # D :147/:389 (identity = memory_manager._relationships, 159b)
+    scene_manager: Any                              # A :202/:211/:248/:259/:349 (+is_tick_locked_for :249/:261)
+    load_npcs_with_runtime: Callable[[str], list]   # C :83/:91 (ownership DEFERRED — trio)
+    task_scheduler_getter: Callable[[], Any]        # C :241 (lazy identity-инвариант)
+    get_or_create_continuity: Callable[[str], Any]  # B :73
+    crystallized_belief_store: Any                  # A :140-144
+
+
 def run_npc_orchestration(
-    game_loop: Any,
+    deps: NpcOrchDeps,
     actions: list,
     shared_context: Any,
     scene_state: Dict[str, Any],
@@ -27,19 +47,19 @@ def run_npc_orchestration(
     location: str,
     is_session_start: bool,
     tick_orchestrator=None,
-) -> List[Any]:
+) -> Any:
     """CharacterFilter → NPC Pipeline → Reputation → Proactive → Salience.
 
     Возвращает список npc_contexts. Мутирует ctx, scene_state, shared_context.
     """
-    from app.services.verbalization.scene_continuity import SceneContinuity
+
 
     npc_contexts: List[Any] = []
     raw_input = actions[0].action if actions else ""
 
     # CharacterFilter — может заблокировать действие
     _cf_result = apply_character_filter(
-        game_loop.character_service,
+        deps.character_service,
         campaign_id,
         actions[0].player_name if actions else "",
         ctx.hub_event,
@@ -61,8 +81,8 @@ def run_npc_orchestration(
         from app.services.character.front_applicator import apply_front_engine
 
         apply_front_engine(
-            character_service=game_loop.character_service,
-            reputation_engine=game_loop._svc.get_reputation_engine(),
+            character_service=deps.character_service,
+            reputation_engine=deps.reputation_engine_getter(),
             campaign_id=campaign_id,
             player_name=_player_name,
             shared_context=shared_context,
@@ -70,17 +90,14 @@ def run_npc_orchestration(
 
     # SceneContinuity — физические факты для NPC
     if not hasattr(shared_context, "scene_continuity"):
-        shared_context.scene_continuity = game_loop._scene_continuities.setdefault(
-            campaign_id,
-            SceneContinuity(),
-        )
+        shared_context.scene_continuity = deps.get_or_create_continuity(campaign_id)
     _cont_inject = shared_context.scene_continuity
     if _cont_inject and ctx.hub_event:
         ctx.hub_event.scene_flags = _cont_inject.active_flags
         ctx.hub_event.scene_facts = _cont_inject.scene_facts[-3:]
 
     # Загружаем ВСЕХ NPC один раз — мутации будут в этом списке
-    ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
+    ctx.all_npcs_raw = deps.load_npcs_with_runtime(campaign_id)
 
     # NPC Pipeline — единая точка входа через TickOrchestrator (Устав §3)
     if tick_orchestrator is None:
@@ -88,7 +105,7 @@ def run_npc_orchestration(
 
     # Контракт _load_npcs_with_runtime (game_loop) уже возвращает полный runtime,
     # включающий аватара игрока как полноправного Actor'а симуляции.
-    ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
+    ctx.all_npcs_raw = deps.load_npcs_with_runtime(campaign_id)
 
     from app.services.spatial.spatial_factory import SpatialFactory
     from app.services.spatial.spatial_query_service import SpatialQueryService
@@ -137,17 +154,13 @@ def run_npc_orchestration(
         npc_positions=_scene_state.get("npc_positions", {}),
         scene_state=_scene_state,
     )
-    _cryst_store = getattr(
-        getattr(game_loop, "_tick_orch", None),
-        "crystallized_belief_store",
-        None,
-    )  # AUDIT-002 §3.2
+    _cryst_store = deps.crystallized_belief_store  # AUDIT-002 §3.2
     _npc_svc = NpcTickServices(
-        memory_manager=game_loop.memory_manager,
-        relationship_store=game_loop.memory_manager._relationships,
-        social_engine=game_loop._svc.get_social_engine(campaign_id),
-        reputation_engine=game_loop._svc.get_reputation_engine(),
-        economic_profiles=game_loop._svc.get_or_create_economic_profiles(campaign_id),
+        memory_manager=deps.memory_manager,
+        relationship_store=deps.rel_store,
+        social_engine=deps.social_engine_getter(campaign_id),
+        reputation_engine=deps.reputation_engine_getter(),
+        economic_profiles=deps.economic_profiles_getter(campaign_id),
         event_bus=get_event_bus(),
         spatial_service=_spatial_svc,
         spatial_query=_spatial_query,
@@ -199,7 +212,7 @@ def run_npc_orchestration(
     if not _location_ids:
         _location_ids = [_active_loc]
 
-    _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
+    _scene_manager = deps.scene_manager
     _tick_result = None
 
     # Дополнение Б: Глобальный цикл тика для хода игрока
@@ -238,7 +251,7 @@ def run_npc_orchestration(
             active_location_id=_active_loc,
             location_ids=_location_ids,
             hub_event=ctx.hub_event if _loc_id == _active_loc else None,  # BUG-CORE-003 FIX  # noqa: ENIGMA001
-            task_scheduler=game_loop._get_task_scheduler(),  # REGRESSION-CORE-001 FIX: Проброс task_scheduler в ядро
+            task_scheduler=deps.task_scheduler_getter(),  # REGRESSION-CORE-001 FIX: Проброс task_scheduler в ядро
         )
         # BUG-FB-031 FIX: Сохраняем world_snapshot из ядра в shared_context, чтобы не пересобирать его с нуля в GameLoop
         if hasattr(_loc_result, "world_snapshot") and _loc_result.world_snapshot is not None:
@@ -246,7 +259,7 @@ def run_npc_orchestration(
 
         # Коммитим результат тика для каждой локации
         if _loc_result is not None and _loc_result.final_scene_state is not None and _scene_manager:
-            if _scene_manager._tick_campaign_id == campaign_id:
+            if _scene_manager.is_tick_locked_for(campaign_id):
                 _scene_manager.commit_tick_result(campaign_id, _loc_result.final_scene_state)
 
         # Сохраняем результат активной локации
@@ -256,16 +269,16 @@ def run_npc_orchestration(
 
     # ADR-311 FIX: Коммит final_scene_state в SceneStateManager.
     # Без этого все мутации ядра (время, traversals, эмоции) теряются в пути игрока.
-    _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
+    _scene_manager = deps.scene_manager
     if _tick_result is not None and _tick_result.final_scene_state is not None and _scene_manager:
-        if _scene_manager._tick_campaign_id == campaign_id:
+        if _scene_manager.is_tick_locked_for(campaign_id):
             _scene_manager.commit_tick_result(
                 campaign_id, _tick_result.final_scene_state
             )
             shared_context.scene_state = _tick_result.final_scene_state
         else:
             logger.warning(
-                f"[NPC_ORCH] campaign mismatch in commit: {_scene_manager._tick_campaign_id} vs {campaign_id}"
+                f"[NPC_ORCH] campaign mismatch in commit (tick locked for other campaign): {campaign_id}"
             )
 
     # SHI-FIX CAUSAL: L1 Фиксация на основе semantic_action (Fast Path).
@@ -346,7 +359,7 @@ def run_npc_orchestration(
     # B4-FIX: прямые мутации → SceneChange (CAUSAL_CONTRACT §3).
     from app.services.scene_change import ChangeType, SceneChange
 
-    _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
+    _scene_manager = deps.scene_manager
     if _scene_manager:
         for _nid, _activity in _npc_buf.activity_overrides.items():
             _change = SceneChange(
@@ -365,7 +378,7 @@ def run_npc_orchestration(
     # TZ-08 v0.2: movement_intents больше не покидают ядро. Исполняются внутри Фазы 8.
 
     # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций
-    _rep_eng = game_loop._svc.get_reputation_engine()
+    _rep_eng = deps.reputation_engine_getter()
     if _rep_eng and ctx.hub_event:
         try:
             _action_type_for_rep = shared_context.action_type or ""
@@ -384,16 +397,16 @@ def run_npc_orchestration(
 
     # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
     tick_world_proactive(
-        game_loop._world_tick_engine,
-        game_loop._svc.get_reputation_engine(),
-        game_loop.memory_manager._relationships,
-        game_loop._svc.get_or_create_economic_profiles,
+        deps.world_tick_engine,
+        deps.reputation_engine_getter(),
+        deps.rel_store,
+        deps.economic_profiles_getter,
         campaign_id,
         location,
         shared_context,
         ctx,
-        tick_orchestrator=game_loop._tick_orch,  # ADR-O-208: для effective_drives computation
-        economy_tracker=game_loop._svc.economy_tracker,
+        tick_orchestrator=tick_orchestrator,  # ADR-O-208: для effective_drives computation
+        economy_tracker=deps.economy_tracker,
     )
 
     # Salience Engine: метаданные для фильтрации объектов в промпте

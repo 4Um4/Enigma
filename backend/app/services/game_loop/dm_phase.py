@@ -12,7 +12,8 @@
 """
 
 import logging
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Optional
 
 from app.services.events.event_types import EventType
 from app.services.npc.decision_hub import EventContext as HubEventContext
@@ -26,8 +27,21 @@ from app.services.spatial.player_target_pipeline import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class DmPhaseDeps:
+    """Контракт зависимостей dm_phase (DEGOD Phase3-B1). Контракт принадлежит фазе.
+    A = DI-ссылка; B = GameLoop-owned mutable (доступ только через accessors); C = узкая фазовая зависимость."""
+    load_npcs: Callable[[], list]                # A: static lru-фабрика NPC
+    memory_manager: Any                          # A: STM/recent-speech/dialogue/clear
+    dm_orchestrator: Any                         # A: классификация + обогащение
+    scene_manager: Any                           # A: LoS SceneChange
+    l1_chronicle: Any                            # C: L1-коммит dialogue events (только эта фаза)
+    get_prev_distances: Callable[[str], dict]    # B: чтение кросс-turn дистанций
+    commit_distances: Callable[[str, dict], None]  # B: запись кросс-turn дистанций
+
+
 def run_dm_phase(
-    game_loop: Any,
+    deps: DmPhaseDeps,
     actions: list,
     shared_context: Any,
     scene_state: Dict[str, Any],
@@ -46,7 +60,7 @@ def run_dm_phase(
     # Извлечение цели игрока
     try:
         _target = extract_player_target(
-            game_loop._load_npcs,
+            deps.load_npcs,
             shared_context.scene_state or {},
             raw_input,
         )
@@ -55,7 +69,7 @@ def run_dm_phase(
             shared_context.player_target_name = _target.target_name
             # BUG-DL-03 FIX: Извлекаем targeted STM block для DM LLM
             try:
-                shared_context.npc_stm_block_targeted = game_loop.memory_manager.get_stm_prompt_block(
+                shared_context.npc_stm_block_targeted = deps.memory_manager.get_stm_prompt_block(
                     campaign_id=campaign_id, npc_id=_target.target_id
                 )
             except Exception:
@@ -67,7 +81,7 @@ def run_dm_phase(
 
         # ФАЗА 3.1: Spatial Events — детекция переходов расстояний
         try:
-            _prev_dists = game_loop._prev_player_distances.get(campaign_id, {})
+            _prev_dists = deps.get_prev_distances(campaign_id)
             _curr_dists = _target.player_dists or {}
             _spatial_events = detect_and_publish_spatial_transitions(
                 _prev_dists,
@@ -77,7 +91,7 @@ def run_dm_phase(
             )
             if _spatial_events:
                 shared_context.spatial_events = _spatial_events
-            game_loop._prev_player_distances[campaign_id] = dict(_curr_dists)
+            deps.commit_distances(campaign_id, dict(_curr_dists))
         except Exception as _se_err:
             logger.warning(f"[SPATIAL] Transition detection failed: {_se_err}")
     except Exception as _te:
@@ -98,7 +112,7 @@ def run_dm_phase(
 
     # R1: DM видит прошлую речь NPC — из DialogueSession
     try:
-        _recent_speech = game_loop.memory_manager.get_recent_speech_all_npcs(
+        _recent_speech = deps.memory_manager.get_recent_speech_all_npcs(
             campaign_id
         )
         shared_context.npc_recent_speech = _recent_speech
@@ -109,7 +123,7 @@ def run_dm_phase(
     shared_context.recent_player_actions = []
 
     # DM Orchestrator — классификация + обогащение
-    dm_result = game_loop.dm_orchestrator.process_player_action(
+    dm_result = deps.dm_orchestrator.process_player_action(
         raw_input=raw_input,
         player_data=shared_context.player or {},
         player_markers=shared_context.player_markers or [],
@@ -165,7 +179,7 @@ def run_dm_phase(
         # P1 ARCH: STM привязывается к Intent target, не к Shadow state.
         _stm_target_id = shared_context.player_target_id
         if _raw_type in ("dialogue", "player_interacts") and _stm_target_id:
-            game_loop.memory_manager.add_dialogue_turn(
+            deps.memory_manager.add_dialogue_turn(
                 campaign_id=campaign_id,
                 npc_id=_stm_target_id,
                 speaker="player",
@@ -180,7 +194,7 @@ def run_dm_phase(
             from app.domain.identity_events import TraitDriftEvent
 
             _tick = shared_context.current_tick or 0
-            game_loop._tick_orch.l1_chronicle.commit_tick_buffer(
+            deps.l1_chronicle.commit_tick_buffer(
                 [
                     TraitDriftEvent(
                         tick_id=_tick,
@@ -198,7 +212,7 @@ def run_dm_phase(
             _new_loc = scene_state.get("location_id", "")
             _old_loc = (shared_context.scene_state or {}).get("location_id", "")
             if _new_loc and _old_loc and _new_loc != _old_loc:
-                game_loop.memory_manager.clear_all_dialogue_sessions(campaign_id)
+                deps.memory_manager.clear_all_dialogue_sessions(campaign_id)
         # V8-TICK-3 FIX: Убран двойной счётчик времени. Ядро (tick_orchestrator) уже сдвигает время на 60 сек в Фазе 0.5.
         # advance_game_time(scene_state, _raw_type, raw_input, shared_context)
 
@@ -222,7 +236,7 @@ def run_dm_phase(
         if dm_result.scene_context.line_of_sight is not None:
             from app.services.scene_change import ChangeType, SceneChange
 
-            _scene_manager = getattr(game_loop, "scene_manager", None)  # noqa: ENIGMA002
+            _scene_manager = deps.scene_manager
             if _scene_manager:
                 _los_change = SceneChange(
                     type=ChangeType.SCENE_METADATA,

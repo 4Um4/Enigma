@@ -134,7 +134,9 @@ def resolve_intent_pressure(
 
 def compute_willpower(
     pressure: IntentPressureProfile,
-    psyche: Dict[str, float],
+    # NOTE(mypy): psyche в рантайме несёт non-float поля (trauma_markers: list и т.п.),
+    # контрактен Dict[str, Any], а не Dict[str, float].
+    psyche: Dict[str, Any],
 ) -> WillResponseDTO:
     """Вычисляет реакцию аватара на давление (Cumulative Strain Model).
 

@@ -1477,6 +1477,18 @@ IPT: ✅ 45/45 (финальный). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴
 📁 pattern_state.py (NEW), phases/integration.py (:409-434 врезка), tests/test_pattern_watermark_oracle.py (NEW, 11), reports/scale_law_dataset_v1.md (v1.4), docs/audits/ADR-O-400_IMPACT.md (NEW), ADR-атлас (ADR-O-400, номер после живого чтения реестра — O-390 занят Self-Relevance S258).
 IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. **S273 CLOSED.** Следующий бой — следующий измеренный bottleneck (датасет v1.4).
 
+### S274-DEGOD: De-godification SSM (серия ITER1–4c, ADR-O-401) | ✅ IPT 45/45 на каждой итерации
+🎯 Реструктуризация без семантики: scene_state_manager 2427→~1660 строк; 6 модулей в новом пакете scene_state/; фасад = тот же объект.
+⚙️ ITER1: environment_modifiers (эталонный leaf, re-export-механика отработана на внешнем test-import) · ITER2: change_validator + npc_display_name + editor_locator (методы→функции от campaigns_dir, Path-parent +1) · ITER3: dm_presentation (3 pure-проекции, ~310 строк) · ITER4: scene_factory (initialize_scene-тело + _select_time_variant; внешний потребитель time_advance:98 покрыт делегатом; дым-тест фабрики: 22 канонических ключа, SC-1 жив).
+⚙️ Инфраструктурные находки: passport-протокол против moving platform (сосед менял tick_orchestrator/TES/life_engine/simulation в окне 01:26–02:05 → инвалидация env#1, A/B-rollback доказал hash-нейтральность правки), transient INV-TRAV-DICT классифицирован, ruff.toml fix=true обнаружен (гейты → --no-fix), git diff '>' = UTF-16 (→ checkout -- file).
+📁 backend/app/services/scene_state/* (новое), backend/app/services/scene_state_manager.py, docs/audits/DEGOD_*
+
+### S278-DEGOD: Turn Pipeline Ownership (Phase 3A, ADR-O-402) | ✅ IPT 45/45 на каждой итерации
+🎯 Ownership-redesign GameLoop: фазовая машина player-turn → turn_pipeline.py (736 строк, один вопрос); game_loop.py 2902→2224.
+⚙️ SeamA/SeamB: SSM-bridge _tick_scenes/_tick_campaign_id инкапсулирован (adopt_scene_for_tick/is_tick_locked_for). B1/B2: dm_phase/npc_orchestration де-связаны (DmPhaseDeps 7, NpcOrchDeps 13 — frozen, контракт принадлежит фазе; TurnServices элиминирован — NpcTickServices переиспользован per-turn). 3A.3: TurnPipeline (execute+6 фаз, 17 DI-полей, B-состояния через setter/provider).
+⚙️ Инциденты (уроки): коммит-message ≠ дифф (дважды — каркасные коммиты 73e1f528/ac433c33 с переключёнными call-sites до переноса тел = окно разрыва player-turn; fix — git diff --stat перед коммитом + «можно коммитить» отдельным сигналом); ruff F821 поймал живой god-reference до рантайма; F401 на re-export ≠ мёртвый импорт (сверять с картой consumers); moving-platform passport-протокол (env#1→env#3, A/B-rollback).
+📁 backend/app/services/game_loop/{turn_pipeline,dm_phase,npc_orchestration,game_loop,__init__}.py, backend/app/services/scene_state_manager.py
+
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
