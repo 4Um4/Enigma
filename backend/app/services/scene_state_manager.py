@@ -96,50 +96,18 @@ def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# ChangeValidator — проверка допустимости изменения
+# DEGOD ITER2: ChangeValidator и editor-locator экстрагированы в пакет
+# app/services/scene_state/ (change_validator.py, editor_locator.py).
+# Re-export сохраняет import-поверхность; call-sites self.validator / методы
+# класса не меняются.
 # ──────────────────────────────────────────────────────────────────────────────
-
-
-class ChangeValidator:
-    """
-    Проверяет допустимость SceneChange перед применением.
-    Возвращает (valid: bool, reason: str).
-    """
-
-    @staticmethod
-    def validate(scene_state: dict, change: SceneChange) -> tuple[bool, str]:
-        ct = change.type
-
-        if ct == ChangeType.OBJECT_STATE:
-            if change.target not in scene_state.get("objects", {}):
-                return False, f"Объект '{change.target}' не существует в SceneState"
-            return True, ""
-
-        if ct == ChangeType.OBJECT_REMOVE:
-            if change.target not in scene_state.get("objects", {}):
-                return False, f"Объект '{change.target}' не существует — нечего удалять"
-            return True, ""
-
-        if ct == ChangeType.OBJECT_ADD:
-            if change.target in scene_state.get("objects", {}):
-                return False, f"Объект '{change.target}' уже существует в SceneState"
-            return True, ""
-
-        if ct == ChangeType.OBJECT_MOVE:
-            if change.target not in scene_state.get("objects", {}):
-                return (
-                    False,
-                    f"Объект '{change.target}' не существует — нечего перемещать",
-                )
-            return True, ""
-
-        if ct in (ChangeType.NPC_POSITION, ChangeType.NPC_STATE):
-            return True, ""
-
-        if ct == ChangeType.ENVIRONMENT:
-            return True, ""
-
-        return True, ""
+from app.services.scene_state.change_validator import ChangeValidator
+from app.services.scene_state.editor_locator import (
+    _find_editor_location as _find_editor_location_impl,
+    _find_first_editor_location as _find_first_editor_location_impl,
+    _find_starting_location as _find_starting_location_impl,
+    _nearest_node_to_xy as _nearest_node_to_xy_impl,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -750,122 +718,19 @@ class SceneStateManager:
         return self._templates_cache
 
     def _find_editor_location(self, campaign_id: str, location_id: str) -> dict | None:
-        """Ищет editor JSON с совпадающим location_id.
-        Поддерживает: точное совпадение, частичное совпадение label, пустой location_id."""
-        search_dirs = [
-            self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).resolve().parent.parent.parent.parent
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in loc_dir.glob("*.json"):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    lid = data.get("location_id", "")
-                    label = data.get("label", "")
-                    # Точное совпадение
-                    if lid == location_id or label == location_id:
-                        logger.info(
-                            f"[SCENE] Найден editor JSON: {json_file} для location_id={location_id}"
-                        )
-                        return data
-                    # Частичное совпадение label (в одну сторону)
-                    if label and location_id and (location_id.lower() in label.lower()):
-                        logger.info(
-                            f"[SCENE] Найден editor JSON по частичному label: {json_file}"
-                        )
-                        return data
-                    # Пустой location_id в файле — берём первую попавшуюся с rooms
-                    if not lid and location_id and data.get("rooms"):
-                        logger.info(
-                            f"[SCENE] Fallback на первый файл с rooms: {json_file}"
-                        )
-                        return data
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного editor JSON {json_file}: {e}")
-                    continue
-        return None
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _find_editor_location_impl(self.campaigns_dir, campaign_id, location_id)
+
 
     def _find_first_editor_location(self, campaign_id: str) -> dict | None:
-        """Возвращает первую найденную локацию из editor JSON — fallback при несовпадении location_id."""
-        search_dirs = [
-            self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).resolve().parent.parent.parent.parent
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in loc_dir.glob("*.json"):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("rooms") or data.get("walls"):
-                        logger.info(f"[SCENE] Fallback: первая локация из {json_file}")
-                        return data
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного location JSON {json_file}: {e}")
-                    continue
-        return None
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _find_first_editor_location_impl(self.campaigns_dir, campaign_id)
+
 
     def find_starting_location(self, campaign_id: str) -> str:
-        """Находит начальную локацию для кампании из editor JSON.
-        Приоритет: player_spawn + NPC → player_spawn → rooms/walls → 'tavern'."""
-        search_dirs = [
-            self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).resolve().parent.parent.parent.parent
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-        # Приоритет 1: локация с player_spawn И NPC (лучшая стартовая точка)
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in sorted(loc_dir.glob("*.json")):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("player_spawn") and data.get("npcs"):
-                        return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного JSON (NPC+spawn) {json_file}: {e}")
-                    continue
-        # Приоритет 2: локация с player_spawn (без NPC)
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in sorted(loc_dir.glob("*.json")):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("player_spawn"):
-                        return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного JSON (spawn only) {json_file}: {e}")
-                    continue
-        # Приоритет 3: первая локация с rooms/walls/nodes
-        for loc_dir in search_dirs:
-            if not loc_dir.exists():
-                continue
-            for json_file in sorted(loc_dir.glob("*.json")):
-                try:
-                    data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                    if data.get("rooms") or data.get("walls") or data.get("nodes"):
-                        return data.get("location_id", json_file.stem)
-                except (json.JSONDecodeError, OSError) as e:
-                    logger.debug(f"[SCENE] Пропуск невалидного JSON (rooms/walls/nodes) {json_file}: {e}")
-                    continue
-        return "tavern"
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _find_starting_location_impl(self.campaigns_dir, campaign_id)
+
 
     def reinit_campaign(self, campaign_id: str) -> dict | None:
         """Переинициализация сцены кампании из editor JSON.
@@ -892,20 +757,8 @@ class SceneStateManager:
         return _build_spatial_data(editor_data)
 
     def _nearest_node_to_xy(self, editor_data: dict, x: float, y: float) -> str:
-        """Находит ближайший навигационный узел к координате XY."""
-        nodes = editor_data.get("nodes", {})
-        if not nodes:
-            return ""
-        best_node = ""
-        best_dist = float("inf")
-        for node_id, node_data in nodes.items():
-            nx = node_data.get("x", 0)
-            ny = node_data.get("y", 0)
-            dist = math.sqrt((nx - x) ** 2 + (ny - y) ** 2)
-            if dist < best_dist:
-                best_dist = dist
-                best_node = node_id
-        return best_node
+        """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
+        return _nearest_node_to_xy_impl(editor_data, x, y)
 
     # initialize_scene
     # ─────────────────────────────────────────────────────────────────────────
@@ -2334,46 +2187,11 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Вспомогательная функция: npc_id → читаемое имя
+# DEGOD ITER2: npc_id → читаемое имя экстрагировано в
+# app/services/scene_state/npc_display_name.py. Re-export сохраняет
+# import-поверхность (dm_agent, recognition_layer, diagnose_spatial).
 # ──────────────────────────────────────────────────────────────────────────────
-
-# Кэш имён NPC загружаемых из config/npc/individuals/
-_NPC_NAME_CACHE: dict[str, str] = {}
-_NPC_NAME_CACHE_LOADED = False
-
-
-def _load_npc_names_cache() -> None:
-    """Загружает id→name из config/npc/individuals/ один раз."""
-    global _NPC_NAME_CACHE_LOADED
-    if _NPC_NAME_CACHE_LOADED:
-        return
-    try:
-        from app.services.npc.npc_loader import load_npcs_merged
-
-        npcs = load_npcs_merged()
-        for npc in npcs:
-            nid = npc.get("id", "")
-            name = npc.get("name", "")
-            if nid and name:
-                _NPC_NAME_CACHE[nid] = name
-    except (json.JSONDecodeError, KeyError, TypeError) as e:
-        logger.error(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
-    _NPC_NAME_CACHE_LOADED = True
-
-
-def _npc_id_to_display(npc_id: str) -> str:
-    """
-    Конвертирует npc_id в отображаемое имя.
-    Приоритет: config/npc → эвристика из id.
-    Generic: работает для любого npc_id без хардкода конкретных персонажей.
-    """
-    _load_npc_names_cache()
-    if npc_id in _NPC_NAME_CACHE:
-        return _NPC_NAME_CACHE[npc_id]
-    # Эвристика: последнее слово id с заглавной буквой
-    # "tavern_keeper_tornin" → "Tornin" → "Торнин" (если кириллица) или "Tornin"
-    parts = npc_id.split("_")
-    return parts[-1].capitalize() if parts else npc_id
+from app.services.scene_state.npc_display_name import _npc_id_to_display
 
 
 # ──────────────────────────────────────────────────────────────────────────────
