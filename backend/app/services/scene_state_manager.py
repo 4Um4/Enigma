@@ -209,6 +209,12 @@ class SceneStateManager:
         self._tick_campaign_id = campaign_id
         self._tick_scenes[location_id] = scene_state
 
+    def is_tick_locked_for(self, campaign_id: str) -> bool:
+        """Публичный predicate: тик-лок принадлежит этой кампании?
+        Заменяет внешние чтения internals (_tick_campaign_id) на границе
+        game_loop↔SSM (DEGOD Phase3-SeamB; зеркален adopt_scene_for_tick)."""
+        return self._tick_locked and self._tick_campaign_id == campaign_id
+
     def unlock_tick(self, campaign_id: str) -> None:
         """Разблокирует тик. Персистит кэш.
         ADR-SCENE-LOCK: НЕ очищаем _tick_scene сразу — bridge может читать его
