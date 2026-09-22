@@ -41,7 +41,6 @@ from app.core.config import settings
 from app.core.log_gate import file_logs_enabled
 from app.services.scene_change import ChangeType, SceneChange
 from app.services.spatial.geometry_kernel import point_in_rect
-
 from app.services.state.persistence_port import PersistencePort
 
 logger = logging.getLogger(__name__)
@@ -109,16 +108,12 @@ from app.services.scene_state.editor_locator import (
     _nearest_node_to_xy as _nearest_node_to_xy_impl,
 )
 
-
 # ---------------------------------------------------------------------------
 # R4.4: производные модификаторы среды — экстрагированы в
 # app/services/scene_state/environment_modifiers.py (DEGOD S3 ITER1).
 # Re-export сохраняет import-поверхность (внешний test-import:
 # tests/test_spatial_runtime_r4.py:10) и call-site initialize_scene.
 # ---------------------------------------------------------------------------
-from app.services.scene_state.environment_modifiers import (
-    _derive_environment_modifiers,
-)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # SceneStateManager
