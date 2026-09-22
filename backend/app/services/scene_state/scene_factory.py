@@ -10,9 +10,8 @@ import logging
 import random
 
 from app.core.calendar import Calendar
-
-from app.services.scene_state.environment_modifiers import _derive_environment_modifiers
 from app.services.scene_state.editor_locator import _nearest_node_to_xy
+from app.services.scene_state.environment_modifiers import _derive_environment_modifiers
 from app.services.scene_state.npc_display_name import _npc_id_to_display
 
 logger = logging.getLogger(__name__)

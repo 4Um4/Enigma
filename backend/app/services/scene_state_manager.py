@@ -30,16 +30,13 @@ SceneState хранится в:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
-import random
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from app.core.calendar import Calendar
 from app.core.config import settings
 from app.core.log_gate import file_logs_enabled
 from app.services.scene_change import ChangeType, SceneChange
