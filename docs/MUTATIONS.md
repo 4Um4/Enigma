@@ -1477,6 +1477,12 @@ IPT: ✅ 45/45 (финальный). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴
 📁 pattern_state.py (NEW), phases/integration.py (:409-434 врезка), tests/test_pattern_watermark_oracle.py (NEW, 11), reports/scale_law_dataset_v1.md (v1.4), docs/audits/ADR-O-400_IMPACT.md (NEW), ADR-атлас (ADR-O-400, номер после живого чтения реестра — O-390 занят Self-Relevance S258).
 IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. **S273 CLOSED.** Следующий бой — следующий измеренный bottleneck (датасет v1.4).
 
+### S274-DEGOD: De-godification SSM (серия ITER1–4c, ADR-O-401) | ✅ IPT 45/45 на каждой итерации
+🎯 Реструктуризация без семантики: scene_state_manager 2427→~1660 строк; 6 модулей в новом пакете scene_state/; фасад = тот же объект.
+⚙️ ITER1: environment_modifiers (эталонный leaf, re-export-механика отработана на внешнем test-import) · ITER2: change_validator + npc_display_name + editor_locator (методы→функции от campaigns_dir, Path-parent +1) · ITER3: dm_presentation (3 pure-проекции, ~310 строк) · ITER4: scene_factory (initialize_scene-тело + _select_time_variant; внешний потребитель time_advance:98 покрыт делегатом; дым-тест фабрики: 22 канонических ключа, SC-1 жив).
+⚙️ Инфраструктурные находки: passport-протокол против moving platform (сосед менял tick_orchestrator/TES/life_engine/simulation в окне 01:26–02:05 → инвалидация env#1, A/B-rollback доказал hash-нейтральность правки), transient INV-TRAV-DICT классифицирован, ruff.toml fix=true обнаружен (гейты → --no-fix), git diff '>' = UTF-16 (→ checkout -- file).
+📁 backend/app/services/scene_state/* (новое), backend/app/services/scene_state_manager.py, docs/audits/DEGOD_*
+
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`

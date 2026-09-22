@@ -603,6 +603,11 @@ L1 event dating. speech_reset = 🔴 OPEN. Полная skeleton-publication
   Status: APPROVED FOR IMPLEMENTATION (behind flag, A/B-gated)
   Files: docs/audits/ADR-O-400_IMPACT.md, backend/app/services/npc/pattern_detector.py, backend/app/services/phases/integration.py (call site), backend/app/domain/identity_events.py (только чтение контракта), backend/tests/ (oracle + PBT), backend/tests/sandbox/probes/ (A/B инструмент — готов)
 
+`ADR-O-401` [STRUCT] **De-godification SSM — extraction в пакет scene_state/** — Серия ITER1–4c: из scene_state_manager.py экстрагированы leaf/фабричные кластеры в app/services/scene_state/ (environment_modifiers, change_validator, npc_display_name, editor_locator, dm_presentation, scene_factory). Форма: старый класс = фасад (методы-делегаты, re-export import-поверхности); поведение неизменно (IPT 45/45, DriftLab MATCH на каждой итерации, mypy/ruff delta=0). Владельческое ядро (tick-scoped identity, commit/apply/EPOCH/GAP12/RE) не тронуто — STOP-зоны карты DEGOD_PHASE0_MAP_SSM. Cross-file bridge GameLoop↔SSM (_tick_scenes/_persistence) задокументирован как запретный для наивных extraction-границ.
+❌ Taboo: перенос владельческого ядра SSM без отдельного ownership-решения; третий путь зеркала материализации; удаление re-export при живых внешних импортёрах.
+Status: ACTIVE
+Files: backend/app/services/scene_state_manager.py, backend/app/services/scene_state/* (6 модулей), docs/audits/DEGOD_PHASE0_MAP_SSM.md, docs/audits/DEGOD_S3_ITER1_DOSSIER.md
+
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 
