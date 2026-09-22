@@ -122,3 +122,15 @@ C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\simulation.py : BB2C9
 C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\traversal_execution_system.py : C74E6964C7D02EBA9227A46CC4E3D772B23D3509AFDDCA28F246D08DAF4A45C3
 C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py : BB8E26393D58E77FE118611A70E62659BC50A1F0341D59BD7881901663D9AD61
 C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\exploration_target_resolver.py : 2C20163CC3FE643F222CCBCD2B2F229FF36BC8B4F047A0EE12FD57E306D69935
+
+## ENVIRONMENT INVALIDATION: сосед изменил life_engine.py, phases/simulation.py, +NEW exploration_target_resolver.py, tick_orchestrator.py, traversal_execution_system.py между baseline и post-cut. Паспорт 442346ba... относится к прежней среде. Прогоны 67-го = INVALID (moving platform), не RED. A/B: rollback-прогон == post-cut run2 (b971b767) — правка S3 доказанно hash-нейтральна. Урок: git diff '>' пишет UTF-16, git apply не читает; далее --output.
+## NEW ENVIRONMENT FIXATION 2026-09-22 12:46:15
+?? backend/app/services/tick_orchestrator.py.bak
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\life_engine.py : 408DFAC54E916412BFB9D0527F6BC313676843D22A8EA74EA125AAB2C5D7F9AD
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\simulation.py : BB2C90DD51066E22982976B74CADD03ABD0F96303EB1D22F0A6D62A5E1EEF68C
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\spatial\traversal_execution_system.py : C74E6964C7D02EBA9227A46CC4E3D772B23D3509AFDDCA28F246D08DAF4A45C3
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py : BB8E26393D58E77FE118611A70E62659BC50A1F0341D59BD7881901663D9AD61
+C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\exploration_target_resolver.py : 2C20163CC3FE643F222CCBCD2B2F229FF36BC8B4F047A0EE12FD57E306D69935
+
+## ITER1 CLOSED 2026-09-22 13:03:20
+PASSPORT (env#2): b971b767... x4 (pre-cut x2 + post-cut x2). Правка hash-нейтральна (A/B: rollback == post-cut). IPT 45/45 x3 (вкл. transient-разбор INV-TRAV-DICT: чужое окно правок 01:26-02:05, зона simulation/snapshot). Identity re-export подтверждена. Уроки: (1) git diff '>' = UTF-16 -> --output; (2) baseline SHA256 фиксировать для ВСЕХ изменённых чужих файлов, не только трёх; (3) IPT-гейт снимать ДО резки; (4) ruff '(N fixed)' без --fix = проверить pyproject fix=true — гейт-инструмент не имеет права мутировать дерево.
