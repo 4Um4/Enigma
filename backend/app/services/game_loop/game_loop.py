@@ -648,9 +648,7 @@ class GameLoop:
         # === 1. ОЧИСТКА PERSISTENCE (SQLite: scene + runtime) ===
         # КОРЕНЬ БАГА: раньше не чистили SQLite → LifeEngine читал старый runtime
         try:
-            persistence = self.scene_manager._persistence
-            if persistence:
-                persistence.delete_campaign(campaign_id)
+            if self.scene_manager.reset_campaign_persistence(campaign_id):
                 removed.append("sqlite:scene+runtime")
                 logger.info(f"[NEW_GAME] SQLite cleared for '{campaign_id}'")
         except Exception as e:

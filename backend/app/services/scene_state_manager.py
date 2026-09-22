@@ -215,6 +215,18 @@ class SceneStateManager:
         game_loop↔SSM (DEGOD Phase3-SeamB; зеркален adopt_scene_for_tick)."""
         return self._tick_locked and self._tick_campaign_id == campaign_id
 
+    def reset_campaign_persistence(self, campaign_id: str) -> bool:
+        """Удаляет персистентное состояние кампании (scene+runtime).
+        Владелец операции — PersistencePort через SSM (DEGOD Phase3B.0-Seam1;
+        ранее new_game обращался к self._persistence напрямую)."""
+        if self._persistence is None:
+            logger.warning(
+                "[SCENE] reset_campaign_persistence: PersistencePort отсутствует — пропуск"
+            )
+            return False
+        self._persistence.delete_campaign(campaign_id)
+        return True
+
     def unlock_tick(self, campaign_id: str) -> None:
         """Разблокирует тик. Персистит кэш.
         ADR-SCENE-LOCK: НЕ очищаем _tick_scene сразу — bridge может читать его
