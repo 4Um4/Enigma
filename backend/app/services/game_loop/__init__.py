@@ -79,26 +79,10 @@ logger = logging.getLogger(__name__)
 
 
 # ────────────────────────────────────────────────────────────────────────────────
-# Внутренний результат пайплайна (до DM-нарратива)
+# DEGOD ITER5: _PipelineState и build_traces экстрагированы в
+# app/services/game_loop/pipeline_state.py. Re-export сохраняет локальные имена.
 # ────────────────────────────────────────────────────────────────────────────────
-
-
-@dataclass
-class _PipelineState:
-    """Всё что нужно знать агентам после Python-этапа."""
-
-    shared_context: PipelineContext
-    classification_results: List[Dict[str, Any]]
-    world_tick_meta: Dict[str, Any]
-    rules_result: Dict[str, Any] = field(default_factory=dict)
-    npc_result: Dict[str, Any] = field(default_factory=dict)
-    python_engines_result: Dict[str, Any] = field(default_factory=dict)
-    # N-02 FIX: Используем time.monotonic() для измерения реального времени (latency, TPS).
-    # time.time() подменяется time_freezer во время replay, что ломает метрики.
-    start_ms: float = field(default_factory=lambda: time.monotonic() * 1000)
-    # Sprint P9: Факты, донесённые до игрока (для UI и DM)
-    observed_facts: list = field(default_factory=list)
-    world_snapshot: Optional[Any] = None  # BUG-FB-031 FIX: Проброс WorldSnapshotDTO из ядра
+from app.services.game_loop.pipeline_state import _PipelineState, build_traces
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -128,13 +112,8 @@ from app.services.game_loop.tick_context import (
 # ────────────────────────────────────────────────────────────────────────────────
 
 
-def _e1_extract_subject(topic: str):
-    """E1-wiring (S260): канонический P3-резолвер темы речи в SubjectRef
-    (extract_subject; обёртка "про {topic}" — паттерн E1-фикстур и
-    P7-B-подписчика game_loop:446 — единый механизм, не второй)."""
-    from app.services.input.intent_compressor import extract_subject
-
-    return extract_subject(f"про {topic}")
+# DEGOD ITER5: E1-wiring экстрагирован в app/services/game_loop/e1_wiring.py.
+from app.services.game_loop.e1_wiring import _e1_extract_subject
 
 
 class GameLoop:
@@ -636,44 +615,16 @@ class GameLoop:
     # ────────────────────────────────────────────────────────────────────────────
 
     def _save_diff_to_disk(self, campaign_id: str, diff: "WorldStateDiff") -> None:
-        """Сохраняет WorldStateDiff на диск, чтобы он пережил рестарт бэкенда."""
-        import json
-        from dataclasses import asdict
+        """DEGOD ITER5: делегат — тело в game_loop/world_diff_io.py."""
+        from app.services.game_loop.world_diff_io import save_diff_to_disk
 
-        try:
-            all_diffs = {}
-            if self._diffs_path.exists():
-                with open(self._diffs_path, "r", encoding="utf-8") as f:
-                    all_diffs = json.load(f)
-
-            all_diffs[campaign_id] = asdict(diff)
-
-            self._diffs_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self._diffs_path, "w", encoding="utf-8") as f:
-                json.dump(all_diffs, f, ensure_ascii=False, indent=2)
-            logger.info(f"[WORLD_DIFF] Saved diff for '{campaign_id}' to disk.")
-        except Exception as e:
-            logger.error(f"[WORLD_DIFF] Failed to save diff for '{campaign_id}': {e}")
+        save_diff_to_disk(self._diffs_path, campaign_id, diff)
 
     def _load_diff_from_disk(self, campaign_id: str) -> Optional["WorldStateDiff"]:
-        """Загружает WorldStateDiff с диска, если он там есть."""
-        import json
+        """DEGOD ITER5: делегат — тело в game_loop/world_diff_io.py."""
+        from app.services.game_loop.world_diff_io import load_diff_from_disk
 
-        from app.models.world_state_diff import WorldStateDiff
-
-        try:
-            if not self._diffs_path.exists():
-                return None
-            with open(self._diffs_path, "r", encoding="utf-8") as f:
-                all_diffs = json.load(f)
-
-            diff_data = all_diffs.get(campaign_id)
-            if diff_data:
-                return WorldStateDiff(**diff_data)
-            return None
-        except Exception as e:
-            logger.error(f"[WORLD_DIFF] Failed to load diff for '{campaign_id}': {e}")
-            return None
+        return load_diff_from_disk(self._diffs_path, campaign_id)
 
     # ADR-O-146: New Game Reset — сброс runtime мира при сохранении static
     def new_game(
@@ -964,45 +915,8 @@ class GameLoop:
             return engine.get_npc_light_states(campaign_id)
         return []
 
-    def _e1_relationship_reader(
-        self, campaign_id: str, knower_id: str, recipient_id: str
-    ) -> dict:
-        """E1-wiring (S260): читатель отношений для decide_disclosure.
-
-        Источник — SSOT RelationshipStore (V2, RAM-authoritative);
-        Vacuum (нет пары knower→recipient) → фолбэк social_stats NPC —
-        канонический паттерн tick_utils (M1b.3.3+3.4: «Player-дефолты
-        social_stats — фолбэк только при Vacuum в V2»). Возвращает
-        {"trust": float, "fear": float} в шкале 0-100 (пороги V1:
-        T_REVEAL=50, F_HIGH=60). Fail-open: любая ошибка чтения →
-        пустой dict (decide_disclosure даст DENY-лестницу по нулям —
-        честное «не знаю отношений», не крах диалога)."""
-        try:
-            _store = getattr(
-                getattr(self, "memory_manager", None), "_relationships", None
-            )
-            if _store is not None:
-                _rels = _store.get(campaign_id, knower_id) or {}
-                _pair = _rels.get(f"{knower_id}→{recipient_id}") or {}
-                if _pair:
-                    return {
-                        "trust": float(_pair.get("trust", 0.0)),
-                        "fear": float(_pair.get("fear", 0.0)),
-                    }
-            # Vacuum → social_stats NPC (канон tick_utils)
-            for _n in self._resolve_npcs_snapshot(campaign_id) or []:
-                if not isinstance(_n, dict):
-                    continue
-                if (_n.get("npc_id") or _n.get("id")) == knower_id:
-                    _ss = _n.get("social_stats") or {}
-                    return {
-                        "trust": float(_ss.get("trust", 0.0)),
-                        "fear": float(_ss.get("fear_of_player", 0.0)),
-                    }
-            return {}
-        except Exception as _e:
-            logger.warning(f"[E1_WIRING] relationship read failed: {_e}")
-            return {}
+# DEGOD ITER5: E1-wiring экстрагирован в app/services/game_loop/e1_wiring.py.
+from app.services.game_loop.e1_wiring import _e1_extract_subject
 
     def _project_perception(
         self, campaign_id: str, scene_state: dict, all_npcs_raw: list
@@ -2739,75 +2653,37 @@ class GameLoop:
         return self._task_scheduler
 
     def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
-        try:
-            characters = self.character_service.list_characters(campaign_id)
-            for char in characters:
-                if char.name == player_name:
-                    return char.model_dump()
-        except Exception as e:
-            logger.warning(f"[GAME_LOOP] Персонаж '{player_name}' не найден: {e}")
-        return {}
+        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
+        from app.services.game_loop.campaign_mgmt import get_character_dict
+
+        return get_character_dict(self.character_service, campaign_id, player_name)
 
     def _build_traces(
         self, state: _PipelineState, dm_result: dict, elapsed_ms: int
     ) -> list:
-        return [
-            AgentTrace(agent="performance", output={"turn_elapsed_ms": elapsed_ms}),
-            AgentTrace(agent="world_scheduler", output=state.world_tick_meta),
-            AgentTrace(agent="rules", output=state.rules_result),
-            AgentTrace(agent="npc", output=state.npc_result),
-            AgentTrace(agent="dm", output=dm_result),
-            AgentTrace(agent="python_engines", output=state.python_engines_result),
-            AgentTrace(agent="game_loop", output={"pipeline_duration_ms": elapsed_ms}),
-        ]
+        """DEGOD ITER5: делегат — тело в game_loop/pipeline_state.py."""
+        return build_traces(state, dm_result, elapsed_ms)
 
     # ────────────────────────────────────────────────────────────────────────────────
     # УПРАВЛЕНИЕ КАМПАНИЕЙ + СИСТЕМНЫЕ ПРОВЕРКИ
     # ────────────────────────────────────────────────────────────────────────────────
 
     def assert_requirements(self) -> dict:
-        report = self.system_requirements.check()
-        if settings.enforce_system_requirements and not report.meets:
-            raise RuntimeError(f"Недостаточно ресурсов: {report.details}")
-        return {"meets": report.meets, **report.details}
+        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
+        from app.services.game_loop.campaign_mgmt import assert_requirements
+
+        return assert_requirements(self.system_requirements)
 
     def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
-        # ADR-O-146: AdventureLoader удалён. Файлов world_lore/npc.json/locations.json не существует.
-        loaded: dict = {"status": "not_found", "files": {}}
-        self._campaign_world_index[campaign_id] = world_id
+        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
+        from app.services.game_loop.campaign_mgmt import load_campaign
 
-        # Дополнение Б (п. Б.12): Детектор старых сейвов
-        try:
-            from app.services.state.save_format_detector import detect_legacy_saves
-            _legacy_campaigns = detect_legacy_saves(self.saves_dir)
-            if campaign_id in _legacy_campaigns:
-                logger.warning(f"[SAVE_MIGRATION] Обнаружен сейв старого формата для кампании '{campaign_id}'. Удаление...")
-                _old_save_file = self.saves_dir / campaign_id / "campaign_state.json"
-                if _old_save_file.exists():
-                    _old_save_file.unlink()
-        except Exception as _migr_err:
-            logger.error(f"[SAVE_MIGRATION] Ошибка при удалении старого сейва: {_migr_err}")
-        for filename, payload in loaded.get("files", {}).items():
-            self.memory_manager.persist_world_canon(
-                world_id,
-                campaign_id=campaign_id,
-                source=filename,
-                payload=payload,
-            )
-        self.memory_manager.persist_campaign_event(
+        return load_campaign(
             campaign_id,
-            event="campaign_loaded",
-            world_id=world_id,
-            data={
-                "loaded_files": list(loaded.get("files", {})),
-                "status": loaded["status"],
-            },
-        )
-        return CampaignLoadResponse(
-            campaign_id=campaign_id,
-            world_id=world_id,
-            status=loaded["status"],
-            loaded_files=list(loaded.get("files", {})),
+            world_id,
+            saves_dir=self.saves_dir,
+            campaign_world_index=self._campaign_world_index,
+            memory_manager=self.memory_manager,
         )
 
     def session_state(self, campaign_id: str):
@@ -2835,14 +2711,10 @@ class GameLoop:
         return state
 
     def _resolve_world_id(self, campaign_id: str) -> str:
-        if campaign_id in self._campaign_world_index:
-            return self._campaign_world_index[campaign_id]
-        history = self.memory_manager.read_campaign_history(campaign_id, limit=100)
-        for item in reversed(history):
-            if item.get("event") == "campaign_loaded" and item.get("world_id"):
-                self._campaign_world_index[campaign_id] = item["world_id"]
-                return item["world_id"]
-        return "manual"
+        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
+        from app.services.game_loop.campaign_mgmt import resolve_world_id
+
+        return resolve_world_id(campaign_id, self._campaign_world_index, self.memory_manager)
 
     def dispose(self) -> None:
         """Закрывает все ресурсы (SQLite connections, cached services).
