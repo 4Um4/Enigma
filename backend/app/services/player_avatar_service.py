@@ -63,6 +63,20 @@ class PlayerAvatarService:
         if campaign_id in self._dialog_journals:
             del self._dialog_journals[campaign_id]
 
+    def reset_campaign(self, campaign_id: str) -> bool:
+        """Полный сброс сессии аватара кампании (DEGOD Phase3B.0-Seam5).
+
+        УСТРАНЁН DOUBLE TRUTH пути: ранее new_game удалял player_avatar.json
+        по пути GameLoop._saves_dir, а владелец писал/читал через self.root
+        (_avatar_path) — настоящий файл аватара переживал new_game.
+        Возвращает True, если файл аватара существовал и был удалён."""
+        path = self._avatar_path(campaign_id)
+        existed = path.exists()
+        if existed:
+            path.unlink()
+        self.clear_journal(campaign_id)
+        return existed
+
     def _avatar_path(self, campaign_id: str) -> Path:
         return self.root / campaign_id / "player_avatar.json"
 

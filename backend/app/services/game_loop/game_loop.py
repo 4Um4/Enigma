@@ -790,16 +790,10 @@ class GameLoop:
 
         # === 11. СБРОС СЕССИИ АВАТАРА (player body_state из предыдущей игры) ===
         try:
-            # Удаляем файл аватара — старый мёртвый body_state не переживает new_game
-            _avatar_path = self._saves_dir / campaign_id / "player_avatar.json"
-            if _avatar_path.exists():
-                _avatar_path.unlink()
+            # DEGOD Phase3B.0-Seam5: сброс у владельца (устранён DOUBLE TRUTH пути —
+            # старый код удалял player_avatar.json по чужому пути, настоящий переживал new_game)
+            if self.avatar_service.reset_campaign(campaign_id):
                 removed.append("player_avatar.json")
-            # Сброс RAM-кэша аватара (используем DI-инстанс, а не глобальный синглтон)
-            if hasattr(self.avatar_service, "_cache"):
-                self.avatar_service._cache.pop(campaign_id, None)
-            # B1.3-FIX: Сброс RAM-кэша журнала диалогов при new_game (устранение утечки)
-            self.avatar_service.clear_journal(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Avatar session reset failed: {e}")
 
