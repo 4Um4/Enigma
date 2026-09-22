@@ -800,19 +800,7 @@ class GameLoop:
         # === 12. СБРОС ПАМЯТИ NPC (narrative_cache + campaign history) ===
         try:
             # Очистить все dialogue sessions (STM)
-            self.memory_manager.clear_all_dialogue_sessions(campaign_id)
-            # Сброс тик-счётчика MemoryManager
-            if hasattr(self.memory_manager, "_tick_counters"):
-                self.memory_manager._tick_counters.pop(campaign_id, None)
-            # Очистить narrative_cache всех NPC в LifeEngine кэше
-            engine = self._get_life_engine()
-            cached_npcs = engine._npc_cache.get(campaign_id, [])
-            for npc in cached_npcs:
-                npc.pop("narrative_cache", None)
-                npc.pop("wounds", None)
-                npc.pop("conditions", None)
-            if cached_npcs:
-                engine.update_cache(campaign_id, cached_npcs)
+            _cleared_npcs = self._get_life_engine().clear_runtime_caches(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Memory reset failed: {e}")
 

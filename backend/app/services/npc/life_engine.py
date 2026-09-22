@@ -864,6 +864,19 @@ class LifeEngine:
         self._npc_cache.pop(campaign_id, None)
         self._temporal.invalidate_cache(campaign_id)
 
+    def clear_runtime_caches(self, campaign_id: str) -> int:
+        """Очищает runtime-эфемеры NPC в кэше кампании (narrative_cache/wounds/conditions)
+        и обновляет кэш (DEGOD Phase3B.0-Seam6; ранее new_game лез в _npc_cache напрямую).
+        Возвращает количество затронутых NPC."""
+        cached_npcs = self._npc_cache.get(campaign_id, [])
+        for npc in cached_npcs:
+            npc.pop("narrative_cache", None)
+            npc.pop("wounds", None)
+            npc.pop("conditions", None)
+        if cached_npcs:
+            self.update_cache(campaign_id, cached_npcs)
+        return len(cached_npcs)
+
     def reset_campaign(self, campaign_id: str) -> list[dict]:
         """Сброс NPC кампании к чистому static config с healthy body_state.
         Вызывается из new_game() ПОСЛЕ очистки persistence.
