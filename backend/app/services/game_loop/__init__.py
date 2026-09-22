@@ -915,8 +915,19 @@ class GameLoop:
             return engine.get_npc_light_states(campaign_id)
         return []
 
-# DEGOD ITER5: E1-wiring экстрагирован в app/services/game_loop/e1_wiring.py.
-from app.services.game_loop.e1_wiring import _e1_extract_subject
+    def _e1_relationship_reader(
+        self, campaign_id: str, knower_id: str, recipient_id: str
+    ) -> dict:
+        """DEGOD ITER5: делегат — тело в game_loop/e1_wiring.py."""
+        from app.services.game_loop.e1_wiring import e1_relationship_reader
+
+        return e1_relationship_reader(
+            self.memory_manager,
+            self._resolve_npcs_snapshot,
+            campaign_id,
+            knower_id,
+            recipient_id,
+        )
 
     def _project_perception(
         self, campaign_id: str, scene_state: dict, all_npcs_raw: list

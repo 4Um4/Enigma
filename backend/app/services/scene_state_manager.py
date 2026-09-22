@@ -95,6 +95,9 @@ def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
 # класса не меняются.
 # ──────────────────────────────────────────────────────────────────────────────
 from app.services.scene_state.change_validator import ChangeValidator
+from app.services.scene_state.environment_modifiers import (
+    _derive_environment_modifiers as _derive_environment_modifiers,
+)
 from app.services.scene_state.editor_locator import (
     _find_editor_location as _find_editor_location_impl,
 )
