@@ -197,6 +197,18 @@ class SceneStateManager:
             if scene is not None:
                 self._tick_scenes[_loc_id] = scene
 
+    def adopt_scene_for_tick(self, campaign_id: str, location_id: str, scene_state: dict) -> None:
+        """Принимает НОВУЮ сцену (созданную init_scene_state) под tick-владение.
+
+        Зеркальна к lock_for_tick: та загружает и блокирует существующую сцену,
+        эта регистрирует только что собранную (первый визит локации). Тот же
+        TICK-SCOPED IDENTITY контракт: все последующие get_scene_state()
+        возвращают этот же dict; персист — в unlock_tick().
+        DEGOD Phase3-A: инкапсуляция прямых записей internals из GameLoop."""
+        self._tick_locked = True
+        self._tick_campaign_id = campaign_id
+        self._tick_scenes[location_id] = scene_state
+
     def unlock_tick(self, campaign_id: str) -> None:
         """Разблокирует тик. Персистит кэш.
         ADR-SCENE-LOCK: НЕ очищаем _tick_scene сразу — bridge может читать его

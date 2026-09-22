@@ -2361,9 +2361,7 @@ class GameLoop:
                 player_position=player_position,
             )
             # BUG-CORE-008 FIX: ADR-SCENE-LOCK — _tick_scenes это Dict[str, dict].
-            self.scene_manager._tick_scenes[_loc_id] = scene_state
-            self.scene_manager._tick_locked = True
-            self.scene_manager._tick_campaign_id = campaign_id
+            self.scene_manager.adopt_scene_for_tick(campaign_id, _loc_id, scene_state)
         else:
             from app.services.game_loop.scene_init import (
                 _sync_game_time,
