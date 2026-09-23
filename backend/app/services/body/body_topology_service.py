@@ -26,9 +26,18 @@ class BodyTopologyService:
     _topology_template: Optional[Dict] = None
     _encumbrance_rules: Optional[Dict] = None
 
+    # Фикс CWD-зависимости: путь к YAML резолвится от корня репозитория
+    # (backend/app/services/body/ → 4 уровня вверх), а не от рабочего
+    # каталога процесса лаунчера.
+    _REPO_ROOT = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..")
+    )
+
     @classmethod
-    def load_template(cls, yaml_path: str = "architecture/body_topology.yaml") -> None:
+    def load_template(cls, yaml_path: Optional[str] = None) -> None:
         """Загружает стандартную топологию человека из YAML (один раз)."""
+        if yaml_path is None:
+            yaml_path = os.path.join(cls._REPO_ROOT, "architecture", "body_topology.yaml")
         if cls._topology_template is not None:
             return
         if not os.path.exists(yaml_path):

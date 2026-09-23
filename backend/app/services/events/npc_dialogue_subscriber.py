@@ -172,8 +172,35 @@ class NpcDialogueSubscriber:
                 ):
                     _journal_threshold = float(_evt_radius)
                 if _dist_to_player < _journal_threshold and is_canonical:
+                    # INV-NPC-NAME: журнал игрока хранит наблюдаемое имя, не machine-id.
+                    # Резолв через SSOT имён (npc_positions["name"], CAUSAL CONTRACT §2.1).
+                    # Источник — тот же _spatial_query, что и для дистанции (прецедент
+                    # P1-07 выше). Fail-open: без позиций — speaker как есть (parity).
+                    _speaker_name = speaker
+                    _npc_positions = getattr(_spatial_query, "_npc_positions", None) or {}
+                    if speaker in _npc_positions:
+                        _sp_data = _npc_positions[speaker]
+                        _resolved = (
+                            _sp_data.get("name")
+                            if isinstance(_sp_data, dict) else getattr(_sp_data, "name", None)
+                        ) or (
+                            _sp_data.get("display_name")
+                            if isinstance(_sp_data, dict) else getattr(_sp_data, "display_name", None)
+                        )
+                        if _resolved:
+                            _speaker_name = _resolved
+                        else:
+                            logger.warning(
+                                f"[NPC_DIALOGUE_SUB] speaker '{speaker}' без name в "
+                                f"npc_positions — journal хранит npc_id (INV-NPC-NAME drift)"
+                            )
+                    # Эпистемическая метка канала: игрок-адресат (direct) vs
+                    # подслушанное (overheard) — известна в момент записи,
+                    # проекция слышанного, не новая истина.
+                    _channel = "direct" if listener == "player" else "overheard"
                     self._avatar_service.append_journal(
-                        campaign_id=_campaign_id, speaker=speaker, text=text
+                        campaign_id=_campaign_id, speaker=_speaker_name, text=text,
+                        channel=_channel,
                     )
                     # E2 (S256, mini-ADR E2-1..E2-4): реплика ДОСТАВЛЕНА —
                     # мембрана S128/Р-Г пройдена, журнал игрока записан.

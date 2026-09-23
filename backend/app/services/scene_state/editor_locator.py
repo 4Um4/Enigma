@@ -8,6 +8,7 @@ import json
 import logging
 import math
 from pathlib import Path
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def _find_editor_location(
             continue
         for json_file in loc_dir.glob("*.json"):
             try:
-                data = json.loads(json_file.read_text(encoding="utf-8-sig"))
+                data: dict[str, Any] = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 lid = data.get("location_id", "")
                 label = data.get("label", "")
                 # Точное совпадение
@@ -77,7 +78,7 @@ def _find_first_editor_location(campaigns_dir: Path, campaign_id: str) -> dict |
             continue
         for json_file in loc_dir.glob("*.json"):
             try:
-                data = json.loads(json_file.read_text(encoding="utf-8-sig"))
+                data: dict[str, Any] = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 if data.get("rooms") or data.get("walls"):
                     logger.info(f"[SCENE] Fallback: первая локация из {json_file}")
                     return data
@@ -106,9 +107,9 @@ def _find_starting_location(campaigns_dir: Path, campaign_id: str) -> str:
             continue
         for json_file in sorted(loc_dir.glob("*.json")):
             try:
-                data = json.loads(json_file.read_text(encoding="utf-8-sig"))
+                data: dict[str, Any] = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 if data.get("player_spawn") and data.get("npcs"):
-                    return data.get("location_id", json_file.stem)
+                    return cast(str, data.get("location_id", json_file.stem))
             except (json.JSONDecodeError, OSError) as e:
                 logger.debug(f"[SCENE] Пропуск невалидного JSON (NPC+spawn) {json_file}: {e}")
                 continue
@@ -120,7 +121,7 @@ def _find_starting_location(campaigns_dir: Path, campaign_id: str) -> str:
             try:
                 data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 if data.get("player_spawn"):
-                    return data.get("location_id", json_file.stem)
+                    return cast(str, data.get("location_id", json_file.stem))
             except (json.JSONDecodeError, OSError) as e:
                 logger.debug(f"[SCENE] Пропуск невалидного JSON (spawn only) {json_file}: {e}")
                 continue
@@ -132,7 +133,7 @@ def _find_starting_location(campaigns_dir: Path, campaign_id: str) -> str:
             try:
                 data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 if data.get("rooms") or data.get("walls") or data.get("nodes"):
-                    return data.get("location_id", json_file.stem)
+                    return cast(str, data.get("location_id", json_file.stem))
             except (json.JSONDecodeError, OSError) as e:
                 logger.debug(f"[SCENE] Пропуск невалидного JSON (rooms/walls/nodes) {json_file}: {e}")
                 continue

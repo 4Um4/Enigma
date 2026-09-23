@@ -1,0 +1,12 @@
+{
+  "include": ["."],
+  "exclude": ["**/__pycache__", "**/.venv", "build", "diagnostics"],
+  "extraPaths": [
+    "backend",
+    "backend/app",
+    "frontend",
+    "frontend/map_editor"
+  ],
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "none"
+}

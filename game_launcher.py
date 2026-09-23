@@ -18,6 +18,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 # Центрируем окно игры на экране (должно быть до импорта pygame)
 os.environ['SDL_VIDEO_CENTERED'] = '1'
@@ -208,7 +209,9 @@ def _draw_llm_diag_screen(seconds: float = 10.0) -> None:
 # ─── конец LOG-GATE-UI ───────────────────────────────────────────────────────
 
 
-def _ensure_llm_running() -> subprocess.Popen:
+def _ensure_llm_running() -> Optional[subprocess.Popen]:
+    # None = легальные исходы: сервер уже запущен (reuse-lock), exe/модель
+    # не найдены (_LLM_DIAG заполнен). Потребители обязаны проверять is None.
     """Запускает llama-server.exe локально, если он ещё не запущен.
 
     ИНЦИДЕНТ 2026-08-30: спавн через канонический процессный лок
@@ -410,7 +413,14 @@ def _ensure_servers_running() -> tuple:
     _backend_ok = False
     _llm_ok = (llm_proc is None)  # Если LLM не запущен нами (уже шел или ошибка), не ждем его
 
-    for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
+    # Честная загрузка (fix «недогруженный старт»): цикл не имеет таймаута.
+    # Выход = оба сервиса готовы, ИЛИ процесс умер (poll-ветки ниже обработают
+    # и классифицируют причину). LLM при занятой VRAM (параллельная игра)
+    # грузится минуты — обрывать ожидание по счётчику = пускать игрока
+    # в семантически мёртвый мир (DRI 0%).
+    _attempt = 0
+    while True:
+        _attempt += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if backend_proc: backend_proc.terminate()
@@ -425,8 +435,10 @@ def _ensure_servers_running() -> tuple:
             _stage_fraction += 0.25
         if _backend_ok:
             _stage_fraction += 0.25
-        # Внутри этапа — плавный подтProgress по попыткам (до 0.2 доли шкалы)
-        _attempt_frac = (_attempt / _BACKEND_STARTUP_TIMEOUT) * 0.20
+        # Внутри этапа — плавный подтProgress; после лимита — медленный ползунок
+        # (ожидание LLM при занятой VRAM может длиться минуты — полоса живая,
+        # но не «дозревает» до лжи о скором завершении)
+        _attempt_frac = min(_attempt / _BACKEND_STARTUP_TIMEOUT, 5.0) * 0.20
         _status_text = "Ожидание AI-модели..." if not _llm_ok else "Ожидание Backend..."
         _draw_progress(_status_text, _stage_fraction + _attempt_frac * (0.5 if _llm_ok or _backend_ok else 1.0))
 
@@ -474,8 +486,16 @@ def _ensure_servers_running() -> tuple:
         if _backend_ok and _llm_ok:
             break
 
+    # Сюда попадаем только при выходе из while — а он теперь только при
+    # готовности обоих или смерти процессов (обработано выше). Диагностика
+    # реального состояния вместо вводящего в заблуждение «таймаута»:
     if not (_backend_ok and _llm_ok):
-        print(f"\n  ⚠ Не все сервисы готовы за {_BACKEND_STARTUP_TIMEOUT}с")
+        _parts = []
+        if not _backend_ok:
+            _parts.append("Backend не отвечает (процесс " + ("упал" if backend_proc is None else "жив") + ")")
+        if not _llm_ok:
+            _parts.append("LLM не отвечает (процесс " + ("упал" if llm_proc is None else "жив") + ")")
+        print(f"\n  ⚠ Выход ожидания: {'; '.join(_parts)}")
 
     # LOG-GATE-UI: финальная карточка с причиной («AI не запущен — потому
     # что…»). Для model_missing не показываем: сразу после возврата main()

@@ -66,7 +66,9 @@ class FocusRenderer:
 
             # Рисуем, если таймер активен
             if _now < self._activity_timers.get(entity.entity_id, 0):
-                _color = _activity_map.get(_activity, (255, 255, 255))
+                # Fail-open цвет: None (idle-заглушка в таблице) или неизвестный
+                # ключ не должны ронять кадр (TypeError *None). Дефолт — серый.
+                _color = _activity_map.get(_activity) or (160, 160, 160)
                 _sx = _coords["sx"]
                 _sy = _coords["sy"] - _coords["radius"] - 32
                 

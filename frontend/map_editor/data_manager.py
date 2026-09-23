@@ -12,7 +12,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# M1/Phase1: Импортируем NPC-данные из нового модуля
+# M1/Phase1: Импортируем NPC-данные из нового модуля (фасад для обратной совместимости).
+# Полный re-export: все потребители (editor_core, property_builder, visual_casting_editor)
+# исторически импортируют NPC-функции отсюда. Не расширять выборочно — только весь блок.
+from data.npc_data import (  # noqa: F401 — re-export фасада
+    load_npc_calibration,
+    load_npc_individuals,
+    load_npc_visual_casting,
+    save_npc_calibration,
+    save_npc_visual_casting,
+)
 
 logger = logging.getLogger(__name__)
 

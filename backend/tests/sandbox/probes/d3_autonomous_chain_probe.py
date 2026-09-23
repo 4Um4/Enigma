@@ -49,7 +49,16 @@ def main() -> int:
                     "UNKNOWN_ROUTE", "EXPLORATION", "PERSONAL_ROUTE",
                     "SPATIAL_KNOWLEDGE", "BOUNDARY_DWELL", "SCHED_TRACE",
                     "cross-loc relocation", "ARBITER_REJECT",
-                )) and "borko" in m:
+                    "GATE_B1_5", "MOVEMENT_TRACE", "TRAV_EXEC",
+                    "GATE_A", "GATE_B2", "IDLE_SPATIAL",
+                    # Не содержат npc_id в тексте — ловим по маркеру
+                    "GATE_B1]", "BORKO_TRACE", "BORKO_RELOC",
+                    # D-3: локации тиков и инжекты (не содержат borko)
+                    "S186_DEBUG", "S186_INJECT", "S186_TRANSFER",
+                    "SPATIAL_KNOWLEDGE", "DIRECT_EXPERIENCE",
+                )) and ("borko" in m or "GATE_" in m or "BORKO_" in m
+                        or "S186_" in m or "SPATIAL_KNOWLEDGE" in m
+                        or "merchant_goran" in m or "maid_lusya" in m):
                     self.lines.append(m[:200])
             except Exception:  # noqa: S110
                 pass
@@ -129,12 +138,25 @@ def main() -> int:
             _sig = entry.get("_unknown_route")
             if _sig is not None:
                 _stale_signals.add(str(_sig.get("tick")))
-            _log(f"tick={t}: в tavern, position={_pos}, dwell={'DA' if _NID in dwell else 'net'}")
+            _trav_b = (sc.get("active_traversals") or {}).get(_NID)
+            _cmt_b = (sc.get("active_commitments") or {}).get(_NID)
+            _log(f"tick={t}: pos={_pos} dwell={'DA' if _NID in dwell else 'net'} "
+                 f"trav={_trav_b.get('status') if isinstance(_trav_b, dict) else None} "
+                 f"cmt={_cmt_b.get('status') if isinstance(_cmt_b, dict) else None}")
 
         # НЕГАТИВ B: neighbor не утёк — после crossing в store только
         # direct-записи (проверка после выхода из tavern)
         if _knowledge_tick is not None:
-            h.advance_ticks(1)
+            # Вердикт: knowledge появляется не позднее завершения transfer
+            # (dwell-ветка пишет в том же тике transfer'а). Probe ждёт
+            # transfer-факт в capture (до 10 тиков), затем проверяет store
+            # сразу — временная модель sync с transfer seam, не с уходом.
+            _transfer_seen = any("dwell complete" in ln for ln in _col.lines)
+            for _w in range(10):
+                if _transfer_seen:
+                    break
+                h.advance_ticks(1)
+                _transfer_seen = any("dwell complete" in ln for ln in _col.lines)
             _recs = _ep.get_all_for_agent(_NID) or []
             _bad = [
                 r for r in _recs
@@ -146,6 +168,8 @@ def main() -> int:
                 if getattr(getattr(r.proposition, "predicate", None), "value", "") == "exits_to"
                 and str(getattr(r.proposition, "source_claim_id", "")).startswith("direct:")
             ]
+            # Вердикт: дверь первого crossing выбирает frontier (не хардкод
+            # exit_east) — проверяем ФАКТИЧЕСКУЮ direct-запись, любая дверь.
             if _exits_direct:
                 _GREEN.append(f"NEG-B/CHAIN: direct EXITS_TO после crossing: "
                               f"{[(str(r.proposition.subject_id), str(r.proposition.object_id)) for r in _exits_direct]}")
@@ -169,6 +193,21 @@ def main() -> int:
             else:
                 _RED.append("CHAIN: NPC не материализовался в city_gate")
 
+        # Полный EXITS_TO-dump всех агентов (вердикт: отсутствие строки в trace
+        # ≠ отсутствие события — store — истина). ДОЛЖЕН быть ВНУТРИ with:
+        # после dispose store недоступен (оплачено прогонами 191/205/211 —
+        # dump молча пропущен трижды).
+        _ep_final = getattr(getattr(h.game_loop, "_tick_orch", None), "_epistemic_store", None)
+        if _ep_final is not None:
+            for _aid in ("guard_borko", "thief_shadow", "merchant_goran", "tavern_keeper_tornin", "maid_lusya", "blacksmith_orm", "player"):
+                _recs = [r for r in (_ep_final.get_all_for_agent(_aid) or [])
+                         if getattr(getattr(r, "proposition", None), "predicate", None) is not None
+                         and getattr(r.proposition.predicate, "value", "") == "exits_to"]
+                if _recs:
+                    _log(f"EXITS_DUMP {_aid}: {[(str(r.proposition.subject_id), str(r.proposition.object_id), f'{getattr(r, 'confidence', 0):.2f}', str(getattr(r, 'source_claim_id', ''))[:30]) for r in _recs]}")
+                else:
+                    _log(f"EXITS_DUMP {_aid}: (нет)")
+
     # Трасса причинной цепи из capture (доказательство «почему/что произошло»)
     _trace = getattr(_col, "lines", [])
     if any("exploration:frontier" in ln for ln in _trace):
@@ -181,6 +220,15 @@ def main() -> int:
         _GREEN.append("TRACE: DIRECT_EXPERIENCE записан")
     if any("exploration:frontier" in ln and "REJECT" in ln for ln in _trace):
         _log(f"NOTE: exploration REJECT'ился арбитром {sum(1 for ln in _trace if 'exploration' in ln and 'REJECT' in ln)}x до ACCEPT (политика Э-0, не баг)")
+
+    # Полный дамп причинной трассы (артефакт досье; без него различить
+    # «погиб в арбитре / в GATE_B1_5 / не родился» невозможно)
+    try:
+        with open("../d3_trace_full.txt", "w", encoding="utf-8") as _tf:
+            _tf.write("\n".join(_trace))
+        _log(f"TRACE: {len(_trace)} строк -> ../d3_trace_full.txt")
+    except Exception as _e:  # noqa: BLE001 — probe-инфраструктура
+        _log(f"TRACE DUMP FAIL: {_e}")
 
     for g in _GREEN:
         _log(f"GREEN: {g}")

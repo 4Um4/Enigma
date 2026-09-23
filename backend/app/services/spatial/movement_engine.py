@@ -392,6 +392,15 @@ class MovementEngine:
                             f"{current_loc}→{target_loc} via={_route.path} "
                             f"conf={_route.min_confidence:.2f}"
                         )
+                        # Phase D Э-3 (вердикт A): гейт — полный владелец
+                        # сигнала. KNOWN = правда изменилась: устаревшее
+                        # давление неизвестности гасится здесь, а не
+                        # потребителем (осциллятор pop/conversion оплачен
+                        # прогонами d3 #13-14: explore-traversal прерывался
+                        # relocation'ом в окне после pop).
+                        _sig_entry = (npc_positions or {}).get(intent.actor_id)
+                        if isinstance(_sig_entry, dict):
+                            _sig_entry.pop("_unknown_route", None)
                     current_svc = self._resolve_spatial_service(
                         current_loc, campaign_id, scene_state
                     )
@@ -945,7 +954,11 @@ class MovementEngine:
 
         source_node_obj = svc.get_node(current_pos)
         if not target_node_obj:
-             return []
+            # [DIAG_D3] временный зонд (снять после Э-3): молчаливый дроп цели
+            print(f"[DIAG_D3] MOVEMENT_SILENT_DROP npc={intent.actor_id} reason=NO_TARGET "
+                  f"target={intent.target_node_id!r} short={_target_node_id_short!r} "
+                  f"cur_pos={current_pos!r}", flush=True)
+            return []
 
         # S131 FIX (советник): current_xy — авторитетная позиция тела, а не графового узла.
         if isinstance(current_xy, dict) and "x" in current_xy and "y" in current_xy:
@@ -1022,6 +1035,9 @@ class MovementEngine:
                     _dwell_map_ms[intent.actor_id] = {
                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
                         "neighbor": _materialize_target_loc,
+                        "via": next_node.node_id,  # Phase D: канон payload'а —
+                        # без via transfer-ветка не пишет direct EXITS_TO
+                        # (оплачено d3: borko crossing без знания)
                     }
                     return [
                         SceneChange(

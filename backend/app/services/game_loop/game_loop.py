@@ -1415,35 +1415,53 @@ class GameLoop:
         if isinstance(dm_result, dict) and dm_result.get("error"):
             _err_msg = dm_result.get("human_msg", "LLM сервер недоступен")
             logger.error(f"[DM_RESULT] LLM FAILED: {_err_msg}")
+
+            def _dm_unavailable_response() -> ChatTurnResponse:
+                """LLM недоступен: честная ошибка игроку + последний известный снапшот.
+                Контракт ChatTurnResponse (обязательные поля) соблюдён."""
+                return ChatTurnResponse(
+                    dm_response=f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
+                    npc_reactions=[],
+                    world_changes=[],
+                    journal_entry_id="",
+                    traces=[],
+                    world_snapshot=state.shared_context.world_snapshot or {},
+                    will_conflict_data=None,
+                )
             # Recovery: пробуем перезапустить llama-server и повторить запрос
             try:
                 from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
 
                 if _restart_llama_server():
                     logger.info("[DM_RESULT] LLM рестартнул — повторяем запрос")
-                    dm_result = self._run_dm(state)
+                    # DEGOD-fix: _run_dm никогда не существовал (мёртвый остаток
+                    # до-рефакторингного API). Retry повторяет основной вызов
+                    # run_agent_safe с теми же аргументами (дублирование кортежа —
+                    # Tech Debt Note: синхронизировать при правке DM-вызова выше).
+                    dm_result = await run_agent_safe(
+                        "dm",
+                        self.dm_agent,
+                        (
+                            req.location,
+                            req.actions,
+                            state.rules_result,
+                            state.npc_result,
+                            _dm_world_result,
+                            False,
+                            state.shared_context,
+                        ),
+                        {},
+                    )
                     if not (isinstance(dm_result, dict) and dm_result.get("error")):
                         # Рестарт помог — продолжаем нормальный путь
                         pass
                     else:
-                        return {
-                            "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                            "world_snapshot": state.shared_context.world_snapshot or {},
-                            "will_conflict_data": None,
-                        }
+                        return _dm_unavailable_response()
                 else:
-                    return {
-                        "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                        "world_snapshot": state.shared_context.world_snapshot or {},
-                        "will_conflict_data": None,
-                    }
+                    return _dm_unavailable_response()
             except ImportError as e:
                 logger.warning(f"LLM ImportError: {e}")
-                return {
-                    "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                    "world_snapshot": state.shared_context.world_snapshot or {},
-                    "will_conflict_data": None,
-                }
+                return _dm_unavailable_response()
         logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
 
         # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива

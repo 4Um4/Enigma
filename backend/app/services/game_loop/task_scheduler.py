@@ -728,6 +728,10 @@ class TaskScheduler:
                                 "speaker_id": ev.source,
                                 "target_id": ev.payload.get("target_id", ""),
                                 "text": ev.payload.get("text", ""),
+                                # Проброс exposure: материален в ev.payload (DialogueMaterializer),
+                                # потребитель — NarrativeProjector (delivery_type для портретов).
+                                # Чинит потерю provenance в ручной сборке entry.
+                                "exposure": ev.payload.get("exposure", "normal"),
                                 # IRON RIVER D-1/P0-1 (F1a): timestamp — каузальная
                                 # ось game_time (значение уже в точке записи, :564),
                                 # детерминирован и входит в канон-хеш; real_ts —

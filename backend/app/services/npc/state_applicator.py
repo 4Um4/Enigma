@@ -528,11 +528,11 @@ class StateApplicator:
         body_parts = ["head", "torso", "arm_left", "arm_right", "leg_left", "leg_right"]
         # Бланжинг лучше попадает в торс
         if outcome.damage_type == DamageType.BLUDGEONING:
-            weights = [1, 3, 2, 2, 1, 1]
+            weights = [1.0, 3.0, 2.0, 2.0, 1.0, 1.0]
         elif outcome.damage_type == DamageType.PIERCING:
-            weights = [2, 2, 1, 1, 1, 1]
+            weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0]
         else:  # slashing
-            weights = [1, 2, 2, 2, 1, 1]
+            weights = [1.0, 2.0, 2.0, 2.0, 1.0, 1.0]
 
         body_part = rng.choices(body_parts, weights=weights, k=1)[0]
 
