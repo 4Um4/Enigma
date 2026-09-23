@@ -1489,6 +1489,13 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. **S273 C
 ⚙️ Инциденты (уроки): коммит-message ≠ дифф (дважды — каркасные коммиты 73e1f528/ac433c33 с переключёнными call-sites до переноса тел = окно разрыва player-turn; fix — git diff --stat перед коммитом + «можно коммитить» отдельным сигналом); ruff F821 поймал живой god-reference до рантайма; F401 на re-export ≠ мёртвый импорт (сверять с картой consumers); moving-platform passport-протокол (env#1→env#3, A/B-rollback).
 📁 backend/app/services/game_loop/{turn_pipeline,dm_phase,npc_orchestration,game_loop,__init__}.py, backend/app/services/scene_state_manager.py
 
+### S279-DEGOD: Campaign Lifecycle Ownership (Phase 3B, ADR-O-403) | ✅ IPT 45/45 на каждой итерации
+🎯 Seam-first → extraction: 6 владельцев получили публичные reset-API, затем new_game (12 шагов 1-в-1) переехал в campaign_lifecycle.py; game_loop.py 2224→1946; campaign_mgmt.py расформирован.
+⚙️ Seams: SSM.reset_campaign_persistence · RelationshipStore.reset_campaign (+RAM-кэш у владельца — фикс протухшего _load) · MemoryManager.reset_campaign_state (дубль блоков 9/12 схлопнут идемпотентно) · TemporalEngine.reset_campaign (tick=0+unlink у владельца) · PlayerAvatarService.reset_campaign (+DOUBLE TRUTH пути аватара устранён: настоящий player_avatar.json переживал new_game — найдено seam-first) · LifeEngine.clear_runtime_caches.
+⚙️ Extraction: каркас (diff-state + record_campaign_diff seam для routes) → reset_campaign-тело скриптом с assert-границами → load/resolve поглощены, campaign_mgmt расформирован, diff-делегаты/осиротевшее __init__-состояние удалены.
+⚙️ Уроки: инлайн python -c с вложенными кавычками в PS неработоспособен → script-file+assert; коммит-message = фактический git diff --stat; F401 на re-export ≠ мёртвый импорт; moving-platform passport-протокол (env#1→#3).
+📁 backend/app/services/game_loop/{campaign_lifecycle.py(новый), campaign_mgmt.py(удалён), game_loop.py, dm_phase.py, npc_orchestration.py, pipeline_state.py, e1_wiring.py, world_diff_io.py, __init__.py}, scene_state_manager.py, memory/{relationship_store,memory_manager}.py, temporal/temporal_engine.py, npc/life_engine.py, player_avatar_service.py
+
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
