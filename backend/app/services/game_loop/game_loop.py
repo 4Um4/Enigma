@@ -352,7 +352,7 @@ class GameLoop:
 
     def _get_spatial_query_for_subscriber(self):
         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
-        S196 FIX: Берёт актуальный SpatialQueryService из shared_context, 
+        S196 FIX: Берёт актуальный SpatialQueryService из shared_context,
         устраняя зависимость от mutable hidden state _current_spatial_query.
         S197 FIX: Если spatial_query отсутствует, конструирует его на лету из scene_state."""
         _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
