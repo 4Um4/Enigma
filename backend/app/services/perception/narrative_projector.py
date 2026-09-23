@@ -13,6 +13,18 @@ from app.services.perception.auditory_distortion_policy import AuditoryDistortio
 
 logger = logging.getLogger(__name__)
 
+# Каноническое сжатие ExposureLevel.semantic (6 значений) → presentation delivery_type (3).
+# Presentation-канал различает только физически наблюдаемые классы громкости;
+# secret/private неотличимы от whisper для наблюдателя (эпистемическая честность).
+_DELIVERY_MAP = {
+    "secret": "WHISPER",
+    "private": "WHISPER",
+    "whisper": "WHISPER",
+    "normal": "NORMAL",
+    "loud": "SHOUT",
+    "shout": "SHOUT",
+}
+
 # S159: Вынесены из хардкода в конфигурацию радиусов
 PERCEPTION_CLEAR_RADIUS = 5.0
 PERCEPTION_PARTIAL_RADIUS = 10.0
@@ -69,7 +81,7 @@ class NarrativeProjector:
                 visible_text=visible_text,
                 perception_certainty=max(0.0, min(1.0, perception_certainty)),
                 auditory_clarity=max(0.0, min(1.0, auditory_clarity)),
-                delivery_type="NORMAL"
+                delivery_type=_DELIVERY_MAP.get(d.get("exposure", "normal"), "NORMAL")
             ))
 
         return narratives

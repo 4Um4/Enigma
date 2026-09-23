@@ -33,6 +33,13 @@ class EventHandler:
             core.lab_screen.handle_event(event)
             return
 
+        # UI Workbench (F12): оверлей поверх редактора (не mode-switch —
+        # окна плавают поверх живой сцены). Активный Workbench ест события
+        # первым (диспетчер решает: окно или сквозной проход).
+        if core.workbench_screen.active:
+            core.workbench_screen.handle_event(event)
+            return
+
         # Горячие клавиши
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -61,6 +68,9 @@ class EventHandler:
             elif event.key == pygame.K_F5:
                 core.mode = MODE_LAB
                 core.lab_screen.enter()
+                return
+            elif event.key == pygame.K_F12:
+                core.workbench_screen.enter()
                 return
             elif event.key == pygame.K_PAGEUP:
                 core.current_z += 1

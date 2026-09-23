@@ -681,6 +681,17 @@ class LifeEngine:
             # решений: только transient pressure/source — intent уходит в общий
             # кандид-контур (winner-выбор / арбитраж как есть).
             _ss_entry = (scene_state or {}).get("npc_positions", {}).get(npc_id)
+            # Phase D (вердикт): offscreen → не consume/не resolve. Сигнал
+            # ПЕРЕЖИВАЕТ transfer (не удалять!): при появлении актора в живом
+            # контуре новой локации неизвестность будет обработана с
+            # актуальным current_loc (multi-hop семантика).
+            if _ss_entry is None:
+                _unknown_sig = None
+                _exploration_intent = None
+            # Phase D Э-3 (инерция сигнала): чтение НЕ гасит носитель — сигнал
+            # живёт до конверсии в движение (погашение только при рождении
+            # exploration). S139.3-дуэль иначе съедает exploration каждый тик:
+            # relocation-победитель заведомо умирает в UNKNOWN-гейте.
             _unknown_sig = (
                 _ss_entry.get("_unknown_route", None)
                 if isinstance(_ss_entry, dict) else None
@@ -697,8 +708,19 @@ class LifeEngine:
                 _lp = _ss_entry.get("local_position") if isinstance(_ss_entry, dict) else None
                 _nx = float(_lp.get("x", 0.0)) if isinstance(_lp, dict) else 0.0
                 _ny = float(_lp.get("y", 0.0)) if isinstance(_lp, dict) else 0.0
+                # D-2 (вердикт): сервис по ФАКТИЧЕСКОЙ локации записи, не
+                # per-tick инжект тикающейся сцены (оплачено d3: в
+                # market_square frontier показывал tavern-двери). Прецедент
+                # резолва — movement_engine:617-621. Пересборка только при
+                # живом сигнале — редкий путь, кэш не заводим (стейл-риск).
+                _loc_svc = self._spatial_service
+                if _cur_loc and getattr(_loc_svc, "_location_id", "") != _cur_loc:
+                    from app.services.spatial.spatial_factory import SpatialFactory
+                    _loc_svc = SpatialFactory.build_for_campaign(
+                        campaign_id, _cur_loc, scene_state
+                    ) or _loc_svc
                 _target = resolve_exploration_target(
-                    npc_id, self._epistemic_store, self._spatial_service,
+                    npc_id, self._epistemic_store, _loc_svc,
                     _cur_loc, (_nx, _ny),
                 )
                 logger.info(
@@ -726,6 +748,26 @@ class LifeEngine:
                     changes, intents = self._simulate_major(
                         npc, current_time, current_tick, scene_state, rng=_rng
                     )
+                    # Phase D Э-3: подавление обречённого relocation. Сигнал —
+                    # факт дропа прошлого тика (гейт = единственная точка
+                    # истины UNKNOWN; здесь НЕТ предвычисления маршрута).
+                    # Пока маршрут неизвестен, cross-loc relocation того же
+                    # вектора не рождается — освобождает тик exploration'у.
+                    if _unknown_sig is not None:
+                        _kept = [
+                            _i for _i in intents
+                            if not (
+                                "+relocation" in getattr(_i, "reason", "")
+                                and getattr(_i, "location_id", "") == _unknown_sig.get("to")
+                            )
+                        ]
+                        _sup = len(intents) - len(_kept)
+                        if _sup:
+                            logger.info(
+                                f"[EXPLORATION] npc={npc_id}: подавлено relocation-интентов={_sup} "
+                                f"(маршрут к {_unknown_sig.get('to')} неизвестен — сигнал инертен)"
+                            )
+                        intents = _kept
                     all_changes.extend(changes)
                     all_intents.extend(intents)
                     npcs_updated = True
@@ -744,24 +786,18 @@ class LifeEngine:
             except Exception as e:
                 logger.error(f"[LIFE_ENGINE] Ошибка при обработке NPC '{npc_id}': {e}")
 
-            # Phase D Э-3 (верdict-вариант 1, «сигнальная инерция»): сигнал
-            # живёт до первого тика, когда актор свободен. Погашение ТОЛЬКО
-            # при двух исходах: (а) exploration-интент рождён (давление
-            # конвертировано в намерение), (б) тик не дал ни одного intent
-            # (актор бездействовал) и exploration породился. Если тик дал
-            # intents (winner-выбор взял relocation/wander) — сигнал
-            # возвращается в носитель: неизвестность остаётся давлением.
+            # Phase D Э-3 (вердикт): погашение сигнала ТОЛЬКО при конверсии
+            # давления в намерение. Если frontier пуст или тик дал исключение —
+            # сигнал переживает тик (давление неизвестности сохраняется).
+            # Вставка ВПЕРЕДИ интентов тика: S139.3 при равных правилах берёт
+            # первый — фоновый wander не должен вытеснять осмысленный
+            # exploration-факт (дважды оплачено трассой d3: wander выигрывал
+            # дуэль порядком в списке, explore выбрасывался молча).
             if _exploration_intent is not None:
-                all_intents.append(_exploration_intent)
-                if isinstance(_ss_entry, dict):
-                    _ss_entry.pop("_unknown_route", None)
-            elif isinstance(_ss_entry, dict) and _unknown_sig is not None:
-                if intents:
-                    # Актор занят чем-то выше приоритетом: сигнал возвращён,
-                    # следующий тик попытается снова.
-                    pass
-                else:
-                    _ss_entry.pop("_unknown_route", None)
+                all_intents.insert(0, _exploration_intent)
+                # Вердикт A: сигнал НЕ гасится при конверсии — неизвестность
+                # маршрута реальна до crossing. Гасит только гейт (KNOWN)
+                # — единственная точка истины.
 
         # Кэш уже обновлён in-place (NPC — словари, изменения применились)
         if npcs_updated:

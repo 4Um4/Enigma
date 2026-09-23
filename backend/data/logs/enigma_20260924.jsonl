@@ -1,0 +1,6 @@
+{"timestamp": "2026-09-24T01:55:08.123637", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-09-24T01:55:08.124376", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"timestamp": "2026-09-24T02:01:26.953181", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-09-24T02:01:26.953784", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}
+{"timestamp": "2026-09-24T02:01:54.033673", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 0}
+{"timestamp": "2026-09-24T02:01:54.034075", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 0, "vram_delta_mb": 0}

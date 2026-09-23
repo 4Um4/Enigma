@@ -175,6 +175,8 @@ class EditorCore:
 
         from ui.lab_screen import LabScreen
         self.lab_screen = LabScreen(self)
+        from ui_workbench.workbench_screen import WorkbenchScreen
+        self.workbench_screen = WorkbenchScreen(self)
 
         self.selected_npc_id: str = ""  # id реального NPC из config
         self._npc_list: List[Dict[str, str]] = load_npc_individuals()
@@ -1736,6 +1738,9 @@ class EditorCore:
         else:
             self._update_property_panel()
 
+        # UI Workbench: анимации/таймеры окон (v1 — update-заготовка)
+        self.workbench_screen.update()
+
     def _update_property_panel(self):
         self.property_builder.update(self)
 
@@ -1752,6 +1757,9 @@ class EditorCore:
             self._draw_world()
         else:
             self._draw_local()
+
+        # UI Workbench: окна поверх ВСЕГО (после тулбара/меню — оверлей)
+        self.workbench_screen.draw(self.screen)
 
         # UI поверх всего
         self._draw_ui()

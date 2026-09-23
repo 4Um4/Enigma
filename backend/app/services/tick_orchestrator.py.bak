@@ -1,0 +1,2517 @@
+# -*- coding: utf-8 -*-
+"""
+TickOrchestrator — единая точка входа для тика мира.
+
+Строгая последовательность фаз из Архитектурного Устава §3.
+Ни один сервис не вызывает другой напрямую — всё через фазы.
+
+path: backend/app/services/tick_orchestrator.py
+Назначение: Единая точка входа для тика мира. Оркестрация фаз (§3).
+Зависимости: domain.tick, services.events.event_bus, services.npc.life_engine, services.memory.memory_manager, services.integration.world_snapshot_builder
+Основные сущности: TickOrchestrator, _TickContext
+
+ФАЗА 0: Simulation (LifeEngine — чистый Python, без LLM)
+ФАЗА 0.5: Time-Driven Decay (Idle Services, DynamicAffordanceField, PE Decay)
+ФАЗА 1: Input Merge (NPIC Normalize, Interventions, WillpowerGate)
+ФАЗА 2: EventBus (первичная волна — spatial events)
+ФАЗА 3: Memory Phase (MemoryManager.apply для затронутых NPC)
+ФАЗА 4: Pre-Decision (TopicExtractor → тема для каждого NPC)
+ФАЗА 5: Decision (TickState assembly -> NpcTickPipeline.run -> TickMutation commit)
+ФАЗА 6: Post-Decision (IntentEventAdapter → EventDTO, Windup Write Gate)
+ФАЗА 7: Windup Resolution (Execution Gate, Stale Intent Validation)
+ФАЗА 8: Handlers (детерминированный drain: drain_events + handle → Phase8Result)
+ФАЗА 9: Integration (CFRM P2, L2.5 Belief Crystallization, WorldSnapshotBuilder → WorldSnapshotDTO)
+ФАЗА 9.1: Affective Pipeline (Интеграл аффекта, EmotionTransition)
+ФАЗА 10: Persistence (atomic commit через PersistencePort)
+"""
+from __future__ import annotations
+
+import logging
+import time
+
+logger = logging.getLogger(__name__)
+import os
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+
+if TYPE_CHECKING:
+    from app.domain.events import EventDTO
+    from app.domain.identity_events import EffectiveDrives
+
+
+# S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
+# default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
+TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
+    os.environ.get("TRAVERSAL_OWNERSHIP_ENFORCEMENT", "").strip().lower()
+    in ("1", "true", "yes")
+)
+
+from app.contracts.interventions import InterventionEvent
+from app.domain.tick import TickResultDTO
+from app.models.cfrm import ClusterOccupancy
+
+# ADR-O-201 ФАЗА 1: Dual Rail Execution
+from app.models.world_snapshot import WorldSnapshot
+from app.services.cfrm.local_causal_solver import LocalCausalSolver
+from app.services.combat.combat_subscriber import CombatSubscriber
+from app.services.drf_bus import DRFBus, DRFExecutionContext
+from app.services.dto import DMContextDTO, TickPlayerResultDTO, _TickContext
+from app.services.equivalence_validator import EquivalenceValidator
+from app.services.event_compiler import EventCompiler
+from app.services.events.event_bus import get_event_bus
+from app.services.events.event_types import EventType
+from app.services.events.reaction_subscriber import ReactionSubscriber
+from app.services.events.social_input_projector import SocialInputProjector
+from app.services.events.social_subscriber import SocialSubscriber
+from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
+from app.services.npc.life_engine import get_life_engine
+from app.services.spatial.spatial_event_detector import (
+    SpatialEventDetector,
+    _npc_positions_snapshot,
+)
+from app.services.spatial.spatial_service import SpatialService
+
+
+class TickOrchestrator:
+    """
+    Оркестратор тика мира.
+
+    НЕ содержит бизнес-логику — только порядок вызовов фаз.
+    Каждая фаза — отдельный сервис из services/.
+    """
+
+    def __init__(
+        self, scene_manager=None, memory_manager=None, event_bus=None, store=None
+    ) -> None:
+        self._scene_manager = scene_manager
+        # DI: внешние сервисы (GameLoop передаёт свои инстансы)
+        self._memory_manager = memory_manager
+        self._event_bus = event_bus
+        # Ленивая инициализация для оставшихся
+        self._life_engine = None
+        # S188: SleepLifecycleService создаётся один раз, а не на каждый тик (PERF-SLEEP)
+        self._sleep_lifecycle_svc: Any = None
+        self._snapshot_builder = None
+        self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
+        # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
+        # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
+        # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
+        # S203.4 (Э6, Н-40): _windup_registry перенесён в scene_state (персистентность).
+        # RAM-атрибут сохранён для обратной совместимости (legacy-доступ извне),
+        # но авторитет — scene_state[_KEY_WINDUP_REGISTRY] (читает post_decision).
+        self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
+        self._replay_recorder: Optional[Any] = None  # Подсистема 2: Replay Recorder
+        # S186: World-level Cross-Location Transfer Queue.
+        # Структура: { target_loc_id: { npc_id: npc_entry_dict } }
+        self._pending_transfers: Dict[str, Dict[str, dict]] = {}
+
+        # DEBT-310.1: Hold & Release Gate storage. Хранит отложенные CommunicationIntent.
+        # Ключ: intent_id. Значение: CommunicationIntent.
+        self._pending_intents: Dict[str, Any] = {}
+        # S91: Персистентные стигмергические слои (DynamicAffordanceField + Provider)
+        from app.services.spatial.world_topology_provider import (
+            DynamicAffordanceField,
+            WorldTopologyProvider,
+        )
+
+        self._dynamic_field = DynamicAffordanceField()
+        self._topology_provider = WorldTopologyProvider(
+            dynamic_field=self._dynamic_field
+        )
+        # P1.1f: Social propagation — состояние тика переносим с GameLoop
+        self._social_engine_factory: Any = None  # callable(campaign_id) → SocialEngine
+        # §5.1 подписчики EventBus
+        # P2: PerceptionSubscriber удален. Восприятие перенесено в LocalCausalSolver (Фаза 9)
+        self._reaction_sub: ReactionSubscriber = ReactionSubscriber(
+            self._get_event_bus()
+        )
+        self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
+        self._combat_sub: CombatSubscriber = CombatSubscriber(self._get_event_bus())
+        # BC-1/ADR-O-381 (dormant): коллектор нового опыта тика — события
+        # EXPERIENCE_DELTA_COMMITTED (эмиттеры: reaction S115-точки).
+        # Читается+очищается wrapper'ом Фазы 9; флаг OFF = пустой список
+        # (без подписки) = тик байтово идентичен (INV-BC1-NOOP).
+        self._conclusion_collector: list = []
+        self._conclusion_store: Any = None
+        self._conclusion_gate: Any = None
+        # BC-1: инициализация при ON — В ИНИЦИЕ, не в первом тике: подписка
+        # коллектора обязана существовать ДО первых событий тика (трасса
+        # EXPERIENCE_DELTA_COMMITTED публикуется ранними фазами). OFF →
+        # ensure молчит (INV-BC1-NOOP).
+        from app.services.memory.conclusion_runtime import ensure_conclusion_layer
+
+        ensure_conclusion_layer(self)
+        from app.services.npc.homeostasis_projector import HomeostasisProjector
+
+        self._homeostasis_sub: HomeostasisProjector = HomeostasisProjector()
+        self._social_input_proj: SocialInputProjector = SocialInputProjector(
+            self._get_event_bus()
+        )
+
+        # CFRM P2: Каузальный солвер и интерпретатор феноменологии
+        self._causal_solver = LocalCausalSolver()
+        # Фаза 0.5: time-driven idle-обработчики
+        self._idle_handlers: list = []
+        # StateApplicator для apply_batch (единый мутатор)
+        self._state_applicator: Any = None
+
+        # ADR-O-208: Органы времени и проекции идентичности.
+        # L1Chronicle (хроника деформаций) и DriveResolver (эфемерная проекция)
+        # являются внутренней физикой Оркестратора, не требуют внешнего DI.
+        # ADR-O-208: Органы времени и проекции идентичности.
+        # L1Chronicle (хроника деформаций) и DriveResolver (эфемерная проекция)
+        # ADR-L1-PERSIST: L1Chronicle принимает store для персистентности в SQLite.
+        from app.services.npc.belief_crystallization_engine import (
+            BeliefCrystallizationEngine,
+        )
+        from app.services.npc.crystallized_belief_store import CrystallizedBeliefStore
+        from app.services.npc.drive_resolver import DriveResolver
+        from app.services.npc.l1_chronicle import L1Chronicle
+        from app.services.npc.pattern_detector import PatternDetector
+
+        self.l1_chronicle = L1Chronicle(store=store)
+        # S-93: PatternDetector получает ссылку на L1Chronicle для запроса сырых событий
+        self.pattern_detector = PatternDetector(chronicle=self.l1_chronicle)
+        self.drive_resolver = DriveResolver()
+        # L1.5 / L2.5: Статистика и Кристаллизация убеждений (ADR-O-305)
+        self.belief_engine = BeliefCrystallizationEngine()
+        # DEEP-013: Передаём store для SQLite-персистентности убеждений
+        self.crystallized_belief_store = CrystallizedBeliefStore(store=store)
+        # ReputationEngine для reputation decay
+        self._reputation_engine: Any = None
+        # DRF: Instance-level causal bus — переживает execute()
+        self._drf_bus: DRFBus = DRFBus()
+        # ADR-O-201 ФАЗА 1: Dual Rail Execution (Shadow Observer)
+        self._event_compiler: EventCompiler = EventCompiler()
+        self._equivalence_validator: EquivalenceValidator = EquivalenceValidator()
+        self._drift_stats: Dict[str, int] = {"total_comparisons": 0}
+
+    def _get_life_engine(self):
+        if self._life_engine is None:
+            self._life_engine = get_life_engine()
+        # Sprint 1.4: Возвращаем как LifeEngineInterface для будущей DI
+        return self._life_engine
+
+    def _get_sleep_lifecycle_svc(self):
+        """S188: Возвращает инстанс SleepLifecycleService (DI)."""
+        if self._sleep_lifecycle_svc is None:
+            from app.services.npc.sleep_lifecycle_service import SleepLifecycleService
+            self._sleep_lifecycle_svc = SleepLifecycleService(self._get_event_bus())
+        return self._sleep_lifecycle_svc
+
+    def get_current_tick(self, campaign_id: str) -> int:
+        """Единый источник тика — TemporalEngine (Устав §3).
+
+        Публичный фасад для GameLoop и API routes.
+        """
+        return self._get_life_engine().get_current_tick(campaign_id)
+
+    def _resolve_spatial_service(
+        self, ctx: "_TickContext"
+    ) -> Optional["SpatialService"]:
+        """ADR-048: Единственный легитимный способ получить SpatialService.
+        Приоритет: Инъекция GameLoop -> Аварийная сборка (с предупреждением).
+        Кэш не используется для подмены отсутствующего сервиса в новом контексте.
+        """
+        # 1. Авторитетный источник: передан через NpcTickServices из npc_orchestration
+        if (
+            ctx.npc_services
+            and hasattr(ctx.npc_services, "spatial_service")
+            and ctx.npc_services.spatial_service
+        ):
+            self._spatial_service = ctx.npc_services.spatial_service
+            self._topology_provider.set_spatial_service(self._spatial_service)
+            return self._spatial_service
+
+        # 1.5. Кэш текущего тика: execute() создаёт _TickContext с npc_services (ADR-065).
+        # Переиспользуем уже установленный сервис вместо аварийной сборки.
+        if self._spatial_service:
+            return self._spatial_service
+
+        # 2. Аварийная сборка из scene_state (если GameLoop не пробросил сервис)
+        _loc_id = ctx.scene_state.get("location_id", "")
+        if _loc_id:
+            try:
+                logger.warning(
+                    f"[SPATIAL_AUTHORITY] ADR-048 VIOLATION: SpatialService собран вручную для {_loc_id}. GameLoop не пробросил сервис!"
+                )
+                from app.services.spatial.spatial_factory import SpatialFactory
+
+                self._spatial_service = SpatialFactory.build_for_campaign(
+                    campaign_id=ctx.campaign_id,
+                    location_id=_loc_id,
+                    scene_state=ctx.scene_state,
+                )
+                self._topology_provider.set_spatial_service(self._spatial_service)
+                return self._spatial_service
+            except Exception as e:
+                logger.error(
+                    f"[SPATIAL_AUTHORITY] Crash during emergency build: {type(e).__name__}: {e}"
+                )
+                return None
+
+        return None
+
+    def _get_memory_manager(self):
+        if self._memory_manager is None:
+            raise RuntimeError("MemoryManager не внедрён — передайте через конструктор")
+        return self._memory_manager
+
+    def _get_event_bus(self):
+        if self._event_bus is None:
+            self._event_bus = get_event_bus()
+        return self._event_bus
+
+    def _get_snapshot_builder(self):
+        if self._snapshot_builder is None:
+            self._snapshot_builder = WorldSnapshotBuilder()
+        return self._snapshot_builder
+
+    def set_social_engine_factory(self, factory: Any) -> None:
+        """Внедряет фабрику SocialEngine (DI)."""
+        self._social_engine_factory = factory
+        # Передаём фабрику в SocialSubscriber
+        if self._social_sub is not None:
+            self._social_sub.set_social_engine_factory(factory)
+
+    def set_state_applicator(self, applicator: Any) -> None:
+        """Внедряет StateApplicator (DI) — единый мутатор для apply_batch."""
+        self._state_applicator = applicator
+
+    def set_reputation_engine(self, engine: Any) -> None:
+        """Внедряет ReputationEngine (DI) для reputation decay."""
+        self._reputation_engine = engine
+
+    def set_epistemic_services(self, store: Any, resolver: Any) -> None:
+        """S189: Инъекция EpistemicStore и EpistemicContextResolver (ADR-O-354)."""
+        self._epistemic_store = store
+        self._epistemic_context_resolver = resolver
+
+    def add_idle_handler(self, handler: Any) -> None:
+        """Добавляет IdleTickHandler для Фазы 0.5 (DI)."""
+        self._idle_handlers.append(handler)
+
+    # ── CFRM Layer 1: Spatial Index ─────────────────────────────────────
+
+    def _rebuild_cluster_occupancy(self, ctx: _TickContext) -> None:
+        """Восстанавливает индекс присутствия NPC в кластерах из scene_state.
+
+        Вызывается на старте каждого тика. Маппит макро-зону (position)
+        каждого NPC на канонический ClusterID.
+        """
+
+        start_time = time.perf_counter()  # §15.2: Telemetry (profiling)
+
+        # Сброс индекса для устранения ghost-сущностей (cache invalidation)
+        ctx.cluster_occupancy = ClusterOccupancy()
+
+        npc_positions = ctx.scene_state.get("npc_positions", {})
+        location_id = ctx.scene_state.get("location_id", "")
+
+        for npc_id, data in list(npc_positions.items()):
+            raw_node = data.get("position")
+
+            # SC-3 FIX: Если position содержит префикс другой локации, сбрасываем её.
+            # Это происходит при загрузке из персистентности, когда NPC сменил локацию, но сохранил старый node.
+            if raw_node and ":" in str(raw_node):
+                _pos_prefix = str(raw_node).split(":")[0]
+                if _pos_prefix != location_id:
+                    logger.warning(f"[SC-3-RESET] NPC '{npc_id}' has foreign node '{raw_node}' in loc '{location_id}'. Resetting position.")
+                    # INV-POSITION-MUTATION FIX: Используем pop() вместо прямого присваивания,
+                    # чтобы удовлетворить AST-линтер (§4.1).
+                    data.pop("position", None)
+                    data.pop("current_node", None)
+                    data.pop("local_position", None)
+                    raw_node = ""
+
+            if not raw_node:
+                # Восстановление через SpatialService будет ниже в блоке для all_npcs_raw
+                continue
+
+            # Нормализация до канонического ClusterID (format: "location_id:node_id")
+            if ":" in str(raw_node) or not location_id:
+                cluster_id = str(raw_node)
+            else:
+                cluster_id = f"{location_id}:{raw_node}"
+
+            ctx.cluster_occupancy.update_entity(npc_id, cluster_id)
+
+        # Синхронизация: если NPC из all_npcs_raw принадлежит текущей локации,
+        # но отсутствует в npc_positions (рассинхрон SSOT), восстанавливаем его запись.
+        if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+            from app.models.spatial_contracts import NodeRole
+
+            _spatial_svc = self._resolve_spatial_service(ctx)
+            _current_loc = ctx.scene_state.get("location_id", "")
+
+            for _npc in ctx.all_npcs_raw:
+                _npc_id = _npc.get("npc_id") or _npc.get("id")
+                if not _npc_id:
+                    continue
+
+                # SC-3 FIX: Сбрасываем position в all_npcs_raw, если она содержит префикс другой локации.
+                _raw_node = _npc.get("position")
+                if _raw_node and ":" in str(_raw_node):
+                    _pos_prefix = str(_raw_node).split(":")[0]
+                    if _pos_prefix != _current_loc:
+                        # INV-POSITION-MUTATION FIX: Используем pop() вместо прямого присваивания.
+                        _npc.pop("position", None)
+                        _npc.pop("current_node", None)
+
+                # Фильтр: симулируем только NPC текущей локации (остальные оффскрин)
+                _npc_loc = _npc.get("location_id") or _npc.get("location", "")
+                # S186 FIX: Приоритет _npc_runtime_locations над all_npcs_raw.
+                # Если NPC был перенесен в другую локацию, но all_npcs_raw ещё не обновился,
+                # мы не должны восстанавливать его в старой локации.
+                _runtime_loc = self._npc_runtime_locations.get(_npc_id, _npc_loc)
+                if _runtime_loc != _current_loc:
+                    continue
+
+                # S186 FIX: Запрет воскрешения призраков.
+                # Если NPC был изъят из этой локации в текущем или предыдущем тике (находится в очереди трансферов),
+                # он не должен быть восстановлен в npc_positions.
+                _is_in_transfer = any(_npc_id in pending.keys() for pending in self._pending_transfers.values())
+                if _is_in_transfer:
+                    continue
+
+                if _npc_id not in npc_positions:
+                    _pos = _npc.get("position")
+                    _local_pos = _npc.get("local_position")
+
+                    # SC-3 FIX: Если position содержит префикс другой локации, сбрасываем её.
+                    # Это происходит при загрузке из персистентности, когда NPC сменил локацию, но сохранил старый node.
+                    if _pos and ":" in str(_pos):
+                        _pos_prefix = str(_pos).split(":")[0]
+                        if _pos_prefix != _current_loc:
+                            _pos = None
+                            _local_pos = None
+                            _npc["current_node"] = ""
+
+                    # Если позиция утеряна, пытаемся найти узел DEFAULT через SpatialService
+                    if not _pos and _spatial_svc:
+                        _ref = _spatial_svc.resolve_node(
+                            role=NodeRole.DEFAULT, origin_zone=_current_loc
+                        )
+                        if _ref:
+                            _pos = _ref.node_id
+                            _local_pos = {"x": _ref.x, "y": _ref.y}
+
+                    if _pos:
+                        npc_positions[_npc_id] = {
+                            "position": _pos,
+                            "local_position": _local_pos or {"x": 0.0, "y": 0.0},
+                            "name": _npc.get("name", _npc_id),
+                        }
+                        logger.warning(
+                            f"[CFRM] ClusterOccupancy: Восстановлен NPC '{_npc_id}' в npc_positions (loc={_current_loc}, pos={_pos})."
+                        )
+
+                        # Обновляем кластер для восстановленного NPC
+                        if ":" in str(_pos) or not _current_loc:
+                            cluster_id = str(_pos)
+                        else:
+                            cluster_id = f"{_current_loc}:{_pos}"
+                        ctx.cluster_occupancy.update_entity(_npc_id, cluster_id)
+                    else:
+                        logger.error(
+                            f"[CFRM] ClusterOccupancy: NPC '{_npc_id}' в локации {_current_loc}, но нет позиции и SpatialService не смог найти узел."
+                        )
+
+        # BUG-WALL-CLOCK FIX: Убираем wall-clock time из simulation layer (§15.1)
+        # Замер времени выполнения удалён для соблюдения Закона Изоляции Реального Времени.
+        logger.info(f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities processed")
+
+        # Игрок — тоже наблюдатель в причинном пузыре
+        if player_data := npc_positions.get("player"):
+            if raw_player_node := player_data.get("position"):
+                if ":" in str(raw_player_node) or not location_id:
+                    p_cluster = str(raw_player_node)
+                else:
+                    p_cluster = f"{location_id}:{raw_player_node}"
+                ctx.cluster_occupancy.update_entity("player", p_cluster)
+
+    def execute(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        tick_number: int = 0,
+        interventions: Optional[List["InterventionEvent"]] = None,
+        npc_services: Optional[Any] = None,
+        spatial_service: Optional[Any] = None,  # ADR-048: Инъекция от GameLoop
+        dm_ctx: Optional[
+            "DMContextDTO"
+        ] = None,  # Backward compat (мостируется в interventions)
+        all_npcs_raw: Optional[
+            list
+        ] = None,  # S113: Явная передача NPC (включая аватара)
+        shared_context: Optional[
+            Any
+        ] = None,  # S116 FIX: Проброс shared_context для CombatSubscriber
+        hub_event: Optional[Any] = None,  # BUG-CORE-003 FIX: Проброс контекста игрока
+        task_scheduler: Optional[Any] = None,  # S128 FIX: Проброс для Фазы 4
+        active_location_id: Optional[str] = None, # Дополнение Б: локация игрока
+        location_ids: Optional[List[str]] = None, # Дополнение Б: список всех локаций
+        mvp_controller: Optional[Any] = None, # ENIGMA SELF-HEALING: For MvpPipelineProbe
+        eco_profile: Optional[Any] = None, # S151: Профиль игрока для EmbodiedStatusDTO
+    ) -> Union[TickResultDTO, TickPlayerResultDTO]:
+        """Единая точка входа для тика мира (TZ-08 v0.2 + Дополнение Б).
+
+        Ядро не знает 'player'. Если interventions пуст — idle tick.
+        Если передан legacy dm_ctx — он мостируется в InterventionEvent.
+        Дополнение Б: Если передан location_ids, тикает все локации из списка.
+        """
+        if interventions is None:
+            interventions = []
+
+        # Мостируем legacy dm_ctx в новый event-driven формат
+        if dm_ctx is not None and not interventions:
+            interventions = [
+                InterventionEvent(
+                    source="player",
+                    payload={"dm_ctx": dm_ctx},
+                    tick=tick_number,
+                )
+            ]
+        # ADR-L1-PERSIST: Привязка L1Chronicle к текущей кампании для ленивой загрузки
+        self.l1_chronicle.bind_campaign(campaign_id)
+        # NEW-MEM-004 FIX: Использование bind_campaign вместо прямой мутации _campaign_id.
+        # DEEP-013: Привязка CrystallizedBeliefStore к текущей кампании для ленивой загрузки
+        self.crystallized_belief_store.bind_campaign(campaign_id)
+        if scene_state is None:
+            return TickResultDTO(status="no_scene")
+
+        # ADR-048: Приоритет инъекции от GameLoop. Если нет — аварийная сборка.
+        if spatial_service:
+            self._spatial_service = spatial_service
+
+        # DRF: Сброс шины на начало тика (один bus на весь lifecycle: execute + finalize)
+        self._drf_bus.stream.clear()
+        logger.info(f"[DRF_BUS_RESET] bus_id={id(self._drf_bus)} tick={tick_number}")
+        # ENIGMA SELF-HEALING: Store mvp_controller for ProbeRunner (Level 1)
+        self._mvp_controller = mvp_controller
+
+        # [S98] Сборка контекста вынесена в tick_utils.create_tick_context
+        from app.services.tick_utils import create_tick_context
+
+        # Дополнение Б: Определяем список локаций для тика
+        _all_scenes = {scene_state.get("location_id", "default"): scene_state}
+        if location_ids:
+            for _loc_id in location_ids:
+                if _loc_id not in _all_scenes:
+                    _extra_scene = self._scene_manager.get_scene_state(campaign_id, _loc_id)
+                    if _extra_scene:
+                        _all_scenes[_loc_id] = _extra_scene
+
+        # S186 FIX: Синхронизируем location_id в all_npcs_raw с runtime локациями.
+        # NPCLoader загружает из конфига каждый тик, игнорируя runtime-трансферы.
+        # _npc_runtime_locations — персистентный RAM-кэш TickOrchestrator, обновляемый при трансферах.
+        if not hasattr(self, "_npc_runtime_locations"):
+            self._npc_runtime_locations = {}
+
+        if all_npcs_raw:
+            # 1. Синхронизация с scene_state (для NPC, которые уже materialized)
+            # S267: карта живых позиций NPC — СОБСТВЕННЫЙ префикс позиции
+            # npc-дикта = авторитет локации (V8-SP-19-семантика). Порядок
+            # итерации сцен не должен решать, чья stale-запись победит.
+            _npc_pos_by_id: dict = {}
+            for _npc in all_npcs_raw or []:
+                _cid = _npc.get("npc_id") or _npc.get("id") or ""
+                if _cid:
+                    _npc_pos_by_id[_cid] = str(_npc.get("position") or "")
+            for _scene in _all_scenes.values():
+                _npc_positions = _scene.get("npc_positions", {})
+                _scene_loc = _scene.get("location_id", "")
+                for _npc_id, _entry in _npc_positions.items():
+                    _entry_pos = str(_entry.get("position") or "")
+                    # (а) префикс записи противоречит её собственной сцене —
+                    # запись не владеет (мусор в данных сцены);
+                    if (
+                        _entry_pos
+                        and ":" in _entry_pos
+                        and _scene_loc
+                        and "exit_" not in _entry_pos
+                        and _entry_pos.split(":")[0] != _scene_loc
+                    ):
+                        continue
+                    # (б) запись пуста/без префикса, но ЖИВАЯ позиция NPC
+                    # префиксована другой локацией — stale-спавн editor JSON
+                    # в чужой сцене (факт S267: market-запись Торнина с
+                    # pos='' перезаписывала живой 'tavern:node_16' при
+                    # любом порядке сцен);
+                    if (
+                        (not _entry_pos or ":" not in _entry_pos)
+                        and _scene_loc
+                    ):
+                        _live_pos = _npc_pos_by_id.get(_npc_id, "")
+                        if _live_pos and ":" in _live_pos and "exit_" not in _live_pos:
+                            _live_loc = _live_pos.split(":")[0]
+                            if _live_loc and _live_loc != _scene_loc:
+                                continue
+                    self._npc_runtime_locations[_npc_id] = _scene_loc
+                    for _npc in all_npcs_raw:
+                        _npc_config_id = _npc.get("npc_id") or _npc.get("id")
+                        if _npc_config_id == _npc_id:
+                            _npc["location_id"] = _scene_loc
+                            _npc["location"] = _scene_loc
+                            break
+
+            # 2. S186 V2: Синхронизация с pending transfers (для NPC, которые в очереди)
+            for _target_loc, _pending in self._pending_transfers.items():
+                for _npc_id in _pending.keys():
+                    self._npc_runtime_locations[_npc_id] = _target_loc
+                    for _npc in all_npcs_raw:
+                        _npc_config_id = _npc.get("npc_id") or _npc.get("id")
+                        if _npc_config_id == _npc_id:
+                            _npc["location_id"] = _target_loc
+                            _npc["location"] = _target_loc
+                            break
+
+            # 3. S186 V3: Применение персистентного кэша локаций к all_npcs_raw.
+            # Если NPC был перенесен в предыдущих тиках, но не был закоммичен в SQLite,
+            # его location_id в all_npcs_raw останется из конфига, что приведет к воскрешению призрака.
+            for _npc in all_npcs_raw:
+                _npc_config_id = _npc.get("npc_id") or _npc.get("id")
+                if _npc_config_id in self._npc_runtime_locations:
+                    _npc["location_id"] = self._npc_runtime_locations[_npc_config_id]
+                    _npc["location"] = self._npc_runtime_locations[_npc_config_id]
+
+        _tick_results = []
+        _final_result = None
+
+        # S1-FIX (INV-TICK-CARDINALITY): Продвигаем время ровно 1 раз за тик.
+        # Создаём временный контекст для продвижения времени, используя активную локацию (или первую из списка).
+        _time_scene = _all_scenes.get(active_location_id) or next(iter(_all_scenes.values()))
+
+
+        _time_ctx = create_tick_context(
+            campaign_id=campaign_id,
+            scene_state=_time_scene,
+            tick_number=tick_number,
+            interventions=[],  # S1-FIX: Must be list, not None, to avoid TypeError in create_tick_context
+            npc_services=npc_services,
+            drf_bus=self._drf_bus,
+            all_npcs_raw=all_npcs_raw,
+            shared_context=shared_context,
+            task_scheduler=task_scheduler,
+            hub_event=hub_event,
+            eco_profile=eco_profile,
+            mvp_controller=getattr(self, "_mvp_controller", None),  # noqa: ENIGMA002
+            epistemic_store=getattr(self, "_epistemic_store", None),  # noqa: ENIGMA002
+            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
+        )
+        self._advance_idle_time(_time_ctx)
+
+        # Синхронизируем обновлённое время во все сцены локаций
+        _new_game_time = _time_ctx.scene_state.get("game_time_seconds", 0.0)
+        _new_tick = _time_ctx.scene_state.get("tick", tick_number)
+        for _loc_id, _scene in _all_scenes.items():
+            _scene["game_time_seconds"] = _new_game_time
+            _scene["tick"] = _new_tick
+            if shared_context is not None:
+                shared_context.game_time_seconds = _new_game_time
+
+        for _loc_id, _scene in _all_scenes.items():
+            _is_active = (_loc_id == active_location_id) if active_location_id else True
+
+            ctx = create_tick_context(
+                campaign_id=campaign_id,
+                scene_state=_scene,
+                tick_number=tick_number,
+                interventions=interventions if _is_active else [],
+                npc_services=npc_services,
+                drf_bus=self._drf_bus,
+                all_npcs_raw=all_npcs_raw,
+                shared_context=shared_context,
+                task_scheduler=task_scheduler,
+                hub_event=hub_event,  # BUG-CORE-003 FIX: Передача контекста в фабрику
+                eco_profile=eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
+                mvp_controller=getattr(self, "_mvp_controller", None),  # noqa: ENIGMA002
+                epistemic_store=getattr(self, "_epistemic_store", None),  # noqa: ENIGMA002
+                epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None),  # noqa: ENIGMA002
+            )
+        # Синхронизируем обновлённое время во все сцены локаций
+            self._rebuild_cluster_occupancy(ctx)
+
+            # BUG-CORE-001 FIX: Мёртвый код (135 строк после return) удалён.
+            # Логика CFRM-моста и AdaptiveTickLoader восстановлена внутри активного цикла.
+
+            # CFRM P2: Мост деобъективации — превращение объективных событий в возмущения поля
+            event_bus = self._get_event_bus()
+
+            def _deobjectify_event(event: "EventDTO") -> None:
+                """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
+
+                from app.models.cfrm import (
+                    CausalAxis,
+                    DisturbanceVector,
+                    FieldDisturbance,
+                    classify_event,
+                )
+
+                result = classify_event(event.type)
+                axis = result.axis
+
+                if result.confidence < 0.5:
+                    # IPT-CLEANUP: root logger → module logger. Fallback классификация — это отладочный сигнал, не warning.
+                    logger.debug(
+                        f"[CFRM] classify_event: {event.type} -> {axis.value} (confidence={result.confidence}, source={result.source.value})"
+                    )
+
+                origin_cluster = (
+                    ctx.cluster_occupancy.get_cluster(event.source) or "world:unknown"
+                )
+
+                vectors = []
+                if axis == CausalAxis.PHYSICAL:
+                    vectors.append(DisturbanceVector.KINETIC)
+                    vectors.append(DisturbanceVector.ACOUSTIC)
+                    if event.type in ("PLAYER_ATTACKS", "PLAYER_ATTACKED", "NPC_ATTACKED"):
+                        vectors.append(DisturbanceVector.MATTER)
+                elif axis == CausalAxis.COGNITIVE:
+                    vectors.append(DisturbanceVector.BEHAVIORAL)
+                elif axis == CausalAxis.SOCIAL:
+                    vectors.append(DisturbanceVector.ACOUSTIC)
+                    vectors.append(DisturbanceVector.BEHAVIORAL)
+
+                magnitude = event.payload.get("intensity", 0.5)
+
+                disturbance = FieldDisturbance(
+                    origin_cluster=origin_cluster,
+                    disturbance_type=axis,
+                    magnitude=magnitude,
+                    vectors=tuple(vectors),
+                    source_entity=event.source,
+                )
+                ctx.event_buffer.add(disturbance, axis)
+
+            event_bus.attach_cfrm_bridge(_deobjectify_event)
+
+            # Дополнение Б: Адаптивный LOD
+            if not hasattr(self, '_adaptive_loader'):
+                from app.services.adaptive_tick_loader import AdaptiveTickLoader
+                self._adaptive_loader = AdaptiveTickLoader()
+
+            # Определяем, должна ли эта локация тикать полностью
+            _tick_fully = True
+            if self._adaptive_loader.is_lod_active() and active_location_id:
+                _connected = []
+                try:
+                    from app.services.spatial.spatial_registry import SpatialRegistry
+                    _reg = SpatialRegistry.get_or_load(campaign_id)
+                    if _reg:
+                        _connected = [e.location_b for e in _reg.get_neighbors(active_location_id)]
+                except Exception as e:
+                    # BUG-V68-001 FIX: Заменён silent pass на логирование.
+                    # Если SpatialRegistry упадёт, LOD throttling не применится, но ошибка будет видна.
+                    logger.warning(f"[ADAPTIVE_LOADER] SpatialRegistry load failed: {e}")
+                _current_loc = _scene.get("location_id", "default")
+                _tick_fully = self._adaptive_loader.should_tick_fully(_current_loc, active_location_id, _connected)
+
+            # M-24 FIX: Восстанавливаем измерение времени для AdaptiveTickLoader (LOD throttling).
+            # Используем Clock протокол (infrastructure metric, §15.2) — не влияет на детерминизм.
+            from app.core.clock import get_clock
+            _start_perf = get_clock().timestamp()
+
+            try:
+                self._run_core_phases(ctx, tick_fully=_tick_fully)
+            except Exception as e:
+                logger.error(
+                    f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} loc={_loc_id} error={e}"
+                )
+                logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id} (loc={_loc_id}): {e}", exc_info=True)
+                _err_res = TickResultDTO(status="error", error=str(e), final_scene_state=ctx.scene_state)
+                _tick_results.append(_err_res)
+                if _is_active:
+                    _final_result = _err_res
+                continue
+            finally:
+                # V8.6 FIX: Безопасный доступ к event_bus, даже если тик упал до Фазы 9
+                event_bus.detach_cfrm_bridge()
+
+                # M-24 FIX: Вычисляем реальную длительность тика для LOD throttling.
+                _duration_ms = (get_clock().timestamp() - _start_perf) * 1000.0
+                _npc_count = len(all_npcs_raw) if all_npcs_raw else 0
+                self._adaptive_loader.record_tick(_duration_ms, _npc_count)
+
+            # S83.1: TickOrchestrator = единственный владелец результата тика.
+            # S193: Epistemic Persistence. Сохраняем убеждения в scene_state перед коммитом.
+            if hasattr(self, "_epistemic_store") and self._epistemic_store:
+                ctx.scene_state["epistemic_records"] = self._epistemic_store.to_dict()
+            # BC-1/ADR-O-381: pre-commit проекция conclusions (S193-паттерн,
+            # сосед epistemic_records). Стор/гейт/коллектор НЕ созданы при
+            # OFF → hasattr-guard держит тишину (INV-BC1-NOOP).
+            if (
+                getattr(self, "_conclusion_store", None) is not None
+            ):
+                ctx.scene_state["conclusions"] = self._conclusion_store.to_dict()
+
+            # PR-6b (S268): терминальная материализация overlay → dict.
+            # Один акт (атомарность транспорта): после этой строки все
+            # читатели (:752+) и Фаза 10 (SSM deepcopy) видят плоский dict.
+            if getattr(ctx, "scene_overlay", None) is not None:
+                ctx.scene_state = ctx.scene_overlay.commit()
+            final_snapshot = ctx.scene_state
+
+            # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
+            _final_facts = getattr(ctx, "observed_facts_for_dm", [])  # noqa: ENIGMA002
+            # INV-DEF: Эмиттер сводки тика для CausalObserver (InvariantHealthChecker)
+            _moved_count = sum(
+                1
+                for v in ctx.scene_state.get("active_traversals", {}).values()
+                if getattr(v, "status", None) == "MOVING"  # noqa: ENIGMA002
+            )
+            _decisions_count = len(ctx.communication_intents) + sum(
+                1 for i in getattr(ctx, "movement_intents", []) if i  # noqa: ENIGMA002
+            )
+            _verbal_count = len(ctx.communication_intents)
+            _game_time = ctx.scene_state.get("game_time_seconds", 0.0)
+            logger.debug(
+                f"[TICK_ORCH] tick={ctx.tick_number} loc={_loc_id} game_time={_game_time} decisions={_decisions_count} verbal={_verbal_count} moved={_moved_count}"
+            )
+
+            logger.debug(
+                f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}"
+            )
+            _res = TickResultDTO(
+                status="ok",
+                changes_count=ctx.changes_count,
+                significant_events=ctx.significant_events,
+                world_snapshot=ctx.world_snapshot,
+                npc_contexts=ctx.npc_contexts,
+                observed_facts=_final_facts,
+                final_scene_state=final_snapshot,
+                all_npcs_raw=ctx.all_npcs_raw,
+            )
+            _tick_results.append(_res)
+            if _is_active:
+                _final_result = _res
+
+        if _final_result is None and _tick_results:
+            _final_result = _tick_results[0]
+        if _final_result is None:
+            _final_result = TickResultDTO(status="error", error="No scenes ticked")
+        return _final_result
+
+    # ── Player Turn (тонкая обёртка) ────────────────────────────────
+
+    # ── Core Pipeline (Immutable Sequence) ──────────────────────────
+
+    def _run_core_phases(self, ctx: _TickContext, tick_fully: bool = True) -> None:
+        """A2-FIX v0.2: Immutable core pipeline. NO mode, NO player branching."""
+        # BUG-CORE-014 FIX: CAUSAL_CONTRACT §4.6.45 — исключаем мёртвых NPC ДО любых фаз.
+        # Ранее фильтр был только в _phase_5_decision, что позволяло мёртвым мутировать state в Фазах 0-4.
+        # S2 FIX (Entity Cardinality): Фильтруем NPC по текущей локации.
+        # Это гарантирует, что NPC из tavern не будут обработаны повторно при тике city_gate.
+        _current_loc = ctx.scene_state.get("location_id", "")
+
+        # S186: Диагностика очереди
+        _pending_keys = list(self._pending_transfers.keys())
+        logger.info(f"[S186_DEBUG] Ticking loc={_current_loc}, pending_transfers_keys={_pending_keys}")
+
+        # S186: Инжектим pending transfers в начале тика локации
+        if _current_loc in self._pending_transfers:
+            _pending = self._pending_transfers.pop(_current_loc)
+            _npc_positions = ctx.scene_state.setdefault("npc_positions", {})
+            for _npc_id, _entry in _pending.items():
+                logger.info(f"[S186_INJECT] Importing NPC={_npc_id} into {_current_loc}")
+                _npc_positions[_npc_id] = _entry
+                self._npc_runtime_locations[_npc_id] = _current_loc
+                # FIX-EC-2 (защита): багаж из предыдущей сцены не пересекает
+                # границу локации — intent очищается и в entry очереди.
+                _entry.pop("intent", None)
+                _entry.pop("intent_target", None)
+
+                # S186 FIX: Обновляем только location_id в полном стейте NPC.
+                # Пространственные поля (position, local_position) обновляются через SceneStateManager.
+                _full_npc = next((n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
+                if _full_npc:
+                    _full_npc["location_id"] = _current_loc
+                    _full_npc["location"] = _current_loc
+                # SPATIAL-KNOWLEDGE-01 P4: DIRECT_EXPERIENCE — вошедший NPC
+                # сам узнал, через какой выход пришёл. Self-authored запись:
+                # не телепатия, не мировой факт — личный опыт с provenance.
+                _ep_store = getattr(self, "_epistemic_store", None)
+
+                if _ep_store is not None:
+                    from app.domain.epistemology import (
+                        EpistemicRecord,
+                        Predicate,
+                        Proposition,
+                    )
+
+                    _boundary = ""
+                    _pos = ctx.scene_state.get("npc_positions", {}) if isinstance(ctx.scene_state, dict) else {}
+                    _p_entry = _pos.get(_npc_id) or {}
+                    if isinstance(_p_entry, dict):
+                        _boundary = _p_entry.pop("_via_boundary", "") or ""
+                    if not _boundary:
+                        # второй носитель: full-state NPC (переживает перезапись entry)
+                        for _n in ctx.all_npcs_raw or []:
+                            if _n.get("npc_id") == _npc_id or _n.get("id") == _npc_id:
+                                _boundary = _n.pop("_via_boundary", "") or ""
+                                break
+                    if _boundary:
+                        _prop = Proposition(
+                            subject_id=_npc_id,
+                            predicate=Predicate.EXITS_TO,
+                            object_id=_current_loc,
+                            polarity=True,
+                        )
+                        _existing = _ep_store.get(_npc_id, _prop)
+                        _first_tick = (
+                            getattr(_existing, "first_observed_tick", ctx.tick_number)
+                            if _existing
+                            else ctx.tick_number
+                        )
+                        _new_conf = (
+                            min(1.0, (getattr(_existing, "confidence", 0.0) or 0.0) + 0.3)
+                            if _existing
+                            else 0.7
+                        )
+                        _ep_store.upsert(
+                            EpistemicRecord(
+                                agent_id=_npc_id,
+                                proposition=_prop,
+                                confidence=_new_conf,
+                                source_id=_npc_id,
+                                source_claim_id=f"direct:{_npc_id}:{_boundary}:{ctx.tick_number}",
+                                first_observed_tick=_first_tick,
+                                last_updated_tick=ctx.tick_number,
+                            )
+                        )
+                        logger.info(
+                            f"[SPATIAL_KNOWLEDGE] npc={_npc_id} DIRECT_EXPERIENCE: "
+                            f"{_boundary} → {_current_loc} conf={_new_conf:.2f}"
+                        )
+
+
+        ctx.all_npcs_raw = [
+            n for n in (ctx.all_npcs_raw or [])
+            if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
+            and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
+            # PLAYER-STUB LAW (задача №5, мандат Phase C): player-запись в
+            # НЕактивной сцене — travel-метка, не актор. Реальный игрок тикается
+            # только в своей фактической локации (metadata.current_location
+            # = активная сцена). Стабы (city_gate при игроке в tavern) не
+            # порождают intents/decision/epistemic.
+            and not (
+                (n.get("npc_id") or n.get("id")) == "player"
+                and _current_loc != ctx.active_location_id
+                and getattr(ctx, "active_location_id", None)
+            )
+        ]
+        if hasattr(ctx, "npc_states") and ctx.npc_states:
+            ctx.npc_states = [
+                n for n in ctx.npc_states
+                if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
+                and (n.get("location_id") == _current_loc or n.get("location") == _current_loc)
+            ]
+
+        # Stage 1 Task 1.3: Создаём замороженный снапшот в начале тика.
+        # TickOrchestrator — единственный producer. EventCompiler — consumer.
+        try:
+            from app.models.world_snapshot import build_snapshot
+            _spatial_svc = self._resolve_spatial_service(ctx)
+            ctx.tick_snapshot = build_snapshot(
+                tick=ctx.tick_number,
+                campaign_id=ctx.campaign_id,
+                location_id=ctx.scene_state.get("location_id", ""),
+                spatial_service=_spatial_svc,
+                scene_state=ctx.scene_state,
+                rng_seed=ctx.tick_number,
+            )
+        except Exception as e:
+            logger.warning(f"[STAGE_1] Failed to build tick snapshot: {e}")
+            ctx.tick_snapshot = None
+
+        # ── W3/ADR-O-376 Gate-1: shadow affordance evaluation ──────
+        # Discovery-тень (Q2: до PRE-TICK/Фаз 0+ — affordances раньше
+        # решения). Ноль writers/decisions/events; OFF (default) =
+        # no-op; отказ наблюдателя не роняет тик (§11). Результат
+        # логируется только — НЕ кладётся в ctx (ноль decision-input).
+        try:
+            from app.services.world.affordance_shadow import run_affordance_shadow_guarded
+            run_affordance_shadow_guarded(
+                tick=ctx.tick_number,
+                snapshot=ctx.tick_snapshot,
+                all_npcs_raw=ctx.all_npcs_raw,
+                location_id=ctx.scene_state.get("location_id", ""),
+            )
+        except Exception as _shadow_e:
+            logger.warning(f"[W3_SHADOW] gate-1 fault: {_shadow_e}")
+
+        self._snapshot_positions_before(ctx) # PRE-TICK
+        self._phase_0_simulation(ctx) # 0
+
+        # BUG-SLEEP-007 FIX: Явная подфаза Phase 0 Sleep Lifecycle
+        self._phase_0_6_sleep_lifecycle(ctx) # 0.6
+
+        self._phase_0_5_idle_services(ctx) # 0.5
+        self._resolve_cross_location_transfers(ctx) # PRE-TICK: World-level ownership transfer кросс-локационное перемещение НПС
+
+        # S203.3 (Stage 2A, ADR-O-363, Ц1): гарантированный GC-проход за тик.
+        # TES завершает маршруты в Фазе 0.5; без этой точки терминальные
+        # записи живут до следующего apply_changes (окно INV-TRAV-ZOMBIE).
+        self._scene_manager.gc_traversals(ctx.scene_state)
+
+        # S203.1 (Stage 2A): консистентность shadow-реестра обязательств.
+        # Активный traversal-commitment без живого traversal -> INTERRUPTED
+        # (TRAVERSAL_VANISHED). Ловит незеркалированные обходы (Н-46-класс).
+        # Точка ДО LOD-ветки: покрывает Фазы 0–0.5 в обеих ветках тика.
+        # Известный лаг: vanish после Фазы 5 (death-cleanup pop, ~956)
+        # ловится sweep'ом следующего тика (явное зеркало — S203.3).
+        from app.services.action.commitment_registry import CommitmentRegistry
+        CommitmentRegistry.sweep(ctx.scene_state, ctx.tick_number)
+
+        # Подсистема 2: Replay Recorder (Этап 2.2)
+        _recorder = getattr(self, "_replay_recorder", None)  # noqa: ENIGMA002
+        if _recorder:
+            _recorder.record_tick_state(ctx.tick_number, ctx.scene_state.get("game_time_seconds", 0.0), ctx.scene_state)
+            if ctx.interventions:
+                _recorder.record_interventions(ctx.tick_number, ctx.interventions)
+
+        # Дополнение Б (п. Б.11): Adaptive Tick Loader
+        # Если LOD активен и это дальняя локация — пропускаем тяжелые фазы (память, решения, движение)
+        if not tick_fully:
+            self._phase_10_persistence(ctx) # 10
+            return
+
+        self._phase_1_npic_normalize(ctx) # 1
+        self._phase_1_input_merge(ctx) # 1.1
+        self._apply_willpower_gate(ctx) # 4.1
+        self._phase_2_event_bus_primary(ctx) # 2
+        self._phase_3_memory(ctx) # 3
+        self._phase_4_pre_decision(ctx) # 4
+        self._phase_5_decision(ctx) # 5
+
+        # Подсистема 2: Запись TickMutation после Фазы 5
+        if _recorder:
+            _recorder.record_tick_mutation(ctx.tick_number, getattr(ctx, "tick_mutation", None))  # noqa: ENIGMA002
+
+        self._phase_6_post_decision(ctx) # 6
+        self._phase_7_windup_resolution(ctx)  # 7 ADR-O-310: Execution Gate
+        self._phase_8_drain_secondary(ctx) # 8
+
+
+        # AUDIT #7: FrontEngine интегрирован выше по потоку — точка
+        # run_npc_orchestration (до ядрового цикла локаций), т.к. маска
+        # принадлежит игроку и мутируется один раз за ход.
+        # TODO (Фаза 2 / Эпоха 7): Интеграция FrontEngine.
+        # Здесь, после обработки событий (Фаза 8) и до интеграции (Фаза 9),
+        # должен вызываться apply_front_engine() из character/front_applicator.py.
+        # Он вычислит давление мира (WorldPressure) и обновит маску персонажа (Front).
+        # Поля для shared_context (front_description, world_pressure) уже готовы.
+
+        # AUDIT #8 VERDICT=DEFER (2026-08): DecisionHub не производит сигнала
+        # смены профессии; контракт RoleTransition требует реальной причины.
+        # Встраивание — при появлении источника причинности (needs/goals);
+        # фиктивный планировщик запрещён вердиктом владельца.
+        # TODO (Фаза 4 / Эпоха 9): Интеграция RoleTransition.
+        # Здесь, или в отдельном планировщике, должен вызываться RoleTransition
+        # для NPC, решивших сменить профессию. Требует проверки (стресс, целостность, золото).
+
+        # TODO (Фаза 4 / Эпоха 9): Интеграция MarketState / Traveller.
+        # Здесь, или в LifeEngine (Фаза 0), должен вызываться MarketState.tick()
+        # и Traveller.generate_visits() для спавна странников (торговцев, путников).
+        # Это обеспечит внешние экономические шоки для локации.
+        # AUDIT #6 VERDICT=BURIED (2026-08): runtime захоронен, точка возврата
+        # задокументирована в services/economy/__init__.py.
+
+        self._phase_9_integration(ctx) # 9
+        self._run_affective_pipeline(ctx) # 9.1
+
+        # Подсистема 2: Запись WorldSnapshot после Фазы 9
+        if _recorder:
+            _recorder.record_world_snapshot(ctx.tick_number, getattr(ctx, "world_snapshot", None)) # POST-9  # noqa: ENIGMA002
+
+        self._resolve_cross_location_transfers(ctx) # POST-9: Extract BEFORE Phase 10 to persist clean state
+        self._phase_10_persistence(ctx) # 10
+
+        # Подсистема 3: Causal Probes (real-time invariant monitor)
+        from app.services.probes.probe_registry import ProbeContext
+        from app.services.probes.probe_runner import ProbeRunner
+        from app.services.probes.probes.death_lock_probe import DeathLockProbe
+        from app.services.probes.probes.l3_ephemeral_probe import L3EphemeralProbe
+        from app.services.probes.probes.spatial_coherence_probe import SpatialCoherenceProbe
+        from app.services.probes.probes.traversal_fsm_probe import TraversalFSMProbe
+
+        _spatial_svc = self._resolve_spatial_service(ctx)
+        _probe_ctx = ProbeContext(
+            tick_id=ctx.tick_number,
+            game_time_seconds=ctx.scene_state.get("game_time_seconds", 0.0),
+            scene_state=ctx.scene_state,
+            all_npcs_raw=ctx.all_npcs_raw,
+            mvp_controller=ctx.mvp_controller,  # ENIGMA SELF-HEALING: Pass to probes
+            tick_mutation=getattr(ctx, "tick_mutation", None),  # Подсистема 3: Инвариант I  # noqa: ENIGMA002
+            tick_state_hash_before=getattr(ctx, "tick_state_hash_before", None),  # Инвариант III  # noqa: ENIGMA002
+            tick_state_hash_after=getattr(ctx, "tick_state_hash_after", None),     # Инвариант III  # noqa: ENIGMA002
+            tick_state_mutated_fields=getattr(ctx, "tick_state_mutated_fields", None), # S179 FIX  # noqa: ENIGMA002
+            effective_drives_map=getattr(ctx, "effective_drives_map", {}),         # Инвариант II  # noqa: ENIGMA002
+            spatial_service=_spatial_svc  # BUG-SPATIAL-036: Передаём сервис для SC-2..SC-8
+        )
+        from app.services.probes.probes.causal_provenance_probe import CausalProvenanceProbe
+        from app.services.probes.probes.historical_constraint_probe import HistoricalConstraintProbe
+        from app.services.probes.probes.mvp_pipeline_probe import MvpPipelineProbe
+        from app.services.probes.probes.somatic_gate_probe import SomaticGateProbe
+        from app.services.probes.probes.temporal_isolation_probe import TemporalIsolationProbe
+        _runner = ProbeRunner(probes=[
+            SpatialCoherenceProbe(), TraversalFSMProbe(), DeathLockProbe(), L3EphemeralProbe(),
+            CausalProvenanceProbe(), HistoricalConstraintProbe(), TemporalIsolationProbe(), SomaticGateProbe(),
+            MvpPipelineProbe()  # ENIGMA SELF-HEALING (Level 1)
+        ])
+        _probe_results = _runner.run_all(_probe_ctx)
+
+        # Подсистема 3: Запись результатов в ProbeAlertManager (Этап 3.6)
+        from app.services.probes.probe_alerts import probe_alerts
+        probe_alerts.record_results(ctx.tick_number, _probe_results)
+
+        # N2 FIX: Эмитим событие TICK_COMPLETED для подписчиков (например, MvpTavernController)
+        from app.domain.events import EventDTO
+        _tick_completed_event = EventDTO.create(
+            event_type=EventType.TICK_COMPLETED.value,
+            source="tick_orchestrator",
+            payload={
+                "tick_number": ctx.tick_number,
+                # REGRESSION-CORE-002 FIX: Передаём только serializable поля, не весь ctx.
+                "snapshot": {
+                    "tick": ctx.tick_number,
+                    "campaign_id": ctx.campaign_id,
+                    "active_location": getattr(ctx, "active_location_id", None) or getattr(ctx, "active_location", None),  # noqa: ENIGMA002
+                    "npc_count": len(ctx.all_npcs_raw) if getattr(ctx, "all_npcs_raw", None) else 0,  # noqa: ENIGMA002
+                    "all_npcs_raw": getattr(ctx, "all_npcs_raw", []) or [],  # noqa: ENIGMA002
+                },
+            }
+        )
+        self._get_event_bus().publish(_tick_completed_event)
+
+    def _resolve_cross_location_transfers(self, ctx: _TickContext) -> None:
+        """S186: Cross-Location Ownership Transfer.
+        
+        Изымает NPC из scene_state[source] в RAM-очередь TickOrchestrator,
+        если SSM пометил их location_id как целевую локацию (cross_loc_materialize).
+        Очередь будет разрешена в начале тика целевой локации (_run_core_phases).
+        """
+        _current_loc = ctx.scene_state.get("location_id", "")
+        _npc_positions = ctx.scene_state.get("npc_positions", {})
+        # FIX-6c: пауза в дверях — по истечении BOUNDARY_DWELL_TICKS помечаем
+        # NPC соседней локацией: штатный ghost-скан ниже делает S186-перенос.
+        _dwell_map = ctx.scene_state.get("boundary_dwell")
+        if isinstance(_dwell_map, dict) and _dwell_map:
+            for _d_id, _d_info in list(_dwell_map.items()):
+                # FIX-6e: дедлайн — если 5+ тиков после ready_tick переноса
+                # нет (потерян S186-контур), переносим принудительно.
+                _d_deadline = _d_info.get("ready_tick", 0) + 5
+                if ctx.tick_number >= _d_deadline:
+                    logger.warning(f"[BOUNDARY_DWELL] npc={_d_id} deadline missed → forced transfer to {_d_info.get('neighbor')}")
+                    _d_entry_f = _npc_positions.get(_d_id)
+                    if _d_entry_f and _d_info.get("neighbor"):
+                        _d_entry_f["location_id"] = _d_info["neighbor"]
+                    _dwell_map.pop(_d_id, None)
+                    continue
+                if ctx.tick_number >= _d_info.get("ready_tick", 0):
+                    _d_entry = _npc_positions.get(_d_id)
+                    _d_neighbor = _d_info.get("neighbor", "")
+                    # SPATIAL-KNOWLEDGE-01: переносим «через какой выход» для
+                    # direct-experience записи вошедшего (P4).
+                    _d_via = _d_info.get("via", "")
+                    if _d_via:
+                        # SPATIAL-KNOWLEDGE-01 P4': direct-experience пишется
+                        # ЗДЕСЬ — NPC физически стоит в проёме и переходит.
+                        # INJECT-точка ненадёжна: два конкурирующих канала
+                        # материализации (relocation-intent / dwell) — via
+                        # теряется в гонке (зонд DIAG_SK1, сессия 20:13).
+                        _ep_store = getattr(self, "_epistemic_store", None)
+                        if _ep_store is not None:
+                            from app.domain.epistemology import (
+                                EpistemicRecord,
+                                Predicate,
+                                Proposition,
+                            )
+
+                            _prop = Proposition(
+                                # Phase C: subject = boundary-узел-ИСТОК
+                                # ("tavern:exit_east") — направленное ребро
+                                # from_loc → neighbor для personal routing.
+                                subject_id=_d_via,
+                                predicate=Predicate.EXITS_TO,
+                                object_id=_d_info.get("neighbor", ""),
+                                polarity=True,
+                            )
+                            _existing = _ep_store.get(_d_id, _prop)
+                            _new_conf = (
+                                min(1.0, (getattr(_existing, "confidence", 0.0) or 0.0) + 0.3)
+                                if _existing
+                                else 0.7
+                            )
+                            _ep_store.upsert(EpistemicRecord(
+                                agent_id=_d_id,
+                                proposition=_prop,
+                                confidence=_new_conf,
+                                source_id=_d_id,
+                                source_claim_id=f"direct:{_d_id}:{_d_via}:{ctx.tick_number}",
+                                first_observed_tick=(
+                                    getattr(_existing, "first_observed_tick", ctx.tick_number)
+                                    if _existing
+                                    else ctx.tick_number
+                                ),
+                                last_updated_tick=ctx.tick_number,
+                            ))
+                            logger.info(
+                                f"[SPATIAL_KNOWLEDGE] npc={_d_id} DIRECT_EXPERIENCE: "
+                                f"{_d_via} → {_d_info.get('neighbor')} conf={_new_conf:.2f}"
+                            )
+                    if _d_entry is not None:
+                        _d_entry.pop("_via_boundary", None)  # носитель больше не нужен
+                    if _d_entry and _d_neighbor:
+                        # BUG-13 (атомарность): location_id, извлечение из
+                        # npc_positions и постановка в pending_transfers — ОДНИМ
+                        # актом. Раньше location_id мутировался сразу, а del из
+                        # npc_positions откладывался до ghost-скана → окно
+                        # torn-state: NPC «в market» с координатами tavern
+                        # (SC-4 PROBE_FAIL). Позиция префиксована старой
+                        # локацией — переносится как есть, target-локация
+                        # восстанавливает при материализации.
+                        _d_entry["location_id"] = _d_neighbor
+                        self._pending_transfers.setdefault(_d_neighbor, {})[_d_id] = _d_entry
+                        if not hasattr(self, "_npc_runtime_locations"):
+                            self._npc_runtime_locations = {}
+                    self._npc_runtime_locations[_d_id] = _d_neighbor
+                    if _d_id in _npc_positions:
+                        del _npc_positions[_d_id]
+                    if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                        for _n in ctx.all_npcs_raw:
+                            if _n.get("npc_id") == _d_id or _n.get("id") == _d_id:
+                                _n["location_id"] = _d_neighbor
+                                _n["location"] = _d_neighbor
+                                break
+                    logger.info(f"[BOUNDARY_DWELL] npc={_d_id} dwell complete → atomic S186 transfer to {_d_neighbor}")
+                    # FIX-6f: запись стирается ТОЛЬКО после фактического
+                    # переноса. Раньше pop стоял на уровне цикла и стирал
+                    # dwell каждый тик до готовности → ready_tick бесконечно
+                    # пересоздавался movement_engine (доказано: transfer at
+                    # tick 13→19 без единого "dwell complete").
+                    _dwell_map.pop(_d_id, None)
+        # S267 (V8-SP-19 для ghost-скана): запись с position, префиксованным
+        # ТЕКУЩЕЙ сценой — НЕ призрак, а мусорное location_id-поле (класс
+        # S267: чужой apply создал запись 'tavern:node_16' в market-сцене →
+        # ghost-скан «перенёс» Торнина, del из tavern → лимбо: npc-dict без
+        # position, ME слеп, adjacency недостижима — лента EATDIAG-GATE1
+        # tick 8→9). Призрак = позиция НЕ подтверждает текущую сцену.
+        _ghosts = [
+            (npc_id, entry)
+            for npc_id, entry in list(_npc_positions.items())
+            if npc_id != "player"
+            and entry.get("location_id", _current_loc) != _current_loc
+            and not (
+                str(entry.get("position") or "").startswith(f"{_current_loc}:")
+            )
+        ]
+
+        if not _ghosts:
+            return
+
+        for npc_id, entry in _ghosts:
+            _target_loc = entry.get("location_id")
+            if not _target_loc:
+                continue
+
+            logger.info(f"[S186_TRANSFER] Extracting NPC={npc_id} from {_current_loc} to pending queue for {_target_loc}")
+
+            # 1. Кладём NPC в RAM-очередь оркестратора
+            self._pending_transfers.setdefault(_target_loc, {})[npc_id] = entry
+            if not hasattr(self, "_npc_runtime_locations"):
+                self._npc_runtime_locations = {}
+            self._npc_runtime_locations[npc_id] = _target_loc
+
+            # S186 FIX: Обновляем location_id в all_npcs_raw, чтобы LifeEngine кэшировал правильную локацию.
+            # Без этого _rebuild_cluster_occupancy будет воскрешать призрака в старой локации каждый тик.
+            if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                for n in ctx.all_npcs_raw:
+                    if n.get("npc_id") == npc_id or n.get("id") == npc_id:
+                        n["location_id"] = _target_loc
+                        n["location"] = _target_loc
+                        # SC-3 FIX: Сбрасываем current_node и local_position, чтобы избежать дрейфа в новой локации
+                        # §4.1 FIX: Используем pop вместо прямого присваивания, чтобы не триггерить INV-POSITION-MUTATION
+                        n["current_node"] = ""
+                        n.pop("position", None)
+                        # FIX-EC-2: Перенос = прежние намерения недействительны.
+                        # Stale intent (block_path из таверны) материализовал NPC
+                        # ОБРАТНО в исходную локацию из тика цели (ping-pong);
+                        # stale TRADE без target ронял тик валидатором
+                        # npc_state:878 ("TRADE without target", tick=33).
+                        n.pop("intent", None)
+                        n.pop("intent_target", None)
+                        break
+
+            # 2. Удаляем NPC из scene_state исходной локации (из RAM)
+            if npc_id in _npc_positions:
+                del _npc_positions[npc_id]
+
+
+            # BUG-SLEEP-013 FIX + S203.3 (Stage 2A): транзит NPC в старой локации
+            # останавливается легально. Н-46c: был тихий pop (parent-лаг реестра);
+            # теперь атомарный interrupt двух рельсов (запись до SSM-GC; TES не
+            # двигает не-MOVING — bounce исключён статусом, а не удалением).
+            _active_traversals = ctx.scene_state.get("active_traversals", {})
+            if isinstance(_active_traversals, dict) and npc_id in _active_traversals:
+                if TRAVERSAL_OWNERSHIP_ENFORCEMENT:
+                    from app.domain.traversal_schema import interrupt_traversal
+
+                    interrupt_traversal(
+                        ctx.scene_state, npc_id,
+                        "CROSS_LOCATION_TRANSFER", ctx.tick_number,
+                    )
+                    logger.info(f"[S186_TRANSFER] Interrupted traversal for NPC={npc_id} in {_current_loc}")
+                else:
+                    _active_traversals.pop(npc_id, None)
+                    logger.info(f"[S186_TRANSFER] Cleared stale traversal for NPC={npc_id} in {_current_loc}")
+
+            # S186 FIX: Не удаляем NPC из all_npcs_raw, а только обновляем location_id.
+            # Это необходимо, чтобы LifeEngine кэшировал правильную локацию и не воскрешал призрака.
+            # Фильтрация по локации произойдет естественным образом в _run_core_phases.
+            if hasattr(ctx, "all_npcs_raw") and ctx.all_npcs_raw:
+                for n in ctx.all_npcs_raw:
+                    if n.get("npc_id") == npc_id or n.get("id") == npc_id:
+                        n["location_id"] = _target_loc
+                        n["location"] = _target_loc
+                        break
+
+    def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
+        """Подслой 1.1: NPIC NORMALIZATION."""
+        if ctx.all_npcs_raw:
+            from app.models.npc_state import BODY_STATE_DISABLED_DATA
+
+            for _npc in ctx.all_npcs_raw:
+                _bs = _npc.get("body_state")
+                if not _bs:
+                    _npc["body_state"] = dict(BODY_STATE_DISABLED_DATA)
+                    logger.warning(
+                        f"[NPIC_NORMALIZE] NPC '{_npc.get('npc_id', '?')}' missing body_state. Injected DISABLED sentinel."
+                    )
+
+    def _phase_1_input_merge(self, ctx: _TickContext) -> None:
+        """Подслой 1.2: Merge interventions into delta_buffer."""
+        if not ctx.interventions:
+            return
+
+        _life_engine = self._get_life_engine()
+        if _life_engine:
+            ctx.npc_states = _life_engine.get_npc_states(ctx.campaign_id)
+            if ctx.npc_states:
+                # Сохраняем аватара игрока из переданного контекста (от GameLoop)
+                _player_entry = next(
+                    (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
+                )
+                # Если аватар отсутствует в all_npcs_raw, восстанавливаем его из npc_positions
+                if not _player_entry:
+                    _player_pos = ctx.scene_state.get("npc_positions", {}).get("player")
+                    if _player_pos:
+                        _player_entry = {
+                            "npc_id": "player",
+                            "id": "player",
+                            "name": "Игрок",
+                            "position": _player_pos.get("local_position", (0.0, 0.0)),
+                            "local_position": _player_pos.get("local_position", (0.0, 0.0)),
+                            "current_node": _player_pos.get("current_node", ""),
+                            "location_id": _player_pos.get("location_id", ctx.campaign_id),
+                        }
+                # Если список из LifeEngine не пуст, используем его как базу
+                ctx.all_npcs_raw = ctx.npc_states
+                # Возвращаем аватара игрока в конец списка
+                if _player_entry:
+                    ctx.all_npcs_raw = [
+                        n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"
+                    ]
+                    ctx.all_npcs_raw.append(_player_entry)
+
+        for interv in ctx.interventions:
+            if interv.source == "player" and "dm_ctx" in interv.payload:
+                _dm_ctx = interv.payload.get("dm_ctx")
+                if _dm_ctx:
+                    self._process_player_dm_action(ctx, _dm_ctx)
+            elif interv.source == "player":
+                self._process_player_action(ctx, interv)
+            else:
+                logger.debug(
+                    f"[INPUT_MERGE] unhandled intervention source: {interv.source}"
+                )
+
+    def _apply_willpower_gate(self, ctx: _TickContext) -> None:
+        """Подслой 1.3: WillpowerGate. Явный вызов без условного ветвления."""
+        self._phase_1_input(ctx)
+
+    def _process_player_dm_action(self, ctx: _TickContext, dm_ctx: Any) -> None:
+        """Обработка player DM action (directive handling, cognitive overlay)."""
+        logger.warning(f"[PDM_DEBUG] ENTER. dm_ctx={dm_ctx is not None}")
+        if hasattr(dm_ctx, "intent_resolution") and dm_ctx.intent_resolution:
+            _intent_res = dm_ctx.intent_resolution
+            _params = (
+                _intent_res.original_intent.parameters  # noqa: ENIGMA001
+                if _intent_res.original_intent
+                else None
+            )
+            _fast_actor = None
+            _fast_target_xy = None
+            _target_id = getattr(_params, "target_id", None) if _params else None  # noqa: ENIGMA001, ENIGMA002
+            _movement_req = getattr(_intent_res, "movement_request", None) # V8-TICK-1 FIX  # noqa: ENIGMA002
+
+            # V8-TICK-1 FIX: определяем семантические переменные для directive_payload
+            _sem_action = getattr(_params, "semantic_action", "") if _params else ""  # noqa: ENIGMA002
+            _sem_target = getattr(_params, "target_reference", "") if _params else ""  # noqa: ENIGMA002
+
+            if _movement_req:
+                _fast_actor = _movement_req.actor_id
+                _target_id = _movement_req.target_actor_id
+                _target_pos_dict = (
+                    ctx.scene_state.get("npc_positions", {})
+                    .get(_target_id, {})
+                    .get("local_position", {"x": 0.0, "y": 0.0})
+                )
+                _fast_target_xy = (
+                    _target_pos_dict.get("x", 0.0),
+                    _target_pos_dict.get("y", 0.0),
+                )
+
+                # Применяем социальное давление только если Игрок приказывает NPC подойти
+                if _fast_actor != "player" and _target_id == "player":
+                    try:
+                        import types
+
+                        from app.services.social.directive_interpretation_subscriber import (
+                            DirectiveInterpretationSubscriber,
+                        )
+
+                        _directive_payload = {
+                            "semantic_action": _sem_action,
+                            "target_reference": _sem_target,
+                            "target_id": _fast_actor,
+                            "social_pressure": 0.8,
+                        }
+                        _mock_event = types.SimpleNamespace(payload=_directive_payload)
+                        _directive_deltas = DirectiveInterpretationSubscriber().handle(
+                            _mock_event, ctx.all_npcs_raw
+                        )
+                        if _directive_deltas:
+                            ctx.delta_buffer.extend(_directive_deltas)
+                            for delta in _directive_deltas:
+                                _npc_id = delta.npc_id
+                                _npc_state = next(
+                                    (
+                                        n
+                                        for n in ctx.all_npcs_raw
+                                        if n.get("npc_id") == _npc_id
+                                    ),
+                                    None,
+                                )
+                                if not _npc_state:
+                                    continue
+                                if (
+                                    hasattr(delta.payload, "recent_directive_data")
+                                    and delta.payload.recent_directive_data
+                                ):
+                                    _npc_state.setdefault("perceptual_kernel", {})[
+                                        "recent_directive"
+                                    ] = delta.payload.recent_directive_data
+                                if (
+                                    hasattr(delta.payload, "stress_delta")
+                                    and delta.payload.stress_delta != 0
+                                ):
+                                    # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
+                                    _psyche = _npc_state.setdefault("psyche", {})
+                                    _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + delta.payload.stress_delta))
+                                if (
+                                    hasattr(delta.payload, "fear_delta")
+                                    and delta.payload.fear_delta != 0
+                                ):
+                                    _npc_state.setdefault("social_stats", {})[
+                                        "fear_of_player"
+                                    ] = (
+                                        _npc_state.get("social_stats", {}).get(
+                                            "fear_of_player", 0.1
+                                        )
+                                        + delta.payload.fear_delta
+                                    )
+                                if (
+                                    hasattr(delta.payload, "shock_impulse")
+                                    and getattr(delta.payload, "shock_impulse", 0.0)
+                                    > 0.5
+                                ):
+                                    _npc_state.setdefault("body_state", {})[
+                                        "shock_impulse"
+                                    ] = (
+                                        getattr(
+                                            _npc_state.get("body_state", {}),
+                                            "shock_impulse",
+                                            0.0,
+                                        )
+                                        + delta.payload.shock_impulse
+                                    )
+                                    _npc_state.setdefault("body_state", {})[
+                                        "consciousness"
+                                    ] = max(0.0, 1.0 - delta.payload.shock_impulse)
+                    except Exception as e:
+                        logger.error(
+                            f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}",
+                            exc_info=True,
+                        )
+
+                logger.warning(
+                    f"[FAST_PATH_DEBUG] actor={_fast_actor} target={_target_id}"
+                )
+
+            # Разрешаем игроку использовать fast-path, так как его позиция теперь обновляется в npc_positions
+            if _fast_actor and _fast_target_xy:
+                from app.domain.movement import LocalSteeringGoal
+                from app.services.spatial.movement_engine import MovementEngine
+
+                _spatial_svc = self._resolve_spatial_service(ctx)
+                if _spatial_svc:
+                    _fast_intents = [
+                        LocalSteeringGoal(
+                            actor_id=_fast_actor,
+                            local_target_xy=_fast_target_xy,
+                            reason="micro_snap:approach",
+                            priority=0.9,
+                        )
+                    ]
+                    me = MovementEngine()
+                    me.set_spatial_service(_spatial_svc)
+                    _changes = me.process_intents(
+                        _fast_intents,
+                        ctx.tick_number,
+                        ctx.scene_state.get("npc_positions", {}),
+                        campaign_id=ctx.campaign_id,
+                        scene_state=ctx.scene_state,
+                    )
+                    if _changes and self._scene_manager:
+                        self._apply_with_shadow_observation(
+                            ctx, _changes, phase_label="FAST_PATH_MOVE"
+                        )
+                        logger.warning(
+                            f"[FAST_PATH] Applied {len(_changes)} movement changes for actor={_fast_actor}"
+                        )
+
+    def _process_player_action(self, ctx: _TickContext, interv: Any) -> None:
+        """Generic player action intervention (не dm_ctx).
+
+        S115 FIX: Перенос логики директив из _process_player_dm_action.
+        Обрабатывает InterventionEvent от игрока (MOVE, THREATEN, etc.).
+        """
+        _payload = getattr(interv, "payload", {})  # noqa: ENIGMA002
+        _sem_action = _payload.get("semantic_action")
+        _sem_target = _payload.get("target_reference", "")
+        _target_id = _payload.get("target_id")
+
+        if not _sem_action or not _sem_target:
+            return
+
+        # M1 (ADR-O-361): действия с каузальными последствиями (HELP /
+        # BLACKMAIL / ACCUSE) маршрутизируются в ActionConsequenceCompiler —
+        # тот же write-path, что и production (game_loop:
+        # _execute_dm_and_intent_resolution -> intent_to_player_action ->
+        # process_action). Семантика приходит структурированной из
+        # InterventionEvent.payload; ядро текст не парсит (L4.1).
+        # action_id детерминирован (идемпотентность компилятора, replay).
+        if _sem_action.upper() in ("HELP", "BLACKMAIL", "ACCUSE"):
+            _mvp_ctrl = getattr(ctx, "mvp_controller", None)
+            _compiler = getattr(_mvp_ctrl, "action_compiler", None)
+            if _compiler is not None:
+                from app.models.player_action import ActionType, PlayerAction
+
+                _consequence = PlayerAction(
+                    action_id=(
+                        f"interv:{ctx.tick_number}:"
+                        f"{_sem_action.upper()}:{_target_id or 'unknown'}"
+                    ),
+                    tick=ctx.tick_number,
+                    actor_id="player",
+                    action_type=ActionType(_sem_action.lower()),
+                    target_id=_target_id or "",
+                    # S221: секрет для BLACKMAIL / DIALOGUE+secret (M-07/M-08)
+                    # приходит из payload сценария; для остальных — None.
+                    secret_id=_payload.get("secret_id"),
+                    description=str(_payload.get("text", ""))[:200],
+                )
+                _outcome = _compiler.process_action(_consequence)
+                if _outcome:
+                    # Наблюдаемость сценариев: компилятор вернул причину
+                    # отклонения (например, ACCUSE-гейт §18 без убеждения).
+                    logger.warning(
+                        "[INPUT_MERGE] consequence rejected: "
+                        f"{_sem_action.upper()} -> {_target_id}: {_outcome}"
+                    )
+                logger.info(
+                    "[INPUT_MERGE] consequence action applied: "
+                    f"{_sem_action.upper()} -> {_target_id} "
+                    f"(tick={ctx.tick_number})"
+                )
+            else:
+                logger.warning(
+                    "[INPUT_MERGE] consequence action dropped: "
+                    "mvp_controller/action_compiler недоступен "
+                    f"(action={_sem_action}, tick={ctx.tick_number})"
+                )
+
+        # S122 FIX: Боевая труба. Если игрок атакует — публикуем событие в EventBus,
+        # чтобы CombatSubscriber (Фаза 8) вызвал ImpactEngine и нанёс физический урон.
+        # Без этого NPC не получает боль/шок, и BehaviorManifestationService не генерирует моторные следы.
+        if _sem_action.upper() == "ATTACK":
+            from app.domain.events import EventDTO
+            from app.services.events.event_types import EventType
+
+            # IRON RIVER D-1/P0-3 (F3-1): детерминированный event-id вместо
+            # uuid4 — id входит в боевой rng_seed (combat_subscriber:222) и в
+            # состояние; same (tick, actor, target) → same id → same бой.
+            # INV-REPLAY-DETERMINISM; uuid4 в kernel-событиях запрещён.
+            _evt_id = (
+                f"evt:{int(ctx.tick_number)}:player:{_target_id}:attack"
+            )
+            _attack_event = EventDTO(
+                id=_evt_id,
+                type=EventType.PLAYER_ATTACKED.value,
+                source="player",
+                timestamp=ctx.scene_state.get("game_time_seconds", 0.0),
+                payload={
+                    "target_id": _target_id,
+                    "target_reference": _sem_target,
+                    "intensity": _payload.get("social_pressure", 0.8),
+                    "actor_id": "player",
+                },
+                visibility="public",
+                radius=15.0,
+                persistence_level="working",
+            )
+            self._event_bus.publish(_attack_event)
+
+        # ADR-082: Регистронезависимое сравнение
+        if _sem_action.upper() in ("MOVE", "THREATEN", "PERSUADE", "GIVE"):
+            # S115 FIX: target_id может быть уже зарезолвлен (maid_lusya),
+            # а target_reference пустовать. Ищем по любому из них.
+            _search_ref = (_sem_target or _target_id or "").lower()
+            _is_npc_target = (
+                any(
+                    _search_ref in n.get("name", "").lower()
+                    or _search_ref in n.get("npc_id", "").lower()
+                    for n in ctx.all_npcs_raw
+                )
+                if ctx.all_npcs_raw
+                else False
+            )
+
+            if _is_npc_target:
+                try:
+                    import types
+
+                    from app.services.social.directive_interpretation_subscriber import (
+                        DirectiveInterpretationSubscriber,
+                    )
+
+                    _directive_payload = {
+                        "semantic_action": _sem_action,
+                        "target_reference": _sem_target or "",
+                        "target_id": _target_id,  # S115 FIX: target_id обязателен, если уже зарезолвлен
+                        "social_pressure": _payload.get("social_pressure", 0.8),
+                    }
+                    _mock_event = types.SimpleNamespace(payload=_directive_payload)
+                    _directive_deltas = DirectiveInterpretationSubscriber().handle(
+                        _mock_event, ctx.all_npcs_raw
+                    )
+                    if _directive_deltas:
+                        ctx.delta_buffer.extend(_directive_deltas)
+                        # S116 FIX: Применяем дельты напрямую к npc_dict, чтобы они не потерялись при агрегации.
+                        for delta in _directive_deltas:
+                            _npc_id = delta.npc_id
+                            _npc_state = next(
+                                (
+                                    n
+                                    for n in ctx.all_npcs_raw
+                                    if n.get("npc_id") == _npc_id
+                                ),
+                                None,
+                            )
+                            if not _npc_state:
+                                continue
+                            if (
+                                hasattr(delta.payload, "compliance_bias_delta")
+                                and delta.payload.compliance_bias_delta != 0
+                            ):
+                                _pk = _npc_state.setdefault("perceptual_kernel", {})
+                                _pk["compliance_bias"] = max(
+                                    -1.0,
+                                    min(
+                                        1.0,
+                                        _pk.get("compliance_bias", 0.0)
+                                        + delta.payload.compliance_bias_delta,
+                                    ),
+                                )
+                            if (
+                                hasattr(delta.payload, "recent_directive_data")
+                                and delta.payload.recent_directive_data
+                            ):
+                                _npc_state.setdefault("perceptual_kernel", {})[
+                                    "recent_directive"
+                                ] = delta.payload.recent_directive_data
+                            if (
+                                hasattr(delta.payload, "stress_delta")
+                                and delta.payload.stress_delta != 0
+                            ):
+                                # V8-TICK-5 / V8-PSY-21 FIX: stress пишется в psyche sub-dict, а не в emotion (строка)
+                                _psyche = _npc_state.setdefault("psyche", {})
+                                _psyche["stress"] = max(0, min(100, _psyche.get("stress", 0.0) + delta.payload.stress_delta))
+                            if (
+                                hasattr(delta.payload, "fear_delta")
+                                and delta.payload.fear_delta != 0
+                            ):
+                                _npc_state.setdefault("social_stats", {})[
+                                    "fear_of_player"
+                                ] = (
+                                    _npc_state.get("social_stats", {}).get(
+                                        "fear_of_player", 0.1
+                                    )
+                                    + delta.payload.fear_delta
+                                )
+                except Exception as e:
+                    logger.error(
+                        f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}",
+                        exc_info=True,
+                    )
+
+    # ── Player Turn: фазы 8-10 (после Rules agent) ──────────────────
+
+    # ── Слой 4: подготовка ────────────────────────────────────────────
+
+    def _snapshot_positions_before(self, ctx: _TickContext) -> None:
+        """Снимок позиций NPC ДО тика — для SpatialEventDetector (Слой 4).
+        Также продвигает TransitTracker (NPC в пути двигаются на 1 шаг).
+        """
+        ctx.old_npc_positions = _npc_positions_snapshot(ctx.scene_state)
+
+        # Макро-движение теперь — Semantic Relocation (атомарный переход).
+        # Микро-движение (steering) будет реализовано в LocalSteeringLayer.
+
+    # ── ФАЗЫ ──────────────────────────────────────────────────────────
+
+    def _phase_0_simulation(self, ctx: _TickContext) -> None:
+        """LifeEngine: need-driven, schedule, random events. Чистый Python."""
+        from app.services.phases.simulation import run_phase_0_simulation
+
+        run_phase_0_simulation(ctx, self)
+
+        # Тело метода удалено. Логика перенесена в phases/simulation.py
+
+    def _update_npc_desires(self, ctx: "_TickContext") -> None:
+        """Living Activity (шаг 2): Фаза 0 — продюсер DesireSet (G2-паттерн).
+
+        DESIRES_ENABLED (default OFF) = байт-идентичный no-op; отказ
+        продюсера = деградация канала, не тика. Desires — персистентный
+        L2.8-слой (npc["desires"]), не L3-эффективные драйвы: имеют
+        born_tick/last_fulfilled/weight и переживают тики.
+        """
+        from app.services.npc.desire_generator import update_all
+
+        update_all(ctx.all_npcs_raw, ctx.tick_number)
+
+    def _phase_0_6_sleep_lifecycle(self, ctx: _TickContext) -> None:
+        """Фаза 0.6: Sleep lifecycle — обновление sleep depth, recovery, wake checks.
+        Вынесено из LifeEngine для чистоты пайплайна и поддержки BUG-SLEEP-012.
+        """
+        _svc = self._get_sleep_lifecycle_svc()
+        # S2B6-B (В2/B2): eligibility-контекст — BED-валидация позиции
+        # (мир говорит «здесь можно спать»; ADR-O-326: JSON-role SSOT)
+        # + settled (нет активного traversal — прибытие предшествует onset).
+        from app.models.spatial_contracts import NodeRole
+        from app.services.npc.sleep_onset_resolver import SleepOnsetResolver
+
+        _spatial = self._resolve_spatial_service(ctx)
+        _active_traversals = ctx.scene_state.get("active_traversals", {})
+
+        for _npc in (ctx.all_npcs_raw or []):
+            _bed_ok = False
+            if _spatial is not None:
+                _pos = str(_npc.get("position", "") or "")
+                if _pos:
+                    _node = _spatial.get_node(_pos)
+                    _bed_ok = _node is not None and _node.role == NodeRole.BED
+            _nid = _npc.get("npc_id") or _npc.get("id") or ""
+            _settled = not (
+                isinstance(_active_traversals, dict) and _nid in _active_traversals
+            )
+            _eligibility = SleepOnsetResolver.resolve(
+                _npc, ctx.tick_number, bed_ok=_bed_ok, settled=_settled
+            )
+            _changes = _svc.process_sleep_lifecycle(_npc, ctx.tick_number, _eligibility)
+            if _changes:
+                # Применяем пробуждение через стандартный механизм SceneChange
+                self._apply_with_shadow_observation(ctx, _changes, "phase_0_6_sleep")
+
+        # S203.4 (ADR-O-365, D-3): state-based сверка Y6 — сон обязан иметь
+        # владельца. Идемпотентно каждый тик; флаг OFF → no-op.
+        from app.services.action.commitment_registry import CommitmentRegistry
+
+        CommitmentRegistry.reconcile_sleep_ownership(
+            ctx.scene_state, ctx.all_npcs_raw or [], ctx.tick_number
+        )
+
+    def _process_continuous_motion(
+        self, ctx: _TickContext, _spatial_svc: Optional["SpatialService"] = None
+    ) -> None:
+        """ETKE-IK v1: Непрерывная кинематика (SteeringResolver + MotionIntegrator)."""
+        from app.services.phases.motion import process_continuous_motion
+
+        process_continuous_motion(ctx, self, _spatial_svc)
+
+        # Тело метода удалено. Логика перенесена в phases/motion.py
+
+    def _process_traversals(self, ctx: _TickContext) -> None:
+        """Фаза 0.75: Authoritative Traversal Lifecycle (STL Phase 1)."""
+        from app.services.phases.traversal import process_traversals
+
+        process_traversals(ctx, self)
+
+        # Тело метода удалено. Логика перенесена в phases/traversal.py
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # ADR-O-201 ФАЗА 1: Dual Rail Execution (Shadow Observer)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _apply_with_shadow_observation(
+        self, ctx: "_TickContext", changes: list, phase_label: str = ""
+    ) -> int:
+        """ФАЗА 1 (ADR-O-201): Legacy + Shadow parallel execution."""
+        from app.services.phases.traversal import apply_with_shadow_observation
+
+        return apply_with_shadow_observation(ctx, self, changes, phase_label)
+
+        # Тело метода удалено. Логика перенесена в phases/traversal.py
+
+    def _validate_shadow_vs_legacy(
+        self,
+        snapshot: WorldSnapshot,
+        tick: int,
+        npc_id: str,
+        thick: Any,
+        scene_state: dict,
+        phase_label: str = "",
+    ) -> None:
+        """Сравнение shadow ThickSceneChange с legacy состоянием."""
+        from app.services.phases.validation import validate_shadow_vs_legacy
+
+        validate_shadow_vs_legacy(
+            orchestrator=self,
+            snapshot=snapshot,
+            tick=tick,
+            npc_id=npc_id,
+            thick=thick,
+            scene_state=scene_state,
+            phase_label=phase_label,
+        )
+
+        # Тело метода удалено. Логика перенесена в phases/validation.py
+
+    def collect_thick_changes(self) -> list:
+        """CSSE Stage 2: возвращает и очищает буфер ThickSceneChange.
+
+        Swap pattern: возвращает список и создаёт новый пустой.
+        Безопасен для вызова между тиками.
+        """
+        if not hasattr(self, "_tick_thick_changes"):
+            self._tick_thick_changes: list[Any] = []
+        result = self._tick_thick_changes
+        self._tick_thick_changes = []
+        return result
+
+    def _log_drift_summary(self) -> None:
+        """Периодический отчёт о дрейфе (ФАЗА 2 — с DEPRECATION индикатором).
+
+        Критерий переключения ФАЗА 2→3:
+        0 Ontological + 0 Causal + 0 Topological drift за N ≥ 100000 тиков.
+        """
+        _total = self._drift_stats.get("total_comparisons", 0)
+        if _total > 0 and _total % 100 == 0:
+            _a = self._drift_stats.get("drift_A", 0)
+            _b = self._drift_stats.get("drift_B", 0)
+            _c = self._drift_stats.get("drift_C", 0)
+            _d = self._drift_stats.get("drift_D", 0)
+            _e = self._drift_stats.get("drift_E", 0)
+            # ФАЗА 2: Индикатор готовности к Phase 3 takeover
+            _structural_drift = _c + _d + _e
+            _ready = (
+                "READY" if _structural_drift == 0 and _total >= 100000 else "NOT_READY"
+            )
+            logger.info(
+                f"[DUAL_RAIL] Drift summary after {_total} observations: "
+                f"A(cosmetic)={_a} B(projection)={_b} C(topological)={_c} "
+                f"D(causal)={_d} E(ontological)={_e} "
+                f"phase3={_ready}"
+            )
+
+    def _phase_1_input(self, ctx: _TickContext) -> None:
+        """Фильтрация воли игрока через WillpowerGate (ADR-031)."""
+        from app.services.phases.input import Phase1InputDeps, run_phase_1_input
+
+        deps = Phase1InputDeps()
+        run_phase_1_input(ctx, deps)
+
+        # Тело метода удалено. Логика перенесена в phases/input.py
+
+# S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
+
+    def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
+        """Первая волна EventBus: пространственные события от MovementEngine (Слой 4).
+
+        SpatialEventDetector сравнивает позиции до/после фазы 0
+        и публикует NPC_MOVED, NPC_PROXIMITY_CLOSE, NPC_PROXIMITY_LEAVE.
+        Дополнение Б (п. Б.10.2): Активация Sound bleed для кросс-локационного звука.
+        """
+        if not ctx.old_npc_positions:
+            return
+        detector = SpatialEventDetector()
+        if _spatial_events := detector.detect_and_publish(
+            old_positions=ctx.old_npc_positions,
+            new_scene_state=ctx.scene_state,
+        ):
+            ctx.phase_2_events.extend(_spatial_events)
+            logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")
+
+            # Дополнение Б: Sound bleed
+            try:
+                from app.core.config import settings
+                from app.domain.events import EventDTO
+                from app.services.spatial.spatial_runtime import sound_bleeds_to_adjacent
+
+                _loc_id = ctx.scene_state.get("location_id", "")
+                _data_dir = getattr(ctx, "_cached_data_dir", None) or str(settings.data_dir)  # noqa: ENIGMA002
+                ctx._cached_data_dir = _data_dir
+
+                # Находим соседние локации
+                _adjacent_locs = sound_bleeds_to_adjacent(
+                    scene_state=ctx.scene_state,
+                    base_radius=10,
+                    bleed_threshold=0.5,
+                    data_dir=_data_dir
+                )
+
+                # Если есть соседи, пробиваем звук к ним
+                if _adjacent_locs:
+                    _event_bus = self._get_event_bus()
+                    for _event in _spatial_events:
+                        # Определяем "громкость" события (упрощенная модель для MVP)
+                        _intensity = 0.8 if _event.type in ("NPC_ATTACKED", "PLAYER_ATTACKS") else 0.3
+                        if _intensity >= 0.5:
+                            for _adj_loc in _adjacent_locs:
+                                # Проницаемость стены (упрощенно: 0.4 для двери)
+                                _bleeded_intensity = _intensity * 0.4 * 0.5
+                                if _bleeded_intensity >= 0.1:
+                                    _bleeded_event = EventDTO.create(
+                                        event_type="SOUND_BLEED",
+                                        source=_event.source,
+                                        payload={
+                                            "origin_location": _loc_id,
+                                            "perceived_at_location": _adj_loc,
+                                            "intensity": _bleeded_intensity,
+                                            "original_type": _event.type
+                                        }
+                                    )
+                                    _event_bus.publish(_bleeded_event)
+                                    logger.debug(f"[SOUND_BLEED] {_event.type} from {_loc_id} to {_adj_loc} (intensity={_bleeded_intensity:.2f})")
+            except Exception as _bleed_err:
+                logger.warning(f"[SOUND_BLEED] Failed to propagate sound: {_bleed_err}")
+
+    def _phase_3_memory(self, ctx: _TickContext) -> None:
+        """Memory Phase: делегировано в phases/memory.py (S100)."""
+        from app.services.phases.memory import execute_memory_phase
+
+        execute_memory_phase(ctx, self._get_memory_manager())
+
+    def _phase_4_pre_decision(self, ctx: _TickContext) -> None:
+        """TopicExtractor: извлекает тему для каждого NPC (Устав §3.2).
+
+        Приоритет источников темы:
+        1. Spatial event затронувший NPC (конкретный контекст)
+        2. STM буфер NPC (последние реплики)
+        3. Фоллбэк "наблюдение" (никогда не пустой — Устав §3.2)
+        """
+        mm = self._get_memory_manager()
+
+        for npc_dict in ctx.npc_states:
+            npc_id = npc_dict.get("id")
+            if not npc_id:
+                continue
+
+            topic = ""
+            stm_text = ""
+
+            from app.services.npc.topic_extractor import extract_topic
+
+            topic = None
+
+            # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
+            # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".
+            _recent_dialogues = []
+            if ctx.task_scheduler:
+                _recent_dialogues = ctx.task_scheduler.get_recent_dialogues(ctx.scene_state.get("game_time_seconds", 0.0))
+            for dialogue in _recent_dialogues:
+                if dialogue.get("target_id") == npc_id:
+                    _speaker = dialogue.get("speaker_id", "кто-то")
+                    _text = dialogue.get("text", "")
+                    # S129: Тема содержит только семантику. Адресат передаётся структурно.
+                    topic = f"ответить: {_text}"
+                    ctx.response_targets[npc_id] = _speaker
+                    break
+
+            # 1. Проверяем spatial events затронувшие этого NPC
+            if not topic:
+                for event in ctx.phase_2_events:
+                    from app.services.tick_utils import resolve_affected_npcs
+
+                    affected = resolve_affected_npcs(event)
+                    if npc_id in affected:
+                        topic = extract_topic(
+                            event_type=event.type,
+                            raw_input=event.payload.get("to_node", ""),
+                        )
+                        break  # первый подошедший event достаточно
+
+            # 2. Фоллбэк на состояние NPC (T-01: автономная тематическая жизнь)
+            if not topic:
+                topic = extract_topic(
+                    event_type="idle",
+                    npc_state=npc_dict,
+                )
+
+            # 3. Жёсткий фоллбэк — тема НЕ может быть пустой (Устав §3.2)
+            if not topic:
+                topic = "наблюдение"
+
+            ctx.npc_topics[npc_id] = topic
+
+        logger.debug(f"[TICK_ORCH] Фаза 4: {len(ctx.npc_topics)} topics извлечено")
+
+    def _compute_effective_drives(
+        self, npc_list: list[dict], tick_number: int, campaign_id: str
+    ) -> Tuple[
+        Dict[str, "EffectiveDrives"],
+        Dict[str, Dict[str, float]],
+        Dict[str, Dict[str, float]],
+    ]:
+        """STEP B + TSHL: Вычисление L3_raw и фильтрация в L3_stable через CalibrationEngine.
+        Возвращает L3_stable (для DecisionHub), drives_updates и strain_updates (для StateApplicator).
+        """
+        from app.domain.identity_events import EffectiveDrives
+        from app.models.npc_state import NPCIdentityL1
+
+        effective_drives_map: Dict[str, EffectiveDrives] = {}
+        drives_updates: Dict[str, Dict[str, float]] = {}
+        strain_updates: Dict[str, Dict[str, float]] = {}
+
+        if hasattr(self, "drive_resolver") and hasattr(self, "l1_chronicle"):
+            from app.models.npc_state import personality_from_legacy
+
+            # V8-PSY-29 FIX: CalibrationEngine — dead code (ADR-O-211), убрано создание неиспользуемого экземпляра
+
+            for npc_dict in npc_list:
+                _nid = npc_dict.get("id") or npc_dict.get("npc_id")
+                if _nid:
+                    _profile_l0 = personality_from_legacy(npc_dict)
+                    _beliefs = self.crystallized_belief_store.get_beliefs(_nid)
+                    _body_state = npc_dict.get("body_state", {})
+                    # V8-PSY-9 FIX: Получаем L1 Identity из memory_manager
+                    # BUG-CORE-002 FIX: self.memory_manager не существует (используем _get_memory_manager),
+                    # ctx.campaign_id был недоступен (теперь передаётся как параметр campaign_id).
+                    # Silent except: pass заменён на логирование, чтобы не терять ошибки L1 проекции.
+                    _identity_l1 = None
+                    try:
+                        _mm = self._get_memory_manager()
+                        _traits = _mm.get_identity_traits(campaign_id, _nid)
+                        if _traits:
+                            _identity_l1 = NPCIdentityL1(npc_id=_nid, active_traits=_traits)
+                    except Exception as e:
+                        logger.error(f"[L3_PROJECTION] identity traits load failed for npc={_nid}: {e}")
+
+                    _projection = self.drive_resolver.resolve_drives(
+                        _profile_l0, _beliefs, body_state=_body_state, identity_l1=_identity_l1
+                    )
+
+                    if isinstance(_projection, EffectiveDrives):
+                        l3_raw = _projection
+                    else:
+                        l3_raw = EffectiveDrives.from_dict(_projection)
+
+                    # ADR-O-208: L3-P1. CalibrationEngine — pass-through (ADR-O-211).
+                    # L3 строго эфемерна. Чтение кэша drives_runtime запрещено.
+                    l3_stable = l3_raw
+
+                    effective_drives_map[_nid] = l3_stable
+
+        return effective_drives_map, {}, {}
+
+    def _phase_5_decision(self, ctx: _TickContext) -> None:
+        """TZ-09: Unified Execution Kernel.
+
+        Собирает TickState (causal snapshot), вызывает NpcTickPipeline.run() (pure reducer),
+        применяет TickMutation к контексту. Никаких ветвлений на player/idle.
+        """
+        logger.info(
+            f"[PHASE_5_UNIFIED] ENTER: tick={ctx.tick_number}, interventions={len(ctx.interventions)}"
+        )
+
+        ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = (
+            self._compute_effective_drives(ctx.npc_states, ctx.tick_number, ctx.campaign_id)
+        )
+
+        # 2. Извлечение данных игрока (если есть)
+        _dm_ctx = None
+        for interv in ctx.interventions:
+            if interv.source == "player" and "dm_ctx" in interv.payload:
+                _dm_ctx = interv.payload["dm_ctx"]
+                break
+
+        # 3. Execute: Сборка TickState и вызов Pure Reducer
+        # ADR-123: Death Lock. Мёртвые полностью исключаются из reasoning pipeline.
+        # FIX-EC (ADR-O-347): локация для фильтра (в этом методе нет _current_loc)
+        _current_loc = ctx.scene_state.get("location_id", "")
+        _alive_npcs = [
+            n
+            for n in (ctx.all_npcs_raw or ctx.npc_states)
+            if (
+                (n.get("npc_id") or n.get("id")) == "player"
+                or n.get("location_id", "") == _current_loc
+                or n.get("location") == _current_loc
+            )
+            if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")
+                ]
+
+
+        # DEEP-015 FIX: Мёртвый код ExpectationStore (Active Inference) удалён.
+        # Хранилище никогда не инициализировалось, блоки всегда были no-op.
+        # Оставляем пустой словарь, чтобы не ломать контракт build_tick_state.
+        _pe_mods_map: dict[str, dict[str, float]] = {}
+
+        # [S98] Сборка TickState и запуск Pipeline вынесены в pipeline_runner.py
+        from app.services.phases.decision import assemble_preloaded_data
+        from app.services.pipeline_runner import (
+            build_npc_contexts_from_intents,
+            build_tick_state,
+            run_pipeline,
+        )
+
+        (
+            _memory_weights_map,
+            _narrative_cache_map,
+            _social_modifiers_map,
+            _reputation_modifiers_map,
+            _economic_profiles_map,
+            _crystallized_beliefs_map,
+            _identity_traits_map,
+        ) = assemble_preloaded_data(ctx, _alive_npcs)
+
+        # [S99] Block 4 (Behavior Evaluation) вынесен в phases/decision.py
+        # DEEP-FIX: Перенесено после assemble_preloaded_data, чтобы передать economic_profiles_map
+        from app.services.phases.decision import evaluate_behavior_and_identity
+
+        # Шаг 1.1: Извлекаем RelationshipStore (SSOT) из StateApplicator для расчёта social_pressure
+        _rel_store = getattr(self._state_applicator, "_rel_store", None) if self._state_applicator else None  # noqa: ENIGMA001, ENIGMA002
+
+        evaluate_behavior_and_identity(
+            npc_states=ctx.npc_states,
+            campaign_id=ctx.campaign_id,
+            tick_number=ctx.tick_number,
+            game_day=getattr(ctx, "game_day", 0),
+            memory_manager=self._get_memory_manager(),
+            l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002
+            economic_profiles_map=_economic_profiles_map,
+            social_modifiers_map=_social_modifiers_map,
+            relationship_store=_rel_store,  # Шаг 1.1: Передача SSOT
+        )
+
+        # P5 FIX: Передаём разрешённый spatial_service напрямую, чтобы избежать потери в npc_services
+        _spatial_svc_for_pipeline = self._resolve_spatial_service(ctx)
+        _spatial_query_for_pipeline = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
+        if _spatial_query_for_pipeline is None:
+            logger.debug("SpatialQueryService missing in shared_context. Falling back to scene_state reader (IPT/DriftLab).")
+        # P5 FIX: Fallback для IPT/DriftLab, где shared_context может быть пустым. SpatialQueryService — чистый ридер scene_state.
+        if not _spatial_query_for_pipeline and ctx.scene_state:
+            from app.services.spatial.spatial_query_service import SpatialQueryService
+            _spatial_query_for_pipeline = SpatialQueryService(
+                npc_positions=ctx.scene_state.get("npc_positions", {}),
+                scene_state=ctx.scene_state,
+            )
+        _life_engine = self._get_life_engine()
+        _idle_pressure_map = _life_engine.get_idle_pressure_map() if _life_engine else {}
+
+        # ADR-O-378 (G2 v1, канал b1′): продюсер per-NPC фактов W2 из
+        # замороженного снапшота тика — тот же вход, что у G1-тени (:797).
+        # OFF (W3_G2_ENABLED, default) = пустая карта без вычислений;
+        # отказ продюсера = пустая карта (D5) — деградация канала, не тика.
+        # Pure read: снапшот заморожен до Фазы 0 (INV-III: редюсер и
+        # продюсер читают одно прошлое, никто не мутирует вход друг друга).
+        from app.services.world.affordance_facts import (
+            run_affordance_facts_guarded,
+        )
+        _affordance_facts_map = run_affordance_facts_guarded(
+            tick=ctx.tick_number,
+            snapshot=ctx.tick_snapshot,
+            all_npcs_raw=ctx.all_npcs_raw,
+            location_id=ctx.scene_state.get("location_id", ""),
+        )
+
+        _tick_state = build_tick_state(
+            ctx=ctx,
+            alive_npcs=_alive_npcs,
+            effective_drives_map=ctx.effective_drives_map,
+            pe_mods_map=_pe_mods_map,
+            memory_weights_map=_memory_weights_map,
+            narrative_cache_map=_narrative_cache_map,
+            social_modifiers_map=_social_modifiers_map,
+            reputation_modifiers_map=_reputation_modifiers_map,
+            economic_profiles_map=_economic_profiles_map,
+            crystallized_beliefs_map=_crystallized_beliefs_map,
+            identity_traits_map=_identity_traits_map,
+            spatial_service=_spatial_svc_for_pipeline,
+            spatial_query=_spatial_query_for_pipeline,
+            l1_chronicle=getattr(self, "l1_chronicle", None), # V8-PSY-1 FIX  # noqa: ENIGMA002
+            idle_pressure_map=_idle_pressure_map, # V8-SOC-5 FIX
+            epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core  # noqa: ENIGMA002
+            epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core  # noqa: ENIGMA002
+            affordance_facts_map=_affordance_facts_map, # ADR-O-378 (G2 v1): preloaded факты W2
+        )
+
+        _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
+
+        # Подсистема 3: Хеширование TickState до pipeline для Инварианта III (Temporal Isolation)
+        import json
+        # S1 FIX: Хэшируем только данные, исключая сервисные объекты (spatial_service, etc.)
+        # Сервисы могут иметь side-effects (кэш) при чтении, что ложно вызывает INV-TEMPORAL-ISOLATION.
+
+        _data_fields = {
+            "scene_state": _tick_state.scene_state,
+            "all_npcs_raw": _tick_state.all_npcs_raw,
+            "effective_drives_map": _tick_state.effective_drives_map,
+            "pe_modifiers_map": _tick_state.pe_modifiers_map,
+            "nearby_npcs": _tick_state.nearby_npcs,
+            "line_of_sight": _tick_state.line_of_sight,
+        }
+        # S179 FIX: Хэш по каждому полю отдельно, чтобы точно определить источник мутации
+        # S265 (P2 IRON RIVER): INV-хеш — гейт 1/100 тиков (проба остаётся
+        # трипвайром; полный хеш 2×json.dumps(мир) = ~2.4% тика)
+        _do_hash = (ctx.tick_number % 100 == 0)
+        _hashes_before = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()} if _do_hash else {}
+        _ts_hash_before = hash(tuple(sorted(_hashes_before.items()))) if _do_hash else 0
+
+        _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
+        ctx.tick_mutation = _mutation
+
+        _hashes_after = {k: hash(json.dumps(v, default=str, sort_keys=True)) for k, v in _data_fields.items()} if _do_hash else {}
+        _ts_hash_after = hash(tuple(sorted(_hashes_after.items()))) if _do_hash else 0
+        ctx.tick_state_hash_before = _ts_hash_before
+        ctx.tick_state_hash_after = _ts_hash_after
+
+        if _do_hash and _ts_hash_before != _ts_hash_after:
+            _mutated_fields = [k for k in _hashes_before if _hashes_before[k] != _hashes_after.get(k)]
+            logger.error(f"[PROBE_FAIL_PRE] INV-TEMPORAL-ISOLATION: Mutated fields: {_mutated_fields}")
+            ctx.tick_state_mutated_fields = _mutated_fields
+        else:
+            ctx.tick_state_mutated_fields = None
+
+        # V8-SOC-5 FIX: Обновляем idle_pressure в LifeEngine
+        if _life_engine and _mutation.idle_pressure_updates:
+            _life_engine.update_idle_pressure(_mutation.idle_pressure_updates)
+
+        # 4. Committer: Применение мутаций к контексту
+        build_npc_contexts_from_intents(ctx, _mutation)
+
+        # V8-TICK-2/7 FIX: Применяем DRF scoring overlay к собранным интентам
+        if ctx.communication_intents:
+            self._apply_drf_scoring_overlay(ctx.communication_intents, ctx)
+
+        # [S99] Block 5 (Movement Bridge) вынесен в phases/movement_bridge.py
+        from app.services.phases.movement_bridge import process_movement_intents
+
+        process_movement_intents(
+            movement_intents=ctx.movement_intents, ctx=ctx, orchestrator=self
+        )
+
+    def _phase_6_post_decision(self, ctx: _TickContext) -> None:
+        """IntentEventAdapter: CommunicationIntent → EventDTO (Устав §3.3)."""
+        from app.services.phases.post_decision import run_phase_6_post_decision
+
+        run_phase_6_post_decision(ctx, self)
+
+        # Тело метода удалено. Логика перенесена в phases/post_decision.py
+
+    def _phase_7_windup_resolution(self, ctx: _TickContext) -> None:
+        """ADR-O-310: Windup Execution Gate."""
+        from app.services.phases.post_decision import run_phase_7_windup_resolution
+
+        run_phase_7_windup_resolution(ctx, self)
+
+        # Тело метода удалено. Логика перенесена в phases/post_decision.py
+
+    # _phase_8_player_handlers удалён (S100) — был мёртвым прокси на _phase_8_drain_secondary.
+    # Вызов на строке 764 заменён на прямой вызов _phase_8_drain_secondary.
+
+# S118 FIX: Удалены мёртвые заглушки _phase_9_player_integration и _phase_10_player_persistence (Vulture).
+
+    # ── Фаза 0.5: Time-driven idle-сервисы (ВСЕГДА, время не останавливается) ──
+
+    def _phase_0_5_idle_services(self, ctx: _TickContext) -> None:
+        """Time-driven decay: social drift, reputation drift, affective decay.
+        Выполняется КАЖДЫЙ тик (idle + player path).
+        Время идёт непрерывно — эксплойты через движение исключены.
+        Дельты собираются в ctx.delta_buffer → apply_batch() в Фазе 10.
+        """
+        from app.services.phases.idle_services import Phase0_5Deps, run_phase_0_5
+
+        # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS.
+        # S1-FIX (INV-TICK-CARDINALITY): Время продвигается один раз в execute(), до цикла по локациям.
+        # Ранее вызов находился здесь, внутри цикла, что приводило к умножению времени на N локаций.
+        # ADR-O-315: TraversalExecutionSystem проецирует TraversalState в local_position.
+        from app.services.spatial.traversal_execution_system import (
+            TraversalExecutionSystem,
+        )
+
+        TraversalExecutionSystem.advance(ctx.scene_state, ctx.tick_number)
+
+        deps = Phase0_5Deps(
+            l1_chronicle=getattr(self, "l1_chronicle", None),  # noqa: ENIGMA002
+            dynamic_field=self._dynamic_field,
+            homeostasis_sub=self._homeostasis_sub,
+            social_input_proj=self._social_input_proj,
+            idle_handlers=self._idle_handlers,
+            life_engine=self._get_life_engine(),
+        )
+        run_phase_0_5(ctx, deps)
+
+        # Тело метода удалено. Логика перенесена в phases/idle_services.py
+
+    def _advance_idle_time(self, ctx: _TickContext) -> None:
+        """Продвигает игровое время на GAME_TICK_INTERVAL_SECONDS (ADR-002: время не останавливается).
+        Работает даже если shared_context=None (idle-путь), читая время из scene_state.
+        """
+        from app.core.calendar import Calendar
+        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
+
+        # BUG-P0-01 FIX: Единственный источник абсолютного времени — scene_state["game_time_seconds"].
+        # Чтение legacy time_of_day убивает дни/годы и залипает на "07:00" между тиками.
+        current_seconds = ctx.scene_state.get("game_time_seconds", 0)
+        if (
+            current_seconds == 0
+            and ctx.shared_context is not None
+            and hasattr(ctx.shared_context, "game_time_seconds")
+            and ctx.shared_context.game_time_seconds
+        ):
+            current_seconds = ctx.shared_context.game_time_seconds
+
+        # ADR-O-344: Оркестратор — единственный владелец инкремента тика.
+        ctx.scene_state["tick"] = ctx.tick_number
+
+        new_seconds = Calendar.advance(current_seconds, GAME_TICK_INTERVAL_SECONDS)
+
+        # Обновляем оба источника данных
+        if ctx.shared_context is not None and hasattr(
+            ctx.shared_context, "game_time_seconds"
+        ):
+            ctx.shared_context.game_time_seconds = new_seconds
+
+        # INV-DEF: Проверка инварианта времени (INV-TIME-FREEZE)
+        _prev_game_time = ctx.scene_state.get("_prev_game_time_seconds", 0.0)
+        if ctx.tick_number > 1 and new_seconds <= _prev_game_time:
+            from app.errors import SimulationIntegrityError
+
+            raise SimulationIntegrityError(
+                invariant_id="INV-TIME-FREEZE",
+                message=(
+                    f"game_time_seconds не растёт: prev={_prev_game_time}, "
+                    f"curr={new_seconds} на тике {ctx.tick_number}"
+                ),
+                suspect_files=[
+                    "backend/app/core/calendar.py:advance()",
+                    "backend/app/services/tick_orchestrator.py (_advance_idle_time)",
+                ],
+                file=__file__,
+                line=1053,
+            )
+        ctx.scene_state["_prev_game_time_seconds"] = new_seconds
+
+        # Сохраняем абсолютное время в scene_state для персистенции и фронтенда
+        ctx.scene_state["game_time_seconds"] = new_seconds
+        new_hhmm = Calendar.format_time(new_seconds)
+        ctx.scene_state.setdefault("environment", {})["time_of_day"] = new_hhmm
+
+    def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
+        """ФАЗА 8: Layered Reduction — делегировано в phases/reduction.py (S100)."""
+        from app.services.phases.reduction import execute_reduction_phase
+
+        _l1 = getattr(self, "l1_chronicle", None)  # noqa: ENIGMA002
+        execute_reduction_phase(
+            ctx,
+            combat_sub=self._combat_sub,
+            reaction_sub=self._reaction_sub,
+            social_sub=self._social_sub,
+            homeostasis_sub=self._homeostasis_sub,
+            social_input_proj=self._social_input_proj,
+            dynamic_field=self._dynamic_field,
+            l1_chronicle=_l1,
+            resolve_spatial_fn=lambda: self._resolve_spatial_service(ctx),
+        )
+
+    def _phase_9_integration(self, ctx: _TickContext) -> None:
+        """CFRM P2: Вычисление локальной реальности + WorldSnapshotBuilder."""
+        if not hasattr(self, "_manifest_svc"):
+            from app.services.perception.behavior_manifestation_service import (
+                BehaviorManifestationService,
+            )
+            from app.services.perception.phenomenology_projection_service import (
+                PhenomenologyProjectionService,
+            )
+
+            self._manifest_svc = BehaviorManifestationService()
+            self._project_svc = PhenomenologyProjectionService()
+
+        from app.services.phases.integration import (
+            Phase9IntegrationDeps,
+            run_phase_9_integration,
+        )
+
+        deps = Phase9IntegrationDeps(
+            state_applicator=self._state_applicator,
+            spatial_service=self._spatial_service,
+            causal_solver=self._causal_solver,
+            crystallized_belief_store=self.crystallized_belief_store,
+            drive_resolver=self.drive_resolver,
+            l1_chronicle=self.l1_chronicle,
+            pattern_detector=self.pattern_detector,
+            belief_engine=self.belief_engine,
+            snapshot_builder=self._get_snapshot_builder(),
+            manifest_svc=self._manifest_svc,
+            project_svc=self._project_svc,
+        )
+        # BC-1/ADR-O-381 (F1a): ConclusionEngine — до run_phase_9_integration,
+        # паттерн G2-продюсера (:1877): оркестратор зовёт guarded-функцию,
+        # модуль инкапсулирует слой. NO-VACUUM: вход — ТОЛЬКО события
+        # EXPERIENCE_DELTA_COMMITTED текущего тика (коллектор), не состояние.
+        # OFF (BC1_ENABLED, default) = no-op без вычислений (INV-BC1-NOOP).
+        from app.services.memory.conclusion_runtime import (
+            run_conclusion_formation_guarded,
+        )
+
+        run_conclusion_formation_guarded(ctx=ctx, orchestrator=self)
+
+        run_phase_9_integration(ctx, deps)
+
+        # Тело метода удалено. Логика перенесена в phases/integration.py
+
+    def _run_affective_pipeline(self, ctx: _TickContext) -> None:
+        """ADR-049: Аффективный аккумулятор — накопление давления и фазовый переход эмоций.
+
+        Вызывается из ОБЕИХ путей (idle + player turn).
+        Без этого affective_load не растёт при player turn → emotion=NEUTRAL → _emotion_modifier()=0.0.
+        """
+        from app.services.phases.affective import Phase9Deps, run_affective_pipeline
+
+        deps = Phase9Deps(
+            crystallized_belief_store=self.crystallized_belief_store,
+            drive_resolver=self.drive_resolver,
+            l1_chronicle=self.l1_chronicle,
+            pattern_detector=self.pattern_detector,
+            belief_engine=self.belief_engine,
+            state_applicator=self._state_applicator,
+            snapshot_builder=self._get_snapshot_builder(),
+            manifest_svc=getattr(self, "_manifest_svc", None),  # noqa: ENIGMA002
+            project_svc=getattr(self, "_project_svc", None),  # noqa: ENIGMA002
+        )
+        run_affective_pipeline(ctx, deps)
+
+        # Тело метода удалено. Логика перенесена в phases/affective.py
+
+    def _phase_10_persistence(self, ctx: _TickContext) -> None:
+        """ФАЗА 10: Persistence (Atomic Commit)."""
+        # L1 FIX: Генерируем TraitDriftEvent для всех NPC с дельтами (включая Фазу 8) перед коммитом.
+        import dataclasses
+
+        from app.domain.identity_events import TraitDriftEvent
+
+        _all_delta_npc_ids = set()
+        for _d in (ctx.tick_mutation.npc_deltas or []):
+            _d_npc_id = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
+            if _d_npc_id:
+                _all_delta_npc_ids.add(_d_npc_id)
+
+        _l1_events = list(ctx.tick_mutation.l1_drift_events or [])
+        _processed_npc_ids = {e.target_id for e in _l1_events}
+        for _npc_id in _all_delta_npc_ids:
+            if _npc_id not in _processed_npc_ids:
+                _l1_events.append(TraitDriftEvent(
+                    tick_id=ctx.tick_number,
+                    target_id=_npc_id,
+                    source_id="world_tick",
+                    effect_value=0.0,
+                    observation_weight=0.1
+                ))
+                _processed_npc_ids.add(_npc_id)
+
+        ctx.tick_mutation = dataclasses.replace(ctx.tick_mutation, l1_drift_events=_l1_events)
+
+        from app.services.phases.commit_phase import execute_persistence
+        execute_persistence(ctx, self, getattr(ctx, "is_player_turn", False))
+
+    # ── ДОЛГ 4.2: Causal Scoring Overlay ─────────────────────────────
+    # Аддитивный скоринг: DRF давление влияет на приоритет интентов как поле сил.
+    # Viability veto (SURVIVAL ⟂ ROUTINE) — НЕ ЗДЕСЬ. Это конфликт мотиваций,
+    # он должен решаться ДО генерации интента, в DecisionHub (ДОЛГ 4.3).
+    # MovementEngine — актюатор, а не арбитр жизнеспособности.
+
+    def _apply_drf_scoring_overlay(self, intents: list, ctx: _TickContext) -> None:
+        """Аддитивный скоринг: final_priority = base + Σ(claim.energy × weight × alignment).
+
+        Единый overlay для idle и player путей.
+        DRF — поле сил, не ярлык. Давление модулирует приоритет, не заменяет его.
+        """
+        _claims = ctx.drf_bus.stream  # peek без drain (drain в phase 10)
+        if not _claims:
+            return
+
+        for _idx, _intent in enumerate(intents):
+            # BUG-CORE-015 FIX: DRF overlay применяется к CommunicationIntent (speaker) и MovementIntent (actor_id).
+            if hasattr(_intent, "speaker"):
+                _npc_id = _intent.speaker
+            elif hasattr(_intent, "actor_id"):
+                _npc_id = _intent.actor_id
+            else:
+                continue
+            _npc_claims = [
+                c
+                for c in _claims
+                if c.get("target_npc") == _npc_id or c.get("npc_id") == _npc_id
+            ]
+            if not _npc_claims:
+                continue
+
+            _reason = getattr(_intent, "reason", "")  # noqa: ENIGMA002
+
+            # Аддитивный скоринг: base + Σ(energy × weight × alignment)
+            _drf_bonus = 0.0
+            for c in _npc_claims:
+                _ptype = c.get("pressure_type", "ROUTINE")
+                from app.services.drf_bus import _DRF_PRESSURE_WEIGHTS
+
+                _weight = _DRF_PRESSURE_WEIGHTS.get(_ptype, 0.02)
+                _energy = c.get("energy", 0.5)
+                _vector = str(c.get("vector", ""))
+                _aligned = _vector in _reason
+                _DRF_ALIGNED = 1.2
+                _DRF_MISALIGNED = 0.8
+                _alignment_mult = _DRF_ALIGNED if _aligned else _DRF_MISALIGNED
+                _drf_bonus += _energy * _weight * _alignment_mult
+
+            # H-28 FIX: CommunicationIntent теперь имеет поле priority.
+            # DRF overlay применяется ко всем интентам.
+            # S189 FIX: CommunicationIntent — frozen dataclass, мутация через dataclasses.replace.
+            _old_priority = _intent.priority
+            _new_priority = min(1.0, _old_priority + _drf_bonus)
+            if _drf_bonus > 0.01:
+                logger.debug(
+                    f"[DRF_VOTE] npc={_npc_id} base={_old_priority:.2f} bonus={_drf_bonus:.3f} final={_new_priority:.2f}"
+                )
+            if _new_priority != _old_priority:
+                import dataclasses
+                intents[_idx] = dataclasses.replace(_intent, priority=_new_priority)

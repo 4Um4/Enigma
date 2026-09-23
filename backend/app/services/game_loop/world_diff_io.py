@@ -8,11 +8,15 @@ DEGOD ITER5: I/O WorldStateDiff (перенос из game_loop/__init__.py).
 import json
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.world_state_diff import WorldStateDiff
 
 logger = logging.getLogger(__name__)
 
 
-def save_diff_to_disk(diffs_path: Path, campaign_id: str, diff) -> None:
+def save_diff_to_disk(diffs_path: Path, campaign_id: str, diff: "WorldStateDiff") -> None:
     """Сохраняет WorldStateDiff на диск, чтобы он пережил рестарт бэкенда."""
     from dataclasses import asdict
 
@@ -32,7 +36,7 @@ def save_diff_to_disk(diffs_path: Path, campaign_id: str, diff) -> None:
         logger.error(f"[WORLD_DIFF] Failed to save diff for '{campaign_id}': {e}")
 
 
-def load_diff_from_disk(diffs_path: Path, campaign_id: str):
+def load_diff_from_disk(diffs_path: Path, campaign_id: str) -> "WorldStateDiff | None":
     """Загружает WorldStateDiff с диска, если он там есть."""
     from app.models.world_state_diff import WorldStateDiff
 

@@ -43,7 +43,6 @@ from app.services.tick_orchestrator import (
 if TYPE_CHECKING:
     from app.contracts.interventions import InterventionEvent
     from app.models.world_continuity import WorldContinuityMode
-    from app.models.world_state_diff import WorldStateDiff
 
 # ─────────────────────────────────────────────────────────────────────────────
 # R3 DIRECT MODE: DM как единственный источник речи
@@ -150,8 +149,7 @@ class GameLoop:
             self.mvp_controller = None
 
         # P7-13: Опциональная персистентность мира. GameLoop выступает хранилищем diff'ов между кампаниями.
-        self._campaign_diffs: Dict[str, "WorldStateDiff"] = {}
-        self._diffs_path = self._saves_dir / "_world_diffs.json"
+
         self.dm_orchestrator = dm_orchestrator
         self.scene_manager = scene_manager
         self.world_scheduler = world_scheduler
@@ -165,7 +163,7 @@ class GameLoop:
         # ADR-O-146: AdventureLoader удалён — vestigial слой (нет файлов world_lore.txt/npc.json/locations.json).
         # load_campaign() инлайнит пустой результат вместо вызова загрузчика.
         self.system_requirements = system_requirements
-        self._campaign_world_index: dict[str, str] = {}
+
         self._session_started_campaigns: set = set()
         # B.3/B.4: SceneContinuity — эпизодическая фиксация сцены
         self._scene_continuities: Dict[str, SceneContinuity] = {}
@@ -354,7 +352,7 @@ class GameLoop:
 
     def _get_spatial_query_for_subscriber(self):
         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
-        S196 FIX: Берёт актуальный SpatialQueryService из shared_context, 
+        S196 FIX: Берёт актуальный SpatialQueryService из shared_context,
         устраняя зависимость от mutable hidden state _current_spatial_query.
         S197 FIX: Если spatial_query отсутствует, конструирует его на лету из scene_state."""
         _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
@@ -618,17 +616,6 @@ class GameLoop:
     # ПУБЛИЧНЫЙ API
     # ────────────────────────────────────────────────────────────────────────────
 
-    def _save_diff_to_disk(self, campaign_id: str, diff: "WorldStateDiff") -> None:
-        """DEGOD ITER5: делегат — тело в game_loop/world_diff_io.py."""
-        from app.services.game_loop.world_diff_io import save_diff_to_disk
-
-        save_diff_to_disk(self._diffs_path, campaign_id, diff)
-
-    def _load_diff_from_disk(self, campaign_id: str) -> Optional["WorldStateDiff"]:
-        """DEGOD ITER5: делегат — тело в game_loop/world_diff_io.py."""
-        from app.services.game_loop.world_diff_io import load_diff_from_disk
-
-        return load_diff_from_disk(self._diffs_path, campaign_id)
 
     # ADR-O-146: New Game Reset — сброс runtime мира при сохранении static
     def new_game(
@@ -1428,35 +1415,53 @@ class GameLoop:
         if isinstance(dm_result, dict) and dm_result.get("error"):
             _err_msg = dm_result.get("human_msg", "LLM сервер недоступен")
             logger.error(f"[DM_RESULT] LLM FAILED: {_err_msg}")
+
+            def _dm_unavailable_response() -> ChatTurnResponse:
+                """LLM недоступен: честная ошибка игроку + последний известный снапшот.
+                Контракт ChatTurnResponse (обязательные поля) соблюдён."""
+                return ChatTurnResponse(
+                    dm_response=f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
+                    npc_reactions=[],
+                    world_changes=[],
+                    journal_entry_id="",
+                    traces=[],
+                    world_snapshot=state.shared_context.world_snapshot or {},
+                    will_conflict_data=None,
+                )
             # Recovery: пробуем перезапустить llama-server и повторить запрос
             try:
                 from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
 
                 if _restart_llama_server():
                     logger.info("[DM_RESULT] LLM рестартнул — повторяем запрос")
-                    dm_result = self._run_dm(state)
+                    # DEGOD-fix: _run_dm никогда не существовал (мёртвый остаток
+                    # до-рефакторингного API). Retry повторяет основной вызов
+                    # run_agent_safe с теми же аргументами (дублирование кортежа —
+                    # Tech Debt Note: синхронизировать при правке DM-вызова выше).
+                    dm_result = await run_agent_safe(
+                        "dm",
+                        self.dm_agent,
+                        (
+                            req.location,
+                            req.actions,
+                            state.rules_result,
+                            state.npc_result,
+                            _dm_world_result,
+                            False,
+                            state.shared_context,
+                        ),
+                        {},
+                    )
                     if not (isinstance(dm_result, dict) and dm_result.get("error")):
                         # Рестарт помог — продолжаем нормальный путь
                         pass
                     else:
-                        return {
-                            "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                            "world_snapshot": state.shared_context.world_snapshot or {},
-                            "will_conflict_data": None,
-                        }
+                        return _dm_unavailable_response()
                 else:
-                    return {
-                        "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                        "world_snapshot": state.shared_context.world_snapshot or {},
-                        "will_conflict_data": None,
-                    }
+                    return _dm_unavailable_response()
             except ImportError as e:
                 logger.warning(f"LLM ImportError: {e}")
-                return {
-                    "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                    "world_snapshot": state.shared_context.world_snapshot or {},
-                    "will_conflict_data": None,
-                }
+                return _dm_unavailable_response()
         logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
 
         # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива
@@ -1841,10 +1846,15 @@ class GameLoop:
         return self._task_scheduler
 
     def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
-        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
-        from app.services.game_loop.campaign_mgmt import get_character_dict
-
-        return get_character_dict(self.character_service, campaign_id, player_name)
+        """DEGOD Phase3B: тело возвращено из campaign_mgmt (файл расформирован)."""
+        try:
+            characters = self.character_service.list_characters(campaign_id)
+            for char in characters:
+                if char.name == player_name:
+                    return char.model_dump()
+        except Exception as e:
+            logger.warning(f"[GAME_LOOP] Персонаж '{player_name}' не найден: {e}")
+        return {}
 
     def _build_traces(
         self, state: _PipelineState, dm_result: dict, elapsed_ms: int
@@ -1857,22 +1867,17 @@ class GameLoop:
     # ────────────────────────────────────────────────────────────────────────────────
 
     def assert_requirements(self) -> dict:
-        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
-        from app.services.game_loop.campaign_mgmt import assert_requirements
+        """DEGOD Phase3B: тело возвращено из campaign_mgmt (файл расформирован)."""
+        from app.core.config import settings
 
-        return assert_requirements(self.system_requirements)
+        report = self.system_requirements.check()
+        if settings.enforce_system_requirements and not report.meets:
+            raise RuntimeError(f"Недостаточно ресурсов: {report.details}")
+        return {"meets": report.meets, **report.details}
 
     def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
-        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
-        from app.services.game_loop.campaign_mgmt import load_campaign
-
-        return load_campaign(
-            campaign_id,
-            world_id,
-            saves_dir=self.saves_dir,
-            campaign_world_index=self._campaign_world_index,
-            memory_manager=self.memory_manager,
-        )
+        """Фасад CampaignLifecycle (DEGOD Phase3B)."""
+        return self._campaign_lifecycle.load_campaign(campaign_id, world_id)
 
     def session_state(self, campaign_id: str):
         """Возвращает состояние сессии для UI."""
@@ -1899,10 +1904,8 @@ class GameLoop:
         return state
 
     def _resolve_world_id(self, campaign_id: str) -> str:
-        """DEGOD ITER5: делегат — тело в game_loop/campaign_mgmt.py."""
-        from app.services.game_loop.campaign_mgmt import resolve_world_id
-
-        return resolve_world_id(campaign_id, self._campaign_world_index, self.memory_manager)
+        """Фасад CampaignLifecycle (DEGOD Phase3B)."""
+        return self._campaign_lifecycle.resolve_world_id(campaign_id)
 
     def dispose(self) -> None:
         """Закрывает все ресурсы (SQLite connections, cached services).

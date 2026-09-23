@@ -109,6 +109,14 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             != _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")
         ]
 
+    # [DIAG_D3] временный print-зонд (Часть VIII.5, снять после Э-3):
+    # судьба каждого интента borko на входе движка — где молчит потеря
+    for _di in life_intents:
+        if getattr(_di, "actor_id", "") == "guard_borko":
+            print(f"[DIAG_D3] tick={ctx.tick_number} INTENT reason={getattr(_di, 'reason', '?')} "
+                  f"target={getattr(_di, 'target_node_id', '?')} domain={getattr(_di, 'domain', '?')}",
+                  flush=True)
+
     # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
     # Намерения расписания обрабатываются через MovementEngine, порождая TraversalState.
     if life_intents:

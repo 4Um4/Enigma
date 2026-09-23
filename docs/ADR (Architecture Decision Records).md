@@ -613,6 +613,12 @@ Files: backend/app/services/scene_state_manager.py, backend/app/services/scene_s
 Status: ACTIVE
 Files: backend/app/services/game_loop/turn_pipeline.py, dm_phase.py, npc_orchestration.py, game_loop.py, __init__.py, scene_state_manager.py, docs/audits/DEGOD_PHASE0_MAP_game_loop.md
 
+`ADR-O-403` [STRUCT] **Campaign Lifecycle Ownership (Phase 3B)** — Жизненный цикл кампании выделен из GameLoop в campaign_lifecycle.py. Метод: seam-first (6 итераций: SSM/RelationshipStore/MemoryManager/TemporalEngine/PlayerAvatarService/LifeEngine получили публичные reset-API у владельцев), затем extraction (reset_campaign 12 шагов 1-в-1 + load_campaign + resolve_world_id + diff-IO). Побочно: найден и устранён DOUBLE TRUTH пути player_avatar.json (настоящий файл переживал new_game); RelationshipStore получил RAM-кэш-чистку у владельца (протухший _load); routes-прямая запись _campaign_diffs заменена seam-ом record_campaign_diff. Campaign Lifecycle — HOLD→GREEN→CLOSED.
+❌ Taboo: приватные проникновения new_game в internals владельцев (все 6 seam-классов закрыты); CampaignManager-контейнер; изменение порядка reset; EPOCH-FINAL.
+Status: ACTIVE
+Files: backend/app/services/game_loop/campaign_lifecycle.py, game_loop.py, player_avatar_service.py, memory/relationship_store.py, memory/memory_manager.py, temporal/temporal_engine.py, npc/life_engine.py, scene_state_manager.py
+
+
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 

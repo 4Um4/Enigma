@@ -1122,6 +1122,9 @@ class TickOrchestrator:
                 if ctx.tick_number >= _d_info.get("ready_tick", 0):
                     _d_entry = _npc_positions.get(_d_id)
                     _d_neighbor = _d_info.get("neighbor", "")
+                    # [DIAG_D3] временный зонд (Часть VIII.5, снять после Э-3)
+                    print(f"[DIAG_D3] TRANSFER npc={_d_id} info={_d_info} "
+                          f"entry_sig={(_d_entry or {}).get('_unknown_route')!r}", flush=True)
                     # SPATIAL-KNOWLEDGE-01: переносим «через какой выход» для
                     # direct-experience записи вошедшего (P4).
                     _d_via = _d_info.get("via", "")
@@ -1170,6 +1173,24 @@ class TickOrchestrator:
                             logger.info(
                                 f"[SPATIAL_KNOWLEDGE] npc={_d_id} DIRECT_EXPERIENCE: "
                                 f"{_d_via} → {_d_info.get('neighbor')} conf={_new_conf:.2f}"
+                            )
+                    # Phase D Э-3 (вердикт, writer-side clear): правда
+                    # изменилась ЗДЕСЬ — direct EXITS_TO записан. Гасим
+                    # соответствующую неизвестность (sig.from == локация
+                    # via-узла ∧ sig.to == neighbor). Носитель — _d_entry
+                    # (та же запись; после :1190 NPC удалён из npc_positions
+                    # — позже гасить некому).
+                    if _d_entry is not None:
+                        _stale_sig = _d_entry.get("_unknown_route")
+                        if (
+                            isinstance(_stale_sig, dict)
+                            and str(_stale_sig.get("from", "")).split(":")[0] == str(_d_via).split(":")[0]
+                            and _stale_sig.get("to") == _d_info.get("neighbor")
+                        ):
+                            _d_entry.pop("_unknown_route", None)
+                            logger.info(
+                                f"[EXPLORATION] npc={_d_id}: stale _unknown_route "
+                                f"cleared by DIRECT_EXPERIENCE ({_d_via} → {_d_info.get('neighbor')})"
                             )
                     if _d_entry is not None:
                         _d_entry.pop("_via_boundary", None)  # носитель больше не нужен

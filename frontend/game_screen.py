@@ -554,6 +554,11 @@ class GameScreen:
         # на первом кадре с открытым журналом после свежей new_game.
         # None = честное «нет данных» (§ENIGMA-003); guard у читателя уже есть.
         self.current_snapshot: dict | None = None
+        # UI Workbench: оверлей окон поверх сцены (F12). game_context=True —
+        # живой dialog_journal + пауза мира при активном верстаке.
+        from ui_workbench.workbench_screen import WorkbenchScreen
+        self._workbench: "WorkbenchScreen" = WorkbenchScreen(self, game_context=True)
+        self.workbench_paused: bool = False  # мир стоит, пока верстак открыт
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
@@ -709,6 +714,9 @@ class GameScreen:
         _skip_time_active = [
             False
         ]  # Флаг активной промотки времени (блокирует idle_tick)
+        # UI Workbench: мир на паузе, пока верстак открыт (решение Мастера:
+        # редактируем окна на замершей сцене, вышли — мир живёт дальше)
+        self.workbench_paused = False
         _last_telegraph_ms = 0  # cooldown между телеграфами
         # S82: Мировые координаты для Spatial Oracle. Обновляются каждый кадр.
         # Backend использует как PRIMARY spatial input — вычисляет actual_chunk НЕЗАВИСИМО.
@@ -767,6 +775,19 @@ class GameScreen:
                 if event.type == pygame.QUIT:
                     action_queue.stop()
                     return
+                # UI Workbench (F12): оверлей поверх сцены, мир на паузе.
+                # Активный Workbench ест ВСЕ события (окна + собственные
+                # хоткеи), игровые ветки недостижимы — это и есть пауза ввода.
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_F12:
+                    self._workbench.active = not self._workbench.active
+                    if self._workbench.active:
+                        self._workbench.enter()
+                    else:
+                        self._workbench.exit()
+                    continue
+                if self._workbench.active:
+                    self._workbench.handle_event(event)
+                    continue
                 elif event.type == pygame.KEYDOWN:
                     # FIX(диалог-выход): ESC при сфокусированном вводе закрывает
                     # ввод, а не паузу. Раньше PAUSE-ветка перехватывала ESC
@@ -1312,7 +1333,7 @@ class GameScreen:
                     _gateway.save_scene_state(campaign_folder, scene_state)
                 except Exception as e:
                     logger.warning(f"[GAME_SCREEN] save_scene_state failed: {e}")
-                if not _skip_time_active[0]:
+                if not _skip_time_active[0] and not self.workbench_paused:
                     _idle_tick_running[0] = True
                     _last_idle_tick = _now
                     logger.info(f"[IDLE_TICK] fired at {_now}ms")
@@ -2214,6 +2235,10 @@ class GameScreen:
             # S151: Отрисовка панели воплощённого статуса (деньги, еда, потребности)
             if isinstance(scene_state, dict):
                 self._analysis_renderer.draw_embodied_status(scene_state.get("embodied_status", {}))
+
+            # UI Workbench: окна поверх всего кадра (после HUD/пузырей, до флипа).
+            # Только пока верстак активен (F12): иначе нулевой оверхед.
+            self._workbench.draw(self.screen)
 
             pygame.display.flip()
             self.clock.tick(60)

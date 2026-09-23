@@ -235,10 +235,18 @@ class PlayerAvatarService:
         if self.load_avatar(campaign_id, sheet.name) is not None:
             return  # Уже мигрирован
         profile = CharacterProfile(character_id=sheet.name)
+        # ADR-HP-UNIFICATION: HP аватара живёт в body_state["current_hp"].
+        # CharacterSheet.hp/max_hp (schemas:101-102) — источник чисел при первичной
+        # миграции; NPCState(hp=...) не существует (Pylance: no such parameter).
+        # Шаблон — BODY_STATE_HEALTHY (npc_state:78), как в default-ветке load_state.
         state = NPCState(
             npc_id=sheet.name,
-            hp=sheet.effective_hp,
-            max_hp=sheet.effective_max_hp,
+            body_state={
+                **BODY_STATE_HEALTHY,
+                "current_hp": float(sheet.hp),
+                "max_hp": float(sheet.max_hp),
+                "money": 48,
+            },
         )
         self.save_avatar(campaign_id, sheet, profile, state)
         logger.info(f"[AVATAR] мигрирован из characters.json: {sheet.name}")
@@ -411,13 +419,18 @@ class PlayerAvatarService:
         # B1.3-FIX: Журнал обрабатывается в load_avatar, здесь ему не место.
 
     # ── ADR-JOURNAL: Управление очередью реплик ───────────────────
-    def append_journal(self, campaign_id: str, speaker: str, text: str):
+    def append_journal(self, campaign_id: str, speaker: str, text: str, channel: str = "narrative"):
+        """channel: direct (игрок-адресат) | overheard (подслушано) |
+        narrative (DM/мир) | self (действия игрока). Эпистемическая метка
+        канала в момент записи — проекция известного, не новая истина."""
         """Добавление реплики в журнал. Инвариант J-100 (FIFO)."""
         if not text:
             return
         if campaign_id not in self._dialog_journals:
             self._dialog_journals[campaign_id] = []
-        self._dialog_journals[campaign_id].append({"speaker": speaker, "text": text})
+        self._dialog_journals[campaign_id].append(
+            {"speaker": speaker, "text": text, "channel": channel}
+        )
         # Ограничение 100 последних высказываний
         if len(self._dialog_journals[campaign_id]) > 100:
             self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][

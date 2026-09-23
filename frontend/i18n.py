@@ -36,6 +36,9 @@ L = {
     "act:inspecting": "осматривает",
     "act:fleeing": "убегает",
     "act:approaching": "приближается",
+    "act:talking_at_bar": "разговаривает у бара",
+    "act:observing": "наблюдает",
+    "act:innkeeping": "работает за стойкой",
     # ── Наблюдаемые симптомы (motor traces → что видит аватар) ──
     "sym:frozen": "окаменел",
     "sym:shaking": "дрожит",
@@ -144,7 +147,10 @@ def t(key: str, fallback: str = "") -> str:
 
 def activity_ru(activity_key: str) -> str:
     """Перевести внутренний ключ активности в наблюдаемый русский."""
-    return t(f"act:{activity_key}", activity_key)
+    # Фоллбек: без перевода — человекочитаемая замена underscore вместо утечки
+    # внутреннего ключа (talking_at_bar → "talking at bar"). Словарь дополняется
+    # ключами по мере появления новых активностей.
+    return t(f"act:{activity_key}", activity_key.replace("_", " "))
 
 
 def manifest_color(manifest_key: str):

@@ -12,6 +12,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Optional
 
+from app.models.schemas import CampaignLoadResponse
+
 if TYPE_CHECKING:
     from app.models.world_continuity import WorldContinuityMode
     from app.models.world_state_diff import WorldStateDiff
@@ -97,6 +99,57 @@ class CampaignLifecycle:
         if not source_diff:
             source_diff = self.load_diff_from_disk(campaign_id)
         return source_diff
+
+
+    def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
+        # ADR-O-146: AdventureLoader удалён. Файлов world_lore/npc.json/locations.json не существует.
+        loaded: dict = {"status": "not_found", "files": {}}
+        self._campaign_world_index[campaign_id] = world_id
+
+        # Дополнение Б (п. Б.12): Детектор старых сейвов
+        try:
+            from app.services.state.save_format_detector import detect_legacy_saves
+            _legacy_campaigns = detect_legacy_saves(self._saves_dir)
+            if campaign_id in _legacy_campaigns:
+                logger.warning(f"[SAVE_MIGRATION] Обнаружен сейв старого формата для кампании '{campaign_id}'. Удаление...")
+                _old_save_file = self._saves_dir / campaign_id / "campaign_state.json"
+                if _old_save_file.exists():
+                    _old_save_file.unlink()
+        except Exception as _migr_err:
+            logger.error(f"[SAVE_MIGRATION] Ошибка при удалении старого сейва: {_migr_err}")
+        for filename, payload in loaded.get("files", {}).items():
+            self.memory_manager.persist_world_canon(
+                world_id,
+                campaign_id=campaign_id,
+                source=filename,
+                payload=payload,
+            )
+        self.memory_manager.persist_campaign_event(
+            campaign_id,
+            event="campaign_loaded",
+            world_id=world_id,
+            data={
+                "loaded_files": list(loaded.get("files", {})),
+                "status": loaded["status"],
+            },
+        )
+        return CampaignLoadResponse(
+            campaign_id=campaign_id,
+            world_id=world_id,
+            status=loaded["status"],
+            loaded_files=list(loaded.get("files", {})),
+        )
+
+    def resolve_world_id(self, campaign_id: str) -> str:
+        if campaign_id in self._campaign_world_index:
+            return self._campaign_world_index[campaign_id]
+        history = self.memory_manager.read_campaign_history(campaign_id, limit=100)
+        for item in reversed(history):
+            if item.get("event") == "campaign_loaded" and item.get("world_id"):
+                self._campaign_world_index[campaign_id] = item["world_id"]
+                return item["world_id"]
+        return "manual"
+
 
     def reset_campaign(
         self,
