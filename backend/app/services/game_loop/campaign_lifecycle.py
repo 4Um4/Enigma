@@ -147,14 +147,14 @@ class CampaignLifecycle:
         for item in reversed(history):
             if item.get("event") == "campaign_loaded" and item.get("world_id"):
                 self._campaign_world_index[campaign_id] = item["world_id"]
-                return item["world_id"]
+                return str(item["world_id"])
         return "manual"
 
 
     def reset_campaign(
         self,
         campaign_id: str,
-        continuity_mode: "WorldContinuityMode" = None,
+        continuity_mode: Optional["WorldContinuityMode"] = None,
         source_campaign_id: Optional[str] = None
     ) -> dict:
         """Сбрасывает runtime состояние кампании к чистому static.

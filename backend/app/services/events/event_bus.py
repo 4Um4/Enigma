@@ -16,8 +16,11 @@ from __future__ import annotations
 #   - NPC AI (perception filter)
 #   - LifeEngine
 #   - FactionSystem (Phase 3E)
+import dataclasses
+import hashlib
 import logging
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
+from uuid import UUID
 
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
@@ -51,6 +54,11 @@ class EventBus:
         self._cfrm_bridge: Optional[Callable[[EventDTO], None]] = None
         # V8-DEC-11 FIX: Dead Letter Queue для событий, упавших после retry
         self._dlq: List[EventDTO] = []
+        # Event Identity (ADR): финализация id на входе в шину.
+        # Провайдер — замыкание на scene_state через next_event_identity
+        # (единственный писатель счётчиков). None (тесты/лаборатория) →
+        # события сохраняют provisional id: полная обратная совместимость.
+        self._identity_provider: Optional[Callable[[str, str], Tuple[int, int]]] = None
 
     # ── CFRM Buffer Control ───────────────────────────────────────────────
 
@@ -65,6 +73,47 @@ class EventBus:
     def detach_cfrm_bridge(self) -> None:
         """Отвязывает мост в конце тика."""
         self._cfrm_bridge = None
+
+    # ── Event Identity ────────────────────────────────────────────────────
+
+    def set_identity_provider(
+        self, provider: Optional[Callable[[str, str], Tuple[int, int]]]
+    ) -> None:
+        """Привязывает провайдер identity: (event_type, source) -> (tick, ordinal).
+
+        Прецедент API — attach_cfrm_bridge. Финализация происходит ровно
+        один раз на входе в шину (Закон 5.1): каждый publish = отдельное
+        событие = собственный ordinal. Порядок publish детерминирован
+        (drain-сортировка, фазы оркестратора) → ordinals воспроизводимы
+        при replay (INV-REPLAY-DETERMINISM).
+        """
+        self._identity_provider = provider
+
+    def _finalize_identity(self, event: EventDTO) -> EventDTO:
+        """Финализирует (event_tick, ordinal) → детерминированный event_id.
+
+        Identity-контракт: (type, source, tick, ordinal). Payload — DATA,
+        в seed не входит. timestamp синхронизируется с тиком присвоения;
+        событийное время payload["event_tick"] (ADR-O-399) не затрагивается.
+        """
+        if self._identity_provider is None:
+            return event
+        try:
+            _tick, _ordinal = self._identity_provider(event.type, event.source)
+        except LookupError:
+            # Громкая телеметрия, provisional fallback: событие не теряется,
+            # но отсутствие сцены фиксируется (L4-дисциплина, не молчание)
+            logger.error(
+                f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id"
+            )
+            return event
+        _tick, _ordinal = self._identity_provider(event.type, event.source)
+        _seed = f"{event.type}:{event.source}:{_tick}:{_ordinal}".encode("utf-8")
+        return dataclasses.replace(
+            event,
+            id=UUID(hex=hashlib.md5(_seed).hexdigest()),
+            timestamp=float(_tick),
+        )
 
     # ── Подписка ──────────────────────────────────────────────────────────
 
@@ -102,6 +151,10 @@ class EventBus:
                 f"EventBus.publish() принимает только EventDTO, "
                 f"получен {type(event).__name__}"
             )
+
+        # Event Identity: финализация id ДО любых подписчиков и CFRM-моста —
+        # все потребители видят финальный identity
+        event = self._finalize_identity(event)
 
         # P2 CFRM: Деобъективация — превращение события в возмущение поля
         if self._cfrm_bridge is not None:
@@ -169,6 +222,9 @@ class EventBus:
         НЕ вызывает LLM — только Python-движки обработают при следующем тике.
         Phase 3B.4: scheduler читает эту очередь каждые N минут.
         """
+        # Event Identity: события tick-очереди финализируются на enqueue —
+        # flush_tick_queue не входит в publish, это единственная точка
+        event = self._finalize_identity(event)
         self._tick_queue.append(event)
 
     def flush_tick_queue(self) -> List[EventDTO]:
@@ -201,6 +257,7 @@ class EventBus:
         self._handlers.clear()
         self._tick_queue.clear()
         self._event_log.clear()
+        self._identity_provider = None
 
 
 # ── Singleton ─────────────────────────────────────────────────────────────────

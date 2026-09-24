@@ -23,7 +23,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from app.services.logging_tools import jsonl_log
 
@@ -254,7 +254,7 @@ class ModelRouter:
                         system_prompt=system_prompt,
                     )
                 else:
-                    return await self._request_sync(
+                    return self._request_sync(
                         capability=capability_obj,
                         prompt=prompt,
                         params=params,
@@ -402,7 +402,7 @@ class ModelRouter:
         provider = self._get_or_create_provider(model_key, model_config)
 
         if provider:
-            return provider.complete(prompt, params, system_prompt)
+            return cast(str, provider.complete(prompt, params, system_prompt))
 
         raise RuntimeError(f"No provider available for capability: {capability}")
 
@@ -529,7 +529,7 @@ class ModelRouter:
                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
                 if _cached and _cached.get("response"):
                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
-                    return _cached["response"]
+                    return str(_cached["response"])
                 # Cache miss в playback mode — критическая ошибка
                 logger.error(f"[LLM_CACHE] MISS in playback mode! agent={agent_name} hash={_prompt_hash[:8]}")
                 raise RuntimeError("Replay determinism broken: LLM cache miss in playback")
@@ -541,7 +541,7 @@ class ModelRouter:
                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
                 if _cached and _cached.get("response"):
                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
-                    return _cached["response"]
+                    return str(_cached["response"])
 
         # Worker thread (to_thread): прямой синхронный вызов без semaphore
         # Semaphore привязан к main loop — в новом loop он мёртв

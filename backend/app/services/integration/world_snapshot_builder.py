@@ -281,14 +281,14 @@ class WorldSnapshotBuilder:
             _real_name = data.get("name", npc_id)
 
             _display_name = "Незнакомец"
-            # BUG-FB-036 FIX: Удалён print() из production-кода, оставлен logger.debug
-            logger.debug(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")
-            if _confidence >= 0.9:
+            # M17: status — семантический источник, пороги confidence —
+            # легаси-fallback. tentative = предположение (обращение краем уха).
+            _recog_status = _recog_data.get("status", "")
+            logger.debug(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} status={_recog_status}")
+            if _recog_status == "confirmed" or _confidence >= 0.9:
                 _display_name = _real_name
-            elif _confidence >= 0.6:
+            elif _recog_status == "tentative" or _confidence >= 0.6:
                 _display_name = f"{_real_name} (?)"
-            elif _confidence >= 0.2:
-                _display_name = "Знакомое лицо"
 
             result[npc_id] = NPCPositionDTO(
                 npc_id=npc_id,

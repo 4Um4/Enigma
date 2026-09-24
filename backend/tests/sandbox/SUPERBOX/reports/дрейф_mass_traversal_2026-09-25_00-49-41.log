@@ -1,0 +1,9 @@
+
+============================================================
+DRIFT LABORATORY — Mode: mass_traversal
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] Quiesce skipped: 'DriftLaboratory' object has no attribute '_game_loop'
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_hslmleo5: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_hslmleo5\\saves\\enigma_memory.db'

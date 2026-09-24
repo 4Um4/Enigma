@@ -35,7 +35,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from app.core.config import settings
 from app.core.log_gate import file_logs_enabled
@@ -95,9 +95,6 @@ def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
 # класса не меняются.
 # ──────────────────────────────────────────────────────────────────────────────
 from app.services.scene_state.change_validator import ChangeValidator
-from app.services.scene_state.environment_modifiers import (
-    _derive_environment_modifiers as _derive_environment_modifiers,
-)
 from app.services.scene_state.editor_locator import (
     _find_editor_location as _find_editor_location_impl,
 )
@@ -109,6 +106,9 @@ from app.services.scene_state.editor_locator import (
 )
 from app.services.scene_state.editor_locator import (
     _nearest_node_to_xy as _nearest_node_to_xy_impl,
+)
+from app.services.scene_state.environment_modifiers import (
+    _derive_environment_modifiers as _derive_environment_modifiers,
 )
 
 # ---------------------------------------------------------------------------
@@ -156,6 +156,10 @@ class SceneStateManager:
         self.templates_dir = self.data_dir / "locations"
         self.validator = ChangeValidator()
         self._templates_cache: dict | None = None
+        # S269-C2 (AUDIT #10): committed-снапшот NPC (state_t-1),
+        # ленивый deepcopy в get_last_committed_npcs()
+        self._last_committed_npcs: list[dict] | None = None
+        self._last_committed_npcs_src: list[dict] = []
         # TICK-SCOPED IDENTITY: Кэш scene_state внутри тика.
         # Гарантирует, что все подсистемы видят ОДИН и ТОТ ЖЕ dict.
         # Без этого get_scene_state() создаёт новый dict при каждом вызове → split-brain.
@@ -394,7 +398,7 @@ class SceneStateManager:
         if not path.exists():
             return {}
         try:
-            return json.loads(path.read_text(encoding="utf-8-sig"))
+            return cast(dict, json.loads(path.read_text(encoding="utf-8-sig")))
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"[SCENE] Ошибка чтения {path}: {e}")
             return {}
@@ -1268,7 +1272,7 @@ class SceneStateManager:
         не на каждом коммите (потребитель выключен AUDIT #10)."""
         _cached = getattr(self, "_last_committed_npcs", None)
         if _cached is not None:
-            return _cached
+            return cast("list[dict]", _cached)
         import copy as _copy
         _copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))
         object.__setattr__(self, "_last_committed_npcs", _copy_list) if hasattr(self, "__slots__") else setattr(self, "_last_committed_npcs", _copy_list)

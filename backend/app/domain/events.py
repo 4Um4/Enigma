@@ -87,13 +87,20 @@ class EventDTO:
         radius: float = 999.0,
         persistence_level: Literal["working", "session", "campaign"] = "session",
         timestamp: float = 0.0,
+        ordinal: int = 0,
         event_id: UUID | None = None,
     ) -> "EventDTO":
         """Фабричный метод — не нужно вручную передавать UUID и timestamp."""
         # BUG-FB-037 FIX: Детерминированный event_id и timestamp (убираем wall-clock).
         _final_ts = timestamp if timestamp != 0.0 else 0.0
         if event_id is None:
-            _seed_str = f"{event_type}:{source}:{_final_ts}".encode("utf-8")
+            # Identity-контракт (ADR: Event Identity): id = (type, source,
+            # event_tick, ordinal). Payload — DATA, не identity. ordinal=0
+            # легален только для путей с доказанной кардинальностью 1
+            # ((type, source, tick) → максимум одно событие).
+            _seed_str = f"{event_type}:{source}:{_final_ts}:{ordinal}".encode(
+                "utf-8"
+            )
             event_id = UUID(hex=hashlib.md5(_seed_str).hexdigest())
 
         return cls(

@@ -75,6 +75,7 @@ class TextInput:
 
         # Фокус
         self._focused: bool = False
+        self._visible: bool = False  # M5: полоса скрыта до первого Tab/клика
 
         # IME (Input Method Editor) для составных символов (китайский, etc.)
         self._ime_text: str = ""
@@ -96,6 +97,20 @@ class TextInput:
     @property
     def focused(self) -> bool:
         return self._focused
+
+    @property
+    def visible(self) -> bool:
+        return self._visible
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        # M5: видимость полосы отделена от фокуса. Tab-toggle управляет
+        # visible; focused следует за ним (game_screen). Скрытая полоса
+        # не получает ввод и не рендерится.
+        self._visible = value
+        if not value:
+            self._focused = False
+            self._held_key = None
 
     @focused.setter
     def focused(self, value: bool) -> None:
@@ -180,12 +195,16 @@ class TextInput:
         # Клик по полю ввода всегда забирает фокус (даже если был сброшен через Tab)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                self._visible = True  # M5: клик по месту полосы раскрывает её
                 self._focused = True
                 self._move_cursor_to_click(event.pos[0])
                 return True
             elif self._focused:
                 self._focused = False
                 return False
+
+        if not self._visible:
+            return False
 
         if not self._focused:
             return False
@@ -285,6 +304,10 @@ class TextInput:
             return True
 
         # Удаление (с поддержкой инерции)
+        if event.key == pygame.K_BACKSPACE and (mods & pygame.KMOD_SHIFT):
+            # M5.1: Shift+Backspace — очистить поле целиком (вердикт Мастера)
+            self.clear()
+            return True
         if event.key == pygame.K_BACKSPACE:
             self._do_backspace()
             self._start_hold(event.key)

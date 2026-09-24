@@ -112,7 +112,7 @@ def compute_weapon_access_facts(
         if not _nid or _nid not in _npc_pos:
             continue
         try:
-            _view = build_body_state_view(_npc_raw.get("body_state"), _nid)
+            _view = build_body_state_view(_npc_raw.get("body_state") or {}, _nid)
         except ValueError as _e:
             logger.warning(f"[W3_G2] body_state missing npc='{_nid}': {_e}")
             continue

@@ -594,20 +594,11 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     if "player_recognition" not in ctx.scene_state:
         ctx.scene_state["player_recognition"] = {}
 
-    for _nid, _dist in _distances.items():
-        # S127 FIX: Убираем жесткий блок LOS. Если карта видимости пуста/отстаёт,
-        # мы всё равно позволяем запомнить NPC по дистанции.
-        _is_visible = _los_map.get(_nid, True) if _los_map else True
-        if not _is_visible:
-            continue  # Нельзя запомнить того, кого точно не видишь
-
-        _recog_entry = ctx.scene_state["player_recognition"].setdefault(_nid, {"confidence": 0.0})
-        if _dist < 3.0:
-            _recog_entry["confidence"] = min(1.0, _recog_entry["confidence"] + 0.15)
-        elif _dist < 8.0:
-            _recog_entry["confidence"] = min(1.0, _recog_entry["confidence"] + 0.08)
-        else:
-            _recog_entry["confidence"] = min(1.0, _recog_entry["confidence"] + 0.03)
+    # M17 (вердикт Мастера): имя узнаЁтся ТОЛЬКО событиями —
+    # прямой диалог (game_loop NEW-8, confidence=1.0) или подслушанное
+    # обращение NPC→NPC (этап 2, tentative). Близость/время имя НЕ дают:
+    # прежний дистанционный рост (+0.15/тик) узнавал всех за минуту.
+    # recognition-записи создаются только писателями-событиями.
 
     # Сборка PlayerPerceptionDTO (вне цикла!)
     _player_perception = deps.project_svc.project(

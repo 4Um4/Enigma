@@ -389,6 +389,31 @@ def inv_dialogue_stm(world: TestWorld) -> InvariantResult:
     target_npc = "tavern_keeper_tornin"
     speaker = "maid_lusya"
     test_text = f"тестовая реплика P1-7 {world.tick}"
+
+    # INV-изоляция v4 (вердикт Мастера, S274; ipt_diag2/3-факты: мембрана
+    # читает SNAPSHOT провайдера (game_loop:353-366 — _shared_ctx.spatial_query
+    # или _current_spatial_query), построенный при последнем тике из
+    # отфильтрованного по локации набора — scene_state-записи теста в него
+    # не попадают (v2/v3 оплачены). GIVEN: устанавливаем spatial truth,
+    # которую реально читает мембрана — оба агента рядом в одном контейнере.
+    # Мембрана НЕ отключается: can_observe считает реальную дистанцию (0.5).
+    from app.services.spatial.spatial_query_service import SpatialQueryService as _SQS
+    _both = {}
+    for _k, _nid in enumerate((target_npc, speaker)):
+        _both[_nid] = {
+            "npc_id": _nid, "id": _nid,
+            "name": "Торнин Серебряная Луна" if _nid == target_npc else "Люся",
+            "location_id": "tavern",
+            "position": f"tavern:main_hall{_k}",
+            "local_position": {"x": 10.5 + 0.5 * _k, "y": 4.5, "z": 0.0},
+            "visible": True,
+        }
+    _sq_test = _SQS(npc_positions=_both, scene_state={})
+    _to_stm = getattr(world.game_loop, "_tick_orch", None)
+    _shared_ctx_stm = getattr(_to_stm, "_shared_context", None)
+    if _shared_ctx_stm is not None and hasattr(_shared_ctx_stm, "spatial_query"):
+        _shared_ctx_stm.spatial_query = _sq_test   # приоритет провайдера :358-362
+    world.game_loop._current_spatial_query = _sq_test  # fallback :364-366
     
     # Создаём и публикуем событие NPC_SPOKE
     event = EventDTO.create(
@@ -1617,6 +1642,61 @@ def inv_dialogue_liveness(world: TestWorld) -> InvariantResult:
             "INV-DIALOGUE-LIVENESS", "CRITICAL", False, f"Ошибка выполнения теста: {e}", ["backend/tests/IPT.py"]
         )
 
+def inv_event_identity(world: TestWorld) -> InvariantResult:
+    """INV-EVENT-IDENTITY: разные domain events не могут незаметно
+    схлопываться в один event_id; replay одной и той же event-последовательности
+    обязан сохранять идентичность. Уровень: identity/provenance (пробел,
+    оплаченный коллизиями BUG-FB-037-класса)."""
+    try:
+        from app.domain.events import EventDTO
+        from app.services.events.event_bus import EventBus
+        from app.services.events.event_identity import next_event_identity
+
+        scene = {"tick": 777}
+        bus = EventBus()
+        bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
+
+        def _pub(t: str) -> EventDTO:
+            bus.publish(EventDTO.create(
+                event_type="npc_spoke", source="inv_npc", payload={"text": t}
+            ))
+            return bus._event_log[-1]
+
+        e1 = _pub("первая")
+        e2 = _pub("вторая")          # same (type, source, tick) → разные id
+        e3 = _pub("первая")          # identical text — тоже разные id
+        if not (e1.id != e2.id != e3.id != e1.id):
+            return InvariantResult(
+                "INV-EVENT-IDENTITY", "CRITICAL", False,
+                "Коллизия identity: разные события схлопнулись в один event_id",
+                ["backend/app/services/events/event_bus.py",
+                 "backend/app/services/events/event_identity.py"],
+            )
+        scene2 = {"tick": 777}
+        bus2 = EventBus()
+        bus2.set_identity_provider(lambda t, s: next_event_identity(scene2, t, s))
+        def _pub2(t: str) -> EventDTO:
+            bus2.publish(EventDTO.create(
+                event_type="npc_spoke", source="inv_npc", payload={"text": t}
+            ))
+            return bus2._event_log[-1]
+        f1, f2, f3 = _pub2("первая"), _pub2("вторая"), _pub2("первая")
+        if (e1.id, e2.id, e3.id) != (f1.id, f2.id, f3.id):
+            return InvariantResult(
+                "INV-EVENT-IDENTITY", "CRITICAL", False,
+                "Replay той же event-последовательности изменил identity",
+                ["backend/app/services/events/event_identity.py"],
+            )
+        return InvariantResult(
+            "INV-EVENT-IDENTITY", "CRITICAL", True,
+            "Identity уникальна и replay-детерминирована", []
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-EVENT-IDENTITY", "CRITICAL", False,
+            f"Ошибка выполнения: {e}", ["backend/tests/IPT.py"]
+        )
+
 def inv_event_cardinality(world: TestWorld) -> InvariantResult:
     """INV-EVENT-CARDINALITY: События публикуются 1 раз, не N_locations раз (P1-6).
     
@@ -1985,6 +2065,7 @@ INVARIANTS: List[Callable] = [
     inv_tick_cardinality,
     inv_commit_cardinality,
     inv_world_object_topology,
+    inv_event_identity,
 ]
 
 def run_invariants() -> int:

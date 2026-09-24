@@ -766,17 +766,13 @@ def main() -> None:
                         if _backend_ok:
                             import os as _os
                             _os.environ.setdefault("ENIGMA_BACKEND_URL", _BACKEND_URL)
-                            try:
-                                from api_client import create_game_gateway
-                                _gateway, _ = create_game_gateway(base_url=_BACKEND_URL)
-                                # continuity_mode="continuous" сохраняет прогресс и инициализирует MVP
-                                _gateway.new_game(
-                                    campaign_id=selected_folder,
-                                    continuity_mode="continuous",
-                                    source_campaign_id=selected_folder
-                                )
-                            except Exception as e:
-                                print(f"  ⚠ Continue backend init failed: {e}")
+                            # M16 (вердикт Мастера): Continue = true resume БЕЗ
+                            # new_game. Вызов new_game(continuous) делал полный
+                            # reset_campaign — стирал campaign_meta.json
+                            # (current_location) и телепортировал игрока на
+                            # стартовую локацию. Сцены поднимаются из SQLite
+                            # в create_player_session → ensure_scene_initialized,
+                            # локация резолвится из metadata (Esc-фикс).
 
                         screen = pygame.display.get_surface()
                         game_screen = GameScreen(screen, clock)

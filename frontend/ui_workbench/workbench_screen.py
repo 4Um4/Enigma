@@ -94,12 +94,16 @@ class WorkbenchScreen:
     # ── Lifecycle ────────────────────────────────────────────────────
 
     def toggle_journal(self) -> None:
-        """J: toggle окна журнала (FSM). Открытие — на вкладке «Диалог»."""
-        if self.registry.state("journal") != WindowState.FULL:
+        """J (M15, вердикт Мастера): журнал НИКОГДА не закрывается — только
+        сворачивается и разворачивается. Цикл: FULL ↔ COLLAPSED_TO_TITLE;
+        HIDDEN — только стартовое состояние до первого J."""
+        state = self.registry.state("journal")
+        if state == WindowState.FULL:
+            self.registry.transition("journal", WindowState.COLLAPSED_TO_TITLE)
+        else:
+            # HIDDEN или COLLAPSED_TO_TITLE → развернуть на вкладке «Диалог»
             self.registry.transition("journal", WindowState.FULL)
             self._active_tab["journal"] = "dialog"
-        else:
-            self.registry.transition("journal", WindowState.HIDDEN)
 
     def open_journal_dialog_tab(self) -> None:
         """Авто-открытие: журнал FULL на вкладке «Диалог». Не навязчиво:
@@ -325,7 +329,9 @@ class WorkbenchScreen:
     # dialog = direct + narrative + self (беседа игрока с миром),
     # npc     = сгруппированное услышанное (overheard) — прообраз «О НПС»,
     # narrator = только narrative (лента мира, вердикт Мастера: смотрим в игре).
-    _JOURNAL_TABS = [("dialog", "Диалог"), ("npc", "О НПС"), ("narrator", "Рассказчик")]
+    # M2-именование: «Услышанное» = overheard-канал (чужие диалоги краем уха).
+    # tab_id "npc" сохранён для совместимости фильтра _journal_entries.
+    _JOURNAL_TABS = [("dialog", "Диалог"), ("npc", "Услышанное"), ("narrator", "Рассказчик")]
 
     def _draw_content(self, screen, wid: str, manifest, rect) -> None:
         body = pygame.Rect(rect.x, rect.y + _TITLE_H, rect.width, rect.height - _TITLE_H)
@@ -415,7 +421,9 @@ class WorkbenchScreen:
         # Автоскролл: берём последние блоки, влезающие в бюджет
         visible = []
         used = 0
-        for blk in reversed(blocks):
+        # M18 (вердикт Мастера): чат-порядок — старые сверху, новые снизу
+        # (entries уже хронологические, второй reverse давал обратный порядок).
+        for blk in blocks:
             if used + blk[3] > budget and visible:
                 break
             visible.insert(0, blk)

@@ -942,6 +942,15 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
             except Exception as e:
                 logger.warning(f"[SPATIAL_ORACLE] Registry lookup failed: {e}")
 
+        # Resume-фикс (телепорт Esc→Esc): metadata.current_location — SSOT
+        # для возврата из паузы (_resolve_location_from_save, приоритет №1).
+        # Раньше писалась только в oracle-ветке (world_x is not None), а фронт
+        # мировые координаты не присылал — metadata оставалась пустой, и
+        # resume уходил в find_starting_location (стартовая локация кампании).
+        if campaign_state is not None and location:
+            campaign_state.metadata["current_location"] = location
+            campaign_service.save(campaign_id)
+
         turn_request = ChatTurnRequest(
             world_id=campaign_id,
             campaign_id=campaign_id,

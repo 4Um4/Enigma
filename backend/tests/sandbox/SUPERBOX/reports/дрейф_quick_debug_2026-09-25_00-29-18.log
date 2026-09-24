@@ -1,0 +1,11 @@
+
+============================================================
+DRIFT LABORATORY — Mode: quick_debug
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[DRIFT_LAB] Quiesce skipped: 'DriftLaboratory' object has no attribute '_game_loop'
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Warning: не удалось удалить C:\Users\lipir\AppData\Local\Temp\drift_lab_2qnr5fux: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\Users\\lipir\\AppData\\Local\\Temp\\drift_lab_2qnr5fux\\saves\\enigma_memory.db'
+[DRIFT_LAB] Temp dir сохранён для ручной очистки: C:\Users\lipir\AppData\Local\Temp\drift_lab_2qnr5fux
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_z3y2rtk7

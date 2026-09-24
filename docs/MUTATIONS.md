@@ -1496,7 +1496,67 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. **S273 C
 ⚙️ Уроки: инлайн python -c с вложенными кавычками в PS неработоспособен → script-file+assert; коммит-message = фактический git diff --stat; F401 на re-export ≠ мёртвый импорт; moving-platform passport-протокол (env#1→#3).
 📁 backend/app/services/game_loop/{campaign_lifecycle.py(новый), campaign_mgmt.py(удалён), game_loop.py, dm_phase.py, npc_orchestration.py, pipeline_state.py, e1_wiring.py, world_diff_io.py, __init__.py}, scene_state_manager.py, memory/{relationship_store,memory_manager}.py, temporal/temporal_engine.py, npc/life_engine.py, player_avatar_service.py
 
+### S280: UI Workbench — съём legacy диалоговых полос (задача A) | ✅
+🎯 Декрет Мастера: синие «Mark 3» (NarrativeBeat-пузыри низа) и оранжевая
+   «Система» (system_log[-5:]) удалены. Журнал = Workbench (ADR-JOURNAL v2, J).
+⚙️ game_screen.py: _draw_message_log → _draw_time_scale (Time Scale HUD сохранён,
+   M4: функциональность темпа будет переделана — DEBT-TS); вызов 2055-2057;
+   мёртвый импорт COLOR_TEXT_SYS_MSG удалён. message_log/system_log appends
+   сохранены как bounded-буферы (DEBT-SYSMSG: системные ошибки невидимы до
+   SystemCard/этапа 2). Работа JournalWindow не задета: dialog_journal-синки
+   (1245/1563/1588) не тронуты — SSOT канала цел.
+📁 frontend/game_screen.py
+IPT: 44/45 — 1 🔴 INV-DIALOGUE-STM PRE-EXISTING (чужая зона: параллельная сессия,
+npc_dialogue_subscriber.py + tick_orchestrator.py в git status; эскалация Мастеру)
+КРАСНЫЕ ИНВАРИАНТЫ: было 1 🔴 → стало 1 🔴 (не наш)
 
+### S281: FIX — телепорт игрока при Esc→настройки→Esc (resume-локация) | ✅
+🎯 Симптом: после паузы игрок оказывался в стартовой локации кампании
+   (пустой регион). ROOT_CAUSE_CONFIDENCE: 90.
+⚙️ Каузальная цепь: PAUSE-петля launcher пересоздаёт GameScreen →
+   create_player_session → ensure_scene_initialized →
+   _resolve_location_from_save: metadata.current_location ОТСУТСТВОВАЛА
+   (писатели — только в oracle-ветке world_x is not None, фронт координаты
+   не присылал) → find_starting_location() → новая сцена стартовой локации.
+   Доказательства: campaign_meta.json metadata:{} (mtime=start сессии);
+   SQLite state_kv: сцены tavern + city_gate (обе с player, ~один updated_at
+   — мульти-локационный atomic_commit). Гигиена: current_location=tavern.
+⚙️ Фикс: безусловная запись финальной локации хода в metadata в обоих путях
+   (routes.py turn-путь; game_loop_bridge Direct-путь, importlib-паттерн).
+📁 backend/app/api/routes.py, frontend/game_loop_bridge.py,
+   saves/Open_road/campaign_meta.json (гигиена данных)
+IPT: 44/45 — 1 🔴 PRE-EXISTING (INV-DIALOGUE-STM, чужая зона)
+КРАСНЫЕ ИНВАРИАНТЫ: было 1 🔴 → стало 1 🔴
+Долги: DEBT-LOC-HARDCODE (tavern_silver_wolf в мосту — мёртвый id, диск
+знает tavern); DEBT-IDLE-ORACLE (idle переименовывает локацию по координатам
+без MovementIntent — вопрос §2.2, отложен на вердикт Мастера);
+DEBT-CONTINUE-WIPE (menu-CONTINUE стирает campaign_meta.json — семантика
+continuity-сброса, подтвердить отдельным решением).
+
+### S282: PHASE D — Exploration Vertical (autonomous bootstrap-unlock) | ✅ Э-3 GREEN=8/0, RCB 1/0, SPK 8/0/0, IPT 45/45 (1 external fix), population conditional | Phase D overall: GREEN с оговорками
+🎯 Формула Мастера: «NPC, не знающий путь, сам превращает неизвестность в знание через исследование среды». Bootstrap-lock (пересечение ⇐ KNOWN-гейт ⇐ знание ⇐ пересечение) разомкнут: NPC сам строит персональную карту мира через физическое исследование. Цепь доказана end-to-end без единой инъекции знания/цели: UNKNOWN → _unknown_route → consume → frontier → EXPLORATION intent → Arbiter ACCEPT → intra-loc traversal → TES arrival → boundary_dwell → transfer → physical crossing → direct EXITS_TO → multi-hop → PERSONAL_ROUTE KNOWN → delivery.
+⚙️ Production-правки (все с вердиктами Мастера, каждый — отдельный шаг с БЫЛО/СТАЛО):
+1. Э-1: `_unknown_route` transient-носитель в UNKNOWN-ветке PERSONAL_ROUTE gate (movement_engine) — writer-side signal, единственный writer; гейт = владелец lifecycle: UNKNOWN пишет, KNOWN гасит (+stale-clear при DIRECT_EXPERIENCE в dwell-ветке tick_orchestrator).
+2. Э-2: TES arrival-seam — `TES.advance(scene_state, tick, spatial_service=None)`: COMPLETED на boundary-узле → канонический boundary_dwell payload (via/neighbor из boundary_map — физика двери, не эпистемика). Второй producer, один executor (tick_orchestrator) — прецедент ADR-O-363.
+3. D-1: микро-snap-писатель dwell (movement_engine:1035) перезаписывал канонический payload БЕЗ via → transfer без direct-знания. Фикс: `via: next_node.node_id`.
+4. D-2: consume/resolver резолвит SpatialService по ФАКТИЧЕСКОЙ локации записи актора (SpatialFactory per-location), не per-tick инжект тикающейся сцены — frontier в market_square показывал tavern-двери (cross-локационное загрязнение).
+5. Э-2: сигнальная инерция + подавление обречённого relocation (LifeEngine): relocation в вектор неизвестности ("+relocation" ∧ location_id==sig.to) не рождается, пока маршрут неизвестен; S139.3-дуэль иначе съедала exploration каждый тик.
+6. Reconciliation (не K-timer): перед подавлением — проверка АКТУАЛЬНОГО персонального EXITS_TO(from→to) в store (паттерн personal_route_resolver, без WorldGraph); KNOWN иным каналом (сид/claim) → stale clear → relocation разрешён. Двухдоменное обоснование (§ENIGMA-002): production-crossing + seed-stale.
+7. IPT v4 (тест-изоляция): INV-DIALOGUE-STM зависел от миграционной динамики NPC (мембрана честно резала dist=999 при разнесении участников) — GIVEN v4: подмена провайдер-контейнера тестовым (оба агента, dist=0.5); production-мембрана не тронута (fail-closed корректен).
+⚙️ Доказано (все — из сырых прогонов, досье-артефакты в корне):
+- Borko: 3 autonomous crossing'а (exit_south→market, exit_north→tavern, exit_east→city_gate), 3 direct-знания, delivery + стабильная жизнь на посту (сотни тиков schedule без relocation).
+- Shadow: autonomous crossing (exit_east→city_gate), direct conf=1.00 — store-факт.
+- Спонтанный claim-канал: lusya/goran получили знание ребра через NPC_SPOKE (provenance=claim-*) — социальное распространение персональной карты; находка, не дефект.
+- Population night (1440 тиков): borko ✅, lusya ✅, shadow ✅ (уход честный); goran/orm/tornin — S186-integration debts (stale LifeEngine-кэш после transfer'а; torn-state position=''), форма A, ВНЕ Phase D.
+- Wall-crossing merchant: НЕ воспроизводится (harness 400 тиков, 398 сэмплов, 30 путей, 0 blocked-сегментов через is_segment_blocked); известный микро-путь не wall-check'ит (movement_engine:697-706 — NPC-NPC only) — open diagnostic, ждёт контекста наблюдения.
+⚙️ Уроки сессии (все оплачены прогонами):
+- Транзиент-носитель в записи NPC переживает transfer (pending→inject) и persistence round-trip — тест-свойства проверять через события (sig.tick), не присутствие ключа; consume обязателен ВНУТРИ тика по живому ctx.
+- Два носителя одного поля (кэш-дикт vs npc_positions) — инъекция в неверный носитель невидима (110-прогон: байт-в-байт как до).
+- Capture-фильтр по "borko" резал всё чужое — слепота фильтра трижды принималась за отсутствие событий (SPATIAL_KNOWLEDGE, S186_DEBUG, BORKO_TRACE).
+- S139.3 winner-выбор «первый побеждает» делает порядок producers каузальным фактором.
+- Ground-truth инварианта IPT может зависеть от миграционной динамики мира — spatial-инварианты требуют явных GIVEN.
+- Фальсифицированный листинг кода (отозван) + две реконструкции БЫЛО по памяти — §13.6/протокол §0 обязательны даже для собственного кода.
+📁 models/spatial_contracts (NodeRole.BOUNDARY факт), services/spatial/movement_engine (UNKNOWN-signal, arrival-seam TES, micro-snap via, KNOWN-clear), services/spatial/traversal_execution_system (advance+spatial_service, dwell-producer), services/npc/life_engine (consume+exploration intent+suppression+reconciliation), services/npc/exploration_target_resolver (NEW — frontier pure), services/tick_orchestrator (writer-side clear), services/phases/simulation (epistemic injection), tests/IPT.py (INV-изоляция v4), probes (все self-deleted), досье-артефакты (d3_*/d_pop_*/d_wall/rcb_*/spk_final/ipt_*).
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
@@ -1509,7 +1569,6 @@ IPT: ✅ 45/45. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. **S273 C
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-
 
 
 
