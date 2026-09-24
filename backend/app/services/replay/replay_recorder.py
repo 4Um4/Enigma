@@ -50,7 +50,14 @@ class ReplayRecorder:
         """Вызывается после Фазы 9 (Integration)."""
         try:
             from dataclasses import asdict, is_dataclass
-            _snapshot_dict = asdict(snapshot) if is_dataclass(snapshot) else snapshot
+            # Порядок условий по контракту typeshed: is_dataclass сужает тип к
+            # DataclassInstance | type[...], затем isinstance исключает класс —
+            # asdict получает чистый DataclassInstance.
+            _snapshot_dict = (
+                asdict(snapshot)
+                if is_dataclass(snapshot) and not isinstance(snapshot, type)
+                else snapshot
+            )
             self.store.record_tick(
                 session_id=self.session_id,
                 tick_id=tick_id,

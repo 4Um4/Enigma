@@ -94,7 +94,7 @@ def calculate_clarity(
     return round(max(0.0, min(1.0, base)), 3)
 
 
-def _npc_distance(npc_id: str, spatial_query: "SpatialQueryService") -> float:
+def _npc_distance(npc_id: str, spatial_query: Optional["SpatialQueryService"]) -> float:
     """
     Расстояние от NPC до игрока в метрах.
     ADR-048 Phase 2: Единственный источник истины — SpatialQueryService.

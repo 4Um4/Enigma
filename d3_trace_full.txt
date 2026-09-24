@@ -34,7 +34,7 @@
 [SCHED_TRACE] npc=guard_borko prev='' new='guarding_gate' CHANGE
 [LIFE_ENGINE] guard_borko: schedule 'guarding_gate' требует city_gate, NPC физически в tavern → cross-loc relocation intent
 [EXPLORATION] npc=guard_borko: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=2 life_intents=2 cognitive_changes=0
+[GATE_A] tick=2 life_intents=2 cognitive_changes=1
 [ARBITER_REJECT] tick=2 npc=guard_borko candidate_target=tavern:exit_south candidate_source=exploration:frontier incumbent_id=cmt-a4deee39c5d92d7eb6edae66fbec0a7e incumbent_target=tavern:node_16 incum
 [BORKO_TRACE] tick=2 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_south
 [GATE_B1] total_intents=2 accepted=2 rejected=0
@@ -129,7 +129,7 @@
 [SCHED_TRACE] npc=guard_borko prev='' new='guarding_gate' CHANGE
 [LIFE_ENGINE] guard_borko: schedule 'guarding_gate' требует city_gate, NPC физически в tavern → cross-loc relocation intent
 [EXPLORATION] npc=guard_borko: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=6 life_intents=3 cognitive_changes=2
+[GATE_A] tick=6 life_intents=3 cognitive_changes=3
 [BORKO_TRACE] tick=6 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_south
 [GATE_B1] total_intents=3 accepted=2 rejected=1
 [BORKO_RELOC] tick=6 loc=tavern target=tavern:exit_south cur_pos=tavern:fireplace cur_xy={'x': 10.5, 'y': 3.0, 'z': 0.0}
@@ -272,7 +272,7 @@
 [EXPLORATION] npc=merchant_goran loc=tavern: visible=['tavern:exit_east', 'tavern:exit_south'] known=[] -> selected=tavern:exit_south dist=2.95
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_south
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=11 life_intents=3 cognitive_changes=1
+[GATE_A] tick=11 life_intents=3 cognitive_changes=0
 [ARBITER_REJECT] tick=11 npc=merchant_goran candidate_target=tavern:exit_south candidate_source=exploration:frontier incumbent_id=cmt-71cd3ff7b2fc7dc2ede3c18e93cea2ef incumbent_target=tavern:fireplace
 [BORKO_TRACE] tick=11 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_south
 [GATE_B1] total_intents=3 accepted=2 rejected=1
@@ -324,7 +324,7 @@
 [EXPLORATION] npc=merchant_goran loc=tavern: visible=['tavern:exit_east', 'tavern:exit_south'] known=[] -> selected=tavern:exit_south dist=2.06
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_south
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=13 life_intents=3 cognitive_changes=0
+[GATE_A] tick=13 life_intents=3 cognitive_changes=1
 [ARBITER_REJECT] tick=13 npc=merchant_goran candidate_target=tavern:exit_south candidate_source=exploration:frontier incumbent_id=cmt-ae9f2cf486216f14afbc51f86a23921d incumbent_target=tavern:exit_sout
 [BORKO_TRACE] tick=13 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_south
 [GATE_B1] total_intents=3 accepted=1 rejected=2
@@ -373,7 +373,7 @@
 [EXPLORATION] npc=merchant_goran loc=tavern: visible=['tavern:exit_east', 'tavern:exit_south'] known=[] -> selected=tavern:exit_south dist=0.00
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_south
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=15 life_intents=3 cognitive_changes=1
+[GATE_A] tick=15 life_intents=3 cognitive_changes=0
 [BORKO_TRACE] tick=15 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_south
 [GATE_B1] total_intents=3 accepted=1 rejected=2
 [GATE_B2] tick=15 spatial_changes=2 from_intents=3
@@ -498,7 +498,7 @@
 [SPATIAL_KNOWLEDGE] npc=guard_borko DIRECT_EXPERIENCE: tavern:exit_south → market_square conf=1.00
 [BOUNDARY_DWELL] npc=guard_borko dwell complete → atomic S186 transfer to market_square
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=['market_square']
-[GATE_A] tick=19 life_intents=1 cognitive_changes=1
+[GATE_A] tick=19 life_intents=1 cognitive_changes=0
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:main_hall) — intent 'exploration:frontier' отклонён (no-interrupt)
 [GATE_B2] tick=19 spatial_changes=0 from_intents=1
@@ -517,7 +517,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: visible=['market_square:exit_north'] known=[] -> selected=market_square:exit_north dist=44.16
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=market_square:exit_north
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=19 life_intents=3 cognitive_changes=1
+[GATE_A] tick=19 life_intents=3 cognitive_changes=0
 [ARBITER_REJECT] tick=19 npc=guard_borko candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-b85e516321095be0dc27cc4287429bf6 incumbent_target=market_squar
 [BORKO_TRACE] tick=19 type=MacroMovementGoal reason=exploration:frontier target=market_square:exit_north
 [GATE_B1] total_intents=3 accepted=3 rejected=0
@@ -557,7 +557,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: visible=['market_square:exit_north'] known=[] -> selected=market_square:exit_north dist=44.16
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=market_square:exit_north
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=20 life_intents=3 cognitive_changes=0
+[GATE_A] tick=20 life_intents=3 cognitive_changes=1
 [ARBITER_REJECT] tick=20 npc=merchant_goran candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-228bf0fc702fb6f507d9142f364937fa incumbent_target=market_sq
 [ARBITER_REJECT] tick=20 npc=guard_borko candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-b85e516321095be0dc27cc4287429bf6 incumbent_target=market_squar
 [BORKO_TRACE] tick=20 type=MacroMovementGoal reason=exploration:frontier target=market_square:exit_north
@@ -634,7 +634,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: visible=['market_square:exit_north'] known=[] -> selected=market_square:exit_north dist=40.26
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=market_square:exit_north
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=22 life_intents=3 cognitive_changes=0
+[GATE_A] tick=22 life_intents=3 cognitive_changes=1
 [ARBITER_REJECT] tick=22 npc=merchant_goran candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-228bf0fc702fb6f507d9142f364937fa incumbent_target=market_sq
 [ARBITER_REJECT] tick=22 npc=guard_borko candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-b85e516321095be0dc27cc4287429bf6 incumbent_target=market_squar
 [BORKO_TRACE] tick=22 type=MacroMovementGoal reason=exploration:frontier target=market_square:exit_north
@@ -685,7 +685,7 @@
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B1_5] npc=merchant_goran traversal MOVING (target=market_square:square_center) — intent 'proactive_offer_job' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
-[GATE_A] tick=24 life_intents=2 cognitive_changes=1
+[GATE_A] tick=24 life_intents=2 cognitive_changes=0
 [GATE_B1] total_intents=2 accepted=2 rejected=0
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:fireplace) — intent 'exploration:frontier' отклонён (no-interrupt)
 [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=2 traversal=CREATED
@@ -778,7 +778,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: visible=['market_square:exit_north'] known=[] -> selected=market_square:exit_north dist=32.52
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=market_square:exit_north
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=26 life_intents=3 cognitive_changes=0
+[GATE_A] tick=26 life_intents=3 cognitive_changes=1
 [ARBITER_REJECT] tick=26 npc=merchant_goran candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-228bf0fc702fb6f507d9142f364937fa incumbent_target=market_sq
 [ARBITER_REJECT] tick=26 npc=guard_borko candidate_target=market_square:exit_north candidate_source=exploration:frontier incumbent_id=cmt-b85e516321095be0dc27cc4287429bf6 incumbent_target=market_squar
 [BORKO_TRACE] tick=26 type=MacroMovementGoal reason=exploration:frontier target=market_square:exit_north
@@ -865,7 +865,7 @@
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B1_5] npc=merchant_goran traversal MOVING (target=market_square:square_center) — intent 'proactive_offer_job' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
-[GATE_A] tick=29 life_intents=2 cognitive_changes=0
+[GATE_A] tick=29 life_intents=2 cognitive_changes=1
 [GATE_B1] total_intents=2 accepted=2 rejected=0
 [GATE_B2] tick=29 spatial_changes=4 from_intents=2
 [GATE_C] phase=IDLE_SPATIAL total_changes=4 spatial_candidates=2 has_svc=True
@@ -1048,7 +1048,7 @@
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B1_5] npc=merchant_goran traversal MOVING (target=market_square:square_center) — intent 'proactive_offer_job' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
-[GATE_A] tick=34 life_intents=1 cognitive_changes=0
+[GATE_A] tick=34 life_intents=1 cognitive_changes=1
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:main_hall) — intent 'exploration:frontier' отклонён (no-interrupt)
 [GATE_B2] tick=34 spatial_changes=0 from_intents=1
@@ -1206,7 +1206,7 @@
 [GATE_B1] total_intents=3 accepted=2 rejected=1
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:fireplace) — intent 'proactive_request_service' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=[]
-[GATE_A] tick=38 life_intents=1 cognitive_changes=3
+[GATE_A] tick=38 life_intents=1 cognitive_changes=2
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B2] tick=38 spatial_changes=0 from_intents=1
 [GATE_B1] total_intents=1 accepted=1 rejected=0
@@ -1267,7 +1267,7 @@
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B1_5] npc=merchant_goran traversal MOVING (target=market_square:node_7) — intent 'proactive_offer_job' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
-[GATE_A] tick=40 life_intents=2 cognitive_changes=1
+[GATE_A] tick=40 life_intents=2 cognitive_changes=0
 [GATE_B1] total_intents=2 accepted=2 rejected=0
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:main_hall) — intent 'exploration:frontier' отклонён (no-interrupt)
 [MOVEMENT_TRACE] npc=maid_lusya status=VALID_PATH path_len=2 traversal=CREATED
@@ -1558,7 +1558,7 @@
 [EXPLORATION] npc=merchant_goran loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=35.98
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=tavern:exit_east
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=48 life_intents=4 cognitive_changes=0
+[GATE_A] tick=48 life_intents=4 cognitive_changes=1
 [BORKO_TRACE] tick=48 type=MacroMovementGoal reason=need_driven:shelter_urge=1.00+relocation target=guard_bed
 [GATE_B1] total_intents=4 accepted=4 rejected=0
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:main_hall) — intent 'exploration:frontier' отклонён (no-interrupt)
@@ -1582,7 +1582,7 @@
 [MOVEMENT_TRACE] npc=merchant_goran status=VALID_PATH path_len=3 traversal=CREATED
 [S186_TRANSFER] Extracting NPC=merchant_goran from tavern to pending queue for market_square
 [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=['market_square']
-[GATE_A] tick=48 life_intents=1 cognitive_changes=2
+[GATE_A] tick=48 life_intents=1 cognitive_changes=3
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B2] tick=48 spatial_changes=0 from_intents=1
 [GATE_B1] total_intents=1 accepted=1 rejected=0
@@ -1805,12 +1805,12 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: frontier пуст (все 1 дверей пройдены)
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=None
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=55 life_intents=0 cognitive_changes=1
+[GATE_A] tick=55 life_intents=0 cognitive_changes=0
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
 [EXPLORATION] npc=guard_borko loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=23.98
 [EXPLORATION] npc=guard_borko consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_east
 [EXPLORATION] npc=guard_borko: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=56 life_intents=3 cognitive_changes=0
+[GATE_A] tick=56 life_intents=3 cognitive_changes=1
 [ARBITER_REJECT] tick=56 npc=guard_borko candidate_target=tavern:exit_east candidate_source=exploration:frontier incumbent_id=cmt-b676e42c94a2c4e7a7d519795b4865ae incumbent_target=tavern:exit_east inc
 [BORKO_TRACE] tick=56 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_east
 [GATE_B1] total_intents=3 accepted=2 rejected=1
@@ -1855,11 +1855,9 @@
 [GATE_E] phase=IDLE_SPATIAL validated=1 applied=2
 [TRAV_EXEC_ADVANCE] tick=57 active_traversals=['guard_borko', 'maid_lusya', 'blacksmith_orm']
 [ARBITER_REJECT] tick=57 npc=guard_borko candidate_target=tavern:entrance candidate_source=proactive_spread_rumor incumbent_id=cmt-b676e42c94a2c4e7a7d519795b4865ae incumbent_target=tavern:exit_east in
-[ARBITER_REJECT] tick=57 npc=maid_lusya candidate_target=tavern:kitchen candidate_source=proactive_seek_ally incumbent_id=cmt-a3767e30513120a75f157ccfc1bb2a9c incumbent_target=tavern:kitchen_bed_1 inc
 [BORKO_TRACE] tick=57 type=MacroMovementGoal reason=proactive_spread_rumor target=tavern:entrance
-[GATE_B1] total_intents=4 accepted=4 rejected=0
+[GATE_B1] total_intents=3 accepted=3 rejected=0
 [GATE_B1_5] npc=guard_borko traversal MOVING (target=tavern:exit_east) — intent 'proactive_spread_rumor' отклонён (no-interrupt)
-[GATE_B1_5] npc=maid_lusya traversal MOVING (target=tavern:kitchen_bed_1) — intent 'proactive_seek_ally' отклонён (no-interrupt)
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:fireplace) — intent 'proactive_request_service' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=[]
 [GATE_A] tick=57 life_intents=1 cognitive_changes=2
@@ -1870,7 +1868,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: frontier пуст (все 1 дверей пройдены)
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=None
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=57 life_intents=0 cognitive_changes=1
+[GATE_A] tick=57 life_intents=0 cognitive_changes=0
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
 [EXPLORATION] npc=guard_borko loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=19.99
 [EXPLORATION] npc=guard_borko consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_east
@@ -1900,7 +1898,8 @@
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
 [EXPLORATION] npc=guard_borko loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=17.99
 [EXPLORATION] npc=guard_borko consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_east
-[GATE_A] tick=59 life_intents=2 cognitive_changes=1
+[SCHED_TRACE] npc=maid_lusya prev='working' new='resting' CHANGE
+[GATE_A] tick=59 life_intents=2 cognitive_changes=0
 [ARBITER_REJECT] tick=59 npc=guard_borko candidate_target=tavern:exit_east candidate_source=exploration:frontier incumbent_id=cmt-b676e42c94a2c4e7a7d519795b4865ae incumbent_target=tavern:exit_east inc
 [BORKO_TRACE] tick=59 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_east
 [GATE_B1] total_intents=2 accepted=1 rejected=1
@@ -2010,7 +2009,7 @@
 [EXPLORATION] npc=guard_borko consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_east
 [EXPLORATION] npc=guard_borko: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
 [SCHED_TRACE] npc=maid_lusya prev='working' new='resting' CHANGE
-[GATE_A] tick=63 life_intents=2 cognitive_changes=1
+[GATE_A] tick=63 life_intents=2 cognitive_changes=0
 [ARBITER_REJECT] tick=63 npc=guard_borko candidate_target=tavern:exit_east candidate_source=exploration:frontier incumbent_id=cmt-b676e42c94a2c4e7a7d519795b4865ae incumbent_target=tavern:exit_east inc
 [BORKO_TRACE] tick=63 type=MacroMovementGoal reason=exploration:frontier target=tavern:exit_east
 [GATE_B1] total_intents=2 accepted=1 rejected=1
@@ -2088,7 +2087,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: frontier пуст (все 1 дверей пройдены)
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=None
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=65 life_intents=0 cognitive_changes=0
+[GATE_A] tick=65 life_intents=0 cognitive_changes=1
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
 [EXPLORATION] npc=guard_borko loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=4.00
@@ -2116,7 +2115,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: frontier пуст (все 1 дверей пройдены)
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=None
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=66 life_intents=0 cognitive_changes=1
+[GATE_A] tick=66 life_intents=0 cognitive_changes=0
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
 [EXPLORATION] npc=guard_borko loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=2.00
 [EXPLORATION] npc=guard_borko consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_east
@@ -2144,7 +2143,7 @@
 [EXPLORATION] npc=merchant_goran loc=market_square: frontier пуст (все 1 дверей пройдены)
 [EXPLORATION] npc=merchant_goran consumed _unknown_route from=market_square to=city_gate -> target=None
 [EXPLORATION] npc=merchant_goran: подавлено relocation-интентов=1 (маршрут к city_gate неизвестен — сигнал инертен)
-[GATE_A] tick=67 life_intents=0 cognitive_changes=0
+[GATE_A] tick=67 life_intents=0 cognitive_changes=1
 [S186_DEBUG] Ticking loc=tavern, pending_transfers_keys=[]
 [EXPLORATION] npc=guard_borko loc=tavern: visible=['tavern:exit_east'] known=['tavern:exit_south'] -> selected=tavern:exit_east dist=10.83
 [EXPLORATION] npc=guard_borko consumed _unknown_route from=tavern to=city_gate -> target=tavern:exit_east
@@ -2198,7 +2197,7 @@
 [GATE_B1_5] npc=blacksmith_orm traversal MOVING (target=tavern:main_hall) — intent 'proactive_request_service' отклонён (no-interrupt)
 [S186_DEBUG] Ticking loc=city_gate, pending_transfers_keys=['city_gate']
 [S186_INJECT] Importing NPC=guard_borko into city_gate
-[GATE_A] tick=69 life_intents=1 cognitive_changes=3
+[GATE_A] tick=69 life_intents=1 cognitive_changes=2
 [GATE_B1] total_intents=1 accepted=1 rejected=0
 [GATE_B2] tick=69 spatial_changes=0 from_intents=1
 [GATE_B1] total_intents=1 accepted=1 rejected=0

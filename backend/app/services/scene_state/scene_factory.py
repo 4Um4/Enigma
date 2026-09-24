@@ -8,6 +8,7 @@ DEGOD ITER4: фабрика канонического scene_state (перено
 import hashlib
 import logging
 import random
+from typing import Any, Callable, cast
 
 from app.core.calendar import Calendar
 from app.services.scene_state.editor_locator import _nearest_node_to_xy
@@ -33,10 +34,10 @@ def select_time_variant(template: dict, time_of_day: str) -> dict:
             end_min = eh * 60 + em
             if start_min > end_min:
                 if minutes >= start_min or minutes < end_min:
-                    return variant
+                    return cast(dict, variant)
             else:
                 if start_min <= minutes < end_min:
-                    return variant
+                    return cast(dict, variant)
         except (ValueError, AttributeError) as e:
             logger.debug(f"[SCENE] Пропуск time_variant {variant}: {e}")
             continue
@@ -51,7 +52,7 @@ def build_initial_scene(
     time_of_day: str,
     template: dict,
     editor_data: dict | None,
-    build_spatial_data,
+    build_spatial_data: Callable[..., Any],
 ) -> dict:
     """
     Собирает SceneState из шаблона локации с учётом времени суток.

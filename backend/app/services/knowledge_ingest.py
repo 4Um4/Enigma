@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING, Literal
 try:
     from pypdf import PdfReader
 except Exception:  # pragma: no cover
-    PdfReader = None
+    # pypdf — опциональная runtime-зависимость; без неё PDF-импорт деградирует
+    # в понятную ошибку (_extract_pdf → RuntimeError). Ignore нужен, потому что
+    # имя PdfReader связано с классом из успешного импорта.
+    PdfReader = None  # type: ignore[assignment, misc]
 
 if TYPE_CHECKING:
     from app.services.memory.memory_manager import MemoryManager
@@ -86,7 +89,7 @@ class KnowledgeIngestService:
         else:  # npc
             entry_id = self._memory.persist_npc_note(
                 campaign_id,
-                note=payload["text_preview"],
+                note=str(payload["text_preview"]),
                 source=filename,
             )
             target = "npc_memory"

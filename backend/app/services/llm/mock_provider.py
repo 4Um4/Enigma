@@ -148,7 +148,7 @@ class MockProvider(StreamingLlmProvider):
         # Хеш промпта инвариантен к порядку вызовов. KernelRNG ядра
         # (ADR-O-301) не затронут — закон только для kernel layer,
         # mock остаётся вне симуляционного контура детерминизма.
-        def _deterministic_pick(options: list) -> str:
+        def _deterministic_pick(options: list[str]) -> str:
             # ADR-O-399 Iter2: hash(str) солёный PER-PROCESS (PYTHONHASHSEED) —
             # детерминизм внутри прогона, лотерея между процессами/сессиями.
             # Стабильный хеш (md5, §15-нейтральный: не time, не random) —

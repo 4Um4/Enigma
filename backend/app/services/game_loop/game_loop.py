@@ -1608,7 +1608,8 @@ class GameLoop:
             if _a.action:
                 # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
                 self.avatar_service.append_journal(
-                    campaign_id=req.campaign_id, speaker=_a.player_name, text=_a.action
+                    campaign_id=req.campaign_id, speaker=_a.player_name, text=_a.action,
+                    channel="self",
                 )
 
         _dm_text = dm_result.get("dm_response", "")

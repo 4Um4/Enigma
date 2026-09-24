@@ -602,7 +602,7 @@ class SceneOutcomeBuilder:
             else str(decision.intent)
         )
         psychological = self._project_psychology(
-            real_state, intent=_intent_str, emotion_tag=emotion
+            real_state if real_state is not None else {}, intent=_intent_str, emotion_tag=emotion
         )
 
         # B.2: Stance — поведенческая форма для DM prompt (без числовых порогов)
@@ -621,7 +621,7 @@ class SceneOutcomeBuilder:
         _voice = profile.voice_profile if profile else ""
         _backstory = profile.backstory if profile else ""
         _author_notes = profile.author_notes if profile else ""
-        _memory_hints = ()
+        _memory_hints: tuple[str, ...] = ()
         if isinstance(real_state, dict):
             _raw_cache = real_state.get("narrative_cache", [])
             if _raw_cache:

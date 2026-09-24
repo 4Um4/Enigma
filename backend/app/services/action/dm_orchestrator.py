@@ -79,9 +79,12 @@ class DMOrchestrator:
         )
 
         if not router_result.is_valid:
+            # RouterError | None: error может отсутствовать при неуспешной валидации
+            _router_error = router_result.error
+            _error_desc = _router_error.value if _router_error else "unknown"
             return DMResult(
                 is_valid=False,
-                error=f"Router: {router_result.error.value} — {router_result.error_details}",
+                error=f"Router: {_error_desc} — {router_result.error_details}",
             )
 
         # --- Этап 2: Scene Builder (RawEvent + Spatial → EventContext) ---

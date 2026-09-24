@@ -26,7 +26,8 @@ _QUIET_SOUND_RADIUS = 3.0
 def _light_level(scene_state: dict) -> str:
     """Извлекает уровень освещения из SceneState"""
     env = scene_state.get("environment", {})
-    return env.get("light_level", "dim")
+    _light = env.get("light_level", "dim") if isinstance(env, dict) else "dim"
+    return _light if isinstance(_light, str) else str(_light)
 
 
 def _is_visible(entity: PerceivedEntity, scene_state: dict) -> Tuple[bool, float]:

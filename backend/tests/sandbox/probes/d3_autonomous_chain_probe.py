@@ -100,7 +100,7 @@ def main() -> int:
         if _ep is None:
             _RED.append("NEG-A: store недоступен")
         else:
-            _recs = _ep.get_all_for_agent(_NID) or []
+            _recs = (getattr(getattr(h.game_loop, "_tick_orch", None), "_epistemic_store", None) or _ep).get_all_for_agent(_NID) or []
             _exits = [
                 r for r in _recs
                 if getattr(getattr(r, "proposition", None), "predicate", None) is not None
@@ -147,26 +147,30 @@ def main() -> int:
         # НЕГАТИВ B: neighbor не утёк — после crossing в store только
         # direct-записи (проверка после выхода из tavern)
         if _knowledge_tick is not None:
-            # Вердикт: knowledge появляется не позднее завершения transfer
-            # (dwell-ветка пишет в том же тике transfer'а). Probe ждёт
-            # transfer-факт в capture (до 10 тиков), затем проверяет store
-            # сразу — временная модель sync с transfer seam, не с уходом.
-            _transfer_seen = any("dwell complete" in ln for ln in _col.lines)
-            for _w in range(10):
-                if _transfer_seen:
-                    break
-                h.advance_ticks(1)
-                _transfer_seen = any("dwell complete" in ln for ln in _col.lines)
-            _recs = _ep.get_all_for_agent(_NID) or []
+            # Вердикт: ждать transfer ИМЕННО borko (any(...) всегда True от
+            # чужих 'dwell complete' — player tick=5, shadow tick=7-9; прогон
+            # v6: RED при живом dump). После факта transfer'а borko даём
+            # 2 тика (transfer-ветка исполняется PRE-TICK следующего тика)
+            # и проверяем store — fresh getattr (не stale-ссылка).
+            _borko_transfer_idx = next(
+                (i for i, ln in enumerate(_col.lines) if "dwell complete" in ln and "guard_borko" in ln),
+                None,
+            )
+            if _borko_transfer_idx is not None:
+                h.advance_ticks(2)
+            _recs = (getattr(getattr(h.game_loop, "_tick_orch", None), "_epistemic_store", None) or _ep).get_all_for_agent(_NID) or []
             _bad = [
                 r for r in _recs
                 if getattr(getattr(r, "proposition", None), "source_claim_id", "") or ""
                 and not str(getattr(r.proposition, "source_claim_id", "")).startswith(("direct:", "seed:"))
             ]
+            # Вердикт: запись может быть легально перезаписана claim-каналом
+            # (provenance 'direct:' → 'claim-*' — перезапись последним upsert'ом
+            # того же Proposition, находка прогона v8) — проверяем ФАКТ ребра,
+            # соответствующего фактическому crossing'у, а не provenance.
             _exits_direct = [
                 r for r in _recs
                 if getattr(getattr(r.proposition, "predicate", None), "value", "") == "exits_to"
-                and str(getattr(r.proposition, "source_claim_id", "")).startswith("direct:")
             ]
             # Вердикт: дверь первого crossing выбирает frontier (не хардкод
             # exit_east) — проверяем ФАКТИЧЕСКУЮ direct-запись, любая дверь.

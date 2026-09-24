@@ -785,8 +785,14 @@ class GameScreen:
                     else:
                         self._workbench.exit()
                     continue
+                # Workbench-окна: события едут в них ВСЕГДА (клики по окнам
+                # в обычной игре тоже валидны); consumed=True гасит событие
+                # для игровых веток. F12-режим дополнительно активен как
+                # модальный перехват (всё в Workbench, в сцену — ничего).
                 if self._workbench.active:
                     self._workbench.handle_event(event)
+                    continue
+                if self._workbench.handle_event_overlay(event):
                     continue
                 elif event.type == pygame.KEYDOWN:
                     # FIX(диалог-выход): ESC при сфокусированном вводе закрывает
@@ -808,12 +814,14 @@ class GameScreen:
                     # очищается — повторная фокусировка вернёт набранный текст.
                     elif event.key == get_key(load_keybinds(), "dialogue_open"):
                         text_input.focused = not text_input.focused
-                    # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
-                    # AUDIT #12: журнал через бинды (action open_journal)
+                        # Workbench: авто-открытие журнала на вкладке «Диалог»
+                        # при фокусе ввода (решение: фокус = намерение беседовать)
+                        if text_input.focused:
+                            self._workbench.open_journal_dialog_tab()
+                    # ADR-JOURNAL v2: журнал = JournalWindow (Workbench). Старый
+                    # show_journal-рендер удалён (DOUBLE TRUTH). J = toggle окна.
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "open_journal"):
-                        self.show_journal = not self.show_journal
-                        if not self.show_journal:
-                            self._journal_active_tab = "observations"  # Сброс вкладки при закрытии
+                        self._workbench.toggle_journal()
                     # P8: Переключение панели инвентаря — через бинды
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "toggle_inventory"):
                         self.show_inventory = not self.show_inventory
