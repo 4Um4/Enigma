@@ -228,7 +228,7 @@ class DialogueExecutor:
             items = retrieve_knowledge(owner_state, subject)
             if not items:
                 return None
-            rel = {}
+            rel: dict = {}
             if self._relationship_provider is not None:
                 rel = self._relationship_provider(
                     task.campaign_id, task.owner_id, "player"

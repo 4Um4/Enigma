@@ -1,0 +1,1208 @@
+
+============================================================
+DRIFT LABORATORY — Mode: mass_traversal
+============================================================
+[DRIFT_LAB] Deleted dirty DB: enigma_runtime.db
+[DRIFT_LAB] GameLoop built via build_game_loop()
+[DRIFT_LAB] Temp dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_zhvc9xbo
+[DRIFT_LAB] Saves dir: C:\Users\lipir\AppData\Local\Temp\drift_lab_zhvc9xbo\saves
+
+--- MODE A: Mass Traversal (200 ticks) ---
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.1, 'y': 6.1} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 7.98736111111111, 'y': 1.8263888888888888} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 4.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 4.5, 'y': 2.5} type=dict node=(3.8617600000000003,2.79264) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 16.700000000000003, 'y': 3.7750000000000004} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 11.5, 'y': 11.0} type=dict node=(11.0,10.0) in_trav=False
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 13.5, 'y': 3.0, 'z': 0.0} type=dict node=(13.5,3.0) in_trav=False
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 8.14382394547325, 'y': 13.0258487654321, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 13.5, 'y': 3.0, 'z': 0.0} type=dict node=(13.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0, 'z': 0.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 10.5, 'y': 6.5, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[DIAG_D3] tick=9 INTENT reason=need_driven:hunger=0.72 target=tavern:right_table domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 8.218993333333334, 'y': 12.451713333333332} type=dict node=(?,?) in_trav=False
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=12 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[DIAG_D3] tick=14 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.0, 'y': 1.0, 'z': 0.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=15 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.0, 'y': 1.0, 'z': 0.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 10.0, 'y': 1.0, 'z': 0.0} type=dict node=(10.0,1.0) in_trav=False
+[DIAG_D3] tick=16 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 10.0, 'y': 1.0, 'z': 0.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 21.5, 'y': 9.25, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[DIAG_D3] tick=17 INTENT reason=need_driven:shelter_urge=1.00+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.0, 'y': 1.0} type=dict node=(10.0,1.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=18 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 10.0, 'y': 1.0} type=dict node=(?,?) in_trav=False
+[DIAG_D3] tick=19 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.0, 'y': 1.0} type=dict node=(?,?) in_trav=False
+  [GROUND_TRUTH] tick=19 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 13.5, 'y': 3.0, 'z': 0.0} type=dict node=(13.5,3.0) in_trav=False
+[DIAG_D3] tick=20 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 11.166666666666666, 'y': 1.6666666666666665, 'z': 0.0} type=dict node=(?,?) in_trav=False
+  [GROUND_TRUTH] tick=20 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=21 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=21 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=22 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=22 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 29.525666666666666, 'y': 9.391666666666666, 'z': 0.0} type=dict node=(29.525666666666666,9.391666666666666) in_trav=False
+[DIAG_D3] tick=23 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=23 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[DIAG_D3] tick=24 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=24 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=25 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=25 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 18.442637602880655, 'y': 6.266120113168724, 'z': 0.0} type=dict node=(18.442637602880655,6.266120113168724) in_trav=False
+[DIAG_D3] tick=26 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=26 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=27 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=27 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=28 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=28 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=29 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=29 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=30 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=30 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=31 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=31 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=32 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=32 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=33 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=33 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=34 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=34 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=35 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=35 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=36 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 31.77875967901235, 'y': 26.65443898765432, 'z': 0.0} type=dict node=(31.77875967901235,26.65443898765432) in_trav=False
+  [GROUND_TRUTH] tick=36 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=37 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=merchant_goran current_xy={'x': 31.77875967901235, 'y': 26.65443898765432, 'z': 0.0} type=dict node=(31.77875967901235,26.65443898765432) in_trav=False
+  [GROUND_TRUTH] tick=37 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=38 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 31.77875967901235, 'y': 26.65443898765432, 'z': 0.0} type=dict node=(31.77875967901235,26.65443898765432) in_trav=False
+  [GROUND_TRUTH] tick=38 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=39 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=39 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=40 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=40 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=41 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=41 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=42 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=42 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=43 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+  [GROUND_TRUTH] tick=43 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=44 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 32.5, 'y': 39.0, 'z': 0.0} type=dict node=(32.5,39.0) in_trav=False
+  [GROUND_TRUTH] tick=44 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=45 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=merchant_goran current_xy={'x': 32.5, 'y': 39.0, 'z': 0.0} type=dict node=(32.5,39.0) in_trav=False
+  [GROUND_TRUTH] tick=45 npc=tavern_keeper_tornin FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=46 INTENT reason=exploration:frontier target=market_square:exit_north domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=tavern_keeper_tornin current_xy={'x': 32.5, 'y': 39.0, 'z': 0.0} type=dict node=(32.5,39.0) in_trav=False
+  [GROUND_TRUTH] tick=46 npc=tavern_keeper_tornin FAIL: missing location_id
+[DIAG_D3] tick=47 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=47 npc=tavern_keeper_tornin FAIL: missing location_id
+[DIAG_D3] tick=48 INTENT reason=need_driven:shelter_urge=1.00+relocation target=guard_bed domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 32.5, 'y': 39.0} type=dict node=(?,?) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=48 npc=tavern_keeper_tornin FAIL: missing location_id
+[DIAG_D3] tick=49 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 32.5, 'y': 39.0} type=dict node=(?,?) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 32.5, 'y': 39.0} type=dict node=(?,?) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=50 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 32.5, 'y': 39.0} type=dict node=(?,?) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=51 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=52 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=53 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=54 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=55 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=56 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=57 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=58 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=59 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=60 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=61 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=62 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=63 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=64 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=65 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=66 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=67 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 8.218993333333334, 'y': 12.451713333333332, 'z': 0.0} type=dict node=(8.218993333333334,12.451713333333332) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=68 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=guard_borko current_xy={'x': 8.14382394547325, 'y': 13.0258487654321, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 8.218993333333334, 'y': 12.451713333333332, 'z': 0.0} type=dict node=(8.218993333333334,12.451713333333332) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=69 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 8.218993333333334, 'y': 12.451713333333332} type=dict node=(8.218993333333334,12.451713333333332) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 8.14382394547325, 'y': 13.0258487654321, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[DIAG_D3] tick=70 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=71 INTENT reason=need_driven:shelter_urge=1.00 target=guard_bed domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=guard_borko current_xy={'x': 8.14382394547325, 'y': 13.0258487654321, 'z': 0.0} type=dict node=(?,?) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 7.429215963648833, 'y': 11.3505658436214, 'z': 0.0} type=dict node=(?,?) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=71 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=72 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(6.0,8.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=73 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=74 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=75 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.0, 'y': 8.0, 'z': 0.0} type=dict node=(8.14382394547325,13.0258487654321) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=76 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 5.5, 'y': 6.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=77 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 5.5, 'y': 6.0, 'z': 0.0} type=dict node=(6.0,8.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 5.5, 'y': 6.0, 'z': 0.0} type=dict node=(6.0,8.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=78 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=79 INTENT reason=need_driven:shelter_urge=1.00 target=guard_bed domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 21.5, 'y': 9.25, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=79 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=80 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=81 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=82 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=83 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=84 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=85 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 29.525666666666666, 'y': 9.391666666666666, 'z': 0.0} type=dict node=(29.525666666666666,9.391666666666666) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=85 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=86 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=87 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=88 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=89 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=89 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=90 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=90 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=91 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=91 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=92 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=92 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=93 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=93 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=94 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=94 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=95 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=95 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=96 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=96 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=97 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=97 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=98 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=98 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=99 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=99 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=100 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=100 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=101 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=101 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=102 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=102 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=103 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=103 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=104 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=104 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=105 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=105 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=106 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=106 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=107 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=107 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=108 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=108 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=109 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=109 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=110 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=110 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=111 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=111 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=112 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=112 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=113 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=113 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=114 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=114 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=115 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=115 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=116 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=116 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=117 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=117 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=118 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=118 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=119 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=119 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=120 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=120 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=121 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=121 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=122 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=122 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=123 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=123 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=124 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=124 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=125 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=125 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=126 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=126 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=127 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=127 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=128 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=128 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=129 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=129 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=130 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=130 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=131 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=131 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=132 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=132 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=133 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=133 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=134 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=134 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=135 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=135 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=136 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=136 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=137 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=137 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=138 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=138 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=139 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=139 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=140 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=140 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=141 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=141 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=142 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=142 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=143 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=143 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=144 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=144 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=145 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=145 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=146 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=146 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=147 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=147 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=148 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=148 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=149 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=149 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=150 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=150 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=151 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=151 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=152 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=152 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=153 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=153 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=154 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=154 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=155 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=155 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=156 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=156 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=157 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=157 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=158 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=158 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=159 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=159 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=160 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=160 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=161 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=161 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=162 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=162 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=163 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=163 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=164 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=164 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=165 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=165 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=166 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=166 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=167 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=167 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=168 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=168 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=169 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=169 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=170 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=170 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=171 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=171 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=172 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=172 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=173 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=173 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=174 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=174 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=175 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=175 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=176 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=176 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=177 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=177 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=178 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=178 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=179 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=179 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=180 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=180 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=181 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=181 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=182 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=182 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=183 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=183 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=184 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=184 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=185 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=185 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=186 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=186 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=187 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=187 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0} type=dict node=(15.154274048353907,6.357121270576132) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=188 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=188 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=189 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=189 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=190 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=190 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=191 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=191 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=maid_lusya current_xy={'x': 16.712863297325104, 'y': 2.3801183127572014, 'z': 0.0} type=dict node=(16.712863297325104,2.3801183127572014) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=192 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=192 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=193 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=193 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=194 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=194 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,6.5) in_trav=False
+[DIAG_D3] tick=195 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=195 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[DIAG_D3] tick=196 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=196 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(6.5,5.5) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=197 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=197 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=198 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=198 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[PROBE_S131] npc=merchant_goran current_xy={'x': 6.5, 'y': 5.5, 'z': 0.0} type=dict node=(5.5,6.0) in_trav=False
+[DIAG_D3] tick=199 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=199 npc=merchant_goran FAIL: missing location_id
+[PROBE_S131] npc=merchant_goran current_xy={'x': 10.5, 'y': 3.0} type=dict node=(10.5,3.0) in_trav=False
+[PROBE_S131] npc=blacksmith_orm current_xy={'x': 10.5, 'y': 3.0, 'z': 0.0} type=dict node=(10.5,3.0) in_trav=False
+[DIAG_D3] tick=200 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[PROBE_S131] npc=merchant_goran current_xy={'x': 12.70575997728052, 'y': 10.562853652263374, 'z': 0.0} type=dict node=(21.5,9.25) in_trav=False
+[PROBE_S131] npc=guard_borko current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+[PROBE_S131] npc=thief_shadow current_xy={'x': 33.770833333333336, 'y': 9.524999999999999, 'z': 0.0} type=dict node=(33.770833333333336,9.524999999999999) in_trav=False
+  [GROUND_TRUTH] tick=200 npc=merchant_goran FAIL: missing location_id
+[DRIFT_LAB] Quiesce: dialogue executor drained
+[DRIFT_LAB] Settings restored: saves_dir=C:\DDD\Codex\VSC_Enigma\Enigma\saves
+[GAME_LOOP] Quiesce: dialogue executor drained (cancel_futures)
+[DRIFT_LAB] LifeEngine singleton reset
+[DRIFT_LAB] Temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_zhvc9xbo
+[DRIFT_LAB] Data temp dir cleaned: C:\Users\lipir\AppData\Local\Temp\drift_lab_data_wp5mh6w6
+
+======================================================================
+  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: mass_traversal
+======================================================================
+
+  Всего сравнений (comparisons): 317
+  Крашенных тиков (crashed):     160
+  Целевой порог ФАЗЫ 3:          100 000
+  Порог пройден:                  НЕТ ❌
+
+  Структурный дрейф (C/D/E):      НЕТ ✅
+  Краши тиков:                   ЕСТЬ ⚠️
+  Готовность к ФАЗЕ 3:            НЕТ ❌
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Распределение дрейфа (абсолютные числа)            │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический:              0                    │
+  │  B — Проекционный:               0                    │
+  │  C — Топологический:             0                    │
+  │  D — Каузальный:                 0                    │
+  │  E — Онтологический:             0                    │
+  └─────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────┐
+  │  Частота дрейфа (drift rate)                       │
+  ├─────────────────────────────────────────────────────┤
+  │  A — Косметический :     0.0000%                   │
+  │  B — Проекционный  :     0.0000%                   │
+  │  C — Топологический:     0.0000%                   │
+  │  D — Каузальный    :     0.0000%                   │
+  │  E — Онтологический:     0.0000%                   │
+  └─────────────────────────────────────────────────────┘
+
+  Интерпретация:
+    ✅ Класс A: Ожидаемо (детерминированный jitter)
+    ✅ Класс B: Допустимо (погрешность проекции)
+    ✅ Класс C: ОШИБКА — разные узлы графа
+    ✅ Класс D: КРИТИЧНО — разные причинные цепочки
+    ✅ Класс E: ФАТАЛЬНО — NPC существует только в одном pipeline
+
+  Время эксперимента: 20.1 сек
+  Скорость: 16 сравнений/сек, 10.0 тиков/сек

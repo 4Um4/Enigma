@@ -59,6 +59,11 @@ class NpcDialogueSubscriber:
         self._get_npc_state = npc_states_provider
         self._get_campaign_id = campaign_id_provider or (lambda: "Open_road")
         self._avatar_service = avatar_service
+        # M17 этап 2: pending-буфер подслушанных обращений (адресат → tentative).
+        # Прецедент: add_pending_dialogue_memory (применение в drain-границе).
+        # NPC_SPOKE публикуется только в drain (ADR-O-399) → подписчик
+        # выполняется в main thread → буфер без гонок.
+        self._pending_recognition: list = []
         self._get_spatial_query = spatial_query_provider
         self._l1_chronicle = l1_chronicle
         self._get_tick = tick_provider or (lambda: 0)
@@ -109,6 +114,21 @@ class NpcDialogueSubscriber:
                 f"[NPC_DIALOGUE_SUB] eavesdrop label failed ({speaker}): {_e}"
             )
             return None, None
+
+    def drain_pending_recognition(self, scene_state: dict) -> None:
+        """M17 этап 2: применение pending tentative-записей в drain-границе
+        (прецедент drain_commitment_outbox, те же точки вызова).
+        confirmed НЕ понижается — предположение никогда не затирает знание."""
+        if not self._pending_recognition or not scene_state:
+            return
+        _recog = scene_state.setdefault("player_recognition", {})
+        _batch, self._pending_recognition = self._pending_recognition, []
+        for _addr_id in _batch:
+            _entry = _recog.setdefault(_addr_id, {})
+            if _entry.get("status") == "confirmed":
+                continue
+            _entry["status"] = "tentative"
+            _entry.setdefault("confidence", 0.6)
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
@@ -202,6 +222,19 @@ class NpcDialogueSubscriber:
                         campaign_id=_campaign_id, speaker=_speaker_name, text=text,
                         channel=_channel,
                     )
+                    # M17 этап 2 (вердикт Мастера: «всё согласовано с логикой
+                    # слышимости и видимости»): tentative адресата — ТОЛЬКО здесь,
+                    # внутри блока, где уже пройдены порог слышимости
+                    # (_dist_to_player < _journal_threshold) и is_canonical.
+                    # Адресат структурный (target_id интента), не парсинг текста.
+                    if _channel == "overheard":
+                        _addr_id = listener
+                        if (
+                            _addr_id
+                            and _addr_id != speaker
+                            and _addr_id in _npc_positions
+                        ):
+                            self._pending_recognition.append(_addr_id)
                     # E2 (S256, mini-ADR E2-1..E2-4): реплика ДОСТАВЛЕНА —
                     # мембрана S128/Р-Г пройдена, журнал игрока записан.
                     # Канал EAVESDROP: игрок не адресат (суверенитет E1) и

@@ -106,7 +106,7 @@ def run_affordance_shadow(
         # (warning, §11) — наблюдатель не роняет тик и не «оживляет»
         # NPC на дефолтах (диагностическая честность метрик тени).
         _view = build_body_state_view(
-            _npc_raw.get("body_state"), _nid)
+            _npc_raw.get("body_state") or {}, _nid)
         _metrics.npcs_seen += 1
         for _obj in _objects:
             _metrics.resolve_calls += 1

@@ -30,7 +30,6 @@ from constants import (  # noqa: E402
     COLOR_TEXT_OBS_LINE,
     COLOR_TEXT_OBS_TITLE,
     COLOR_TEXT_SCALE_HIGHLIGHT,
-    COLOR_TEXT_SYS_MSG,
 )
 
 # Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
@@ -813,7 +812,11 @@ class GameScreen:
                     # невозможно было закрыть. Честный toggle: буфер ввода не
                     # очищается — повторная фокусировка вернёт набранный текст.
                     elif event.key == get_key(load_keybinds(), "dialogue_open"):
-                        text_input.focused = not text_input.focused
+                        # M5: Tab = toggle видимости полосы (даже с непустым
+                        # текстом). Фокус следует за видимостью; буфер
+                        # сохраняется — повторный Tab вернёт набранное.
+                        text_input.visible = not text_input.visible
+                        text_input.focused = text_input.visible
                         # Workbench: авто-открытие журнала на вкладке «Диалог»
                         # при фокусе ввода (решение: фокус = намерение беседовать)
                         if text_input.focused:
@@ -878,6 +881,9 @@ class GameScreen:
                             creation_tick=pygame.time.get_ticks(),
                         )
                         message_log.append(player_beat)
+                        # Автофокус чата (M13/M10): игрок заговорил — журнал
+                        # раскрыт на вкладке «Диалог».
+                        self._workbench.open_journal_dialog_tab()
                         # B1.3-FIX: НЕ добавляем локально. Backend вернёт обновлённый
                         # journal в следующем world_snapshot.
                         # ADR-SPEECH: Облачко над головой игрока
@@ -963,6 +969,11 @@ class GameScreen:
             dt = self.clock.get_time() / 1000.0
             move.cooldown -= dt
             # Обновление физики инерционного повтора курсора в TextInput
+            # M20: входящий direct-ответ NPC открывает полосу ввода
+            if getattr(self, "dialog_input_requested", False):
+                self.dialog_input_requested = False
+                text_input.visible = True
+                text_input.focused = True
             text_input.update(dt)
             _moved = False
 
@@ -989,30 +1000,45 @@ class GameScreen:
                         self.end_screen_data = {"error": str(_mvp_err)}
                         system_log.append(f"[END_SCREEN] API Error: {_mvp_err}")
 
-                # Движение к NPC: отправляем намерение, бэкенд строит маршрут
-                if move.target_npc_id and move.target_npc_id in npc_positions:
-                    from npc_name_resolver import npc_id_to_display
+                # M20: направление автохода (None = нет); вычисляется в ветке
+                # target ниже, потребляется в ветке физики. Объявлено до
+                # if/elif-цепочки (Pylance flow-analysis).
+                _auto_dir = None
 
-                    name = npc_id_to_display(move.target_npc_id)
-                    action_queue.submit(
-                        campaign_folder,
-                        player_name,
-                        f"подойти к {name}",
-                        px,
-                        py,
-                        _last_world_pos[0],
-                        _last_world_pos[1],
+                # M20: автоход = локальная физика (WASD-паритет, вердикт Мастера).
+                # Текстовая команда «подойти к X» умирает: она требовала LLM-тур,
+                # молча терялась и раскрывала имя через NEW-8 (нарушение M17).
+                # target_npc_id теперь живёт до прибытия (радиус 2.0).
+                if move.target_npc_id and move.target_npc_id in npc_positions:
+                    _tgt_lp = (
+                        npc_positions[move.target_npc_id].get("local_position")
+                        or {}
                     )
-                    move.target_npc_id = None  # Бэкенд взял управление
+                    _tdx = _tgt_lp.get("x", 0.0) - px
+                    _tdy = _tgt_lp.get("y", 0.0) - py
+                    _tdist = math.hypot(_tdx, _tdy)
+                    if _tdist <= 2.0:
+                        # Прибытие: NPC обращает внимание — диалог начинается
+                        move.target_npc_id = None
+                        text_input.visible = True
+                        text_input.focused = True
+                        self._workbench.open_journal_dialog_tab()
+                    elif _tdist > 0.001:
+                        _auto_dir = (_tdx / _tdist, _tdy / _tdist)
 
                 # WASD: транслируем вектор в семантическую команду (SemanticBridge на бэкенде)
-                elif held_keys:
+                # M20: auto-walk подаёт направление в ту же физику (скольжение
+                # вдоль стен, коллизии, walk_distance — общий путь с WASD).
+                else:
                     dx, dy = 0.0, 0.0
-                    for key in held_keys:
-                        if key in _WASD_MAP:
-                            kx, ky = _WASD_MAP[key]
-                            dx += kx
-                            dy += ky
+                    if _auto_dir is not None:
+                        dx, dy = _auto_dir
+                    else:
+                        for key in held_keys:
+                            if key in _WASD_MAP:
+                                kx, ky = _WASD_MAP[key]
+                                dx += kx
+                                dy += ky
                     if dx != 0 or dy != 0:
                         # Нормализация вектора (устранение бага диагонального ускорения)
                         length = math.hypot(dx, dy)
@@ -1071,8 +1097,9 @@ class GameScreen:
                         _dir_name = _DIR_MAP.get((int(dx), int(dy)))
                         # WASD — локальная физика игрока. DM не вызывается.
                         # Бэкенд узнаёт о позиции игрока при следующем диалоге/действии.
+                        # M20: target_npc_id НЕ сбрасываем — им управляют
+                        # клик (установка), прибытие (2.0) и WASD-перебивание (916).
 
-                        move.target_npc_id = None
                         move.direction = None
                     move.cooldown = _MOVE_INTERVAL
                     # Накопительное время: 10 сек за каждый полный метр (а не за микро-шаг 0.3)
@@ -1244,7 +1271,7 @@ class GameScreen:
                                 }
                 # B1.3-FIX: синхронизируем journal из backend (строгая обработка, без спама логов)
                 if "dialog_journal" in _ws:
-                    self._dialog_journal_backend = _ws["dialog_journal"]
+                    self._sync_dialog_journal(_ws["dialog_journal"])
                 else:
                     logger.debug(
                         "[GAME_SCREEN] dialog_journal missing in world_snapshot (idle_ws)"
@@ -1562,7 +1589,7 @@ class GameScreen:
                             ]
                         # B1.3-FIX: синхронизируем journal из backend (action response path)
                         if "dialog_journal" in _action_ws:
-                            self._dialog_journal_backend = _action_ws["dialog_journal"]
+                            self._sync_dialog_journal(_action_ws["dialog_journal"])
                         else:
                             logger.debug(
                                 "[GAME_SCREEN] dialog_journal missing in action response"
@@ -1587,9 +1614,7 @@ class GameScreen:
                             ]
                         # B1.3-FIX: синхронизируем journal из backend (fallback path)
                         if "dialog_journal" in result.response:
-                            self._dialog_journal_backend = result.response[
-                                "dialog_journal"
-                            ]
+                            self._sync_dialog_journal(result.response["dialog_journal"])
                         else:
                             logger.debug(
                                 "[GAME_SCREEN] dialog_journal missing in action response (fallback)"
@@ -2020,7 +2045,8 @@ class GameScreen:
             input_bubble_x = self.screen.get_width() // 2 + 20
             input_bubble_max_w = self.screen.get_width() // 2 - 40
             if text_input.focused or not text_input.empty:
-                narrative_renderer.draw_input_bubble(
+                if text_input.visible:
+                    narrative_renderer.draw_input_bubble(
                     self.screen,
                     player_name,
                     text_input.text,
@@ -2052,8 +2078,8 @@ class GameScreen:
             # Удаление полностью растворившихся пузырей из памяти
             message_log[:] = [b for b in message_log if b.alpha > 0]
 
-            self._draw_message_log(
-                message_log, system_log, narrative_renderer, player_name, _time_scale
+            self._draw_time_scale(
+                narrative_renderer, _time_scale
             )
 
             # ТЗ EMBODIED UI PERCEPTION: Слои 2-3 (Атмосфера и Центральное внимание)
@@ -2253,28 +2279,18 @@ class GameScreen:
 
     # ── UI методы ──────────────────────────────────────────────────────
 
-    def _draw_message_log(
+    def _draw_time_scale(
         self,
-        log: list,
-        system_log: list,
         renderer: "NarrativeRenderer",  # noqa: F821
-        player_name: str,
         time_scale: int = 1,
     ) -> None:
-        """Cinematic Layer: Рисует сценические пузыри вместо плоского чата"""
+        """HUD темпа мира. M4: сохранён при съёме старых полос (beats +
+        system_log), функциональность темпа будет переделана отдельно.
+        Старые диалоговые полосы удалены по декрету: журнал = Workbench
+        (ADR-JOURNAL v2, J)."""
 
-        sh = self.screen.get_height()
         sw = self.screen.get_width()
 
-        visible = log[-5:]  # Берем последние 5 событий
-
-        # Конвертация строк больше не нужна — message_log содержит только NarrativeBeat
-        beats = []
-        for msg in visible:
-            msg.is_active = msg == visible[-1]
-            beats.append(msg)
-
-        # === Time Scale Indicator (Приоритет 1) ===
         scale_texts = {1: "▶ 1x", 4: "▶▶ 4x", 10: "▶▶▶ 10x", 50: "⏩ 50x"}
         scale_str = scale_texts.get(time_scale, f"▶ {time_scale}x")
         sys_font = renderer.font_normal
@@ -2287,59 +2303,23 @@ class GameScreen:
         scale_bg.blit(scale_surf, (4, 2))
         self.screen.blit(scale_bg, (scale_x, 10))
 
-        # === Log Layer: Системные сообщения (сдвиг вниз под Time Scale) ===
-        if system_log:
-            visible_sys = system_log[-5:]  # Последние 5 системных сообщений
-            sys_y = (
-                10 + scale_surf.get_height() + 6
-            )  # Отступаем ниже индикатора скорости
-            for sys_msg in reversed(visible_sys):
-                sys_surf = sys_font.render(sys_msg, True, COLOR_TEXT_SYS_MSG)
-                # Полупрозрачный фон
-                sys_bg = pygame.Surface(
-                    (sys_surf.get_width() + 8, sys_surf.get_height() + 4),
-                    pygame.SRCALPHA,
-                )
-                sys_bg.fill((0, 0, 0, 120))
-                sys_x = sw - sys_surf.get_width() - 18
-                sys_bg.blit(sys_surf, (4, 2))
-                self.screen.blit(sys_bg, (sys_x, sys_y))
-                sys_y += sys_surf.get_height() + 6
+    def _sync_dialog_journal(self, entries: list) -> None:
+        """B1.3-FIX sync + автофокус чата (решение Мастера M13): входящий
+        direct-ответ NPC (реплика игроку / обращение к игроку) агрессивно
+        раскрывает журнал на вкладке «Диалог» из любого состояния окна.
+        Прочие каналы — только обновление данных, без навязчивости."""
 
-        # Правильный расчет позиций Y (снизу вверх, без наложений)
-        # 1. Сначала вычисляем высоту каждого пузыря
-        heights = []
-        # S151 FIX: Расширяем пузыри до 70% экрана для лучшей читаемости
-        max_w = int(sw * 0.7)
-        for beat in beats:
-            # Приблизительный расчет высоты (совпадает с логикой NarrativeRenderer)
-            font = renderer.font_normal
-            lines = renderer._wrap_text(beat.text, font, max_w - 24)
-            line_h = font.get_linesize()
-            text_h = len(lines) * line_h
-            bubble_h = text_h + 24
-            name_h = renderer.font_bold.get_linesize() + 6
-            total_h = name_h + bubble_h
-            heights.append(total_h)
-
-        # 2. Рисуем снизу вверх
-        # Отступ снизу для пузыря ввода игрока
-        y_cursor = sh - 170
-
-        for i in range(len(beats) - 1, -1, -1):
-            beat = beats[i]
-            h = heights[i]
-
-            # Рисуем пузырь
-            # S151 FIX: Центрируем пузыри по горизонтали
-            bx = (sw - max_w) // 2
-
-            # Сдвигаем курсор вверх на высоту текущего пузыря и рисуем
-            y_cursor -= h
-            renderer.draw_beat(self.screen, beat, bx, y_cursor, max_w)
-
-            # Отступ между пузырями
-            y_cursor -= 8
+        old_count = len(self._dialog_journal_backend)
+        self._dialog_journal_backend = entries
+        if len(entries) >= old_count:
+            new_entries = entries[old_count:]
+        else:
+            new_entries = entries  # backend сбросил журнал (новая сессия)
+        if any(e.get("channel") == "direct" for e in new_entries):
+            self._workbench.open_journal_dialog_tab()
+            # M20: прямое обращение NPC — диалог начался, ввод открыт
+            # (симметрия с прибытием игрока к NPC).
+            self._text_input_visible_on = True
 
     # ── Обработчики ввода ─────────────────────────────────────────────
 
@@ -2384,6 +2364,8 @@ class GameScreen:
         best_dist = 1.5
 
         for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+            if npc_id == "player":
+                continue  # клик по себе — не команда «подойти к Player»
             lp = npc_data.get("local_position") or {}
             nx, ny = lp.get("x", 0), lp.get("y", 0)
             dist = ((world_x - nx) ** 2 + (world_y - ny) ** 2) ** 0.5

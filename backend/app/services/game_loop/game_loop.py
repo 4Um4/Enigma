@@ -282,6 +282,31 @@ class GameLoop:
         # Регистрация NpcDialogueSubscriber для замыкания цикла NPC-NPC диалогов
         self._register_npc_dialogue_subscriber(memory_manager, _rel_store)
 
+        # Event Identity (ADR): провайдер финализации id на входе в шину.
+        # Замыкание на ЖИВОЙ резолв scene_state (get_scene_state возвращает
+        # tick-scoped объект внутри lock_for_tick..unlock_tick — все publish-
+        # пути лежат в окнах, доказано картой окон). Вне окон/без сцены →
+        # provisional id (задокументировано в ADR).
+        # ВАЖНО: доступ к шине через модульный атрибут — локальный
+        # from-import затеняет get_event_bus для всего __init__ (строка 142
+        # использует его раньше этой вставки; UnboundLocalError, поймано
+        # IPT-bootstrap).
+        from app.services.events import event_bus as _eb_module
+        from app.services.events.event_identity import next_event_identity
+
+        def _event_identity_provider(event_type: str, source: str) -> tuple:
+            _cid = getattr(self, "_current_campaign_id", "Open_road")
+            _scene = self.scene_manager.get_scene_state(_cid, "")
+            if not _scene:
+                _scene = self.scene_manager.get_scene_state(_cid, "tavern")
+            if not _scene:
+                _scene = self.scene_manager.get_scene_state(_cid, "city_gate")
+            if not _scene:
+                raise LookupError("no scene for event identity")
+            return next_event_identity(_scene, event_type, source)
+
+        _eb_module.get_event_bus().set_identity_provider(_event_identity_provider)
+
         # S189: Epistemic Core Integration (ADR-O-354).
         self._register_epistemic_core(_rel_store)
         # SPATIAL-KNOWLEDGE-01: ранняя регистрация — store обязан быть на
@@ -462,6 +487,8 @@ class GameLoop:
                 # (тот же P3-резолвер, что у E1; отсутствие = observation only).
                 subject_resolver=lambda topic: extract_subject(f"про {topic}"),
             )
+            # M17 этап 2: ссылка для drain-вызовов (прецедент self._get_task_scheduler)
+            self._npc_dialogue_subscriber = _subscriber
 
             # V8-DLG-06 FIX: Регистрируем DialogueMemorySubscriber для записи в L2
             from app.services.events.dialogue_memory_subscriber import DialogueMemorySubscriber
@@ -1292,6 +1319,9 @@ class GameLoop:
         # (без pending_tasks) не создают backlog терминалов; окно до unlock_tick (F24).
         if _auth_scene:
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+        # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
+        if getattr(self, "_npc_dialogue_subscriber", None):
+            self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
         # ADR-O-399 (точка (б)): безусловный deterministic commit артефактов
         # воркера — тихие тики не создают backlog (симметрия F23);
         # pending_tasks == 0 не блокирует дренаж готовых артефактов.
@@ -1534,10 +1564,22 @@ class GameLoop:
         # NEW-8 FIX: Устанавливаем player_recognition ДО commit_tick_result,
         # чтобы deepcopy внутри commit_tick_result захватил confidence=1.0.
         _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None  # noqa: ENIGMA001, ENIGMA002
-        if _target_id and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
+        # M17 (вердикт Мастера): имя раскрывается ТОЛЬКО фактическим
+        # вербальным обращением. Целеполагание (клик «подойти к X», движение)
+        # ставит player_target_id, но имя не подтверждает.
+        _verbal = getattr(state.shared_context, "action_type", "") in (
+            "dialogue", "blackmail", "bribe", "accuse"
+        )
+        if (
+            _target_id and _verbal
+            and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state
+        ):
             _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
             _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
             _recog_entry["confidence"] = 1.0
+            # M17: явный статус — имя подтверждено прямым диалогом.
+            # builder читает status: tentative → «Имя (?)» независимо от порога.
+            _recog_entry["status"] = "confirmed"
             logger.info(f"[RECOG_MEMORY] Dialogue trigger (Pre-Commit): NPC {_target_id} confidence=1.0")
 
         # S128 FIX: Обязательный commit_tick_result после _run_pipeline.
@@ -1570,6 +1612,9 @@ class GameLoop:
             # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
             # терминалы прошлого цикла применяются даже при пустой очереди.
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
+        # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
+        if getattr(self, "_npc_dialogue_subscriber", None):
+            self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
 
         # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
         _ws_dict = None

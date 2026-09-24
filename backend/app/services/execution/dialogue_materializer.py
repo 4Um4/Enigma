@@ -75,7 +75,9 @@ class DialogueMaterializer:
                 source=data["speaker_id"],
                 payload={
                     "target_id": data.get("target_id"),
-                    "claim_id": f"claim-{data['speaker_id']}-{data.get('target_id', 'unknown')}",
+                    # Event Identity: claim_id наследует финальный event_id
+                    # события (ClaimEventSubscriber fallback str(event.id)) —
+                    # коллизионный speaker-target id удалён
                     "proposition": _prop_data,
                     "speech_act": "assert",
                     "tick": 0 # Tick будет перезаписан в ClaimEventSubscriber

@@ -7,7 +7,7 @@ path: backend/app/services/game_loop/scene_init.py
 
 import logging
 import time as _time
-from typing import Any
+from typing import Any, cast
 
 from app.core.calendar import Calendar
 
@@ -26,7 +26,7 @@ def _resolve_initial_time(
     if preserved_game_time is not None:
         return Calendar.format_time(int(preserved_game_time))
     if campaign_state:
-        return campaign_state.metadata.get("time_of_day", "07:00")
+        return str(campaign_state.metadata.get("time_of_day", "07:00"))
     return "07:00"
 
 
@@ -39,7 +39,7 @@ def _extract_preserved_time(shared_context: Any) -> float | None:
         and shared_context.game_time_seconds is not None
         and shared_context.game_time_seconds > 0
     ):
-        return shared_context.game_time_seconds
+        return float(shared_context.game_time_seconds)
     return None
 
 
@@ -235,7 +235,7 @@ def _load_or_create_scene(
     scene_state = loop.scene_manager.get_scene_state(campaign_id, location)
     if scene_state is not None:
         _migrate_and_bind_v2_relationships(loop, campaign_id, scene_state)
-        return scene_state
+        return cast(dict, scene_state)
 
     # Новая сцена — не сбрасываем время (БАГ H FIX)
     time_of_day = _resolve_initial_time(preserved_game_time, campaign_state)
@@ -256,7 +256,7 @@ def _load_or_create_scene(
     loop.scene_manager.save_scene_state(campaign_id, scene_state)
     logger.info(f"[GAME_LOOP] Новая сцена: {location}")
     _migrate_and_bind_v2_relationships(loop, campaign_id, scene_state)
-    return scene_state
+    return cast(dict, scene_state)
 
 
 def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state: dict) -> None:
@@ -378,12 +378,12 @@ def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
         _cs = get_campaign_state_service().get_campaign_state(campaign_id)
         _player_loc = _cs.metadata.get("current_location") if _cs else None
         if _player_loc:
-            return _player_loc
+            return str(_player_loc)
     except Exception as e:
         logger.warning(f"[GAME_LOOP] current_location lookup failed: {e}")
 
     try:
-        return loop.scene_manager.find_starting_location(campaign_id)
+        return cast(str, loop.scene_manager.find_starting_location(campaign_id))
     except Exception as e:
         logger.warning(f"[GAME_LOOP] find_starting_location failed: {e}")
 
@@ -431,12 +431,12 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
             if campaign_state
             else "12:00"
         )
-        return loop.scene_manager.initialize_scene(campaign_id, location, time_of_day)
+        return cast(dict, loop.scene_manager.initialize_scene(campaign_id, location, time_of_day))
 
     # Стены уже есть — ничего не делаем
     if scene_state.get("spatial_walls"):
         loop.scene_manager.save_scene_state(campaign_id, scene_state)
-        return scene_state
+        return cast(dict, scene_state)
 
     # Стены пустые — обогащаем из editor JSON
     editor_data = loop.scene_manager._find_editor_location(
@@ -448,5 +448,5 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
             scene_state["spatial_walls"] = walls
             loop.scene_manager.save_scene_state(campaign_id, scene_state)
 
-    return scene_state
+    return cast(dict, scene_state)
 

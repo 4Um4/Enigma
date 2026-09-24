@@ -247,6 +247,12 @@ def build_initial_scene(
         "active_commitments": {},  # dict[npc_id, commitment_dict] — только активные
         "commitment_history": {},  # dict[npc_id, list] — bounded terminal (cap 10)
         "commitment_ordinals": {},  # dict[npc_id, int] — монотонные счётчики идентичностей
+        # ── Event Identity (ADR: Event Identity): dict["{type}:{source}", int] ──
+        # Порядковый компонент event_id. Единственный писатель —
+        # next_event_identity (services/events/event_identity.py). Загруженные
+        # сейвы без ключа самовосстанавливаются setdefault'ом в писателе
+        # (прецедент commitment_ordinals, Foundation Freeze: без whitelist).
+        "event_ordinals": {},
         # ── ADR-O-370 (RE M1a): субстрат потребностей — ПУСТОЙ корень ──
         # Заполнение только через RelationshipStateStore (ленивые записи);
         # загруженные сейвы самовосстанавливаются: ключ отсутствует →

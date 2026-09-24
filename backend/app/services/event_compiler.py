@@ -823,9 +823,17 @@ class EventCompiler:
             return False, "WAYPOINTS_TOO_SHORT"
         # ADR-O-323: Повышенная толерантность для START/END waypoint.
         # EventCompiler может интерполировать позицию (Ghost Interpolation), опережая Legacy local_position.
-        if abs(prop_wps[0][0] - source_xy[0]) > 2.0 or abs(prop_wps[0][1] - source_xy[1]) > 2.0:
-            return False, f"START_WAYPOINT_MISMATCH prop={prop_wps[0]} actual={list(source_xy)}"
-        if abs(prop_wps[-1][0] - target_xy[0]) > 2.0 or abs(prop_wps[-1][1] - target_xy[1]) > 2.0:
+        # FIX S276 (динамический допуск): ghost-интерполяция — прямая луча wp[0]→wp[-1],
+        # а Legacy local_position едет по много-сегментному пути (_compute_source_xy
+        # vs TES). Расхождение легитимно растёт с длиной маршрута; константный 2.0
+        # рвал relocation при живом traversal (SC-4/EQUIVALENCE-каскад, trassa r24).
+        # Допуск = длина маршрута proposal'а (сами waypoints), ограниченная снизу прежним 2.0.
+        _route_len = proposal.distance if proposal.distance > 0 else 2.0
+        _start_tol = max(2.0, _route_len)
+        _end_tol = 2.0  # END: целевой узел стабилен, интерполяция цели не участвует
+        if abs(prop_wps[0][0] - source_xy[0]) > _start_tol or abs(prop_wps[0][1] - source_xy[1]) > _start_tol:
+            return False, f"START_WAYPOINT_MISMATCH prop={prop_wps[0]} actual={list(source_xy)} tol={_start_tol:.2f}"
+        if abs(prop_wps[-1][0] - target_xy[0]) > _end_tol or abs(prop_wps[-1][1] - target_xy[1]) > _end_tol:
             return False, f"END_WAYPOINT_MISMATCH prop={prop_wps[-1]} actual={list(target_xy)}"
 
         # 3. Distance и Duration консистентны (геометрическая проверка)
@@ -866,6 +874,11 @@ class EventCompiler:
         npc_id = change.target
 
         # E5: Ghost Position Interpolation
+        # FIX S276 (сегментная интерполяция): прежняя прямая wp[0]→wp[-1]
+        # расходилась с TES-позицией (multi-segment walk) на кривых путях —
+        # два вычислителя одной позиции давали вечный START_WAYPOINT_MISMATCH
+        # и паралич relocation (trassa r24: merchant_goran). Единая формула
+        # с TES advance: walked = prog × total_length по сегментам waypoints.
         active_travs = snapshot.active_traversals
         if npc_id in active_travs:
             trav = active_travs[npc_id]
@@ -875,8 +888,26 @@ class EventCompiler:
                 dur = max(1, int(trav.get("duration_ticks", 1)))
                 cur_tick = snapshot.tick
                 prog = min(1.0, max(0.0, (cur_tick - started) / dur))
-                interp_x = wp[0][0] + (wp[-1][0] - wp[0][0]) * prog
-                interp_y = wp[0][1] + (wp[-1][1] - wp[0][1]) * prog
+                _total = 0.0
+                for _i in range(len(wp) - 1):
+                    _total += math.hypot(
+                        float(wp[_i + 1][0]) - float(wp[_i][0]),
+                        float(wp[_i + 1][1]) - float(wp[_i][1]),
+                    )
+                _walked = _total * prog
+                _acc = 0.0
+                interp_x, interp_y = float(wp[-1][0]), float(wp[-1][1])
+                for _i in range(len(wp) - 1):
+                    _seg = math.hypot(
+                        float(wp[_i + 1][0]) - float(wp[_i][0]),
+                        float(wp[_i + 1][1]) - float(wp[_i][1]),
+                    )
+                    if _acc + _seg >= _walked or _i == len(wp) - 2:
+                        _t = 0.0 if _seg <= 1e-9 else (_walked - _acc) / _seg
+                        interp_x = float(wp[_i][0]) + (float(wp[_i + 1][0]) - float(wp[_i][0])) * _t
+                        interp_y = float(wp[_i][1]) + (float(wp[_i + 1][1]) - float(wp[_i][1])) * _t
+                        break
+                    _acc += _seg
                 logger.debug(
                     f"[SHADOW_COMPILER] ghost_interp: npc={npc_id} "
                     f"prog={prog:.2f} xy=({interp_x:.1f},{interp_y:.1f})"

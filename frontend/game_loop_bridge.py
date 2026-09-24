@@ -177,6 +177,22 @@ class GameLoopBridge:
                     f"[SPATIAL_ORACLE] find_chunks failed: {e}. Fallback to saved location."
                 )
 
+        # Resume-фикс (Direct-путь): финальная локация хода пишется в metadata
+        # безусловно (не только в oracle-ветке). Паттерн importlib — паритет
+        # с соседним кодом моста.
+        if campaign_state is not None and location:
+            try:
+                import importlib
+                _csvc = importlib.import_module(
+                    "app.services.campaign_state_service"
+                ).get_campaign_state_service()
+                campaign_state.metadata["current_location"] = location
+                _csvc.save(campaign_id)
+            except Exception as e:
+                logger.warning(
+                    f"[BRIDGE] current_location persist failed: {e}"
+                )
+
         async def _collect() -> None:
             async for event in self._loop.stream_turn(
                 campaign_id=campaign_id,
