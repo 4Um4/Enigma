@@ -293,7 +293,10 @@ class TurnPipeline:
             )
 
             import dataclasses as _dc
-            if _match and _dc.is_dataclass(_match):
+            # Порядок условий по контракту typeshed: is_dataclass сужает тип к
+            # DataclassInstance | type[...], затем isinstance исключает класс —
+            # asdict получает чистый DataclassInstance.
+            if _match and _dc.is_dataclass(_match) and not isinstance(_match, type):
                 _player_data_dict = _dc.asdict(_match)
             elif _match and hasattr(_match, "model_dump"):
                 _player_data_dict = _match.model_dump()

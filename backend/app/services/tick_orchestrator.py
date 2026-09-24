@@ -1135,6 +1135,11 @@ class TickOrchestrator:
                         # материализации (relocation-intent / dwell) — via
                         # теряется в гонке (зонд DIAG_SK1, сессия 20:13).
                         _ep_store = getattr(self, "_epistemic_store", None)
+                        # [DIAG_D3] временный зонд (Часть VIII.5, снять после):
+                        # точка 1 — ветка via достигнута, store-доступность
+                        print(f"[DIAG_D3] DWELL_ENTER npc={_d_id} via={_d_via!r} "
+                              f"neighbor={_d_info.get('neighbor')!r} "
+                              f"ep_store={'Y' if _ep_store is not None else 'None'}", flush=True)
                         if _ep_store is not None:
                             from app.domain.epistemology import (
                                 EpistemicRecord,
@@ -1174,6 +1179,10 @@ class TickOrchestrator:
                                 f"[SPATIAL_KNOWLEDGE] npc={_d_id} DIRECT_EXPERIENCE: "
                                 f"{_d_via} → {_d_info.get('neighbor')} conf={_new_conf:.2f}"
                             )
+                            # [DIAG_D3] временный зонд: точка 2 — write исполнен
+                            print(f"[DIAG_D3] WRITE_DONE npc={_d_id} pred=exits_to "
+                                  f"subj={_d_via!r} obj={_d_info.get('neighbor')!r} "
+                                  f"src={f'direct:{_d_id}:{_d_via}:{ctx.tick_number}'}", flush=True)
                     # Phase D Э-3 (вердикт, writer-side clear): правда
                     # изменилась ЗДЕСЬ — direct EXITS_TO записан. Гасим
                     # соответствующую неизвестность (sig.from == локация

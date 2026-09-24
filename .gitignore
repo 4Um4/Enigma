@@ -38,6 +38,9 @@ Thumbs.db
 
 # Large log files (>100MB)
 backend/logs/cds_backend.log
+
+# CDS session logs (runtime, десятки-сотни МБ)
+backend/logs/cds_session_*.log
 backend/logs/cds_session_20260724_235539.log
 backend/drift_log.txt
 backend/data/logs/enigma_audit.jsonl

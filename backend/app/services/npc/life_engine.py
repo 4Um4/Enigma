@@ -754,20 +754,52 @@ class LifeEngine:
                     # Пока маршрут неизвестен, cross-loc relocation того же
                     # вектора не рождается — освобождает тик exploration'у.
                     if _unknown_sig is not None:
-                        _kept = [
-                            _i for _i in intents
-                            if not (
-                                "+relocation" in getattr(_i, "reason", "")
-                                and getattr(_i, "location_id", "") == _unknown_sig.get("to")
-                            )
-                        ]
-                        _sup = len(intents) - len(_kept)
-                        if _sup:
+                        # Reconciliation (вердикт Мастера, не K-timer): сигнал
+                        # мог стать ложным иным каналом (сид/claim без
+                        # crossing). Проверяем АКТУАЛЬНОЕ персональное знание
+                        # ребра from→to — паттерн personal_route_resolver:44-58,
+                        # БЕЗ WorldGraph. KNOWN → stale: не подавлять + clear
+                        # (гейт сам пройдёт KNOWN-путь). UNKNOWN → как было.
+                        _recon_known = False
+                        _ep_recon = getattr(self, "_epistemic_store", None)
+                        if _ep_recon is not None:
+                            try:
+                                for _r in (_ep_recon.get_all_for_agent(npc_id) or []):
+                                    _p = getattr(_r, "proposition", None)
+                                    if _p is None:
+                                        continue
+                                    if str(getattr(_p.predicate, "value", "")) != "exits_to":
+                                        continue
+                                    _subj = str(getattr(_p, "subject_id", "") or "")
+                                    if (_subj.split(":", 1)[0] == _unknown_sig.get("from", "")
+                                            and str(getattr(_p, "object_id", "")) == _unknown_sig.get("to")):
+                                        _recon_known = True
+                                        break
+                            except Exception:
+                                _recon_known = False
+                        if _recon_known:
+                            if isinstance(_ss_entry, dict):
+                                _ss_entry.pop("_unknown_route", None)
                             logger.info(
-                                f"[EXPLORATION] npc={npc_id}: подавлено relocation-интентов={_sup} "
-                                f"(маршрут к {_unknown_sig.get('to')} неизвестен — сигнал инертен)"
+                                f"[EXPLORATION] npc={npc_id}: reconciliation — ребро "
+                                f"{_unknown_sig.get('from')}→{_unknown_sig.get('to')} уже KNOWN "
+                                f"(иным каналом), stale сигнал погашен, relocation разрешён"
                             )
-                        intents = _kept
+                        else:
+                            _kept = [
+                                _i for _i in intents
+                                if not (
+                                    "+relocation" in getattr(_i, "reason", "")
+                                    and getattr(_i, "location_id", "") == _unknown_sig.get("to")
+                                )
+                            ]
+                            _sup = len(intents) - len(_kept)
+                            if _sup:
+                                logger.info(
+                                    f"[EXPLORATION] npc={npc_id}: подавлено relocation-интентов={_sup} "
+                                    f"(маршрут к {_unknown_sig.get('to')} неизвестен — сигнал инертен)"
+                                )
+                            intents = _kept
                     all_changes.extend(changes)
                     all_intents.extend(intents)
                     npcs_updated = True

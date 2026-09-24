@@ -104,9 +104,15 @@ class PlayerAvatarService:
                     f"{data.get('state', {}).get('npc_id')} != {player_name}"
                 )
                 return None
-            # B1.3-FIX: Загрузка журнала из файла в кэш (если есть)
+            # B1.3-FIX + J-FIX: загрузка журнала — MERGE, не перезапись.
+            # RAM может быть новее диска (append персистит, но между append
+            # и save_state диск отстаёт). Приоритет — более полный список.
             if "dialog_journal" in data:
-                self._dialog_journals[campaign_id] = data["dialog_journal"]
+                _disk = data["dialog_journal"]
+                _ram = self._dialog_journals.get(campaign_id, [])
+                self._dialog_journals[campaign_id] = (
+                    _ram if len(_ram) >= len(_disk) else _disk
+                )
             return cast(dict, data)
         except Exception as e:
             # P0-D (S208): violation обязан быть различим от игровой ошибки
@@ -436,6 +442,24 @@ class PlayerAvatarService:
             self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][
                 -100:
             ]
+        self._persist_journal(campaign_id)
+
+    def _persist_journal(self, campaign_id: str) -> None:
+        """J-FIX: append обязан персистить. Доказано зондами: RAM — истина
+        журнала, но load_state/load_avatar перетирают RAM диском (:109),
+        а диск отставал — append не сохранял. Целевой write-path: файл
+        читается, обновляется ТОЛЬКО dialog_journal, пишется обратно
+        (state/profile/sheet не трогаем — атомарность слоёв)."""
+        self._ensure_campaign_dir(campaign_id)
+        path = self._avatar_path(campaign_id)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            data = {}
+        data["dialog_journal"] = self._dialog_journals[campaign_id]
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     def get_journal(self, campaign_id: str) -> list:
         """Возвращает буфер журнала для проекции во WorldSnapshotDTO (копия, чтобы предотвратить мутацию)."""
@@ -443,4 +467,8 @@ class PlayerAvatarService:
 
 
 # Глобальный экземпляр
-player_avatar_service = PlayerAvatarService()
+# (удалено: модульный синглтон-legacy. Ноль потребителей (grep по всему репо,
+# включая тесты — они создают собственные инстансы с явным root).
+# Вердикт Мастера: ровно один authoritative-инстанс в production lifecycle,
+# переданный через DI (game_loop_builder). Мёртвый B = потенциальный
+# DOUBLE TRUTH (root="saves" относительный к CWD — фантомные файлы).
