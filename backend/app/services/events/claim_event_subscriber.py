@@ -151,6 +151,27 @@ class ClaimEventSubscriber:
                 polarity=prop_data.get("polarity", True)
             )
 
+            # Proposition-guard (Understanding research, очередь №3, вердикт Мастера):
+            # мусорная пропозиция не доезжает до веры. Галлюцинации LLM вида
+            # {predicate: stole, object_id: None, polarity: None} ранее рождали
+            # веры "[X] stole(player->None) conf=0.0" — повреждение эпистемики.
+            # Проверяем СКОНСТРУИРОВАННЫЙ prop: .get(key, default) не подставляет
+            # default при ключе со значением None.
+            # Легитимные каналы не задеваются: observation-ветка и оба fallback'а
+            # уже guard'ят target_id до построения пропозиции.
+            _guard_reason = None
+            if not prop.subject_id:
+                _guard_reason = f"empty subject_id={prop.subject_id!r}"
+            elif not prop.object_id:
+                _guard_reason = f"empty object_id={prop.object_id!r}"
+            elif prop.polarity is None:
+                _guard_reason = "polarity=None"
+            if _guard_reason:
+                print(f"[CLAIM_GUARD] proposition REJECTED: {_guard_reason} "
+                      f"(predicate={getattr(prop.predicate, 'value', prop.predicate)}, "
+                      f"source={getattr(event, 'source', '?')})")  # временный зонд исследования
+                return
+
             # S192.1: Perception Membrane Hardening.
             # target_id — это семантический адресат, но физически услышать могут только те, кто в радиусе.
             # Телепатия (передача убеждений без физического контакта) запрещена.

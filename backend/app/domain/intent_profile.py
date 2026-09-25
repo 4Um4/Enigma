@@ -100,6 +100,7 @@ class IntentSemanticField(BaseModel):
     subject_id: Optional[str] = Field(default=None, description="npc_id / canon topic_key / secret_id")
     subject_hint: Optional[str] = Field(default=None, description="сырая NP; переживает нерезолв")
     social_intent: Optional[SocialIntent] = Field(default=None)
+    addressee: Optional[str] = Field(default=None, description="Кому адресована фраза (обращение); ≠ target/actor (доктрина телесной семантики §12-1)")
     requested_outcome: Optional[str] = Field(default=None, description="Что игрок хочет получить")
     offered_outcome: Optional[str] = Field(default=None, description="Что игрок предлагает")
     condition: Optional[str] = Field(default=None, description="Условие («если будешь хорошо вести»)")
@@ -116,6 +117,7 @@ class IntentSemanticField(BaseModel):
 
     # ── Утилитарные / Legacy поля ─────────────────────────────────────────
     target_zone: TargetZone = Field(default=TargetZone.UNDEFINED)
+    zone_raw: Optional[str] = Field(default=None, description="Сырая зона LLM до нормализации (латеральность: EYE_LEFT/EAR/NOSE); доктрина телесной семантики §2")
     tool_reference: Optional[str] = Field(default=None)
     semantic: EmotionalVector = Field(default_factory=EmotionalVector)
     raw_text: str

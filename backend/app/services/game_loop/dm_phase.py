@@ -147,7 +147,10 @@ def run_dm_phase(
         # поэтому мы должны сообщить ему о промахе заранее, чтобы он не галлюцинировал попадание.
         if "attack" in shared_context.action_type and shared_context.player_target_id:
             _dist = (_target.player_dists or {}).get(shared_context.player_target_id, 0.0)
-            _MELEE_RANGE = 2.0
+            # WV (Q1): дубль порогов устранён — SSOT. (tool здесь ещё неизвестен,
+            # уточнение reach — в post-resolution WV-блоке turn_pipeline)
+            from app.domain.constants import BODY_REACH_M
+            _MELEE_RANGE = BODY_REACH_M
             if _dist > _MELEE_RANGE:
                 _combat_target_id = shared_context.player_target_id or "target"
                 _combat_target_name = shared_context.player_target_name or _combat_target_id

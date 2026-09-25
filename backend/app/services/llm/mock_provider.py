@@ -10,7 +10,6 @@ path: /backend/app/services/llm/mock_provider.py
 """
 from __future__ import annotations
 
-import random
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Iterator

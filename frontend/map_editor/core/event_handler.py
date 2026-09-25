@@ -4,7 +4,7 @@ map_editor/core/event_handler.py
 """
 
 import pygame
-from tools.constants import MODE_LAB, MODE_LOCAL, MODE_WORLD, MODE_UIWORKBENCH
+from tools.constants import MODE_LAB, MODE_LOCAL, MODE_UIWORKBENCH, MODE_WORLD
 
 from core.commands import (
     MirrorObjectCommand,

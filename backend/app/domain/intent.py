@@ -28,6 +28,21 @@ class IntentParametersDTO:
     emotional_charge: float = 0.1
     social_pressure: float = 0.0
     commitment_level: float = 0.8
+    # ── UnderstandingSchema (ЭТАП 2, вердикт Мастера): поля семантики,
+    # транспортируемые через границу SemanticField → DTO. Инвариант
+    # «понятое не умирает на конвертации»; UNKNOWN = None, догадки
+    # запрещены (§ENIGMA-003). addressee — авансом: транспорт есть,
+    # источник (LLM-schema шаг) добавляется следом.
+    # Additive: все существующие читатели — attribute-access, не ломаются.
+    addressee: Optional[str] = None  # кому адресовано (R15); источник — промпт-слой, следующим шагом
+    condition: Optional[str] = None  # условие действия
+    tool_reference: Optional[str] = None  # чем (сырая строка; канонизация — будущий реестр предметов)
+    target_zone: Optional[str] = None  # нормализованная зона (боевая логика)
+    zone_raw: Optional[str] = None  # сырая зона LLM (латеральность; гранулярная модель — доктрина §1-3)
+    proposition_subject: Optional[str] = None
+    proposition_predicate: Optional[str] = None
+    proposition_object_id: Optional[str] = None
+    proposition_polarity: Optional[bool] = None
 
 
 @dataclass(frozen=True)

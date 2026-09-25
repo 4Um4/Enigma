@@ -84,8 +84,8 @@ def test_witness_set_deterministic():
 def test_reaction_handle_returns_perceiving():
     """Интеграция: handle() возвращает Phase8Result с непустым
     perceiving_npc_ids (reduction-контракт замкнут)."""
-    from app.services.events.reaction_subscriber import ReactionSubscriber
     from app.models.phase8 import Phase8Context
+    from app.services.events.reaction_subscriber import ReactionSubscriber
 
     sp = _FakeSpatial({"maid_lusya": (4.0, 0.0), "far_npc": (40.0, 0.0)})
     shared = SimpleNamespace(spatial_query=sp, scene_state={})

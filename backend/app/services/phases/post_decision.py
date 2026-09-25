@@ -95,7 +95,9 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             from app.domain.communication import DialogueRequest
             from app.domain.execution import QueuedTask, TaskKind, TaskPriority
 
-            # S118 FIX: Используем audience, так как в CommunicationIntent нет поля target_id.
+            # S118 (doc-drift fix S292): адресат РЕЧИ — только audience.
+            # Исторический комментарий «в CommunicationIntent нет поля target_id»
+            # устарел: GAP8/V8-MEM-2 добавили target_id (ЦЕЛЬ директивы, не адресат).
             # Если audience="all", передаём None, чтобы TaskScheduler выбрал цель через SpatialQueryService.
             _target_id = intent.audience if intent.audience != "all" else None  # noqa: ENIGMA001
 

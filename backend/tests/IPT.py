@@ -555,6 +555,51 @@ def inv_domain_purity(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_player_authorship(world: TestWorld) -> InvariantResult:
+    """INV-PLAYER-AUTHORSHIP (мини-ADR F1, ADR-O-406): автономный decision
+    pipeline не порождает авторский акт аватара. Статическая защита
+    в глубину: удаление любого якоря = нарушение (CRITICAL).
+    0) domain/control_source.py — ось контроля (единственная точка 'player');
+    1) гвард DecisionHub._build_communication;
+    2) гвард attack-фабрики npc_tick_pipeline;
+    3) детектор SimulationIntegrityError перед return TickMutation;
+    4) фильтр decision population в tick_orchestrator.
+    Runtime-слой закрыт raise'ом в reducer'е (громкое падение, ADR-INV-DEF)."""
+    from pathlib import Path
+    _backend = Path(__file__).parent.parent
+    _anchors = [
+        ("app/domain/control_source.py",
+         [("class ControlSource", 1), ("def resolve_control_source", 1)]),
+        ("app/services/npc/decision_hub.py",
+         [("INV-PLAYER-AUTHORSHIP", 1)]),
+        ("app/services/npc/npc_tick_pipeline.py",
+         [("INV-PLAYER-AUTHORSHIP", 2), ('invariant_id="INV-PLAYER-AUTHORSHIP"', 1)]),
+        ("app/services/tick_orchestrator.py",
+         [("INV-PLAYER-AUTHORSHIP", 1)]),
+    ]
+    _missing = []
+    for _rel, _markers in _anchors:
+        try:
+            _text = (_backend / _rel).read_text(encoding="utf-8")
+        except OSError as e:
+            _missing.append(f"{_rel}: файл недоступен ({e})")
+            continue
+        for _marker, _min in _markers:
+            if _text.count(_marker) < _min:
+                _missing.append(f"{_rel}: маркер {_marker!r} <{_min}")
+    if _missing:
+        return InvariantResult(
+            "INV-PLAYER-AUTHORSHIP", "CRITICAL", False,
+            "Сломана защита авторства аватара: " + "; ".join(_missing),
+            ["backend/" + a[0] for a in _anchors],
+        )
+    return InvariantResult(
+        "INV-PLAYER-AUTHORSHIP", "CRITICAL", True,
+        "Ось контроля + гварды creation-time + детектор reducer + фильтр population на месте.",
+        [],
+    )
+
+
 def inv_llm_exile(world: TestWorld) -> InvariantResult:
     """INV-LLM-EXILE: Запрет вызовов LLM в ядре симуляции (L7)."""
     import sys
@@ -2049,6 +2094,7 @@ INVARIANTS: List[Callable] = [
     inv_l1_append_only,
     inv_l3_ephemeral,
     inv_domain_purity,
+    inv_player_authorship,
     inv_llm_exile,
     inv_position_mutation,
     inv_sc1_zero_position,

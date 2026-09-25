@@ -10,7 +10,7 @@ DEGOD Phase3B: владелец жизненного цикла кампании
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from app.models.schemas import CampaignLoadResponse
 
@@ -191,6 +191,12 @@ class CampaignLifecycle:
             "player_avatar.json",
             "npc_relationships.json",
             "campaign_meta.json",
+            # Phase 4.1 (вердикт Мастера 1): reset = новая история.
+            # Расследовательская доска — часть персонального расследования
+            # конкретного прохождения, не глобального профиля игрока:
+            # старые выводы не должны переживать новую игру. Continue
+            # (load_campaign) этот список не проходит — доска сохраняется.
+            "board_state.json",
         ]
         for fname in runtime_files:
             fpath = saves_campaign / fname
@@ -234,7 +240,7 @@ class CampaignLifecycle:
         # === 5. СБРОС + ПЕРЕИНИЦИАЛИЗАЦИЯ NPC (healthy body_state) ===
         # КОРЕНЬ БАГА: раньше только чистили кэш → NPC грузились без body_state
         # → Normalization Gate инжектил BODY_STATE_DISABLED (shock=1.0, pain=100)
-        _npcs_for_commit = []
+        _npcs_for_commit: list[Any] = []
         try:
             engine = self._get_life_engine()
             _npcs_for_commit = engine.reset_campaign(campaign_id) or []

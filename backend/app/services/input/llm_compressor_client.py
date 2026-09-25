@@ -43,6 +43,8 @@ class LlamaCppCompressorClient:
         import urllib.request
 
         system_prompt, user_prompt = self._build_prompts(raw_text, scene_context, dialogue_session)
+        # [DIAG-LLM] v3: размеры промпта — проверка H4 (переполнение n_ctx)
+        print(f"[DIAG-LLM] prompt sizes: system={len(system_prompt)} user={len(user_prompt)} total={len(system_prompt)+len(user_prompt)} chars")
         payload = {
             "messages": [
                 {"role": "system", "content": system_prompt},
@@ -82,6 +84,16 @@ class LlamaCppCompressorClient:
             return None
         except (urllib.error.URLError, KeyError, IndexError) as e:
             logger.debug(f"LLM compressor request failed: {e}")
+            # [DIAG-LLM] v3: тело ответа сервера — причина 400 его словами
+            _body = ""
+            if isinstance(e, urllib.error.HTTPError):
+                try:
+                    _body = e.read().decode("utf-8", errors="replace")[:600]
+                except Exception as read_error:
+                    # L4: тихий отказ устранён — неудача чтения тела ошибки
+                    # не отменяет обработку исходной ошибки компрессора.
+                    logger.debug(f"[DIAG-LLM] Failed to read HTTP error body: {read_error}")
+            print(f"[DIAG-LLM] compress FAILED: {type(e).__name__} code={getattr(e, 'code', '')} | SERVER BODY: {_body}")
             return None
         except Exception as e:
             logger.error(f"[LLM_COMPRESSOR] Unexpected error: {e}")
@@ -145,6 +157,10 @@ class LlamaCppCompressorClient:
 Ввод: "что ты скрываешь?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "question"}}
 Ввод: "признавайся, что у тебя за секрет?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "order"}}
 Ввод: "привет, как дела?" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "greeting"}}
+Ввод: "ты молодец" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "compliment"}}
+Ввод: "ты хорошо работаешь" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "compliment"}}
+Ввод: "ткни его ножом" -> {{"action": "ATTACK", "tool_reference": "нож", "physical_force": 0.9}}
+Ввод: "ударь его палкой" -> {{"action": "ATTACK", "tool_reference": "палка", "physical_force": 0.6}}
 
 Извлеки:
 - action: канонический тип действия.
@@ -152,10 +168,12 @@ class LlamaCppCompressorClient:
 - target: к кому или к чему направлено действие (строка).
 - speech_act: тип речевого акта (Searle).
 - social_intent: истинная социальная цель.
-- proposition: объект {{"subject_id": "...", "predicate": "stole|attacked|helped|asserts", "object_id": "...", "polarity": true|false}} если есть утверждение о факте, иначе null.
+- proposition: объект {{"subject_id": "...", "predicate": "stole|attacked|helped|asserts", "object_id": "...", "polarity": true|false}} — ТОЛЬКО если фраза содержит фактическое утверждение о мире (кто-то что-то сделал/украл/совершил). Для приказов, угроз, вопросов и действий — строго null. Не выдумывай proposition, если её нет во фразе.
 - requested_outcome: что игрок хочет получить (строка).
 - offered_outcome: что игрок предлагает (строка).
 - condition: условие (строка).
+- tool_reference: чем совершается действие (простая строка: "нож", "кулак", "палка"), иначе null.
+- addressee: к кому обращена фраза (обращение/имя в начале: "Орм, не трогай её" -> "Орм"; "Скажи Тени..." -> "Тень"). Если обращения нет — null. ВАЖНО: addressee (кому сказано) ≠ target (над кем действие) ≠ actor (кто исполняет): "пусть Торнин уйдёт" -> addressee="Торнин", actor="Торнин", action связан с движением Торнина, не игрока.
 - target_zone: ["HEAD", "TORSO", "ARMS", "LEGS", "GROIN", "UNDEFINED"].
 - physical_force, emotional_charge, social_pressure: числа от 0.0 до 1.0.
 - semantic: объект с ключами aggression, fear, shame, confidence, desperation (0.0-1.0).
@@ -174,6 +192,44 @@ class LlamaCppCompressorClient:
                 dialogue_context_str += f"- Последняя реплика ({last_turn.speaker}): {last_turn.text}\n"
             dialogue_context_str += "Если игрок пишет 'продолжай', 'ну?', 'и?', 'а что?' — интерпретируй как CONTINUE относительно последней реплики NPC.\n"
 
-        user_prompt = f"Ввод: \"{raw_text}\"\nКонтекст: {json.dumps(scene_context, ensure_ascii=False)}{dialogue_context_str}"
+        # [DIAG-PROMPT] временный зонд (секция 2 директивы Мастера): состав дампа
+        # scene_context по ключам — измерение ДО F-B, чтобы резать по фактам.
+        _sect = {}
+        if isinstance(scene_context, dict):
+            for _k, _v in scene_context.items():
+                try:
+                    _sect[_k] = len(json.dumps(_v, ensure_ascii=False))
+                except Exception:
+                    _sect[_k] = -1
+            _top = sorted(_sect.items(), key=lambda x: -x[1])[:12]
+            print(f"[DIAG-PROMPT] keys={len(_sect)} chars_total={sum(v for v in _sect.values() if v > 0)} "
+                  f"top12={_top}")
+        else:
+            print(f"[DIAG-PROMPT] scene_context type={type(scene_context).__name__} len={len(str(scene_context))}")
+        print(f"[DIAG-PROMPT] raw_text={len(raw_text)} system={len(system_prompt)} dialogue_ctx={len(dialogue_context_str)}")
+
+        # F-B (директива Understanding Layer, п.1): компактный контекст семантического
+        # разбора вместо дампа мира. Замер [DIAG-PROMPT]: 49-50K chars из 50K user_prompt
+        # — нерелевантный дамп (commitment_history/world_objects/geometry/epistemic);
+        # семантике нужны только доступные адресаты (id+имя, SSOT имён —
+        # scene_state["npc_positions"][npc_id].name). Диалог уже компактен отдельно.
+        _compact_lines: list = []
+        if isinstance(scene_context, dict):
+            _loc = scene_context.get("location_id") or scene_context.get("location") or ""
+            if _loc:
+                _compact_lines.append(f"Локация: {_loc}")
+            _npcs = scene_context.get("npc_positions", {})
+            if isinstance(_npcs, dict):
+                for _nid, _np in _npcs.items():
+                    if not isinstance(_np, dict):
+                        continue
+                    _name = _np.get("name") or _np.get("display_name") or _nid
+                    _compact_lines.append(f"- {_nid} ({_name})")
+        _compact_ctx = "\n".join(_compact_lines) if _compact_lines else "нет"
+        user_prompt = (
+            f"Ввод: \"{raw_text}\"\n"
+            f"Доступные персонажи (id — имя):\n{_compact_ctx}"
+            f"{dialogue_context_str}"
+        )
 
         return system_prompt, user_prompt

@@ -18,16 +18,16 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Any
-
-from typing import Optional
+from typing import Any, Optional, cast
 
 from app.core.config import settings
-from app.models.schemas import ChatTurnRequest, ChatTurnResponse
+from app.domain.constants import BODY_REACH_M, WEAPON_REACH_M
+from app.models.schemas import ChatTurnResponse
 from app.services.game_loop.agent_runner import run_agent_safe
 from app.services.game_loop.dm_phase import run_dm_phase
 from app.services.game_loop.npc_orchestration import run_npc_orchestration
 from app.services.game_loop.phase_1_input import (
+    _lemmatize,
     publish_classified_player_event,
     resolve_player_intent,
 )
@@ -40,6 +40,26 @@ from app.services.tick_orchestrator import TickPlayerResultDTO
 logger = logging.getLogger(__name__)
 
 R3_DIRECT_MODE: bool = True
+
+
+def _tool_in_topology(topo: dict, tool_reference: str) -> bool:
+    """WV-3: точное (lower/lemma) совпадение tool с name/item_id любого слота.
+    Семантическая подмена предмета запрещена (вердикт Q3)."""
+    _want = {_lemmatize(tool_reference.lower()), tool_reference.lower()}
+    for _slot_items in (topo.get("contents") or {}).values():
+        for _it in (_slot_items or []):
+            _name = _it.get("name", "") if isinstance(_it, dict) else getattr(_it, "name", "")
+            _iid = _it.get("item_id", "") if isinstance(_it, dict) else getattr(_it, "item_id", "")
+            if _lemmatize(str(_name).lower()) in _want or str(_iid).lower() in _want:
+                return True
+    return False
+
+
+def effective_reach_m(tool_reference: str | None) -> float:
+    """WV: досягаемость = тело + reach предмета (SSOT dom.constants, Q1)."""
+    if not tool_reference:
+        return BODY_REACH_M
+    return BODY_REACH_M + WEAPON_REACH_M.get(_lemmatize(tool_reference.lower()), 0.0)
 
 
 class TurnPipeline:
@@ -118,7 +138,6 @@ class TurnPipeline:
             f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}"
         )
 
-        from app.services.events.event_types import EventType
         from app.services.events.rules_subscriber import RulesSubscriber
 
         _action_type = shared_context.action_type or "player_interacts"
@@ -322,13 +341,22 @@ class TurnPipeline:
                 scene_context=scene_state,
                 dialogue_session=_dialogue_session
             )
+            # [DIAG-G] временный зонд G-исследования: полный слой C.
+            # v2: ambiguity+conf.parse различают fast(PARTIAL)/LLM-ok(CLEAR,0.8)/LLM-dead(AMBIGUOUS,0.1);
+            # subject_* — ASK-контур (M1/P3).
+            print(f"[DIAG-G] action={_semantic_field.action}, amb={_semantic_field.ambiguity}, "
+                  f"conf.parse={_semantic_field.confidence.parse}, conf.target={_semantic_field.confidence.target}, "
+                  f"zone={_semantic_field.target_zone}, tool={_semantic_field.tool_reference!r}, "
+                  f"sf.target={_semantic_field.target!r}, sf.actor={_semantic_field.actor!r}, "
+                  f"speech={_semantic_field.speech_act}, social={_semantic_field.social_intent}, "
+                  f"prop={_semantic_field.proposition}, "
+                  f"subj={_semantic_field.subject_kind!r}/{_semantic_field.subject_id!r}/{_semantic_field.subject_hint!r}")
 
             # S201/S202: Публикуем SOCIAL_ACTION в EventBus для наблюдателей
             _action_val = _semantic_field.action.value if _semantic_field.action else "UNCERTAIN"
             if _action_val in ("ATTACK", "THREATEN", "DIALOGUE", "STEAL", "GIVE"):
                 from app.domain.events import EventDTO
                 from app.services.events.event_bus import get_event_bus
-                from app.services.events.event_types import EventType
 
                 _prop = None
                 if _semantic_field.proposition:
@@ -369,6 +397,56 @@ class TurnPipeline:
                 semantic_field=_semantic_field,
             )
             shared_context.intent_resolution = _resolution
+
+            # ── WV-2/3: World Validation ДО DM-нарратива (каузальность вердикта:
+            # понять → проверить мир → отказ/исполнение). Канал отказа —
+            # существующий physics_validation (dm_agent:548). UNKNOWN ≠ догадка:
+            # нет данных для проверки → проверка честно пропускается.
+            _wv_params = _resolution.original_intent.parameters if _resolution else None
+            _wv_is_attack = "attack" in (shared_context.action_type or "")
+            if _wv_params and (_wv_is_attack or _wv_params.tool_reference):
+                _wv_notes: list = []
+                # WV-3: инструмент (lower+lemma; семантическая подмена запрещена — Q3)
+                if _wv_params.tool_reference:
+                    _topo = scene_state.get("player_body_topology") or {}
+                    if _topo.get("contents") is not None:
+                        if not _tool_in_topology(_topo, _wv_params.tool_reference):
+                            _wv_notes.append({
+                                "valid": False,
+                                "reason": f"действие инструментом {_wv_params.tool_reference!r}",
+                                "explanation": f"у тебя нет {_wv_params.tool_reference!r}",
+                                "alternative": "действие без инструмента или найди его",
+                            })
+                    else:
+                        logger.warning("[WV] player_body_topology отсутствует — tool-check пропущен")
+                # WV-2: дистанция (канон SpatialQuery; нет канона — gate disabled)
+                _wv_target = shared_context.player_target_id
+                _wv_sq = getattr(shared_context, "spatial_query", None)
+                if _wv_target and _wv_sq is not None:
+                    try:
+                        _wv_dist = float((_wv_sq.player_distances([_wv_target]) or {}).get(_wv_target, 0.0))
+                        _wv_reach = effective_reach_m(_wv_params.tool_reference)
+                        if _wv_dist > _wv_reach:
+                            _wv_notes.append({
+                                "valid": False,
+                                "reason": f"атака {_wv_target}",
+                                "explanation": f"цель в {_wv_dist:.1f} м, досягаемость {_wv_reach:.1f} м",
+                                "alternative": "подойти ближе",
+                            })
+                    except Exception as _wv_err:
+                        logger.warning(f"[WV] distance check failed: {_wv_err}")
+                elif _wv_target:
+                    logger.warning("[WV] spatial_query отсутствует — distance gate DISABLED")
+                if _wv_notes:
+                    shared_context.physics_validation = (
+                        getattr(shared_context, "physics_validation", None) or []
+                    ) + _wv_notes
+                    print(f"[WV] REJECTED x{len(_wv_notes)}: {[n['explanation'] for n in _wv_notes]}")
+                    # Вердикт: попытка ≠ событие. Класс действия не подменяется —
+                    # игрок пытался атаковать. Факт rejected явный: публикация
+                    # события подавляется, DM сообщает отказ через physics_validation.
+                    shared_context.action_rejected = True
+                    shared_context.rejection_reason = "; ".join(n["explanation"] for n in _wv_notes)
 
             # ADR-O-330: Player MOVE action creates MacroMovementGoal for MovementEngine
             # Если игрок пишет "подойти к [NPC]", мы должны найти узел NPC и двигаться к нему.
@@ -469,7 +547,7 @@ class TurnPipeline:
             _update_player_position(scene_state, player_position)
             _sync_game_time(scene_state, shared_context)
 
-        return scene_state
+        return cast(dict[str, Any], scene_state)
 
     async def _load_player_avatar(
         self, actions: list, campaign_id: str, location: str, shared_context: Any
@@ -683,8 +761,10 @@ class TurnPipeline:
         )
 
         try:
-            # ADR-091 FIX: Публикация ПОСЛЕ intent_resolution (иначе _semantic_action=None)
-            if dm_result.is_valid:
+            # ADR-091 FIX: Публикация ПОСЛЕ intent_resolution (иначе _semantic_action=None).
+            # WV/вердикт: несовершённое действие не публикуется как событие
+            # (попытка ≠ событие; свидетели не получают вер о несостоявшемся ударе).
+            if dm_result.is_valid and not getattr(shared_context, "action_rejected", False):
                 publish_classified_player_event(
                     shared_context,
                     location,

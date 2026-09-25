@@ -6,12 +6,16 @@ free_rect-геометрия, safe-area, живой dialog_journal в game-ко�
 Зависимости: pygame, ui_workbench.*
 Основные сущности: WorkbenchScreen
 """
-import pygame
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+import pygame
+
 from ui_workbench import (
-    InputDispatcher, ThemeLoader, WindowRegistry, WindowState,
+    InputDispatcher,
+    ThemeLoader,
+    WindowRegistry,
+    WindowState,
     WorkbenchPersistence,
 )
 from ui_workbench.layout import AnchoredRect
@@ -37,9 +41,12 @@ class WorkbenchScreen:
 
         self.registry = WindowRegistry()
         self.registry.register(JOURNAL_MANIFEST)
-        from ui_workbench.windows.mini_windows import WORLD_CLOCK_MANIFEST, TIME_SCALE_MANIFEST
+        from ui_workbench.windows.mini_windows import TIME_SCALE_MANIFEST, WORLD_CLOCK_MANIFEST
         self.registry.register(WORLD_CLOCK_MANIFEST)
         self.registry.register(TIME_SCALE_MANIFEST)
+        from ui_workbench.windows.mini_windows import INVENTORY_MANIFEST, OBSERVATIONS_MANIFEST
+        self.registry.register(OBSERVATIONS_MANIFEST)
+        self.registry.register(INVENTORY_MANIFEST)
         self.registry.register(BOARD_MANIFEST)
 
         # ДО восстановления layout: free_rects инициализируется первым —
@@ -83,6 +90,9 @@ class WorkbenchScreen:
         self._tab_rects: Dict[str, list] = {}   # wid → [(hit_rect, tab_id)]
         self.hud_time_scale: str = "▶ 1x"  # M-HUD: канал мини-окна time_scale (пишет game_screen)
         self._journal_body_rects: Dict[str, pygame.Rect] = {}  # M19: зона wheel-скролла
+        self._dialog_peer: Dict[str, Optional[str]] = {}  # Диалог-А: wid → спикер-фильтр (None = Все)
+        self._peer_rects: Dict[str, list] = {}  # Диалог-А: wid → [(hit_rect, peer_or_None)]
+        self._journal_entry_rects: Dict[str, list] = {}  # A1: wid → [(hit_rect, event_id_or_"")]
         self._journal_scroll: Dict[str, int] = {}  # M19: wid → скрытых НОВЫХ блоков снизу (0 = низ)
         self._scroll_hint_rects: Dict[str, tuple] = {}  # M19: wid → (▲-hit, ▼-hit) или (None, None)
 
@@ -93,6 +103,9 @@ class WorkbenchScreen:
         self._board_drag_id: Optional[str] = None
         self._board_drag_off = (0, 0)
         self._board_link_kind = "PLAYER_SUPPORTS"
+        self._board_hover_tips: Dict[str, Optional[tuple]] = {}  # B3: cid → (speaker, полный текст)
+        self._board_input = None            # C1: inline-TextInput гипотезы (ленивый)
+        self._board_input_mode: Optional[tuple] = None  # None | ("create",) | ("edit", hyp_id)
 
         # Демо-данные (editor-контекст); game_context их не использует.
         # M19/M12 smoke-набор: все 4 канала, 3 подряд-реплики одного
@@ -150,6 +163,23 @@ class WorkbenchScreen:
             # HIDDEN или COLLAPSED_TO_TITLE → развернуть на вкладке «Диалог»
             self.registry.transition("journal", WindowState.FULL)
             self._active_tab["journal"] = "dialog"
+
+    def toggle_inventory(self) -> None:
+        """I: инвентарь — HIDDEN ↔ FULL (долговременная память игрока,
+        Doctrine IX слой 3; HIDDEN = стартовое, не нарушает M15 — он про журнал)."""
+        state = self.registry.state("inventory")
+        self.registry.transition(
+            "inventory",
+            WindowState.HIDDEN if state == WindowState.FULL else WindowState.FULL,
+        )
+
+    def toggle_observations(self) -> None:
+        """Ё: окно Наблюдение — FULL ↔ COLLAPSED (не HIDDEN, паттерн M15)."""
+        state = self.registry.state("observations")
+        self.registry.transition(
+            "observations",
+            WindowState.COLLAPSED_TO_TITLE if state == WindowState.FULL else WindowState.FULL,
+        )
 
     def open_journal_dialog_tab(self) -> None:
         """Авто-открытие: журнал FULL на вкладке «Диалог». Не навязчиво:
@@ -314,6 +344,20 @@ class WorkbenchScreen:
         (рисуются, не глотаются), после каждой — refresh кэша."""
         if self._board_cache is None:
             return False  # доска не загружена — интеракций нет
+        # C1: активный inline-ввод съедает клавиатуру целиком — буквы
+        # N/L/U/X не дёргают операции доски во время набора. Enter/ESC —
+        # commit/cancel (TextInput отдаёт Enter caller'у по контракту).
+        if (self._board_input is not None
+                and self._board_input.focused):
+            if event.type == pygame.KEYDOWN and event.key in (
+                    pygame.K_RETURN, pygame.K_KP_ENTER):
+                self._board_commit_input()
+                return True
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self._board_close_input()
+                return True
+            self._board_input.handle_event(event)
+            return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for _cid, _rect in getattr(self, "_board_card_rects", {}).items():
                 if _rect.collidepoint(event.pos):
@@ -330,6 +374,22 @@ class WorkbenchScreen:
             self._board_drag_id = None
             if _rect is None:
                 return True
+            # E2: clamp ДО записи в кэш/REST — файл = экран. Раньше
+            # неклампнутые координаты уходили в файл, а кламп случался
+            # только в следующем кадре рендера → расхождение файл/экран
+            # (мина ТЗ §5, гейт: drag в угол → файл = экранная позиция).
+            _brect = self._rects.get("board")
+            if _brect is not None:
+                _body = pygame.Rect(_brect.x, _brect.y + _TITLE_H,
+                                    _brect.width, _brect.height - _TITLE_H)
+                if _rect.x + self._BOARD_CARD_W > _body.right - 4:
+                    _rect.x = _body.right - 4 - self._BOARD_CARD_W
+                if _rect.y + self._BOARD_CARD_H > _body.bottom - 4:
+                    _rect.y = _body.bottom - 4 - self._BOARD_CARD_H
+                if _rect.x < _body.x + 4:
+                    _rect.x = _body.x + 4
+                if _rect.y < _body.y + 4:
+                    _rect.y = _body.y + 4
             # оптимистичный апдейт кэша (мир не владеет доской — races нет),
             # затем REST — файл как SSOT
             for _c in self._board_cache.get("cards", []):
@@ -386,6 +446,17 @@ class WorkbenchScreen:
                             self._board_error = str(e)
                 self._refresh_board()
                 return True or _removed
+            if (event.key == pygame.K_e and len(self._board_selected) == 1):
+                # C2 (вердикт М 7): E = edit — консистентный command
+                # surface N/L/U/X/E вместо double-click (temporal state).
+                # Редактируема только hypothesis-карточка — карточка-
+                # указатель журнала материалом не владеет (board не
+                # знает истину, править реплику с доски нельзя).
+                _c = next((_c for _c in self._board_cache.get("cards", [])
+                           if _c.get("id") == self._board_selected[0]), None)
+                if _c is not None and _c.get("ref_type") == "hypothesis":
+                    self._board_open_input(("edit", _c.get("ref_id", "")))
+                return True
             if event.key == pygame.K_x and self._board_selected:
                 for _cid in list(self._board_selected):
                     try:
@@ -397,17 +468,21 @@ class WorkbenchScreen:
                 self._refresh_board()
                 return True
             if event.key == pygame.K_n and self._board_cache is not None:
-                # CREATE_HYPOTHESIS: текст-плейсхолдер, правится через REST
-                # (полноценный text-input — следующая итерация UI)
-                try:
-                    self._core._gateway.board_hypothesis(
-                        self._core.campaign_folder, "create",
-                        text="[опишите гипотезу]")
-                except Exception as e:
-                    self._board_error = str(e)
-                self._refresh_board()
+                # C1: inline-ввод (вердикт Мастера 9: одна команда =
+                # одно намерение — create + карточка на столе)
+                self._board_open_input(("create",))
                 return True
         return False
+
+    def board_keydown(self, event) -> bool:
+        """Phase 4: KEYDOWN-маршрут Доски для обычного режима (вне F12).
+        handle_event вызывается только при .active — KEYDOWN до board-
+        интеракций не доходил (поймано smoke S290: N не создавал гипотезу).
+        Вызывается из game_screen ПОСЛЕ ветки чата — text_input.focused
+        уже отфильтровал ввод чата, буквы N/L/U/X не конфликтуют."""
+        if self.registry.state("board") != WindowState.FULL:
+            return False
+        return self._board_handle_event(event)
 
     def handle_event(self, event) -> None:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_F12:
@@ -443,6 +518,26 @@ class WorkbenchScreen:
                         self._active_tab[wid] = tab_id
                         self._journal_scroll.pop(wid, None)  # M19: смена вкладки → к последним
                         return
+            # Диалог-А: клик по чипу собеседника = фильтр ленты
+            for wid, hits in self._peer_rects.items():
+                if self.registry.state(wid) != WindowState.FULL:
+                    continue
+                for hit, peer in hits:
+                    if hit.collidepoint(event.pos):
+                        self._dialog_peer[wid] = peer
+                        self._journal_scroll.pop(wid, None)
+                        return
+            # Phase 4.1-A: клик по записи журнала при открытой Доске —
+            # «положить на стол» (ADD_CARD; дубль легален — вердикт М:
+            # две организационные роли одного материала). Записи без
+            # event_id не кликабельны (A3-граница, tooltip — следующая
+            # итерация), скан их пропускает.
+            if self.registry.state("board") == WindowState.FULL:
+                for _hits in self._journal_entry_rects.values():
+                    for _hit, _ev in _hits:
+                        if _ev and _hit.collidepoint(event.pos):
+                            self._board_add_journal_card(_ev)
+                            return
             # M19: клики по ▲/▼ индикаторам скролла журнала
             for wid, (up_r, down_r) in self._scroll_hint_rects.items():
                 if self.registry.state(wid) != WindowState.FULL:
@@ -531,6 +626,7 @@ class WorkbenchScreen:
         # (npc_positions[*].display_name/recognition_confidence). Окно
         # читает, не мутирует (M7 / INV-FRONTEND-ISOLATION). None = демо.
         self._live_scene_state = scene_state if isinstance(scene_state, dict) else None
+
         # Режимы: окна видны ВСЕГДА (обычная игра), F12 = режим редактирования
         # (пауза мира + цветной фильтр + хинт). Единый рендер — DOUBLE TRUTH убит.
         viewport = screen.get_rect()
@@ -590,12 +686,15 @@ class WorkbenchScreen:
         else:
             title_surf = self._font_title.render(manifest.title, True, theme.token("text_primary"))
         screen.blit(title_surf, (title_rect.x + 10, title_rect.y + (title_h - title_surf.get_height()) // 2))
-        mark = "▸" if collapsed else "▾"
-        mark_surf = self._font_title.render(mark, True, theme.token("accent"))
-        _mx = title_rect.right - 24
-        screen.blit(mark_surf, (_mx, title_rect.y + (title_h - mark_surf.get_height()) // 2))
-        # Хитбокс стрелки (toggle-зона) — 22px квадрат у правого края заголовка
-        self._arrow_rects[wid] = pygame.Rect(_mx - 4, title_rect.y, 24, title_h)
+        if not manifest.collapsible:
+            self._arrow_rects.pop(wid, None)  # нет стрелки — нет toggle-зоны
+        else:
+            mark = "▸" if collapsed else "▾"
+            mark_surf = self._font_title.render(mark, True, theme.token("accent"))
+            _mx = title_rect.right - 24
+            screen.blit(mark_surf, (_mx, title_rect.y + (title_h - mark_surf.get_height()) // 2))
+            # Хитбокс стрелки (toggle-зона) — 22px квадрат у правого края заголовка
+            self._arrow_rects[wid] = pygame.Rect(_mx - 4, title_rect.y, 24, title_h)
 
         self.dispatcher.bind_title_rect(wid, title_rect)
         self._title_rects[wid] = title_rect
@@ -609,7 +708,9 @@ class WorkbenchScreen:
     _JOURNAL_TABS = [("dialog", "Диалог"), ("npc", "Услышанное"), ("narrator", "Рассказчик")]
 
     def _draw_content(self, screen, wid: str, manifest, rect) -> None:
+        theme = self.theme
         body = pygame.Rect(rect.x, rect.y + _TITLE_H, rect.width, rect.height - _TITLE_H)
+
         pygame.draw.rect(screen, self.theme.token("surface_panel"), body, border_radius=8)
 
         if manifest.data_source == "world_clock":
@@ -660,12 +761,211 @@ class WorkbenchScreen:
                 self._draw_window_frame(screen, wid, manifest, rect, collapsed=True)
                 return
             self._draw_board(screen, body, wid)
+        elif manifest.data_source == "observations":
+            # Наблюдение: строки собирает GameScreen (единственный источник,
+            # вынесен из legacy Ё-консоли); editor — демо. Скролл M19 пере-
+            # используется: budget-цикл _draw_journal универсален, но здесь
+            # лента проще — строки целиком, клип по низу.
+            if self.game_context and getattr(self, "_live_scene_state", None):
+                lines = self._core.collect_observation_lines(self._live_scene_state)
+            else:
+                lines = ["Тень (?): напряжённая поза", "Кузнец Орм: работает у наковальни",
+                         "Торнин Серебряная Луна: обслуживает столы"]
+            ty = body.y + 6
+            lh = self._font_text.get_linesize() + 2
+            for line in lines:
+                if ty + lh > body.bottom - 4:
+                    break  # клип: длинный список — следующий шаг M19-скролл
+                ts = self._font_text.render(line, True, self.theme.token("text_primary"))
+                screen.blit(ts, (body.x + 8, ty))
+                ty += lh
+            return
+        elif manifest.data_source == "player_body_topology":
+            topo = (self._live_scene_state or {}).get("player_body_topology", {}) \
+                if self.game_context else {}
+            if not topo:
+                ts = self._font_text.render("Топология тела недоступна.",
+                                            True, self.theme.token("text_muted"))
+                screen.blit(ts, (body.x + 8, body.y + 8))
+                return
+            _contents = topo.get("contents", {})
+            ty = body.y + 6
+            lh = self._font_text.get_linesize() + 2
+
+            def _blit_line(txt: str, col: str) -> None:
+                nonlocal ty
+                if ty + lh > body.bottom - 4:
+                    return
+                ts = self._font_text.render(txt, True, self.theme.token(col))
+                screen.blit(ts, (body.x + 8, ty))
+                ty += lh
+
+            # Человекочитаемые имена слотов (id остаются — для будущего
+            # клик-интерактива; перевод презентационный, данные не трогаем).
+            _SLOT_RU = {
+                "hand_right": "правая рука", "hand_left": "левая рука",
+                "worn_torso": "торс", "worn_legs": "ноги", "worn_feet": "ступни",
+                "worn_cloak": "плащ", "belt_sheath": "ножны", "belt_pouch": "кошелёк",
+                "belt_potion": "пояс-флакон", "pocket_left": "левый карман",
+                "pocket_right": "правый карман", "pocket_inner": "внутренний карман",
+                "backpack_main": "основной", "backpack_side": "боковой",
+                "hidden_boot": "в сапоге", "hidden_lining": "подкладка",
+            }
+            for _gname, _slots in [("Руки", topo.get("hands", {})),
+                                   ("Надето", topo.get("worn", {})),
+                                   ("Пояс", topo.get("belt", [])),
+                                   ("Карманы", topo.get("pockets", [])),
+                                   ("Рюкзак", topo.get("backpack", [])),
+                                   ("Скрытое", topo.get("hidden", []))]:
+                _slot_list = list(_slots.values()) if isinstance(_slots, dict) else _slots
+                if not _slot_list:
+                    continue
+                _blit_line(f"[{_gname}]", "accent")
+                for _slot in _slot_list:
+                    _sid = _slot.get("slot_id", "unknown")
+                    _bp = _slot.get("body_part", "")
+                    _bp_ru = _SLOT_RU.get(_bp, _bp)
+                    _blit_line(f"  - {_bp_ru}", "text_muted")
+                    for _item in _contents.get(_sid, []):
+                        _blit_line(f"    • {_item.get('name', 'Предмет')} "
+                                   f"(В:{_item.get('weight', 0.0)} кг, "
+                                   f"Г:{_item.get('bulk', 1)})", "text_primary")
+            _total_w = sum(i.get("weight", 0.0) for items in _contents.values() for i in items)
+            _carry = topo.get("strength_score", 10) * 15.0
+            _wc = "text_primary" if _total_w <= _carry else "border_accent"
+            _blit_line(f"Вес: {_total_w:.1f} / {_carry:.1f}", _wc)
+            _blit_line(f"Габаритность: {sum(i.get('bulk', 1) for items in _contents.values() for i in items)}",
+                       "text_primary")
+            return
         # точка роста: другие data_source по мере регистрации окон
 
     # ── Phase 4: Investigation Board ────────────────────────────────
     # Кэш организации доски. Мир на паузе при открытом workbench →
     # достаточно refresh при открытии (toggle_board) и после операций.
-    _BOARD_CARD_W, _BOARD_CARD_H = 130, 64
+    _BOARD_CARD_W, _BOARD_CARD_H = 170, 96
+    _BOARD_TIP_W = 360                     # tooltip: лимит «не простынёй» (вердикт М)
+
+    def _board_add_journal_card(self, event_id: str) -> None:
+        """A2: положить реплику на стол. Каскад — первая свободная клетка
+        сетки (шаг = карточка + 8), занятость — по pos из кэша (файл =
+        SSOT; карточка без pos рендерится в [10,10] → клетка (0,0)
+        занята, синхронно с экраном). Предел 6×8 — дальше стопка в
+        углу, clamp рендера ловит."""
+        _pos = self._board_cascade_pos()
+        try:
+            self._core._gateway.board_card_add(
+                self._core.campaign_folder, "journal", event_id, _pos)
+        except Exception as e:  # BackendError/urllib — наблюдаемо (E3 сделает видимым)
+            self._board_error = str(e)
+        self._refresh_board()
+
+    def _board_cascade_pos(self) -> list:
+        """Первая свободная клетка сетки (шаг = карточка + 8); занятость —
+        по pos из кэша (файл = SSOT; карточка без pos ≈ клетка (0,0) —
+        синхронно с рендер-дефолтом [10,10]). Предел 6×8, дальше — угол."""
+        _step_x = self._BOARD_CARD_W + 8
+        _step_y = self._BOARD_CARD_H + 8
+        _occupied = set()
+        for _c in (self._board_cache or {}).get("cards", []):
+            _p = _c.get("pos")
+            if not _p:
+                _occupied.add((0, 0))
+                continue
+            _occupied.add((int(_p[0]) // _step_x, int(_p[1]) // _step_y))
+        for _row in range(8):
+            for _col in range(6):
+                if (_col, _row) not in _occupied:
+                    return [float(_col * _step_x), float(_row * _step_y)]
+        return [float(5 * _step_x), float(7 * _step_y)]
+
+    def _board_open_input(self, mode: tuple) -> None:
+        """C1/C2: открыть inline-ввод. Ленивый TextInput (реюз чатового
+        виджета), цвета — ТОЛЬКО токены темы (закон темы, RGB виджета
+        не трогаем). Rect пересчитывается каждый кадр в _draw_board."""
+        if self._board_input is None:
+            from text_input import TextInput  # лениво: паттерн constants-импорта
+            self._board_input = TextInput(
+                rect=pygame.Rect(0, 0, 200, 28),
+                font=self._font_text,
+                colors={
+                    "bg": self.theme.token("surface_panel"),
+                    "border": self.theme.token("border"),
+                    "border_active": self.theme.token("accent"),
+                    "text": self.theme.token("text_primary"),
+                    "cursor": self.theme.token("text_muted"),
+                    "selection": self.theme.token("surface_title"),
+                },
+            )
+        _prefill = ""
+        if mode[0] == "edit":
+            for _h in (self._board_cache or {}).get("hypotheses", []):
+                if str(_h.get("id", "")) == mode[1]:
+                    _prefill = _h.get("text", "")
+                    break
+        self._board_input_mode = mode
+        self._board_input.text = _prefill
+        self._board_input.visible = True
+        self._board_input.focused = True
+
+    def _board_close_input(self) -> None:
+        self._board_input_mode = None
+        if self._board_input is not None:
+            self._board_input.visible = False  # setter снимает и фокус
+
+    def _board_commit_input(self) -> None:
+        """Enter: create (+авто-карточка, вердикт 9) или edit. Частичный
+        успех НЕ молчит: гипотеза уже в файле — ошибка карточки честно
+        видна; падение create/edit — ввод не теряется."""
+        _mode = self._board_input_mode
+        _text = (self._board_input.text.strip()
+                 if self._board_input is not None else "")
+        if _mode is None or not _text:
+            self._board_close_input()
+            return
+        try:
+            if _mode[0] == "create":
+                _resp = self._core._gateway.board_hypothesis(
+                    self._core.campaign_folder, "create", text=_text)
+                _hyp_id = str(_resp.get("hypothesis_id", ""))
+                try:
+                    self._core._gateway.board_card_add(
+                        self._core.campaign_folder, "hypothesis",
+                        _hyp_id, self._board_cascade_pos())
+                except Exception as e:
+                    # Гипотеза сохранена, карточка — нет: не теряем
+                    # первую половину и не притворяемся, что всё ок.
+                    self._board_error = (
+                        f"гипотеза сохранена, карточка не добавлена: {e}")
+            else:
+                self._core._gateway.board_hypothesis(
+                    self._core.campaign_folder, "edit",
+                    hyp_id=_mode[1], text=_text)
+            self._board_close_input()
+        except Exception as e:  # create/edit упал — ввод сохраняем
+            self._board_error = str(e)
+        self._refresh_board()
+
+    def board_input_active(self) -> bool:
+        """Флаг для game_screen: Enter-отправка чата и WASD-движение
+        обязаны уважать фокус инпута Доски."""
+        return (self._board_input is not None
+                and self._board_input.focused)
+
+    def board_input_event(self, event) -> bool:
+        """Маршрут TEXTINPUT/TEXTEDITING/KEYUP в инпут Доски (кириллица
+        идёт TEXTINPUT-событием, KEYDOWN её не несёт). True = съедено."""
+        if self._board_input is None or not self._board_input.focused:
+            return False
+        if event.type in (pygame.TEXTINPUT, pygame.TEXTEDITING,
+                          pygame.KEYUP):
+            self._board_input.handle_event(event)
+            return True
+        return False
+
+    def board_input_update(self, dt: float) -> None:
+        """Тик физики повтора клавиш (паттерн text_input.update)."""
+        if self._board_input is not None:
+            self._board_input.update(dt)
 
     def toggle_board(self) -> None:
         """Открытие/скрытие Доски. При каждом открытии — refresh кэша
@@ -675,12 +975,22 @@ class WorkbenchScreen:
             self.registry.transition("board", WindowState.COLLAPSED_TO_TITLE)
             return
         self.registry.transition("board", WindowState.FULL)
+        self._board_error = None  # E3: новая сессия просмотра — ошибки старые не висят
         self._refresh_board()
 
     def _refresh_board(self) -> None:
         """GET /api/board/{campaign} → кэш. Ошибка транспорта — НЕ тихий
         отказ: рисуем текст ошибки в окне (L4-совместимо)."""
-        self._board_error = None
+        # E3 (вердикт М 8): refresh больше НЕ стирает ошибку операции —
+        # иначе игрок не понимает, сохранилась ли гипотеза/связь. Чистый
+        # лист — только при открытии окна (toggle_board).
+        if not getattr(self, "game_context", False):
+            # editor-контекст: core._gateway не существует — валидная пустая
+            # доска (демо-мир), не ошибка. Канала в editor-мире нет — Закон
+            # Причинности (манифест без источника событий невалиден).
+            self._board_cache = {"version": 1, "cards": [], "links": [],
+                                 "hypotheses": []}
+            return
         try:
             self._board_cache = self._core._gateway.get_board(
                 self._core.campaign_folder)
@@ -688,12 +998,13 @@ class WorkbenchScreen:
             self._board_cache = None
             self._board_error = str(e)
 
-    def _board_live_journal_ids(self) -> set:
-        """Живые event_id журнала — канал уже проекцирован с event_id
-        (ADR-O-404). Записи narrative/self без event_id карточками
-        быть не могут (TЗ Phase 4: не выдумывать identity)."""
+    def _board_journal_index(self) -> dict:
+        """Материал журнала по event_id — канал джойна карточек (M7):
+        ref_id opaque, резолв материала — ответственность клиента.
+        Записи narrative/self без event_id в индекс не попадают —
+        адресоваться не могут (ADR-O-404: не выдумывать identity)."""
         return {
-            e.get("event_id")
+            e.get("event_id"): e
             for e in getattr(self._core, "_dialog_journal_backend", [])
             if e.get("event_id")
         }
@@ -703,16 +1014,22 @@ class WorkbenchScreen:
         Мёртвая journal-карточка — серым с ref-хвостом (валидное
         состояние ТЗ §2). Клиент НЕ вычисляет семантику."""
         if getattr(self, "_board_cache", None) is None:
+            # persistence-restore открывает окно в FULL без toggle_board →
+            # refresh ещё не выполнялся: ленивая первичная загрузка. Если
+            # и после refresh cache None — реальная ошибка транспорта.
+            self._refresh_board()
+        if getattr(self, "_board_cache", None) is None:
             msg = f"Доска недоступна: {getattr(self, '_board_error', '?')}"
             surf = self._font_text.render(msg[:90], True,
                                           self.theme.token("text_muted"))
             screen.blit(surf, (body.x + 10, body.y + 10))
             return
-        _live = self._board_live_journal_ids()
+        _jmat = self._board_journal_index()
         _hyp_texts = {h.get("id", ""): h.get("text", "")
                       for h in self._board_cache.get("hypotheses", [])}
         # Хитбоксы карточек (интеракции — U3)
         self._board_card_rects = {}
+        self._board_hover_tips = {}
         for _c in self._board_cache.get("cards", []):
             _cid = str(_c.get("id", ""))
             _pos = _c.get("pos") or [10.0, 10.0]
@@ -726,40 +1043,149 @@ class WorkbenchScreen:
             self._board_card_rects[_cid] = _rect
 
             _alive = True
-            _line2 = ""
+            _lines: list = []   # [(текст, цвет)] — материал карточки
+            _body = ""
+            _hover_tip = None   # (заголовок, полный текст) для tooltip
             if _c.get("ref_type") == "journal":
-                _alive = _c.get("ref_id", "") in _live
-                _line2 = _c.get("ref_id", "")[:18]
+                _entry = _jmat.get(_c.get("ref_id", ""))
+                _alive = _entry is not None
+                if _alive:
+                    # Материал = speaker + текст реплики (джойн M7).
+                    # spans[]/event_id остаются в ref-происхождении —
+                    # задел на работу с сущностями, UI не интерпретирует.
+                    _lines.append(
+                        (_entry.get("speaker", "???"),
+                         self.theme.token("accent")))
+                    _body = _entry.get("text", "")
+                    _hover_tip = (_entry.get("speaker", "???"),
+                                  _entry.get("text", ""))
+                else:
+                    # Мёртвая journal-карточка: FIFO cap-100 вытеснил
+                    # запись из журнала — валидное состояние (ТЗ Phase 4
+                    # §2). Указатель не врёт и не выдумывает материал:
+                    # честная формула + provenance-хвост для игрока.
+                    _lines.append(("материал вытеснен из журнала",
+                                   self.theme.token("text_muted")))
+                    _lines.append((f"ref: {_c.get('ref_id', '')[:24]}",
+                                   self.theme.token("text_muted")))
             elif _c.get("ref_type") == "hypothesis":
-                _line2 = _hyp_texts.get(_c.get("ref_id", ""), "???")
+                _lines.append(("гипотеза", self.theme.token("text_muted")))
+                _body = _hyp_texts.get(_c.get("ref_id", ""), "???")
+                _hover_tip = ("гипотеза", _body)
             else:
                 # claim/belief: persisted opaque — рендер серым (вердикт М)
                 _alive = False
-                _line2 = f"{_c.get('ref_type', '?')}:{_c.get('ref_id', '')[:12]}"
+                _lines.append(
+                    (f"{_c.get('ref_type', '?')}:{_c.get('ref_id', '')[:12]}",
+                     self.theme.token("text_muted")))
             _color = (self.theme.token("surface_panel")
                       if _alive else self.theme.token("text_muted"))
             pygame.draw.rect(screen, _color, _rect, border_radius=6)
             _border_color = self.theme.token("accent")
             _border_w = 1
             if _cid in getattr(self, "_board_selected", []):
-                _border_color = (255, 220, 120)  # выбранная: тёплый контур
+                _border_color = self.theme.token("border_accent")  # выбранная: золотой контур (токен, не RGB-литерал — закон темы)
                 _border_w = 2
             pygame.draw.rect(screen, _border_color, _rect, _border_w,
                              border_radius=6)
-            _l1 = f"{_c.get('ref_type', '?')}"
-            screen.blit(self._font_text.render(
-                _l1, True, self.theme.token("text_default")),
-                (_x + 6, _y + 5))
-            screen.blit(self._font_text.render(
-                _line2, True, self.theme.token("text_muted")),
-                (_x + 6, _y + 24))
-        # Гипотезы — списком в подвале окна
-        _yy = body.bottom - 22
-        for _h in self._board_cache.get("hypotheses", [])[-3:]:
-            _t = f"· {_h.get('text', '')[:40]}"
-            screen.blit(self._font_text.render(
-                _t, True, self.theme.token("text_default")), (body.x + 8, _yy))
-            _yy -= 18
+            # Обрезка по высоте: сколько строк влезает в карточку;
+            # усечение помечаем «…» — игрок видит, что текст длиннее
+            _lh = self._font_text.get_linesize() + 1
+            _max_lines = (self._BOARD_CARD_H - 10) // _lh
+            _wrapped = (self._wrap(_body, self._BOARD_CARD_W - 12)
+                        if _body else [])
+            _budget = _max_lines - len(_lines)
+            if _budget > 0:
+                _lines += [(l, self.theme.token("text_primary"))
+                           for l in _wrapped[:_budget]]
+                if len(_wrapped) > _budget and _lines:
+                    _t, _col = _lines[-1]
+                    _lines[-1] = (
+                        (_t[:-1] if _t else _t) + "…", _col)
+            if _hover_tip is not None:
+                self._board_hover_tips[_cid] = _hover_tip
+            _ty = _y + 5
+            for _lt, _lc in _lines:
+                screen.blit(self._font_text.render(
+                    _lt, True, _lc), (_x + 6, _ty))
+                _ty += _lh
+        # D: рёбра — двумя проходами нельзя терять z-порядок дёшево; линии
+        # после карточек читаются как связи ПОВЕРХ материала — осознанный
+        # выбор: при 170×96 карточках линия под карточкой невидима в точках
+        # крепления. Токены: SUPPORTS = accent, CONTRADICTS = danger
+        # (вердикт М 5 — RGB вне реестра запрещён). Мёртвое ребро не рисуем.
+        for _l in self._board_cache.get("links", []):
+            _ra = self._board_card_rects.get(str(_l.get("from", "")))
+            _rb = self._board_card_rects.get(str(_l.get("to", "")))
+            if _ra is None or _rb is None:
+                continue
+            _col = (self.theme.token("accent")
+                    if _l.get("kind") == "PLAYER_SUPPORTS"
+                    else self.theme.token("danger"))
+            pygame.draw.line(screen, _col,
+                             _ra.center, _rb.center, 2)
+        # E1: command surface — discoverability N/L/U/E/X/B (ТЗ §5) +
+        # индикация текущего kind для L (гейт D ТЗ). Токены, не RGB.
+        _lk = ("подтверждает" if self._board_link_kind == "PLAYER_SUPPORTS"
+               else "опровергает")
+        _hs = self._font_text.render(
+            f"N гипотеза · L связь [{_lk}] · U развязать · E правка · X убрать · B закрыть",
+            True, self.theme.token("text_muted"))
+        screen.blit(_hs, (body.x + 8, body.bottom - 36))
+        # E3: ошибка операции видима (danger-токен), не глотается
+        if self._board_error:
+            _es = self._font_text.render(
+                f"⚠ {self._board_error[:90]}", True,
+                self.theme.token("danger"))
+            screen.blit(_es, (body.x + 8, body.bottom - 18))
+        # Гипотезы — списком в подвале окна; при активном inline-вводе
+        # уступают место инпуту (E2-геометрия: ввод на bottom-78)
+        if self._board_input_mode is None:
+            _yy = body.bottom - 56
+            for _h in self._board_cache.get("hypotheses", [])[-3:]:
+                _t = f"· {_h.get('text', '')[:40]}"
+                screen.blit(self._font_text.render(
+                    _t, True, self.theme.token("text_primary")), (body.x + 8, _yy))
+                _yy -= 18
+        # C1: inline-ввод гипотезы (N) — поверх, над футером гипотез;
+        # rect обновляется каждый кадр (окно двигается/ресайзится).
+        # Гард по mode (не по инстансу): закрытый ввод не рисуется.
+        if (self._board_input_mode is not None
+                and self._board_input is not None):
+            _ir = pygame.Rect(body.x + 8, body.bottom - 78,
+                              body.width - 16, 28)
+            self._board_input.rect = _ir
+            self._board_input.draw(screen)
+            _hint = self._font_text.render(
+                "Enter — сохранить · Esc — отмена", True,
+                self.theme.token("text_muted"))
+            screen.blit(_hint, (body.x + 8, body.bottom - 94))
+        # Tooltip (hover): полный материал карточки — чтение без
+        # заглядывания в журнал. Не рисуем при активном drag (рука
+        # занята — tooltip после того, как положили). Мышь в рендере
+        # легальна: UI-слой, не симуляция (§15.2).
+        if self._board_drag_id is None:
+            _mp = pygame.mouse.get_pos()
+            for _cid, _rect in self._board_card_rects.items():
+                if not _rect.collidepoint(_mp):
+                    continue
+                _tip = self._board_hover_tips.get(_cid)
+                if _tip is None:
+                    break
+                _head, _full = _tip
+                _tl = self._wrap(_full, self._BOARD_TIP_W - 16)[:8]
+                _th = 6 + self._font_text.get_linesize() + 2 + len(_tl) * (self._font_text.get_linesize() + 1) + 6
+                _tx = min(_mp[0] + 12, body.right - self._BOARD_TIP_W - 4)
+                _ty = min(_mp[1] + 12, body.bottom - _th - 4)
+                _trect = pygame.Rect(_tx, _ty, self._BOARD_TIP_W, _th)
+                pygame.draw.rect(screen, self.theme.token("surface_title"), _trect, border_radius=4)
+                pygame.draw.rect(screen, self.theme.token("border"), _trect, 1, border_radius=4)
+                screen.blit(self._font_text.render(_head, True, self.theme.token("accent")), (_tx + 8, _ty + 6))
+                _tyy = _ty + 6 + self._font_text.get_linesize() + 2
+                for _l in _tl:
+                    screen.blit(self._font_text.render(_l, True, self.theme.token("text_primary")), (_tx + 8, _tyy))
+                    _tyy += self._font_text.get_linesize() + 1
+                break
 
     def _draw_tabs(self, screen, body: pygame.Rect, wid: str) -> None:
         """Полоса вкладок под заголовком. Активная — акцентом, хитбоксы — в
@@ -779,7 +1205,7 @@ class WorkbenchScreen:
             self._tab_rects[wid].append((hit, tab_id))
             x += hit.width + 8
 
-    def _journal_entries(self, tab: str = "all") -> list:
+    def _journal_entries(self, tab: str = "all", wid: Optional[str] = None) -> list:
         """SSOT данных + фильтр по channel-метке (записана в момент
         восприятия — эпистемически честна). Вкладки НЕ пересекаются:
         dialog = direct + self (беседа), npc = overheard, narrator = narrative.
@@ -787,7 +1213,28 @@ class WorkbenchScreen:
         entries = (getattr(self._core, "_dialog_journal_backend", [])
                    if self.game_context else self._demo_journal) or []
         if tab == "dialog":
-            return [e for e in entries if e.get("channel") in ("direct", "self")]
+            # Interim (DEBT-JOURNAL-CHANNEL): backend-эхо player-реплик
+            # приходит с channel=overheard и сырым speaker="player" —
+            # это заведомо self-реплики игрока (эпистемически честно:
+            # игрок знает свои слова). Правильный канал починит backend.
+            base = [e for e in entries
+                    if e.get("channel") in ("direct", "self")
+                    or e.get("speaker") == "player"]
+            base = [{**e, "channel": "self"} if e.get("speaker") == "player" else e for e in base]
+            # Диалог-А: peer-фильтр. Self-реплика прикрепляется к последнему
+            # direct-спикеру (frontend-эвристика v1; DEBT-JOURNAL-PEER: честный
+            # peer_id придёт из backend-журнала вместе с spans[]).
+            _peer = self._dialog_peer.get(wid or "")
+            if not _peer:
+                return base
+            out = []
+            _last = ""
+            for e in base:
+                if e.get("channel") == "direct":
+                    _last = e.get("speaker", "")
+                if e.get("speaker", "") == _peer or (e.get("channel") == "self" and _last == _peer):
+                    out.append(e)
+            return out
         if tab == "npc":
             return [e for e in entries if e.get("channel") == "overheard"]
         if tab == "narrator":
@@ -800,7 +1247,32 @@ class WorkbenchScreen:
         слева с именем. Хронология сверху-вниз, автоскролл к низу
         (рисуем последние помещающиеся)."""
         tab = self._active_tab.get(wid, "dialog") if wid else "all"
-        entries = list(reversed(self._journal_entries(tab)))  # хронологический порядок
+        theme = self.theme
+        entries = list(reversed(self._journal_entries(tab, wid)))  # хронологический порядок
+
+        # Диалог-А: чипы собеседников (строка под вкладками). «Все» +
+        # спикеры direct-записей (то, что игрок ЗНАЕТ как собеседника).
+        self._peer_rects[wid or "__all__"] = []
+        if wid and tab == "dialog":
+            _seen: list = []
+            for e in self._journal_entries("dialog"):
+                _sp = e.get("speaker", "")
+                if e.get("channel") == "direct" and _sp and _sp not in _seen:
+                    _seen.append(_sp)
+            if _seen:
+                _cx, _cy = body.x + 8, body.y + 2
+                _active = self._dialog_peer.get(wid)
+                for _lbl in ["Все"] + _seen:
+                    _on = (_lbl == "Все" and not _active) or _lbl == _active
+                    _col = theme.token("accent") if _on else theme.token("text_muted")
+                    _s = self._font_text.render(_lbl, True, _col)
+                    _hit = pygame.Rect(_cx, _cy, _s.get_width() + 10, 18)
+                    pygame.draw.rect(screen, theme.token("surface_title"), _hit, border_radius=4)
+                    screen.blit(_s, (_cx + 5, _cy + 2))
+                    self._peer_rects[wid].append((_hit, None if _lbl == "Все" else _lbl))
+                    _cx += _hit.width + 6
+                body = body.move(0, 22)
+                body.height -= 22
 
         # M12 ч.2: карта распознавания имён (display_name → confidence).
         # game_context — живой scene_state из draw(); editor — демо-карта.
@@ -833,7 +1305,7 @@ class WorkbenchScreen:
                 w = int(body.width * 0.72)
                 lines = self._wrap(text, w - 20)
                 h = 16 + len(lines) * (self._font_text.get_linesize() + 1) + 12
-            blocks.append((ch, speaker, lines, h, w))
+            blocks.append((ch, speaker, lines, h, w, entry.get("event_id", "")))
 
         # M19 скролл: hidden_bottom = сколько НОВЫХ блоков скрыто снизу.
         # 0 = прижаты к последним (автоскролл доноров): новые записи
@@ -877,9 +1349,9 @@ class WorkbenchScreen:
             used += blk[3] + 6
 
         # Рендер
+        self._journal_entry_rects[wid or "__all__"] = []  # A1: пересборка на кадр
         y = body.y + 8
-        theme = self.theme
-        for ch, speaker, lines, h, w in visible:
+        for ch, speaker, lines, h, w, ev_id in visible:
             lh = self._font_text.get_linesize() + 1
             if ch == "self":
                 bx = body.right - w - 10
@@ -919,11 +1391,24 @@ class WorkbenchScreen:
                 name_s = self._font_text.render(_name_txt, True, _nc)
                 screen.blit(mark_s, (bubble.x + 8, y + 1))
                 screen.blit(name_s, (bubble.x + 8 + mark_s.get_width(), y + 1))
+                # A1: маркер «+» — «положить на Доску». Только при открытой
+                # Доске ∧ непустом event_id (ADR-O-404: narrative/self не
+                # адресуются — маркер им не положен, граница видима).
+                if (ev_id
+                        and self.registry.state("board") == WindowState.FULL):
+                    _plus = self._font_text.render("+", True,
+                                                   theme.token("accent"))
+                    screen.blit(_plus, (bubble.right - _plus.get_width() - 6,
+                                        y + 1))
                 ty = y + 17
                 for line in lines:
                     ts = self._font_text.render(line, True, theme.token("text_primary"))
                     screen.blit(ts, (bubble.x + 10, ty))
                     ty += lh
+            # A1: hit-зона записи — пузырь либо полный блок narrative
+            _hit_r = (pygame.Rect(body.x + 4, y, body.width - 8, h)
+                      if ch == "narrative" else bubble)
+            self._journal_entry_rects[wid or "__all__"].append((_hit_r, ev_id))
             y += h + 6
 
         # M19 индикаторы (кликабельны, хитбоксы в _scroll_hint_rects):
@@ -942,6 +1427,28 @@ class WorkbenchScreen:
                                     body.bottom - 20, back.get_width() + 8, 18)
             screen.blit(back, (down_rect.x + 4, down_rect.y + 2))
         self._scroll_hint_rects[key] = (up_rect, down_rect)
+        # A3: hover по неадресуемой записи при открытой Доске — граница
+        # объясняется, а не молчит (ADR-O-404: narrative/self без event_id
+        # карточками быть не могут — выдумывать identity запрещено).
+        if self.registry.state("board") == WindowState.FULL:
+            _mp = pygame.mouse.get_pos()
+            for _hit, _ev in self._journal_entry_rects.get(
+                    wid or "__all__", []):
+                if not _ev and _hit.collidepoint(_mp):
+                    _msg = "нельзя адресовать — запись не привязана к событию"
+                    _ms = self._font_text.render(
+                        _msg, True, theme.token("text_primary"))
+                    _mw = _ms.get_width() + 12
+                    _mrect = pygame.Rect(
+                        min(_mp[0] + 12, body.right - _mw - 4),
+                        min(_mp[1] + 12, body.bottom - 30),
+                        _mw, 26)
+                    pygame.draw.rect(screen, theme.token("surface_title"),
+                                     _mrect, border_radius=4)
+                    pygame.draw.rect(screen, theme.token("border"),
+                                     _mrect, 1, border_radius=4)
+                    screen.blit(_ms, (_mrect.x + 6, _mrect.y + 5))
+                    break
 
     def _wrap(self, text: str, width: int) -> list:
         """Перенос строк. Список (не generator): потребители считают len()."""

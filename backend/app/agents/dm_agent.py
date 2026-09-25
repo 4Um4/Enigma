@@ -542,8 +542,10 @@ class DmAgent:
                 guardrail = "ЗАПРЕЩЕНО: повторять предыдущий ответ дословно или по смыслу. Опиши НОВУЮ реакцию."
         builder.add_guardrail(guardrail)
 
-        # Блок 9: Физические ограничения + Python движки — только для не-диалогов
-        if context and not _is_light_dialog:
+        # Блок 9: Физические ограничения — ВСЕГДА, когда есть факты невозможности
+        # (WV REJECTED обязателен к уважению даже в лёгком диалоге);
+        # python_engines — по-прежнему только для не-диалогов.
+        if context and (not _is_light_dialog or context.get("physics_validation")):
             physics_warnings = ""
             if context.get("physics_validation"):
                 invalid = [

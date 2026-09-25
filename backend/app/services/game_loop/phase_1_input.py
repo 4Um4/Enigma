@@ -29,7 +29,7 @@ def _lemmatize(text: str) -> str:
 
 from app.domain.events import EventDTO
 from app.domain.intent import IntentDTO, IntentParametersDTO
-from app.domain.intent_profile import ActionType, IntentSemanticField
+from app.domain.intent_profile import ActionType, IntentSemanticField, TargetZone
 from app.domain.movement import MovementRequest
 from app.models.will import IntentResolution
 from app.services.events.event_bus import get_event_bus
@@ -45,6 +45,27 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
         return ""
 
     ref = _lemmatize(field.target_reference.lower())
+
+    # R14 bridge: LLM-слой резолвит цель в canonical id ('maid_lusya'),
+    # fuzzy-словарь ниже знает только русские имена → id отлетал в "".
+    # Точное совпадение по id решается ДО fuzzy. Raw lower, не lemmatize:
+    # pymorphy искажает латиницу.
+    if isinstance(scene_context, dict):
+        _ref_raw = field.target_reference.lower()
+        _npc_ids = {str(k).lower() for k in scene_context.get("npc_positions", {})}
+        for _npc in scene_context.get("all_npcs_raw", []) or []:
+            if isinstance(_npc, dict) and _npc.get("npc_id"):
+                _npc_ids.add(str(_npc["npc_id"]).lower())
+        if _ref_raw in _npc_ids:
+            logger.warning(f"[TARGET_RESOLVE] R14 exact-id hit: {_ref_raw}")
+            return _ref_raw
+        # R14b: LLM иногда «вербализует» id английскими словами — сравниваем
+        # с id, где '_' заменены пробелами (tavern_keeper_tornin ↔ 'tavern keeper tornin')
+        _ref_norm = " ".join(_ref_raw.split())
+        for _nid in _npc_ids:
+            if _ref_norm == _nid.replace("_", " "):
+                logger.warning(f"[TARGET_RESOLVE] R14b verbalized-id hit: {_ref_raw!r} -> {_nid}")
+                return _nid
 
     # Извлекаем словарь {npc_name.lower(): npc_id} из контекста сцены
     # Ожидаем, что scene_context содержит all_npcs_raw или npc_positions с именами
@@ -158,6 +179,20 @@ def resolve_player_intent(
         emotional_charge=semantic_field.emotional_charge,
         social_pressure=semantic_field.social_pressure,
         commitment_level=semantic_field.commitment_level,
+        # UnderstandingSchema: прямое отображение SemanticField → DTO
+        # (инвариант «понятое не умирает»; UNKNOWN=None, §ENIGMA-003).
+        # addressee не заполняется: источника ещё нет, догадка запрещена.
+        condition=semantic_field.condition,
+        addressee=semantic_field.addressee,
+        tool_reference=semantic_field.tool_reference,
+        # UNDEFINED = «зоны нет» (дефолт enum) → None: конвенция
+        # «нет информации → None» едина с проекцией B-блока (§ENIGMA-003).
+        target_zone=(semantic_field.target_zone.value if semantic_field.target_zone != TargetZone.UNDEFINED else None),
+        zone_raw=semantic_field.zone_raw,
+        proposition_subject=(semantic_field.proposition.subject_id if semantic_field.proposition else None),
+        proposition_predicate=(semantic_field.proposition.predicate.value if semantic_field.proposition else None),
+        proposition_object_id=(semantic_field.proposition.object_id if semantic_field.proposition else None),
+        proposition_polarity=(semantic_field.proposition.polarity if semantic_field.proposition else None),
     )
 
     intent = IntentDTO(
@@ -196,6 +231,55 @@ def resolve_player_intent(
         pressure_profile=pressure,
         movement_request=_movement_req,
     )
+
+
+def build_intent_projection(
+    resolution: Optional[IntentResolution],
+) -> Optional[Dict[str, Any]]:
+    """G1: observation-only проекция фактического состояния intent-пайплайна.
+
+    Читает frozen IntentResolution (создаётся в resolve_player_intent ДО
+    WillpowerGate; мутаций не существует — frozen dataclass, grep-аудит).
+    Возвращает ТОЛЬКО фактически существующие поля; отсутствие резолва →
+    None («интен не резолвился» ≠ «резолвился в пустоту», §ENIGMA-003).
+    Не SSOT, не пишет в эпистемику, обработку не меняет (read-only, копии
+    скалярных значений — живых ссылок на pipeline-объекты нет).
+    """
+    if resolution is None:
+        return None
+    intent = resolution.original_intent
+    params = intent.parameters
+    projection: Dict[str, Any] = {
+        "action": intent.action,
+        "target": intent.target,
+    }
+    if params.semantic_action is not None:
+        projection["semantic_action"] = params.semantic_action
+    if params.target_reference is not None:
+        projection["target_reference"] = params.target_reference
+    if params.target_id is not None:
+        projection["target_id"] = params.target_id
+    if params.actor_id is not None:
+        projection["actor_id"] = params.actor_id
+    # UnderstandingSchema: новые поля проекции → SP-метрика измерима с B-блока
+    if params.condition is not None:
+        projection["condition"] = params.condition
+    if params.addressee is not None:
+        projection["addressee"] = params.addressee
+    if params.tool_reference is not None:
+        projection["tool_reference"] = params.tool_reference
+    if params.target_zone is not None:
+        projection["target_zone"] = params.target_zone
+    if params.zone_raw is not None:
+        projection["zone_raw"] = params.zone_raw
+    if params.proposition_predicate is not None:
+        projection["proposition"] = {
+            "subject": params.proposition_subject,
+            "predicate": params.proposition_predicate,
+            "object": params.proposition_object_id,
+            "polarity": params.proposition_polarity,
+        }
+    return projection
 
 
 # --- LEGACY PUBLISHERS (оставлены для совместимости) ---

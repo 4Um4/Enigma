@@ -71,6 +71,12 @@ class PipelineContext:
     will_conflict_data: Optional[dict[str, Any]] = (
         None  # ADR-034: Артефакты конфликта воли (для UI Спринт 26)
     )
+    # WV: факты невозможности действия (первый писатель — turn_pipeline WV-2/3;
+    # читатель — dm_agent physics_validation-блок; транспорт — asdict в _as_dict).
+    physics_validation: List[Dict[str, Any]] = field(default_factory=list)
+    # WV: попытка ≠ событие (вердикт). Гейтит публикацию события в execute().
+    action_rejected: bool = False
+    rejection_reason: Optional[str] = None
 
     # ── NPC и их реакции ───────────────────────────────────────────
     active_npc_ids: List[Any] = field(default_factory=list)

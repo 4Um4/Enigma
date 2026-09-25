@@ -28,6 +28,9 @@ def process_movement_intents(
     """
     if not movement_intents:
         return
+    # [DIAG-MV] временный зонд Z-исследования: дошли ли player-инжекты до моста
+    print(f"[DIAG-MV] intents={len(movement_intents)} "
+          f"actors={[getattr(i, 'actor_id', '?') for i in movement_intents]}")
 
     from app.domain.movement import LocalSteeringGoal
     from app.services.spatial.movement_engine import MovementEngine
@@ -130,6 +133,10 @@ def process_movement_intents(
 
         _merged_intents = _resolved_intents
 
+        # [DIAG-MV] после резолва/гейтов
+        print(f"[DIAG-MV] resolved={len(_merged_intents)} "
+              f"actors={[getattr(i, 'actor_id', '?') for i in _merged_intents]}")
+
         orchestrator._apply_drf_scoring_overlay(_merged_intents, ctx)
         me = MovementEngine()
         me.set_spatial_service(_spatial_svc)
@@ -142,6 +149,9 @@ def process_movement_intents(
             campaign_id=ctx.campaign_id,
             scene_state=ctx.scene_state,
         )
+        # [DIAG-MV] результат движка: сколько изменений и для кого
+        print(f"[DIAG-MV] engine_changes={len(spatial_changes or [])} "
+              f"targets={[getattr(sc, 'target', getattr(sc, 'npc_id', '?')) for sc in (spatial_changes or [])[:5]]}")
         if spatial_changes and orchestrator._scene_manager:
             orchestrator._apply_with_shadow_observation(
                 ctx, spatial_changes, phase_label="CAUSAL_BRIDGE"

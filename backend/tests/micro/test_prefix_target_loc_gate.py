@@ -12,7 +12,7 @@ path: /project/backend/tests/micro/test_prefix_target_loc_gate.py
 Запуск: cd backend; python -m pytest tests/micro/test_prefix_target_loc_gate.py -v
 """
 
-from app.domain.movement import MacroMovementGoal, IntentDomain
+from app.domain.movement import IntentDomain, MacroMovementGoal
 from app.services.spatial.movement_engine import MovementEngine
 
 

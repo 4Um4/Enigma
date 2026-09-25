@@ -6,7 +6,6 @@ v1-заготовка: манифест + контракт рендера. Ре�
 Основные сущности: JOURNAL_MANIFEST
 """
 import pygame
-
 from ui_workbench.manifests import InputBinding, WindowManifest, WindowState
 
 JOURNAL_MANIFEST = WindowManifest(

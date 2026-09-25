@@ -51,8 +51,8 @@ MODE_LOCAL = "local"  # Редактирование локации
 from tools.constants import (
     MODE_LAB,
     MODE_LOCAL,
-    MODE_WORLD,
     MODE_UIWORKBENCH,
+    MODE_WORLD,
     TOOL_DELETE,
     TOOL_LABEL,
     TOOL_NODE,

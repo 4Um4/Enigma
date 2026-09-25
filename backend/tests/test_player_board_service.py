@@ -144,3 +144,18 @@ def test_player_beliefs_byte_identical(svc):
 
     svc.mutate(CAMPAIGN, _ops)
     assert json.dumps(beliefs, sort_keys=True, ensure_ascii=False) == before
+
+
+def test_board_state_in_reset_list() -> None:
+    """Phase 4.1-R (вердикт Мастера 1): board_state.json обязан быть
+    в списке runtime_files reset_campaign — новая игра = новая пустая
+    доска. Замок от молчаливого выпадения строки (Continue не проходит
+    этот список — доска при загрузке кампании сохраняется)."""
+    from pathlib import Path
+    _src = Path(__file__).resolve().parents[1] / "app" / "services" / \
+        "game_loop" / "campaign_lifecycle.py"
+    _text = _src.read_text(encoding="utf-8")
+    assert '"board_state.json"' in _text, (
+        "board_state.json выпал из reset-списка campaign_lifecycle — "
+        "новая игра унаследует расследование прошлого прохождения"
+    )

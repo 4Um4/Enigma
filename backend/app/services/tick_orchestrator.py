@@ -31,8 +31,8 @@ import time
 
 logger = logging.getLogger(__name__)
 import os
-from uuid import UUID
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
+from uuid import UUID
 
 if TYPE_CHECKING:
     from app.domain.events import EventDTO
@@ -1580,36 +1580,43 @@ class TickOrchestrator:
         # чтобы CombatSubscriber (Фаза 8) вызвал ImpactEngine и нанёс физический урон.
         # Без этого NPC не получает боль/шок, и BehaviorManifestationService не генерирует моторные следы.
         if _sem_action.upper() == "ATTACK":
-            from app.domain.events import EventDTO
-            from app.services.events.event_types import EventType
-
-            # IRON RIVER D-1/P0-3 (F3-1): детерминированный event-id вместо
-            # uuid4 — id входит в боевой rng_seed (combat_subscriber:222) и в
-            # состояние; same (tick, actor, target) → same id → same бой.
-            # INV-REPLAY-DETERMINISM; uuid4 в kernel-событиях запрещён.
-            _evt_id = (
-                f"evt:{int(ctx.tick_number)}:player:{_target_id}:attack"
-            )
-            _attack_event = EventDTO(
-                id=cast(UUID, _evt_id),
-                type=EventType.PLAYER_ATTACKED.value,
-                source="player",
-                timestamp=ctx.scene_state.get("game_time_seconds", 0.0),
-                payload={
-                    "target_id": _target_id,
-                    "target_reference": _sem_target,
-                    # G3-C: semantic_action перенесён из упразднённого
-                    # publisher phase_1_input — consumer claim_event_subscriber:103
-                    # (ATTACK-пропозиция свидетелям, ветка G3-B)
-                    "semantic_action": _sem_action,
-                    "intensity": _payload.get("social_pressure", 0.8),
-                    "actor_id": "player",
-                },
-                visibility="public",
-                radius=15.0,
-                persistence_level="working",
-            )
-            self._event_bus.publish(_attack_event)
+            # WV/вердикт: попытка ≠ событие. Отклонённая действием проверка мира
+            # (action_rejected) не издаёт PLAYER_ATTACKED — свидетели не получают
+            # вер о несостоявшемся ударе; DM сообщает отказ (physics_validation).
+            if getattr(getattr(ctx, "shared_context", None), "action_rejected", False):
+                # WV/вердикт: попытка ≠ событие. Публикация подавлена целиком.
+                logger.info(
+                    f"[WV] PLAYER_ATTACKED suppressed (action_rejected: "
+                    f"{getattr(ctx.shared_context, 'rejection_reason', '')})"
+                )
+            else:
+                # IRON RIVER D-1/P0-3 (F3-1): детерминированный event-id вместо
+                # uuid4 — id входит в боевой rng_seed (combat_subscriber:222) и в
+                # состояние; same (tick, actor, target) → same id → same бой.
+                # INV-REPLAY-DETERMINISM; uuid4 в kernel-событиях запрещён.
+                _evt_id = (
+                    f"evt:{int(ctx.tick_number)}:player:{_target_id}:attack"
+                )
+                _attack_event = EventDTO(
+                    id=cast(UUID, _evt_id),
+                    type=EventType.PLAYER_ATTACKED.value,
+                    source="player",
+                    timestamp=ctx.scene_state.get("game_time_seconds", 0.0),
+                    payload={
+                        "target_id": _target_id,
+                        "target_reference": _sem_target,
+                        # G3-C: semantic_action перенесён из упразднённого
+                        # publisher phase_1_input — consumer claim_event_subscriber:103
+                        # (ATTACK-пропозиция свидетелям, ветка G3-B)
+                        "semantic_action": _sem_action,
+                        "intensity": _payload.get("social_pressure", 0.8),
+                        "actor_id": "player",
+                    },
+                    visibility="public",
+                    radius=15.0,
+                    persistence_level="working",
+                )
+                self._event_bus.publish(_attack_event)
 
         # ADR-082: Регистронезависимое сравнение
         if _sem_action.upper() in ("MOVE", "THREATEN", "PERSUADE", "GIVE"):
@@ -2090,12 +2097,19 @@ class TickOrchestrator:
         # ADR-123: Death Lock. Мёртвые полностью исключаются из reasoning pipeline.
         # FIX-EC (ADR-O-347): локация для фильтра (в этом методе нет _current_loc)
         _current_loc = ctx.scene_state.get("location_id", "")
+        # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 0): автономная decision
+        # population = только NPC_DECISION-акторы. Аватар исключён из решений:
+        # его действие производится player-input pipeline (ADR-TZ08-1), психика —
+        # AvatarStateApplicator (S208, DEBT-R10). Player остаётся в мире:
+        # позиции, восприятие NPC, цели, события, Фаза 1. Ось контроля —
+        # ControlSource, не строковый предикат (единый признак, вердикт Мастера).
+        from app.domain.control_source import ControlSource, resolve_control_source
         _alive_npcs = [
             n
             for n in (ctx.all_npcs_raw or ctx.npc_states)
+            if resolve_control_source((n.get("npc_id") or n.get("id")) or "") is ControlSource.NPC_DECISION
             if (
-                (n.get("npc_id") or n.get("id")) == "player"
-                or n.get("location_id", "") == _current_loc
+                n.get("location_id", "") == _current_loc
                 or n.get("location") == _current_loc
             )
             if n.get("body_state", {}).get("life_status") not in ("DEAD", "UNCONSCIOUS", "COMA")

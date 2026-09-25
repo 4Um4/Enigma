@@ -21,8 +21,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.api import routes_board  # noqa: E402
@@ -151,8 +149,7 @@ def test_g3_epistemic_isolation_live_snapshot(tmp_path):
     не изменились. Проверка против НАСТОЯЩЕЙ проекции: EpistemicStore с
     реальным убеждением игрока → WorldSnapshotBuilder — тот же путь, что
     world_snapshot_builder.py:97-99."""
-    from app.domain.epistemology import Predicate, Proposition
-    from app.domain.epistemology import EpistemicRecord
+    from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
     from app.services.npc.epistemic_store import EpistemicStore
 
     _svc = PlayerBoardService(root=str(tmp_path))

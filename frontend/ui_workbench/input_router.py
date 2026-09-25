@@ -10,7 +10,6 @@ from typing import Dict, Optional
 import pygame
 
 from ui_workbench.registry import WindowRegistry
-from ui_workbench.manifests import WindowState
 
 
 @dataclass(frozen=True)

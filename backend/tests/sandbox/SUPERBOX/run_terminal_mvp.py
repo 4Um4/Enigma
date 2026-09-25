@@ -35,15 +35,15 @@ from app.services.llm.provider_manager import initialize_model_pool
 
 initialize_model_pool()
 
-from app.models.schemas import ChatTurnRequest, PlayerAction
-from app.services.game_loop_builder import build_game_loop
-
 # ── ISOLATION (прецедент DriftLab S129): изолируем ТОЛЬКО saves_dir
 # (runtime-мутации), data_dir остаётся реальным статическим. Open_road
 # не загрязняется экспериментальным вводом.
 import shutil
 import tempfile
+
 from app.core.config import settings as _settings
+from app.models.schemas import ChatTurnRequest, PlayerAction
+from app.services.game_loop_builder import build_game_loop
 
 _TEMP_DIR = tempfile.mkdtemp(prefix="understanding_probe_")
 _SAVES_DST = Path(_TEMP_DIR) / "saves"
@@ -188,16 +188,26 @@ async def main():
             _cur_journal = _ws.get("dialog_journal") or []
             print("\n=== [UNDERSTANDING] ===")
             print(f"A (сказано): {user_input!r}")
-            print("B (понято):  intent/semantic/target — NOT_VISIBLE из run_turn-ответа")
-            print("             (эти объекты не покидают turn-pipeline; см. карту разрывов)")
+            _pip = getattr(response, "player_intent_projection", "<NO_FIELD>")
+            if isinstance(_pip, dict):
+                if _pip:
+                    print("B (понято):")
+                    for _k in sorted(_pip.keys()):
+                        print(f"  {_k}={_pip[_k]!r}")
+                else:
+                    print("B (понято):  {} (пустой резолв — аномалия)")
+            elif _pip is None:
+                print("B (понято):  NOT_VISIBLE (интен не резолвился — проекция None)")
+            else:
+                print("B (понято):  NOT_VISIBLE (поле не в схеме ответа — патч G1 не применён или кэш-фантом)")
             _spoke_entry = next((e for e in reversed(_cur_journal)
                                  if isinstance(e, dict) and e.get("channel") == "self"), None)
-            print(f"C (сделано):")
-            print(f"  PLAYER_SPOKE:    NOT_VISIBLE из ответа (событие на шине, наружу не проецируется)")
+            print("C (сделано):")
+            print("  PLAYER_SPOKE:    NOT_VISIBLE из ответа (событие на шине, наружу не проецируется)")
             print(f"  journal delta:   {_prev_journal_len} -> {len(_cur_journal)}"
                   f" (последняя: ch={_cur_journal[-1].get('channel') if _cur_journal else '?'},"
                   f" event_id={'ЕСТЬ' if (_cur_journal and _cur_journal[-1].get('event_id')) else 'НЕТ'})")
-            print(f"  claims игрока:   NOT_IN_SNAPSHOT (ожидаемо — baseline разрыва)")
+            print("  claims игрока:   NOT_IN_SNAPSHOT (ожидаемо — baseline разрыва)")
             _delta = len(_cur_beliefs) - len(_prev_beliefs)
             print(f"  beliefs:         {_prev_beliefs.__len__()} -> {len(_cur_beliefs)} (delta={_delta})")
             if _delta > 0:
@@ -215,7 +225,8 @@ async def main():
             _audit_logs = getattr(response, "logs", "") or ""  # поля нет в схеме — честно пусто
             
             # 1. Проверка применения урона (если был бой)
-            if "ATTACK" in user_input.upper() or "УДАР" in user_input.upper():
+            _audit_action = (_pip if isinstance(_pip, dict) else {}).get("action", "")
+            if _audit_action == "ATTACK":
                 # Ищем NPC в npc_positions (ChatTurnResponse не содержит npc_states напрямую)
                 _npc_pos = response.npc_positions or {}
                 _any_pain = False

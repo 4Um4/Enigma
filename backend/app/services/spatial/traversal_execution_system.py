@@ -25,7 +25,7 @@ class TraversalExecutionSystem:
         """Вызывается в Фазе 0.5. Продвигает все активные маршруты."""
         traversals = scene_state.get("active_traversals", {})
         if not traversals:
-            return 
+            return
 
         logger.debug(
             f"[TRAV_EXEC_ADVANCE] tick={current_tick} active_traversals={list(traversals.keys())}"

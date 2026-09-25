@@ -22,7 +22,7 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from app.models.schemas import (
     ChatTurnRequest,
@@ -655,7 +655,7 @@ class GameLoop:
     def new_game(
         self,
         campaign_id: str,
-        continuity_mode: "WorldContinuityMode" = None,
+        continuity_mode: Optional["WorldContinuityMode"] = None,
         source_campaign_id: Optional[str] = None
     ) -> dict:
         """Фасад CampaignLifecycle (DEGOD Phase3B). GameLoop-owned:
@@ -693,7 +693,7 @@ class GameLoop:
         """
         engine = self._get_life_engine()
         if engine:
-            return engine.get_npc_light_states(campaign_id)
+            return cast(list[Any], engine.get_npc_light_states(campaign_id))
         return []
 
     def _build_dm_phase_deps(self):
@@ -1414,6 +1414,15 @@ class GameLoop:
         if isinstance(state, _CTR):
             return state
 
+        # G1 Intent Projection: observation-only снимок понимания. Объект
+        # frozen и создан ДО WillpowerGate — чтение здесь = снимок «до».
+        from app.services.game_loop.phase_1_input import build_intent_projection
+        _intent_projection = (
+            build_intent_projection(state.shared_context.intent_resolution)
+            if state.shared_context
+            else None
+        )
+
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
         # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
         if state.shared_context:
@@ -1471,6 +1480,7 @@ class GameLoop:
                     traces=[],
                     world_snapshot=state.shared_context.world_snapshot or {},
                     will_conflict_data=None,
+                    player_intent_projection=_intent_projection,
                 )
             # Recovery: пробуем перезапустить llama-server и повторить запрос
             try:
@@ -1739,6 +1749,8 @@ class GameLoop:
             will_conflict_data=state.shared_context.will_conflict_data  # noqa: ENIGMA001
             if state.shared_context
             else None,
+            # G1: проекция понимания интента (observation-only)
+            player_intent_projection=_intent_projection,
             # Sprint P9: Проброс ObservedFactsBundle для UI и DM
             observed_facts=_resp_facts,
             journal_entry_id=self.memory_manager.persist_dm_response(

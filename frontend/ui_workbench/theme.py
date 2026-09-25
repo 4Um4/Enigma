@@ -20,6 +20,7 @@ _DEFAULT_TOKENS: Dict[str, Color] = {
     "text_primary": (220, 220, 225),
     "text_muted": (140, 140, 150),
     "accent": (230, 190, 90),
+    "danger": (196, 84, 84),
 }
 
 

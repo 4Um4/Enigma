@@ -76,6 +76,10 @@ class ChatTurnResponse(BaseModel):
     npc_positions: Optional[Dict[str, Any]] = None
     # Спринт 26: Артефакты Конфликта Воли (Embodied Perception Interface)
     will_conflict_data: Optional[Dict[str, Any]] = None
+    # G1: observation-only проекция фактического состояния intent-пайплайна.
+    # Не SSOT, не пишет в эпистемику, семантику обработки не меняет.
+    # Только фактически существующие поля; нет резолва → None (§ENIGMA-003).
+    player_intent_projection: Optional[Dict[str, Any]] = None
     # Sprint P9: Факты, донесённые до игрока (для UI и отладки)
     observed_facts: List[Any] = []
 

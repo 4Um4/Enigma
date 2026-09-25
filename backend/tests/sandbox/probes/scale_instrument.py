@@ -18,9 +18,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))  # backend/
 
-from tests.sandbox.SUPERBOX.drift_laboratory import DriftConfig, DriftLaboratory  # noqa: E402
 from app.services.events.event_bus import get_event_bus  # noqa: E402
 from app.services.npc import l1_chronicle as _l1_mod  # noqa: E402
+from tests.sandbox.SUPERBOX.drift_laboratory import DriftConfig, DriftLaboratory  # noqa: E402
 
 _L1_METHODS = ("append", "commit_tick_buffer", "archive_old_events", "query_raw", "query_weighted")
 
@@ -221,7 +221,7 @@ def _report(rows: list, step: str, l1_by_name: dict, qraw_callers: dict) -> str:
         f"p95={p95:.2f} max={ms[-1] if ms else 0:.2f}",
         f"- EventBus events/tick: mean={sum(events)/max(1, len(events)):.1f} max={events[-1] if events else 0}",
         f"- L1 calls (total): {rows[-1]['l1_calls'] if rows else 0}",
-        f"- L1 attribution: " + ", ".join(
+        "- L1 attribution: " + ", ".join(
             f"{k}={v}" for k, v in sorted(l1_by_name.items(), key=lambda kv: -kv[1])
         ),
         "- query_raw callers (top-5): " + ", ".join(

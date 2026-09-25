@@ -343,6 +343,18 @@ class DecisionHub:
 
         Возвращает None для невербальных intent (FLEE, ATTACK, IDLE...).
         """
+        # INV-PLAYER-AUTHORSHIP (мини-ADR F1): автономный decision pipeline
+        # не порождает авторский акт аватара. Player легален как target /
+        # observer / источник события / объект убеждений — запрещено ТОЛЬКО
+        # авторство. Ось контроля — ControlSource, не строковый гард.
+        from app.domain.control_source import ControlSource, resolve_control_source
+        if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+            logger.info(
+                f"[INV-PLAYER-AUTHORSHIP] speaker={npc_id!r}: авторский "
+                f"CommunicationIntent запрещён (control_source="
+                f"{resolve_control_source(npc_id).value}), intent={intent_value!r} отклонён"
+            )
+            return None
         if intent_value not in self._VERBAL_INTENTS:
             return None
         # Тема: из фазы 4 или фоллбэк по intent

@@ -5,7 +5,7 @@ import logging
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Protocol
+from typing import Any, Dict, List, Protocol, cast
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class JsonMemoryStore:
             return {}
         try:
             with path.open("r", encoding="utf-8") as f:
-                return json.load(f)
+                return cast(Dict[str, Any], json.load(f))
         except (IOError, json.JSONDecodeError) as e:
             logger.error(f"Failed to load state from {collection}: {e}")
             return {}

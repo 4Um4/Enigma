@@ -112,6 +112,9 @@ flowchart TD
         SceneOutcomeBuilder("Scene Outcome Builder"):::application
         WorldObjectStore("World Object Store (Topology Facade)"):::application
         AffordanceResolver("AffordanceResolver (W2 Pure Affordance Projection)"):::application
+        WorldObjectSpawner("WorldObjectSpawner (Production Spawn: editor→runtime)"):::application
+        WorldObjectProjection("WorldObjectProjection (W1→W2 Snapshot Bridge)"):::application
+        AffordanceShadow("AffordanceShadow (Gate-1 Discovery Shadow)"):::application
     end
 
     subgraph DOMAIN[Domain Layer]
@@ -127,6 +130,7 @@ flowchart TD
         InstitutionalInertia("Institutional Inertia"):::domain
         InstitutionLayer("Village Institution Layer"):::domain
         RiskPerceptionProfile("Risk Perception Profile"):::domain
+        ControlSource["Control Source Axis (Agentness)"]:::domain
         CoreConstants("core.constants (SSOT калибруемых констант)"):::domain
         CalibrationPreset["Calibration Preset (constants + npc_overrides + scenario + seed)"]:::domain
         CalibrationMetrics("Calibration Metrics (M0: CharacterChange, DecisionDiversity, LoopRate, EventResponsiveness, CausalDepth)"):::domain
@@ -283,6 +287,7 @@ flowchart TD
         VerbalStance["Verbal Stance"]:::domain
         WorldObject("WorldObject (Semantic World Entity)"):::domain
         ObjectRelation["ObjectRelation (Query Projection DTO)"]:::domain
+        ObjectFSMs("ObjectFSMs (W3 Pure Transitions)"):::domain
     end
 
     subgraph INFRASTRUCTURE[Infrastructure Layer]
@@ -609,6 +614,13 @@ flowchart TD
     WorldObjectStore -->|"typed operations: spawn / establish / release / relocate"| WorldObject
     WorldObjectStore -->|"scene_state['world_objects'] subtree (lazy on write only)"| SceneState
     WorldObjectStore -->|"read-only composition (query_objects_at -> resolve)"| AffordanceResolver
+    WorldObjectStore -->|"apply_transition / apply_damage (коммит ТОЛЬКО на PASS)"| ObjectFSMs
+    ObjectFSMs -->|"TransitionResult → новый объект (safe by construction)"| WorldObject
+    SceneState -->|"initialize_scene (новая сцена; editor_data)"| WorldObjectSpawner
+    WorldObjectSpawner -->|"spawn (единственный путь записи)"| WorldObjectStore
+    TickOrchestrator -->|"G1-врезка после build_snapshot (до PRE-TICK)"| AffordanceShadow
+    AffordanceShadow -->|"discovery по проекции снапшота"| WorldObjectProjection
+    WorldObjectProjection -->|"Tuple[WorldObject] → resolve (pure)"| AffordanceResolver
 
     %% === АРХИТЕКТУРНЫЕ ЗАПРЕТЫ ===
     DecisionHub -.->|"🚫 FORBIDDEN: Use T+0 pressure (Only T-1)"| Raw_Delta:::forbidden
@@ -626,6 +638,7 @@ flowchart TD
     Engine -.->|"🚫 FORBIDDEN: Engine generates meaning or assigns emotion (§ENIGMA-S72)"| Emotion:::forbidden
     DecisionHub -.->|"🚫 REQUIRED: _emotion_modifier must receive drives_base (§ENIGMA-S72)"| EmotionTag:::forbidden
     LegacyStateDeltaAdapter -.->|"🚫 FORBIDDEN: Convert uncertainty_delta to stress_delta (§ENIGMA-004)"| stress_delta:::forbidden
+    ControlSource -.->|"🚫 FORBIDDEN: CommunicationIntent(speaker='player') из autonomous decision pipeline (ADR-O-406)"| AutonomousAuthorship:::forbidden
     AvatarPresentationAssembler -.->|"🚫 REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (ADR-094 MSOC)"| pain_fatigue:::forbidden
     PressureTranslator -.->|"🚫 REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (ADR-094 MSOC)"| pain:::forbidden
     AvatarStateDTO -.->|"🚫 REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137)"| life_status:::forbidden
@@ -894,6 +907,10 @@ flowchart TD
     WorldObjectStore -.->|"🚫 REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish)"| WorldObject:::forbidden
     WorldObject -.->|"🚫 REQUIRED: carrier exclusivity — ровно один из holder/container_id/attachment; SUPPORTED_BY/OCCUPIED_BY совместимы только с FREE; USED_BY — независимая ось"| CarrierMode:::forbidden
     WorldTopologyProvider -.->|"🚫 FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2)"| WorldObjectStore:::forbidden
+    ObjectFSMs -.->|"🚫 FORBIDDEN: доменный переход вызывает стор; стор содержит FSM-логику; except→REJECT (тихая конверсия доменного исключения)"| WorldObjectStore:::forbidden
+    AffordanceShadow -.->|"🚫 FORBIDDEN: discovery читает живой scene_state (только проекция замороженного снапшота тика); результат тени входит в decision-вход"| SceneState:::forbidden
+    WorldObjectSpawner -.->|"🚫 FORBIDDEN: identity содержит локацию как семантику; спавн вне initialize_scene; presentation-поля в проекции; расширение SpawnMapping без мини-записи"| WorldObject:::forbidden
+    Any -.->|"🚫 REQUIRED: G2 (AffordanceSet → DecisionHub read-only вход) и G3 (исполнение: ревалидация precondition-кортежей → transition → мутация → Fact) — отдельные гейты; STEAL = W5-интерпретация TAKE; TRANSFER = атомарный W6-примитив; async-шум не SSOT"| AffordanceShadow:::forbidden
 ```
 
 ## ⏱ Временные Диаграммы (Sequence Diagrams)
@@ -1663,6 +1680,13 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | WorldObjectStore | WorldObject | typed operations: spawn / establish / release / relocate | Мутация protected-полей ТОЛЬКО через операции; переходы в domain-слое валидируются конструктором (safe by construction). | `-` | - |
 | WorldObjectStore | SceneState | scene_state['world_objects'] subtree (lazy on write only) | SSOT — subtree scene_state; стор ничего не держит; на диск — только atomic_commit_all (Foundation Freeze); загрузка — load_scene_at. | `-` | - |
 | WorldObjectStore | AffordanceResolver | read-only composition (query_objects_at -> resolve) | W2 НЕ расширяет WorldTopologyProvider (ADR-O-371 taboo); объекты — только через стор/снапшот-поле; resolver pure, без IO/LLM/мутаций | `-` | - |
+| WorldObjectStore | ObjectFSMs | apply_transition / apply_damage (коммит ТОЛЬКО на PASS) | «FSM определяет семантический переход; Store определяет, где переход становится World State». Стор FSM-логики не содержит; домен стора не знает. | `-` | - |
+| ObjectFSMs | WorldObject | TransitionResult → новый объект (safe by construction) | Все переходы через конструктор → __post_init__-валидация онтологии неизбежна. | `-` | - |
+| SceneState | WorldObjectSpawner | initialize_scene (новая сцена; editor_data) | Сейв выигрывает: загруженная сцена возвращается без спавна — идемпотентность контуром вызова. | `-` | - |
+| WorldObjectSpawner | WorldObjectStore | spawn (единственный путь записи) | Второго пути рождения нет; дубль id — STRICT-отказ стора, fault isolation спавнера. | `-` | - |
+| TickOrchestrator | AffordanceShadow | G1-врезка после build_snapshot (до PRE-TICK) | Ноль decision-input: результат НЕ кладётся в ctx; флаг OFF=no-op; отказ наблюдателя не роняет тик (§11). | `-` | - |
+| AffordanceShadow | WorldObjectProjection | discovery по проекции снапшота | Позиции NPC — только snapshot.npc_positions; живой scene_state discovery не читает. | `-` | - |
+| WorldObjectProjection | AffordanceResolver | Tuple[WorldObject] → resolve (pure) | W2 остаётся pure; хранилище не трогается; замена представления не требует переписывания W2. | `-` | - |
 
 ### Архитектурные запреты (Constraints)
 
@@ -1683,6 +1707,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | Engine | Emotion | FORBIDDEN: Engine generates meaning or assigns emotion (§ENIGMA-S72) | `tick_orchestrator.py, affective_integrator.py, decision_hub.py` |
 | DecisionHub | EmotionTag | REQUIRED: _emotion_modifier must receive drives_base (§ENIGMA-S72) | `decision_hub.py:1056-1084` |
 | LegacyStateDeltaAdapter | stress_delta | FORBIDDEN: Convert uncertainty_delta to stress_delta (§ENIGMA-004) | `legacy_delta_adapter.py:60-65` |
+| ControlSource | AutonomousAuthorship | FORBIDDEN: CommunicationIntent(speaker='player') из autonomous decision pipeline (ADR-O-406) | `domain/control_source.py, decision_hub.py:_build_communication, npc_tick_pipeline.py:attack-factory+TickMutation, tick_orchestrator.py:_phase_5_decision` |
 | AvatarPresentationAssembler | pain_fatigue | REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (ADR-094 MSOC) | `avatar_presentation_assembler.py:34-35` |
 | PressureTranslator | pain | REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (ADR-094 MSOC) | `pressure_translator.py:53` |
 | AvatarStateDTO | life_status | REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137) | `snapshot.py:34-56` |
@@ -1951,3 +1976,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | WorldObjectStore | WorldObject | REQUIRED: мутация ТОЛЬКО через типизированные операции; generic update(**changes) запрещён; auto-release запрещён (явная цепочка release -> establish) | `-` |
 | WorldObject | CarrierMode | REQUIRED: carrier exclusivity — ровно один из holder/container_id/attachment; SUPPORTED_BY/OCCUPIED_BY совместимы только с FREE; USED_BY — независимая ось | `-` |
 | WorldTopologyProvider | WorldObjectStore | FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2) | `-` |
+| ObjectFSMs | WorldObjectStore | FORBIDDEN: доменный переход вызывает стор; стор содержит FSM-логику; except→REJECT (тихая конверсия доменного исключения) | `-` |
+| AffordanceShadow | SceneState | FORBIDDEN: discovery читает живой scene_state (только проекция замороженного снапшота тика); результат тени входит в decision-вход | `-` |
+| WorldObjectSpawner | WorldObject | FORBIDDEN: identity содержит локацию как семантику; спавн вне initialize_scene; presentation-поля в проекции; расширение SpawnMapping без мини-записи | `-` |
+| Any | AffordanceShadow | REQUIRED: G2 (AffordanceSet → DecisionHub read-only вход) и G3 (исполнение: ревалидация precondition-кортежей → transition → мутация → Fact) — отдельные гейты; STEAL = W5-интерпретация TAKE; TRANSFER = атомарный W6-примитив; async-шум не SSOT | `-` |

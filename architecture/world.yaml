@@ -1,5 +1,5 @@
 domain: WORLD
-description: "Семантическая объектная топология мира (W-track Части II, ADR-O-371). W0: WorldObject существует независимо от renderer. W1: реляционная нормализация — семь отношений хранятся canonical single-side; CarrierMode — онтология авторитета позиции (ровно один). Матрица конфликтов сверх carrier-режимов — калибруемая ПОЛИТИКА, не онтология (вердикт Мастера, S226). SSOT — scene_state['world_objects']; стор stateless (прецедент CommitmentRegistry); persistence — только через существующий atomic_commit_all (Foundation Freeze). Мост в тик: build_snapshot замораживает subtree deepcopy-полем WorldSnapshot.world_objects (паттерн active_commitments, S215). W0-коррекция (удалены topology_relations/containment/affordances stored, WorldObjectRegistry) поглощена ADR-O-371 — потребителей не было. Runtime-writers: 0 (доктрина M1a) до W3 causal writer."
+description: "Семантическая объектная топология мира (W-track Части II, ADR-O-371). W0: WorldObject существует независимо от renderer. W1: реляционная нормализация — семь отношений хранятся canonical single-side; CarrierMode — онтология авторитета позиции (ровно один). Матрица конфликтов сверх carrier-режимов — калибруемая ПОЛИТИКА, не онтология (вердикт Мастера, S226). SSOT — scene_state['world_objects']; стор stateless (прецедент CommitmentRegistry); persistence — только через существующий atomic_commit_all (Foundation Freeze). Мост в тик: build_snapshot замораживает subtree deepcopy-полем WorldSnapshot.world_objects (паттерн active_commitments, S215). W0-коррекция (удалены topology_relations/containment/affordances stored, WorldObjectRegistry) поглощена ADR-O-371— потребителей не было. Runtime-writers: 0 (доктрина M1a) до W3 causal writer."
 nodes:
   WorldObject:
     type: domain
@@ -15,12 +15,32 @@ nodes:
     type: service
     layer: Application
     label: "World Object Store (Topology Facade)"
-    description: "ADR-O-371: единственный фасад над scene_state['world_objects']. Статический сервис (прецеденты: CommitmentRegistry / RelationshipStateStore). Read: frozen DTO, без lazy-init, повреждённая структура — громкий отказ. Write: ТОЛЬКО типизированные операции (spawn / establish_relation / release_relation / relocate); generic update(**changes) отсутствует by construction; межобъектная валидация (существование object-целей, циклы, опора FREE+та же локация, позиционные зависимые). Caller-guard отложен до W3 (появление легального runtime-writer)."
+    description: "ADR-O-371: единственный фасад над scene_state['world_objects']. Статический сервис (прецеденты: CommitmentRegistry / RelationshipStateStore). Read: frozen DTO, без lazy-init, повреждённая структура — громкий отказ. Write: ТОЛЬКО типизированные операции (spawn / establish_relation / release_relation / relocate); generic update(**changes) отсутствует by construction; межобъектная валидация (существование object-целей, циклы, опора FREE+та же локация, позиционные зависимые). Caller-guard отложендо W3 (появление легального runtime-writer)."
   AffordanceResolver:
     type: service
     layer: Application
     label: "AffordanceResolver (W2 Pure Affordance Projection)"
     description: "ADR-O-372: pure (WorldObject, BodyStateView, npc_position) -> Tuple[SemanticAction, ...]; возвращает действия с выполненными предусловиями, кортежи — для ревалидации W3. Stored-поля affordances нет (ADR-O-371). Реестр предикатов v1 закрыт (7); WorldActionType — закрытый enum (19, ТЗ §19.2). Вход тела — BodyStateView (frozen read-model, оси через vital_state). Substrate-only: 0 runtime-потребителей; wiring — W3."
+  ObjectFSMs:
+    type: domain
+    layer: Domain
+    label: "ObjectFSMs (W3 Pure Transitions)"
+    description: "ADR-O-376: transition_object/damage_object — ЧИСТЫЕ переходы (ТЗ §22.1: door/container state-FSM, chair — ПОЛИТИКА над операциями отношений W1). TransitionResult (PASS|NO_OP|REJECT + reason, не bool — L4) несёт old_state + topology_effect (О8: door-PASS → potential passability change; invalidation — W5). damage>=1.0 → archetype-терминал (container DESTROYED терминален). Не знает стор/IO."
+  WorldObjectSpawner:
+    type: service
+    layer: Application
+    label: "WorldObjectSpawner (Production Spawn: editor→runtime)"
+    description: "ADR-O-376: editor objects → WorldObject через SpawnMapping-реестр (door+door_transition→door, chair; расширение=мини-запись). object_id=wo_<md5(campaign:spawn_loc:editor_id)> — IDENTITY≠LOCATION. State-проекция locked/open. Presentation-поля отбрасываются (W0). Только initialize_scene (сейв выигрывает). Fault isolation per-object."
+  WorldObjectProjection:
+    type: service
+    layer: Application
+    label: "WorldObjectProjection (W1→W2 Snapshot Bridge)"
+    description: "ADR-O-376: frozen snapshot.world_objects → Tuple[WorldObject] + location-фильтр. Мост между W1-снапшотом и W2-резолвером (resolver в storage не лезет; представление заменимо без переписывания W2 — вердикт Q1a). Повреждённые записи: warning + skip (чистота наблюдателя)."
+  AffordanceShadow:
+    type: service
+    layer: Application
+    label: "AffordanceShadow (Gate-1 Discovery Shadow)"
+    description: "ADR-O-376 G1: snapshot → projection → resolver → [W3_SHADOW] log/metric. Точка: после build_snapshot, ДО PRE-TICK/Фаз 0+ (affordances ДО решений — Q2). Discovery читает ТОЛЬКО фотографию тика. env W3_SHADOW_ENABLED default OFF=no-op. Ноль writers/decisions/events. ShadowMetrics = discovery-статистика (≠ G3-execution-причины). GORAN β G1: GREEN + ambient qualification (AB {2,6,2,2} vs фон {4,7}). G2/G3 — КОНТРАКТ, не реализовано."
 edges:
   - from: WorldObjectStore
     to: WorldObject
@@ -34,6 +54,34 @@ edges:
     to: AffordanceResolver
     label: "read-only composition (query_objects_at -> resolve)"
     condition: "W2 НЕ расширяет WorldTopologyProvider (ADR-O-371 taboo); объекты — только через стор/снапшот-поле; resolver pure, без IO/LLM/мутаций"
+  - from: WorldObjectStore
+    to: ObjectFSMs
+    label: "apply_transition / apply_damage (коммит ТОЛЬКО на PASS)"
+    condition: "«FSM определяет семантический переход; Store определяет, где переход становится World State». Стор FSM-логики не содержит; домен стора не знает."
+  - from: ObjectFSMs
+    to: WorldObject
+    label: "TransitionResult → новый объект (safe by construction)"
+    condition: "Все переходы через конструктор → __post_init__-валидация онтологии неизбежна."
+  - from: SceneState
+    to: WorldObjectSpawner
+    label: "initialize_scene (новая сцена; editor_data)"
+    condition: "Сейв выигрывает: загруженная сцена возвращается без спавна — идемпотентность контуром вызова."
+  - from: WorldObjectSpawner
+    to: WorldObjectStore
+    label: "spawn (единственный путь записи)"
+    condition: "Второго пути рождения нет; дубль id — STRICT-отказ стора, fault isolation спавнера."
+  - from: TickOrchestrator
+    to: AffordanceShadow
+    label: "G1-врезка после build_snapshot (до PRE-TICK)"
+    condition: "Ноль decision-input: результат НЕ кладётся в ctx; флаг OFF=no-op; отказ наблюдателя не роняет тик (§11)."
+  - from: AffordanceShadow
+    to: WorldObjectProjection
+    label: "discovery по проекции снапшота"
+    condition: "Позиции NPC — только snapshot.npc_positions; живой scene_state discovery не читает."
+  - from: WorldObjectProjection
+    to: AffordanceResolver
+    label: "Tuple[WorldObject] → resolve (pure)"
+    condition: "W2 остаётся pure; хранилище не трогается; замена представления не требует переписывания W2."
 constraints:
   - source: AffordanceResolver
     target: WorldObject
@@ -64,56 +112,6 @@ constraints:
     rule: "FORBIDDEN: расширение WorldTopologyProvider объектными запросами (ETKE-IK поле не знает scene_state; канонический объектный API — WorldObjectStore; композиция — W2)"
     severity: HIGH
     adr_ref: "ADR-O-371"
-  ObjectFSMs:
-    type: domain
-    layer: Domain
-    label: "ObjectFSMs (W3 Pure Transitions)"
-    description: "ADR-O-376: transition_object/damage_object — ЧИСТЫЕ переходы (ТЗ §22.1: door/container state-FSM, chair — ПОЛИТИКА над операциями отношений W1). TransitionResult (PASS|NO_OP|REJECT + reason, не bool — L4) несёт old_state + topology_effect (О8: door-PASS → potential passability change; invalidation — W5). damage>=1.0 → archetype-терминал (container DESTROYED терминален). Не знает стор/IO."
-  WorldObjectSpawner:
-    type: service
-    layer: Application
-    label: "WorldObjectSpawner (Production Spawn: editor→runtime)"
-    description: "ADR-O-376: editor objects → WorldObject через SpawnMapping-реестр (door+door_transition→door, chair; расширение=мини-запись). object_id=wo_<md5(campaign:spawn_loc:editor_id)> — IDENTITY≠LOCATION. State-проекция locked/open. Presentation-поля отбрасываются (W0). Только initialize_scene (сейв выигрывает). Fault isolation per-object."
-  WorldObjectProjection:
-    type: service
-    layer: Application
-    label: "WorldObjectProjection (W1→W2 Snapshot Bridge)"
-    description: "ADR-O-376: frozen snapshot.world_objects → Tuple[WorldObject] + location-фильтр. Мост между W1-снапшотом и W2-резолвером (resolver в storage не лезет; представление заменимо без переписывания W2 — вердикт Q1a). Повреждённые записи: warning + skip (чистота наблюдателя)."
-  AffordanceShadow:
-    type: service
-    layer: Application
-    label: "AffordanceShadow (Gate-1 Discovery Shadow)"
-    description: "ADR-O-376 G1: snapshot → projection → resolver → [W3_SHADOW] log/metric. Точка: после build_snapshot, ДО PRE-TICK/Фаз 0+ (affordances ДО решений — Q2). Discovery читает ТОЛЬКО фотографию тика. env W3_SHADOW_ENABLED default OFF=no-op. Ноль writers/decisions/events. ShadowMetrics = discovery-статистика (≠ G3-execution-причины). GORAN β G1: GREEN + ambient qualification (AB {2,6,2,2} vs фон {4,7}). G2/G3 — КОНТРАКТ, не реализовано."
-edges:
-  - from: WorldObjectStore
-    to: ObjectFSMs
-    label: "apply_transition / apply_damage (коммит ТОЛЬКО на PASS)"
-    condition: "«FSM определяет семантический переход; Store определяет, где переход становится World State». Стор FSM-логики не содержит; домен стора не знает."
-  - from: ObjectFSMs
-    to: WorldObject
-    label: "TransitionResult → новый объект (safe by construction)"
-    condition: "Все переходы через конструктор → __post_init__-валидация онтологии неизбежна."
-  - from: SceneState
-    to: WorldObjectSpawner
-    label: "initialize_scene (новая сцена; editor_data)"
-    condition: "Сейв выигрывает: загруженная сцена возвращается без спавна — идемпотентность контуром вызова."
-  - from: WorldObjectSpawner
-    to: WorldObjectStore
-    label: "spawn (единственный путь записи)"
-    condition: "Второго пути рождения нет; дубль id — STRICT-отказ стора, fault isolation спавнера."
-  - from: TickOrchestrator
-    to: AffordanceShadow
-    label: "G1-врезка после build_snapshot (до PRE-TICK)"
-    condition: "Ноль decision-input: результат НЕ кладётся в ctx; флаг OFF=no-op; отказ наблюдателя не роняет тик (§11)."
-  - from: AffordanceShadow
-    to: WorldObjectProjection
-    label: "discovery по проекции снапшота"
-    condition: "Позиции NPC — только snapshot.npc_positions; живой scene_state discovery не читает."
-  - from: WorldObjectProjection
-    to: AffordanceResolver
-    label: "Tuple[WorldObject] → resolve (pure)"
-    condition: "W2 остаётся pure; хранилище не трогается; замена представления не требует переписывания W2."
-constraints:
   - source: ObjectFSMs
     target: WorldObjectStore
     rule: "FORBIDDEN: доменный переход вызывает стор; стор содержит FSM-логику; except→REJECT (тихая конверсия доменного исключения)"
