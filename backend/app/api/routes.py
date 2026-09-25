@@ -1005,11 +1005,29 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
                         if isinstance(p, dict)
                     }
 
+        # Resume-фикс (action-путь — ОСНОВНОЙ путь ходов из игры): пишем в
+        # metadata ФАКТИЧЕСКУЮ локацию игрока из world_snapshot (npc_positions.
+        # player.location_id), а не резолв запроса — факт устойчив к
+        # рассинхронам резолва/oracle. Раньше writer жил только в turn-пути,
+        # metadata оставалась пустой, resume телепортировал на стартовую
+        # локацию (find_starting_location).
         if result is None:
             raise HTTPException(
                 status_code=500,
                 detail="Game loop returned None — internal pipeline failure",
             )
+        try:
+            _player_ws = (_npc_pos_dict or {}).get("player") or {}
+            _fact_loc = _player_ws.get("location_id") if isinstance(
+                _player_ws, dict
+            ) else getattr(_player_ws, "location_id", None)
+            if _fact_loc:
+                _cs_action = campaign_service.get_campaign_state(campaign_id)
+                if _cs_action is not None:
+                    _cs_action.metadata["current_location"] = _fact_loc
+                    campaign_service.save(campaign_id)
+        except Exception as _loc_err:  # noqa: ENIGMA001
+            logger.warning(f"[ACTION] current_location persist failed: {_loc_err}")
 
         return {
             "response": result.dm_response,

@@ -33,6 +33,10 @@ _OBSERVATION_SIGHT_RADIUS: float = 10.0
 # ADR-O-360.
 _OBSERVABLE_EVENT_PREDICATES: dict[str, Predicate] = {
     "theft": Predicate.STOLE,
+    # G3-B (мини-ревизия ADR-O-360, вердикт Мастера): player-атака —
+    # наблюдаемое событие. Свидетели (LOS+radius мембрана) получают
+    # belief «player ATTACKED target» через тот же testimony-движок.
+    "player_attacked": Predicate.ATTACKED,
     # SPATIAL-KNOWLEDGE-01 P3: «X прошёл через boundary в направлении Y».
     # payload: actor=X (source), target_id=Y (целевая локация). Свидетели —
     # те, кто ВИДИТActor в момент ухода (LOS-мембрана та же).
@@ -68,6 +72,8 @@ class ObservationSubscriber:
     def on_world_event(self, event: Any) -> None:
         """Точка входа EventBus. THEFT → убеждение свидетелей (player, STOLE, target)."""
         event_type = getattr(event, "type", None)
+        # [OBS_DIAG] временный зонд (санитарно, удаляется после G3-B закрытия)
+        print(f"[OBS_DIAG] on_world_event: type={event_type!r}")
         if event_type is None:
             return
 
@@ -85,6 +91,8 @@ class ObservationSubscriber:
             return
 
         witnesses = self._get_witnesses(actor_id)
+        # [OBS_DIAG] временный зонд
+        print(f"[OBS_DIAG] witnesses={witnesses} (actor={actor_id}, target={target_id})")
         if not witnesses:
             return
 

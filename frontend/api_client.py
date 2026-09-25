@@ -298,6 +298,62 @@ class BackendContract:
             {"campaign_id": campaign_id, "world_id": world_id},
         )
 
+    # ── Investigation Board (Phase 4): presentation-persistence ─────
+    # Board хранит организацию ссылок, не знание: ref_id opaque, резолв
+    # материала — работа клиента (джойн против dialog_journal).
+
+    def get_board(self, campaign_id: str) -> dict:
+        return self._t.get(f"/api/board/{campaign_id}")
+
+    def board_card_add(
+        self, campaign_id: str, ref_type: str, ref_id: str,
+        pos: list | None = None,
+    ) -> dict:
+        _payload: dict = {"op": "add", "ref_type": ref_type, "ref_id": ref_id}
+        if pos is not None:
+            _payload["pos"] = [float(pos[0]), float(pos[1])]
+        return self._t.post(f"/api/board/{campaign_id}/cards", _payload)
+
+    def board_card_move(
+        self, campaign_id: str, card_id: str, pos: list,
+    ) -> dict:
+        return self._t.post(
+            f"/api/board/{campaign_id}/cards",
+            {"op": "move", "card_id": card_id,
+             "pos": [float(pos[0]), float(pos[1])]},
+        )
+
+    def board_card_remove(self, campaign_id: str, card_id: str) -> dict:
+        return self._t.post(
+            f"/api/board/{campaign_id}/cards",
+            {"op": "remove", "card_id": card_id},
+        )
+
+    def board_link(
+        self, campaign_id: str, from_id: str, to_id: str, kind: str,
+        unlink_op: bool = False,
+    ) -> dict:
+        # Ключи "from"/"to" — JSON-схема доски (Pydantic alias на бэкенде)
+        return self._t.post(
+            f"/api/board/{campaign_id}/links",
+            {"op": "unlink" if unlink_op else "link",
+             "from": from_id, "to": to_id, "kind": kind},
+        )
+
+    def board_hypothesis(
+        self, campaign_id: str, op: str,
+        hyp_id: str | None = None, text: str | None = None,
+        status: str | None = None,
+    ) -> dict:
+        _payload: dict = {"op": op}
+        if hyp_id is not None:
+            _payload["hyp_id"] = hyp_id
+        if text is not None:
+            _payload["text"] = text
+        if status is not None:
+            _payload["status"] = status
+        return self._t.post(f"/api/board/{campaign_id}/hypotheses", _payload)
+
     @staticmethod
     def _map_action_response(raw: dict) -> GameActionResponse:
         """Маппинг JSON → доменный объект. Единственное место с полями ответа."""
@@ -423,6 +479,40 @@ class HttpGameGateway:
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
         return self._contract.load_campaign(campaign_id, world_id)
+
+    # ── Investigation Board (Phase 4): делегирование контракту ──────
+
+    def get_board(self, campaign_id: str) -> dict:
+        return self._contract.get_board(campaign_id)
+
+    def board_card_add(
+        self, campaign_id: str, ref_type: str, ref_id: str,
+        pos: list | None = None,
+    ) -> dict:
+        return self._contract.board_card_add(campaign_id, ref_type, ref_id, pos)
+
+    def board_card_move(self, campaign_id: str, card_id: str, pos: list) -> dict:
+        return self._contract.board_card_move(campaign_id, card_id, pos)
+
+    def board_card_remove(self, campaign_id: str, card_id: str) -> dict:
+        return self._contract.board_card_remove(campaign_id, card_id)
+
+    def board_link(
+        self, campaign_id: str, from_id: str, to_id: str, kind: str,
+        unlink_op: bool = False,
+    ) -> dict:
+        return self._contract.board_link(
+            campaign_id, from_id, to_id, kind, unlink_op,
+        )
+
+    def board_hypothesis(
+        self, campaign_id: str, op: str,
+        hyp_id: str | None = None, text: str | None = None,
+        status: str | None = None,
+    ) -> dict:
+        return self._contract.board_hypothesis(
+            campaign_id, op, hyp_id, text, status,
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -645,6 +735,59 @@ class FallbackGateway:
             return self._primary.get_end_screen(campaign_id)
         logger.warning("[FALLBACK_GATEWAY] get_end_screen not available, returning empty")
         return {}
+
+    # ── Phase 4: Investigation Board (S290-фикс: FallbackGateway не имел
+    # board-методов → AttributeError. Отклонение от прецедента заглушки
+    # осознанное: пустая доска в офлайне лжёт игроку («расследование
+    # пропало»); BackendError честно рисуется в окне через _board_error.) ──
+
+    def get_board(self, campaign_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "get_board"):
+            return self._primary.get_board(campaign_id)
+        raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
+
+    def board_card_add(
+        self, campaign_id: str, ref_type: str, ref_id: str,
+        pos: list | None = None,
+    ) -> dict:
+        if self._primary and hasattr(self._primary, "board_card_add"):
+            return self._primary.board_card_add(campaign_id, ref_type, ref_id, pos)
+        raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
+
+    def board_card_move(self, campaign_id: str, card_id: str, pos: list) -> dict:
+        if self._primary and hasattr(self._primary, "board_card_move"):
+            return self._primary.board_card_move(campaign_id, card_id, pos)
+        raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
+
+    def board_card_remove(self, campaign_id: str, card_id: str) -> dict:
+        if self._primary and hasattr(self._primary, "board_card_remove"):
+            return self._primary.board_card_remove(campaign_id, card_id)
+        raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
+
+    def board_link(
+        self, campaign_id: str, from_id: str, to_id: str, kind: str,
+        unlink_op: bool = False,
+    ) -> dict:
+        if self._primary and hasattr(self._primary, "board_link"):
+            return self._primary.board_link(
+                campaign_id, from_id, to_id, kind, unlink_op)
+        raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
+
+    def board_hypothesis(
+        self, campaign_id: str, op: str,
+        hyp_id: str | None = None, text: str | None = None,
+        status: str | None = None,
+    ) -> dict:
+        if self._primary and hasattr(self._primary, "board_hypothesis"):
+            return self._primary.board_hypothesis(
+                campaign_id, op, hyp_id, text, status)
+        raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
 
     """
     HTTP приоритет, Direct fallback при обрыве.

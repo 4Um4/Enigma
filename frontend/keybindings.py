@@ -15,6 +15,7 @@ DEFAULT_KEYBINDS = {
     "move_right": "d",
     "interact": "e",
     "open_journal": "j",
+    "open_board": "b",           # Phase 4 Investigation Board (Workbench)
     "dialogue_open": "tab",      # Вызов диалогового окна ввода (раньше был захардкожен)
     "pause": "escape",
     "console_enter": "return",

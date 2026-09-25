@@ -1598,6 +1598,10 @@ class TickOrchestrator:
                 payload={
                     "target_id": _target_id,
                     "target_reference": _sem_target,
+                    # G3-C: semantic_action перенесён из упразднённого
+                    # publisher phase_1_input — consumer claim_event_subscriber:103
+                    # (ATTACK-пропозиция свидетелям, ветка G3-B)
+                    "semantic_action": _sem_action,
                     "intensity": _payload.get("social_pressure", 0.8),
                     "actor_id": "player",
                 },

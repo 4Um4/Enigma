@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     replay_mode: str = "passive"  # "off", "passive", "active"
     replay_playback: bool = False  # True для чтения из кэша
     replay_record: bool = False  # True для записи в кэшdialogue_update_extractor
+    # R3 (Phantom fix): единый writer/reader путь replay-хранилища.
+    # Вне data_dir: DriftLab изолирует и УНИЧТОЖАЕТ temp data_dir —
+    # сессии обязаны переживать прогон. Parent-каталог создаёт ReplayStore.
+    replay_store_path: str = str(BASE_DIR / "reports" / "replay_sessions" / "replay.db")
 
     llama_cpp_server_executable: str = str(
         BASE_DIR / "Models LLM" / "llama" / "llama-server.exe"

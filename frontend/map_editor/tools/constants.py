@@ -17,3 +17,4 @@ TOOL_NODE = "node"  # Создание и связывание навигаци�
 MODE_WORLD = "world"
 MODE_LOCAL = "local"
 MODE_LAB = "lab"  # Полноэкранный режим Лаборатории калибровки психики
+MODE_UIWORKBENCH = "ui_workbench"  # Полноэкранный режим F12-редактора интерфейса (аналог MODE_LAB: свой draw, панели редактора скрыты)

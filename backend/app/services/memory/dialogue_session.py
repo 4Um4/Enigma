@@ -14,13 +14,18 @@ from typing import List, Optional, Tuple
 
 @dataclass
 class Claim:
-    """Утверждение, сделанное в диалоге."""
+    """Утверждение, сделанное в диалоге.
+    Claim Bridge (ADR-O-404-наследие): event_id — сквозная идентичность
+    шинного события-источника (NPC_SPOKE); "" для legacy/без события —
+    ephemeral claim. Мост соединяет provenance, НЕ меняя lifecycle:
+    STM Claim остаётся эфемерным RAM-материалом."""
     text: str
     speaker: str
     confidence: float
     timestamp_tick: int
     status: str = "open"  # "open" | "contested" | "confirmed" | "withdrawn"
     contested_by: Optional[str] = None
+    event_id: str = ""
 
 
 @dataclass
@@ -117,10 +122,11 @@ class DialogueSession:
             return 0
         return self._pressure_by_topic.get(topic, 0)
 
-    def add_claim(self, text: str, speaker: str, confidence: float, tick: int) -> None:
+    def add_claim(self, text: str, speaker: str, confidence: float, tick: int,
+                  event_id: str = "") -> None:
         self.claims.append(Claim(
             text=text, speaker=speaker, confidence=confidence,
-            timestamp_tick=tick
+            timestamp_tick=tick, event_id=event_id
         ))
         open_claims = [c for c in self.claims if c.status == "open"]
         if len(open_claims) > 10:

@@ -4,7 +4,7 @@ map_editor/core/event_handler.py
 """
 
 import pygame
-from tools.constants import MODE_LAB, MODE_LOCAL, MODE_WORLD
+from tools.constants import MODE_LAB, MODE_LOCAL, MODE_WORLD, MODE_UIWORKBENCH
 
 from core.commands import (
     MirrorObjectCommand,
@@ -70,7 +70,14 @@ class EventHandler:
                 core.lab_screen.enter()
                 return
             elif event.key == pygame.K_F12:
+                # F12 = mode-switch (паттерн F5/MODE_LAB): свой draw,
+                # панели редактора не рисуются — не оверлей поверх них.
+                core._mode_before_workbench = core.mode
+                core.mode = MODE_UIWORKBENCH
                 core.workbench_screen.enter()
+                # Демо-режим (smoke M19/M12): журнал открывается сразу —
+                # default_state=HIDDEN оставлял F12 без единого окна.
+                core.workbench_screen.open_journal_dialog_tab()
                 return
             elif event.key == pygame.K_PAGEUP:
                 core.current_z += 1

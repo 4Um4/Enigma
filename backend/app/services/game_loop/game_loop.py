@@ -20,6 +20,7 @@ import asyncio
 import logging
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
@@ -233,7 +234,9 @@ class GameLoop:
             settings.replay_record = True
             from app.services.replay.replay_recorder import ReplayRecorder
             from app.services.replay.replay_store import ReplayStore
-            _replay_db_path = Path(data_dir) / "replay.db"
+            # R3 (Phantom fix): путь из settings.replay_store_path —
+            # вне зоны изоляции/удаления DriftLab. wiring записи не тронут.
+            _replay_db_path = Path(settings.replay_store_path)
             _replay_store = ReplayStore(_replay_db_path)
             _session_id = _replay_store.start_session(
                 campaign_id="Open_road",
@@ -574,6 +577,10 @@ class GameLoop:
                 tick_provider=lambda: self._tick_orch.get_current_tick(_campaign_id),
             )
             _bus.subscribe(EventType.THEFT, _obs_sub.on_world_event)
+            # G3-B (мини-ревизия ADR-O-360): player-атака — наблюдаемое
+            # событие. Свидетели (LOS+radius 10м мембрана) получают belief
+            # «player ATTACKED target» через тот же testimony-движок.
+            _bus.subscribe(EventType.PLAYER_ATTACKED, _obs_sub.on_world_event)
 
             self._tick_orch.set_epistemic_services(_epistemic_store, _resolver)
 
@@ -1327,6 +1334,10 @@ class GameLoop:
         # pending_tasks == 0 не блокирует дренаж готовых артефактов.
         if _auth_scene:
             self._get_task_scheduler().drain_task_worker_outbox(_auth_scene)
+        # M17: pending наполняется публикациями NPC_SPOKE (выше) — применяем
+        # СРАЗУ после них, иначе tentative/confirmed доезжают на цикл позже.
+        if getattr(self, "_npc_dialogue_subscriber", None):
+            self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict
@@ -1361,7 +1372,10 @@ class GameLoop:
                 logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
 
             # S128 FIX: Инъекция dialog_journal (SSOT из AvatarService) для синхронизации UI в idle_tick
-            _ws["dialog_journal"] = self.avatar_service.get_journal(campaign_id)
+            # Фаза 2 PresentationProjection: проекция поверх SSOT AvatarService
+            # (второго хранилища нет — чистая функция, ADR-O-404)
+            from app.services.integration.journal_presentation import project_journal
+            _ws["dialog_journal"] = project_journal(self.avatar_service.get_journal(campaign_id))
 
         # S83.1: UNLOCK — единственная точка persist для idle_tick.
         # commit_tick_result() уже обновил _tick_scene результатом тика.
@@ -1570,6 +1584,9 @@ class GameLoop:
         _verbal = getattr(state.shared_context, "action_type", "") in (
             "dialogue", "blackmail", "bribe", "accuse"
         )
+        # DIAG-M17 (Часть VIII.5, ВРЕМЕННЫЙ): почему confirmed не рождается.
+        print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "
+              f"target_id={_target_id!r} verbal={_verbal}")
         if (
             _target_id and _verbal
             and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state
@@ -1642,7 +1659,9 @@ class GameLoop:
                 _ws_dict["recent_dialogues"] = [asdict(d) for d in LegacyDialogueAdapter.to_legacy_dto(_narratives)]
             except Exception as e:
                 logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
-            _ws_dict["dialog_journal"] = self.avatar_service.get_journal(req.campaign_id)
+            # Фаза 2 PresentationProjection: проекция поверх SSOT (ADR-O-404)
+            from app.services.integration.journal_presentation import project_journal
+            _ws_dict["dialog_journal"] = project_journal(self.avatar_service.get_journal(req.campaign_id))
 
         # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
         self.scene_manager.unlock_tick(req.campaign_id)
@@ -1659,17 +1678,54 @@ class GameLoop:
 
         _dm_text = dm_result.get("dm_response", "")
         if _dm_text:
-            # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
+            # Event Identity (ADR-O-404) + Фаза 3: DM-проза адресуема.
+            # DM_NARRATED — observation-only: "Игра предъявила игроку этот
+            # narrative-текст", НЕ утверждение истинности содержимого
+            # (BELIEF/TRUTH — только через существующие domain-механизмы).
+            # Identity: финализация на входе шины; journal наследует id/tick
+            # финализированной копии (_event_log[-1] детерминирован: чтение
+            # сразу после publish в том же main-thread, nested-publish
+            # завершён до возврата publish).
+            from app.domain.events import EventDTO
+            from app.services.events.event_types import EventType
+            _dm_evt = EventDTO.create(
+                event_type=EventType.DM_NARRATED.value,
+                source="Рассказчик",
+                payload={
+                    "campaign_id": req.campaign_id,
+                    "text": _dm_text,
+                },
+                visibility="private",
+                persistence_level="session",
+            )
+            get_event_bus().publish(_dm_evt)
+            _final = get_event_bus()._event_log[-1]
             self.avatar_service.append_journal(
-                campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text
+                campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text,
+                channel="narrative",
+                event_id=str(_final.id),
+                tick=int(_final.timestamp),
             )
 
         # Инжект журнала в WorldSnapshot (если снапшот собран)
         if _ws_dict is not None:
             # B1.3-FIX: Передача campaign_id для получения журнала
-            _ws_dict["dialog_journal"] = self.avatar_service.get_journal(
-                req.campaign_id
+            # Фаза 2 PresentationProjection: проекция поверх SSOT (ADR-O-404)
+            from app.services.integration.journal_presentation import project_journal
+            _ws_dict["dialog_journal"] = project_journal(
+                self.avatar_service.get_journal(req.campaign_id)
             )
+            # G3-B: beliefs-канал — пересборка из ФИНАЛЬНОГО store на границе
+            # run_turn (snapshot ядра строился до publication'ов тика)
+            try:
+                _epi_final = getattr(self._tick_orch, "_epistemic_store", None)
+                if _epi_final is not None:
+                    _all = _epi_final.to_dict()
+                    _ws_dict["player_beliefs"] = [r for r in _all if r.get("agent_id") == "player"]
+                    _ws_dict["npc_beliefs_about_player"] = [r for r in _all if r.get("agent_id") != "player"]
+            except Exception as _epi_err:
+                logger.warning(f"[EPI_DIAG] beliefs re-projection failed: {_epi_err}")
+            # (EPI_DIAG зонд снят — G3-B закрыт, beliefs-канал выше)
 
         _resp_facts = getattr(state, "observed_facts", [])  # noqa: ENIGMA002
         logger.debug(f"[DEBUG_RUN_TURN] state.observed_facts count={len(_resp_facts)}")
@@ -1929,23 +1985,43 @@ class GameLoop:
         """Возвращает состояние сессии для UI."""
         world_id = self._resolve_world_id(campaign_id)
 
+        @dataclass
         class State:
-            pass
+            campaign_id: str
+            world_id: str
+            session_log: list
+            dice_input_required: bool
+            scene_state: dict
+            metadata: dict
 
-        state = State()
-        state.campaign_id = campaign_id
-        state.world_id = world_id
-        state.session_log = []
-        state.dice_input_required = False
+        state = State(
+            campaign_id=campaign_id,
+            world_id=world_id,
+            session_log=[],
+            dice_input_required=False,
+            scene_state={},
+            metadata={},
+        )
 
         # S85: Получаем scene_state из SceneStateManager (SSOT), а не из JSON.
-        # location_id="" означает, что нас интересует текущая локация без фильтрации.
-        scene = self.scene_manager.get_scene_state(campaign_id, location_id="")
+        # M16-RESUME FIX: location_id="" уводил в load_scene() — «первая
+        # попавшаяся» сцена SQLite (FIX-WALLS-комментарий scene_init) —
+        # фронтенд получал случайную локацию, resume телепортировал игрока.
+        # Резолвим авторитетную локацию: metadata.current_location (пишется
+        # факт-писателем action-пути). Пустая metadata → легаси-поведение.
+        _resume_loc = ""
+        try:
+            from app.services.campaign_state_service import get_campaign_state_service
+            _cs_resume = get_campaign_state_service().get_campaign_state(campaign_id)
+            if _cs_resume is not None:
+                _resume_loc = _cs_resume.metadata.get("current_location", "") or ""
+        except Exception as _e:
+            logger.warning(f"[SESSION_STATE] current_location lookup failed: {_e}")
+        scene = self.scene_manager.get_scene_state(campaign_id, location_id=_resume_loc)
         state.scene_state = scene if scene else {}
-        state.metadata = {}  # Заглушка, метаданные пока не используются фронтендом
-
-        return state
-        state.layers = {"scene_state": scene} if scene else {}
+        # M16-RESUME: отдаём текущую локацию в metadata (была заглушка).
+        # Мёртвые строки после return (layers) удалены — никогда не исполнялись.
+        state.metadata = {"current_location": _resume_loc} if _resume_loc else {}
 
         return state
 

@@ -97,6 +97,16 @@ class WorldSnapshotBuilder:
         _player_beliefs = []
         if epistemic_store:
             _player_beliefs = [r for r in epistemic_store.to_dict() if r.get("agent_id") == "player"]
+        # G3-B завершение (мини-ревизия ADR-O-360): witness-канал —
+        # убеждения NPC об игроке (agent_id != player). Эпистемически
+        # честно: NPC выразит это поведением; канал — отладка+UI Material
+        # для Board/реакций. НЕ телепатия: убеждение СУЩЕСТВУЕТ у NPC.
+        _npc_beliefs_about_player = []
+        if epistemic_store:
+            _npc_beliefs_about_player = [
+                r for r in epistemic_store.to_dict()
+                if r.get("agent_id") != "player"
+            ]
 
         # Sprint UI-EPISTEMIC-01A: Транспорт реплик через PerceivedNarrativeDTO
         _perceived_narratives: List[PerceivedNarrativeDTO] = []
@@ -116,6 +126,12 @@ class WorldSnapshotBuilder:
             tick=tick,
             version=version,
             last_event_id=last_event_id,
+            # Phase 8.2 (S199) + G3-B: эпистемические каналы.
+            # ⚠️ Археологическая находка: player_beliefs не передавался
+            # вовсе — вкладка «Мои убеждения» получала пустоту в idle/turn
+            # путях (builder-параметр существовал, конструктор молчал).
+            player_beliefs=_player_beliefs,
+            npc_beliefs_about_player=_npc_beliefs_about_player,  # G3-B
             player_position=player_pos,
             npc_positions=npc_positions,
             avatar_state=self.avatar_state,  # ADR-035: Внедрение феноменологической проекции

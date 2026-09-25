@@ -38,6 +38,21 @@ initialize_model_pool()
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop
 
+# ── ISOLATION (прецедент DriftLab S129): изолируем ТОЛЬКО saves_dir
+# (runtime-мутации), data_dir остаётся реальным статическим. Open_road
+# не загрязняется экспериментальным вводом.
+import shutil
+import tempfile
+from app.core.config import settings as _settings
+
+_TEMP_DIR = tempfile.mkdtemp(prefix="understanding_probe_")
+_SAVES_DST = Path(_TEMP_DIR) / "saves"
+_saves_src = Path(_settings.saves_dir)
+if _saves_src.exists():
+    shutil.copytree(_saves_src, _SAVES_DST, dirs_exist_ok=True)
+_settings.saves_dir = str(_SAVES_DST)
+atexit.register(lambda: shutil.rmtree(_TEMP_DIR, ignore_errors=True))
+
 CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"
 WORLD_ID = "default"
@@ -45,23 +60,36 @@ MAX_TURNS = 20
 
 async def main():
     print("🚀 Инициализация ядра симуляции ENIGMA...")
-    # Используем реальную директорию данных проекта
+    # data_dir — реальный статический (S129-паритет), saves — temp-копия
     data_dir = _BACKEND_DIR.parent / "data"
     game_loop = build_game_loop(data_dir=str(data_dir))
-    
+
     print(f"✅ Симуляция запущена. Кампания: {CAMPAIGN_ID}, Локация: {LOCATION_ID}.")
+    print(f"[ISOLATION] saves_root={_SAVES_DST} (temp-копия) | original={_saves_src} НЕ ТРОНУТ")
+    print("[ISOLATION] NOTE: позиция игрока берётся из копии сейва (если сохранена),")
+    print("           а не из _current_player_pos по умолчанию — если удар 'уносит' за порог,")
+    print("           это состояние копии, не деградация. Порог Y>=12.5 завершает сессию.")
+    print("[ISOLATION] campaign=Open_road (копия) | teardown at exit")
+    print("[CORPUS] Разведочные классы ввода: физическое / социальное / речевое / вопрос /")
+    print("         утверждение / наблюдение / намерение / составное / двусмысленное.")
     print("Введи своё действие (или 'exit' для выхода). Предел: 20 ходов.\n")
+
+    # UNDERSTANDING-трасса: предыдущий срез beliefs/journal (diff между ходами)
+    _prev_beliefs: list = []
+    _prev_journal_len: int = 0
 
     _current_player_pos: tuple[float, float] = (6.5, 5.5) # x, y
 
-    for turn in range(1, MAX_TURNS + 1):
-        print(f"--- Ход {turn}/{MAX_TURNS} ---")
-        user_input = input("> ").strip()
-        
+    turn = 0
+    while turn < MAX_TURNS:
+        user_input = input(f"> [{turn+1}/{MAX_TURNS}] ").strip()
         if user_input.lower() in ["exit", "quit", "выход"]:
             break
         if not user_input:
-            continue
+            continue  # пустой ввод не расходует ход
+        turn += 1
+        print(f"--- Ход {turn}/{MAX_TURNS} ---")
+
 
         # MVP WORKAROUND: Мгновенное перемещение к NPC для теста боя
         if "ПОДОЙТИ" in user_input.upper():
@@ -150,9 +178,41 @@ async def main():
                             print(f"\n[DEBUG] MVP Workaround: Игрок телепортирован к {_pid} ({_current_player_pos})")
                             break
 
+            # === [UNDERSTANDING] ТРАССА ПОНИМАНИЯ (главный артефакт зонда) ===
+            # A=сказано | B=понято | C=сделано | D=рассказано (renderer, НЕ oracle).
+            # Только фактически существующие поля; недоступное — NOT_VISIBLE.
+            _ws = response.world_snapshot or {}
+            _cur_beliefs = (_ws.get("player_beliefs") or []) + (
+                _ws.get("npc_beliefs_about_player") or []
+            )
+            _cur_journal = _ws.get("dialog_journal") or []
+            print("\n=== [UNDERSTANDING] ===")
+            print(f"A (сказано): {user_input!r}")
+            print("B (понято):  intent/semantic/target — NOT_VISIBLE из run_turn-ответа")
+            print("             (эти объекты не покидают turn-pipeline; см. карту разрывов)")
+            _spoke_entry = next((e for e in reversed(_cur_journal)
+                                 if isinstance(e, dict) and e.get("channel") == "self"), None)
+            print(f"C (сделано):")
+            print(f"  PLAYER_SPOKE:    NOT_VISIBLE из ответа (событие на шине, наружу не проецируется)")
+            print(f"  journal delta:   {_prev_journal_len} -> {len(_cur_journal)}"
+                  f" (последняя: ch={_cur_journal[-1].get('channel') if _cur_journal else '?'},"
+                  f" event_id={'ЕСТЬ' if (_cur_journal and _cur_journal[-1].get('event_id')) else 'НЕТ'})")
+            print(f"  claims игрока:   NOT_IN_SNAPSHOT (ожидаемо — baseline разрыва)")
+            _delta = len(_cur_beliefs) - len(_prev_beliefs)
+            print(f"  beliefs:         {_prev_beliefs.__len__()} -> {len(_cur_beliefs)} (delta={_delta})")
+            if _delta > 0:
+                for _nb in _cur_beliefs[-_delta:]:
+                    _np = _nb.get("proposition", {}) if isinstance(_nb, dict) else {}
+                    print(f"    + [{_nb.get('agent_id', '?')}] {(_np.get('predicate', '?'))}({_np.get('subject_id', '?')}->{_np.get('object_id', '?')}) conf={_nb.get('confidence')}")
+            print(f"D (DM):          {(response.dm_response or '')[:200]!r}  <- renderer, НЕ oracle")
+            print("=== END ===\n")
+            _prev_beliefs = _cur_beliefs
+            _prev_journal_len = len(_cur_journal)
+
             # === POST-TICK INVARIANT AUDIT ===
             # Ловим тихие деградации, которые ломают каузальность, но не крашат игру
             _audit_errors = []
+            _audit_logs = getattr(response, "logs", "") or ""  # поля нет в схеме — честно пусто
             
             # 1. Проверка применения урона (если был бой)
             if "ATTACK" in user_input.upper() or "УДАР" in user_input.upper():
@@ -161,26 +221,35 @@ async def main():
                 _any_pain = False
                 for _pid, _data in _npc_pos.items():
                     if _pid == "player": continue
+                    # G3-урок: snapshot-проекция может не нести body_state —
+                    # боль проверяем в полной структуре, если она доезжает
                     if isinstance(_data, dict):
-                        _body = _data.get("body_state", {})
-                        if float(_body.get("pain", 0.0)) > 0.0 or float(_body.get("shock", 0.0)) > 0.0:
+                        _body = _data.get("body_state") or {}
+                        if not _body and hasattr(_data, "body_state"):
+                            _body = getattr(_data, "body_state") or {}
+                        # Контракт body_state: pain 0-100, shock_impulse (не "shock")
+                        if float(_body.get("pain", 0.0) or 0) > 0.0 or float(
+                            _body.get("shock_impulse", 0.0) or 0
+                        ) > 0.0:
                             _any_pain = True
                             break
                 if not _any_pain:
-                    _audit_errors.append("INV-COMBAT: ATTACK не вызвал pain/shock ни у одного NPC (ImpactEngine сломан?)")
+                    _audit_errors.append(
+                        "INV-COMBAT: pain не виден в npc_positions-проекции "
+                        "(VITAL_EVAL в логе подтверждает/опровергает урон; "
+                        "проекция body_state в snapshot — известный gap зонда)"
+                    )
                     # Проверка на галлюцинацию LLM: DM описывает удар, но физика его отклонила
                     _dm_text = (response.dm_response or "").lower()
                     _hallucination_words = ["вздрагивает", "боль", "удар", "щека", "кровь", "стонет", "падает"]
                     if any(word in _dm_text for word in _hallucination_words):
                         _audit_errors.append("INV-DM-HALLUCINATION: DM описывает физический контакт, но ImpactEngine отклонил удар (дистанция/физика). DM игнорирует правила симуляции.")
 
-            # 2. Проверка памяти NPC
-            if "create_memory_event failed" in response.logs if hasattr(response, 'logs') else "":
-                _audit_errors.append("INV-MEMORY: create_memory_event failed — NPC не запоминают события")
-
-            # 3. Проверка Воли (Will/Pressure)
-            if "Аватар 'player' НЕ НАЙДЕН" in response.logs if hasattr(response, 'logs') else "":
-                _audit_errors.append("INV-WILL: Аватар игрока отсутствует в all_npcs_raw — давление отключено")
+            # 2-3. INV-MEMORY/INV-WILL: поле logs отсутствует в ChatTurnResponse
+            # (схема: dm_response/npc_reactions/world_changes/traces/...) —
+            # проверка переведена в честную NOT_VISIBLE (не молчаливый пропуск).
+            if not _audit_logs:
+                print("  [AUDIT] INV-MEMORY/INV-WILL: NOT_VISIBLE (logs вне схемы ответа)")
 
             if _audit_errors:
                 print("\n🚨 [AUDIT FAIL] Обнаружены разрывы каузальной цепи:")
