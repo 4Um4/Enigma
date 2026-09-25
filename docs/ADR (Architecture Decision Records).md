@@ -618,6 +618,83 @@ Files: backend/app/services/game_loop/turn_pipeline.py, dm_phase.py, npc_orchest
 Status: ACTIVE
 Files: backend/app/services/game_loop/campaign_lifecycle.py, game_loop.py, player_avatar_service.py, memory/relationship_store.py, memory/memory_manager.py, temporal/temporal_engine.py, npc/life_engine.py, scene_state_manager.py
 
+`ADR-O-404` [ONTO] **Event Identity — детерминированная событийная идентичность (Фаза 1 семантического контракта)**
+Суть: Устранён коллизионный дефект identity (класс BUG-FB-037): seed event_id
+`md5("{type}:{source}:{ts}")` при дефолтном timestamp=0.0 схлопывал ВСЕ события
+одного (type, source) в один UUID за всю кампанию. Подтверждённые живые
+последствия до фикса: D8P Q5-идемпотентность (npc_dialogue_subscriber) молча
+подавляла LLM-экстракцию вторых реплик спикера; AG1-INV-TRACE-ONCE
+(reaction_subscriber) подавляла experience-trace разных событий; claim-
+provenance (claim_event_subscriber) всех утверждений спикера вёл один
+source_claim_id; коллизионный claim_id materializer
+("claim-{speaker}-{target}").
+Новый контракт: identity(event) = (event_type, source, event_tick, ordinal).
+ordinal — персистентный монотонный счётчик scene_state["event_ordinals"]
+[ключ "{type}:{source}"] (зеркало commitment_ordinals ADR-O-363 закон №4);
+единственный писатель — next_event_identity (svc/events/event_identity.py);
+финализация id — ровно на входе в шину (EventBus._finalize_identity в
+publish/enqueue_for_tick, провайдер ставится game_loop set_identity_provider;
+прецедент API attach_cfrm_bridge). Payload = DATA, в seed не входит.
+EventDTO.create не ведёт счётчиков (domain-чистота), параметр ordinal=0 —
+API-совместимость; provisional id (без провайдера: тесты/лаборатория/вне
+lock-окон) — легальный режим, не ошибка. Все publish-пути доказанно лежат
+в lock_for_tick..unlock_tick окнах (карта окон: game_loop:876/986/1344/1623,
+turn_pipeline:451/593). LookupError провайдера (нет сцены) → громкий
+[EVENT_IDENTITY] лог + provisional (L4, не молчание). claim_id materializer
+удалён — наследует финальный event.id того же события (одно понятие порядка).
+Утверждённые гейты: IPT 46/46 (новый постоянный INV-EVENT-IDENTITY:
+уникальность + replay-детерминизм identity); battery 8/8
+(tests/micro/test_event_identity.py, кейсы A–H, включая главный кейс C —
+две реплики одного спикера на одном тике); DriftLab mass_traversal 200 тиков
+с wired-провайдером — 0 крашей, 0 структурного дрейфа C/D/E.
+ОТКРЫТЫЕ ОБЯЗАТЕЛЬСТВА (не считать закрытым): ПОЛНЫЙ replay-MATCH живого
+конвейера НЕ доказан. Replay-запись в DriftLab не подключена
+(replay_record=False; recorder вне контура лаборатории); сообщение
+"REPLAY SESSION RECORDED" не является доказательством сохранения данных
+(фантомный успех, сессия d2b1610a физически отсутствует); сравнение на
+пустой/удалённой БД — невалидный replay-тест (лог: "База данных пуста",
+вердикт MISMATCH выдан на пустом входе защитно). Ремонт replay-инфраструктуры
+— отдельное ТЗ; до его закрытия replay-верификация identity опирается на
+INV-EVENT-IDENTITY + battery-E (изолированный контур), не на живой replay.
+Изменение id-поколения: события после фикса имеют другие id против прежнего
+алгоритма; существующие сейвы содержат старые id как opaque-строки
+(causal-ledger/provenance) — консистентность внутри поколения данных
+сохранена, cross-version id-equality не гарантируется (как и между любыми
+версиями алгоритма). INV-REPLAY-DETERMINISM не затронут (сравнение прогонов
+в рамках одной версии алгоритма).
+❌ Taboo: payload-поля в identity-seed (DATA ≠ IDENTITY); второй независимый
+счётчик порядка для claim_id; ведение счётчиков вне next_event_identity
+(DOUBLE TRUTH); мутация scene_state из воркер-потоков (identity только в
+main-thread publish); трактовка "REPLAY SESSION RECORDED" как доказательства
+записи; расширение Predicate ради attribute-claims (гипотезы игрока —
+эпистемические кандидаты, НЕ domain-предикаты).
+Status: ACTIVE
+Files: dom/events.py, svc/scene_state/scene_factory.py,
+svc/events/event_identity.py (NEW), svc/events/event_bus.py,
+svc/game_loop/game_loop.py, svc/execution/dialogue_materializer.py,
+tests/micro/test_event_identity.py (NEW), tests/IPT.py
+(INV-EVENT-IDENTITY)
+
+`ADR-O-405` [STRUCT] **Investigation Board — Presentation-Persistence (Phase 4 MVI)**
+Суть: Доска расследования — организация ссылок игрока над presentation layer
+(Фазы 1-3.2: journal/claims/beliefs), НЕ domain primitive (§ENIGMA-002: causal-домен
+не создаётся). board_state.json в saves/<campaign>/ рядом с player_avatar.json,
+атомарная точечная запись (tmp+os.replace), монотонные счётчики id c self-repair
+только вверх (uuid4 запрещён). ref_id opaque: journal→event_id (ADR-O-404 сквозная
+identity), резолв материала — клиентский джойн против dialog_journal; мёртвая
+карточка (ref вытеснен FIFO cap-100) = валидное состояние, рендер серым. Board не
+знает, что является истиной; LINK/UNLINK = user-authored relation
+(PLAYER_SUPPORTS/PLAYER_CONTRADICTS), не объективная семантика.
+❌ Taboo: запись в EpistemicStore/TruthState; расширение Predicate
+(hypothesis = свободный текст, не subject/predicate/object); автовозвышение
+hypothesis→belief (Phase 5); LLM; копирование содержимого Journal в Board
+(второй SSOT запрещён — только ref_id); связь Board→causal mechanics (ACCUSE-гейт
+не подключать); domain-imports из board-модуля; uuid4; DELETE-миграции файла.
+Status: ACTIVE (MVI: все 8 операций, гейты §6 закрыты — round-trip, пустая карточка,
+изоляция байт-в-байт, M7-совместимость)
+Files: backend/app/services/player_board_service.py, backend/app/api/routes_board.py,
+frontend/ui_workbench/windows/board_window.py, backend/tests/test_board_acceptance_gates.py
+
 
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)

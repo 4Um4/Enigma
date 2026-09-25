@@ -233,6 +233,9 @@ class WorldSnapshotDTO:
     time_of_day: str
     visible_events: List[VisibleEventDTO] = field(default_factory=list)
     # ADR-JOURNAL: Очередь последних 100 реплик. SSOT формируется на бэкенде.
+    # Event Identity (ADR-O-404): записи аддитивно несут event_id/tick для
+    # NPC_SPOKE-ветки (сквозная идентичность с шинным событием); legacy-записи
+    # {speaker,text,channel} валидны (Dict[str, str] толерантен, рендер .get()).
     dialog_journal: List[Dict[str, str]] = field(default_factory=list)
     game_time_seconds: int = 0
     active_traversals: Dict[str, Dict[str, Any]] = field(
@@ -247,6 +250,9 @@ class WorldSnapshotDTO:
     # Phase 8.2: Эпистемическая проекция убеждений игрока (UI DOCTRINE §IV, §XII)
     # Содержит только убеждения observer_id="player" для вкладки "Мои убеждения".
     player_beliefs: list[Any] = field(default_factory=list)
+    # G3-B: witness-канал — убеждения NPC об игроке (наблюдаемая
+    # эпистемика окружения; аддитивно, M7)
+    npc_beliefs_about_player: list[Any] = field(default_factory=list)
     player_perception: Optional[PlayerPerceptionDTO] = (
         None  # ТЗ EMBODIED UI: Симметричная онтология восприятия
     )

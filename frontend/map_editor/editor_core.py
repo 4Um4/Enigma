@@ -52,6 +52,7 @@ from tools.constants import (
     MODE_LAB,
     MODE_LOCAL,
     MODE_WORLD,
+    MODE_UIWORKBENCH,
     TOOL_DELETE,
     TOOL_LABEL,
     TOOL_NODE,
@@ -1739,7 +1740,8 @@ class EditorCore:
             self._update_property_panel()
 
         # UI Workbench: анимации/таймеры окон (v1 — update-заготовка)
-        self.workbench_screen.update()
+        if self.mode == MODE_UIWORKBENCH:
+            self.workbench_screen.update()
 
     def _update_property_panel(self):
         self.property_builder.update(self)
@@ -1753,13 +1755,36 @@ class EditorCore:
             self.lab_screen.draw()
             return  # Выходим, чтобы не рисовать тулбар и меню редактора
 
+        # F12-режим интерфейса: полноэкранный (паттерн MODE_LAB) —
+        # панели/тулбар редактора не рисуются. Задник = текущая карта
+        # (мир или локация): стилистика окон настраивается В КОНТЕКСТЕ
+        # мира (M6), не в вакууме.
+        if self.mode == MODE_UIWORKBENCH:
+            # Задник игрового вида: статический мост campaign-JSON →
+            # SceneRenderer игры (чистая проекция редакторских данных,
+            # без симуляции — задник под настройку стилей окон).
+            if self.current_file:
+                from render.scene_bridge import build_perceived_scene
+                _brid = build_perceived_scene(self)
+                if _brid:
+                    _scene, _walls, _obst, _floors, _sw, _sh, _pxy = _brid
+                    if getattr(self, "_scene_renderer", None) is None:
+                        from scene_renderer import SceneRenderer
+                        self._scene_renderer = SceneRenderer(self.screen)
+                    _coords = self._scene_renderer.render(
+                        scene=_scene, scene_w=_sw, scene_h=_sh,
+                        walls=_walls, obstacles=_obst, player_xy=_pxy,
+                        floor_rects=_floors,
+                    )
+                    self.workbench_screen.draw_demo_bubbles(
+                        self.screen, _coords.get("npcs", {}), self)
+            self.workbench_screen.draw(self.screen)
+            return
+
         if self.mode == MODE_WORLD:
             self._draw_world()
         else:
             self._draw_local()
-
-        # UI Workbench: окна поверх ВСЕГО (после тулбара/меню — оверлей)
-        self.workbench_screen.draw(self.screen)
 
         # UI поверх всего
         self._draw_ui()

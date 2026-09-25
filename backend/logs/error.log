@@ -1,0 +1,11 @@
+
+=== 2026-09-25 14:05:03 ===
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 963, in game_action
+    result = await game_loop.run_turn(turn_request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\game_loop.py", line 1682, in run_turn
+    _dm_evt = EventDTO.create(
+              ^^^^^^^^
+NameError: name 'EventDTO' is not defined
+

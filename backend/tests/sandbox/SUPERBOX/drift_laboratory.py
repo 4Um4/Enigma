@@ -420,6 +420,16 @@ class DriftLaboratory:
         # Подсистема 2: Закрываем ReplayStore, если он был активирован
         if hasattr(self._orchestrator, "_replay_recorder") and self._orchestrator._replay_recorder:
             self._replay_session_id = self._orchestrator._replay_recorder.session_id
+            # R2 (Phantom fix): session_id ≠ запись. Считаем фактические
+            # тики ДО store.close() — после закрытия conn запрос невозможен.
+            # Сбой подсчёта — громкий (L4), не silent.
+            self._replay_recorded_ticks = 0
+            try:
+                self._replay_recorded_ticks = self._orchestrator._replay_recorder.store.count_ticks(
+                    self._replay_session_id
+                )
+            except Exception as _e:  # noqa: ENIGMA001
+                print(f"[DRIFT_LAB] WARNING: replay tick count failed: {_e}")
             try:
                 self._orchestrator._replay_recorder.store.close()
             except Exception:
@@ -1083,6 +1093,18 @@ class DriftLaboratory:
         ))
 
         # ── VERDICT ────────────────────────────────────────────────
+        # R4 (Phantom fix): пустой вход ≠ дрейф. 0 воспроизведённых тиков —
+        # инфраструктурный NO_DATA, не вердикт о расхождении миров.
+        if report.get("replayed_ticks", 0) == 0:
+            result.final_stats = {
+                "replay_verdict": "NO_DATA",
+                "replay_ticks": 0,
+                "total_drifts": 0,
+            }
+            print("\n  ⚪ REPLAY COMPARE: NO_DATA (0 тиков воспроизведено — "
+                  "запись пуста или отсутствует; это НЕ дрейф)")
+            return
+
         result.final_stats = {
             "replay_seed": _REPLAY_SEED,
             "replay_ticks": ticks,
@@ -1126,7 +1148,10 @@ class DriftLaboratory:
         print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
 
         from app.core.config import settings
-        db_path = Path(settings.data_dir) / "replay.db"
+        # R3 (Phantom fix): reader обязан читать тот же путь, что пишет
+        # writer (settings.replay_store_path), — независимо от того,
+        # куда в данный момент указывает изолированный settings.data_dir.
+        db_path = Path(settings.replay_store_path)
         if not db_path.exists():
             print(f"  [REPLAY] DB not found: {db_path}")
             result.final_stats = {"replay_verdict": "ERROR", "error": "DB not found"}
@@ -2125,6 +2150,22 @@ def main(mode: str = "long_horizon", session_id: str = None) -> None:
     else:
         # Если был записан Replay Session, выводим ID в конце лога
         if hasattr(lab, "_replay_session_id"):
+            # R2 (Phantom fix): RECORDED печатается ТОЛЬКО при ≥1 тике.
+            _rec_ticks = getattr(lab, "_replay_recorded_ticks", 0)
+            if _rec_ticks >= 1:
+                print("\n" + "=" * 60)
+                print("📁 REPLAY SESSION RECORDED")
+                print(f"   Session ID: {lab._replay_session_id}")
+                print(f"   Recorded ticks: {_rec_ticks}")
+                print("   Команда для сравнения:")
+                print(f"   python -m tests.sandbox.SUPERBOX.run drift replay_compare {lab._replay_session_id}")
+                print("=" * 60 + "\n")
+            else:
+                print("\n" + "=" * 60)
+                print("🔴 REPLAY SESSION NOT RECORDED (0 ticks)")
+                print(f"   Session ID (пустая запись): {lab._replay_session_id}")
+                print("   Фантомный успех запрещён (L4) — проверь replay_mode/gate записи")
+                print("=" * 60 + "\n")
             print("\n" + "=" * 60)
             print("📁 REPLAY SESSION RECORDED")
             print(f"   Session ID: {lab._replay_session_id}")

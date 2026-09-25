@@ -119,16 +119,28 @@ class NpcDialogueSubscriber:
         """M17 этап 2: применение pending tentative-записей в drain-границе
         (прецедент drain_commitment_outbox, те же точки вызова).
         confirmed НЕ понижается — предположение никогда не затирает знание."""
+        # DIAG-DRAIN (Часть VIII.5, ВРЕМЕННЫЙ): почему recognition пуст.
+        print(f"[DIAG-DRAIN] pending={len(self._pending_recognition)} "
+              f"items={self._pending_recognition[:5]} scene_id={id(scene_state)}")
         if not self._pending_recognition or not scene_state:
             return
         _recog = scene_state.setdefault("player_recognition", {})
         _batch, self._pending_recognition = self._pending_recognition, []
-        for _addr_id in _batch:
+        for _item in _batch:
+            # Элемент: str (tentative, подслышанное обращение) или
+            # tuple(npc_id, status) — confirmed из факта прямого диалога.
+            if isinstance(_item, tuple):
+                _addr_id, _status = _item
+            else:
+                _addr_id, _status = _item, "tentative"
             _entry = _recog.setdefault(_addr_id, {})
-            if _entry.get("status") == "confirmed":
-                continue
-            _entry["status"] = "tentative"
-            _entry.setdefault("confidence", 0.6)
+            if _entry.get("status") == "confirmed" and _status != "confirmed":
+                continue  # предположение не затирает знание
+            _entry["status"] = _status
+            if _status == "confirmed":
+                _entry["confidence"] = 1.0
+            else:
+                _entry["confidence"] = max(_entry.get("confidence", 0.0), 0.6)
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
@@ -218,16 +230,26 @@ class NpcDialogueSubscriber:
                     # подслушанное (overheard) — известна в момент записи,
                     # проекция слышанного, не новая истина.
                     _channel = "direct" if listener == "player" else "overheard"
+                    # Event Identity (ADR-O-404): сквозная идентичность —
+                    # journal-запись наследует финальный event.id NPC_SPOKE
+                    # (тот же, что получили все подписчики шины) + событийное
+                    # время payload["event_tick"] (ADR-O-399).
                     self._avatar_service.append_journal(
                         campaign_id=_campaign_id, speaker=_speaker_name, text=text,
                         channel=_channel,
+                        event_id=str(getattr(event, "id", "") or ""),
+                        tick=int(_event_tick or tick or 0),
                     )
                     # M17 этап 2 (вердикт Мастера: «всё согласовано с логикой
                     # слышимости и видимости»): tentative адресата — ТОЛЬКО здесь,
                     # внутри блока, где уже пройдены порог слышимости
                     # (_dist_to_player < _journal_threshold) и is_canonical.
                     # Адресат структурный (target_id интента), не парсинг текста.
-                    if _channel == "overheard":
+                    if _channel == "direct":
+                        # M17 этап 3: NPC адресует речь игроку — спикер
+                        # подтверждён ФАКТОМ разговора (не целеполаганием).
+                        self._pending_recognition.append((speaker, "confirmed"))
+                    elif _channel == "overheard":
                         _addr_id = listener
                         if (
                             _addr_id
@@ -408,11 +430,16 @@ class NpcDialogueSubscriber:
                     _session.topic = _update.topic
                     _session.topic_confidence = _update.topic_confidence
                 for claim in _update.new_claims or []:
+                    # Claim Bridge: claims наследуют сквозной event.id
+                    # (параметр event_id этой функции — тот же, что у
+                    # NPC_SPOKE и journal-записи — позвоночник
+                    # provenance, ADR-O-404)
                     _session.add_claim(
                         text=claim.get("text", ""),
                         speaker=speaker,
                         confidence=claim.get("confidence", 0.5),
                         tick=tick,
+                        event_id=event_id,
                     )
                 for q in _update.raised_questions or []:
                     _session.add_open_question(

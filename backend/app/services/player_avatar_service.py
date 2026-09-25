@@ -425,18 +425,34 @@ class PlayerAvatarService:
         # B1.3-FIX: Журнал обрабатывается в load_avatar, здесь ему не место.
 
     # ── ADR-JOURNAL: Управление очередью реплик ───────────────────
-    def append_journal(self, campaign_id: str, speaker: str, text: str, channel: str = "narrative"):
+    # Event Identity (ADR-O-404): ключи журнала — константы (§12.1)
+    _KEY_EVENT_ID = "event_id"
+    _KEY_TICK = "tick"
+
+    def append_journal(
+        self, campaign_id: str, speaker: str, text: str,
+        channel: str = "narrative", event_id: str = "", tick: int = 0,
+    ):
         """channel: direct (игрок-адресат) | overheard (подслушано) |
         narrative (DM/мир) | self (действия игрока). Эпистемическая метка
         канала в момент записи — проекция известного, не новая истина."""
-        """Добавление реплики в журнал. Инвариант J-100 (FIFO)."""
+        """Добавление реплики в журнал. Инвариант J-100 (FIFO).
+        Event Identity (ADR-O-404): event_id — сквозная идентичность
+        шинного события-источника (NPC_SPOKE); пусто для narrative/self —
+        легальный legacy-случай (шинного события не существует, выдумывать
+        id запрещено). tick — событийное время записи. Аддитивный контракт:
+        старые записи {speaker,text,channel} валидны, потребители читают
+        .get() (M7 — рендер по мере появления полей)."""
         if not text:
             return
         if campaign_id not in self._dialog_journals:
             self._dialog_journals[campaign_id] = []
-        self._dialog_journals[campaign_id].append(
-            {"speaker": speaker, "text": text, "channel": channel}
-        )
+        _entry: dict = {"speaker": speaker, "text": text, "channel": channel}
+        if event_id:
+            _entry[self._KEY_EVENT_ID] = event_id
+        if tick:
+            _entry[self._KEY_TICK] = tick
+        self._dialog_journals[campaign_id].append(_entry)
         # Ограничение 100 последних высказываний
         if len(self._dialog_journals[campaign_id]) > 100:
             self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][

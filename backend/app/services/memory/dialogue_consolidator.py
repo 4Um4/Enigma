@@ -26,4 +26,4 @@ class DialogueConsolidator:
             return None
 
         # Fallback (без LLM) — structural summary
-        return session.consolidate_to_event_memory_summary()  # type: ignore[no-any-return]
+        return session.consolidate_to_event_memory_summary()

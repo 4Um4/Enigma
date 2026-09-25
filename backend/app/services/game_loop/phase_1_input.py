@@ -384,6 +384,18 @@ def publish_classified_player_event(
     if _target_id and not _payload.get("target_id"):
         _payload["target_id"] = _target_id
 
+    # G3-C FIX (кардинальность): PLAYER_ATTACKED публикует ЕДИНСТВЕННЫЙ
+    # владелец — INPUT_MERGE боевая труба (tick_orchestrator, rng_seed
+    # детерминизм F3-1, payload дополнен semantic_action). Здесь публикация
+    # ATTACK подавлена (иначе дубль: двойной ImpactEngine/VITAL_EVAL/
+    # SOCIAL_EMA — подтверждено логом injuries 1→2). Классификация и
+    # intent_resolution ниже по потоку сохранены.
+    if _resolved_type == EventType.PLAYER_ATTACKED:
+        logger.info(
+            "[G3C] PLAYER_ATTACKED publication deferred to INPUT_MERGE combat pipe "
+            f"(target={_payload.get('target_id')}, semantic={_payload.get('semantic_action')})"
+        )
+        return
     _game_evt = EventDTO.create(
         event_type=_resolved_type.value,
         source="player",

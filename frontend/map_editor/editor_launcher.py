@@ -12,6 +12,13 @@ import sys
 # Добавляем текущую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Bootstrap: корень frontend/ в sys.path — ui_workbench, scene_renderer,
+# game_types, constants живут там (cwd редактора — map_editor). Вставка
+# ПОСЛЕ map_editor: его модули (tools/, core/) резолвятся первыми.
+_fe_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _fe_root not in sys.path:
+    sys.path.append(_fe_root)
+
 from editor_core import EditorCore
 
 

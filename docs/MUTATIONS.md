@@ -1558,6 +1558,242 @@ continuity-сброса, подтвердить отдельным решени�
 - Фальсифицированный листинг кода (отозван) + две реконструкции БЫЛО по памяти — §13.6/протокол §0 обязательны даже для собственного кода.
 📁 models/spatial_contracts (NodeRole.BOUNDARY факт), services/spatial/movement_engine (UNKNOWN-signal, arrival-seam TES, micro-snap via, KNOWN-clear), services/spatial/traversal_execution_system (advance+spatial_service, dwell-producer), services/npc/life_engine (consume+exploration intent+suppression+reconciliation), services/npc/exploration_target_resolver (NEW — frontier pure), services/tick_orchestrator (writer-side clear), services/phases/simulation (epistemic injection), tests/IPT.py (INV-изоляция v4), probes (все self-deleted), досье-артефакты (d3_*/d_pop_*/d_wall/rcb_*/spk_final/ipt_*).
 
+### S283: Event Identity — детерминированная событийная идентичность (ADR-404) | ✅ Фаза 1 семантического контракта
+🎯 Устранение коллизионного дефекта identity: seed md5(type:source:ts) при
+timestamp=0.0 схлопывал все события (type, source) в один UUID. Живые
+последствия до фикса: D8P Q5 молча подавлял экстракцию вторых реплик
+спикера; AG1-TRACE-ONCE подавлял experience-trace разных событий;
+claim-provenance всех утверждений спикера в одном id.
+⚙️ Контракт identity=(type,source,tick,ordinal); event_ordinals в
+scene_state (зеркало commitment_ordinals); единственный писатель
+next_event_identity; финализация id на входе в EventBus
+(set_identity_provider, прецедент cfrm-bridge); payload=DATA не в seed;
+claim_id materializer удалён (наследование event.id); claim-коллизии,
+D8P-подавления, TRACE-ONCE-подавления устранены. Battery A–H 8/8
+(tests/micro/test_event_identity.py); IPT 45→46 (INV-EVENT-IDENTITY);
+DriftLab 200 тиков wired: 0 крашей, 0 C/D/E. Инцидент сессии: локальный
+from-import get_event_bus в __init__ затенил модульное имя →
+UnboundLocalError bootstrap (поймано IPT-bootstrap, фикс модульным
+доступом). Инцидент инфраструктуры (не наш регресс): "REPLAY SESSION
+RECORDED" печатается без фактической записи (replay_record=False,
+recorder вне DriftLab-контура), replay_compare на пустой БД выдаёт
+защитный MISMATCH → живой replay-MATCH = отложенный гейт, ремонт
+replay-инфраструктуры = отдельное ТЗ. Попутно: отдано ТЗ Process
+Lifecycle Hygiene (осиротевший uvicorn+python3.13 при выключенной игре).
+📁 dom/events, svc/scene_state/scene_factory, svc/events/event_identity
+(NEW), svc/events/event_bus, svc/game_loop/game_loop,
+svc/execution/dialogue_materializer, tests/micro/test_event_identity
+(NEW), tests/IPT
+⚠️ Anti-race: номера O/S взяты по §11.1.1 после верификации хвостов
+атласов; при коллизии — переименовать и обновить ссылки (A/B-прогон
+identity не зависит от номера ADR).
+IPT: ✅ 46/46 (было 45/45 базлайн). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+### S284: POPULATION LADDER + movement pipeline fixes (фиксы №1/№2/№2b, дефект №3 открыт) | ✅ IPT 46/46, замок 1/1, смоук стабилен
+🎯 Мандат: SCALE-вертикаль 24→60→120 на watermark-ON. Условия: один HEAD/env, WM=ON, DRIFT_NO_LLM=1.
+⚙️ SCALE-результаты:
+- 24×200 (ab659ca8): p50=153.11, p95=208.19 RED — валидная точка
+- 60×200 (ab659ca8): p50=374.47, p95=584.02 RED, L1=161.3/тик (append-доминирует 48%) — валидная точка
+- Population множитель 24→60: 2.446× (население ×2.5) — линейность согласуется
+- 120×200: измерение аннулировано (дрейф HEAD, дефект №3 в острой фазе); повторная попытка (28d36a23) — INVALID (SC-4-каскад)
+- **Строгая вертикаль НЕ собрана**: точки — на разных HEAD; объединение отложено до закрытия дефекта №3
+⚙️ Фиксы (production):
+1. **prefix-authoritative target_loc** (movement_engine): cross-loc intent с префиксованной целью обходил PERSONAL_ROUTE gate (переменная-сирота _intent_target_loc). Замок: test_prefix_target_loc_gate.py. Прод-эффект: NO_TARGET-шторм мёртв, NPC вернулись домой.
+2. **Dynamic START tolerance** (event_compiler:826): допуск = max(2.0, proposal.distance). SC-4-шторм утих.
+3. **Segment-based ghost interpolation** (event_compiler._compute_source_xy): единая формула с TES (по сегментам, не прямая луча). ⚠️ **Эффект №3-фикса НЕ изолирован** — actual в трассе оказался не ghost'ом.
+⚠️ Дефект №3 (ОТКРЫТ, отдельная сессия): relocation-intent «домой» переживает смену реальности (transfer/dwell/S186) — proposal из реальности тика N, валидация против реальности N+1 → вечный START_WAYPOINT_MISMATCH, паралич одного NPC (merchant_goran в city_gate). Гипотеза: producer эмитит без known route. **Не доказано** — первое действие следующей сессии: чтение relocation-генератора life_engine (5 вопросов Мастера: где формируется intent, target_node_id, location_id, BUG-SPATIAL-035, переживание смены сцены).
+⚠️ Уроки: (1) скелет-ценз обязан матчить async def (run_turn пропущен цензом); (2) 60-тиковая диагностика не достигает 84+ зоны воспроизведения; (3) зонд вне зоны воспроизведения = слепое измерение; (4) «применённый патч» ≠ «применённый там, где исполняется» — зонд на не-исполняемом пути молчит законно; (5) RETRACTION: собственный вердикт о «синтетической вставке» (§3.12-отбраковка) опровергнут сравнением с прочитанным ранее кодом инструмента — отклонение вставки без сверки с собственными знаниями = ложная тревога.
+⚙️ Карта коммитов (process-факт, история не переписывается — прецедент S248): фиксы №1/№2/№2b поглощены чужим save-коммитом 37de5672 (V.0.5.4.1.5_Проектирую_UI_3, «полное сохранение») — git log -S "prefix-authoritative" верифицирован; контент жив в HEAD (movement_engine:320, event_compiler:832/834-835/877, замок 3325Б). Наш pathspec-коммит 9519a9b1 содержит ТОЛЬКО реверс диагностических зондов (10 deletions) — его сообщение неточно (заявляет содержимое, отсутствующее в диффе; гейт «маркер в staged» был провален и должен был СТОПить коммит). Snapshot-патч жив с b6aa28c8. Ветка сменилась под кампанией (.1.4→.1.5→.1.5_3) — branch identity не отслеживалась (passport-протокол покрывал env, не branch) — урок.
+⚠️ Уроки (дополнение): (6) негативный результат верификации staged-диффа ОБЯЗАН останавливать коммит — коммит при проваленном гейте фиктивен; (7) перед коммитом сверять BRANCH, не только staged-содержимое (git branch --show-current в preflight).
+IPT: ✅ 46/46 (46-й — INV-EVENT-IDENTITY, чужой ADR-O-404, не наш вклад). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴. Коммиты: фикс-контент — 37de5672 (поглощение), 9519a9b1 (реверс зондов, сообщение неточно — см. карту коммитов).
+
+### S285: UI-миграция + Recognition M17 + Resume-цепь + Esc-пауза (сводная) | ✅
+🎯 Пачка вердиктов Мастера M13–M21:
+   M13 автофокус чата (direct-ответ раскрывает журнал); M14/M15 J-семантика
+   (never HIDDEN, FULL↔COLLAPSED_TO_TITLE — enum археологиирован, не угадан);
+   M16 true-resume (CONTINUE без new_game; PAUSE-петля в CONTINUE-ветке —
+   return-значение выбрасывалось, Esc падал в меню); M17 recognition:
+   дистанционное узнавание убито (integration), confirmed = факт direct-речи
+   (pending-tuple), tentative = подслушанное обращение (target_id, без
+   парсинга; pending-buffer подписчика + drain в границах ADR-O-365, второй
+   drain после task_outbox — лаг материализации устранён), гейты по
+   слышимости; M18 порядок ленты; M20 автоход = локальная физика WASD-
+   паритета (текстовая команда «подойти к X» умерла — убрала LLM-тур,
+   утечку M17 и молчаливые потери), прибытие 2.0 → диалог, Tab-toggle+
+   visible-полоса, Shift+Backspace, вкладка «Услышанное», клик мимо снимает
+   круг, клик по себе игнор.
+⚙️ Resume-цепь телепорта закрыта послойно (по ходу сессии выяснялось):
+   (1) fact-writer в /game/action (основной путь ходов; turn-writer оказался
+   вне игрового пути), (2) game_loop.session_state: location_id="" уводил в
+   load_scene «первая попавшаяся» — metadata-приоритет + dataclass вместо
+   динамической заглушки (импорт dataclass добавлен, мёртвые строки после
+   return удалены), (3) гигиена SQLite (player убран из city_gate-сцены,
+   metadata=tavern, бэкап .bak_20260925).
+📁 frontend/game_screen.py, text_input.py, ui_workbench/workbench_screen.py,
+   game_launcher.py; backend: routes.py, game_loop.py,
+   npc_dialogue_subscriber.py, phases/integration.py,
+   world_snapshot_builder.py; saves/ (гигиена)
+Долги: DEBT-FOCUS-OBJECTS (клик по объекту = переключение фокуса), DEBT-NG-
+   HEALTHCHECK, DEBT-LOC-HARDCODE (tavern_silver_wolf в мосту),
+   DEBT-IDLE-ORACLE (§2.2, отложен на вердикт), DEBT-ASYNC-SETTLE (первые
+   тики после resume: recognition доезжает с задержкой, класс DEBT-QUIESCE),
+   session_state-легаси (мёртвый код до dataclass-патча устранён).
+Следующие этапы: M19 (скролл/стрелки/автоскролл — референс discord-clone),
+   M21 (оверлей паузы вместо пересоздания GameScreen), F12 Style-редактор.
+   Семантический контур (ТЗ Мастера) передан параллельному архитектору —
+   стык: presentation-DTO + addressee + RecognitionEvent.
+IPT: ✅ 45/45 (последний прогон в сессии)
+КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+
+### S286: Фаза 2 семантического контракта — Journal → Presentation vertical slice | ✅
+🟢 Вердикт Мастера: закрыта. Доказана сквозная идентичность: NPC_SPOKE →
+финальный EventBus event.id (ADR-O-404) → NpcDialogueSubscriber →
+append_journal(event_id, tick) → snapshot.dialog_journal →
+project_journal() → клиент. Chain-тест: journal.event_id == final bus
+event.id (никакого второго генератора identity по дороге).
+⚙️ append_journal аддитивно расширен (+event_id/+tick, ключи-константы,
+legacy-записи {speaker,text,channel} валидны); npc_dialogue_subscriber
+передаёт event.id/event_tick в журнал; integration/journal_presentation.py
+(NEW) — project_journal: чистая проекция поверх SSOT AvatarService
+(provenance_complete честен: narrative/self без шинного события — легально
+False); game_loop — 3 точки инъекции → проекция; snapshot.py — контрактный
+комментарий аддитивности; tests/micro/test_utterance_identity_chain.py
+(NEW) — 3 теста (сквозной event_id, provenance-матрица, end-to-end).
+Инциденты (закрыты, уроки Мастеру одобрены): (1) БЫЛО→СТАЛО без окружающего
+блока → строка выпала из guard-блока по отступу (Pylance поймал, compile/
+IPT нет) — ПРОЦЕССНОЕ ПРАВИЛО: БЫТО для Python-вставок обязан включать
+окружение с реальными отступами; (2) два ложных срабатывания smoke —
+дефекты тест-скрипта (порядок insert, RAM-vs-disk персист только при
+append), код подтверждён диагностикой Части VIII.5; (3) БЫЛО по памяти для
+точек 2/3 аннулировано, переписано по фактическому чтению.
+📁 svc/player_avatar_service, svc/events/npc_dialogue_subscriber,
+svc/integration/journal_presentation (NEW), svc/game_loop/game_loop,
+dom/snapshot, tests/micro/test_utterance_identity_chain (NEW)
+IPT: ✅ 46/46. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+### S287: Фаза 3.1 — SemanticSpan + DM_NARRATED: provenance-путь текст→renderer | ✅
+🟢 Вердикт Мастера: закрыта. Впервые доказан полный путь: TEXT → EventDTO.id
+(ADR-O-404) → JournalEntry.event_id → SemanticSpan.source_event_id →
+PresentationProjection → renderer. SemanticSpan — описание текста, не
+система истины (без write-path в EpistemicStore/TruthState — структурно).
+⚙️ (1) DM_NARRATED — observation-only событие: «Игра предъявила игроку
+этот narrative-текст», НЕ утверждение истинности содержимого; публикуется
+в run_turn при материализации dm_text, journal наследует финальный id/tick
+(вариант B «синтетический md5 мимо identity-контракта» запрещён Мастером —
+второй механизм identity недопустим); (2) domain/semantic_span.py (NEW):
+frozen SemanticSpan (span_id=md5(source_event_id+range+type) — ДОЧЕРНИЙ
+идентификатор, детерминирован, зеркало commitment_id-паттерна; SpanType
+реализован только SPEAKER_MENTION; Creator/Status — перечисления контракта,
+LLM-кандидаты через Acceptance Gate в будущем); (3) integration/
+span_grounding.py (NEW): ground_speaker_mention — единственный эмиттер,
+детерминированный, confidence=1.0/ACCEPTED; ГРАНИЦА Мастера: speaker-
+метадата ≠ substring текста — имя не найдено в тексте → spans=[] (никаких
+искусственных спанов, §ENIGMA-003); (4) journal_presentation.py — spans[]
+в проекции (grounding только при непустом event_id); (5)
+test_semantic_span_chain.py (NEW) — 4 теста, главный: span.source_event_id
+== bus event.id. Инцидент: в game_loop применена старая версия вставки
+(_geb-алиас + неимпортированный EventDTO — Pylance поймал до прогона);
+замена на чистую версию с модульным get_event_bus.
+📁 dom/semantic_span (NEW), svc/integration/span_grounding (NEW),
+svc/integration/journal_presentation, svc/game_loop/game_loop,
+tests/micro/test_semantic_span_chain (NEW)
+IPT: ✅ 46/46. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+### S288: Фаза 3.2 — Claim Bridge: provenance-позвоночник утверждений | ✅
+🟢 Вердикт Мастера: разрешён и закрыт (PRE-CODE зонд Q1–Q5 → код). Мост
+БЕЗ пятой Claim-сущности: event.id = позвоночник provenance.
+⚙️ R1: Claim.event_id (аддитивно, "" = legacy/ephemeral) + проброс
+финального event.id из _process_canonical (параметр event_id в scope
+после Фазы 2); R4: ClaimEvent.tick = event_tick из payload (drain-
+контракт task_scheduler:229, fallback legacy "tick") — неверный ноль
+tick убеждений устранён; R3: project_claims — чистая проекция
+(text/speaker/confidence/status/event_id/tick, ephemeral=true всегда —
+мост НЕ делает STM Claim persistent, STOP-критерий); DM_NARRATED
+зарегистрирован в EventType (observation-only, вне _INTENT_EVENT_MAP
+легально — ADR-O-349 регулирует только Intent-производные, вердикт
+Мастера); game_loop — литерал → EventType.DM_NARRATED.value.
+Разрывы закрыты: R1 (две вселенные одного утверждения соединены общим
+ключом), R3 (claim-text доходит до presentation), R4 (временная
+согласованность provenance). R2 (персистентность STM Claim) — НЕ тронут
+по вердикту (lifecycle MemoryManager — отдельное решение). Найденное
+зондом: ClaimEvent.tick=0 в production (лечится R4); D8P-путь claims
+без event_id (IntelligenceTask не пробрасывает — известное ограничение,
+ephemeral-семантика легальна, расширение — отдельно). Пента-равенство
+доказано тестом: NPC_SPOKE.event.id == STMClaim.event_id ==
+ClaimEvent.event.id == EpistemicRecord.source_claim_id ==
+JournalEntry.event_id. Инциденты: scope-имя _event_id→event_id (Pylance
+поймал), мусорная строка int({}) в тесте (pytest поймал) — оба
+тест-контурные.
+📁 svc/events/event_types, svc/game_loop/game_loop,
+svc/memory/dialogue_session, svc/events/npc_dialogue_subscriber,
+svc/events/claim_event_subscriber, svc/integration/journal_presentation,
+tests/micro/test_claim_bridge_chain (NEW)
+IPT: ✅ 46/46 (не перезапускался на тестовых патчах — дисциплина).
+КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+### S289: UI Workbench — M19 скролл, M12 эпистемические маркеры, F12 mode-switch в редакторе | ✅
+🎯 M19 (скролл журнала) + M12 (эпистемическая разметка) + интеграция Workbench в map_editor как полноэкранный режим с игровым задником.
+⚙️ **Frontend (ui_workbench/):**
+- **M19 скролл:** block-based (`_journal_scroll[wid]` = скрытых новых блоков снизу; 0 = прижаты к низу — автоскролл доноров Ziscord/Durak); wheel-маршрут в `handle_event` + `handle_event_overlay` (не-F12 не утекает в сцену); клики ▲/▼; сброс при смене вкладки; семантика M18 не тронута. Фиксы по smoke: (1) направление отсечения — `blocks[hidden_bottom:]` (blocks новые→старые, наивный срез отрезал старые); (2) budget-цикл учитывает межблоковый зазор +6 (пузыри вылезали за рамку); (3) K_max через суффиксные суммы — упор в начало истории («первое сообщение и пустота» вместо «один блок») 
+- **M12 ч.1:** маркеры `●` (direct) / `◌` (overheard) у имён в пузырях
+- **M12 ч.2:** «Имя (?)» по `recognition_confidence < 0.99` из `npc_positions` (канал: `draw(screen, scene_state)` опциональным параметром; отсутствие в карте = без «(?)», §ENIGMA-003); демо-карта `_demo_recognition` для editor-контекста
+- **Демо-набор:** 19 записей всех 4 каналов (direct/overheard/narrative/self), 3 подряд-реплики (заготовка группировки), 2 длинных текста
+- **Crash-fix:** `game_screen.py:1293` — `significant_events` приходит как `List[StateDeltas]` (legacy-проекция game_loop:1385 из `TickMutation.npc_deltas`), `e.get()` падал на dataclass → защитный `isinstance(e, dict)`. Pre-existing латентный баг (проявился при первых ненулевых npc_deltas в idle)
+**Frontend (map_editor/):**
+- **MODE_UIWORKBENCH:** F12 в редакторе = mode-switch по паттерну F5/MODE_LAB (не оверлей — панели редактора не рисуются); вход/выход с возвратом прежнего mode; константа в tools/constants.py
+- **scene_bridge.py:** синтетический `PerceivedScene` из campaign-JSON (чистая проекция, без симуляции); walls/rooms/NPC/spawn → `SceneRenderer.render()` — задник игрового вида под настройку стилей; формат rooms (x/y/width/height) подтверждён print-зондом [DIAG_SCENERENDER], зонд снят
+- **editor_launcher:** sys.path-bootstrap frontend/ (ui_workbench/scene_renderer/game_types резолвятся при cwd map_editor)
+- **Демо-облачка:** `draw_demo_bubbles` над NPC из render_coords (единые координаты с задником), direct-плотные/overheard-призрачные
+📁 fe/ui_workbench/workbench_screen.py, fe/game_screen.py, fe/map_editor/{editor_core, editor_launcher, core/event_handler, tools/constants, render/scene_bridge}
+⚠️ **Долги/эскалации:** DEBT-FE-DELTAS (game_loop:1385 проецирует внутренние StateDeltas со stress/trust/fear во фронт-канал — Rule 11 утечка; владелец — параллельная сессия, эскалировано); Э1 реплика из соседней комнаты (dialogue-путь не проверяет дистанцию); Э2 NPC говорят без подхода (S202-побочный эффект); Э3 NPC не отвечают на вопрос имени; Э4 отсутствуют overheard-пузыри над стражником (perceived_narratives-порог — зонд [DIAG_BUBBLE] подготовлен)
+IPT: ✅ baseline (фронт-only; INV-FRONTEND-ISOLATION чист). КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+Smoke: editor-F12 полный чеклист GREEN (вкладки/wheel/▲▼/clamp/сброс/маркеры/(?)/пузыри/задник).
+
+### S290: Phase 4 — Investigation Board MVI (presentation-persistence) | ✅ IPT 46/46, pytest 30/30
+🎯 Стол, на котором игрок раскладывает полученные ENIGMA-материалы. Board = player
+organization поверх presentation layer (Фазы 1-3.2): хранит ТОЛЬКО организацию ссылок
+(ref_type + opaque ref_id), не знание; может ошибаться — нормальное состояние («Горан —
+вор» + три ложных свидетельства хранятся спокойно). НЕ domain primitive (§ENIGMA-002):
+causal-домен не создавался, элевация hypothesis→belief закрыта до Phase 5.
+⚙️ Backend: player_board_service (единственный писатель saves/<campaign>/board_state.json;
+lock per campaign; tmp+os.replace атомарная запись; self-repair счётчиков ТОЛЬКО вверх —
+плата за отказ от uuid4/INV-REPLAY-DETERMINISM; битый JSON → громкий ValueError L4);
+routes_board (GET /api/board/{c} + POST cards/links/hypotheses — закрытый список 8
+операций ТЗ §3; ValueError→422, нет частичных коммитов; traversal-защита campaign_id).
+Вердикты Мастера: схема принимает все 4 ref_type (journal/claim/belief/hypothesis),
+MVI резолвит journal+hypothesis — claim/belief persisted opaque, клиент рендерит серым;
+LINK idempotent; UNLINK тройкой (from,to,kind); DELETE_HYPOTHESIS каскадный (инвариант
+целостности собственного файла, за пределами board_state.json не трогает ничего).
+Frontend: api_client (5 board-методов Contract+Gateway), ui_workbench/windows/board_window
+(BOARD_MANIFEST, layer 3, data_source="investigation_board"), workbench_screen
+(_draw_board: клиентский джойн ref_id↔dialog_journal по event_id — сквозная identity
+ADR-O-404; мёртвая карточка серым с provenance-хвостом — валидное состояние ТЗ §2;
+интеракции: drag→board_card_move оптимистично + REST SSOT, выбор до 2 карточек,
+L=link с kind-toggle S↔C, U=unlink, X=remove, N=hypothesis placeholder), keybindings
+("open_board"=b, get_key-fallback для старых keybinds.json), game_screen (gateway +
+campaign_folder как атрибуты core).
+⚠️ Инциденты (все пойманы гейтами/линтером, ни один не ушёл в runtime): несуществующий
+якорь "class CardOp" → LinkOpPayload не вставился → PydanticUndefinedAnnotation на
+коллекции тестов (урок: якорь БЫЛО обязан браться дословно из созданного файла, не
+переформулироваться); EpistemicStore import по памяти (домен vs сервис — §13.5, фикс
+по прочитанному исходнику); _cid UndefinedVariable в рендере (Pylance); None-guard
+_board_cache (reportOptionalMemberAccess); traversal-тест ожидал 400, реальность 404
+(Starlette не декодирует %2F до матчинга — §13.5 прав реальность).
+📁 backend/app/services/player_board_service (нов), backend/app/api/routes_board (нов),
+backend/app/main (импорт+монтирование), backend/tests/test_player_board_service (нов,
+8), backend/tests/test_routes_board (нов, 11), backend/tests/test_board_acceptance_gates
+(нов, 5 — гейты приёмки §6: G1 round-trip через REST; G2 пустая карточка + opaque refs;
+G3 изоляция через живой EpistemicStore byte-compare player_beliefs; G4 M7 legacy/absent
+file + forward-compat полей), frontend/api_client.py, frontend/ui_workbench/windows/
+board_window.py (нов), frontend/ui_workbench/workbench_screen.py, frontend/game_screen.py,
+frontend/keybindings.py
+Долги (следующие итерации UI): ADD_CARD из UI (выбор материала из журнала кликом),
+текстовый ввод гипотез (placeholder), сужение except Exception → BackendError,
+визуальная отрисовка рёбер между карточками.
+IPT: ✅ 46/46. lint_frontend_isolation ✅. lint_silent_failures ✅.
+КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+
+
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
 *   **Time/Space:** `WALL-CLOCK`, `KERNEL-RNG`, `SPATIAL-SSOT`, `POSITION-MUTATION`, `TICK-CARDINALITY`, `TEMPORAL-ISOLATION`, `SCENE-ENTITY-ISOLATION` / `NPC-CARDINALITY`
@@ -1569,7 +1805,4 @@ continuity-сброса, подтвердить отдельным решени�
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-
-
-
 

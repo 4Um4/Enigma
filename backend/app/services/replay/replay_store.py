@@ -121,6 +121,19 @@ class ReplayStore:
         self.conn.commit()
         return session_id
 
+    def count_ticks(self, session_id: str) -> int:
+        """R2 (Phantom fix): фактическое число записанных тиков сессии.
+
+        session_id существует ≠ запись произведена (start_session пишет
+        строку в sessions независимо от тиков). Единственный честный
+        признак записи — счёт строк tick_snapshots.
+        """
+        _row = self.conn.execute(
+            "SELECT COUNT(*) FROM tick_snapshots WHERE session_id = ?",
+            (session_id,)
+        ).fetchone()
+        return int(_row[0]) if _row else 0
+
     def record_tick(
         self,
         session_id: str,

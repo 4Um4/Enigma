@@ -776,8 +776,6 @@ class MovementEngine:
         """S131.1: Fallback на A* ТОЛЬКО если локальная геометрия недоступна.
         Если геометрия была доступна, но план отклонён (физический запрет) — этот метод не вызывается.
         """
-        # [PROBE_FB] временный зонд (Часть VIII.5, снять после)
-        print(f"[PROBE_FB] npc={intent.actor_id} source_xy={source_xy!r}", flush=True)
         # N4 FIX: defensive default для segment_arc_heights, чтобы избежать NameError
         segment_arc_heights: List[float] = []
         path = svc.find_path(source_xy, target_node_obj) if hasattr(svc, "find_path") else None  # noqa: ENIGMA001
@@ -838,9 +836,6 @@ class MovementEngine:
         """S131: Компилирует TraversalPlan (от LocalTraversalPlanner) в TraversalProposal.
         Если локальная физика блокирована стеной, fallback на A* (все сегменты WALK).
         """
-        # [PROBE_CTP] временный зонд (Часть VIII.5, снять после)
-        print(f"[PROBE_CTP] npc={intent.actor_id} reason={intent.reason} "
-              f"source_xy={source_xy!r} cur_pos={current_pos!r}", flush=True)
         # S131.1: Traversal Failure Semantics & Fallback Gate.
         # 1. Получаем локальную геометрию. Если сервис не предоставляет геометрию — fallback на A*.
         try:
@@ -975,11 +970,6 @@ class MovementEngine:
                   f"cur_pos={current_pos!r}", flush=True)
             return []
 
-        # [PROBE_S131] временный зонд (Часть VIII.5, снять после): источник current_xy
-        print(f"[PROBE_S131] npc={intent.actor_id} current_xy={current_xy!r} "
-              f"type={type(current_xy).__name__} node=({source_node_obj.x if source_node_obj else '?'},"
-              f"{source_node_obj.y if source_node_obj else '?'}) "
-              f"in_trav={intent.actor_id in (scene_state or {}).get('active_traversals', {})}", flush=True)
         # S131 FIX (советник): current_xy — авторитетная позиция тела, а не графового узла.
         if isinstance(current_xy, dict) and "x" in current_xy and "y" in current_xy:
             _cx = float(current_xy["x"])

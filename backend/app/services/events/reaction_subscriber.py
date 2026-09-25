@@ -183,7 +183,7 @@ class ReactionSubscriber:
             logger.warning(
                 "[REACTION_SUB] handle() called with 0 events — no emotional reactions this tick"
             )
-            return Phase8Result()
+            return Phase8Result(perceiving_npc_ids=set())
 
         logger.warning(
             f"[REACTION_SUB] handle() called with {len(events)} events types={[getattr(e, 'type', '?') for e in events[:3]]}"
@@ -204,12 +204,49 @@ class ReactionSubscriber:
                     )
 
         # Определяем реагирующих NPC
-        perceiving_ids = self._get_perceiving_ids(ctx)
+        # G3-A FIX: perceiving вычисляется из ФАКТИЧЕСКИХ событий этого тика
+        # через готовую мембрану filter_perceiving_npcs (LOS+radius).
+        # Прежний контракт (shared_context.perceiving_npcs от несуществующего
+        # «PerceptionSubscriber») не имел реализации: perceiving_npc_ids
+        # никем не заполнялся → EMPTY или телепатия-fallback (диагноз:
+        # замкнутый круг через tick boundary). Детерминизм: per event →
+        # same event + same world state → same witness set.
+        _npc_ids = [
+            str(n.get("id") or n.get("npc_id"))
+            for n in (ctx.all_npcs_raw or [])
+            if n.get("id") or n.get("npc_id")
+        ]
+        _spatial_q = (
+            getattr(ctx.shared_context, "spatial_query", None)
+            if ctx.shared_context is not None
+            else None
+        )
+        perceiving_ids: set[str] = set()
+        if _spatial_q is not None:
+            from app.services.npc.perception_filter import filter_perceiving_npcs
+            for event in events:
+                perceiving_ids.update(
+                    filter_perceiving_npcs(
+                        npc_ids=_npc_ids,
+                        event=event,
+                        scene_state=ctx.shared_context.scene_state,
+                        spatial_query=_spatial_q,
+                    )
+                )
+        else:
+            # Страховка сбоя контекста (не эпистемическая норма) —
+            # наблюдаемая телепатия (прецедент S210/DEBT-R2)
+            logger.warning(
+                "[REACTION_SUB] spatial_query недоступен — fallback на ВСЕХ NPC: "
+                "потенциальная телепатия. all_npcs_raw="
+                f"{len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
+            )
+            perceiving_ids = set(_npc_ids)
         if not perceiving_ids:
             logger.warning(
                 f"[REACTION_SUB] perceiving_ids EMPTY — no NPC to react. all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
             )
-            return Phase8Result()
+            return Phase8Result(perceiving_npc_ids=set())
         logger.warning(
             f"[REACTION_SUB] perceiving_ids count={len(perceiving_ids)} ids={list(perceiving_ids)[:5]}"
         )
@@ -453,6 +490,9 @@ class ReactionSubscriber:
         return Phase8Result(
             deltas=deltas,
             events_processed=len(events),
+            # G3-A: witness-набор этого тика — замыкание контракта
+            # reduction.py:254-260 (perceiving_npc_ids -> shared_context)
+            perceiving_npc_ids=perceiving_ids,
         )
 
     @staticmethod

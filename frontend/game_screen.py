@@ -571,6 +571,10 @@ class GameScreen:
         # Неблокирующая очередь к backend — LLM не замораживает Pygame
         _gateway, action_queue = create_game_gateway()
         action_queue.start()
+        # Phase 4 Investigation Board: workbench-окну нужен доступ к
+        # gateway и кампании (board-запросы) — ранее были локальными.
+        self._gateway = _gateway
+        self.campaign_folder = campaign_folder
 
         # Активируем сессию игрока на backend — это ALSO инициализирует сцену из editor JSON
         if player_name:
@@ -722,6 +726,7 @@ class GameScreen:
         # _last_world_pos инициализирован выше (перед try-блоком SpatialRegistry)
         _TELEGRAPH_COOLDOWN_MS = 30_000  # 30 сек между телеграфами
         _time_scale = 1  # Множитель скорости симуляции (1, 4, 10, 50)
+        self._workbench.hud_time_scale = "▶ 1x"  # M-HUD: канал мини-окна time_scale
         # Маппинг npc_id → имя для телеграфа
         _npc_name_map: dict[str, str] = {}
         # C1-FIX: убран contextlib.suppress(Exception). Ошибки чтения конфигов логируем.
@@ -825,6 +830,15 @@ class GameScreen:
                     # show_journal-рендер удалён (DOUBLE TRUTH). J = toggle окна.
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "open_journal"):
                         self._workbench.toggle_journal()
+                    # Phase 4 Investigation Board: B = toggle Доски.
+                    # Операции доски вне тик-пайплайна (presentation-persistence,
+                    # lock на campaign в store) — пауза мира не требуется.
+                    elif not text_input.focused and event.key == get_key(load_keybinds(), "open_board"):
+                        self._workbench.toggle_board()
+                    # Phase 4 Investigation Board: B = toggle Доски (Workbench).
+                    # Мир встаёт на паузу — board-операции вне тик-конкурентности.
+                    elif not text_input.focused and event.key == get_key(load_keybinds(), "open_board"):
+                        self._workbench.toggle_board()
                     # P8: Переключение панели инвентаря — через бинды
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "toggle_inventory"):
                         self.show_inventory = not self.show_inventory
@@ -1027,9 +1041,11 @@ class GameScreen:
                         _auto_dir = (_tdx / _tdist, _tdy / _tdist)
 
                 # WASD: транслируем вектор в семантическую команду (SemanticBridge на бэкенде)
-                # M20: auto-walk подаёт направление в ту же физику (скольжение
-                # вдоль стен, коллизии, walk_distance — общий путь с WASD).
-                else:
+                # M20 FIX: else был взаимоисключающим с target-веткой — физика
+                # не выполнялась, пока есть цель (замкнутый круг). Блок должен
+                # выполняться КАЖДЫЙ кадр: сначала auto-walk, потом WASD.
+                # TODO(M19-рефактор): убрать if True ре-индентом на этапе скролла.
+                if True:
                     dx, dy = 0.0, 0.0
                     if _auto_dir is not None:
                         dx, dy = _auto_dir
@@ -1287,8 +1303,14 @@ class GameScreen:
             # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
             _events = _tick_data.get("events") or [] if _tick_data else []
             # Фильтруем только proactive (не life_engine позиционные)
+            # CRASH-FIX: significant_events приходит из TickMutation.npc_deltas
+            # (List[StateDeltas], legacy-проекция game_loop "events") — не dict.
+            # Фронт не знает StateDeltas (DTO-граница §2.3); dict-фильтр
+            # отсекает чужие объекты. DEBT-FE-DELTAS: backend не должен
+            # проектировать внутренние дельты в фронт-канал вообще (Rule 11).
             _proactive_events = [
-                e for e in _events if e.get("cause") == "idle_pressure"
+                e for e in _events
+                if isinstance(e, dict) and e.get("cause") == "idle_pressure"
             ]
             _now_ms = pygame.time.get_ticks()
             if (
@@ -2272,7 +2294,7 @@ class GameScreen:
 
             # UI Workbench: окна поверх всего кадра (после HUD/пузырей, до флипа).
             # Только пока верстак активен (F12): иначе нулевой оверхед.
-            self._workbench.draw(self.screen)
+            self._workbench.draw(self.screen, scene_state)
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -2379,4 +2401,6 @@ class GameScreen:
         elif best_npc:
             focus.focus_entity_id = best_npc
             return best_npc
+        # M20: клик по пустому месту снимает выделение NPC (круг не висит)
+        focus.focus_entity_id = None
         return None

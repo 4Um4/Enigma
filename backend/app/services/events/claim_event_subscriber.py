@@ -213,7 +213,10 @@ class ClaimEventSubscriber:
                         listener_id=_listener_id,
                         proposition=prop,
                         speech_act=SpeechAct(payload.get("speech_act", "assert")),
-                        tick=payload.get("tick", 0)
+                        # R4 (Claim Bridge): событийное время — event_tick
+                        # (ADR-O-399, ставится drain'ом в payload), fallback
+                        # на legacy "tick". Неверный ноль устранён.
+                        tick=int(payload.get("event_tick", 0) or payload.get("tick", 0) or 0)
                     )
                     existing = self._store.get(_listener_id, prop)
                     updated_record = self._engine.revise(_listener_id, claim, existing)

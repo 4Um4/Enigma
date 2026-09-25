@@ -735,6 +735,7 @@ def main() -> None:
                                 screen = pygame.display.get_surface()
                                 game_screen = GameScreen(screen, clock)
                                 game_result = game_screen.run(selected_folder, selected_data["character_id"])
+                                print(f"[DIAG_PAUSE] resume result={game_result!r}")
                         else:
                             print("  ✖ Запуск игры отменён из-за ошибки сброса мира.")
                 # Возвращаемся в меню — пересоздаём поверхность и меню
@@ -776,7 +777,18 @@ def main() -> None:
 
                         screen = pygame.display.get_surface()
                         game_screen = GameScreen(screen, clock)
-                        game_screen.run(selected_folder, selected_data["character_id"])
+                        # M21 FIX: return-значение выбрасывалось — Esc (PAUSE)
+                        # из Continue падал в главное меню. Паритет с NEW GAME:
+                        # ловим "PAUSE" и крутим ту же петлю настроек.
+                        game_result = game_screen.run(selected_folder, selected_data["character_id"])
+                        while game_result == "PAUSE":
+                            screen = pygame.display.get_surface()
+                            settings_screen = SettingsScreen(screen, clock)
+                            settings_screen.run(initial_tab="graphics")
+                            screen = pygame.display.get_surface()
+                            game_screen = GameScreen(screen, clock)
+                            game_result = game_screen.run(selected_folder, selected_data["character_id"])
+                            print(f"[DIAG_PAUSE] resume result={game_result!r}")
                 # Возвращаемся в меню — пересоздаём поверхность и меню
                 screen, clock, menu = _init_menu_display()
 

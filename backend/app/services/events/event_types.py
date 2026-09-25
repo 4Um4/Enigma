@@ -24,6 +24,11 @@ class EventType(str, Enum):
     PROPHECY_VISION = "prophecy_vision"
     # ── Эпистемический слой ──────────────────
     COMMUNICATION_CLAIM = "communication_claim"  # S188: Передача Proposition (ClaimEvent)
+    # Фаза 3.1 (ADR-O-404-наследие): observation-only — «Игра предъявила
+    # игроку этот narrative-текст», НЕ утверждение истинности содержимого.
+    # НЕ Intent→Event mapping: в _INTENT_EVENT_MAP отсутствует легально
+    # (ADR-O-349 регулирует только Intent-производные события).
+    DM_NARRATED = "dm_narrated"
 
     # ── Физический мир ────────────────────────────────────────────────────
     OBJECT_MOVED = "object_moved"
