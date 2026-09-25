@@ -82,10 +82,27 @@ def write_npc_reactions_to_memory(
                 # 999-дефолт и хардкод запрещены (ADR-148). Импорт — шапка модуля.
                 EventDTO.create(
                     event_type=EventType.NPC_SPOKE,
-                    source=npc_name_raw,
+                    # F2 (S292): source — канонический npc_id. Все потребители
+                    # NPC_SPOKE — id-мир (player_distances, npc_positions,
+                    # M17-recognition, RelationshipStore): display-имя в source
+                    # роняло дистанцию в 999.0 (ключи позиций — id) → RCE-реплики
+                    # не доходили в журнал игрока, а M17 confirmed ложил
+                    # display-имя ключом. Резолв имени — обязанность подписчика
+                    # (INV-NPC-NAME журнал-путь). Fallback на имя — fail-open
+                    # (нет соответствия в реестре — parity с прежним).
+                    source=matched_id or npc_name_raw,
                     payload={
+                        # Контракт NPC_SPOKE-потребителей (npc_dialogue_subscriber,
+                        # dialogue_memory_subscriber): text — реплика, target_id —
+                        # адресат. Было: "content" (никем не читается) + нет
+                        # target_id → guard подписчика listener=None → return:
+                        # RCE-реплики не доходили в журнал/память/убеждения
+                        # (BUG-JOURNAL-CHANNEL, S290-археология).
                         "npc_id": matched_id or "",
-                        "content": npc_text,
+                        "text": npc_text,
+                        # DM-проза отвечает игроку → адресат извлечённых реплик
+                        # — игрок (RCE извлекает реакции на player-action).
+                        "target_id": "player",
                         "action_type": "dialogue_key",
                     },
                     visibility="public",

@@ -1752,9 +1752,9 @@ Smoke: editor-F12 полный чеклист GREEN (вкладки/wheel/▲▼
 ### S290: Phase 4 — Investigation Board MVI (presentation-persistence) | ✅ IPT 46/46, pytest 30/30
 🎯 Стол, на котором игрок раскладывает полученные ENIGMA-материалы. Board = player
 organization поверх presentation layer (Фазы 1-3.2): хранит ТОЛЬКО организацию ссылок
-(ref_type + opaque ref_id), не знание; может ошибаться — нормальное состояние («Горан —
-вор» + три ложных свидетельства хранятся спокойно). НЕ domain primitive (§ENIGMA-002):
-causal-домен не создавался, элевация hypothesis→belief закрыта до Phase 5.
+(ref_type + opaque ref_id), не знание; может ошибаться — нормальное состояние. НЕ
+domain primitive (§ENIGMA-002): causal-домен не создавался, элевация hypothesis→belief
+закрыта до Phase 5.
 ⚙️ Backend: player_board_service (единственный писатель saves/<campaign>/board_state.json;
 lock per campaign; tmp+os.replace атомарная запись; self-repair счётчиков ТОЛЬКО вверх —
 плата за отказ от uuid4/INV-REPLAY-DETERMINISM; битый JSON → громкий ValueError L4);
@@ -1763,35 +1763,96 @@ routes_board (GET /api/board/{c} + POST cards/links/hypotheses — закрыт�
 Вердикты Мастера: схема принимает все 4 ref_type (journal/claim/belief/hypothesis),
 MVI резолвит journal+hypothesis — claim/belief persisted opaque, клиент рендерит серым;
 LINK idempotent; UNLINK тройкой (from,to,kind); DELETE_HYPOTHESIS каскадный (инвариант
-целостности собственного файла, за пределами board_state.json не трогает ничего).
+целостности собственного файла).
 Frontend: api_client (5 board-методов Contract+Gateway), ui_workbench/windows/board_window
 (BOARD_MANIFEST, layer 3, data_source="investigation_board"), workbench_screen
-(_draw_board: клиентский джойн ref_id↔dialog_journal по event_id — сквозная identity
-ADR-O-404; мёртвая карточка серым с provenance-хвостом — валидное состояние ТЗ §2;
-интеракции: drag→board_card_move оптимистично + REST SSOT, выбор до 2 карточек,
-L=link с kind-toggle S↔C, U=unlink, X=remove, N=hypothesis placeholder), keybindings
-("open_board"=b, get_key-fallback для старых keybinds.json), game_screen (gateway +
-campaign_folder как атрибуты core).
-⚠️ Инциденты (все пойманы гейтами/линтером, ни один не ушёл в runtime): несуществующий
-якорь "class CardOp" → LinkOpPayload не вставился → PydanticUndefinedAnnotation на
-коллекции тестов (урок: якорь БЫЛО обязан браться дословно из созданного файла, не
-переформулироваться); EpistemicStore import по памяти (домен vs сервис — §13.5, фикс
-по прочитанному исходнику); _cid UndefinedVariable в рендере (Pylance); None-guard
-_board_cache (reportOptionalMemberAccess); traversal-тест ожидал 400, реальность 404
-(Starlette не декодирует %2F до матчинга — §13.5 прав реальность).
+(_draw_board: клиентский джойн ref_id↔dialog_journal по event_id — ADR-O-404; мёртвая
+карточка серым с provenance-хвостом; интеракции: drag→REST SSOT оптимистично, выбор
+до 2 карточек, L=link kind-toggle S↔C, U=unlink, X=remove, N=hypothesis placeholder,
+публичный board_keydown-маршрут), keybindings ("open_board"=b), game_screen (gateway +
+campaign_folder атрибутами core).
+⚠️ Инциденты (гейт-пойманные): несуществующий якорь "class CardOp" → LinkOpPayload
+не вставился → PydanticUndefinedAnnotation (урок: якорь БЫЛО — дословно из созданного
+файла); EpistemicStore import по памяти (домен vs сервис — §13.5); _cid UndefinedVariable
+(Pylance); traversal-тест ждал 400, реальность 404 (%2F не декодируется до матчинга).
+⚠️ Smoke-инциденты (5, runtime-пойманные, все фиксы верифицированы живым прогоном):
+(1) FallbackGateway без board-методов → AttributeError; фикс — 6 методов по прецеденту
+skip_time, отклонение от заглушки осознанное — BackendError (пустая доска офлайна лжёт
+игроку). (2) persistence-restore открывает окно FULL без toggle → «Доска недоступна:
+None» + editor-контекст без gateway; фикс — ленивый refresh в _draw_board +
+game_context-guard (editor = валидная пустая доска). (3) KEYDOWN-интеракции мертвы вне
+F12 (handle_event только при .active); фикс — публичный board_keydown из game_screen
+после чат-гейта. (4) Токены text_default/RGB-литерал не существуют — L0 fail-fast
+KeyError темы; фикс — канон text_primary/border_accent. (5) Двойное применение патчей
+×2 (board_keydown, ленивый refresh) — прецедент S207; урок: Select-String-кратность
+якоря ДО компиляции. Уроки серии: археология перечисляет ВСЕ реализации интерфейса
+и канонические токены из реестра; smoke покрывает каждый интерактивный путь и
+persistence-restore, не только рендер.
 📁 backend/app/services/player_board_service (нов), backend/app/api/routes_board (нов),
 backend/app/main (импорт+монтирование), backend/tests/test_player_board_service (нов,
 8), backend/tests/test_routes_board (нов, 11), backend/tests/test_board_acceptance_gates
-(нов, 5 — гейты приёмки §6: G1 round-trip через REST; G2 пустая карточка + opaque refs;
-G3 изоляция через живой EpistemicStore byte-compare player_beliefs; G4 M7 legacy/absent
-file + forward-compat полей), frontend/api_client.py, frontend/ui_workbench/windows/
-board_window.py (нов), frontend/ui_workbench/workbench_screen.py, frontend/game_screen.py,
-frontend/keybindings.py
-Долги (следующие итерации UI): ADD_CARD из UI (выбор материала из журнала кликом),
-текстовый ввод гипотез (placeholder), сужение except Exception → BackendError,
-визуальная отрисовка рёбер между карточками.
+(нов, 5: G1 round-trip через REST; G2 пустая карточка + opaque refs; G3 изоляция через
+живой EpistemicStore byte-compare player_beliefs; G4 M7 legacy/absent file + forward-
+compat), frontend/api_client.py, frontend/ui_workbench/windows/board_window.py (нов),
+frontend/ui_workbench/workbench_screen.py, frontend/game_screen.py, frontend/keybindings.py
+Долги UI: ADD_CARD из UI (выбор материала из журнала кликом), текстовый ввод гипотез
+(placeholder), except Exception → BackendError, рёбра на канве, DirectGameGateway без
+board-методов (hasattr-честная ошибка), Protocol не расширен (mypy-долг).
+Эскалации Мастеру: (а) FallbackGateway двойной get_end_screen (:733 заглушка / :919
+Retry, lower-wins молча) — pre-existing, чей канон; (б) board_state.json не чистится
+при reset кампании (files_removed не содержит) — семантический вердикт.
+ADR: ADR-O-405 + docs/audits/ADR-O-405_IMPACT.md (presentation-persistence, не ONTO).
 IPT: ✅ 46/46. lint_frontend_isolation ✅. lint_silent_failures ✅.
 КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+
+### S291: BUG-JOURNAL-CHANNEL — эхо player-реплик + мёртвый RCE-путь журнала | ✅ runtime-verified
+🎯 Первопричины доказаны зондами (Часть VIII.5: [DIAG_LISTENER] в подписчике,
+[DIAG_JCHANNEL] на фронте), не гипотезами. Карта писателей журнала замкнута:
+dialogue_subscriber:237 (NPC_SPOKE-ветка), game_loop:1685 (self), game_loop:1714
+(narrative), working_memory_tick (RCE-путь — не подозревался репортом).
+⚙️ Фикс 1 (working_memory_tick): RCE-публикация NPC_SPOKE несла текст реплики в
+ключе "content" (никем из потребителей не читается) и не несла target_id → guard
+подписчика (listener=None → return, :170) молча резал ВСЕ RCE-реплики из DM-прозы:
+ни журнал, ни STM, ни убеждения не получали реакции NPC на действия игрока.
+Контракт восстановлен: "text" + "target_id": "player" (DM-проза адресована игроку;
+константа — кандидат на уточнение player_target_id-пробросом при втором кейсе,
+§ENIGMA-002).
+⚙️ Фикс 2 (npc_dialogue_subscriber): эхо собственной реплики игрока (диалоговый
+путь публикует player-utterance в NPC_SPOKE: speaker='player', listener=NPC) →
+канал вычислялся overheard (listener≠player), speaker не резолвился в имя →
+запись speaker="player"/overheard = DOUBLE TRUTH с легитимным self-каналом
+(game_loop:1685). Гард speaker != "player" вокруг append_journal; M17-recognition
+осознанно НЕ гардила (tentative-распознавание адресата легально и для
+player-спикера).
+Runtime-verified (после рестарта backend): ноль speaker="player"/overheard;
+Тень — direct с display-именем (INV-NPC-NAME резолв работает); RCE-реплики
+доезжают до журнала; NPC-NPC overheard (шёпот Тени Люсе) — эпистемически честен,
+не баг. Каскад M17 этап 3 получает fuel от RCE-реплик (позитивный побочный
+эффект Фикса 1).
+⚠️ Вскрыто Фиксом 1 (pre-existing, отдельный баг): RCE-экстракция кладёт в
+NPC_SPOKE описания жестов DM-прозы («Тень слегка поднимает брови») как прямую
+речь — речь ≠ дескрипция действия, зона memory/rce.py, эскалация Мастеру
+(требование вербатим «не реплики, не флаги поведения» — тройка speaker/text
+недостаточна для различения без вердикта).
+📁 backend/app/services/memory/working_memory_tick.py, backend/app/services/events/
+npc_dialogue_subscriber.py, frontend/game_screen.py (зонд [DIAG_JCHANNEL] снят)
+Долги/эскалации: RCE-грязь (речь ≠ дескрипция); DIAG-DRAIN зонд (чужой,
+«ВРЕМЕННЫЙ» в комментарии — снять по вердикту владельца); dist-мембрана
+direct-диалога при разговоре издалека (не воспроизведён, теоретический
+риск — вердикт Мастеру).
+IPT: ✅ 46/46. lint_silent_failures ✅.
+КРАСНЫЕ ИНВАРИАНТЫ: было 0 🔴 → стало 0 🔴
+
+### S292: INV-PLAYER-AUTHORSHIP — Control Source Axis (F1) | ✅ IPT 47/47
+🎯 Канонизация Actor ≠ AutonomousDecisionAgent (ADR-O-406): автономный decision pipeline не порождает авторский акт аватара. Убийство ghost-реплик игрока (БАГ-2 ТЗ проекционного слоя).
+⚙️ Археология: ghost-реплика воспроизводилась цепью player∈_alive_npcs (tick_orchestrator:2092, специальная ветка == "player") → _build_communication (без гварда) → QueuedTask(owner="player") → DialogueExecutor LLM-перефраз («Ты — NPC…Тема: {topic}») → NPC_SPOKE(source="player") → S290-гард (проекционный пластырь; шинные потребители ложь продолжали есть). Зонд [DIAG_AUTHORSHIP]: tick=2 — [INTENT] speaker='player' audience='thief_shadow' intent=CHANGE_ROLE — канал (a) рантайм-подтверждён.
+⚙️ Реализация (4 слоя): (0) фильтр decision population по ControlSource (player исключён; психика аватара = player-input + AvatarStateApplicator, DEBT-R10 → активная онтология, вердикт Мастера); (1) гвард _build_communication; (2) гвард attack-фабрики (else-структура, легальный NPC-attack сохранён); (3) детектор SimulationIntegrityError(INV-PLAYER-AUTHORSHIP) перед return TickMutation (ADR-INV-DEF). Ось: domain/control_source.py (NEW — единственная точка 'player'; COMBAT_CONTROLLER зарезервирован боем). IPT-инвариант INV-PLAYER-AUTHORSHIP (статическая защита якорей). Микро-фикс L4: llm_compressor_client.py:92 except:pass → logger.debug.
+⚙️ Регресс: player_in_decisions=0 за ~124 тика; PLAYER_SPOKE жив (self-вербатим); reactive audience='player' подтверждён (thief_shadow TRADE); attack-реакции NPC живы; NPC-NPC диалоги живы. Зонды сняты (probes_left=0).
+⚙️ Эскалации в F2: RCE display-name (M17-confirmed мимо); двойной калькулятор дистанции до игрока (eavesdrop 999.0 vs membrane — реплика Тени не в журнале); узел графа как слушатель (tavern:exit_south + rel update); нулевые rel update; солилокви → overheard в журнале; doc-drift post_decision:97; снятие S290-гарда и [DIAG-LLM] — реестр F2.
+📁 domain/control_source.py (NEW), services/npc/decision_hub.py, services/npc/npc_tick_pipeline.py, services/tick_orchestrator.py, services/input/llm_compressor_client.py, tests/IPT.py, docs/ADR (O-406), docs/audits/ADR-O-406_IMPACT.md
+IPT: ✅ 47/47 (INV-PLAYER-AUTHORSHIP добавлен и зелёный). КРАСНЫЕ ИНВАРИАНТЫ: было 1 🔴 (INV-SILENT-FAILURE, pre-existing) → 0 🔴
+
+
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
@@ -1805,4 +1866,3 @@ IPT: ✅ 46/46. lint_frontend_isolation ✅. lint_silent_failures ✅.
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-

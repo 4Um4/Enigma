@@ -7,7 +7,6 @@
 Запуск: cd backend; python tests/sandbox/probes/o399_md5_crossprocess_probe.py; cd ..
 """
 
-import hashlib
 import subprocess
 import sys
 

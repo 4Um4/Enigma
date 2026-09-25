@@ -9,12 +9,11 @@ PBT-разбиениях. Гейт ДО врезки в integration.py:410: ра
 Запуск: cd backend; python -m pytest tests/test_pattern_watermark_oracle.py -v --tb=short; cd ..
 """
 
-import math
-from hypothesis import given, strategies as st
-
 from app.domain.identity_events import TraitDriftEvent
 from app.services.npc.pattern_detector import PatternDetector
 from app.services.npc.pattern_state import WatermarkState
+from hypothesis import given
+from hypothesis import strategies as st
 
 
 def _ev(source: str, effect: float, weight: float = 1.0, tick: int = 0) -> TraitDriftEvent:

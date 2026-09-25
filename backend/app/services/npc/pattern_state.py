@@ -13,7 +13,7 @@ cumulative — последовательный float в порядке пото
 
 import math
 from fractions import Fraction
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List
 
 from app.domain.identity_events import EvidenceOfPersistence, TraitDriftEvent
 

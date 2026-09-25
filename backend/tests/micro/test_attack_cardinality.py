@@ -9,12 +9,9 @@ path: /project/backend/tests/micro/test_attack_cardinality.py
 Запуск: cd backend; python -m pytest tests/micro/test_attack_cardinality.py -v 2>&1 | Select-Object -Last 8; cd ..
 """
 
-from app.domain.events import EventDTO
-from app.services.events.event_bus import EventBus
-from app.services.events.event_identity import next_event_identity
-from app.services.events.event_types import EventType
-from app.services.game_loop.phase_1_input import publish_classified_player_event
 from types import SimpleNamespace
+
+from app.services.game_loop.phase_1_input import publish_classified_player_event
 
 
 class _Bus:

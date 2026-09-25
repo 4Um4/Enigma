@@ -129,11 +129,12 @@ class CombatSubscriber:
 
         deltas = []
         events_processed = 0
-        missed_targets: list[str] = []  # Цели вне досягаемости — для DM
+        missed_targets: list[dict] = []  # Цели вне досягаемости — для DM: {npc_id, distance, max_range}
 
-        # Максимальная дистанция рукопашной атаки (м) + запас на weapon_reach
-        # MVP FIX: Увеличено до 5.0, чтобы игрок мог атаковать после одного хода "подойти".
-        _MAX_MELEE_RANGE = 5.0
+        # WV (вердикт Q1): дубль 5.0/2.0 устранён — SSOT досягаемости в dom.constants.
+        # reach предмета войдёт, когда tool_reference дойдёт до combat-pipe payload.
+        from app.domain.constants import BODY_REACH_M
+        _MAX_MELEE_RANGE = BODY_REACH_M
 
         # A1-FIX: zombie reader → SpatialQueryService (ADR-048 single authority).
         # Раньше: scene_state["player_distances"] — поле не пишется с ADR-048,
@@ -168,26 +169,27 @@ class CombatSubscriber:
                 f"[COMBAT_SUB] intent OK: actor={intent.actor_id} target={intent.target_id} force={intent.force:.1f}"
             )
 
-            # Range gate: атака не достигает цели если та слишком далеко
-            # Проверяем только для атак игрока (actor_id == "player")
-            # MVP FIX: Временно отключено для терминального теста, чтобы доказать работу ImpactEngine.
-            # if intent.actor_id == "player" and _distances:
-            #     _dist_to_target = _distances.get(intent.target_id, 0.0)
-            #     _effective_range = _MAX_MELEE_RANGE + intent.weapon_reach
-            #     if _dist_to_target > _effective_range:
-            #         logger.info(
-            #             f"[COMBAT_SUB] {intent.target_id} is {_dist_to_target:.1f}m away — "
-            #             f"out of melee range ({_effective_range:.1f}m). Attack misses."
-            #         )
-            #         missed_targets.append(
-            #             {
-            #                 "npc_id": intent.target_id,
-            #                 "distance": round(_dist_to_target, 1),
-            #                 "max_range": round(_effective_range, 1),
-            #             }
-            #         )
-            #         events_processed += 1
-            #         continue
+            # Range gate (WV-1, реактивация; MVP-костыль «временно отключено» снят):
+            # атака не достигает цели за пределами _MAX_MELEE_RANGE + weapon_reach.
+            # Канон дистанции — SpatialQueryService.player_distances() (ADR-048),
+            # источник починен. miss уходит в missed_targets → DM-канал отказа (WV-2).
+            if intent.actor_id == "player" and _distances:
+                _dist_to_target = _distances.get(intent.target_id, 0.0)
+                _effective_range = _MAX_MELEE_RANGE + getattr(intent, "weapon_reach", 0.0)
+                if _dist_to_target > _effective_range:
+                    logger.info(
+                        f"[COMBAT_SUB] {intent.target_id} is {_dist_to_target:.1f}m away — "
+                        f"out of melee range ({_effective_range:.1f}m). Attack misses."
+                    )
+                    missed_targets.append(
+                        {
+                            "npc_id": intent.target_id,
+                            "distance": round(_dist_to_target, 1),
+                            "max_range": round(_effective_range, 1),
+                        }
+                    )
+                    events_processed += 1
+                    continue
 
             # Получаем снапшоты атакующего и защищающегося
             attacker_snapshot = self._build_snapshot(intent.actor_id, npc_by_id)

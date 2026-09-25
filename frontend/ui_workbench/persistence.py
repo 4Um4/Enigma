@@ -7,7 +7,7 @@ path: /frontend/ui_workbench/persistence.py
 """
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
 _SCHEMA_VERSION = 1
 

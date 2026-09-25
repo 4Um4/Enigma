@@ -20,7 +20,7 @@ import os
 import re
 import threading
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 # ── Ключи — константы, не строки (Устав §12.1) ──────────────────
 _KEY_VERSION = "version"

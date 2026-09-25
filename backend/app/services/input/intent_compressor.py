@@ -8,6 +8,7 @@ TODO: В будущем IntentCompressor может быть расширен д
 
 """
 
+import logging
 import re
 from typing import Any, Dict, Optional, cast
 
@@ -23,6 +24,8 @@ from app.domain.intent_profile import (
 from app.domain.subject_ref import SubjectKind, SubjectRef
 from app.services.input.llm_compressor_client import LLMCompressorClient
 from app.services.memory.dialogue_session import DialogueSession
+
+logger = logging.getLogger(__name__)
 
 try:
     import pymorphy3
@@ -197,6 +200,29 @@ _ACTION_LEMMAS = {
 
 # Плоский словарь всех лемм действий, чтобы не принять слово "удар" за цель
 _ACTION_LEMMAS_FLAT = set(lemma for s in _ACTION_LEMMAS.values() for lemma in s)
+
+# №7-a/zone_raw: синонимы зон из живых ответов LLM + нормализатор для Reconciler
+# (консолидация с _safe_enum — косметика после исследования)
+_ZONE_SYNONYMS = {
+    "EYES": "HEAD", "EYE": "HEAD",
+    "EYE_LEFT": "HEAD", "EYE_RIGHT": "HEAD",
+    "NOSE": "HEAD",
+}
+
+
+def normalize_zone(val: Any) -> Optional[TargetZone]:
+    """Строка → TargetZone (с синонимами); UNDEFINED/пусто/неизвестно → None."""
+    if not val:
+        return None
+    _v = str(val).upper()
+    if _v == "UNDEFINED":
+        return None
+    _v = _ZONE_SYNONYMS.get(_v, _v)
+    try:
+        return TargetZone(_v)
+    except ValueError as _z_err:
+        logger.debug(f"[RECONCILE] zone {_v!r} не нормализуется: {_z_err}")
+        return None
 
 _INTENSITY_LEMMAS = {
     # ИСПРАВЛЕНО: убраны 'весь' (местоимение — 'весь день' давало false positive
@@ -391,9 +417,91 @@ class IntentCompressor:
         self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[DialogueSession] = None
     ) -> IntentSemanticField:
         fast_result = self._fast_path_parse(raw_text, dialogue_session)
-        if fast_result is not None:
+        if fast_result is None:
+            return await self._slow_path_parse(raw_text, scene_context, dialogue_session)
+        # Reconciler v0 (вердикт Мастера): fast-path = предварительное предложение,
+        # не вето. Неполный физический акт → LLM enrichment пустых полей.
+        if not self._fast_incomplete(fast_result, scene_context):
             return fast_result
-        return await self._slow_path_parse(raw_text, scene_context, dialogue_session)
+        try:
+            _llm = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
+        except Exception as _e:
+            print(f"[RECONCILE] llm EXC {type(_e).__name__}: fast остаётся")
+            return fast_result
+        if _llm is None:
+            print("[RECONCILE] llm None: fast остаётся")
+            return fast_result
+        return self._enrich(fast_result, _llm, scene_context)
+
+    def _scene_npc_ids(self, scene_context: Any) -> set:
+        """Канонические id сцены — проверка резолва сущностей."""
+        if not isinstance(scene_context, dict):
+            return set()
+        return {str(k).lower() for k in scene_context.get("npc_positions", {})}
+
+    def _fast_incomplete(self, fast: IntentSemanticField, scene_context: Any) -> bool:
+        """Критерии полноты v0 (вердикт): физическое действие несёт зону,
+        proposition (если есть) опирается на резолвнутую сущность."""
+        if fast.action not in (ActionType.ATTACK, ActionType.THREATEN, ActionType.STEAL):
+            return False
+        if fast.target_zone == TargetZone.UNDEFINED and not fast.zone_raw:
+            return True
+        if fast.proposition is not None:
+            _obj = str(fast.proposition.object_id or "").lower()
+            if not _obj or _obj not in self._scene_npc_ids(scene_context):
+                return True
+        return False
+
+    def _enrich(
+        self, fast: IntentSemanticField, llm: Dict[str, Any], scene_context: Any
+    ) -> IntentSemanticField:
+        """Enrichment ТОЛЬКО пустых полей fast; перезапись запрещена (вердикт).
+        Конфликты — телеметрия [RECONCILE] CONFLICT (вход SCR/M3), арбитраж —
+        следующий уровень."""
+        _u: Dict[str, Any] = {}
+        _ids = self._scene_npc_ids(scene_context)
+
+        # 1. Зона (доктрина §6: точность зоны = выбор последствий игроком)
+        _lz = normalize_zone(llm.get("target_zone"))
+        if _lz is not None and fast.target_zone == TargetZone.UNDEFINED and not fast.zone_raw:
+            _u["zone_raw"] = str(llm.get("target_zone")).upper()
+            _u["target_zone"] = _lz
+        # 2. Прочие пустые поля
+        if fast.tool_reference is None and llm.get("tool_reference"):
+            _u["tool_reference"] = llm["tool_reference"]
+        if fast.condition is None and llm.get("condition"):
+            _u["condition"] = llm["condition"]
+        if fast.addressee is None and llm.get("addressee"):
+            _u["addressee"] = llm["addressee"]
+        if fast.target is None and llm.get("target"):
+            _u["target"] = llm["target"]
+        # 3. R4: proposition с нерезолвнутой сущностью. Вход дан критерием
+        # полноты вердикта («proposition содержит нерезолвленную сущность»
+        # = incomplete). LLM подтверждает → замена; иначе → None.
+        if fast.proposition is not None:
+            _obj = str(fast.proposition.object_id or "").lower()
+            if _obj not in _ids:
+                _lp = llm.get("proposition")
+                if isinstance(_lp, dict) and _lp.get("subject_id") and _lp.get("object_id"):
+                    try:
+                        _u["proposition"] = Proposition(
+                            subject_id=str(_lp["subject_id"]),
+                            predicate=Predicate(str(_lp.get("predicate", "asserts"))),
+                            object_id=str(_lp["object_id"]),
+                            polarity=bool(_lp.get("polarity", True)),
+                        )
+                    except ValueError as _p_err:
+                        logger.debug(f"[RECONCILE] LLM proposition не парсится: {_p_err}")
+                        _u["proposition"] = None
+                else:
+                    _u["proposition"] = None
+                print(f"[RECONCILE] proposition raw-entity {_obj!r} снята/заменена (LLM)")
+        # 4. Конфликты — только телеметрия, без перезаписи (v0)
+        if fast.target and llm.get("target") and str(llm["target"]).lower() != str(fast.target).lower():
+            print(f"[RECONCILE] CONFLICT target: fast={fast.target!r} llm={llm['target']!r} (v0: fast)")
+        if _u:
+            print(f"[RECONCILE] enriched={sorted(_u)} (пустые поля fast заполнены)")
+        return fast.model_copy(update=_u)
 
     def _lemmatize(self, text: str) -> set:
         """Разбивает текст на токены и приводит к начальной форме (лемме)."""
@@ -415,7 +523,10 @@ class IntentCompressor:
 
         # S200: Context-sensitive Fast Path. Если игрок пишет "продолжай", "ну?", "и?"
         # и есть активная сессия диалога, это CONTINUE. Используем леммы (pymorphy3).
-        _continue_indicators = {"продолжать", "ну", "и", "давать", "так"}
+        # R8 (вердикт Мастера): одиночные «и»/«так»/«давать» перехватывали
+        # приказы ("Подойди и поговори" → CONTINUE) при живой сессии диалога.
+        # Остаются только явные маркеры продолжения.
+        _continue_indicators = {"продолжать", "ну"}
         if dialogue_session and not dialogue_session.is_empty and not lemmas.isdisjoint(_continue_indicators):
             return IntentSemanticField(
                 action=ActionType.DIALOGUE,
@@ -554,6 +665,8 @@ class IntentCompressor:
         self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[DialogueSession] = None
     ) -> IntentSemanticField:
         llm_response = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
+        # [DIAG-LLM] временный зонд G-исследования: жив ли slow-path и что вернул LLM.
+        print(f"[DIAG-LLM] slow-path: {'None (LLM мертва)' if llm_response is None else repr(str(llm_response)[:400])}")
 
         if llm_response is None:
             # S97 FIX: Fallback если LLM недоступна (502 Bad Gateway) — пытаемся извлечь актора локально
@@ -588,6 +701,18 @@ class IntentCompressor:
                         if val.upper() == "HELP": return ActionType.GIVE  # type: ignore
                         if val.upper() in ("ASSERT", "ASSERTS"): return ActionType.DIALOGUE  # type: ignore
                     if enum_cls is TargetZone:
+                        # №7-a (вердикт Мастера): нормализация синонимов частей тела
+                        # к ближайшей канонической зоне. EYES→HEAD — сознательная
+                        # потеря точности («левый глаз» ≠ «голова»); восстановление
+                        # анатомической детализации — будущая модель зон (CognitionContext),
+                        # сегодня недостижима (IntentParametersDTO не несёт zone).
+                        _tz_syn = {
+                            "EYES": "HEAD", "EYE": "HEAD",
+                            "EYE_LEFT": "HEAD", "EYE_RIGHT": "HEAD",
+                            "NOSE": "HEAD",
+                        }
+                        if val and str(val).upper() in _tz_syn:
+                            return TargetZone[_tz_syn[str(val).upper()]]  # type: ignore
                         return TargetZone.UNDEFINED  # type: ignore
                     if enum_cls is SocialIntent:
                         if val == "clarify": return SocialIntent.NEUTRAL  # type: ignore
@@ -615,6 +740,9 @@ class IntentCompressor:
 
             _tz_val = llm_response.get("target_zone", TargetZone.UNDEFINED.value)
             _target_zone = _safe_enum(TargetZone, _tz_val, TargetZone.UNDEFINED)
+            # zone_raw: сырая зона ДО нормализации — латеральность не гибнет
+            # Доктрина §7: UNDEFINED = «зоны нет» → None (≠ сырая латеральность)
+            _zone_raw = str(_tz_val).upper() if _tz_val and str(_tz_val).upper() != "UNDEFINED" else None
 
             return IntentSemanticField(
                 action=_action,
@@ -623,12 +751,14 @@ class IntentCompressor:
                 speech_act=_speech_act,
                 proposition=_proposition,
                 social_intent=_social_intent,
+                addressee=llm_response.get("addressee"),
                 requested_outcome=llm_response.get("requested_outcome"),
                 offered_outcome=llm_response.get("offered_outcome"),
                 condition=llm_response.get("condition"),
                 conversation_continuation=llm_response.get("conversation_continuation"),
                 dialogue_thread=dialogue_session.thread_id if dialogue_session else None,
                 target_zone=_target_zone,
+                zone_raw=_zone_raw,
                 physical_force=float(llm_response.get("physical_force") or 0.5),
                 emotional_charge=float(llm_response.get("emotional_charge") or 0.5),
                 social_pressure=float(llm_response.get("social_pressure") or 0.0),

@@ -13,10 +13,35 @@ WORLD_CLOCK_MANIFEST = WindowManifest(
     layer=2,
     data_source="world_clock",
     default_state=WindowState.COLLAPSED_TO_TITLE,
+    collapsible=False,
     anchor="top_right",
     offset=(20, 6),
     size_policy=(0.16, 0.06),
     min_size=(150, 26),
+)
+
+INVENTORY_MANIFEST = WindowManifest(
+    window_id="inventory",
+    title="Инвентарь",
+    layer=3,                       # слой 3: осознанный анализ (Doctrine IX)
+    data_source="player_body_topology",
+    default_state=WindowState.HIDDEN,
+    anchor="top_right",
+    offset=(10, 60),
+    size_policy=(0.34, 0.90),
+    min_size=(300, 300),
+)
+
+OBSERVATIONS_MANIFEST = WindowManifest(
+    window_id="observations",
+    title="Наблюдение",
+    layer=2,
+    data_source="observations",
+    default_state=WindowState.COLLAPSED_TO_TITLE,
+    anchor="top_left",
+    offset=(10, 10),
+    size_policy=(0.28, 0.30),
+    min_size=(260, 120),
 )
 
 TIME_SCALE_MANIFEST = WindowManifest(
@@ -25,6 +50,7 @@ TIME_SCALE_MANIFEST = WindowManifest(
     layer=2,
     data_source="time_scale",
     default_state=WindowState.COLLAPSED_TO_TITLE,
+    collapsible=False,
     anchor="top_right",
     offset=(20, 40),
     size_policy=(0.10, 0.05),

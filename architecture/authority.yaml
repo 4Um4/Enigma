@@ -185,6 +185,13 @@ nodes:
     label: "Behavior Mask Evaluator"
     description: "S86: Evaluates WillState and relationship_cache to assign COLLAPSE/FAKE_SUBMISSION/BETRAYAL masks before DecisionHub. Hysteresis layer to prevent social role flickering."
     adr_ref: "ADR-S86.4"
+  ControlSource:
+    type: dto
+    layer: Domain
+    label: "Control Source Axis (Agentness)"
+    description: "Actor != AutonomousDecisionAgent. PLAYER_INPUT/NPC_DECISION/SCRIPTED_SYSTEM/COMBAT_CONTROLLER. Единственная точка знания 'player'-строки — domain/control_source.py; новые строковые гарды агентности запрещены (только resolve_control_source)."
+    adr_ref: "ADR-O-406"
+
 edges:
   - from: WillpowerGate
     to: DecisionHub
@@ -475,6 +482,13 @@ constraints:
     rule: "FORBIDDEN: Convert uncertainty_delta to stress_delta (§ENIGMA-004)"
     code_ref: "legacy_delta_adapter.py:60-65"
     adr_ref: "§ENIGMA-004"
+    severity: CRITICAL
+  - source: ControlSource
+    target: AutonomousAuthorship
+    rule: "FORBIDDEN: CommunicationIntent(speaker='player') из autonomous decision pipeline (ADR-O-406)"
+    condition: "Player легален как target/observer/источник события/объект убеждений — запрещено ТОЛЬКО авторство. 4 слоя защиты: (0) population filter в _phase_5_decision, (1) гвард _build_communication, (2) гвард attack-factory, (3) детектор SimulationIntegrityError(INV-PLAYER-AUTHORSHIP) перед return TickMutation. Ось — resolve_control_source; строковые гарды 'player' как предиката агентности запрещены."
+    code_ref: "domain/control_source.py, decision_hub.py:_build_communication, npc_tick_pipeline.py:attack-factory+TickMutation, tick_orchestrator.py:_phase_5_decision"
+    adr_ref: "ADR-O-406"
     severity: CRITICAL
   - source: AvatarPresentationAssembler
     target: pain_fatigue

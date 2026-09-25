@@ -5,9 +5,44 @@
       "state": "full",
       "free_rect": [
         0,
-        157,
+        73,
         614,
         669
+      ]
+    },
+    "world_clock": {
+      "state": "collapsed",
+      "free_rect": [
+        1556,
+        0,
+        224,
+        64
+      ]
+    },
+    "time_scale": {
+      "state": "collapsed",
+      "free_rect": [
+        1780,
+        0,
+        140,
+        54
+      ]
+    },
+    "observations": {
+      "state": "collapsed",
+      "free_rect": null
+    },
+    "inventory": {
+      "state": "hidden",
+      "free_rect": null
+    },
+    "board": {
+      "state": "full",
+      "free_rect": [
+        816,
+        57,
+        560,
+        630
       ]
     }
   }

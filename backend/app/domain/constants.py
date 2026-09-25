@@ -55,6 +55,11 @@ _DEFAULT_ACTION_RADIUS: float = 15.0
 # неавторитетна (ADR-O-371) → предикат честно False (§ENIGMA-003).
 AFFORDANCE_ADJACENCY_RADIUS_M: float = 1.5
 
+# ── WV: World Validation — физическая досягаемость (вердикт Мастера Q1).
+# Игровая модель: тело + reach предмета. Не биомеханика; числа калибруются.
+BODY_REACH_M: float = 0.8
+WEAPON_REACH_M: dict[str, float] = {"нож": 0.6, "палка": 0.9}
+
 
 def action_perception_radius(action_type: str) -> float:
     """S210: единая точка резолва радиуса действия. Неизвестное → дефолт."""

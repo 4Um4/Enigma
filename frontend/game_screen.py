@@ -24,11 +24,7 @@ from constants import (  # noqa: E402
     COLOR_DEATH_SUB,
     COLOR_DEATH_TITLE,
     COLOR_MANIFEST_DEFAULT,
-    COLOR_TEXT_DARK,
     COLOR_TEXT_DEFAULT,
-    COLOR_TEXT_MUTED,
-    COLOR_TEXT_OBS_LINE,
-    COLOR_TEXT_OBS_TITLE,
     COLOR_TEXT_SCALE_HIGHLIGHT,
 )
 
@@ -527,7 +523,7 @@ class GameScreen:
 
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
         self.screen = screen
-        self.show_obs_console = False  # Консоль наблюдений (клавиша Ё)
+        self.show_obs_console = False  # легаси-флаг Ё (не используется — окно observations)
         self.show_journal = False  # ADR-JOURNAL: Журнал диалогов (клавиша J / О)
         self.show_inventory = False  # P8: Панель инвентаря (клавиша I)
         # S128: Вкладки журнала (по спикерам)
@@ -835,13 +831,13 @@ class GameScreen:
                     # lock на campaign в store) — пауза мира не требуется.
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "open_board"):
                         self._workbench.toggle_board()
-                    # Phase 4 Investigation Board: B = toggle Доски (Workbench).
-                    # Мир встаёт на паузу — board-операции вне тик-конкурентности.
-                    elif not text_input.focused and event.key == get_key(load_keybinds(), "open_board"):
-                        self._workbench.toggle_board()
+                    # Phase 4: интеракции Доски (N/L/U/X) в обычном режиме —
+                    # KEYDOWN вне F12 до handle_event не доходит (S290 smoke).
+                    elif not text_input.focused and self._workbench.board_keydown(event):
+                        pass  # событие съедено доской
                     # P8: Переключение панели инвентаря — через бинды
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "toggle_inventory"):
-                        self.show_inventory = not self.show_inventory
+                        self._workbench.toggle_inventory()
                     # Time Controls: ускорение симуляции — через бинды
                     elif event.key == get_key(load_keybinds(), "skip_time_short") and not text_input.focused:
                         threading.Thread(
@@ -863,11 +859,12 @@ class GameScreen:
                         event.key == pygame.K_BACKQUOTE
                         or getattr(event, "unicode", "") in ("ё", "Ё")
                     ):
-                        self.show_obs_console = not self.show_obs_console
+                        self._workbench.toggle_observations()
                     # TextInput обрабатывает всё кроме WASD (pass_through)
                     _handled = text_input.handle_event(event)
                     # RETURN обрабатывается отдельно — TextInput намеренно возвращает False
-                    if event.key == pygame.K_RETURN and not text_input.empty:
+                    if (event.key == pygame.K_RETURN and not text_input.empty
+                            and not self._workbench.board_input_active()):
                         # Игрок успел напечатать — отменяем telegraph
                         action_queue.cancel_telegraph()
                         # ADR-039: Сброс Resistance Medium после успешного ввода
@@ -925,17 +922,25 @@ class GameScreen:
                         text_input.clear()  # Очищаем пузырь ввода после отправки
                     elif event.key in _WASD_MAP:
                         # WASD двигает персонажа только если чат не в фокусе
-                        if not text_input.focused:
+                        # C1: и не в фокусе инпут Доски (набор гипотезы)
+                        if (not text_input.focused
+                                and not self._workbench.board_input_active()):
                             held_keys.add(event.key)
                             move.target_npc_id = None
                             move.direction = None
                 elif event.type == pygame.KEYUP:
                     # Обязательно передаем отпускание клавиш в TextInput,
                     # иначе инерция (зажатие стрелок/backspace) зависает навсегда
+                    # C1: KEYUP инпута Доски — стоп физики повтора его клавиш
+                    self._workbench.board_input_event(event)
                     text_input.handle_event(event)
                     # Сброс флага зажатия WASD для движения персонажа
                     held_keys.discard(event.key)
                 elif event.type == pygame.TEXTINPUT:
+                    # C1: кириллица инпута Доски идёт TEXTINPUT-событием —
+                    # маршрут ДО WASD-фильтра чата (иначе «ф/ы/в» съедаются)
+                    if self._workbench.board_input_event(event):
+                        continue
                     # WASD при зажатии генерирует TEXTINPUT с буквой — фильтруем
                     # Фильтрация WASD в обеих раскладках (BUG-P1-11)
                     _WASD_CHARS = {"w", "a", "s", "d", "ц", "ф", "ы", "в"}
@@ -946,6 +951,8 @@ class GameScreen:
                     if not _skip:
                         text_input.handle_event(event)
                 elif event.type == pygame.TEXTEDITING:
+                    if self._workbench.board_input_event(event):
+                        continue
                     text_input.handle_event(event)
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     # S128: Клик по вкладкам журнала (вернули из KEYDOWN-цепочки,
@@ -989,6 +996,7 @@ class GameScreen:
                 text_input.visible = True
                 text_input.focused = True
             text_input.update(dt)
+            self._workbench.board_input_update(dt)
             _moved = False
 
             if move.cooldown <= 0:
@@ -2131,97 +2139,8 @@ class GameScreen:
                         _text_rect.height + 5
                     )  # Сдвиг вниз для следующего восприятия
 
-            # Консоль наблюдений (клавиша Ё): что аватар видит/слышит/чувствует
-            if self.show_obs_console:
-                _obs_lines = []
-                _obs_npc_pos = scene_state.get("npc_positions", {})
-                _obs_perception = scene_state.get("player_perception") or {}
-                _obs_cues = _obs_perception.get("peripheral_cues", [])
-                _obs_traces = _obs_perception.get("embodied_traces", [])
-                # Строим маппинг npc_id → наблюдаемые симптомы (через i18n)
-                _obs_symptoms = {}
-                for _c in _obs_cues:
-                    _nid = _c.get("npc_id", "???")
-                    _ck = _c.get("cue_key", "")
-                    _sym_ru = t(f"sym:{_ck.lower()}", _ck)
-                    _obs_symptoms.setdefault(_nid, []).append(_sym_ru)
-                for _tr in _obs_traces:
-                    _nid = _tr.get("npc_id", "")
-                    if _nid and _nid != "player":
-                        if _tr.get("is_frozen"):
-                            _obs_symptoms.setdefault(_nid, []).append(t("sym:frozen"))
-                        if _tr.get("is_shaking"):
-                            _obs_symptoms.setdefault(_nid, []).append(t("sym:shaking"))
-                        if _tr.get("locomotion_instability", 0) > 0.3:
-                            _obs_symptoms.setdefault(_nid, []).append(
-                                t("sym:uneven_stance")
-                            )
-                        if _tr.get("posture_rigidity", 0) > 0.4:
-                            _obs_symptoms.setdefault(_nid, []).append(
-                                t("sym:tense_posture")
-                            )
-                        if _tr.get("action_interruption", 0) > 0.6:
-                            _obs_symptoms.setdefault(_nid, []).append(
-                                t("sym:abrupt_stop")
-                            )
-                        if _tr.get("micro_pause_density", 0) > 0.5:
-                            _obs_symptoms.setdefault(_nid, []).append(
-                                t("sym:frequent_pauses")
-                            )
-                # Собираем строки для каждого видимого NPC
-                for _nid, _ndata in _obs_npc_pos.items():
-                    if _nid == "player":
-                        continue
-                    _nloc = _ndata.get("location_id") or _ndata.get("location", "")
-                    _cur_loc = scene_state.get("location_id", "")
-                    if _nloc and _cur_loc and _nloc != _cur_loc:
-                        continue
-                    _nname = _ndata.get("name") or _ndata.get("display_name") or _nid
-                    _nact = _ndata.get("activity", "")
-                    _sym_str = ", ".join(_obs_symptoms.get(_nid, []))
-                    # Наблюдаемые физические проявления из бэкенда
-                    _manif_info = self.npc_manifest_indicators.get(_nid)
-                    _manif_text = ""
-                    if _manif_info and _manif_info.get("text"):
-                        _manif_text = f" [{_manif_info.get('text', '')}]"
-                    if _sym_str:
-                        _obs_lines.append(f"{_nname}: {_sym_str}{_manif_text}")
-                    elif _nact:
-                        _obs_lines.append(
-                            f"{_nname}: {activity_ru(_nact)}{_manif_text}"
-                        )
-                    else:
-                        _obs_lines.append(f"{_nname}{_manif_text}")
-                # Рендерим панель
-                if _obs_lines:
-                    _box_h = len(_obs_lines) * 20 + 30
-                    _box_w = 400
-                    _obs_bg = pygame.Surface((_box_w, _box_h), pygame.SRCALPHA)
-                    _obs_bg.fill((0, 0, 0, 200))
-                    self.screen.blit(_obs_bg, (10, 10))
-                    _title_s = self.renderer.font_small.render(
-                        t("ui:obs_title"), True, COLOR_TEXT_OBS_TITLE
-                    )
-                    self.screen.blit(_title_s, (15, 15))
-                    _obs_y = 35
-                    for _oline in _obs_lines:
-                        _obs_s = self.renderer.font_small.render(
-                            f"  {_oline}", True, COLOR_TEXT_OBS_LINE
-                        )
-                        self.screen.blit(_obs_s, (15, _obs_y))
-                        _obs_y += 20
-
-            # HUD: FPS + игровое время
-            fps_surf = self.renderer.font_small.render(
-                f"FPS: {int(self.clock.get_fps())}", True, COLOR_TEXT_DARK
-            )
-            self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
-
-            # Выводим полную дату мира (Год, День, Час:Минута)
-            time_surf = self.renderer.font_small.render(
-                format_world_date(self.game_time_seconds), True, COLOR_TEXT_MUTED
-            )
-            self.screen.blit(time_surf, (self.screen.get_width() - 380, 4))
+            # HUD-дата/время перенесены в мини-окна Workbench (world_clock,
+            # time_scale). FPS оставлен (диагностический, dev-инструмент).
 
             # MVP Mini-game: End Screen Rendering
             if self.show_end_screen and self.end_screen_data:
@@ -2284,9 +2203,6 @@ class GameScreen:
                     _player_beliefs
                 )
 
-            # P8: Отрисовка панели инвентаря
-            if self.show_inventory and isinstance(scene_state, dict):
-                self._analysis_renderer.draw_inventory(scene_state.get("player_body_topology", {}))
 
             # S151: Отрисовка панели воплощённого статуса (деньги, еда, потребности)
             if isinstance(scene_state, dict):
@@ -2300,6 +2216,62 @@ class GameScreen:
             self.clock.tick(60)
 
     # ── UI методы ──────────────────────────────────────────────────────
+
+    def collect_observation_lines(self, scene_state: dict) -> list:
+        if not getattr(self, "_diag_topology_printed", False):
+            print(f"[DIAG_TOPO] scene_keys={list(scene_state.keys())[:25]}")
+            self._diag_topology_printed = True
+        """M-HUD миграция: сборщик строк панели «Наблюдение» (вынесен из
+        Ё-консоли; единственный источник — потребители: workbench-окно
+        и (временно) legacy Ё-блит). Эпистемика неизменна: только
+        наблюдаемые симптомы/проявления, никаких внутренних состояний."""
+        _obs_lines = []
+        _obs_npc_pos = scene_state.get("npc_positions", {})
+        _obs_perception = scene_state.get("player_perception") or {}
+        _obs_cues = _obs_perception.get("peripheral_cues", [])
+        _obs_traces = _obs_perception.get("embodied_traces", [])
+        _obs_symptoms = {}
+        for _c in _obs_cues:
+            _nid = _c.get("npc_id", "???")
+            _ck = _c.get("cue_key", "")
+            _sym_ru = t(f"sym:{_ck.lower()}", _ck)
+            _obs_symptoms.setdefault(_nid, []).append(_sym_ru)
+        for _tr in _obs_traces:
+            _nid = _tr.get("npc_id", "")
+            if _nid and _nid != "player":
+                if _tr.get("is_frozen"):
+                    _obs_symptoms.setdefault(_nid, []).append(t("sym:frozen"))
+                if _tr.get("is_shaking"):
+                    _obs_symptoms.setdefault(_nid, []).append(t("sym:shaking"))
+                if _tr.get("locomotion_instability", 0) > 0.3:
+                    _obs_symptoms.setdefault(_nid, []).append(t("sym:uneven_stance"))
+                if _tr.get("posture_rigidity", 0) > 0.4:
+                    _obs_symptoms.setdefault(_nid, []).append(t("sym:tense_posture"))
+                if _tr.get("action_interruption", 0) > 0.6:
+                    _obs_symptoms.setdefault(_nid, []).append(t("sym:abrupt_stop"))
+                if _tr.get("micro_pause_density", 0) > 0.5:
+                    _obs_symptoms.setdefault(_nid, []).append(t("sym:frequent_pauses"))
+        for _nid, _ndata in _obs_npc_pos.items():
+            if _nid == "player":
+                continue
+            _nloc = _ndata.get("location_id") or _ndata.get("location", "")
+            _cur_loc = scene_state.get("location_id", "")
+            if _nloc and _cur_loc and _nloc != _cur_loc:
+                continue
+            _nname = _ndata.get("name") or _ndata.get("display_name") or _nid
+            _nact = _ndata.get("activity", "")
+            _sym_str = ", ".join(_obs_symptoms.get(_nid, []))
+            _manif_info = self.npc_manifest_indicators.get(_nid)
+            _manif_text = ""
+            if _manif_info and _manif_info.get("text"):
+                _manif_text = f" [{_manif_info.get('text', '')}]"
+            if _sym_str:
+                _obs_lines.append(f"{_nname}: {_sym_str}{_manif_text}")
+            elif _nact:
+                _obs_lines.append(f"{_nname}: {activity_ru(_nact)}{_manif_text}")
+            else:
+                _obs_lines.append(f"{_nname}{_manif_text}")
+        return _obs_lines
 
     def _draw_time_scale(
         self,

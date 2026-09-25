@@ -6,7 +6,7 @@
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -26,4 +26,4 @@ class DialogueConsolidator:
             return None
 
         # Fallback (без LLM) — structural summary
-        return session.consolidate_to_event_memory_summary()
+        return cast(Optional[str], session.consolidate_to_event_memory_summary())

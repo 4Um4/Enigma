@@ -239,10 +239,10 @@ class MovementEngine:
                         and "+relocation" in getattr(_it, "reason", "")
                     ):
                         if TRAVERSAL_OWNERSHIP_ENFORCEMENT:
-                            from app.domain.traversal_schema import interrupt_traversal
                             from app.domain.action_commitment import (
                                 INTERRUPT_PRIORITY_SUPERSEDE,
                             )
+                            from app.domain.traversal_schema import interrupt_traversal
 
                             interrupt_traversal(
                                 scene_state, _it.actor_id,

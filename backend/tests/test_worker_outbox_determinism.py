@@ -75,7 +75,6 @@ def test_effect_order_per_record():
 
 def test_drain_stamps_event_tick():
     """ADR-O-399 Iter1: drain штампует submit_tick в payload (event-time)."""
-    from types import SimpleNamespace
     from app.domain.events import EventDTO
 
     s = _bare_scheduler()

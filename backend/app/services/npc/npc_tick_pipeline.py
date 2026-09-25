@@ -35,6 +35,12 @@ from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 
+# X1 FIX: канонический импорт Intent на уровне модуля. Веточные импорты
+# внутри run() (:993, :1001) делали имя функционально-локальным → ветка
+# MOVE-command (:934-941) падала UnboundLocalError на :939 при первом
+# исполнении (оживлённый LLM-MOVE путь). Семантику MOVE не меняем.
+from app.models.npc_state import Intent
+
 _OPP_ATTENTION_RANGE_M: float = 10.0  # 021 calibration (ADR-O-366 producer proxy)
 
 def _resolve_proactive_target(
@@ -955,21 +961,31 @@ class NpcTickPipeline:
             _current_routine = _npc_dict_for_write.get("routine", {})
 
             if _intent_value == "attack":
-                from app.domain.communication import CommunicationIntent, ExposureLevel
+                # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 2): attack-фабрика
+                # обходит _build_communication — симметричный гвард creation-time.
+                from app.domain.control_source import ControlSource, resolve_control_source
+                if resolve_control_source(npc_id) is not ControlSource.NPC_DECISION:
+                    logger.info(
+                        f"[INV-PLAYER-AUTHORSHIP] attack-factory: speaker={npc_id!r} "
+                        f"автономный attack-CommunicationIntent запрещён "
+                        f"(control_source={resolve_control_source(npc_id).value})"
+                    )
+                else:
+                    from app.domain.communication import CommunicationIntent, ExposureLevel
 
-                _emotion_raw = getattr(state_l2, "emotion", "angry")
-                _attack_emotion = getattr(_emotion_raw, "value", _emotion_raw)
-                _attack_intent = CommunicationIntent(
-                    speaker=npc_id,
-                    audience=decision.intent_target or "player",
-                    topic="attack",
-                    intent_type="attack",
-                    emotional_state=_attack_emotion,
-                    exposure_level=ExposureLevel.from_semantic("shout"),
-                    semantic_action="ATTACK",
-                    target_id=decision.intent_target or "player",
-                )
-                communication_intents.append(_attack_intent)
+                    _emotion_raw = getattr(state_l2, "emotion", "angry")
+                    _attack_emotion = getattr(_emotion_raw, "value", _emotion_raw)
+                    _attack_intent = CommunicationIntent(
+                        speaker=npc_id,
+                        audience=decision.intent_target or "player",
+                        topic="attack",
+                        intent_type="attack",
+                        emotional_state=_attack_emotion,
+                        exposure_level=ExposureLevel.from_semantic("shout"),
+                        semantic_action="ATTACK",
+                        target_id=decision.intent_target or "player",
+                    )
+                    communication_intents.append(_attack_intent)
             else:
                 # BUG-CORE-005 FIX: Добавлена else-ветвь для всех movement-capable intents (approach, flee, и т.д.).
                 # Ранее не-спящие NPC с intent=approach/flee/seek_ally просто дропали movement_intent.
@@ -990,7 +1006,9 @@ class NpcTickPipeline:
                     _intent_value = "observe"
                     import dataclasses
 
-                    from app.models.npc_state import Intent
+                    # X1: веточный импорт удалён (создавал локальную тень Intent
+                    # для всей run() → UnboundLocalError на MOVE-command ветке).
+                    # Канонический источник — модульный импорт (голова файла).
                     decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.OBSERVE, intent_target=None))
 
                 if _intent_value in _MOVE_INTENTS and _should_sleep:
@@ -998,7 +1016,7 @@ class NpcTickPipeline:
                     _intent_value = "idle"
                     import dataclasses
 
-                    from app.models.npc_state import Intent
+                    # X1: веточный импорт удалён (вторая тень, см. вхождение 1)
                     decision = dataclasses.replace(decision, decision=dataclasses.replace(decision.decision, intent=Intent.IDLE))
 
                 if _intent_value in _MOVE_INTENTS:
@@ -1095,6 +1113,32 @@ class NpcTickPipeline:
             except Exception as e:
                 logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
 
+        # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 3): детектор на границе
+        # формирования мутации. Ловит ЛЮБОЙ путь рождения авторского акта
+        # аватара в reducer'е: известные фабрики загвардены (уровни 1-2),
+        # будущие — падают ЗДЕСЬ громко (ADR-INV-DEF), не тихим удалением.
+        from app.domain.control_source import ControlSource, resolve_control_source
+        from app.errors import SimulationIntegrityError
+        _ghost_authors = [
+            getattr(_ci, "speaker", "")
+            for _ci in communication_intents
+            if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION
+        ]
+        if _ghost_authors:
+            raise SimulationIntegrityError(
+                invariant_id="INV-PLAYER-AUTHORSHIP",
+                message=(
+                    "Autonomous decision pipeline attempted to author player action: "
+                    f"communication_intents speakers={_ghost_authors}. "
+                    "Player authorship belongs to player-input pipeline only."
+                ),
+                suspect_files=[
+                    "backend/app/services/npc/npc_tick_pipeline.py",
+                    "backend/app/services/npc/decision_hub.py",
+                ],
+                file=__file__,
+                line=1098,
+            )
         return TickMutation(
             npc_deltas=npc_deltas,
             communication_intents=communication_intents,

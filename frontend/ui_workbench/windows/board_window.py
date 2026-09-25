@@ -11,7 +11,6 @@ path: /frontend/ui_workbench/windows/board_window.py
 Основные сущности: BOARD_MANIFEST
 """
 import pygame
-
 from ui_workbench.manifests import InputBinding, WindowManifest, WindowState
 
 BOARD_MANIFEST = WindowManifest(

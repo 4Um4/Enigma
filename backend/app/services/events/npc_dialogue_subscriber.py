@@ -119,9 +119,6 @@ class NpcDialogueSubscriber:
         """M17 этап 2: применение pending tentative-записей в drain-границе
         (прецедент drain_commitment_outbox, те же точки вызова).
         confirmed НЕ понижается — предположение никогда не затирает знание."""
-        # DIAG-DRAIN (Часть VIII.5, ВРЕМЕННЫЙ): почему recognition пуст.
-        print(f"[DIAG-DRAIN] pending={len(self._pending_recognition)} "
-              f"items={self._pending_recognition[:5]} scene_id={id(scene_state)}")
         if not self._pending_recognition or not scene_state:
             return
         _recog = scene_state.setdefault("player_recognition", {})
@@ -169,6 +166,21 @@ class NpcDialogueSubscriber:
 
         if not speaker or not listener or listener == "all":
             return
+
+        # F2 (S292): не-актор не слушает. Адресат-узел графа/объект
+        # (напр. 'tavern:exit_south' из WARN-цели) не актор: раньше он
+        # проходил гард и заводил STM-сессию + запись в RelationshipStore
+        # с ключом-дверью (мусор в соц-слое). player и сентинел — легальны.
+        # Fail-open: без провайдера/позиций (dict-события тестов) — паритет.
+        if listener != "player" and listener != SELF_TALK_SENTINEL:
+            _sq_f2 = self._get_spatial_query() if self._get_spatial_query else None
+            _pos_f2 = getattr(_sq_f2, "_npc_positions", None) or {}
+            if _pos_f2 and listener not in _pos_f2:
+                logger.info(
+                    f"[NPC_DIALOGUE_SUB] non-actor listener {listener!r} — skip "
+                    f"(адресат не актор мира, STM/relationships не заводятся)"
+                )
+                return
 
         # S128: Eavesdrop — если игрок рядом, он подслушивает реплику
         if self._avatar_service and self._get_spatial_query:
@@ -234,12 +246,21 @@ class NpcDialogueSubscriber:
                     # journal-запись наследует финальный event.id NPC_SPOKE
                     # (тот же, что получили все подписчики шины) + событийное
                     # время payload["event_tick"] (ADR-O-399).
-                    self._avatar_service.append_journal(
-                        campaign_id=_campaign_id, speaker=_speaker_name, text=text,
-                        channel=_channel,
-                        event_id=str(getattr(event, "id", "") or ""),
-                        tick=int(_event_tick or tick or 0),
-                    )
+                    # INV-PLAYER-AUTHORSHIP (ADR-O-406, защитный слой): speaker='player'
+                    # в NPC_SPOKE запрещён на источнике (4 слоя, S292); этот гард —
+                    # последняя линия против БУДУЩИХ писателей speaker='player':
+                    # авторская реплика уже записана channel="self" (game_loop
+                    # append_journal) — повтор = DOUBLE TRUTH журнала с ложным
+                    # каналом overheard. Остаётся НАВСЕГДА (вердикт Мастера, S292).
+                    # M17-recognition ниже НЕ гардим: tentative-распознавание
+                    # адресата легально и для player-спикера.
+                    if speaker != "player":
+                        self._avatar_service.append_journal(
+                            campaign_id=_campaign_id, speaker=_speaker_name, text=text,
+                            channel=_channel,
+                            event_id=str(getattr(event, "id", "") or ""),
+                            tick=int(_event_tick or tick or 0),
+                        )
                     # M17 этап 2 (вердикт Мастера: «всё согласовано с логикой
                     # слышимости и видимости»): tentative адресата — ТОЛЬКО здесь,
                     # внутри блока, где уже пройдены порог слышимости
@@ -355,7 +376,7 @@ class NpcDialogueSubscriber:
 
     def _process_canonical(
         self,
-        speaker: str,   
+        speaker: str,
         listener: str,
         text: str,
         tone: str,

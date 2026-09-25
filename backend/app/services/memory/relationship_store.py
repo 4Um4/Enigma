@@ -59,7 +59,7 @@ class RelationshipStore:
             self._evict_if_needed()
             return self._cache[campaign_id]
         try:
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            data: Dict[str, Any] = json.loads(path.read_text(encoding="utf-8-sig"))
             self._cache[campaign_id] = data
             self._cache.move_to_end(campaign_id)
             self._timestamps[campaign_id] = time.time()
