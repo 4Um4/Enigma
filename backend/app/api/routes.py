@@ -672,6 +672,17 @@ def get_end_screen(campaign_id: str, game_loop: Any = Depends(get_game_loop)) ->
     # 8.1 FIX: Теперь отдаёт текстовые поля для UI
     return cast(Dict[str, Any], game_loop.mvp_controller.serialize_end_screen())
 
+@router.get("/game/status/{campaign_id}")
+def get_campaign_status(campaign_id: str) -> dict:
+    """БАГ-4 (S292): статус завершённости для FE-грейтинга «Продолжить»."""
+    from app.services.campaign_state_service import get_campaign_state_service
+    _cs = get_campaign_state_service().get_campaign_state(campaign_id)
+    return {
+        "campaign_id": campaign_id,
+        "finished": bool(_cs.metadata.get("campaign_finished", False)),
+    }
+
+
 @router.post("/game/finalize/{campaign_id}")
 def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict:
     """Финализирует кампанию: собирает WorldStateDiff и сохраняет его в GameLoop для будущей кампании."""
@@ -681,7 +692,19 @@ def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop))
     diff = game_loop.mvp_controller.build_world_diff()
     game_loop._campaign_lifecycle.record_campaign_diff(campaign_id, diff)
 
-    return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True}
+    # БАГ-4 (S292): флаг завершённости — единственный писатель, идемпотентен.
+    # Читается FE (грейтинг «Продолжить») и launcher-гейтом загрузки.
+    # Живёт в campaign_meta.json metadata → чистится new_game-ресетом (:193) —
+    # семантика «новая игра = не завершена» бесплатна.
+    try:
+        from app.services.campaign_state_service import get_campaign_state_service
+        _cs = get_campaign_state_service().get_campaign_state(campaign_id)
+        _cs.metadata["campaign_finished"] = True
+        get_campaign_state_service().save(campaign_id)
+    except Exception as _fin_err:
+        logger.error(f"[FINALIZE] failed to persist campaign_finished flag: {_fin_err}")
+
+    return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True, "finished": True}
 
 # NEW-MEM-002 FIX: API endpoint для просмотра таблиц воспоминаний NPC
 def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any]:

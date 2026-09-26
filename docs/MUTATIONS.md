@@ -1850,7 +1850,138 @@ IPT: ✅ 46/46. lint_silent_failures ✅.
 ⚙️ Регресс: player_in_decisions=0 за ~124 тика; PLAYER_SPOKE жив (self-вербатим); reactive audience='player' подтверждён (thief_shadow TRADE); attack-реакции NPC живы; NPC-NPC диалоги живы. Зонды сняты (probes_left=0).
 ⚙️ Эскалации в F2: RCE display-name (M17-confirmed мимо); двойной калькулятор дистанции до игрока (eavesdrop 999.0 vs membrane — реплика Тени не в журнале); узел графа как слушатель (tavern:exit_south + rel update); нулевые rel update; солилокви → overheard в журнале; doc-drift post_decision:97; снятие S290-гарда и [DIAG-LLM] — реестр F2.
 📁 domain/control_source.py (NEW), services/npc/decision_hub.py, services/npc/npc_tick_pipeline.py, services/tick_orchestrator.py, services/input/llm_compressor_client.py, tests/IPT.py, docs/ADR (O-406), docs/audits/ADR-O-406_IMPACT.md
-IPT: ✅ 47/47 (INV-PLAYER-AUTHORSHIP добавлен и зелёный). КРАСНЫЕ ИНВАРИАНТЫ: было 1 🔴 (INV-SILENT-FAILURE, pre-existing) → 0 🔴
+⚙️ F2-пакет (та же сессия, вердикт Мастера): (1) RCE source=npc_id (working_memory_tick: matched_id or npc_name_raw; fallback fail-open) — все потребители NPC_SPOKE id-мир: display-имя роняло player_distances в 999.0 → RCE-реплики не доходили в журнал + M17 confirmed клал display-имя ключом; (2) гард не-акторов в npc_dialogue_subscriber (listener не в npc_positions и не player/сентинел → skip: раньше 'tavern:exit_south' заводил STM + rel-запись с ключом-дверью); (3) doc-drift S118 (post_decision:97 — «нет поля target_id» устарел: GAP8/V8-MEM-2); (4) снят зонд [DIAG-DRAIN]; (5) S290-гард канонизирован НАВСЕГДА как последний слой INV-PLAYER-AUTHORSHIP (пометка в комментарии). Закрыто без патчей: солилокви→overheard (легальность по Р-А-вердикту: экстернализованное бормотание игрок подслушивает); нулевые rel update (тон NEUTRAL — зона SocialDeltaEngine, эскалация ⑤).
+⚙️ F2-регресс (runtime): реплика Тени в журнале «Диалог» (direct, имя резолвнуто), «Щёлк.» доставлена (было: терялась по 999.0); M17 «Тень» confirmed на карте (было «Незнакомец»); peer-чип «Тень» работает; ноль membrane-999; гард двери режет шторм WARN-к-выходу (~60/мин — апстрим-эскалация: liveness не-акторных интентов + наблюдение парных публикаций NPC_SPOKE).
+⚙️ ⑤-вердикт (нулевые rel update — НЕ баг канала): цепь тона верифицирована целиком (DecisionHub.emotional_state → DialogueRequest → Artifact → ToneMapper (полная RU+EN карта) → payload.tone → _compute_rel_delta). Таблица живая: NEUTRAL=(0.005,0.0) микро-привыкание по дизайну; «+0.0» в логе = округление :+.1f. Два истинных дефицита: (a) RCE не нёс tone вовсе (дефолт подписчика) → патч: явный tone="NEUTRAL" + tone_provenance="rce_default_unmeasured" (парсинг эмоции из DM-прозы запрещён §13; честный provenance вместо притворства); (b) ВСЕ production-диалоги NEUTRAL → эскалация ⑤-AFFECT: state.emotion.value (DecisionHub :868/:2062) не отражает Affective Pipeline — отдельная сессия. Эскалация ⑤-B: шторм WARN-к-двери (~60/мин skip — liveness не-акторных интентов, апстрим DecisionHub/_resolve_target); наблюдение: парные публикации NPC_SPOKE (Δ~12мс) — проверить при ⑤-B.
+⚙️ Закрытие ветки S292 (итог ТЗ проекционного слоя): БАГ-2=F1 (источник убит, ADR-O-406, 4 слоя); БАГ-3=F2 (канал direct жив рантаймом: direct-запись + M17 confirmed + peer-чип; display-name/узлы-графа убраны); БАГ-1=F3 в очереди (init топологии при рождении аватара — спроектирован, не применён); П.4=мини-ADR turn-commitment ждёт Мастера. В наследство: ⑤-AFFECT, ⑤-B, line-refs authority.yaml (tech-debt).
+⚙️ F3-пакет (БАГ-1 ТЗ, init топологии): lifecycle-контракт «топология рождается со сценой» — 4 точки рождения, один источник (BodyTopologyService), идемпотентно по None: (1) birth — reset_campaign секция 6.5 (campaign_lifecycle:290); (2) load/continue — scene_init.ensure_scene_initialized (heal-функция _ensure_player_topology + 2 вызова); (3-4) idle-контур — прямые фабрики game_loop :1122/:1153 обёрнуты heal (4-й путь найден КРАСНЫМ INV-SNAPSHOT-TOPOLOGY: IPT-мир рождает сцену через принудительную init — гейт поймал дыру до проды); (5) repair legacy — turn_pipeline нетронут (STR из листа для старых сейвов). Инвариант INV-SNAPSHOT-TOPOLOGY (IPT: idle-снапшот содержит топологию до действия игрока). Урок процесса: после красного инварианта — верифицировать применение патчей грепом ДО гипотез (эта дисциплина спасла от фикса не-того файла: сначала «патчи не применены» (H1), на деле — четвёртый путь рождения (H4)). Находка попутно: фронт рендерит схему слотов при null-топологии (arch/body_topology.yaml) — tolerant-рендер маскировал отсутствие данных в DTO.
+IPT: ✅ 48/48 (INV-PLAYER-AUTHORSHIP + INV-SNAPSHOT-TOPOLOGY оба зелёные). КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 → 0 🔴
+
+### S293: Phase 4.1 — Board UX Vertical + Полигон + Smoke-фиксы | ✅ board 25/25, isolation ✅, IPT 47/48 (1 чужой)
+🎯 Доска как игровая функция поверх S290-backend. Формула Мастера: Board =
+внешний интерфейс мышления игрока (PLAYER HYPOTHESIS + PLAYER ORGANIZATION,
+не TRUTH/BELIEF). Карточка = экземпляр материала (дубль ref легален —
+вердикт М 2: две организационные роли).
+⚙️ B: материал карточки (speaker accent + wrap, джойн _board_journal_index);
+мёртвая — «материал вытеснен из журнала» + ref-хвост; hover-tooltip (≤360/8).
+A: hit-зоны записей + маркер «+» (event_id-гейт ADR-O-404; narrative/self —
+tooltip «нельзя адресовать»); каскад-позиция. C: inline-TextInput (ленивый,
+colors из токенов); маршрутизация KEYDOWN/TEXTINPUT/TEXTEDITING/KEYUP в
+game_screen (кириллица TEXTINPUT ДО WASD-фильтра; гарды Enter-чата/WASD);
+N=create+авто-карточка (частичный успех честен), E=edit (вердикт М 7).
+D: рёбра центров, SUPPORTS=accent / CONTRADICTS=danger — новый токен
+"danger" (196,84,84) в _DEFAULT_TOKENS (вердикт М 5). E: подсказка
+«N гипотеза · L связь [подтверждает/опровергает] · U развязать · E правка ·
+X убрать · B закрыть»; clamp ДО записи в файл (drag в угол → файл=экран);
+_board_error не стирается refresh'ом, виден в подвале (вердикт М 8).
+R (вердикт М 1): board_state.json в runtime_files reset_campaign — новая
+игра = чистая доска; Continue не проходит список. Замок-тест.
+P: полигон редактора — EditorBoardStub (in-memory, контракт зеркален
+routes_board, каскадный delete); роутер _board_gateway/_board_campaign;
+editor-ветка refresh удалена; джойн через _journal_entries; демо-журнал
++demo-evt-001..012 (direct/overheard); закрытие редактора = сброс песочницы.
+SMOKE-ФИКСЫ (9 находок живого прогона): №1 пауза+dim при Доске FULL/F12
+(board_focused; журнал без паузы — авто-открытие заморозило бы игру),
+гарды кликов/WASD; №2 board не восстанавливает FULL из layout; №6 wheel-
+скролл внутри карточки вместо обрезки; №8 collapsed-clamp в _resolve_rect
+(заголовок за кромкой = недосягаемое окно) + reset_layout Ctrl+Shift+L
+(подсказка в dim-строке); №9 End-Screen терминален (рендер+overlay гейты),
+легаси-дубль end-screen блока удалён (двойной рендер + вложенный
+pygame.event.get() крал события — pre-existing в HEAD).
+DEBT-№7: Рассказчик дублирует реплики NPC — DM-проза (game_loop:1713)
+цитирует только что материализованные NPC_SPOKE; вердикт Мастера: чистка
+в RCE/DM-сессии, доску не блокирует. Очередь S294+: №3 максимизация
+двойным кликом, №4 grab-ручки ресайза (free_rect-фундамент готов),
+№5 семантическая подсветка (после реестра типов) + «слить в вывод» как
+явная команда игрока (не авто — вердикт Мастера по границам).
+ИНЦИДЕНТЫ (все пойманы кратностной верификацией, стоимость нулевая):
+(1) дубль ребро-блока D — отменённая версия правки попала в файл; (2)
+property-рекурсия _board_gateway — глобальная замена съела исключение
+(роутер); (3) IndentationError — частичная вставка предыдущей попытки
+оставила сироту-if; уроки: отменённые правки помечать явно, замены «всё»
+требуют списка исключений, БЫЛО-якорь — строго одна строка.
+IPT: 47/48 — 1 CRITICAL чужой (INV-SNAPSHOT-TOPOLOGY: S292-сессия чинит
+F3 прямо в рабочем дереве, idle-путь ещё красен у владельца; наша правка
+в campaign_lifecycle — только строка board_state.json, каузально
+недостижима). Board-тесты: 25/25. Расхождение с ТЗ-«30» задокументировано
+(фактических тестов 25 в трёх файлах).
+📁 frontend/ui_workbench/workbench_screen.py, frontend/ui_workbench/editor_board_stub.py (NEW), frontend/ui_workbench/theme.py (danger), frontend/game_screen.py (маршруты ввода, пауза/dim, №9-гейты), backend/app/services/game_loop/campaign_lifecycle.py (R), backend/tests/test_player_board_service.py (замок R)
+
+### S294: CognitionContext v0 — P1: инфраструктура внимания (ТЗ §15 Этап 0/1) | ✅ микротест 7/7, compileall ✅, DriftLab 200т: drift A–E = 0.0000%
+🎯 Фундамент взаимного внимания субъектов: домен + хранилище + проводка, полный no-op за флагом (shadow-паттерн ADR-O-363).
+⚙️ dom/attention.py (нов): AttentionPhase — ТОЛЬКО фазы наблюдения
+(NOT_DETECTED/DETECTED/ORIENTED/APPROACHING/NEAR/LOST; INTERACTION исключён
+из фаз восприятия — расстояние = условие возможности, решение Мастера);
+AttentionObservation — полярное окно наблюдателя (tick, distance, bearing,
+subject_heading) — сырьё будущих P3-выводов (скорость сближения, длительность
+наблюдения, смена траектории, «повернулся ко мне») без новых источников;
+AttentionState (frozen) + round-trip адаптеры (§12.1 ключи-константы, §12.2
+WARA, громкие отказы L4); cap 8 субъектов / окно 8.
+⚙️ svc/npc/attention_config.py (нов): COGNITION_V0 env-default-OFF (прецедент
+ARBITER_ENFORCEMENT); OFF = тик байтово прежний.
+⚙️ dom/tick.py: TickState.attention_states_map + kwarg фабрики
+create_tick_state (frozen по паттерну affordance_facts_map, ADR-O-378) +
+TickMutation.attention_states_delta (продюсер — P2).
+⚙️ pipeline_runner.build_tick_state: параметр + pass-through;
+tick_orchestrator:2225: preload ctx.scene_state.get("attention_states").
+⚙️ Археология: единственная точка сборки TickState (pipeline_runner:73) и
+единственный конструктор TickMutation (kwargs) — добавление полей в конец
+безопасно (урок S214).
+Гейты: DriftLab mass_traversal 200 тиков (единственный прогон, по санкции):
+структурный дрейф A–E 0.0000%, comparisons 1.3/тик (>0.5) — OFF-контракт
+дрейф-чист; 30 crashed = молчаливый счётчик Ground-Truth-валидации
+(drift_laboratory.py:588, ноль диагностики) → TZ-OBS-4, вне зоны.
+Фиксации (Устав-уровень): body_heading = v0-приближение ориентации внимания,
+НЕ модель взгляда (head_yaw dormant); DecisionHub в P1 не расширялся; в
+механизме внимания запрещён `== "player"` (симметрия субъектов, S200-прецедент).
+📁 dom/attention.py (нов), svc/npc/attention_config.py (нов), dom/tick.py,
+svc/pipeline_runner.py, svc/tick_orchestrator.py:2225,
+tests/sandbox/micro/test_attention_roundtrip.py (нов, 7/7).
+Долги: TZ-OBS-4 (молчаливый crashed-счётчик DriftLab); ADR-O механизма —
+запись при закрытии P2 (первый живой цикл), P1 — dormant-инфраструктура.
+
+### S295: CognitionContext v0 — P2: первый живой цикл восприятие→обнаружение→ориентация (ТЗ §15 Этап 1) | ✅ микротест 19/19 (8 roundtrip + 11 FSM)
+🎯 Внимание работает как механизм: переход → реакция, тело поворачивается через канонический SceneChange, повторов каждый тик нет, субъект-симметрия доказана.
+⚙️ svc/npc/attention_reflex.py (нов, pure): compute_attention_pass — сборка
+кандидатов (сортировка по дистанции — детерминизм) → мембрана (FOV 90° +
+периферия 3м + LOS spatial_runtime + CouplingProfile.external_vision_mult +
+is_conscious) → transition-gated FSM (реакции ТОЛЬКО на переходах фаз) →
+orient SceneChange(field="body_heading", cause="attention_orient:*") по
+прецеденту heading_snap ADR-O-315; LOST-заморозка окна + GC 30 тиков; cap 8.
+Владение телом: ControlSource (мини-ADR F1) — аватар ядром не вертится,
+симметрия восприятия сохранена (player = обычный субъект). Никаких
+`== "player"` веток в механизме.
+⚙️ dom/attention.py: +bearing_to/angular_diff/is_facing/wrap_pi/with_phase
+(FOV-математика NEW-ORIENT-004 вынесена в pure), AttentionObservation
+расширен rel_dx/rel_dy (мировой относительный вектор — субстрат P3-MATH
+M1–M3: скорость/alignment/прогноз сближения выводимы из окна; формат
+tuple 4→6, round-trip обновлён).
+⚙️ attention_config.py: калибруемые пороги (detect 15м = PERCEPTION_RADIUS
+major, peripheral 3м, blind 0.2, orient_min 0.15 рад, GC 30) — без
+магических чисел в редюсере.
+⚙️ npc_tick_pipeline: проход внимания после цикла решений (Фаза 5, pure),
+проводка в TickMutation.attention_states_delta + .orient_scene_changes;
+tick_orchestrator: применение тем же материализующим путём, что движение
+(_apply_with_shadow_observation, phase_label="ATTENTION_BRIDGE"; шаблон
+movement_bridge:156; traversal не создаётся — generic-ветка SSM:961) +
+single-writer scene_state["attention_states"] (GC через None-дельту).
+Гейты: 19/19 (roundtrip 8: WARA/ключи-константы/громкие отказы; FSM 11:
+вход с поворотом и без (выравнен→ORIENTED без SceneChange), сценарий C
+обоюдный, периферия, transition-gating, LOST/GC, стационарность, один
+поворот за тик на ближайшего, mutual NPC↔NPC, player-субъект/наблюдатель).
+Инциденты (закрыты в сессии): флаг при импорте → monkeypatch-фикстура по
+канону commitment_arbiter:32-34; 3 геометрические ошибки автора тестов;
+семантика v0.2: вход → ORIENTED всегда, SceneChange только при
+необходимости физического поворота.
+Фиксации: body_heading = v0-приближение ориентации внимания (не взгляд);
+DecisionHub не тронут (обязательство №4 Мастера); фазовый состав без
+INTERACTION (решение Мастера №1); субстрат окна покрывает P3-MATH M1–M3
+(вердикт Мастера: attention = inference over time).
+📁 dom/attention.py, svc/npc/attention_config.py, svc/npc/attention_reflex.py
+(нов), dom/tick.py, svc/npc/npc_tick_pipeline.py, svc/tick_orchestrator.py,
+tests/sandbox/micro/test_attention_roundtrip.py (8),
+tests/sandbox/micro/test_attention_reflex_fsm.py (нов, 11).
+
 
 
 
@@ -1866,3 +1997,5 @@ IPT: ✅ 47/47 (INV-PLAYER-AUTHORSHIP добавлен и зелёный). КР�
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
+
+

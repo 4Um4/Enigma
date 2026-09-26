@@ -414,6 +414,28 @@ def _enrich_walls_from_editor(scene_state: dict, editor_data: dict) -> list:
     return walls
 
 
+def _ensure_player_topology(loop: Any, campaign_id: str, scene_state: dict) -> dict:
+    """F3 (S292): идемпотентный self-heal топологии тела аватара — точка 2
+    lifecycle (birth = reset_campaign секция 6.5, load/continue = здесь,
+    repair = turn_pipeline). Старые сейвы/фабричные сцены несут None →
+    idle-снапшот до первого действия рисовал заглушку «Топология недоступна».
+    Источник един — BodyTopologyService; запись только при None (пустые
+    слоты легальны, перезапись живых данных запрещена)."""
+    if not isinstance(scene_state, dict) or scene_state.get("player_body_topology"):
+        return scene_state
+    try:
+        from app.services.body.body_topology_service import BodyTopologyService
+
+        scene_state["player_body_topology"] = BodyTopologyService.serialize(
+            BodyTopologyService.create_topology("player")
+        )
+        loop.scene_manager.save_scene_state(campaign_id, scene_state)
+        logger.info("[SCENE_INIT] player_body_topology healed (F3)")
+    except Exception as _topo_err:
+        logger.warning(f"[SCENE_INIT] topology heal failed: {_topo_err}")
+    return scene_state
+
+
 def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
     """Гарантирует что scene_state существует и содержит стены из editor JSON.
     Если сцена есть но стены пустые — только добавляет стены, не трогает NPC и location_id.
@@ -431,12 +453,17 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
             if campaign_state
             else "12:00"
         )
-        return cast(dict, loop.scene_manager.initialize_scene(campaign_id, location, time_of_day))
+        _fresh = cast(dict, loop.scene_manager.initialize_scene(campaign_id, location, time_of_day))
+        # F3 (S292): фабрика рождает None — heal до первого idle-тика
+        return _ensure_player_topology(loop, campaign_id, _fresh)
+
+    # F3 (S292): точка 2 lifecycle — heal топологии до стен-веток
+    scene_state = _ensure_player_topology(loop, campaign_id, scene_state)
 
     # Стены уже есть — ничего не делаем
     if scene_state.get("spatial_walls"):
         loop.scene_manager.save_scene_state(campaign_id, scene_state)
-        return cast(dict, scene_state)
+        return scene_state
 
     # Стены пустые — обогащаем из editor JSON
     editor_data = loop.scene_manager._find_editor_location(
@@ -448,5 +475,5 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
             scene_state["spatial_walls"] = walls
             loop.scene_manager.save_scene_state(campaign_id, scene_state)
 
-    return cast(dict, scene_state)
+    return scene_state
 

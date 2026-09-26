@@ -46,3 +46,12 @@
 - authority.yaml: node `ControlSource` (nodes) + constraint CRITICAL `FORBIDDEN: AutonomousAuthorship` (constraints) добавлены; `python build_graph.py` перегенерирован. code_ref нашей записи — метод-уровень (дрейфо-устойчивый).
 - TECH_DEBT (вне зоны F1): line-refs decision_hub.py в authority.yaml дрейфнули ДО F1 на сотни строк (yaml `:966-994` → факт `def _emotion_modifier` :1570; yaml `:1039-1049` → факт `def _context_relevance` :1431; refs relationship_cache (`:789, :935`) дословно не находятся). Массовая ревизия line-refs authority.yaml = отдельная задача (предположительная причина — рефакторинги после написания yaml; validate_doc_refs.py покрывает только .md, yaml-refs вне CI).
 - Инцидент ремонта (S292, чужая зона): `world.yaml` был невалиден (build_graph ParserError :38/:67) — W3/W4-merge (ADR-O-376) вставил 4 узла внутрь constraint-последовательности и продублировал top-level `edges:`/`constraints:` (last-wins PyYAML = тихая потеря W1/W2-топологии). Ремонт: секции слиты (nodes 4→8, edges 3→10, constraints 6→10), ноль потерь контента, семантика verbatim. Попутное наблюдение W-зоне: description «Runtime-writers: 0» стух с появлением Spawner — их зона.
+
+## ⑤-следование (rel update, S292-вердикт: канал НЕ баг)
+- Цепь тона жива end-to-end; NEUTRAL=(0.005,0) — дизайн; RCE получил явный provenance `tone_provenance="rce_default_unmeasured"`.
+- ⑤-AFFECT (новая сессия): production-эмоция интентов всегда «нейтрально» — `state.emotion.value` (decision_hub :868/:2062) не отражает Affective Pipeline (Фаза 9.1 → эмоция → интент). Вход: верифицировать EmotionTransition → NPCState.emotion → DecisionHub.
+- ⑤-B (новая сессия): WARN-интенты с целью-узлом графа воспроизводятся каждый тик (non-actor skip ~60/мин = симптом liveness-дыры в _resolve_target/post_decision для не-акторных целей); парные NPC_SPOKE-публикации (Δ~12мс) — проверить дедуп.
+
+## F3 (БАГ-1, S292): lifecycle-контракт топологии
+- INV-SNAPSHOT-TOPOLOGY поймал load/idle-путь рождения сцены (game_loop:1122 прямая initialize_scene мимо ensure) ДО проды — гейт отработал по назначению; фиксы: heal в ensure + 2 обёртки прямых фабрик + birth-точка reset_campaign. Четыре точки рождения, один источник, идемпотентно.
+- БАГ-4 (зарегистрирован Мастером): «Продолжить» доступна после завершения кампании выходом через boundary → загрузка в чужую локацию. Предварительный домен: campaign_lifecycle.load_campaign/session-state + FE-грейтинг кнопки. Слот: сразу после F3.

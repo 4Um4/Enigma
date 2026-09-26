@@ -1116,7 +1116,12 @@ class GameLoop:
         # инициализируем её принудительно, чтобы TickOrchestrator смог её тикнуть.
         _active_scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
         if _active_scene is None:
-            _active_scene = self.scene_manager.initialize_scene(campaign_id, _active_loc, "02:00")
+            from app.services.game_loop.scene_init import _ensure_player_topology
+            _active_scene = _ensure_player_topology(
+                loop=self,
+                campaign_id=campaign_id,
+                scene_state=self.scene_manager.initialize_scene(campaign_id, _active_loc, "02:00"),
+            )
             logger.info(f"[IDLE_TICK] Принудительная инициализация локации: {_active_loc}")
 
         # Дополнение Б: Получаем список всех локаций для глобального тика
@@ -1150,7 +1155,12 @@ class GameLoop:
                 if not _ploc:
                     continue
                 if self.scene_manager.get_scene_state(campaign_id, _ploc) is None:
-                    _target_scene = self.scene_manager.initialize_scene(campaign_id, _ploc, "12:00")
+                    from app.services.game_loop.scene_init import _ensure_player_topology
+                    _target_scene = _ensure_player_topology(
+                        loop=self,
+                        campaign_id=campaign_id,
+                        scene_state=self.scene_manager.initialize_scene(campaign_id, _ploc, "12:00"),
+                    )
                     if _active_scene:
                         _target_scene["tick"] = _active_scene.get("tick", 0)
                         _target_scene["game_time_seconds"] = _active_scene.get("game_time_seconds", 43200.0)
@@ -1164,10 +1174,19 @@ class GameLoop:
         # Шаг 2: LOCK всех локаций (Дополнение Б, п. Б.6.1)
         self.scene_manager.lock_all_for_tick(campaign_id, _location_ids)
 
-        # Шаг 3: WorldTick — единый вызов оркестратора для всех локаций (ADR-O-344)
+        # F3 (S292): heal топологии ВНУТРИ lock-фазы. Снаружи lock
+        # save_scene_state пишет на диск, но тик читает _tick_scenes-кэш,
+        # куда lock положил pre-heal копию — heal до lock не доезжал до
+        # снапшота (INV-SNAPSHOT-TOPOLOGY красный при зелёном диске).
+        # Здесь: tick-кэш — единственная истина тика; heal мутит её
+        # напрямую; персист — штатный unlock_tick.
+        from app.services.game_loop.scene_init import _ensure_player_topology
         _scene = self.scene_manager.get_scene_state(campaign_id, _active_loc)
         if _scene is None:
             return {"status": "no_scene", "npc_positions": {}}
+        if not _scene.get("player_body_topology"):
+            _ensure_player_topology(loop=self, campaign_id=campaign_id, scene_state=_scene)
+            logger.info("[IDLE_TICK] player_body_topology healed in-tick (F3)")
 
         # Spatial Oracle корректирует локацию только для активной сцены
         try:

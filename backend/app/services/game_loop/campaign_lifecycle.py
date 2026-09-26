@@ -287,6 +287,26 @@ class CampaignLifecycle:
         except Exception as e:
             logger.warning(f"[NEW_GAME] Scene reinit failed: {e}")
 
+        # === 6.5 F3 (S292): топология тела рождается вместе со сценой ===
+        # Было: player_body_topology=None из scene_factory → idle-тики до
+        # первого действия несли None → «Топология недоступна» (БАГ-1 ТЗ
+        # проекционного слоя: инициализация была привязана к первому
+        # действию в turn_pipeline). Теперь: один init-писатель в точке
+        # рождения мира, поле входит в атомарный коммит секции 7.
+        # Дефолтный strength (10) — паритет с SSM-писателем (INVENTORY);
+        # STR-aware уточнение ёмкости — при выборе персонажа (tech-debt,
+        # repair-ветка turn_pipeline покрывает legacy-сейвы).
+        try:
+            if isinstance(_scene_for_commit, dict) and not _scene_for_commit.get("player_body_topology"):
+                from app.services.body.body_topology_service import BodyTopologyService
+
+                _scene_for_commit["player_body_topology"] = BodyTopologyService.serialize(
+                    BodyTopologyService.create_topology("player")
+                )
+                logger.info("[NEW_GAME] player_body_topology initialized at scene birth (F3)")
+        except Exception as _topo_err:
+            logger.warning(f"[NEW_GAME] topology init failed: {_topo_err}")
+
         # === 7. АТОМАРНЫЙ КОММИТ (scene + npcs) ===
         # BUG-AUDIT-13: Сохраняем сцену и NPC в одной транзакции, чтобы избежать рассинхрона.
         if _scene_for_commit and _npcs_for_commit:

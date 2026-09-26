@@ -746,6 +746,32 @@ def main() -> None:
                 screen = pygame.display.get_surface()
                 select_screen = CampaignSelectScreen(screen, clock)
                 selected_folder = select_screen.run()
+                # БАГ-4 (S292): защита в глубину — завершённая кампания не грузится.
+                # UI-грейтинг — в CampaignSelectScreen (серые finished); этот гард —
+                # страховка, если грейтинг не сработал/обойдён.
+                if selected_folder is not None:
+                    import time as _time_g
+                    import urllib.request as _ur_fin
+                    _gate_ready = False
+                    for _attempt_g in range(6):
+                        try:
+                            with _ur_fin.urlopen(f"{_BACKEND_URL}/api/health", timeout=1) as _hg:
+                                if getattr(_hg, "status", 200) == 200:
+                                    _gate_ready = True
+                                    break
+                        except Exception:
+                            _time_g.sleep(0.5)
+                    if _gate_ready:
+                        try:
+                            with _ur_fin.urlopen(f"{_BACKEND_URL}/api/game/status/{selected_folder}", timeout=3) as _st:
+                                import json as _json
+                                if _json.loads(_st.read().decode()).get("finished"):
+                                    print("  ✔ Кампания завершена — продолжение недоступно (начните новую игру).")
+                                    selected_folder = None
+                        except Exception as _st_err:
+                            print(f"  [CONTINUE_GATE] status check skipped: {_st_err}")
+                    else:
+                        print("  [CONTINUE_GATE] backend не готов — гейт пропущен (fail-open)")
                 if selected_folder is not None:
                     screen = pygame.display.get_surface()
                     char_screen = CharacterSelectScreen(screen, clock, selected_folder)

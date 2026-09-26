@@ -91,6 +91,40 @@ class CampaignSelectScreen:
         self._campaigns = _load_campaigns()
         self._selected_index: int = -1
 
+        # БАГ-4 (S292): статусы завершённости (runtime, saves/{folder}) —
+        # для грейтинга «Продолжить». Fail-open: бэкенд недоступен → пусто
+        # (все кликабельны, страховка — launcher-гейт). Таймаут короткий:
+        # экран выбора не должен зависать на холодном бэкенде.
+        self._finished: set[str] = set()
+        try:
+            import json as _json
+            import time as _time
+            import urllib.request as _ur
+            # БАГ-4 (S292, фикс): launcher поднимает backend асинхронно —
+            # первый запрос на холодном бэке падал (timeout=1) → fail-open
+            # делал ВСЕ кампании кликабельными (флаг всегда мимо).
+            # Ретраи с паузой: ждём готовности до ~3с суммарно.
+            _base = "http://127.0.0.1:8000"
+            _backend_ready = False
+            for _attempt in range(6):
+                try:
+                    with _ur.urlopen(f"{_base}/api/health", timeout=1) as _h:
+                        if getattr(_h, "status", 200) == 200:
+                            _backend_ready = True
+                            break
+                except Exception:
+                    _time.sleep(0.5)
+            if _backend_ready:
+                for _e in self._campaigns:
+                    try:
+                        with _ur.urlopen(f"{_base}/api/game/status/{_e.folder}", timeout=2) as _r:
+                            if _json.loads(_r.read().decode()).get("finished"):
+                                self._finished.add(_e.folder)
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+
         # Размеры списка
         self._item_height = 70
         self._list_padding = 12
@@ -101,6 +135,10 @@ class CampaignSelectScreen:
         self._btn_play_rect = pygame.Rect(0, 0, 0, 0)
 
         self._layout()
+
+    def _is_finished(self, folder: str) -> bool:
+        """БАГ-4 (S292): кампания финализирована → недоступна для продолжения."""
+        return folder in self._finished
 
     def _layout(self) -> None:
         """Пересчитывает позиции элементов при изменении размера окна"""
@@ -149,10 +187,12 @@ class CampaignSelectScreen:
 
                     self._handle_click(event.pos)
 
-                    # Двойной клик по списку = войти
+                    # Двойной клик по списку = войти (БАГ-4: finished — отказ)
                     if is_double and 0 <= self._selected_index < len(self._campaigns):
                         if self._list_rect.collidepoint(event.pos):
-                            self._result = self._campaigns[self._selected_index].folder
+                            _entry = self._campaigns[self._selected_index]
+                            if not self._is_finished(_entry.folder):
+                                self._result = _entry.folder
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         return None
@@ -164,7 +204,9 @@ class CampaignSelectScreen:
                             self._selected_index += 1
                     elif event.key == pygame.K_RETURN:
                         if 0 <= self._selected_index < len(self._campaigns):
-                            self._result = self._campaigns[self._selected_index].folder
+                            _entry = self._campaigns[self._selected_index]
+                            if not self._is_finished(_entry.folder):
+                                self._result = _entry.folder
 
             self._draw()
             pygame.display.flip()
@@ -179,11 +221,13 @@ class CampaignSelectScreen:
             self._result = None
             return
 
-        # Кнопка «Играть»
+        # Кнопка «Играть» (БАГ-4: finished — отказ)
         if self._btn_play_rect.collidepoint(pos) and 0 <= self._selected_index < len(
             self._campaigns
         ):
-            self._result = self._campaigns[self._selected_index].folder
+            _entry = self._campaigns[self._selected_index]
+            if not self._is_finished(_entry.folder):
+                self._result = _entry.folder
             return
 
         # Список кампаний
@@ -244,13 +288,21 @@ class CampaignSelectScreen:
                 if border:
                     pygame.draw.rect(self.screen, border, item_rect, 1, border_radius=6)
 
+                # БАГ-4 (S292): finished — серый + суффикс
+                _is_fin = self._is_finished(entry.folder)
+
                 # Имя кампании
                 name_color = (
-                    _COLORS["text_highlight"]
-                    if i == self._selected_index
-                    else _COLORS["text"]
+                    (110, 110, 115)
+                    if _is_fin
+                    else (
+                        _COLORS["text_highlight"]
+                        if i == self._selected_index
+                        else _COLORS["text"]
+                    )
                 )
-                name_surf = self.font_name.render(entry.name, True, name_color)
+                _name_text = entry.name + (" — ЗАВЕРШЕНА" if _is_fin else "")
+                name_surf = self.font_name.render(_name_text, True, name_color)
                 self.screen.blit(name_surf, (item_rect.x + 10, item_rect.y + 8))
 
                 # Описание
@@ -294,8 +346,12 @@ class CampaignSelectScreen:
             back_surf, back_surf.get_rect(center=self._btn_back_rect.center)
         )
 
-        # Кнопка «Играть»
-        can_play = 0 <= self._selected_index < len(self._campaigns)
+        # Кнопка «Играть» (БАГ-4: finished — серая)
+        _selected_fin = (
+            0 <= self._selected_index < len(self._campaigns)
+            and self._is_finished(self._campaigns[self._selected_index].folder)
+        )
+        can_play = (0 <= self._selected_index < len(self._campaigns)) and not _selected_fin
         if can_play:
             play_hovered = self._btn_play_rect.collidepoint(pygame.mouse.get_pos())
             play_color = (

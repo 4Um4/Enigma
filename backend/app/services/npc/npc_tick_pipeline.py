@@ -1113,6 +1113,19 @@ class NpcTickPipeline:
             except Exception as e:
                 logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
 
+        # CognitionContext v0 (P2): единый проход внимания ПОСЛЕ цикла решений.
+        # Pure: читает TickState → дельты + готовые orient SceneChange; применение —
+        # оркестратор. Флаг OFF → ({}, []) — no-op. В P2 DecisionHub внимание не
+        # читает; в P3 проход поднимется внутрь цикла (до compute) для свежести.
+        from app.services.npc.attention_reflex import compute_attention_pass
+
+        _attention_delta, _orient_changes = compute_attention_pass(state)
+        if _attention_delta or _orient_changes:
+            logger.info(
+                f"[ATTENTION] tick={state.tick_id} observers={len(_attention_delta)} "
+                f"orients={len(_orient_changes)}"
+            )
+
         # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 3): детектор на границе
         # формирования мутации. Ловит ЛЮБОЙ путь рождения авторского акта
         # аватара в reducer'е: известные фабрики загвардены (уровни 1-2),
@@ -1147,6 +1160,8 @@ class NpcTickPipeline:
             memory_events=memory_events,
             idle_pressure_updates=_idle_pressure_updates, # V8-SOC-5 FIX
             scores_trace_map=_scores_trace_map, # S189: SUPERBOX-005
+            attention_states_delta=_attention_delta, # CognitionContext v0 (P2)
+            orient_scene_changes=_orient_changes, # CognitionContext v0 (P2)
         )
 
 
