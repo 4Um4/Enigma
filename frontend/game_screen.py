@@ -792,7 +792,10 @@ class GameScreen:
                 if self._workbench.active:
                     self._workbench.handle_event(event)
                     continue
-                if self._workbench.handle_event_overlay(event):
+                # №9: End-Screen — окна верстака не едят ввод терминального
+                # экрана (единственный выход — ENTER)
+                if (not self.show_end_screen
+                        and self._workbench.handle_event_overlay(event)):
                     continue
                 elif event.type == pygame.KEYDOWN:
                     # FIX(диалог-выход): ESC при сфокусированном вводе закрывает
@@ -924,6 +927,7 @@ class GameScreen:
                         # WASD двигает персонажа только если чат не в фокусе
                         # C1: и не в фокусе инпут Доски (набор гипотезы)
                         if (not text_input.focused
+                                and not self.workbench_paused
                                 and not self._workbench.board_input_active()):
                             held_keys.add(event.key)
                             move.target_npc_id = None
@@ -967,7 +971,9 @@ class GameScreen:
                                 break
                         if _tab_hit:
                             continue  # клик съеден вкладкой — не проваливать в клик по NPC
-                    clicked_npc = self._handle_click(
+                    # №1: пауза (Доска/F12) — клики мимо окон верстака
+                    # не выбирают NPC и не двигают игрока
+                    clicked_npc = None if self.workbench_paused else self._handle_click(
                         event.pos,
                         scene_state,
                         focus,
@@ -1011,16 +1017,15 @@ class GameScreen:
                         if hasattr(_gateway, "finalize_campaign"):
                             _gateway.finalize_campaign(campaign_folder)
                         self.end_screen_data = _gateway.get_end_screen(campaign_folder)
-                        self.show_end_screen = True
                     except Exception as _mvp_err:
                         print(f"[MVP] popup failed: {_mvp_err}")
-                        # NEW-MVP-001 FIX: Показываем окно даже с ошибкой, чтобы не зацикливать попытки.
-                        self.show_end_screen = True
-                        # FIX(опечатка): данные писались в _end_screen_data
-                        # (мёртвый атрибут), рендер читает end_screen_data —
-                        # при ошибке API экран зависал в полусостоянии.
                         self.end_screen_data = {"error": str(_mvp_err)}
                         system_log.append(f"[END_SCREEN] API Error: {_mvp_err}")
+                    self.show_end_screen = True
+                    # ТЕРМИНАЛЬНО: мир остановлен навсегда (finalize свершился).
+                    # Основной цикл run() не продолжается — только меню/выход.
+                    _es_result = self._end_screen_terminal_loop()
+                    return "MENU" if _es_result == "MENU" else None
 
                 # M20: направление автохода (None = нет); вычисляется в ветке
                 # target ниже, потребляется в ветке физики. Объявлено до
@@ -2142,28 +2147,6 @@ class GameScreen:
             # HUD-дата/время перенесены в мини-окна Workbench (world_clock,
             # time_scale). FPS оставлен (диагностический, dev-инструмент).
 
-            # MVP Mini-game: End Screen Rendering
-            if self.show_end_screen and self.end_screen_data:
-                _es_renderer = EndScreenRenderer(self.screen)
-                _es_renderer.render(self.end_screen_data)
-                
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                        action_queue.stop()
-                        running = False
-                        return
-
-            # MVP Mini-game: End Screen Rendering
-            if self.show_end_screen and self.end_screen_data:
-                _es_renderer = EndScreenRenderer(self.screen)
-                _es_renderer.render(self.end_screen_data)
-                
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                        action_queue.stop()
-                        running = False
-                        return
-
             # === ADR-127: DEATH OVERLAY (P2) — фронтенд видит смерть ===
             _av = scene_state.get("avatar_state")
             if _av and _av.get("life_status") == "DEAD":
@@ -2210,17 +2193,87 @@ class GameScreen:
 
             # UI Workbench: окна поверх всего кадра (после HUD/пузырей, до флипа).
             # Только пока верстак активен (F12): иначе нулевой оверхед.
-            self._workbench.draw(self.screen, scene_state)
+            # №1 (вердикт М): пауза мира при рабочем режиме — Доска FULL
+            # или F12. Журнал БЕЗ паузы (авто-открывается на репликах —
+            # пауза заморозила бы игру). Затемнение + подсказка = явный
+            # сигнал режима (F12 затемнения не имел — теперь у обоих).
+            self.workbench_paused = self._workbench.board_focused()
+            if self.workbench_paused:
+                _dim = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+                _dim.fill((0, 0, 0, 120))
+                self.screen.blit(_dim, (0, 0))
+                _ps = self.renderer.font_small.render(
+                    "ПАУЗА · B закрыть доску · F12 верстак · Ctrl+Shift+L сброс окон",
+                    True, (220, 220, 225))
+                self.screen.blit(
+                    _ps, (self.screen.get_width() - _ps.get_width() - 12, 8))
+            # №9: End-Screen — терминальный слой, окна не накладываются
+            # на статистику (раскладка не портится — рендер-гейт).
+            if not self.show_end_screen:
+                self._workbench.draw(self.screen, scene_state)
+
+            # MVP Mini-game: End-Screen — ТЕРМИНАЛЬНОЕ состояние (решение
+            # Мастера: мир после finalize_campaign не имеет права жить).
+            # Ранний контур: рисуем overlay, ждём ТОЛЬКО ENTER. Никаких
+            # idle-тиков, движения, рендера мира, событий мира — каузальный
+            # поток завершён (finalize уже свершился на триггере).
+            if self.show_end_screen and self.end_screen_data:
+                from end_screen_renderer import EndScreenRenderer
+                _es_renderer = EndScreenRenderer(self.screen)
+                _es_renderer.render(self.end_screen_data)
+                pygame.display.flip()
+                self.clock.tick(60)
+                for _es_evt in pygame.event.get():
+                    if _es_evt.type == pygame.KEYDOWN and _es_evt.key == pygame.K_RETURN:
+                        return "END_SCREEN"
+                    if _es_evt.type == pygame.QUIT:
+                        return "END_SCREEN"
+                return "END_SCREEN_RUNNING"  # sentinel: кадр завершён, симуляция пропущена
 
             pygame.display.flip()
             self.clock.tick(60)
 
     # ── UI методы ──────────────────────────────────────────────────────
 
+    def _end_screen_terminal_loop(self, campaign_folder: str) -> str:
+        """MVP game-over: ТЕРМИНАЛЬНОЕ состояние. Мир после finalize_campaign
+        не тикает, не рендерится, не принимает игровой ввод — каузальный
+        поток завершён. Живут только: overlay статистики + ENTER (выход в
+        меню) + QUIT. Вызывается сразу после срабатывания триггера выхода,
+        из run() — основной цикл run() на этот кадр не продолжается."""
+        from end_screen_renderer import EndScreenRenderer
+        _es = EndScreenRenderer(self.screen)
+        while True:
+            _es.render(self.end_screen_data)
+            pygame.display.flip()
+            self.clock.tick(60)
+            for _evt in pygame.event.get():
+                if _evt.type == pygame.QUIT:
+                    return "QUIT"
+                if _evt.type == pygame.KEYDOWN and _evt.key == pygame.K_RETURN:
+                    return "MENU"
+                if _evt.type == pygame.KEYDOWN and _evt.key == pygame.K_ESCAPE:
+                    return "MENU"
+
+    def _end_screen_terminal_loop(self) -> str:
+        """MVP game-over: ТЕРМИНАЛЬНОЕ состояние. Мир после finalize_campaign
+        не тикает, не рендерится, не принимает игровой ввод — каузальный
+        поток завершён. Живут только: overlay статистики + ENTER/ESC (в меню).
+        Вызывается из триггера выхода; run() дальше этого кадра не идёт."""
+        from end_screen_renderer import EndScreenRenderer
+        _es = EndScreenRenderer(self.screen)
+        while True:
+            _es.render(self.end_screen_data)
+            pygame.display.flip()
+            self.clock.tick(60)
+            for _evt in pygame.event.get():
+                if _evt.type == pygame.QUIT:
+                    return "QUIT"
+                if _evt.type == pygame.KEYDOWN and _evt.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                    return "MENU"
+
     def collect_observation_lines(self, scene_state: dict) -> list:
-        if not getattr(self, "_diag_topology_printed", False):
-            print(f"[DIAG_TOPO] scene_keys={list(scene_state.keys())[:25]}")
-            self._diag_topology_printed = True
+
         """M-HUD миграция: сборщик строк панели «Наблюдение» (вынесен из
         Ё-консоли; единственный источник — потребители: workbench-окно
         и (временно) legacy Ё-блит). Эпистемика неизменна: только
@@ -2303,6 +2356,8 @@ class GameScreen:
         раскрывает журнал на вкладке «Диалог» из любого состояния окна.
         Прочие каналы — только обновление данных, без навязчивости."""
 
+        for _dj in entries[len(self._dialog_journal_backend):]:
+            print(f"[DIAG_JC2] speaker={_dj.get('speaker','')!r} channel={_dj.get('channel','')!r} tick={_dj.get('tick','')!r} text={_dj.get('text','')[:45]!r}")
         old_count = len(self._dialog_journal_backend)
         self._dialog_journal_backend = entries
         if len(entries) >= old_count:

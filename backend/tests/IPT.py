@@ -600,6 +600,39 @@ def inv_player_authorship(world: TestWorld) -> InvariantResult:
     )
 
 
+def inv_snapshot_topology(world: TestWorld) -> InvariantResult:
+    """INV-SNAPSHOT-TOPOLOGY (F3, S292): топология тела аватара присутствует
+    в idle-снапшоте с первых тиков, до любого действия игрока. Контракт ТЗ
+    Presentation v2.0: ключ есть ⇒ содержит структурную топологию (пустые
+    слоты легальны); None в снапшоте при живой сцене = проекционная ложь."""
+    try:
+        result = world.idle_tick()  
+        _snap = (result or {}).get("world_snapshot")
+        # S292-урок: world_snapshot в idle-ответе — DICT (не DTO): чтение
+        # через getattr всегда возвращало default → ложнокрасный инвариант.
+        # Толерантно к обеим формам (dict сейчас, DTO если контракт вернётся).
+        if isinstance(_snap, dict):
+            _topo = _snap.get("player_body_topology")
+        else:
+            _topo = getattr(_snap, "player_body_topology", None) if _snap else None
+        if not _topo:
+            return InvariantResult(
+                "INV-SNAPSHOT-TOPOLOGY", "CRITICAL", False,
+                f"player_body_topology отсутствует в idle-снапшоте (type={type(_topo).__name__}). "
+                f"Инициализация при рождении сцены не сработала.",
+                ["backend/app/services/game_loop/campaign_lifecycle.py",
+                 "backend/app/services/scene_state/scene_factory.py"],
+            )
+        return InvariantResult(
+            "INV-SNAPSHOT-TOPOLOGY", "CRITICAL", True,
+            "Топология тела присутствует в idle-снапшоте (до действия игрока).", [],
+        )
+    except Exception as e:
+        return InvariantResult(
+            "INV-SNAPSHOT-TOPOLOGY", "CRITICAL", False, f"Ошибка прогона: {e}", [],
+        )
+
+
 def inv_llm_exile(world: TestWorld) -> InvariantResult:
     """INV-LLM-EXILE: Запрет вызовов LLM в ядре симуляции (L7)."""
     import sys
@@ -2095,6 +2128,7 @@ INVARIANTS: List[Callable] = [
     inv_l3_ephemeral,
     inv_domain_purity,
     inv_player_authorship,
+    inv_snapshot_topology,
     inv_llm_exile,
     inv_position_mutation,
     inv_sc1_zero_position,

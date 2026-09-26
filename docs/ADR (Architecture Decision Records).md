@@ -701,6 +701,16 @@ frontend/ui_workbench/windows/board_window.py, backend/tests/test_board_acceptan
 Status: ACTIVE (регресс S292: player_in_decisions=0 за ~124 тика; PLAYER_SPOKE жив; NPC→player аудитория подтверждена reactive-контуром; IPT 46/46→47/47)
 Files: backend/app/domain/control_source.py (NEW), backend/app/services/npc/decision_hub.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py (INV-PLAYER-AUTHORSHIP)
 
+`ADR-O-407` [ONTO] **PLAYER TURN COMMITMENT — Time Gate Semantics (S292-наследник, П.4)**
+Суть: Пока не исполнено обязательство хода игрока (player-turn commitment), мировое время не продвигается: idle-контур не вызывает TickOrchestrator.execute() → Фаза 0.5 не тикает → game_time_seconds стоит. Гейт — свойство EXECUTION MODEL игрока, НЕ существования LLM-вызова (табу: формулировать паузу через «ждёт LLM» запрещено — при мультиплеере 10000 players глобальная LLM-пауза абсурдна; ожидание — per-player commitment). Для single-player MVP семантически совпадает с паузой на время генерации ответа судьи хода; архитектурно готовит per-player временные контуры. Онтологическая чистота: ADR-O-344 не тронут (TickOrchestrator остаётся единственным владельцем времени — гейт лишь решает, вызывать ли execute); ADR-TZ08-1 не тронут (ядро не знает о player — флаг живёт в game_loop, уровень оркестратора); ADR-002 переформулирован, не нарушен (время не останавливается ВНУТРИ исполняемых тиков; неисполненный тик не существует — та же семантика, что F12/workbench-пауза); реплей цел (окно паузы не порождает событий — в записи просто нет тиков). Ограничение вечного фриза: per-task timeout + _abort_generation (ADR-O-364) уже существуют; abort → честная ошибка хода (ADR-113), пауза снимается. Scope узкий: ТОЛЬКО ход игрока; материализация NPC-реплик (ADR-O-313) остаётся в живом мировом времени (NPC «думает» в живом мире — честно, обвязано backpressure'ом). Боевой будущего: combat controller станет вторым держателем commitment — семантика зарезервирована (ControlSource.COMBAT_CONTROLLER, ADR-O-406).
+❌ Taboo: гейт через наличие LLM-вызова; глобальный pause в терминах «система ждёт LLM»; продвижение времени game_loop'ом; пауза материализации NPC-диалогов (только player-turn); новый источник времени.
+Status: APPROVED-BY-MASTER (рекомендация (а) принята; реализация — отдельная сессия: флаг player_turn_in_flight в game_loop по образцу workbench_paused, инвариант INV-PLAYER-TURN-TIME-GATE)
+Files: backend/app/services/game_loop/game_loop.py (будущий гейт), docs/audits/ADR-O-407_IMPACT.md (создать при реализации)
+
+
+
+
+
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 
 **Уровни сравнения:**

@@ -6,26 +6,26 @@
       "free_rect": [
         0,
         73,
-        614,
-        669
+        537,
+        436
       ]
     },
     "world_clock": {
       "state": "collapsed",
       "free_rect": [
-        1556,
-        0,
-        224,
-        64
+        710,
+        23,
+        193,
+        31
       ]
     },
     "time_scale": {
       "state": "collapsed",
       "free_rect": [
-        1780,
-        0,
-        140,
-        54
+        704,
+        77,
+        90,
+        26
       ]
     },
     "observations": {
@@ -37,11 +37,11 @@
       "free_rect": null
     },
     "board": {
-      "state": "full",
+      "state": "collapsed",
       "free_rect": [
-        816,
-        57,
-        560,
+        537,
+        215,
+        420,
         630
       ]
     }

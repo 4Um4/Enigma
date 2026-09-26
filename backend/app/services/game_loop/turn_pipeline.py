@@ -463,10 +463,12 @@ class TurnPipeline:
                         reason="player_action:approach",
                         priority=1.0
                     )
-                    if not hasattr(_ctx, "movement_intents") or _ctx.movement_intents is None:
-                        _ctx.movement_intents = []
-                    _ctx.movement_intents.append(_player_goal)
+                    # Z-фикс: носитель — shared_context (тик получает его для
+                    # активной локации и сеет в свой ctx.movement_intents).
+                    # _TickContext-путь был мёртв: мост читает ctx тика, не этот.
+                    shared_context.pending_movement_intents.append(_player_goal)
                     logger.warning(f"[PLAYER_MOVE] Injected MacroMovementGoal for player -> {_target_pos}")
+                    print(f"[Z-ID] inject id={id(shared_context)} pending={len(shared_context.pending_movement_intents)}")
 
             if self.mvp_controller:
                 # S199: Уничтожен раздвоенный semantic authority.

@@ -429,6 +429,13 @@ class HttpGameGateway:
     def get_end_screen(self, campaign_id: str) -> dict:
         return self._contract.get_end_screen(campaign_id)
 
+    def finalize_campaign(self, campaign_id: str) -> dict:
+        """БАГ-4 (S292): HASATTR-КОНТРАКТ FallbackGateway. Без этого метода
+        hasattr(primary)=False → finalize отбрасывался («not available»),
+        флаг завершённости не писалcя, «Продолжить» жил после финала.
+        Реализация = делегация контракту (стиль класса)."""
+        return self._contract.finalize_campaign(campaign_id)
+
     def get_characters(self, campaign_id: str) -> list[dict]:
         return self._contract.get_characters(campaign_id)
 

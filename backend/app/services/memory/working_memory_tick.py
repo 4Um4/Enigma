@@ -104,6 +104,13 @@ def write_npc_reactions_to_memory(
                         # — игрок (RCE извлекает реакции на player-action).
                         "target_id": "player",
                         "action_type": "dialogue_key",
+                        # ⑤ (S292): RCE извлекает реплику из DM-прозы — эмоция
+                        # в структуре отсутствует, парсинг текста запрещён (§13).
+                        # Явный provenance NEUTRAL: потребители знают, что тон
+                        # не измерен, а дефолтен (подписчик клампит дельты
+                        # таблицей _compute_rel_delta; NEUTRAL = микро-привыкание).
+                        "tone": "NEUTRAL",
+                        "tone_provenance": "rce_default_unmeasured",
                     },
                     visibility="public",
                     radius=exposure_radius("normal"),  # Р-В: 999-дефолт запрещён (ADR-148)

@@ -504,4 +504,19 @@ def create_tick_context(
         hub_event=hub_event,  # BUG-CORE-003 FIX: Проброс контекста игрока в ядро
         mvp_controller=mvp_controller,  # ENIGMA SELF-HEALING: For probes
     )
+    # Z-фикс: player-MOVE (ADR-O-330) — интенты едут через shared_context
+    # (PipelineContext.pending_movement_intents) и сеются в ctx тика ДО Фазы 5,
+    # где pipeline_runner смержит их с NPC-интентами → movement_bridge.
+    # Критерий _is_player отсекает time-контекст (interventions=[] → False),
+    # иначе сидирование съело бы интент на пустом _time_ctx.
+    if _is_player and shared_context is not None:
+        _pending = getattr(shared_context, "pending_movement_intents", None)
+        print(f"[Z-DIAG] is_player=True pending={len(_pending or [])} "
+              f"shared={type(shared_context).__name__} id={id(shared_context)}")
+        if _pending:
+            ctx.movement_intents = list(_pending)
+            shared_context.pending_movement_intents = []
+            print(f"[Z-FIX] factory seeded {len(ctx.movement_intents)} player movement intents")  # print: logger.info невидим в sandbox (S216)
+    elif shared_context is not None:
+        print(f"[Z-DIAG] is_player=False interventions={[(getattr(i,'source','?'), getattr(i,'payload',{}).get('semantic_action','?')) for i in interventions][:3]}")
     return ctx

@@ -76,6 +76,8 @@ def run_npc_orchestration(
     # Единственная точка в causal flow хода игрока (TODO tick_orchestrator:849
     # закрыт). Мутирует player_profile.front и shared_context
     # (front_description / front_type / world_pressure).
+    print(f"[Z-ID] orchestration enter id={id(shared_context)} "
+          f"pending={len(getattr(shared_context, 'pending_movement_intents', []) or [])}")
     _player_name = actions[0].player_name if actions else ""
     if _player_name:
         from app.services.character.front_applicator import apply_front_engine
@@ -239,6 +241,8 @@ def run_npc_orchestration(
 
         # BUG-NO-RETRO-SIM FIX: Линтер ошибочно принимает проход по локациям за ретро-симуляцию.
         _execute_tick = tick_orchestrator.execute
+        print(f"[Z-ID] before-tick id={id(shared_context)} "
+              f"pending={len(getattr(shared_context, 'pending_movement_intents', []) or [])}")
         _loc_result = _execute_tick(
             campaign_id=campaign_id,
             scene_state=_current_scene,

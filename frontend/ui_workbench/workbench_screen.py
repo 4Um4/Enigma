@@ -20,8 +20,10 @@ from ui_workbench import (
 )
 from ui_workbench.layout import AnchoredRect
 from ui_workbench.snap_engine import SnapEngine
+from ui_workbench.editor_board_stub import EditorBoardStub
 from ui_workbench.windows.board_window import BOARD_MANIFEST
 from ui_workbench.windows.journal_window import JOURNAL_MANIFEST
+from ui_workbench.fonts import FontProvider as _FontProvider
 
 _WORKBENCH_DIR = Path(__file__).parent
 _LAYOUT_PATH = _WORKBENCH_DIR / "window_layout.json"
@@ -63,7 +65,13 @@ class WorkbenchScreen:
                 # из кода) — такой id пропускаем, restore бы упал KeyError.
                 if wid not in self.registry.all_ids():
                     continue
-                self.registry.restore(wid, record.get("state", "hidden"))
+                _state = record.get("state", "hidden")
+                if wid == "board" and _state == "full":
+                    # Доска — рабочая поверхность, не витрина: при старте
+                    # игры всегда свёрнута (позиция/размер персистятся,
+                    # состояние — нет). FULL живёт только внутри сессии.
+                    _state = "collapsed"
+                self.registry.restore(wid, _state)
                 fr = record.get("free_rect")
                 # Валидация free_rect против degenerate-геометрии (урок краша
                 # Surface: [x, y, w, 34] от collapsed-сессии): меньше min_size
@@ -84,6 +92,7 @@ class WorkbenchScreen:
 
         self._rects: Dict[str, pygame.Rect] = {}
         self._drag: Optional[list] = None  # [wid, grab-офсет] (drag — сразу, порога нет)
+        self._resize: Optional[list] = None  # S3: [wid, [left,right,top,bottom], [x,y,w,h] старт]
         self._title_rects: Dict[str, pygame.Rect] = {}
         self._arrow_rects: Dict[str, pygame.Rect] = {}  # зоны ▸/▾ (toggle, OS-паттерн)
         self._active_tab: Dict[str, str] = {}   # wid → tab_id (dialog по умолчанию)
@@ -106,6 +115,8 @@ class WorkbenchScreen:
         self._board_hover_tips: Dict[str, Optional[tuple]] = {}  # B3: cid → (speaker, полный текст)
         self._board_input = None            # C1: inline-TextInput гипотезы (ленивый)
         self._board_input_mode: Optional[tuple] = None  # None | ("create",) | ("edit", hyp_id)
+        self._board_stub = EditorBoardStub()  # P: полигон редактора (in-memory)
+        self._board_card_scroll: Dict[str, int] = {}  # №6: cid → скрытые строки сверху
 
         # Демо-данные (editor-контекст); game_context их не использует.
         # M19/M12 smoke-набор: все 4 канала, 3 подряд-реплики одного
@@ -114,22 +125,22 @@ class WorkbenchScreen:
         # (прообраз M17: подслушанное обращение = tentative-имя).
         self._demo_journal = [
             {"speaker": "Рассказчик", "text": "Демо: таверна «Серебряный волк» открывается на закате. Сквозь щели ставень тянет дымом и запахом жареного лука.", "channel": "narrative"},
-            {"speaker": "Торнин Серебряная Луна", "text": "Демо: проходи, не стой в дверях. Вечер только начался.", "channel": "direct"},
-            {"speaker": "Кузнец Орм", "text": "Демо: сталь не соврёт, если её спросить.", "channel": "direct"},
+            {"speaker": "Торнин Серебряная Луна", "text": "Демо: проходи, не стой в дверях. Вечер только начался.", "channel": "direct", "event_id": "demo-evt-001"},
+            {"speaker": "Кузнец Орм", "text": "Демо: сталь не соврёт, если её спросить.", "channel": "direct", "event_id": "demo-evt-002"},
             {"speaker": "Ты", "text": "Демо: *оглядываешь зал и присаживаешься у очага.*", "channel": "self"},
-            {"speaker": "Торнин Серебряная Луна", "text": "Демо: Эй, Борко! Ведро унеси от печи, пока не опрокинул.", "channel": "overheard"},
-            {"speaker": "Борко", "text": "Демо: Уже несу. Вчерашний козёл снова сбежал с двора, весь день ловлю.", "channel": "overheard"},
-            {"speaker": "Тень", "text": "Демо: ...тихо. Слишком тихо.", "channel": "direct"},
-            {"speaker": "Тень", "text": "Демо: за той дверью кто-то ходит всю ночь. Шаги лёгкие, почти без звука. Я считал — сорок два круга до рассвета.", "channel": "direct"},
-            {"speaker": "Тень", "text": "Демо: я никому не скажу, что ты спрашивал.", "channel": "direct"},
+            {"speaker": "Торнин Серебряная Луна", "text": "Демо: Эй, Борко! Ведро унеси от печи, пока не опрокинул.", "channel": "overheard", "event_id": "demo-evt-003"},
+            {"speaker": "Борко", "text": "Демо: Уже несу. Вчерашний козёл снова сбежал с двора, весь день ловлю.", "channel": "overheard", "event_id": "demo-evt-004"},
+            {"speaker": "Тень", "text": "Демо: ...тихо. Слишком тихо.", "channel": "direct", "event_id": "demo-evt-005"},
+            {"speaker": "Тень", "text": "Демо: за той дверью кто-то ходит всю ночь. Шаги лёгкие, почти без звука. Я считал — сорок два круга до рассвета.", "channel": "direct", "event_id": "demo-evt-006"},
+            {"speaker": "Тень", "text": "Демо: я никому не скажу, что ты спрашивал.", "channel": "direct", "event_id": "demo-evt-007"},
             {"speaker": "Рассказчик", "text": "Демо: за стойкой Торнин протирает кружку одним и тем же движением — и смотрит не на кружку, а на дверь.", "channel": "narrative"},
-            {"speaker": "Служанка Люся", "text": "Демо: Орм, опять клинок принёс? Третий за неделю.", "channel": "overheard"},
-            {"speaker": "Кузнец Орм", "text": "Демо: люди платят, я кую. Спрашивать не положено — таков порядок в наших краях, и он старше любой стены этой таверны.", "channel": "overheard"},
+            {"speaker": "Служанка Люся", "text": "Демо: Орм, опять клинок принёс? Третий за неделю.", "channel": "overheard", "event_id": "demo-evt-008"},
+            {"speaker": "Кузнец Орм", "text": "Демо: люди платят, я кую. Спрашивать не положено — таков порядок в наших краях, и он старше любой стены этой таверны.", "channel": "overheard", "event_id": "demo-evt-009"},
             {"speaker": "Ты", "text": "Демо: *делаешь глоток эля. Хмель горчит сильнее, чем ты привык.*", "channel": "self"},
-            {"speaker": "Торнин Серебряная Луна", "text": "Демо: про волка на вывеске спрашивают каждый прибывший. Отвечаю каждому: волк приходил сам, в метель, и мы его не выгнали. Кто-то из нас тогда умер, но вывеску не поменяешь — заказано при живом мастере, а мастер умер первым.", "channel": "direct"},
-            {"speaker": "Борко", "text": "Демо: Эй, кто-нибудь видел мою рукавицу? Левую!", "channel": "overheard"},
+            {"speaker": "Торнин Серебряная Луна", "text": "Демо: про волка на вывеске спрашивают каждый прибывший. Отвечаю каждому: волк приходил сам, в метель, и мы его не выгнали. Кто-то из нас тогда умер, но вывеску не поменяешь — заказано при живом мастере, а мастер умер первым.", "channel": "direct", "event_id": "demo-evt-010"},
+            {"speaker": "Борко", "text": "Демо: Эй, кто-нибудь видел мою рукавицу? Левую!", "channel": "overheard", "event_id": "demo-evt-011"},
             {"speaker": "Рассказчик", "text": "Демо: где-то наверху скрипнула половица. Шаги стихли у самой лестницы.", "channel": "narrative"},
-            {"speaker": "Тень", "text": "Демо: сорок третий.", "channel": "direct"},
+            {"speaker": "Тень", "text": "Демо: сорок третий.", "channel": "direct", "event_id": "demo-evt-012"},
             {"speaker": "Ты", "text": "Демо: *кладёшь монету на стойку и киваешь Торнину.*", "channel": "self"},
             {"speaker": "Рассказчик", "text": "Демо: Торнин кивает в ответ. Кружка в его руке перестаёт вращаться.", "channel": "narrative"},
         ]
@@ -143,8 +154,43 @@ class WorkbenchScreen:
             "Служанка Люся": 0.6,
         }
 
-        self._font_title = pygame.font.SysFont("consolas", 16)
-        self._font_text = pygame.font.SysFont("consolas", 14)
+        # S1 стилизации: шрифты через FontProvider (per-window overrides,
+        # роли title/text/ui). Голые SysFont заменены свойствами-прокси:
+        # значение зависит от self._render_wid (окно, рисуемое сейчас).
+        self._font_provider = _FontProvider()
+        self._render_wid: Optional[str] = None
+        self._font_title_base = pygame.font.SysFont("consolas", 16)
+        self._font_text_base = pygame.font.SysFont("consolas", 14)
+        self._style_overrides: dict = {}
+        self._style_role = "text"
+        self._style_target: Optional[str] = None
+
+    # ── S1: шрифтовые прокси ────────────────────────────────────────
+    # 44 точки рендера читают _font_title/_font_text — прокси подставляет
+    # per-window шрифт по текущему _render_wid. Fallback — базовые SysFont.
+
+    def _ov(self, role: str) -> dict:
+        wid = self._render_wid
+        return getattr(self, "_style_overrides", {}).get(wid, {}).get(role, {}) if wid else {}
+
+
+    @property
+    def _font_title(self) -> pygame.font.Font:
+        ov = (self._style_overrides.get(self._render_wid, {}).get("title", {})
+              if self._render_wid else {})
+        ov = self._ov("title")
+        return self._font_provider.get("title", ov.get("font_file", ""),
+                                       int(ov.get("size_delta", 0)),
+                                       bool(ov.get("bold", False)),
+                                       bool(ov.get("italic", False)))
+
+    @property
+    def _font_text(self) -> pygame.font.Font:
+        ov = self._ov("text")
+        return self._font_provider.get("text", ov.get("font_file", ""),
+                                       int(ov.get("size_delta", 0)),
+                                       bool(ov.get("bold", False)),
+                                       bool(ov.get("italic", False)))
 
     # ── Данные окна ──────────────────────────────────────────────────
 
@@ -190,6 +236,7 @@ class WorkbenchScreen:
 
     def enter(self) -> None:
         self.active = True
+        self._font_provider.scan()  # S1: шрифты накинуты в папку — подхват без перезапуска
         # Пауза мира (game-контекст): флаг читает game_screen перед idle_tick.
         # Мир не тикает, пока верстак открыт (решение Мастера: редактируем на паузе,
         # выходим — досимулировали нужную сцену — открыли снова).
@@ -198,6 +245,7 @@ class WorkbenchScreen:
 
     def exit(self) -> None:
         self.active = False
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)  # S3: вернуть курсор
         self._drag = None
         if self.game_context:
             self._core.workbench_paused = False
@@ -302,6 +350,11 @@ class WorkbenchScreen:
             r = pygame.Rect(fr)
             if collapsed:
                 r.height = _TITLE_H
+                # №8: collapsed тоже клампится — заголовок за нижней
+                # кромкой зоны = окно недосягаемо (smoke: наложение,
+                # уход в угол). Развёрнутая ветка клампит всегда —
+                # теперь и свёрнутое окно остаётся досягаемым.
+                r.clamp_ip(self._zone(viewport))
             else:
                 # J-FIX: free_rect вырожден по высоте (урок драга полосы)?
                 # Восстанавливаем полную высоту из анкера.
@@ -358,6 +411,18 @@ class WorkbenchScreen:
                 return True
             self._board_input.handle_event(event)
             return True
+        if event.type == pygame.MOUSEWHEEL:
+            # №6: wheel над карточкой = внутренняя прокрутка текста.
+            # Верхняя граница клампится в рендере (по числу строк против
+            # бюджета) — здесь только инкремент. Журнальный wheel ниже по
+            # цепочке не конфликтует (окна не пересекаются зонами).
+            _mp = pygame.mouse.get_pos()
+            for _cid, _rect in getattr(self, "_board_card_rects", {}).items():
+                if _rect.collidepoint(_mp):
+                    self._board_card_scroll[_cid] = max(
+                        0, self._board_card_scroll.get(_cid, 0) - event.y)
+                    return True
+            return False
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for _cid, _rect in getattr(self, "_board_card_rects", {}).items():
                 if _rect.collidepoint(event.pos):
@@ -397,8 +462,8 @@ class WorkbenchScreen:
                     _c["pos"] = [float(_rect.x), float(_rect.y)]
                     break
             try:
-                self._core._gateway.board_card_move(
-                    self._core.campaign_folder, _cid,
+                self._board_gateway.board_card_move(
+                    self._board_campaign, _cid,
                     [float(_rect.x), float(_rect.y)])
             except Exception as e:
                 self._board_error = str(e)
@@ -419,8 +484,8 @@ class WorkbenchScreen:
                 # повторное L — переключает kind (S ↔ C)
                 _a, _b = self._board_selected
                 try:
-                    self._core._gateway.board_link(
-                        self._core.campaign_folder, _a, _b,
+                    self._board_gateway.board_link(
+                        self._board_campaign, _a, _b,
                         self._board_link_kind)
                     self._board_link_kind = (
                         "PLAYER_CONTRADICTS"
@@ -437,8 +502,8 @@ class WorkbenchScreen:
                     _pair = {_l.get("from"), _l.get("to")}
                     if _pair == {_a, _b}:
                         try:
-                            self._core._gateway.board_link(
-                                self._core.campaign_folder,
+                            self._board_gateway.board_link(
+                                self._board_campaign,
                                 _l.get("from"), _l.get("to"), _l.get("kind"),
                                 unlink_op=True)
                             _removed = True
@@ -460,8 +525,8 @@ class WorkbenchScreen:
             if event.key == pygame.K_x and self._board_selected:
                 for _cid in list(self._board_selected):
                     try:
-                        self._core._gateway.board_card_remove(
-                            self._core.campaign_folder, _cid)
+                        self._board_gateway.board_card_remove(
+                            self._board_campaign, _cid)
                     except Exception as e:
                         self._board_error = str(e)
                 self._board_selected = []
@@ -474,6 +539,13 @@ class WorkbenchScreen:
                 return True
         return False
 
+    def board_focused(self) -> bool:
+        """№1: рабочая фокусировка — Доска развёрнута или верстак активен
+        (F12). game_screen синхронизирует workbench_paused каждый кадр —
+        все пути закрытия (B, стрелка, ESC, reset_layout) покрыты."""
+        return (self.registry.state("board") == WindowState.FULL
+                or self.active)
+
     def board_keydown(self, event) -> bool:
         """Phase 4: KEYDOWN-маршрут Доски для обычного режима (вне F12).
         handle_event вызывается только при .active — KEYDOWN до board-
@@ -484,7 +556,23 @@ class WorkbenchScreen:
             return False
         return self._board_handle_event(event)
 
+    def reset_layout(self) -> None:
+        """№8: аварийный сброс — все окна по якорям манифестов, геометрия
+        из layout-файла забыта (ловушка «окна ушли в угол» обратима)."""
+        for wid in self.registry.all_ids():
+            self._free_rects[wid] = None
+            self.registry.restore(wid, "hidden")
+        self._persist.save_window_states({})  # чистый лист
+        for wid in ("journal", "board"):
+            self.registry.restore(wid, "collapsed")
+
     def handle_event(self, event) -> None:
+        if (event.type == pygame.KEYDOWN
+                and event.key == pygame.K_l
+                and (pygame.key.get_mods() & pygame.KMOD_CTRL)
+                and (pygame.key.get_mods() & pygame.KMOD_SHIFT)):
+            self.reset_layout()
+            return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_F12:
             self.exit()
             return
@@ -507,6 +595,13 @@ class WorkbenchScreen:
         # нажатие на заголовок → потенциальный drag; движение > порога → drag;
         # отпускание без движения → toggle (свернуть/развернуть).
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.active and self._style_panel_click(event.pos):
+                return  # S2: клик съеден панелью стилизации
+            if self.active:
+                _edge = self._resize_edge(event.pos)
+                if _edge:
+                    self._resize = _edge
+                    return  # S3: захват края/угла окна = ресайз
             self._drag = None
             # Вкладки: проверяем ПЕРЕД drag (вкладки ниже заголовка,
             # пересечений нет, порядок безопасен)
@@ -560,10 +655,16 @@ class WorkbenchScreen:
             for wid in self.registry.visible_ids():
                 tr = self._title_rects.get(wid)
                 if tr and tr.collidepoint(event.pos):
+                    if self.active:
+                        self._style_target = wid  # S2: клик по шапке в F12 = цель стиля
                     rect = self._rects[wid]
                     self._drag = [wid, (event.pos[0] - rect.x, event.pos[1] - rect.y)]
                     return
         elif event.type == pygame.MOUSEWHEEL:
+            _spa = getattr(self, "_style_font_area", None)
+            if self.active and _spa and _spa.collidepoint(pygame.mouse.get_pos()):
+                self._style_scroll = max(0, getattr(self, "_style_scroll", 0) - event.y * 2)
+                return
             # M19: колесо над телом журнала = скролл ленты (блок за шаг ×3).
             # event.pos ненадёжен в MOUSEWHEEL → get_pos(); wheel вверх = старее.
             mouse = pygame.mouse.get_pos()
@@ -573,11 +674,53 @@ class WorkbenchScreen:
                 if r and r.collidepoint(mouse):
                     self._journal_scroll[wid] = max(0, self._journal_scroll.get(wid, 0) + event.y * 3)
                     return
+        elif event.type == pygame.MOUSEMOTION and self._resize:
+            self._do_resize(event.pos)
         elif event.type == pygame.MOUSEMOTION and self._drag:
             self._do_drag(event.pos)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self._drag = None
+            self._resize = None
         # (вкладочная ветка перенесена в начало MOUSEBUTTONDOWN — удалена отсюда)
+
+    def _resize_edge(self, pos) -> Optional[list]:
+        """S3: край/угол окна под курсором (зона 7px). Верхний по z — первым."""
+        for wid in reversed(self.registry.visible_ids()):
+            r = self._rects.get(wid)
+            if not r or not r.collidepoint(pos):
+                continue
+            m = 7
+            l = abs(pos[0] - r.left) <= m
+            rt = abs(pos[0] - r.right) <= m
+            t = abs(pos[1] - r.top) <= m
+            b = abs(pos[1] - r.bottom) <= m
+            if not (l or rt or t or b):
+                continue
+            return [wid, [l, rt, t, b], [r.x, r.y, r.width, r.height]]
+        return None
+
+    def _do_resize(self, pos) -> None:
+        """S3: тянуть край/угол → новый размер; min_size; free_rect персистится
+        при выходе из F12 (уже работает — exit() пишет _free_rects)."""
+        wid, edges, start = self._resize
+        mw, mh = self.registry.manifest(wid).min_size
+        l, rt, t, b = edges
+        x0, y0, w0, h0 = start
+        new_x, new_y, new_w, new_h = x0, y0, w0, h0
+        if l:
+            new_x = min(pos[0], x0 + w0 - mw)
+            new_w = x0 + w0 - new_x
+        if rt:
+            new_w = max(mw, pos[0] - x0)
+        if t:
+            new_y = min(pos[1], y0 + h0 - mh)
+            new_h = y0 + h0 - new_y
+        if b:
+            new_h = max(mh, pos[1] - y0)
+        new_rect = pygame.Rect(new_x, new_y, new_w, new_h)
+        new_rect.clamp_ip(self._zone(self._screen.get_rect()))
+        self._free_rects[wid] = (new_rect.x, new_rect.y, new_rect.width, new_rect.height)
+        self._rects[wid] = new_rect
 
     def _do_drag(self, mouse_pos: Tuple[int, int]) -> None:
         if self._drag is None:
@@ -637,12 +780,16 @@ class WorkbenchScreen:
             tint.fill(self._EDIT_TINT)
             screen.blit(tint, (0, 0))
             hint_surf = self._font_title.render(
-                "UI WORKBENCH  [F12/ESC] выход  тянуть за заголовок — магнит  вкладки — клик",
+                "UI WORKBENCH  [F12/ESC] выход  [заголовок] тянуть — магнит  [край/угол] ресайз  "
+                "[клик шапки] цель стиля  вкладки/чипы — клик  [Ctrl+Shift+L] сброс раскладки",
                 True, self.theme.token("accent"),
             )
             screen.blit(hint_surf, (viewport.left + 10, viewport.bottom - 26))
+            # S2: панель стилизации (справа, кликабельна)
+            self._draw_style_panel(screen, viewport)
 
         for wid in self.registry.visible_ids():
+            self._render_wid = wid  # S1: контекст шрифтовых прокси
             manifest = self.registry.manifest(wid)
             state = self.registry.state(wid)
             collapsed = state == WindowState.COLLAPSED_TO_TITLE
@@ -652,6 +799,20 @@ class WorkbenchScreen:
             self._draw_window_frame(screen, wid, manifest, rect, collapsed)
             if not collapsed:
                 self._draw_content(screen, wid, manifest, rect)
+        self._render_wid = None  # S1: вне цикла окон — базовые шрифты (хинт и пр.)
+        # S3: курсор-ресайз при наведении на край/угол окна (только F12)
+        if self.active:
+            _edge = self._resize_edge(pygame.mouse.get_pos())
+            if _edge:
+                _l, _r, _t, _b = _edge[1]
+                if (_l or _r) and not (_t or _b):
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
+                elif (_t or _b) and not (_l or _r):
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZENS)
+                else:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEALL)
+            else:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     def _mini_window_value(self, data_source: str) -> str:
         """Значение мини-окна HUD (world_clock/time_scale) — единственная
@@ -853,8 +1014,8 @@ class WorkbenchScreen:
         углу, clamp рендера ловит."""
         _pos = self._board_cascade_pos()
         try:
-            self._core._gateway.board_card_add(
-                self._core.campaign_folder, "journal", event_id, _pos)
+            self._board_gateway.board_card_add(
+                self._board_campaign, "journal", event_id, _pos)
         except Exception as e:  # BackendError/urllib — наблюдаемо (E3 сделает видимым)
             self._board_error = str(e)
         self._refresh_board()
@@ -924,12 +1085,12 @@ class WorkbenchScreen:
             return
         try:
             if _mode[0] == "create":
-                _resp = self._core._gateway.board_hypothesis(
-                    self._core.campaign_folder, "create", text=_text)
+                _resp = self._board_gateway.board_hypothesis(
+                    self._board_campaign, "create", text=_text)
                 _hyp_id = str(_resp.get("hypothesis_id", ""))
                 try:
-                    self._core._gateway.board_card_add(
-                        self._core.campaign_folder, "hypothesis",
+                    self._board_gateway.board_card_add(
+                        self._board_campaign, "hypothesis",
                         _hyp_id, self._board_cascade_pos())
                 except Exception as e:
                     # Гипотеза сохранена, карточка — нет: не теряем
@@ -937,8 +1098,8 @@ class WorkbenchScreen:
                     self._board_error = (
                         f"гипотеза сохранена, карточка не добавлена: {e}")
             else:
-                self._core._gateway.board_hypothesis(
-                    self._core.campaign_folder, "edit",
+                self._board_gateway.board_hypothesis(
+                    self._board_campaign, "edit",
                     hyp_id=_mode[1], text=_text)
             self._board_close_input()
         except Exception as e:  # create/edit упал — ввод сохраняем
@@ -984,28 +1145,40 @@ class WorkbenchScreen:
         # E3 (вердикт М 8): refresh больше НЕ стирает ошибку операции —
         # иначе игрок не понимает, сохранилась ли гипотеза/связь. Чистый
         # лист — только при открытии окна (toggle_board).
-        if not getattr(self, "game_context", False):
-            # editor-контекст: core._gateway не существует — валидная пустая
-            # доска (демо-мир), не ошибка. Канала в editor-мире нет — Закон
-            # Причинности (манифест без источника событий невалиден).
-            self._board_cache = {"version": 1, "cards": [], "links": [],
-                                 "hypotheses": []}
-            return
+        # P: editor-ветка удалена — роутер _board_gateway отдаёт stub,
+        # единый путь для полигона и игры (stub не падает по построению).
         try:
-            self._board_cache = self._core._gateway.get_board(
-                self._core.campaign_folder)
+            self._board_cache = self._board_gateway.get_board(
+                self._board_campaign)
         except Exception as e:  # BackendError / urllib — наблюдаемо в UI
             self._board_cache = None
             self._board_error = str(e)
+
+    @property
+    def _board_gateway(self):
+        """Роутер шлюза доски: игра → REST-gateway, редактор → полигон
+        (in-memory stub с той же семантикой контракта). UI-код доски
+        не знает, где работает — полигон и игра неразличимы."""
+        if getattr(self, "game_context", False):
+            return self._core._gateway
+        return self._board_stub
+
+    @property
+    def _board_campaign(self) -> str:
+        """campaign-ключ шлюза: stub его игнорирует, но контракт методов
+        требует аргумент (editor-контекст core.campaign_folder не имеет)."""
+        return getattr(self._core, "campaign_folder", "editor_demo")
 
     def _board_journal_index(self) -> dict:
         """Материал журнала по event_id — канал джойна карточек (M7):
         ref_id opaque, резолв материала — ответственность клиента.
         Записи narrative/self без event_id в индекс не попадают —
         адресоваться не могут (ADR-O-404: не выдумывать identity)."""
+        # P: единый источник журнала (game → backend, editor → демо) —
+        # джойн карточек работает и на полигоне
         return {
             e.get("event_id"): e
-            for e in getattr(self._core, "_dialog_journal_backend", [])
+            for e in self._journal_entries("all")
             if e.get("event_id")
         }
 
@@ -1096,12 +1269,20 @@ class WorkbenchScreen:
                         if _body else [])
             _budget = _max_lines - len(_lines)
             if _budget > 0:
+                # №6: прокрутка вместо обрезки — wheel листает текст,
+                # «…» остаётся маркером скрытых строк (снизу/сверху).
+                _sc = max(0, min(self._board_card_scroll.get(_cid, 0),
+                                 max(0, len(_wrapped) - _budget)))
+                self._board_card_scroll[_cid] = _sc
                 _lines += [(l, self.theme.token("text_primary"))
-                           for l in _wrapped[:_budget]]
-                if len(_wrapped) > _budget and _lines:
+                           for l in _wrapped[_sc:_sc + _budget]]
+                if _sc + _budget < len(_wrapped) and _lines:
                     _t, _col = _lines[-1]
                     _lines[-1] = (
                         (_t[:-1] if _t else _t) + "…", _col)
+                if _sc > 0 and _lines:
+                    _t, _col = _lines[0]
+                    _lines[0] = ("…" + _t, _col)
             if _hover_tip is not None:
                 self._board_hover_tips[_cid] = _hover_tip
             _ty = _y + 5
@@ -1186,6 +1367,87 @@ class WorkbenchScreen:
                     screen.blit(self._font_text.render(_l, True, self.theme.token("text_primary")), (_tx + 8, _tyy))
                     _tyy += self._font_text.get_linesize() + 1
                 break
+
+    def _draw_style_panel(self, screen, viewport: pygame.Rect) -> None:
+        """S2: панель стилизации (только F12). Кликабельна: цель/роль/шрифт/
+        размер/жирность/курсив/сброс + список шрифтов (скролл колесом)."""
+        _pw, _ph = 300, 500
+        panel = pygame.Rect(viewport.right - _pw - 12, viewport.top + 12, _pw, _ph)
+        self._style_panel_rect = panel
+        pygame.draw.rect(screen, self.theme.token("surface_panel"), panel, border_radius=8)
+        pygame.draw.rect(screen, self.theme.token("border_accent"), panel, 2, border_radius=8)
+        _f = self._font_provider.get("ui", "", 0, False, False)
+        _lh = _f.get_linesize() + 4
+        _x, _y = panel.x + 10, panel.y + 8
+        self._style_hits: list = []
+
+        def _row(txt: str, col: str, act: str = "", val: str = "") -> None:
+            nonlocal _y
+            s = _f.render(txt, True, self.theme.token(col))
+            screen.blit(s, (_x, _y))
+            if act:
+                self._style_hits.append((pygame.Rect(panel.x + 4, _y - 2, _pw - 8, _lh), act, val))
+            _y += _lh
+
+        _row(f"СТИЛЬ  цель: {self._style_target or '— (клик по шапке окна)'}", "accent")
+        _y += 6
+        _row(f"Роль: {self._style_role}   (клик — переключить)", "text_primary", "role")
+        _ov = self._style_overrides.get(self._style_target, {}).get(self._style_role, {})
+        _cur = _ov.get("font_file") or "consolas (системный)"
+        _row(f"Шрифт: {_cur[:34]}", "text_primary", "font_cycle")
+        _row(f"Размер: {16 if self._style_role == 'title' else 14}{_ov.get('size_delta', 0):+d}   [+/−]",
+             "text_primary", "size_cycle")
+        _row(f"Жирный: {'ДА' if _ov.get('bold') else 'нет'}", "text_primary", "bold")
+        _row(f"Курсив: {'ДА' if _ov.get('italic') else 'нет'}", "text_primary", "italic")
+        _row("[Сбросить это окно]", "border_accent", "reset")
+        _y += 8
+        _row("── Шрифты (клик = применить) ──", "text_muted")
+        self._style_font_area = pygame.Rect(panel.x + 4, _y, _pw - 8, panel.bottom - _y - 8)
+        _names = self._font_provider.names()
+        _scroll = getattr(self, "_style_scroll", 0)
+        _vis = int(self._style_font_area.height // _lh)
+        _scroll = max(0, min(_scroll, max(0, len(_names) - _vis)))
+        self._style_scroll = _scroll
+        for _nm in _names[_scroll:_scroll + _vis]:
+            _on = _nm == _ov.get("font_file", "")
+            _cyr = self._font_provider.supports_cyrillic(_nm)
+            _mark = "" if _cyr else "  [нет кириллицы]"
+            _col = ("accent" if _on else ("text_primary" if _cyr else "text_muted"))
+            _row((_nm or "consolas (системный)") + _mark, _col, "pick", _nm)
+        if len(_names) > _vis:
+            _row(f"(колесо мыши над списком — ещё {len(_names) - _vis})", "text_muted")
+
+    def _style_panel_click(self, pos) -> bool:
+        """S2: клик по панели стилизации. True = событие съедено."""
+        panel = getattr(self, "_style_panel_rect", None)
+        if not panel or not panel.collidepoint(pos) or not self._style_target:
+            return False
+        for rect, act, val in getattr(self, "_style_hits", []):
+            if not rect.collidepoint(pos):
+                continue
+            _ov = self._style_overrides.setdefault(self._style_target, {}).setdefault(self._style_role, {})
+            if act == "role":
+                self._style_role = "text" if self._style_role == "title" else "title"
+            elif act == "font_cycle":
+                _names = self._font_provider.names()
+                try:
+                    _i = _names.index(_ov.get("font_file", ""))
+                except ValueError:
+                    _i = 0
+                _ov["font_file"] = _names[(_i + 1) % len(_names)]
+            elif act == "size_cycle":
+                _ov["size_delta"] = int(_ov.get("size_delta", 0)) + 1 if _ov.get("size_delta", 0) < 20 else -6
+            elif act == "bold":
+                _ov["bold"] = not _ov.get("bold", False)
+            elif act == "italic":
+                _ov["italic"] = not _ov.get("italic", False)
+            elif act == "reset":
+                self._style_overrides.pop(self._style_target, None)
+            elif act == "pick":
+                if val:
+                    _ov["font_file"] = val
+            return True
+        return False
 
     def _draw_tabs(self, screen, body: pygame.Rect, wid: str) -> None:
         """Полоса вкладок под заголовком. Активная — акцентом, хитбоксы — в

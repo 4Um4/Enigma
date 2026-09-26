@@ -474,6 +474,13 @@ class TickOrchestrator:
         if interventions is None:
             interventions = []
 
+        # Z-фикс: player-MOVE (ADR-O-330) — интенты игрока едут через
+        # shared_context ( PipelineContext.pending_movement_intents) и сеются
+        # Z-фикс v2: сидирование перенесено в create_tick_context (tick_utils,
+        # критерий _is_player). Преждевременная очистка здесь гасила перенос:
+        # self._ctx_pending_player_moves не потребляется никем, а logger.info
+        # невидим в sandbox-захвате (урок S216 — нарушен мной, пойман зондами).
+
         # Мостируем legacy dm_ctx в новый event-driven формат
         if dm_ctx is not None and not interventions:
             interventions = [
@@ -1590,6 +1597,10 @@ class TickOrchestrator:
                     f"{getattr(ctx.shared_context, 'rejection_reason', '')})"
                 )
             else:
+                # Локальные импорты восстановлены (рефакторинг-регресс: при
+                # обёртке блока в else они были утеряны → NameError EventDTO)
+                from app.domain.events import EventDTO
+                from app.services.events.event_types import EventType
                 # IRON RIVER D-1/P0-3 (F3-1): детерминированный event-id вместо
                 # uuid4 — id входит в боевой rng_seed (combat_subscriber:222) и в
                 # состояние; same (tick, actor, target) → same id → same бой.
@@ -2208,6 +2219,10 @@ class TickOrchestrator:
             epistemic_store=getattr(self, "_epistemic_store", None), # S189: Epistemic Core  # noqa: ENIGMA002
             epistemic_context_resolver=getattr(self, "_epistemic_context_resolver", None), # S189: Epistemic Core  # noqa: ENIGMA002
             affordance_facts_map=_affordance_facts_map, # ADR-O-378 (G2 v1): preloaded факты W2
+            # CognitionContext v0 (P1): preload внимания из scene_state.
+            # До P2 ключ в scene_state не рождается (продюсеров нет) →
+            # всегда {} → фабрика даст {} → байтовый no-op.
+            attention_states_map=ctx.scene_state.get("attention_states") or {},
         )
 
         _drf_ctx = DRFExecutionContext(
@@ -2266,6 +2281,28 @@ class TickOrchestrator:
         process_movement_intents(
             movement_intents=ctx.movement_intents, ctx=ctx, orchestrator=self
         )
+
+        # CognitionContext v0 (P2): применение результатов внимания. Data-driven
+        # флаг-гейт: пустые коллекции = no-op. Единый писатель
+        # scene_state["attention_states"] — оркестратор (ТЗ §11.1). Orient —
+        # тот же материализующий путь, что движение (_apply_with_shadow_observation,
+        # шаблон movement_bridge:156), своя метка фазы; traversal не создаётся
+        # (поле body_heading проходит generic-ветку SSM:961, ADR-O-315-прецедент).
+        _attention_delta = getattr(ctx.tick_mutation, "attention_states_delta", None) or {}  # noqa: ENIGMA002
+        _orient_changes = getattr(ctx.tick_mutation, "orient_scene_changes", None) or []  # noqa: ENIGMA002
+        if _orient_changes:
+            self._apply_with_shadow_observation(
+                ctx, _orient_changes, phase_label="ATTENTION_BRIDGE"
+            )
+        if _attention_delta:
+            _att_map = ctx.scene_state.setdefault("attention_states", {})
+            for _obs_id, _subs in _attention_delta.items():
+                _obs_entry = _att_map.setdefault(_obs_id, {})
+                for _subj_id, _state_dict in _subs.items():
+                    if _state_dict is None:
+                        _obs_entry.pop(_subj_id, None)  # GC
+                    else:
+                        _obs_entry[_subj_id] = _state_dict
 
     def _phase_6_post_decision(self, ctx: _TickContext) -> None:
         """IntentEventAdapter: CommunicationIntent → EventDTO (Устав §3.3)."""

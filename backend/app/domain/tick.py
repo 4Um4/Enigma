@@ -78,6 +78,11 @@ def create_tick_state(
     # ADR-TEMPORAL-EPOCH (PR-5): эпоха и её read-only проекция
     epoch_id: int = -1,
     world_view: Any = None,
+    # CognitionContext v0 (P1): preloaded карта внимания
+    # {observer_id: {subject_id: attention_to_dict(...)}} из scene_state["attention_states"].
+    # Пустая карта (флаг OFF / продюсеров нет до P2) → честный {} — no-op
+    # по паттерну ADR-O-378 (affordance_facts_map).
+    attention_states_map: Optional[Dict[str, Any]] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -131,6 +136,7 @@ def create_tick_state(
         else {},
         epoch_id=epoch_id,
         world_view=world_view,
+        attention_states_map=frozen(attention_states_map) if attention_states_map else {},
     )
 
 
@@ -208,6 +214,9 @@ class TickState:
     # S129: Bridge 7
     npc_topics: Dict[str, Any] = field(default_factory=dict)
     response_targets: Dict[str, Any] = field(default_factory=dict)
+    # CognitionContext v0 (P1): preloaded внимание (dict as-is по семантике
+    # frozen() S268; редюсер только читает — INV-хеш-трипвайр ловит мутацию).
+    attention_states_map: Any = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -224,6 +233,15 @@ class TickMutation:
     idle_pressure_updates: Dict[str, float]
     # S189: Добавлено для SUPERBOX-005 (атрибация модификаторов)
     scores_trace_map: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    # CognitionContext v0 (P1): дельты внимания {observer_id: {subject_id: dict}}.
+    # До P2 (attention_reflex.py) продюсеров нет — всегда {}; применение дельт —
+    # оркестратор как единственный писатель scene_state["attention_states"].
+    attention_states_delta: Dict[str, Any] = field(default_factory=dict)
+    # CognitionContext v0 (P2): готовые orient SceneChange (field="body_heading",
+    # значения предвычислены в pure-проходе). Применение — оркестратор тем же
+    # материализующим вызовом, что и движение (movement_bridge-шаблон);
+    # TraversalState не создаётся — generic-ветка SSM (scene_state_manager:961).
+    orient_scene_changes: List[Any] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

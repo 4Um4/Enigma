@@ -77,6 +77,10 @@ class PipelineContext:
     # WV: попытка ≠ событие (вердикт). Гейтит публикацию события в execute().
     action_rejected: bool = False
     rejection_reason: Optional[str] = None
+    # Z-фикс: player-MOVE интенты (ADR-O-330 инжект). Тик читает их при сборке
+    # своего ctx.movement_intents (pipe для player не существовал — интенты
+    # умирали в _TickContext turn_pipeline, мост их не видел).
+    pending_movement_intents: List[Any] = field(default_factory=list)
 
     # ── NPC и их реакции ───────────────────────────────────────────
     active_npc_ids: List[Any] = field(default_factory=list)

@@ -37,6 +37,7 @@ def build_tick_state(
     epistemic_store: Optional[Any] = None, # S189: Инъекция EpistemicStore
     epistemic_context_resolver: Optional[Any] = None, # S189: Инъекция EpistemicContextResolver
     affordance_facts_map: Optional[Dict[str, bool]] = None, # ADR-O-378 (G2 v1): preloaded факты W2
+    attention_states_map: Optional[Dict[str, Any]] = None, # CognitionContext v0 (P1): preloaded внимание
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
     
@@ -105,6 +106,7 @@ def build_tick_state(
         epistemic_store=epistemic_store, # S189: Epistemic Core
         epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
         affordance_facts_map=affordance_facts_map, # ADR-O-378 (G2 v1): pass-through
+        attention_states_map=attention_states_map, # CognitionContext v0 (P1): pass-through
         epoch_id=ctx.tick_number,  # PR-5 (S268): Temporal Epoch carrier
         world_view=_world_view,    # PR-5 (S268): read-only проекция эпохи
     )
