@@ -41,20 +41,36 @@ class FontProvider:
         return [""] + sorted(self._files.keys())   # "" = системный consolas
 
     def supports_cyrillic(self, font_file: str) -> bool:
-        """S2: есть ли у шрифта кириллические глифы (проверка один раз)."""
+        """S2: есть ли у шрифта кириллица — по cmap TTF (авторитетный
+        источник: то, что шрифт ДЕКЛАРИРУЕТ). Рендер-трюки врут: шрифты
+        с формальной кириллицей-пустышкой и сабсеты без неё неотличимы
+        пикселями. Читаем cmap через freetype-py (идёт с pygame).
+        Проверка: все 66 букв А-Я/а-я объявлены в шрифте."""
         if not font_file:
             return True  # системный consolas — умеет
-        if font_file not in self._cyr_cache:
-            path = self._files.get(font_file)
-            ok = False
-            if path:
-                try:
-                    f = pygame.font.Font(str(path), 14)
-                    ok = all(f.metrics(ch)[0] for ch in "АЯаяЁё")
-                except Exception:
-                    ok = False
-            self._cyr_cache[font_file] = ok
-        return self._cyr_cache[font_file]
+        if font_file in self._cyr_cache:
+            return self._cyr_cache[font_file]
+        ok = False
+        path = self._files.get(font_file)
+        if path:
+            try:
+                import freetype
+                face = freetype.Face(str(path))
+                # Без выбранного charmap get_char_index возвращает 0 на всё
+                # (симптом «у всех нет кириллицы») — выбираем Unicode-таблицу.
+                for _enc in ("unicode", "adobe_custom", "apple_unicode"):
+                    try:
+                        face.select_charmap(getattr(freetype, f"FT_ENCODING_{_enc.upper()}"))
+                        break
+                    except Exception:
+                        continue
+                _need = [ord(c) for c in
+                         "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя"]
+                ok = all(face.get_char_index(cp) != 0 for cp in _need)
+            except Exception:
+                ok = False
+        self._cyr_cache[font_file] = ok
+        return ok
 
     def get(self, role: str, font_file: str = "", size_delta: int = 0,
             bold: bool = False, italic: bool = False) -> pygame.font.Font:

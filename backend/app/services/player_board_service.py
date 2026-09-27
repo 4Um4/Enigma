@@ -20,7 +20,7 @@ import os
 import re
 import threading
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, cast
 
 # ── Ключи — константы, не строки (Устав §12.1) ──────────────────
 _KEY_VERSION = "version"
@@ -111,7 +111,7 @@ def _allocate_id(
 def _find_card(board: Dict[str, Any], card_id: str) -> Optional[Dict[str, Any]]:
     for _c in board.get(_KEY_CARDS, []):
         if str(_c.get(_KEY_ID, "")) == card_id:
-            return _c
+            return cast(Dict[str, Any], _c)
     return None
 
 

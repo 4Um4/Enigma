@@ -1,4 +1,4 @@
-﻿"""
+"""
 Файл: backend/app/services/social/mvp_tavern_controller.py
 Назначение: Единая точка доступа к эпистемическим и социальным системам MVP.
 Зависимости: Все созданные нами P7-компоненты.
@@ -240,6 +240,29 @@ class MvpTavernController:
             observations=self.observation_log
         )
 
+        # S292 (End-Screen имена): резолв npc_id → display_name из статического
+        # SSOT персонажей (config/npc/*.json, поле name; ADR-O-146 source of
+        # truth). Fail-open: нет файла/имени — npc_id как есть. «player» —
+        # не статический персонаж → «Игрок» (канон бэкенда).
+        _name_map: Dict[str, str] = {"player": "Игрок"}
+        try:
+            from pathlib import Path as _Path
+            import json as _json
+            _npc_root = _Path("config/npc")
+            if _npc_root.exists():
+                for _f in sorted(_npc_root.glob("*.json")):
+                    try:
+                        _d = _json.loads(_f.read_text(encoding="utf-8"))
+                        _nid = _d.get("npc_id") or _d.get("id") or _f.stem
+                        _nm = _d.get("name")
+                        if _nid and _nm:
+                            _name_map[str(_nid)] = str(_nm)
+                    except Exception as _f_err:
+                        logger.debug(f"[END_SCREEN] npc-meta skip {_f.name}: {_f_err}")
+                        continue
+        except Exception as _root_err:
+            logger.debug(f"[END_SCREEN] name-map build skipped: {_root_err}")
+
         return self.end_screen_builder.build(
             evaluation=evaluation,
             contradictions=self.cognitive_dissonance.get_all_contradictions(),
@@ -247,7 +270,8 @@ class MvpTavernController:
             last_words_system=self.last_words_system,
             social_fabric=self.social_fabric,
             relationship_store=self._relationship_store,
-            campaign_id=self._campaign_id or ""
+            campaign_id=self._campaign_id or "",
+            name_resolver=lambda nid: _name_map.get(nid, nid),
         )
 
     def build_world_diff(self) -> Any:

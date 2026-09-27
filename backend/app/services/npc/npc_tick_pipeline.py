@@ -14,7 +14,7 @@
 import copy
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
 from app.domain.tick import TickMutation, TickState
 from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
@@ -674,7 +674,8 @@ class NpcTickPipeline:
                         _opp_will = getattr(state, "will_state", None)
                         _will_str = (
                             _opp_will.value
-                            if hasattr(_opp_will, "value")
+                            if _opp_will is not None
+                            and hasattr(_opp_will, "value")
                             else str(_opp_will or "free")
                         )
                         _eco_map = getattr(state, "economic_profiles_map", {}) or {}
@@ -857,7 +858,8 @@ class NpcTickPipeline:
             _opp_will_state = getattr(state, "will_state", None)
             _opp_will = (
                 _opp_will_state.value
-                if hasattr(_opp_will_state, "value")
+                if _opp_will_state is not None
+                and hasattr(_opp_will_state, "value")
                 else str(_opp_will_state)
             )
             logger.debug(
@@ -1117,13 +1119,16 @@ class NpcTickPipeline:
         # Pure: читает TickState → дельты + готовые orient SceneChange; применение —
         # оркестратор. Флаг OFF → ({}, []) — no-op. В P2 DecisionHub внимание не
         # читает; в P3 проход поднимется внутрь цикла (до compute) для свежести.
-        from app.services.npc.attention_reflex import compute_attention_pass
+        from app.services.npc.attention_reflex import run_attention_pass
 
-        _attention_delta, _orient_changes = compute_attention_pass(state)
-        if _attention_delta or _orient_changes:
+        _pass = run_attention_pass(state)
+        _attention_delta = _pass.attention_delta
+        _orient_changes = _pass.orient_changes
+        if _attention_delta or _orient_changes or _pass.cognition_snapshots:
             logger.info(
                 f"[ATTENTION] tick={state.tick_id} observers={len(_attention_delta)} "
-                f"orients={len(_orient_changes)}"
+                f"orients={len(_orient_changes)} "
+                f"snapshots={len(_pass.cognition_snapshots)}"
             )
 
         # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 3): детектор на границе
@@ -1162,6 +1167,7 @@ class NpcTickPipeline:
             scores_trace_map=_scores_trace_map, # S189: SUPERBOX-005
             attention_states_delta=_attention_delta, # CognitionContext v0 (P2)
             orient_scene_changes=_orient_changes, # CognitionContext v0 (P2)
+            cognition_snapshots=list(_pass.cognition_snapshots), # P3c-3 (DATA-only)
         )
 
 
@@ -1488,7 +1494,10 @@ def _resolve_reactive_movement(
     def _pos(eid: str) -> Dict[str, Any]:
         if spatial_query:
             return spatial_query.get_entity_position(eid) or {}
-        return scene_state.get("npc_positions", {}).get(eid, {})
+        return cast(
+            Dict[str, Any],
+            scene_state.get("npc_positions", {}).get(eid, {}),
+        )
 
     # Текущий узел NPC
     npc_entry = _pos(npc_id)

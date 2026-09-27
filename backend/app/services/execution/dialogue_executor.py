@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/execution/dialogue_executor.py
 Назначение: Исполнитель задач типа DIALOGUE. Вызывает LLM (или заглушку) и возвращает артефакт.
 Зависимости: app.domain.execution, app.domain.communication
@@ -177,6 +177,53 @@ class DialogueExecutor:
                 error_message="LLM failed or returned empty text (stub avoided)."
             )
             return
+
+        # №3 (S292): language-leak gate. Русскоязычный мир — латинные вставки
+        # LLM («Give me a name») ломают нарратив. Честная деградация (ADR-113):
+        # измерить → один ретрай с усиленной директивой → при повторе лог+паблиш
+        # как есть (не маскируем, не режем слова).
+        import re as _re
+
+        def _latin_share(s: str) -> float:
+            _words = [w for w in _re.split(r"\s+", s.strip()) if w]
+            if not _words:
+                return 0.0
+            _latin = sum(1 for w in _words if _re.search(r"[A-Za-z]", w))
+            return _latin / len(_words)
+
+        if _latin_share(text) >= 0.25:
+            logger.warning(
+                f"[LANG_LEAK] {task.owner_id}: latin_share={_latin_share(text):.2f} "
+                f"text={text[:80]!r} — retry with reinforced directive"
+            )
+            try:
+                import threading as _th
+                _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
+                _retry_timer.start()
+                _reinforced = (
+                    f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
+                    f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
+                ) if req.prepared_prompt else None
+                _retry_req = (
+                    type(req)(**{**req.__dict__, "prepared_prompt": _reinforced})
+                    if hasattr(req, "__dict__")
+                    else req
+                )
+                text = self._generate_with_router(task, _retry_req, _verdict)
+            except Exception as _retry_err:
+                logger.error(f"[LANG_LEAK] retry failed for {task.owner_id}: {_retry_err}")
+            finally:
+                try:
+                    _retry_timer.cancel()
+                except Exception as _cancel_err:
+                    # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
+                    # исходная генерация не деградирует от этого отказа.
+                    logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
+            if _latin_share(text) >= 0.25:
+                logger.error(
+                    f"[LANG_LEAK] {task.owner_id}: retry still leaked "
+                    f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+                )
 
         # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
         # DELIVERY: решение P5 материально только при доставленной

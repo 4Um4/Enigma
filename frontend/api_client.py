@@ -643,6 +643,17 @@ class DirectGameGateway:
     def get_session_state(self, campaign_id: str) -> dict:
         return {"campaign_id": campaign_id}
 
+    def finalize_campaign(self, campaign_id: str) -> dict:
+        """БАГ-4 (S292): контракт-паритет с HttpGameGateway (hasattr-гейт
+        FallbackGateway смотрит на _primary; прямая оффлайн-игра не имеет
+        backend-сессии — флаг завершённости persist'ится только Http-путём).
+        Честный no-op: офлайн-финал не персистится, статус недоступен."""
+        return {
+            "status": "skipped",
+            "reason": "direct gateway has no backend session",
+            "campaign_id": campaign_id,
+        }
+
     def get_end_screen(self, campaign_id: str) -> dict:
         """MVP Mini-game: Direct mode — получение EndScreenData из GameLoop."""
         if not self._bridge.ready or not self._bridge._loop:

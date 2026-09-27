@@ -40,13 +40,34 @@ from app.domain.attention import (
     with_phase,
     wrap_pi,
 )
+from app.domain.attention_inference import (
+    CognitionSnapshot,
+    InterpretedIntent,
+    InferredKinematics,
+    ObservedFacts,
+    evidence_delta,
+    infer_approach,
+    prediction_error,
+    snapshot_to_dict,
+    subject_turned_toward,
+)
 from app.domain.control_source import ControlSource, resolve_control_source
 from app.domain.vital_state import is_conscious
 from app.services.npc.attention_config import (
+    ATTENTION_APPROACH_SCALE_M,
     ATTENTION_DETECT_RADIUS_M,
+    ATTENTION_EVIDENCE_ALIGN_W,
+    ATTENTION_EVIDENCE_LAMBDA,
+    ATTENTION_EVIDENCE_RADIAL_REF,
+    ATTENTION_EVIDENCE_RADIAL_W,
+    ATTENTION_EVIDENCE_THRESHOLD,
+    ATTENTION_EVIDENCE_STILL_PENALTY,
+    ATTENTION_EVIDENCE_TURN_MIN_RAD,
+    ATTENTION_EVIDENCE_TURN_W,
     ATTENTION_LOST_GC_TICKS,
     ATTENTION_ORIENT_MIN_DELTA_RAD,
     ATTENTION_PERIPHERAL_RADIUS_M,
+    ATTENTION_PREDICT_SCALE_M,
     COGNITION_V0,
 )
 from app.services.scene_change import ChangeType, SceneChange
@@ -75,9 +96,15 @@ def _emit_orient(
     heading_value: float,
     cause_suffix: str,
     tick: int,
+    subject_id: str = "",
 ) -> None:
     # Форма — зеркало heading_snap (movement_engine:755-762): NPC_POSITION +
     # field="body_heading" без target_location_id; generic-ветка SSM применит.
+    if _DIAG:
+        print(
+            f"[ATT_DIAG] ORIENT obs={observer_id} subj={subject_id} "
+            f"val={heading_value:.4f} cause={cause_suffix}"
+        )
     orient_changes.append(
         SceneChange(
             type=ChangeType.NPC_POSITION,
@@ -91,6 +118,31 @@ def _emit_orient(
 
 
 def compute_attention_pass(state: Any) -> Tuple[Dict[str, Any], List[SceneChange]]:
+    """Легаси-обёртка (2-tuple) для существующих потребителей/тестов.
+    Канонический вход — run_attention_pass (P3c-3)."""
+    delta, changes, _snapshots = _compute_pass_core(state)
+    return delta, changes
+
+
+def run_attention_pass(state: Any) -> "Any":
+    """Канонический вход P3c-3: полный результат прохода внимания.
+    Возвращает frozen-объект AttentionPassResult (delta, orient_changes,
+    cognition_snapshots: list[dict]). Снимки — producer=DATA-only
+    (канон ADR-O-366): потребитель — P3d, до него никто не читает."""
+
+    class AttentionPassResult:
+        __slots__ = ("attention_delta", "orient_changes", "cognition_snapshots")
+
+        def __init__(self, attention_delta: Dict[str, Any], orient_changes: List[SceneChange], cognition_snapshots: List[Dict[str, Any]]) -> None:
+            self.attention_delta = attention_delta
+            self.orient_changes = orient_changes
+            self.cognition_snapshots = cognition_snapshots
+
+    d, c, s = _compute_pass_core(state)
+    return AttentionPassResult(d, c, s)
+
+
+def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], List[Dict[str, Any]]]:
     """Один проход внимания: наблюдатели × субъекты текущей сцены.
 
     Возвращает (attention_delta, orient_changes):
@@ -100,7 +152,10 @@ def compute_attention_pass(state: Any) -> Tuple[Dict[str, Any], List[SceneChange
     Флаг OFF → ({}, []) — байтовый no-op.
     """
     if not COGNITION_V0:
-        return {}, []
+        # S292-фикс чужого merge-разрыва: аннотация обещает 3-кортеж
+        # (attention_delta, orient_changes, cognition_snapshots), no-op-ветка
+        # возвращала 2 → ValueError на unpack у caller'а каждый тик.
+        return {}, [], []
 
     positions: Dict[str, Any] = state.scene_state.get("npc_positions") or {}
     traversals: Dict[str, Any] = state.scene_state.get("active_traversals") or {}
@@ -116,6 +171,7 @@ def compute_attention_pass(state: Any) -> Tuple[Dict[str, Any], List[SceneChange
 
     attention_delta: Dict[str, Any] = {}
     orient_changes: List[SceneChange] = []
+    cognition_snapshots: List[Dict[str, Any]] = []
 
     for observer_id in sorted(positions.keys()):
         obs_entry = positions.get(observer_id) or {}
@@ -239,6 +295,7 @@ def compute_attention_pass(state: Any) -> Tuple[Dict[str, Any], List[SceneChange
                                 abs_bearing,
                                 "reentry" if prev_state is not None else "detected",
                                 tick,
+                                subject_id=subject_id,
                             )
                             oriented_this_tick = True
                         new_state = create_attention_state(
@@ -255,32 +312,129 @@ def compute_attention_pass(state: Any) -> Tuple[Dict[str, Any], List[SceneChange
                         # Недостижимо на данных (is_entry ложен ⇒ prev_state есть);
                         # guard для mypy (Optional-сужение before phase/with_observation).
                         continue
+                    # v0.3: поддержание ориентации (restore). heading
+                    # стационарного наблюдателя перезаписывают другие
+                    # писатели (TZ-OBS-1: movement heading_snap) — внимание
+                    # ВОССТАНАВЛИВАЕТ ориентацию на видимого субъекта.
+                    # Порог ниже = встроенный гистерезис: после восстановления
+                    # diff≈0 → повторов нет; внешний сброс → diff ≥ порога
+                    # → restore. Эмиссия ≤1/тик/наблюдатель.
+                    _misaligned = (
+                        angular_diff(obs_heading, abs_bearing)
+                        >= ATTENTION_ORIENT_MIN_DELTA_RAD
+                    )
                     upgraded = (
-                        prev_state.phase is AttentionPhase.DETECTED
+                        prev_state.phase
+                        in (
+                            AttentionPhase.DETECTED,
+                            AttentionPhase.ORIENTED,
+                            AttentionPhase.APPROACHING,
+                            AttentionPhase.NEAR,
+                        )
                         and can_orient
                         and not oriented_this_tick
                     )
-                    if upgraded:
-                        if (
-                            angular_diff(obs_heading, abs_bearing)
-                            >= ATTENTION_ORIENT_MIN_DELTA_RAD
-                        ):
-                            _emit_orient(
-                                orient_changes,
-                                observer_id,
-                                abs_bearing,
-                                "upgrade",
-                                tick,
-                            )
-                            oriented_this_tick = True
+                    if upgraded and _misaligned:
+                        _emit_orient(
+                            orient_changes,
+                            observer_id,
+                            abs_bearing,
+                            (
+                                "upgrade"
+                                if prev_state.phase is AttentionPhase.DETECTED
+                                else "restore"
+                            ),
+                            tick,
+                            subject_id=subject_id,
+                        )
+                        oriented_this_tick = True
                     # Активная фаза: поток наблюдений — сырьё P3-выводов
                     # (скорость/длительность/смена траектории, уточнение №5).
+                    # P3b (M4): накопление свидетельства «направляется ко мне».
+                    # Восприятие ≠ действие: копится и при подавленном
+                    # рефлексе (наблюдатель движется). (Ре)вход стартует
+                    # с E=0 (новая гипотеза — create_attention_state).
+                    _inf_window = (*prev_state.observation_window, obs_record)
+                    _inf = infer_approach(
+                        _inf_window, obs_record.rel_dx, obs_record.rel_dy
+                    )
+                    _turned = subject_turned_toward(
+                        _inf_window, min_rad=ATTENTION_EVIDENCE_TURN_MIN_RAD
+                    )
+                    _e_t = evidence_delta(
+                        _inf,
+                        _turned,
+                        radial_w=ATTENTION_EVIDENCE_RADIAL_W,
+                        align_w=ATTENTION_EVIDENCE_ALIGN_W,
+                        turn_w=ATTENTION_EVIDENCE_TURN_W,
+                        still_penalty=ATTENTION_EVIDENCE_STILL_PENALTY,
+                        radial_ref=ATTENTION_EVIDENCE_RADIAL_REF,
+                        approach_scale_m=ATTENTION_APPROACH_SCALE_M,
+                    )
+                    _e_new = max(
+                        0.0,
+                        min(
+                            1.0,
+                            ATTENTION_EVIDENCE_LAMBDA * prev_state.approach_evidence
+                            + _e_t,
+                        ),
+                    )
                     new_state = with_observation(
                         prev_state,
                         AttentionPhase.ORIENTED if upgraded else prev_state.phase,
                         tick,
                         obs_record,
+                        approach_evidence=_e_new,
                     )
+                # P3c-3: снимок «что наблюдатель выводит о субъекте».
+                # Слои различимы (Мастер 3.2); surprise_used=None честно
+                # (3.3) — S-ось заморожена до аудита PK (P3c-2A).
+                _snap_win = (*new_state.observation_window,)
+                _snap_inf = infer_approach(_snap_win, obs_record.rel_dx, obs_record.rel_dy)
+                cognition_snapshots.append(
+                    snapshot_to_dict(
+                        CognitionSnapshot(
+                            observer_id=observer_id,
+                            subject_id=subject_id,
+                            observed=ObservedFacts(
+                                phase=new_state.phase,
+                                last_distance=new_state.last_distance,
+                                last_bearing=new_state.last_bearing,
+                                subject_heading=obs_record.subject_heading,
+                                observation_count=len(_snap_win),
+                                first_seen_tick=new_state.first_seen_tick,
+                            ),
+                            inferred=InferredKinematics(
+                                speed=_snap_inf.speed,
+                                radial_speed=_snap_inf.radial_speed,
+                                alignment_to_me=_snap_inf.alignment_to_me,
+                                time_to_closest=_snap_inf.time_to_closest,
+                                predicted_min_distance=_snap_inf.predicted_min_distance,
+                                subject_turned_toward=subject_turned_toward(
+                                    _snap_win, min_rad=ATTENTION_EVIDENCE_TURN_MIN_RAD
+                                ),
+                            ),
+                            evidence=new_state.approach_evidence,
+                            interpretation=InterpretedIntent(
+                                mode=None,  # S-ось недоступна (P3c-2A) — None ≠ 0
+                                probably_approaching_me=(
+                                    new_state.approach_evidence
+                                    >= ATTENTION_EVIDENCE_THRESHOLD
+                                ),
+                            ),
+                            # S-ось v2 (вердикт Мастера): локальная prediction
+                            # error per-pair. Прогноз по истории ДО текущего
+                            # наблюдения (окно new_state уже содержит его —
+                            # отрезаем хвост); утечка запрещена (контроль №8).
+                            surprise_used=prediction_error(
+                                new_state.observation_window,
+                                obs_record.rel_dx,
+                                obs_record.rel_dy,
+                                scale_m=ATTENTION_PREDICT_SCALE_M,
+                            ),
+                        )
+                    )
+                )
                 delta_subs[subject_id] = attention_to_dict(new_state)
             else:
                 if prev_state is None:
@@ -310,4 +464,4 @@ def compute_attention_pass(state: Any) -> Tuple[Dict[str, Any], List[SceneChange
         if delta_subs:
             attention_delta[observer_id] = delta_subs
 
-    return attention_delta, orient_changes
+    return attention_delta, orient_changes, cognition_snapshots

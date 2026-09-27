@@ -23,7 +23,7 @@ R2.3 — StateApplicator: единственный модуль с правом 
 import copy
 import logging
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 if TYPE_CHECKING:
     from app.models.npc.beliefs import BeliefDelta
@@ -647,7 +647,9 @@ class StateApplicator:
     ) -> None:
         """Применяет числовые дельты к state и RelationshipStore."""
         # --- v2 payload extraction (с фолбэком на v1 поля) ---
-        domain = deltas.domain
+        # mypy: StateDeltas.domain — Optional[DeltaDomain]; None проходит все
+        # сравнения domain == X как no-op (runtime-значение не меняется, cast — no-op).
+        domain = cast(DeltaDomain, deltas.domain)
 
         stress_delta = (
             deltas.payload.stress_delta
@@ -889,9 +891,9 @@ class StateApplicator:
                 pain_delta,
                 fatigue_delta,
                 blood_loss_delta,
-                add_injuries,
-                add_statuses,
-                remove_statuses,
+                list(add_injuries),
+                list(add_statuses),
+                list(remove_statuses),
                 shock_impulse,
                 energy_delta=energy_delta,
                 hydration_delta=hydration_delta,

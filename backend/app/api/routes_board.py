@@ -12,7 +12,7 @@ path: /project/backend/app/api/routes_board.py
 """
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, cast
 
 from app.core.config import settings
 from app.services.player_board_service import (
@@ -90,7 +90,11 @@ def post_cards(campaign_id: str, payload: CardOp) -> dict:
     _validate_campaign(campaign_id)
     try:
         if isinstance(payload, CardAddPayload):
-            _pos = tuple(payload.pos) if payload.pos is not None else None
+            _pos = (
+                cast(tuple[float, float], tuple(payload.pos))
+                if payload.pos is not None
+                else None
+            )
             if _pos is not None and len(_pos) != _POS_LEN:
                 raise ValueError("[BOARD] pos обязан быть [x, y]")
             _card_id = player_board_service.mutate(
@@ -103,7 +107,11 @@ def post_cards(campaign_id: str, payload: CardOp) -> dict:
                 raise ValueError("[BOARD] pos обязан быть [x, y]")
             player_board_service.mutate(
                 campaign_id,
-                lambda b: move_card(b, payload.card_id, tuple(payload.pos)),
+                lambda b: move_card(
+                    b,
+                    payload.card_id,
+                    cast(tuple[float, float], tuple(payload.pos)),
+                ),
             )
             return {"status": "ok"}
         # CardRemovePayload
@@ -138,7 +146,7 @@ def post_hypotheses(campaign_id: str, payload: HypOpPayload) -> dict:
                 raise ValueError("[BOARD] CREATE без text запрещён")
             _hyp_id = player_board_service.mutate(
                 campaign_id,
-                lambda b: create_hypothesis(b, payload.text),
+                lambda b: create_hypothesis(b, cast(str, payload.text)),
             )
             return {"status": "ok", "hypothesis_id": _hyp_id}
         if payload.op == "edit":
@@ -147,7 +155,7 @@ def post_hypotheses(campaign_id: str, payload: HypOpPayload) -> dict:
             player_board_service.mutate(
                 campaign_id,
                 lambda b: edit_hypothesis(
-                    b, payload.hyp_id,
+                    b, cast(str, payload.hyp_id),
                     text=payload.text, status=payload.status,
                 ),
             )
@@ -157,7 +165,7 @@ def post_hypotheses(campaign_id: str, payload: HypOpPayload) -> dict:
             raise ValueError("[BOARD] DELETE без hyp_id запрещён")
         player_board_service.mutate(
             campaign_id,
-            lambda b: delete_hypothesis(b, payload.hyp_id),
+            lambda b: delete_hypothesis(b, cast(str, payload.hyp_id)),
         )
         return {"status": "ok"}
     except ValueError as _e:

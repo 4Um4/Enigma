@@ -1960,11 +1960,25 @@ class DecisionHub:
                 f"has_epistemic_context={epistemic_context is not None} prop={_prop!r}"
             )
             if _prop and _prop.subject_id and _prop.subject_id != state.npc_id:
-                logger.info(
-                    f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=warn target={_prop.subject_id} "
-                    f"predicate={getattr(_prop.predicate, 'value', _prop.predicate)}"
+                # ⑤-B (S292): цель обязана быть актором мира. Claim с subject-
+                # узлом графа (напр. 'tavern:exit_south' — мусор из движения к
+                # выходу) материализовался в WARN-задачу КАЖДЫЙ тик (~60/мин
+                # non-actor skip): убеждение не тикает, петля вечна. Гард
+                # creation-time, тот же класс, что ADR-O-406-слои: не-актор
+                # → фоллбэк на обычный резолв ниже (не None — WARN сохраняет
+                # шанс найти легальную цель).
+                from app.domain.sanity_membrane import can_address
+                if can_address(state.npc_id, str(_prop.subject_id)):
+                    logger.info(
+                        f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=warn target={_prop.subject_id} "
+                        f"predicate={getattr(_prop.predicate, 'value', _prop.predicate)}"
+                    )
+                    return str(_prop.subject_id)
+                logger.warning(
+                    f"[EPISTEMIC_TARGET] npc={state.npc_id}: proposition subject "
+                    f"{_prop.subject_id!r} — не актор (sanity_membrane: address denied) "
+                    f"→ фоллбэк-резолв (шторм не-акторных задач пресечён на источнике)"
                 )
-                return str(_prop.subject_id)
 
         if all_npc_ids is None:
             all_npc_ids = []
