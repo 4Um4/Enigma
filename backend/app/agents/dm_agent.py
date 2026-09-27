@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 import threading
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
 from app.core.config import settings
 from app.models.schemas import PlayerAction
@@ -651,9 +651,10 @@ class DmAgent:
             builder.add_custom_block("События сцены", scene_events_block)
 
             reaction_block = ""
-            if not _is_light_dialog and context.get("reaction_order"):
-                reaction_order = context["reaction_order"]
-                forced = context.get("forced_first_speaker")
+            _ctx = context or {}
+            if not _is_light_dialog and _ctx.get("reaction_order"):
+                reaction_order = _ctx["reaction_order"]
+                forced = _ctx.get("forced_first_speaker")
                 if reaction_order:
                     reaction_block = f"{MSG_REACTION_RULE} (Python рассчитал — обязательно соблюдай):\n"
                     if forced:
@@ -906,7 +907,7 @@ class DmAgent:
         try:
             journal = mem_mgr.get_recent_dm_responses(limit=1)
             if journal:
-                return journal[0]
+                return cast(Optional[str], journal[0])
         except Exception as e:
             logger.warning(f"[DM_AGENT] could not get recent DM response: {e}")
         return None

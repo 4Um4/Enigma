@@ -20,13 +20,24 @@ def test_eavesdrop_into_journal():
     mock_avatar = MagicMock()
     mock_spatial = MagicMock()
     mock_spatial.player_distances.return_value = {"maid_lusya": 5.0}  # Игрок в 5 метрах
+    # F2-гейт (:174-182): резолв актора идёт через _npc_positions. БЕЗ
+    # явного словаря MagicMock автогенерирует truthy-атрибут без
+    # __contains__ ('borko' not in MagicMock → True) → non-actor skip.
+    # Явные позиции делают 'borko' актором + кормят INV-NPC-NAME резолв.
+    mock_spatial._npc_positions = {
+        "maid_lusya": {"name": "Люся", "local_position": {"x": 3.0, "y": 0.0}},
+        "borko": {"name": "Борко", "local_position": {"x": 5.0, "y": 0.0}},
+        "player": {"name": "ВВорг", "local_position": {"x": 8.0, "y": 0.0}},
+    }
 
     sub = NpcDialogueSubscriber(
         memory_manager=MagicMock(),
         relationship_store=MagicMock(),
         avatar_service=mock_avatar,
         spatial_query_provider=lambda: mock_spatial,
-        campaign_id_provider=lambda: "test_campaign"
+        campaign_id_provider=lambda: "test_campaign",
+        tick_provider=lambda: 0,  # H-01: callable()->int; тест не передавал —
+        # негардированный вызов провайдера = TypeError, проглоченный try
     )
 
     # Событие: Люся говорит Борко
@@ -38,10 +49,14 @@ def test_eavesdrop_into_journal():
 
     sub.on_npc_spoke(event)
 
-    # Проверяем, что реплика записана в журнал игрока
-    mock_avatar.append_journal.assert_called_once_with(
-        campaign_id="test_campaign", speaker="maid_lusya", text="Привет, Борко"
-    )
+    # Проверяем запись в журнал: call_args-подмножество (S292 добавил
+    # channel/event_id/tick — точный матч легаси-вида невозможен).
+    mock_avatar.append_journal.assert_called_once()
+    _call = mock_avatar.append_journal.call_args
+    assert _call.kwargs["campaign_id"] == "test_campaign"
+    assert _call.kwargs["speaker"] == "Люся"  # INV-NPC-NAME: резолв из npc_positions
+    assert _call.kwargs["text"] == "Привет, Борко"
+    assert _call.kwargs["channel"] == "overheard"
 
 
 def test_eavesdrop_out_of_range():
@@ -57,7 +72,9 @@ def test_eavesdrop_out_of_range():
         relationship_store=MagicMock(),
         avatar_service=mock_avatar,
         spatial_query_provider=lambda: mock_spatial,
-        campaign_id_provider=lambda: "test_campaign"
+        campaign_id_provider=lambda: "test_campaign",
+        tick_provider=lambda: 0,  # H-01: callable()->int; тест не передавал —
+        # негардированный вызов провайдера = TypeError, проглоченный try
     )
 
     event = SimpleNamespace(
@@ -102,23 +119,29 @@ def test_player_recognition_persists_in_run_turn():
     # Мокируем остальной pipeline (используем AsyncMock, так как run_turn вызывает await)
     import time
     from unittest.mock import AsyncMock
-    loop._run_pipeline = AsyncMock(return_value=SimpleNamespace(
-        shared_context=PipelineContext(
-            campaign_id="test_camp",
-            world_id="w1",
-            location="tavern",
-            scene_state=_fresh_scene,
-            player_state={},
-            player_target_id="maid_lusya",
-            will_conflict_data=None
-        ),
-        dm_result={"dm_response": "test"},
-        observed_facts=[],
-        world_tick_meta={"events": []},
-        rules_result={},
-        npc_result={},
-        start_ms=int(time.time() * 1000)
-    ))
+    # S-эпоха: run_turn делегирует в self._turn_pipeline.execute(...)
+    # (game_loop.py:1421), а не в легаси _run_pipeline/run_agent_safe.
+    # setattr — обходит статическую проверку типов (Pylance: SimpleNamespace
+    # ≠ TurnPipeline; runtime-мок легален для изолированного теста).
+    object.__setattr__(loop, "_turn_pipeline", SimpleNamespace(
+        execute=AsyncMock(return_value=SimpleNamespace(
+            shared_context=PipelineContext(
+                campaign_id="test_camp",
+                world_id="w1",
+                location="tavern",
+                scene_state=_fresh_scene,
+                player_state={},
+                player_target_id="maid_lusya",
+                will_conflict_data=None
+            ),
+            dm_result={"dm_response": "test"},
+            observed_facts=[],
+            world_tick_meta={"events": []},
+            rules_result={},
+            npc_result={},
+            start_ms=int(time.time() * 1000)
+        ))),
+    )
     loop._build_traces = MagicMock(return_value=[])
     loop.dm_agent = MagicMock()
     loop.dm_agent.stream_narrate = MagicMock()
@@ -138,7 +161,8 @@ def test_player_recognition_persists_in_run_turn():
     import asyncio
     from unittest.mock import AsyncMock
     with patch('app.services.memory.rce.extract_speech_events', return_value=[]), \
-         patch('app.services.game_loop.run_agent_safe', new=AsyncMock(return_value={"dm_response": "test"})):
+         patch('app.services.game_loop.game_loop.run_agent_safe', new=AsyncMock(return_value={"dm_response": "test"})), \
+         patch('app.services.game_loop.turn_pipeline.run_agent_safe', new=AsyncMock(return_value={"dm_response": "test"})):
         asyncio.run(loop.run_turn(req))
 
     # Проверяем, что commit_tick_result был вызван с правильным scene_state

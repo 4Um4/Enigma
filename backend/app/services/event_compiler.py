@@ -21,7 +21,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from app.models.thick_scene_change import (
     BoundaryResolution,
@@ -1012,10 +1012,13 @@ class EventCompiler:
         try:
             from app.services.spatial.spatial_service import Urgency
 
-            return svc.find_path(
-                start_xy=start_xy,
-                target_node=target_node,
-                urgency=Urgency.URGENT,
+            return cast(
+                Optional[list],
+                svc.find_path(
+                    start_xy=start_xy,
+                    target_node=target_node,
+                    urgency=Urgency.URGENT,
+                ),
             )
         except Exception as exc:
             logger.warning(f"[SHADOW_COMPILER] find_path failed: {exc}")
@@ -1038,7 +1041,7 @@ class EventCompiler:
     @staticmethod
     def _euclidean_distance(a: Tuple[float, float], b: Tuple[float, float]) -> float:
         """Евклидово расстояние между двумя точками."""
-        return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+        return float(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5)
 
     @staticmethod
     def _path_distance(waypoints: List[List[float]]) -> float:

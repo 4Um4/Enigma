@@ -41,6 +41,7 @@ _K_LAST_UPDATE = "last_update_tick"
 _K_WINDOW = "observation_window"
 _K_LAST_DISTANCE = "last_distance"
 _K_LAST_BEARING = "last_bearing"
+_K_EVIDENCE = "approach_evidence"
 _K_TICK = "tick"
 _K_DISTANCE = "distance"
 _K_BEARING = "bearing"
@@ -145,6 +146,10 @@ class AttentionState:
     observation_window: Tuple[AttentionObservation, ...] = ()  # хронологический FIFO
     last_distance: Optional[float] = None
     last_bearing: Optional[float] = None
+    # P3b (M4): накопленное свидетельство «направляется ко мне», E ∈ [0, 1].
+    # Рождается 0 (новая гипотеза), замораживается в LOST (без наблюдений
+    # нет обновлений — память не стирается), GC уносит вместе с состоянием.
+    approach_evidence: float = 0.0
 
 
 def create_attention_state(
@@ -177,6 +182,7 @@ def with_observation(
     phase: AttentionPhase,
     tick: int,
     observation: AttentionObservation,
+    approach_evidence: Optional[float] = None,
 ) -> AttentionState:
     """Добавляет наблюдение, двигает фазу, держит окно в пределах cap.
 
@@ -191,6 +197,13 @@ def with_observation(
     window = (*prev.observation_window, observation)
     if len(window) > ATTENTION_OBS_WINDOW:
         window = window[-ATTENTION_OBS_WINDOW:]
+    if approach_evidence is None:
+        new_evidence = prev.approach_evidence
+    else:
+        # Громкие границы (L4): тихий зажим = маскировка онтологического разрыва.
+        if not (0.0 <= approach_evidence <= 1.0):
+            raise ValueError("with_observation: approach_evidence вне [0, 1]")
+        new_evidence = approach_evidence
     return AttentionState(
         subject_id=prev.subject_id,
         phase=phase,
@@ -199,6 +212,7 @@ def with_observation(
         observation_window=window,
         last_distance=observation.distance,
         last_bearing=observation.bearing,
+        approach_evidence=new_evidence,
     )
 
 
@@ -212,6 +226,7 @@ def attention_to_dict(state: AttentionState) -> Dict[str, Any]:
         _K_WINDOW: [obs.as_tuple() for obs in state.observation_window],
         _K_LAST_DISTANCE: state.last_distance,
         _K_LAST_BEARING: state.last_bearing,
+        _K_EVIDENCE: state.approach_evidence,
     }
 
 
@@ -267,6 +282,7 @@ def with_phase(
         observation_window=prev.observation_window,
         last_distance=prev.last_distance,
         last_bearing=prev.last_bearing,
+        approach_evidence=prev.approach_evidence,
     )
 
 
@@ -288,4 +304,5 @@ def attention_from_dict(raw: Dict[str, Any]) -> AttentionState:
         last_bearing=(
             float(raw[_K_LAST_BEARING]) if raw[_K_LAST_BEARING] is not None else None
         ),
+        approach_evidence=float(raw[_K_EVIDENCE]),
     )

@@ -853,7 +853,7 @@ class GameLoop:
                         "identity_rigidity": _avatar_psyche.get("identity_rigidity", 0.5),
                     }
 
-                    player_dict = {
+                    player_dict: Dict[str, Any] = {
                         "id": "player",
                         "npc_id": "player",
                         "name": player_char.name,

@@ -242,6 +242,10 @@ class TickMutation:
     # материализующим вызовом, что и движение (movement_bridge-шаблон);
     # TraversalState не создаётся — generic-ветка SSM (scene_state_manager:961).
     orient_scene_changes: List[Any] = field(default_factory=list)
+    # CognitionContext v0 (P3c-3): снимки внимания (list[dict],
+    # snapshot_to_dict-форма). Producer=DATA-only (ADR-O-366-канон):
+    # до P3d потребителей нет; наблюдаемость через ReplayRecorder.
+    cognition_snapshots: List[Any] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

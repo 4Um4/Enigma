@@ -4,45 +4,55 @@
     "journal": {
       "state": "full",
       "free_rect": [
-        0,
-        73,
-        537,
-        436
+        896,
+        38,
+        504,
+        546
       ]
     },
     "world_clock": {
       "state": "collapsed",
       "free_rect": [
-        710,
-        23,
+        1207,
+        2,
         193,
-        31
+        54
       ]
     },
     "time_scale": {
       "state": "collapsed",
       "free_rect": [
-        704,
-        77,
+        1117,
+        0,
         90,
-        26
+        45
       ]
     },
     "observations": {
-      "state": "collapsed",
-      "free_rect": null
+      "state": "full",
+      "free_rect": [
+        3,
+        0,
+        392,
+        270
+      ]
     },
     "inventory": {
-      "state": "hidden",
-      "free_rect": null
+      "state": "full",
+      "free_rect": [
+        0,
+        270,
+        397,
+        593
+      ]
     },
     "board": {
       "state": "collapsed",
       "free_rect": [
-        537,
-        215,
-        420,
-        630
+        397,
+        4,
+        638,
+        867
       ]
     }
   }

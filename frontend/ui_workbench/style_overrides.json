@@ -1,0 +1,367 @@
+{
+  "_version": 2,
+  "overrides": {
+    "journal": {
+      "text": {
+        "font_file": "SourceCodePro-Medium",
+        "size_delta": 4,
+        "bold": false
+      },
+      "title": {
+        "font_file": "SourceCodePro-Regular",
+        "bold": true,
+        "italic": true,
+        "size_delta": 3
+      },
+      "_colors": {
+        "surface_panel": [
+          0,
+          0,
+          0
+        ],
+        "surface_title": [
+          30,
+          43,
+          45
+        ],
+        "border": [
+          70,
+          70,
+          95
+        ],
+        "text_primary": [
+          60,
+          132,
+          81
+        ],
+        "text_muted": [
+          95,
+          95,
+          110
+        ],
+        "accent": [
+          72,
+          165,
+          14
+        ],
+        "backdrop_rgb": [
+          22,
+          37,
+          28
+        ],
+        "backdrop_alpha": 65,
+        "surface_panel_alpha": 70,
+        "surface_title_alpha": 167,
+        "border_alpha": 215,
+        "border_accent": [
+          0,
+          0,
+          0
+        ],
+        "border_accent_alpha": 41
+      }
+    },
+    "inventory": {
+      "text": {
+        "font_file": "SourceCodePro-Medium",
+        "size_delta": 2,
+        "bold": false
+      },
+      "title": {
+        "font_file": "SourceCodePro-Regular",
+        "italic": true,
+        "bold": true,
+        "size_delta": 3
+      },
+      "_colors": {
+        "surface_panel": [
+          0,
+          0,
+          0
+        ],
+        "surface_panel_alpha": 70,
+        "accent": [
+          72,
+          165,
+          14
+        ],
+        "text_primary": [
+          60,
+          132,
+          81
+        ],
+        "backdrop_rgb": [
+          22,
+          37,
+          28
+        ],
+        "backdrop_alpha": 65,
+        "surface_title": [
+          30,
+          43,
+          45
+        ],
+        "surface_title_alpha": 167,
+        "border": [
+          70,
+          70,
+          95
+        ],
+        "border_alpha": 215,
+        "border_accent": [
+          0,
+          0,
+          0
+        ],
+        "border_accent_alpha": 41,
+        "text_muted": [
+          95,
+          95,
+          110
+        ]
+      }
+    },
+    "observations": {
+      "text": {
+        "font_file": "SourceCodePro-Medium",
+        "size_delta": 1,
+        "bold": false
+      },
+      "title": {
+        "font_file": "SourceCodePro-Regular",
+        "italic": true,
+        "bold": true,
+        "size_delta": 3
+      },
+      "_colors": {
+        "surface_panel": [
+          0,
+          0,
+          0
+        ],
+        "surface_panel_alpha": 70,
+        "accent": [
+          72,
+          165,
+          14
+        ],
+        "text_primary": [
+          60,
+          132,
+          81
+        ],
+        "backdrop_rgb": [
+          22,
+          37,
+          28
+        ],
+        "backdrop_alpha": 65,
+        "surface_title": [
+          30,
+          43,
+          45
+        ],
+        "surface_title_alpha": 167,
+        "border": [
+          70,
+          70,
+          95
+        ],
+        "border_alpha": 215,
+        "border_accent": [
+          0,
+          0,
+          0
+        ],
+        "border_accent_alpha": 41,
+        "text_muted": [
+          95,
+          95,
+          110
+        ]
+      }
+    },
+    "time_scale": {
+      "text": {
+        "font_file": "SourceCodePro-Medium",
+        "bold": false
+      },
+      "title": {
+        "font_file": "Xolonium-Bold",
+        "size_delta": -2
+      },
+      "_colors": {
+        "surface_panel": [
+          0,
+          0,
+          0
+        ],
+        "surface_panel_alpha": 70,
+        "accent": [
+          72,
+          165,
+          14
+        ],
+        "text_primary": [
+          60,
+          132,
+          81
+        ],
+        "backdrop_rgb": [
+          22,
+          37,
+          28
+        ],
+        "backdrop_alpha": 65,
+        "surface_title": [
+          30,
+          43,
+          45
+        ],
+        "surface_title_alpha": 167,
+        "border": [
+          70,
+          70,
+          95
+        ],
+        "border_alpha": 215,
+        "border_accent": [
+          0,
+          0,
+          0
+        ],
+        "border_accent_alpha": 41,
+        "text_muted": [
+          95,
+          95,
+          110
+        ]
+      }
+    },
+    "world_clock": {
+      "text": {
+        "font_file": "SourceCodePro-Medium",
+        "size_delta": 1,
+        "bold": false
+      },
+      "title": {
+        "font_file": "Xolonium-Bold",
+        "size_delta": -2
+      },
+      "_colors": {
+        "surface_panel": [
+          0,
+          0,
+          0
+        ],
+        "surface_panel_alpha": 70,
+        "accent": [
+          72,
+          165,
+          14
+        ],
+        "text_primary": [
+          60,
+          132,
+          81
+        ],
+        "backdrop_rgb": [
+          22,
+          37,
+          28
+        ],
+        "backdrop_alpha": 65,
+        "surface_title": [
+          30,
+          43,
+          45
+        ],
+        "surface_title_alpha": 167,
+        "border": [
+          70,
+          70,
+          95
+        ],
+        "border_alpha": 215,
+        "border_accent": [
+          0,
+          0,
+          0
+        ],
+        "border_accent_alpha": 41,
+        "text_muted": [
+          95,
+          95,
+          110
+        ]
+      }
+    },
+    "board": {
+      "title": {
+        "font_file": "SourceCodePro-Regular",
+        "bold": true,
+        "italic": true,
+        "size_delta": 3
+      },
+      "text": {
+        "font_file": "SourceCodePro-Medium",
+        "size_delta": 1,
+        "bold": false
+      },
+      "_colors": {
+        "surface_panel": [
+          0,
+          0,
+          0
+        ],
+        "surface_panel_alpha": 70,
+        "accent": [
+          72,
+          165,
+          14
+        ],
+        "text_primary": [
+          60,
+          132,
+          81
+        ],
+        "backdrop_rgb": [
+          22,
+          37,
+          28
+        ],
+        "backdrop_alpha": 65,
+        "surface_title": [
+          30,
+          43,
+          45
+        ],
+        "surface_title_alpha": 167,
+        "border": [
+          70,
+          70,
+          95
+        ],
+        "border_alpha": 215,
+        "border_accent": [
+          0,
+          0,
+          0
+        ],
+        "border_accent_alpha": 41,
+        "text_muted": [
+          95,
+          95,
+          110
+        ]
+      }
+    }
+  },
+  "target": "journal",
+  "role": "text",
+  "global": true,
+  "window_global": {
+    "journal": true,
+    "board": true
+  }
+}
