@@ -71,7 +71,9 @@ jobs:
           find backend/ -type d -name "__pycache__" -exec rm -rf {} +
           find frontend/ -type d -name "__pycache__" -exec rm -rf {} +
       - name: Run E2E Canary (180 ticks)
-        run: python scripts/test_full_playthrough_end_screen_non_empty.py
+        run: |
+          mkdir -p data
+          python scripts/test_full_playthrough_end_screen_non_empty.py
 
   import-graph:
     runs-on: ubuntu-latest
