@@ -207,3 +207,48 @@ def test_player_observer_never_orients() -> None:
     delta, changes = ar.compute_attention_pass(st)
     assert delta["player"]["maid_lusya"]["phase"] == "detected"
     assert all(c.target != "player" for c in changes)
+
+def test_reentry_preserves_window_scenario_h() -> None:
+    # R25/ТЗ сценарий H: LOST → re-entry сохраняет окно — сближение
+    # 5.1→2 остаётся видимым в v̂. Изоляция: Люся за периферией и вне
+    # FOV (за спиной Орма) → единственный наблюдатель — Орм (бюджет
+    # one-per-tick не конкурирует).
+    raws = [_raw("orm"), _raw("maid_lusya")]
+    _behind = {"orm": _pos(0, 0, 0.0), "maid_lusya": _pos(5, 0)}
+    d1, _ = ar.compute_attention_pass(
+        _state(
+            {
+                "orm": _pos(0, 0, 0.0),
+                "maid_lusya": _pos(5, 0, math.pi),  # смотрит ОТ Орма
+            },
+            raws,
+            tick=100,
+        )
+    )
+    prev = {"orm": d1["orm"]}
+    d2, _ = ar.compute_attention_pass(
+        _state(
+            {
+                "orm": _pos(0, 0, 0.0),
+                "maid_lusya": _pos(50, 0, math.pi),
+            },
+            raws,
+            prev=prev,
+            tick=101,
+        )
+    )
+    prev2 = {"orm": d2["orm"]}
+    d3, _ = ar.compute_attention_pass(
+        _state(
+            {
+                "orm": _pos(0, 0, 0.0),
+                "maid_lusya": _pos(2, 0, math.pi),
+            },
+            raws,
+            prev=prev2,
+            tick=102,
+        )
+    )
+    st = d3["orm"]["maid_lusya"]
+    assert len(st["observation_window"]) == 2  # окно НЕ обнулено
+    assert st["observation_window"][0][1] == 5.0  # старое наблюдение живо

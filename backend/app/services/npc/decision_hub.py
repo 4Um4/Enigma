@@ -550,6 +550,7 @@ class DecisionHub:
             )
 
         # S188: Универсальное применение модификаторов (коммутативно и аддитивно)
+        _pre_mod_top = sorted(scores.items(), key=lambda kv: -kv[1])[:5]
         scores = self.apply_modifiers(
             scores,
             eco_modifiers=eco_modifiers,
@@ -562,6 +563,20 @@ class DecisionHub:
             causal_modifiers=causal_modifiers,
             cognition_modifiers=cognition_modifiers
         )
+        # Задача 5 (P3d, санкция Мастера): фактические utility ДО/ПОСЛЕ
+        # cognition_modifiers — данные для калибровки до её проведения.
+        # env-гейт по канону COGNITION_DIAG (Часть VIII.5-прецедент).
+        import os as _os_util  # noqa: PLC0415 — диагностика, ленивый импорт
+
+        if _os_util.environ.get("COGNITION_DIAG", "").strip().lower() in (
+            "1", "true", "yes"
+        ):
+            _post_top = sorted(scores.items(), key=lambda kv: -kv[1])[:5]
+            print(
+                f"[COG_UTIL] npc={state.npc_id} cog={cognition_modifiers} "
+                f"pre_top={[(k, round(v, 3)) for k, v in _pre_mod_top]} "
+                f"post_top={[(k, round(v, 3)) for k, v in _post_top]}"
+            )
 
         # ── Причинный слой: ReflexConstraints (ограничения от рефлекса) ──
         # НЕ блокирует полностью — ограничивает через penalties и allowed_intents

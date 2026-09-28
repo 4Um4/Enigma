@@ -33,6 +33,7 @@ _THEME_PATH = _WORKBENCH_DIR / "theme.json"
 _STYLES_PATH = _WORKBENCH_DIR / "style_overrides.json"  # S4: персист стилей
 
 _TITLE_H = 34
+_AVATAR = 60  # S3.11: аватар журнала (Discord-стиль, читаемый размер)
 
 # S3.5: русификация стилевых токенов (панель СТИЛЬ + HSV-пикер)
 _TOKEN_RU = {
@@ -45,13 +46,18 @@ _TOKEN_RU = {
     "accent": "Акцент",
     "player_bubble": "Пузырь игрока",
     "player_name": "Имя игрока",
+    "noise_tint": "Подтон узора",
 }
 
 # S3.7: дефолты нестандартных токенов (их нет в theme.json)
 _TOKEN_DEFAULTS = {
     "player_bubble": (35, 45, 70),
     "player_name": (255, 200, 100),
+    "noise_tint": (255, 255, 255),
 }
+
+# S3.14: узоры «штукатурки» фона (grain=зерно, wave=волны, speck=крап)
+_PATTERN_RU = {"grain": "Зерно", "wave": "Волны", "speck": "Крап"}
 
 # S3.10: пресеты палитр окон — благородные сочетания, читаемость текста.
 # Каждый пресет полностью задаёт _colors (включая альфы поверхностей
@@ -97,6 +103,26 @@ _COLOR_PRESETS = {
         "border_alpha": 255, "border_accent_alpha": 255,
         "player_bubble_alpha": 255, "backdrop_alpha": 0,
     },
+    "Обсидиан": {  # чёрный + золото
+        "surface_panel": (16, 15, 14), "surface_title": (24, 22, 19),
+        "border": (60, 52, 38), "border_accent": (197, 160, 74),
+        "text_primary": (224, 216, 196), "text_muted": (146, 136, 116),
+        "accent": (197, 160, 74), "player_bubble": (28, 25, 20),
+        "player_name": (232, 195, 105), "backdrop_rgb": (12, 11, 10),
+        "surface_panel_alpha": 255, "surface_title_alpha": 255,
+        "border_alpha": 255, "border_accent_alpha": 255,
+        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+    },
+    "Багрянец": {  # чёрный + багряная рамка + золотой текст
+        "surface_panel": (22, 12, 14), "surface_title": (32, 16, 18),
+        "border": (90, 32, 36), "border_accent": (176, 48, 48),
+        "text_primary": (232, 216, 206), "text_muted": (168, 130, 122),
+        "accent": (206, 160, 84), "player_bubble": (34, 16, 18),
+        "player_name": (226, 176, 92), "backdrop_rgb": (16, 8, 9),
+        "surface_panel_alpha": 255, "surface_title_alpha": 255,
+        "border_alpha": 255, "border_accent_alpha": 255,
+        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+    },
 }
 
 
@@ -126,14 +152,33 @@ class _StyledFontProxy:
 
     def _pad(self) -> int:
         _ov = self._wb._ov(self._role, self._wid)
-        return int(_ov.get("outline", 0)) * 2 + (3 if _ov.get("shadow") else 0)
+        return (int(_ov.get("outline", 0)) * 2
+                + (3 if _ov.get("shadow") else 0)
+                + int(round(float(_ov.get("glow", 0)) * 8))
+                + (3 if _ov.get("underline") else 0))
+
+    def _base(self, text, antialias, color, spacing):
+        """S3.14: разрядка — посимвольный рендер с шагом spacing."""
+        if spacing == 0 or not text:
+            return self._font.render(text, antialias, color)
+        _parts = [self._font.render(ch, antialias, color) for ch in text]
+        _w = sum(p.get_width() for p in _parts) + spacing * max(0, len(_parts) - 1)
+        _s = pygame.Surface((_w, self._font.get_height()), pygame.SRCALPHA)
+        _x = 0
+        for p in _parts:
+            _s.blit(p, (_x, 0))
+            _x += p.get_width() + spacing
+        return _s
 
     def render(self, text, antialias, color):
         _ov = self._wb._ov(self._role, self._wid)
         _ol = int(_ov.get("outline", 0))
         _sh = bool(_ov.get("shadow", False))
-        base = self._font.render(text, antialias, color)
-        if _ol <= 0 and not _sh:
+        _gl = float(_ov.get("glow", 0))
+        _sp = int(_ov.get("spacing", 0))
+        _ul = bool(_ov.get("underline", False))
+        base = self._base(text, antialias, color, _sp)
+        if _ol <= 0 and not _sh and _gl <= 0 and _sp <= 0 and not _ul:
             return base
         _p = self._pad()
         surf = pygame.Surface((base.get_width() + _p * 2, base.get_height() + _p * 2),
@@ -141,16 +186,40 @@ class _StyledFontProxy:
         if _sh:
             # Тень: полупрозрачная копия со смещением вниз-вправо
             _shc = tuple(_ov.get("shadow_color", (0, 0, 0, 150)))
-            surf.blit(self._font.render(text, antialias, _shc), (_p + 2, _p + 2))
+            surf.blit(self._base(text, antialias, _shc, _sp), (_p + 2, _p + 2))
+        if _gl > 0:
+            # S3.14-фикс2: ореол = копии свечения, накопленные аддитивно
+            # (BLEND_RGBA_ADD пишет и альфу) на СВОЕЙ поверхности по кругу:
+            # центр насыщен, край мягко затухает. Масштабированные копии
+            # текста давали «двойник» — убраны.
+            # дробная интенсивность 0-1: гасит цвет и радиус ореола
+            _gpow = max(0.05, min(1.0, _gl))
+            _gc0 = tuple(_ov.get("glow_color", (255, 226, 150)))
+            _gc = tuple(int(c * (0.25 + 0.75 * _gpow)) for c in _gc0)
+            _gs = self._base(text, antialias, _gc, _sp)
+            _halo = pygame.Surface(surf.get_size(), pygame.SRCALPHA)
+            _r = 1 + int(round(_gpow * 3))  # радиус: 1..4
+            for _dx in range(-_r, _r + 1):
+                for _dy in range(-_r, _r + 1):
+                    if _dx * _dx + _dy * _dy <= _r * _r + 1:
+                        _halo.blit(_gs, (_p + _dx * 2, _p + _dy * 2),
+                                   special_flags=pygame.BLEND_RGBA_ADD)
+            surf.blit(_halo, (0, 0))
         if _ol > 0:
             # Обводка: 8/24/48 смещённых копий цветом контура
             _oc = tuple(_ov.get("outline_color", (10, 10, 14)))
-            _ols = self._font.render(text, antialias, _oc)
+            _ols = self._base(text, antialias, _oc, _sp)
             for _dx in range(-_ol, _ol + 1):
                 for _dy in range(-_ol, _ol + 1):
                     if _dx or _dy:
                         surf.blit(_ols, (_p + _dx, _p + _dy))
         surf.blit(base, (_p, _p))
+        if _ul:
+            # S3.14: подчёркивание — НИЖЕ глифов (включая выносные р/у/д),
+            # иначе пересекает их и выглядит зачёркиванием
+            pygame.draw.line(surf, color,
+                             (_p, _p + base.get_height() + 1),
+                             (_p + base.get_width(), _p + base.get_height() + 1), 1)
         return surf
 
     def get_linesize(self):
@@ -162,7 +231,9 @@ class _StyledFontProxy:
     def size(self, text):
         w, h = self._font.size(text)
         _p = self._pad()
-        return (w + _p * 2, h + _p * 2)
+        _ov = self._wb._ov(self._role, self._wid)
+        _sp = int(_ov.get("spacing", 0))
+        return (max(1, w + _sp * max(0, len(text) - 1) + _p * 2), h + _p * 2)
 
 
 class WorkbenchScreen:
@@ -304,6 +375,22 @@ class WorkbenchScreen:
         self._style_window_global: dict = {}
         # S3.10: именованный снимок стиля игрока («Мой стиль»)
         self._my_style: dict = {}
+        # S3.11/S3.14: шум-рельеф: глубина ±6 (минус = светлый), масштаб,
+        # зерно, подтон (цвет рельефа, пикер)
+        self._style_texture: int = 0
+        self._style_noise_scale: int = 16
+        self._style_noise_seed: int = 0
+        self._style_noise_tint: list = [255, 255, 255]
+        self._texture_tiles: dict = {}
+        # S3.14: размер аватара — живой ползунок (24-96)
+        self._style_avatar_size: int = _AVATAR
+        self._panel_slider_drag: Optional[str] = None
+        # S3.12: фото-аватары журнала (кэш имя→Surface|None, негатив тоже)
+        self._avatar_cache: dict = {}
+        self._casting_repo_wb = None
+        self._portrait_name_map: Optional[dict] = None
+        # S3.13: свёрнутость секций панели СТИЛЬ (дефолты — в _sec_header)
+        self._style_sections: dict = {}
         # S3.5: HSV-пикер (ползунки + градиентные шкалы, как в графредакторах)
         self._picker_token: Optional[str] = None
         self._picker_hsv: list = [0.0, 0.0, 0.0]
@@ -327,6 +414,11 @@ class WorkbenchScreen:
                         self._style_window_global = {
                             k: bool(v) for k, v in _d.get("window_global", {}).items()}
                         self._my_style = _d.get("my_style", {}) or {}
+                        self._style_texture = int(_d.get("texture", 0))
+                        self._style_avatar_size = int(_d.get("avatar_size", _AVATAR))
+                        self._style_noise_scale = int(_d.get("noise_scale", 16))
+                        self._style_noise_seed = int(_d.get("noise_seed", 0))
+                        self._style_noise_tint = list(_d.get("noise_tint", (255, 255, 255)))
         except Exception as _e:
             print(f"[STYLE_LOAD] failed: {_e}")
 
@@ -389,14 +481,62 @@ class WorkbenchScreen:
         _a = self._style_overrides.get(wid, {}).get("_colors", {}).get(token + "_alpha")
         return self._ct(wid, token, default), (int(_a) if _a is not None else 255)
 
-    def _fill_alpha(self, screen, rect, rgb, alpha, radius=0) -> None:
-        """Заливка с альфой (255 — быстрый путь pygame.draw)."""
-        if alpha >= 255:
+    def _fill_alpha(self, screen, rect, rgb, alpha, radius=0, texture=True) -> None:
+        """Заливка с альфой и опциональным рельефом «штукатурка».
+        texture=False — для заголовков: рельеф только на телах окон."""
+        _tx = int(getattr(self, "_style_texture", 0)) if texture else 0
+        if alpha >= 255 and not _tx:
             pygame.draw.rect(screen, rgb, rect, border_radius=radius)
             return
         _s = pygame.Surface(rect.size, pygame.SRCALPHA)
         _s.fill((*rgb, alpha))
+        if _tx:
+            self.apply_texture(_s, rect.width, rect.height)
         screen.blit(_s, rect.topleft)
+
+    def _plaster_tile(self, _pat: Optional[str] = None) -> pygame.Surface:
+        """S3.14: тайл рельефа — value noise (2 октавы, smoothstep), та же
+        семья формул, что водные узоры в играх. Масштаб узора (ползунок)
+        и зерно («Сменить узор») детерминированы; координаты зациклены
+        модулём — тайл бесшовный. Кэш по (масштаб, зерно)."""
+        _sc = max(4, min(48, int(getattr(self, "_style_noise_scale", 16))))
+        _sd = int(getattr(self, "_style_noise_seed", 0))
+        _tint = tuple(int(c) for c in
+                      (getattr(self, "_style_noise_tint", None) or (255, 255, 255)))
+        _key = (_sc, _sd, _tint)
+        if _key in self._texture_tiles:
+            return self._texture_tiles[_key]
+        import random as _rnd
+        _rng = _rnd.Random(31337 + _sd * 7919)
+        _g1 = [[_rng.random() for _ in range(_sc)] for _ in range(_sc)]
+        _g2 = [[_rng.random() for _ in range(_sc * 2)] for _ in range(_sc * 2)]
+
+        def _n(g, m, fx, fy):
+            _xi, _yi = int(fx) % m, int(fy) % m
+            _xf, _yf = fx - int(fx), fy - int(fy)
+            _sx = _xf * _xf * (3 - 2 * _xf)
+            _sy = _yf * _yf * (3 - 2 * _yf)
+            _a, _b = g[_yi][_xi], g[_yi][(_xi + 1) % m]
+            _c, _d = g[(_yi + 1) % m][_xi], g[(_yi + 1) % m][(_xi + 1) % m]
+            return (_a + (_b - _a) * _sx + (_c - _a) * _sy
+                    + (_a - _b - _c + _d) * _sx * _sy)
+
+        _tm = pygame.Surface((128, 128))
+        _ta = pygame.Surface((128, 128))
+        for _yy in range(0, 128, 2):
+            for _xx in range(0, 128, 2):
+                _u = _xx / 128.0 * _sc
+                _v = _yy / 128.0 * _sc
+                _f = max(0.0, min(1.0, _n(_g1, _sc, _u, _v) * 0.7
+                                  + _n(_g2, _sc * 2, _u * 2.0, _v * 2.0) * 0.3))
+                # MULT-тайл: белый → подтон (тёмный рельеф цвета подтона)
+                _pm = tuple(int(255 + (c - 255) * _f) for c in _tint)
+                # ADD-тайл (минусовая глубина): светлый рельеф подтоном
+                _pa = tuple(int(c * _f) for c in _tint)
+                pygame.draw.rect(_tm, _pm, (_xx, _yy, 2, 2))
+                pygame.draw.rect(_ta, _pa, (_xx, _yy, 2, 2))
+        self._texture_tiles[_key] = (_tm, _ta)
+        return (_tm, _ta)
 
     def _stroke_alpha(self, screen, rect, rgb, alpha, width, radius=0) -> None:
         """Контур с альфой (255 — быстрый путь)."""
@@ -433,6 +573,25 @@ class WorkbenchScreen:
         if "backdrop_rgb" in _c or "backdrop_alpha" in _c:
             return self._backdrop_rgb("journal"), self._backdrop_alpha("journal")
         return (25, 25, 45), 210
+
+    def apply_texture(self, surf, w: int, h: int) -> None:
+        """S3.14: шум-рельеф на поверхность. Глубина ±6: плюс — тёмный
+        рельеф (MULT к подтону), минус — светлый (ADD подтоном)."""
+        _d = int(getattr(self, "_style_texture", 0))
+        if _d == 0:
+            return
+        _tm, _ta = self._plaster_tile()
+        for _ in range(abs(_d)):
+            for _yy in range(0, h, 128):
+                for _xx in range(0, w, 128):
+                    if _d > 0:
+                        surf.blit(_tm, (_xx, _yy), special_flags=pygame.BLEND_RGB_MULT)
+                    else:
+                        surf.blit(_ta, (_xx, _yy), special_flags=pygame.BLEND_RGB_ADD)
+
+    def _avatar_size(self) -> int:
+        """S3.14: размер аватара журнала — живой ползунок (24-96)."""
+        return max(24, min(96, int(getattr(self, "_style_avatar_size", _AVATAR))))
 
     # ── Данные окна ──────────────────────────────────────────────────
 
@@ -496,7 +655,12 @@ class WorkbenchScreen:
                        "target": self._style_target, "role": self._style_role,
                        "global": bool(getattr(self, "_style_global", False)),
                        "window_global": dict(getattr(self, "_style_window_global", {})),
-                       "my_style": dict(getattr(self, "_my_style", {}))}
+                       "my_style": dict(getattr(self, "_my_style", {})),
+                       "texture": int(getattr(self, "_style_texture", 0)),
+                       "avatar_size": int(getattr(self, "_style_avatar_size", _AVATAR)),
+                       "noise_scale": int(getattr(self, "_style_noise_scale", 16)),
+                       "noise_seed": int(getattr(self, "_style_noise_seed", 0)),
+                       "noise_tint": list(getattr(self, "_style_noise_tint", (255, 255, 255)))}
             _STYLES_PATH.write_text(json.dumps(_styles, ensure_ascii=False, indent=2),
                                     encoding="utf-8")
         except Exception as _e:
@@ -527,6 +691,10 @@ class WorkbenchScreen:
                     return int(v[0]), int(v[1])
             if "x" in entry and "y" in entry:
                 return int(entry["x"]), int(entry["y"])
+            if "sx" in entry and "sy" in entry:
+                # Фактический формат SceneRenderer.render: {"sx","sy","radius"}
+                # — раньше не распознавался, все NPC отбрасывались (нет пузырей)
+                return int(entry["sx"]), int(entry["sy"])
         return None, None
 
     def draw_demo_bubbles(self, screen, npc_coords, core=None) -> None:
@@ -544,18 +712,27 @@ class WorkbenchScreen:
                 _name_by_ref[npc.get("ref_id", "")] = next(
                     (n["name"] for n in getattr(core, "_npc_list", [])
                      if n["id"] == npc.get("ref_id")), npc.get("ref_id", ""))
+        if not _name_by_ref and core:
+            # Фоллбэк: локация не нашлась (editor dm) — прямой id→name
+            for n in getattr(core, "_npc_list", []):
+                if n.get("id"):
+                    _name_by_ref[n["id"]] = n.get("name", n["id"])
         _texts: dict = {}
         for e in self._demo_journal:
             ch = e.get("channel", "")
             if ch in ("direct", "overheard") and e["speaker"] not in _texts:
                 _texts[e["speaker"]] = (e["text"].replace("Демо: ", ""), ch)
         _used = set()
-        font = self._font_text
+        # S3.12: шрифт пузырей — мировой (Журнал: обводка/тень вживую)
+        font = self.world_font()
         theme = self.theme
         for npc_id, entry in npc_coords.items():
             sx, sy = self._norm_coord(entry)
             if sx is None:
                 continue
+            # S3.12: радиус из формата SceneRenderer — пузырь ВЫШЕ имени
+            # (имя рисует сцена на sy-radius-16; раньше пузырь накрывал его)
+            _rad = int(entry.get("radius", 14)) if isinstance(entry, dict) else 14
             name = _name_by_ref.get(npc_id, npc_id)
             match = _texts.get(name)
             if not match or name in _used:
@@ -567,7 +744,8 @@ class WorkbenchScreen:
             bw = max(font.size(l)[0] for l in lines) + 16
             bh = len(lines) * lh + 10
             bx = int(sx - bw // 2)
-            by = int(sy - 30 - bh)
+            # Пузырь занимает место имени (имя перерисуется выше пузыря)
+            by = int(sy - _rad - bh + 4)
             alpha = 235 if ch == "direct" else 150
             surf = pygame.Surface((bw, bh + 6), pygame.SRCALPHA)
             # S3.7/S3.9: подложка демо-пузыря — оверрайд ленты журнала,
@@ -576,9 +754,13 @@ class WorkbenchScreen:
             if "backdrop_rgb" in _bc or "backdrop_alpha" in _bc:
                 _br, _ba = self._backdrop_rgb("journal"), self._backdrop_alpha("journal")
             else:
-                _br, _ba = (18, 18, 28), 215
+                # 250 (почти глухо): сквозь 215 просвечивало имя сцены
+                # ПОД пузырём — выглядело как дублирование имён
+                _br, _ba = (18, 18, 28), 250
             pygame.draw.rect(surf, (*_br, int(alpha * _ba / 255)),
                              pygame.Rect(0, 0, bw, bh), border_radius=6)
+            # S3.14: штукатурка демо-пузыря (все подложки под текстом)
+            self.apply_texture(surf, bw, bh)
             pygame.draw.rect(surf, self._ct("journal", "border"), pygame.Rect(0, 0, bw, bh), 1, border_radius=6)
             ty = 5
             for line in lines:
@@ -588,7 +770,16 @@ class WorkbenchScreen:
             # Хвостик вниз к NPC
             pygame.draw.polygon(surf, (18, 18, 28, alpha),
                                 [(bw // 2 - 5, bh - 1), (bw // 2 + 5, bh - 1), (bw // 2, bh + 6)])
+            # Стереть имя сцены под пузырём (глухая заплатка цветом фона):
+            # сквозь полупрозрачный пузырь оно просвечивало = дубль имени
+            pygame.draw.rect(screen, _br, (bx, sy - _rad - 18, bw, 16))
             screen.blit(surf, (bx, by))
+            # S3.12 (вердикт Мастера): пузырь выталкивает имя НАД себя —
+            # рисуем заново стилем Журнала (цвет = канал реплики)
+            _nc = self._ct("journal", "accent" if ch == "direct" else "text_muted")
+            _nm = font.render(name, True, _nc)
+            screen.blit(_nm, (bx + (bw - _nm.get_width()) // 2,
+                              by - _nm.get_height() - 2))
 
     # ── Геометрия ────────────────────────────────────────────────────
 
@@ -837,12 +1028,37 @@ class WorkbenchScreen:
             if event.type == pygame.MOUSEMOTION and self._picker_drag:
                 if self._color_picker_motion(event.pos):
                     return
+            elif (event.type == pygame.MOUSEMOTION
+                    and getattr(self, "_panel_slider_drag", None)
+                    in ("avatar", "noise", "glow")):
+                # S3.14: drag ползунков панели — аватар / узор / свечение
+                _kind = self._panel_slider_drag
+                if _kind == "avatar":
+                    _asr = getattr(self, "_avatar_slider_rect", None)
+                    if _asr is not None:
+                        _f = max(0.0, min(1.0, (event.pos[0] - _asr.x) / max(1, _asr.width)))
+                        self._style_avatar_size = int(24 + _f * (96 - 24))
+                elif _kind == "noise":
+                    _nsr = getattr(self, "_noise_slider_rect", None)
+                    if _nsr is not None:
+                        _f = max(0.0, min(1.0, (event.pos[0] - _nsr.x) / max(1, _nsr.width)))
+                        self._style_noise_scale = int(4 + _f * (48 - 4))
+                else:  # glow: дробная интенсивность 0.00-1.00
+                    _gsr2 = getattr(self, "_glow_slider_rect", None)
+                    if _gsr2 is not None:
+                        _f = max(0.0, min(1.0, (event.pos[0] - _gsr2.x) / max(1, _gsr2.width)))
+                        _new = round(_f * 100) / 100
+                        for _w in self._style_targets():
+                            self._style_overrides.setdefault(_w, {}).setdefault(
+                                self._style_role, {})["glow"] = _new
+                return
             elif (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
                     and self._picker_token):
                 if self._color_picker_click(event.pos):
                     return
             elif event.type == pygame.MOUSEBUTTONUP:
                 self._picker_drag = None
+                self._panel_slider_drag = None
         if (event.type == pygame.KEYDOWN
                 and event.key == pygame.K_l
                 and (pygame.key.get_mods() & pygame.KMOD_CTRL)
@@ -1117,7 +1333,7 @@ class WorkbenchScreen:
 
         title_h = _TITLE_H if not collapsed else rect.height
         title_rect = pygame.Rect(rect.x, rect.y, rect.width, title_h)
-        self._fill_alpha(screen, title_rect, *self._cta(wid, "surface_title"), 8)
+        self._fill_alpha(screen, title_rect, *self._cta(wid, "surface_title"), 8, False)
         # Мини-окна HUD: в тайтле рисуется ЗНАЧЕНИЕ (дата/темп), не имя.
         # Один источник рисования — здесь (COLLAPSED = основное состояние).
         if manifest.data_source in ("world_clock", "time_scale"):
@@ -1184,13 +1400,19 @@ class WorkbenchScreen:
                 self._draw_window_frame(screen, wid, manifest, rect, collapsed=True)
                 return
             self._draw_tabs(screen, body, wid)
-            tab_body = pygame.Rect(body.x, body.y + 28, body.width, body.height - 28)
+            # S3.14: высота строки вкладок — из фактического linesize
+            # (эффекты прокси растят его; фиксированные 28px клали вкладки
+            # на чипы собеседников)
+            _tabs_h = self._font_text.get_linesize() + 12
+            tab_body = pygame.Rect(body.x, body.y + _tabs_h, body.width, body.height - _tabs_h)
             if tab_body.width <= 0 or tab_body.height <= 0:
                 return
             # Подложка ленты: плотный тёмный фон — текст не сливается с миром.
             # S3: цвет+alpha — оверрайды окна (backdrop_rgb / backdrop_alpha).
             backdrop = pygame.Surface(tab_body.size, pygame.SRCALPHA)
             backdrop.fill((*self._backdrop_rgb(wid), self._backdrop_alpha(wid)))
+            # S3.14: штукатурка на подложке ленты (вердикт: все подложки)
+            self.apply_texture(backdrop, tab_body.width, tab_body.height)
             screen.blit(backdrop, tab_body.topleft)
             self._journal_body_rects[wid] = tab_body  # M19: wheel-зона
             self._draw_journal(screen, tab_body, wid)
@@ -1667,10 +1889,15 @@ class WorkbenchScreen:
                 "contents": _cont}
 
     def _draw_style_panel(self, screen, viewport: pygame.Rect) -> None:
-        """S2: панель стилизации (только F12). Кликабельна: цель/роль/шрифт/
-        размер/жирность/курсив/сброс + список шрифтов (скролл колесом)."""
-        _pw, _ph = 300, 640
-        panel = pygame.Rect(viewport.right - _pw - 12, viewport.top + 12, _pw, _ph)
+        """S2/S3.13: панель стилизации (только F12) — сворачиваемые секции
+        (клик по заголовку ▾/▸): Цвет → Стили/пресеты → Окна → Шрифт.
+        Шрифт последняя: список шрифтов занимает весь остаток панели
+        до низа (скролл колесом над списком)."""
+        _pw, _ph = 300, 680
+        # S3.13 (вердикт Мастера): панель по ЦЕНТРУ правого края — верх не
+        # перекрывается мини-окнами даты/ускорения (анкер top_right занят)
+        _py = max(12, (viewport.height - _ph) // 2)
+        panel = pygame.Rect(viewport.right - _pw - 12, viewport.top + _py, _pw, _ph)
         self._style_panel_rect = panel
         pygame.draw.rect(screen, self.theme.token("surface_panel"), panel, border_radius=8)
         pygame.draw.rect(screen, self.theme.token("border_accent"), panel, 2, border_radius=8)
@@ -1678,6 +1905,8 @@ class WorkbenchScreen:
         _lh = _f.get_linesize() + 4
         _x, _y = panel.x + 10, panel.y + 8
         self._style_hits: list = []
+        _sec = getattr(self, "_style_sections", None) \
+            or {"font": True, "color": True, "presets": False, "windows": False}
 
         def _row(txt: str, col: str, act: str = "", val: str = "") -> None:
             nonlocal _y
@@ -1686,6 +1915,11 @@ class WorkbenchScreen:
             if act:
                 self._style_hits.append((pygame.Rect(panel.x + 4, _y - 2, _pw - 8, _lh), act, val))
             _y += _lh
+
+        def _sec_header(key: str, title: str) -> bool:
+            _open = bool(_sec.get(key, key in ("font", "color")))
+            _row(f"{'▾' if _open else '▸'} {title}", "accent", "section", key)
+            return _open
 
         _glob = getattr(self, "_style_global", False)
         _row(f"[{'X' if _glob else ' '}] СТИЛЬ ДЛЯ ВСЕХ ОКОН"
@@ -1698,88 +1932,152 @@ class WorkbenchScreen:
                 else "  (правка: только это окно)"),
              "accent" if _glob else "text_primary")
         _y += 6
-        _row(f"Роль: {'заголовок' if self._style_role == 'title' else 'текст'}   (клик — переключить)",
-             "text_primary", "role")
         _ov = self._style_overrides.get(self._style_target, {}).get(self._style_role, {})
-        _cur = _ov.get("font_file") or "consolas (системный)"
-        _row(f"Шрифт: {_cur[:34]}", "text_primary", "font_cycle")
-        _row(f"Размер: {16 if self._style_role == 'title' else 14}{_ov.get('size_delta', 0):+d}   [+/−]",
-             "text_primary", "size_cycle")
-        _row(f"Жирный: {'ДА' if _ov.get('bold') else 'нет'}", "text_primary", "bold")
-        _row(f"Курсив: {'ДА' if _ov.get('italic') else 'нет'}", "text_primary", "italic")
-        # S3.7: типографика (per-role) — читаемость текста без фона
-        _row(f"Обводка букв: {_ov.get('outline', 0)}   (клик +1 / Shift −1)",
-             "text_primary", "outline")
-        _row(f"Тень букв: {'ДА' if _ov.get('shadow') else 'нет'}", "text_primary", "shadow")
-        # S3: цвета и прозрачность (per-window, роль-независимо; broadcast
-        # в глобальном режиме уже записал значения в окна — показываем цель)
         _sov = self._style_overrides.get(self._style_target, {}).get("_colors", {})
-        _row("── Цвет: клик = пикер (ползунки) ──", "text_muted")
-        for _tok in ("surface_panel", "surface_title", "border", "border_accent",
-                     "text_primary", "text_muted", "accent", "player_bubble",
-                     "player_name"):
-            _c = _sov.get(_tok) or _TOKEN_DEFAULTS.get(_tok) or list(self.theme.token(_tok))
-            _row(f"{_TOKEN_RU.get(_tok, _tok)}  {tuple(_c)}", "text_primary", "color_edit", _tok)
-        _row(f"Подложка журнала (цвет+альфа): a {_sov.get('backdrop_alpha', 0)}",
-             "text_primary", "backdrop")
-        _row("[Сбросить это окно]", "border_accent", "reset")
-        _y += 6
-        # S3.10: пресеты палитр — строка кнопок (каждое имя = своя зона)
-        _row("── Стили окон (клик = применить) ──", "text_muted")
-        _px = panel.x + 10
-        for _pname in _COLOR_PRESETS:
-            _s = _f.render(_pname, True, self.theme.token("text_primary"))
-            screen.blit(_s, (_px, _y))
-            self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
-                                     "preset", _pname))
-            _px += _s.get_width() + 14
-        if getattr(self, "_my_style", None):
-            _s = _f.render("·Мой стиль", True, self.theme.token("accent"))
-            screen.blit(_s, (_px, _y))
-            self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
-                                     "preset", "__my__"))
-        _y += _lh
-        _s = _f.render("[Сохранить мой стиль (с цели)]", True, self.theme.token("border_accent"))
-        screen.blit(_s, (panel.x + 10, _y))
-        self._style_hits.append((pygame.Rect(panel.x + 6, _y - 2, _s.get_width() + 8, _lh),
-                                 "style_save", ""))
-        _y += _lh
-        _y += 6
-        # B2: строки окон — ДВЕ клик-зоны в строке: [X]-бокс (30px слева) =
-        # флаг «в глобальном стиле» (broadcast-правки трогают/не трогают
-        # окно); остальная ширина строки = показать/скрыть. Все окна из
-        # registry — не хардкод-список.
-        _row("── Окна: [X] глоб. | клик = показ ──", "text_muted")
-        for _wid in self.registry.all_ids():
-            _wm = self.registry.manifest(_wid)
-            _on = bool(getattr(self, "_style_window_global", {}).get(_wid, True))
-            _st = self.registry.state(_wid)
-            _vis = _st != WindowState.HIDDEN
-            _txt = f"[{'X' if _on else ' '}] {'▲' if _vis else '▾'} {_wm.title}"
-            screen.blit(_f.render(_txt, True,
-                                 self.theme.token("accent" if _vis else "text_muted")),
-                        (_x, _y))
-            self._style_hits.append((pygame.Rect(_x - 4, _y - 2, 30, _lh),
-                                     "win_global_toggle", _wid))
-            self._style_hits.append((pygame.Rect(panel.x + 4, _y - 2, _pw - 8, _lh),
-                                     "win_toggle", _wid))
+
+        # ── Секция: Цвет и прозрачность ──
+        if _sec_header("color", "Цвет и прозрачность (клик = пикер)"):
+            for _tok in ("surface_panel", "surface_title", "border", "border_accent",
+                         "text_primary", "text_muted", "accent", "player_bubble",
+                         "player_name"):
+                _c = _sov.get(_tok) or _TOKEN_DEFAULTS.get(_tok) or list(self.theme.token(_tok))
+                _row(f"{_TOKEN_RU.get(_tok, _tok)}  {tuple(_c)}", "text_primary", "color_edit", _tok)
+            _row(f"Подложка журнала (цвет+альфа): a {_sov.get('backdrop_alpha', 0)}",
+                 "text_primary", "backdrop")
+            _y += 4
+
+        # ── Секция: Стили окон и штукатурка ──
+        if _sec_header("presets", "Стили окон и штукатурка"):
+            _px = panel.x + 10
+            for _pname in _COLOR_PRESETS:
+                _s = _f.render(_pname, True, self.theme.token("text_primary"))
+                if _px + _s.get_width() > panel.right - 8:
+                    _px = panel.x + 10  # перенос строки пресетов (6 штук)
+                    _y += _lh
+                screen.blit(_s, (_px, _y))
+                self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
+                                         "preset", _pname))
+                _px += _s.get_width() + 14
+            if getattr(self, "_my_style", None):
+                _s = _f.render("·Мой стиль", True, self.theme.token("accent"))
+                screen.blit(_s, (_px, _y))
+                self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
+                                         "preset", "__my__"))
             _y += _lh
-        _y += 8
-        _row("── Шрифты (клик = применить) ──", "text_muted")
-        self._style_font_area = pygame.Rect(panel.x + 4, _y, _pw - 8, panel.bottom - _y - 8)
-        _names = self._font_provider.names()
-        _scroll = getattr(self, "_style_scroll", 0)
-        _vis = int(self._style_font_area.height // _lh)
-        _scroll = max(0, min(_scroll, max(0, len(_names) - _vis)))
-        self._style_scroll = _scroll
-        for _nm in _names[_scroll:_scroll + _vis]:
-            _on = _nm == _ov.get("font_file", "")
-            _cyr = self._font_provider.supports_cyrillic(_nm)
-            _mark = "" if _cyr else "  [нет кириллицы]"
-            _col = ("accent" if _on else ("text_primary" if _cyr else "text_muted"))
-            _row((_nm or "consolas (системный)") + _mark, _col, "pick", _nm)
-        if len(_names) > _vis:
-            _row(f"(колесо мыши над списком — ещё {len(_names) - _vis})", "text_muted")
+            _s = _f.render("[Сохранить мой стиль (с цели)]", True, self.theme.token("border_accent"))
+            screen.blit(_s, (panel.x + 10, _y))
+            self._style_hits.append((pygame.Rect(panel.x + 6, _y - 2, _s.get_width() + 8, _lh),
+                                     "style_save", ""))
+            _y += _lh
+            _row(f"Глубина рельефа: {int(getattr(self, '_style_texture', 0))}"
+                 f"   (клик ±1; минус = светлый)",
+                 "text_primary", "texture")
+            _nt = tuple(int(c) for c in
+                        (getattr(self, "_style_noise_tint", None) or (255, 255, 255)))
+            _row(f"Подтон узора  {_nt}   (клик = пикер)", "text_primary",
+                 "color_edit", "noise_tint")
+            _row(f"Масштаб узора: {int(getattr(self, '_style_noise_scale', 16))}",
+                 "text_primary", "")
+            _nsr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
+            _nf = (int(getattr(self, "_style_noise_scale", 16)) - 4) / (48 - 4)
+            for _i in range(_nsr.width // 4 + 1):
+                _g8 = int(110 + (_i / (_nsr.width // 4)) * 100)
+                pygame.draw.rect(screen, (_g8, _g8, _g8),
+                                 (_nsr.x + _i * 4, _nsr.y, 4, _nsr.height))
+            pygame.draw.rect(screen, self.theme.token("border"), _nsr, 1)
+            _hx = int(_nsr.x + _nf * _nsr.width)
+            pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _nsr.y - 3, 4, _nsr.height + 6))
+            self._style_hits.append((_nsr, "noise_slide", ""))
+            self._noise_slider_rect = _nsr
+            _y += 14
+            _row(f"Сменить узор  (шум #{int(getattr(self, '_style_noise_seed', 0))})",
+                 "border_accent", "noise_seed")
+            _row("[Сбросить это окно]", "border_accent", "reset")
+            _y += 4
+
+        # ── Секция: Окна ([X]-бокс = глобальность, клик по строке = показ) ──
+        if _sec_header("windows", "Окна: [X] глоб. | клик = показ"):
+            for _wid in self.registry.all_ids():
+                _wm = self.registry.manifest(_wid)
+                _on = bool(getattr(self, "_style_window_global", {}).get(_wid, True))
+                _st = self.registry.state(_wid)
+                _v = _st != WindowState.HIDDEN
+                _txt = f"[{'X' if _on else ' '}] {'▲' if _v else '▾'} {_wm.title}"
+                screen.blit(_f.render(_txt, True,
+                                     self.theme.token("accent" if _v else "text_muted")),
+                            (_x, _y))
+                self._style_hits.append((pygame.Rect(_x - 4, _y - 2, 30, _lh),
+                                         "win_global_toggle", _wid))
+                self._style_hits.append((pygame.Rect(panel.x + 4, _y - 2, _pw - 8, _lh),
+                                         "win_toggle", _wid))
+                _y += _lh
+            _y += 4
+
+        # ── Секция: Шрифт и типографика (ПОСЛЕДНЯЯ — список шрифтов
+        # занимает весь остаток панели до низа) ──
+        if _sec_header("font", "Шрифт и типографика"):
+            _row(f"Роль: {'заголовок' if self._style_role == 'title' else 'текст'}   (клик — переключить)",
+                 "text_primary", "role")
+            _cur = _ov.get("font_file") or "consolas (системный)"
+            _row(f"Шрифт: {_cur[:34]}", "text_primary", "font_cycle")
+            _row(f"Размер: {16 if self._style_role == 'title' else 14}{_ov.get('size_delta', 0):+d}   [+/−]",
+                 "text_primary", "size_cycle")
+            _row(f"Жирный: {'ДА' if _ov.get('bold') else 'нет'}", "text_primary", "bold")
+            _row(f"Курсив: {'ДА' if _ov.get('italic') else 'нет'}", "text_primary", "italic")
+            # S3.7: типографика (per-role) — читаемость текста без фона
+            _row(f"Обводка букв: {_ov.get('outline', 0)}   (клик +1 / Shift −1)",
+                 "text_primary", "outline")
+            _row(f"Тень букв: {'ДА' if _ov.get('shadow') else 'нет'}", "text_primary", "shadow")
+            # S3.14: свечение — дробный ползунок 0-1 (per-role)
+            _row(f"Свечение: {float(_ov.get('glow', 0)):.2f}", "text_primary", "")
+            _gsr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
+            _gf = max(0.0, min(1.0, float(_ov.get("glow", 0))))
+            for _i in range(_gsr.width // 4 + 1):
+                _g8 = int(110 + (_i / (_gsr.width // 4)) * 100)
+                pygame.draw.rect(screen, (_g8, _g8, _g8),
+                                 (_gsr.x + _i * 4, _gsr.y, 4, _gsr.height))
+            pygame.draw.rect(screen, self.theme.token("border"), _gsr, 1)
+            _hx = int(_gsr.x + _gf * _gsr.width)
+            pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _gsr.y - 3, 4, _gsr.height + 6))
+            self._style_hits.append((_gsr, "glow_slide", ""))
+            self._glow_slider_rect = _gsr
+            _y += 14
+            _row(f"Разрядка букв: {_ov.get('spacing', 0)}   (клик +1 / Shift −1)",
+                 "text_primary", "spacing")
+            _row(f"Подчёркивание: {'ДА' if _ov.get('underline') else 'нет'}",
+                 "text_primary", "underline")
+            # S3.14: живой ползунок размера аватара (клик/перетаскивание)
+            _row(f"Размер аватара: {self._avatar_size()}", "text_primary", "")
+            _asr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
+            _af = (self._avatar_size() - 24) / (96 - 24)
+            for _i in range(_asr.width // 4 + 1):
+                _g8 = int(110 + (_i / (_asr.width // 4)) * 100)
+                pygame.draw.rect(screen, (_g8, _g8, _g8),
+                                 (_asr.x + _i * 4, _asr.y, 4, _asr.height))
+            pygame.draw.rect(screen, self.theme.token("border"), _asr, 1)
+            _hx = int(_asr.x + _af * _asr.width)
+            pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _asr.y - 3, 4, _asr.height + 6))
+            self._style_hits.append((_asr, "avatar_slide", ""))
+            self._avatar_slider_rect = _asr
+            _y += 14
+            _y += 4
+            _row("── Шрифты (клик = применить) ──", "text_muted")
+            self._style_font_area = pygame.Rect(panel.x + 4, _y, _pw - 8, panel.bottom - _y - 8)
+            _names = self._font_provider.names()
+            _scroll = getattr(self, "_style_scroll", 0)
+            _vis = int(self._style_font_area.height // _lh)
+            _scroll = max(0, min(_scroll, max(0, len(_names) - _vis)))
+            self._style_scroll = _scroll
+            for _nm in _names[_scroll:_scroll + _vis]:
+                _on = _nm == _ov.get("font_file", "")
+                _cyr = self._font_provider.supports_cyrillic(_nm)
+                _mark = "" if _cyr else "  [нет кириллицы]"
+                _col = ("accent" if _on else ("text_primary" if _cyr else "text_muted"))
+                _row((_nm or "consolas (системный)") + _mark, _col, "pick", _nm)
+            if len(_names) > _vis:
+                _row(f"(колесо мыши над списком — ещё {len(_names) - _vis})", "text_muted")
+        else:
+            self._style_font_area = None
 
     def _style_panel_click(self, pos) -> bool:
         """S2: клик по панели стилизации. True = событие съедено."""
@@ -1798,7 +2096,12 @@ class WorkbenchScreen:
                       if getattr(self, "_style_window_global", {}).get(w, True)]
                      if getattr(self, "_style_global", False) else [self._style_target])
             _ov = self._style_overrides.setdefault(self._style_target, {}).setdefault(self._style_role, {})
-            if act == "role":
+            if act == "section":
+                # S3.13: сворачивание/разворачивание секции панели
+                _sec = getattr(self, "_style_sections", None) or {}
+                _sec[val] = not _sec.get(val, val in ("font", "color"))
+                self._style_sections = _sec
+            elif act == "role":
                 self._style_role = "text" if self._style_role == "title" else "title"
             elif act == "font_cycle":
                 _names = self._font_provider.names()
@@ -1831,6 +2134,30 @@ class WorkbenchScreen:
                 _new = not _ov.get("shadow", False)
                 for _w in _wids:
                     self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["shadow"] = _new
+            elif act == "glow_slide":
+                _f = max(0.0, min(1.0, (pos[0] - rect.x) / max(1, rect.width)))
+                _new = round(_f * 100) / 100
+                for _w in _wids:
+                    self._style_overrides.setdefault(_w, {}).setdefault(
+                        self._style_role, {})["glow"] = _new
+                self._glow_slider_rect = rect
+                self._panel_slider_drag = "glow"
+            elif act == "spacing":
+                _mods = pygame.key.get_mods()
+                _new = max(-4, min(8, int(_ov.get("spacing", 0))
+                                   + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
+                for _w in _wids:
+                    self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["spacing"] = _new
+            elif act == "underline":
+                _new = not _ov.get("underline", False)
+                for _w in _wids:
+                    self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["underline"] = _new
+            elif act == "avatar_slide":
+                # S3.14: клик по ползунку аватара (drag стартует здесь)
+                _f = max(0.0, min(1.0, (pos[0] - rect.x) / max(1, rect.width)))
+                self._style_avatar_size = int(24 + _f * (96 - 24))
+                self._avatar_slider_rect = rect
+                self._panel_slider_drag = "avatar"
             elif act == "color_edit":
                 # S3.5: клик по цветовой строке = открыть HSV-пикер (ползунки)
                 _base = self._style_overrides.get(self._style_target, {}) \
@@ -1885,6 +2212,19 @@ class WorkbenchScreen:
                     if _a is not None:
                         _snap[_tok + "_alpha"] = int(_a)
                 self._my_style = _snap
+            elif act == "texture":
+                _mods = pygame.key.get_mods()
+                self._style_texture = max(
+                    -6, min(6, int(getattr(self, "_style_texture", 0))
+                            + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
+            elif act == "noise_seed":
+                # S3.14: новое зерно шума — уникальный узор
+                self._style_noise_seed = int(getattr(self, "_style_noise_seed", 0)) + 1
+            elif act == "noise_slide":
+                _f = max(0.0, min(1.0, (pos[0] - rect.x) / max(1, rect.width)))
+                self._style_noise_scale = int(4 + _f * (48 - 4))
+                self._noise_slider_rect = rect
+                self._panel_slider_drag = "noise"
             elif act == "win_toggle":
                 _st = self.registry.state(val)
                 if _st == WindowState.HIDDEN:
@@ -1930,6 +2270,10 @@ class WorkbenchScreen:
         h, s, v = self._picker_hsv
         r, g, b = colorsys.hsv_to_rgb(h, s, v)
         _rgb = [int(round(r * 255)), int(round(g * 255)), int(round(b * 255))]
+        if _tok == "noise_tint":
+            # S3.14: подтон шума — глобальный параметр (не per-window)
+            self._style_noise_tint = _rgb
+            return
         if _tok == "backdrop":
             for _w in self._style_targets():
                 _c = self._style_overrides.setdefault(_w, {}).setdefault("_colors", {})
@@ -1937,7 +2281,8 @@ class WorkbenchScreen:
                 _c["backdrop_alpha"] = int(self._picker_alpha)
         else:
             # S3.6: альфа пишется только поверхностям — текст непрозрачен
-            _with_a = _tok not in ("text_primary", "text_muted", "accent", "player_name")
+            _with_a = _tok not in ("text_primary", "text_muted", "accent", "player_name",
+                                   "noise_tint")
             for _w in self._style_targets():
                 _c = self._style_overrides.setdefault(_w, {}).setdefault("_colors", {})
                 _c[_tok] = _rgb
@@ -1993,7 +2338,10 @@ class WorkbenchScreen:
             self._picker_rect = None
             return
         _w, _h = 250, 192
-        panel = pygame.Rect(viewport.right - 312 - 8 - _w, viewport.top + 12, _w, _h)
+        # S3.13: пикер — на уровне панели СТИЛЬ (не под мини-окнами)
+        _sp = getattr(self, "_style_panel_rect", None)
+        _py = _sp.y if _sp is not None else viewport.top + 12
+        panel = pygame.Rect(viewport.right - 312 - 8 - _w, _py, _w, _h)
         self._picker_rect = panel
         pygame.draw.rect(screen, self.theme.token("surface_panel"), panel, border_radius=8)
         pygame.draw.rect(screen, self.theme.token("border_accent"), panel, 2, border_radius=8)
@@ -2042,7 +2390,8 @@ class WorkbenchScreen:
         _bar("s", "Насыщенность", s, _y)
         _y += 34
         _bar("v", "Яркость", v, _y)
-        if _tok not in ("text_primary", "text_muted", "accent", "player_name"):
+        if _tok not in ("text_primary", "text_muted", "accent", "player_name",
+                        "noise_tint"):
             # S3.6: прозрачность поверхностей (рамки/фоны/подложка)
             _y += 34
             _bar("a", f"Прозрачность: {int(self._picker_alpha)}",
@@ -2061,8 +2410,11 @@ class WorkbenchScreen:
             hit = pygame.Rect(x, y, surf.get_width() + 12, 22)
             screen.blit(surf, (x + 6, y + 3))
             if tab_id == active:
+                # S3.14-фикс: линия под ФАКТИЧЕСКОЙ высотой метки — эффекты
+                # прокси растят surface, фиксированная y+22 прорезала буквы
+                _uy = y + 3 + surf.get_height() + 1
                 pygame.draw.line(screen, self._ct(wid, "accent"),
-                                 (x, y + 22), (x + hit.width, y + 22), 2)
+                                 (x, _uy), (x + hit.width, _uy), 2)
             self._tab_rects[wid].append((hit, tab_id))
             x += hit.width + 8
 
@@ -2101,6 +2453,111 @@ class WorkbenchScreen:
         if tab == "narrator":
             return [e for e in entries if e.get("channel", "narrative") == "narrative"]
         return entries
+
+    def _casting_wb(self):
+        """S3.12: ленивый VisualCastingRepository (frontend-модуль, читает
+        только конфиг-контент — изоляция фронтенда не нарушается)."""
+        if self._casting_repo_wb is None:
+            try:
+                from visual_casting_repository import VisualCastingRepository
+                self._casting_repo_wb = VisualCastingRepository()
+            except Exception as _e:
+                print(f"[AVATAR_CASTING] failed: {_e}")  # наблюдаемо, не тихо
+                self._casting_repo_wb = False
+        return self._casting_repo_wb or None
+
+    def _portrait_npc_id(self, speaker: str) -> Optional[str]:
+        """S3.12: имя журнала → npc_id (individuals: name + name_forms;
+        точное совпадение, затем вхождение — «Борко» ⊂ «стражник борко»)."""
+        if self._portrait_name_map is None:
+            _m: dict = {}
+            _dir = Path(__file__).parent.parent.parent / "config" / "npc" / "individuals"
+            if _dir.exists():
+                for _f in _dir.glob("*.json"):
+                    try:
+                        _d = json.loads(_f.read_text(encoding="utf-8"))
+                    except Exception:
+                        continue
+                    _id = _d.get("id")
+                    if not _id:
+                        continue
+                    for _nm in ({_d.get("name", "") or "", *_d.get("name_forms", [])}):
+                        if _nm:
+                            _m.setdefault(_nm.strip().lower(), _id)
+            self._portrait_name_map = _m
+        _key = (speaker or "").strip().lower()
+        if not _key:
+            return None
+        if _key in self._portrait_name_map:
+            return self._portrait_name_map[_key]
+        for _nm, _id in self._portrait_name_map.items():
+            if _key in _nm or _nm in _key:
+                return _id
+        return None
+
+    def _journal_portrait(self, speaker: str):
+        """S3.12/S3.14: фото-аватар по спикеру (кэш по (имя, размер);
+        None = круг-инициал). Asset-контракт — как у PortraitRenderer."""
+        _sz = self._avatar_size()
+        _key = (speaker, _sz)
+        if _key in self._avatar_cache:
+            return self._avatar_cache[_key]
+        _surf = None
+        _repo = self._casting_wb()
+        _npc = self._portrait_npc_id(speaker)
+        if _repo is not None and _npc:
+            _asset = _repo.get_fallback_asset(_npc)
+            if _asset and _asset[0]:
+                try:
+                    from sprite_registry import sprite_registry as _sr
+                    if len(_asset) >= 5:
+                        _src = _sr.get_rect(
+                            _asset[0], int(_asset[1]), int(_asset[2]),
+                            int(_asset[3]), int(_asset[4]),
+                            int(_asset[5]) if len(_asset) > 5 else 220,
+                            int(_asset[6]) if len(_asset) > 6 else 1)
+                    else:
+                        _src = _sr.get(_asset[0], _asset[1], _asset[2])
+                    if _src:
+                        # Зум на верхний квадрат спрайта (голова/бюст):
+                        # полный арт в 40px — нечитаемая каша (урок S3.12)
+                        sw, sh = _src.get_size()
+                        _side = min(sw, sh)
+                        _sub = _src.subsurface(
+                            pygame.Rect((sw - _side) // 2, 0, _side, _side))
+                        _surf = pygame.transform.smoothscale(_sub, (_sz, _sz))
+                except ImportError as _e:
+                    print(f"[AVATAR_SPRITES] sprite_registry не найден: {_e}")
+                except Exception:
+                    _surf = None
+        self._avatar_cache[_key] = _surf
+        return _surf
+
+    def _draw_avatar(self, screen, speaker: str, x: int, y: int, size: int,
+                     ring_color) -> None:
+        """S3.11/S3.12: аватар журнала (Discord-стиль). Приоритет — фото NPC
+        из visual_casting (круговой кроп), фоллбэк — круг с инициалом.
+        Кольцо — из палитры (цвет канала/рамки)."""
+        _ph = self._journal_portrait(speaker)
+        _avs = pygame.Surface((size, size), pygame.SRCALPHA)
+        if _ph is not None:
+            _avs.blit(_ph, ((size - _ph.get_width()) // 2,
+                            (size - _ph.get_height()) // 2))
+            _mask = pygame.Surface((size, size), pygame.SRCALPHA)
+            pygame.draw.circle(_mask, (255, 255, 255, 255),
+                               (size // 2, size // 2), size // 2 - 2)
+            _avs.blit(_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        else:
+            _h = (sum(ord(c) for c in (speaker or "?")) % 360) / 360.0
+            r, g, b = colorsys.hsv_to_rgb(_h, 0.45, 0.72)
+            pygame.draw.circle(_avs, (int(r * 255), int(g * 255), int(b * 255)),
+                               (size // 2, size // 2), size // 2 - 2)
+            _f = pygame.font.SysFont("consolas", max(9, size - 10))
+            _ini = _f.render((speaker or "?")[:1].upper(), True, (240, 240, 240))
+            _avs.blit(_ini, ((size - _ini.get_width()) // 2,
+                             (size - _ini.get_height()) // 2))
+        pygame.draw.circle(_avs, ring_color, (size // 2, size // 2), size // 2 - 2, 2)
+        screen.blit(_avs, (x, y))
 
     def _draw_journal(self, screen, body: pygame.Rect, wid: Optional[str] = None) -> None:
         """F&F-лента: narration = полноширинный блок без пузыря (левая
@@ -2217,8 +2674,10 @@ class WorkbenchScreen:
         y = body.y + 8
         for ch, speaker, lines, h, w, ev_id in visible:
             lh = self._font_text.get_linesize() + 1
+            _av = self._avatar_size()  # S3.14: живой размер (ползунок)
             if ch == "self":
-                bx = body.right - w - 10
+                # S3.11: аватар игрока — справа от пузыря (Discord-стиль)
+                bx = body.right - w - 10 - _av - 6
                 bubble = pygame.Rect(bx, y, w, h - 6)
                 # S3.7: пузырь игрока — токен (был RGB-литерал 35,45,70)
                 self._fill_alpha(screen, bubble, *self._cta(wid, "player_bubble", (35, 45, 70)), 8)
@@ -2228,6 +2687,8 @@ class WorkbenchScreen:
                 name_s = self._font_text.render(
                     speaker, True, self._ct(wid, "player_name", _TOKEN_DEFAULTS["player_name"]))
                 screen.blit(name_s, (bx + 8, y + 2))
+                self._draw_avatar(screen, speaker, body.right - _av - 10, y + 2,
+                                  _av, self._ct(wid, "border_accent"))
                 ty = y + 18
                 for line in lines:
                     ts = self._font_text.render(line, True, theme.token("text_primary"))
@@ -2243,8 +2704,8 @@ class WorkbenchScreen:
                     screen.blit(ts, (body.x + 16, ty))
                     ty += lh
             else:
-                bw = max(w, 120)
-                bubble = pygame.Rect(body.x + 10, y, bw, h - 6)
+                bw = min(max(w, 120), max(100, body.width - _av - 26))
+                bubble = pygame.Rect(body.x + 10 + _av + 6, y, bw, h - 6)
                 self._fill_alpha(screen, bubble, *self._cta(wid, "surface_title"), 8)
                 self._stroke_alpha(screen, bubble, *self._cta(wid, "border"), 1, 8)
                 # M12 (вердикт): эпистемические маркеры у имени.
@@ -2259,6 +2720,8 @@ class WorkbenchScreen:
                 name_s = self._font_text.render(_name_txt, True, _nc)
                 screen.blit(mark_s, (bubble.x + 8, y + 1))
                 screen.blit(name_s, (bubble.x + 8 + mark_s.get_width(), y + 1))
+                # S3.11: аватар NPC слева (кольцо = цвет канала ●/◌)
+                self._draw_avatar(screen, speaker, body.x + 10, y + 1, _av, _nc)
                 # A1: маркер «+» — «положить на Доску». Только при открытой
                 # Доске ∧ непустом event_id (ADR-O-404: narrative/self не
                 # адресуются — маркер им не положен, граница видима).

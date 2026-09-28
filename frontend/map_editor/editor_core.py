@@ -1771,6 +1771,10 @@ class EditorCore:
                     if getattr(self, "_scene_renderer", None) is None:
                         from scene_renderer import SceneRenderer
                         self._scene_renderer = SceneRenderer(self.screen)
+                    # S3.8: сцена — шрифт из мирового стиля верстака (Журнал);
+                    # каждый кадр — смена шрифта/обводки/тени в F12 живая
+                    self._scene_renderer.font_small = self.workbench_screen.world_font()
+                    self._scene_renderer.name_style = self.workbench_screen.world_style()
                     _coords = self._scene_renderer.render(
                         scene=_scene, scene_w=_sw, scene_h=_sh,
                         walls=_walls, obstacles=_obst, player_xy=_pxy,

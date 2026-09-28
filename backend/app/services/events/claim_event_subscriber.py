@@ -166,6 +166,21 @@ class ClaimEventSubscriber:
                 _guard_reason = f"empty object_id={prop.object_id!r}"
             elif prop.polarity is None:
                 _guard_reason = "polarity=None"
+            else:
+                # ⑤-B фаза-2 (S292): акторная мембрана subject'а. Claim о
+                # не-акторе (subject='tavern:exit_south' — узел графа из
+                # movement-семантики) попадал в EpistemicStore → S197-
+                # таргетинг резолвил дверь целью WARN → шторм ~60/мин.
+                # sanity_membrane.can_address — третий потребитель шва
+                # (§ENIGMA-002: два домена есть → ADR-кандидат). Player —
+                # легальный subject (NPC верят про игрока). Fail-closed:
+                # мусорный claim не доходит до веры НИКОГДА.
+                from app.domain.sanity_membrane import can_address
+                if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
+                    _guard_reason = (
+                        f"non-actor subject_id={prop.subject_id!r} "
+                        f"(sanity_membrane: claim о не-акторе не создаёт веру)"
+                    )
             if _guard_reason:
                 print(f"[CLAIM_GUARD] proposition REJECTED: {_guard_reason} "
                       f"(predicate={getattr(prop.predicate, 'value', prop.predicate)}, "

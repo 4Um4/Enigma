@@ -260,19 +260,16 @@ def inv_dialogue_init(world: TestWorld) -> InvariantResult:
             ["backend/app/services/game_loop/__init__.py"]
         )
 
-    # Стадия 3: Ожидаем завершения фоновых LLM-задач (TaskScheduler работает асинхронно).
-    # IRON RIVER-урок: пул ГАСИТСЯ на дренаж, но ВОССТАНАВЛИВАЕТСЯ — мир
-    # живёт и после этого инварианта (последующие тики сабмитят задачи:
-    # task_scheduler:257/419), «futures after shutdown» валил COMMIT-
-    # CARDINALITY и всё ниже по течению.
-    if hasattr(scheduler, "_executor_pool"):
-        try:
-            scheduler._executor_pool.shutdown(wait=True)
-        except Exception:
-            pass
-        from concurrent.futures import ThreadPoolExecutor
-
-        scheduler._executor_pool = ThreadPoolExecutor(max_workers=1)
+    # Стадия 3: Дренаж фоновых задач БЕЗ шатдауна пула (S292-фикс каскада).
+    # Прежний «shutdown + пересоздание голого ThreadPoolExecutor» ломал
+    # обвязку ADR-O-363/364 (worker-loop оставался привязан к мёртвому
+    # пулу) → инвариант САМ убивал конвейер: 0 диалогов после 12 тиков,
+    # а следующие инварианты наследовали мир с разбитым пулом (каскад
+    # красных: NPC-MOVE/TRAV-DICT/SNAPSHOT-TOPOLOGY).
+    # Дренаж: idle_tick уже дренит outbox синхронно (task_scheduler:341/419),
+    # поэтому просто даём миру несколько тиков на завершение фоновых задач.
+    for _ in range(3):
+        world.idle_tick()
 
     _recent = scheduler.get_recent_dialogues(world.game_time_seconds)
     if _recent:

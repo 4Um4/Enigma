@@ -583,16 +583,22 @@ class SceneRenderer:
                         self.screen, (255, 255, 255), (sx, sy), radius, 2
                     )  # Белый контур периферии
 
-            # Имя по confidence
+            # Имя по confidence; S3.8: цвет — из мирового стиля верстака
+            # (name_style), фоллбэк — прежние семантические литералы
             if entity.display_name:
                 _blur = getattr(entity, "blur_intensity", 0.0)
-                # S169: Эффект "незнакомца" - серое полупрозрачное имя
+                _ns = getattr(self, "name_style", None)
+                # S169: Эффект "незнакомца" - приглушённое имя
                 if _blur > 0.4:
-                    name_color = (150, 150, 150)
+                    name_color = _ns.token("text_muted") if _ns else (150, 150, 150)
                     label = self.font_small.render(entity.display_name, True, name_color)
                     label.set_alpha(150)
                 else:
-                    name_color = (255, 255, 255) if is_focused else COLOR_TEXT_DIM
+                    if _ns is not None:
+                        name_color = (_ns.token("text_primary") if is_focused
+                                      else _ns.token("text_muted"))
+                    else:
+                        name_color = (255, 255, 255) if is_focused else COLOR_TEXT_DIM
                     label = self.font_small.render(entity.display_name, True, name_color)
                     
                 self.screen.blit(label, (sx - label.get_width() // 2, sy - radius - 16))

@@ -560,7 +560,7 @@ class TaskScheduler:
             )
             _processed_count += 1
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0):
+    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = "", _task_type: str = "canonical", _game_time: float = 0.0, submit_tick: int = 0) -> None:
         """Фоновая обработка задач LLM (ADR-O-399: только compute, observable-эффекты — в drain)."""
         import os as _os
         import time

@@ -151,19 +151,29 @@ def test_superbox_014_second_order_attribution():
     # --- VALIDATION ---
     _epistemic_store = game_loop_treat._tick_orch._epistemic_store
     
-    rec_A = _epistemic_store.get(NPC_A)
+    rec_A = _epistemic_store.get(NPC_A, proposition=Proposition(
+        subject_id=NPC_B, predicate=Predicate.STOLE, object_id="apple", polarity=True
+    ))
     assert rec_A is not None, "NPC_A must have the injected belief"
     assert rec_A.proposition.subject_id == NPC_B, "NPC_A's belief must be about NPC_B"
     logger.info(f"[VALIDATION] NPC_A belief: {rec_A.proposition.subject_id} {rec_A.proposition.predicate.value}")
     
     import time
+    # S292: у NPC_B легитимные EXITS_TO-гео-записи (эксплорация) — get()
+    # без proposition возвращает произвольную запись. Second-order ищем
+    # по предикату ASSERTS среди ВСЕХ записей агента.
     rec_B = None
     for _ in range(20):
-        rec_B = _epistemic_store.get(NPC_B)
+        _all_B = _epistemic_store.get_all_for_agent(NPC_B)
+        rec_B = next(
+            (r for r in _all_B
+             if getattr(r.proposition, "predicate", None) == Predicate.ASSERTS),
+            None,
+        )
         if rec_B is not None:
             break
         time.sleep(0.25)
-        
+
     assert rec_B is not None, "NPC_B MUST have the 2nd-order belief!"
     
     # S199: Проверяем, что убеждение B является вторым порядком (B believes A asserts P)

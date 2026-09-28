@@ -4,10 +4,13 @@
     "journal": {
       "text": {
         "font_file": "SourceCodePro-Regular",
-        "size_delta": 4,
+        "size_delta": 6,
         "bold": false,
-        "outline": 1,
-        "shadow": false
+        "outline": 2,
+        "shadow": true,
+        "glow": 0.0,
+        "spacing": -3,
+        "underline": false
       },
       "title": {
         "font_file": "SourceCodePro-Semibold",
@@ -17,54 +20,54 @@
       },
       "_colors": {
         "surface_panel": [
-          46,
-          52,
-          64
+          16,
+          15,
+          14
         ],
         "surface_title": [
-          59,
-          66,
-          82
+          24,
+          22,
+          19
         ],
         "border": [
-          76,
-          86,
-          106
+          60,
+          52,
+          38
         ],
         "border_accent": [
-          235,
-          203,
-          139
+          197,
+          160,
+          74
         ],
         "text_primary": [
+          224,
           216,
-          222,
-          233
+          196
         ],
         "text_muted": [
-          129,
-          161,
-          193
+          146,
+          136,
+          116
         ],
         "accent": [
-          136,
-          192,
-          208
+          197,
+          160,
+          74
         ],
         "player_bubble": [
-          59,
-          66,
-          82
+          28,
+          25,
+          20
         ],
         "player_name": [
-          235,
-          203,
-          139
+          232,
+          195,
+          105
         ],
         "backdrop_rgb": [
-          46,
-          52,
-          64
+          12,
+          11,
+          10
         ],
         "surface_panel_alpha": 255,
         "surface_title_alpha": 255,
@@ -76,11 +79,14 @@
     },
     "inventory": {
       "text": {
-        "font_file": "SourceCodePro-Medium",
-        "size_delta": 2,
+        "font_file": "SourceCodePro-Regular",
+        "size_delta": 6,
         "bold": false,
-        "outline": 1,
-        "shadow": false
+        "outline": 2,
+        "shadow": true,
+        "glow": 0.0,
+        "spacing": -3,
+        "underline": false
       },
       "title": {
         "font_file": "SourceCodePro-Semibold",
@@ -90,54 +96,54 @@
       },
       "_colors": {
         "surface_panel": [
-          46,
-          52,
-          64
+          16,
+          15,
+          14
         ],
         "surface_title": [
-          59,
-          66,
-          82
+          24,
+          22,
+          19
         ],
         "border": [
-          76,
-          86,
-          106
+          60,
+          52,
+          38
         ],
         "border_accent": [
-          235,
-          203,
-          139
+          197,
+          160,
+          74
         ],
         "text_primary": [
+          224,
           216,
-          222,
-          233
+          196
         ],
         "text_muted": [
-          129,
-          161,
-          193
+          146,
+          136,
+          116
         ],
         "accent": [
-          136,
-          192,
-          208
+          197,
+          160,
+          74
         ],
         "player_bubble": [
-          59,
-          66,
-          82
+          28,
+          25,
+          20
         ],
         "player_name": [
-          235,
-          203,
-          139
+          232,
+          195,
+          105
         ],
         "backdrop_rgb": [
-          46,
-          52,
-          64
+          12,
+          11,
+          10
         ],
         "surface_panel_alpha": 255,
         "surface_title_alpha": 255,
@@ -149,11 +155,14 @@
     },
     "observations": {
       "text": {
-        "font_file": "SourceCodePro-Medium",
-        "size_delta": 1,
+        "font_file": "SourceCodePro-Regular",
+        "size_delta": 6,
         "bold": false,
-        "outline": 1,
-        "shadow": false
+        "outline": 2,
+        "shadow": true,
+        "glow": 0.0,
+        "spacing": -3,
+        "underline": false
       },
       "title": {
         "font_file": "SourceCodePro-Semibold",
@@ -163,54 +172,54 @@
       },
       "_colors": {
         "surface_panel": [
-          46,
-          52,
-          64
+          16,
+          15,
+          14
         ],
         "surface_title": [
-          59,
-          66,
-          82
+          24,
+          22,
+          19
         ],
         "border": [
-          76,
-          86,
-          106
+          60,
+          52,
+          38
         ],
         "border_accent": [
-          235,
-          203,
-          139
+          197,
+          160,
+          74
         ],
         "text_primary": [
+          224,
           216,
-          222,
-          233
+          196
         ],
         "text_muted": [
-          129,
-          161,
-          193
+          146,
+          136,
+          116
         ],
         "accent": [
-          136,
-          192,
-          208
+          197,
+          160,
+          74
         ],
         "player_bubble": [
-          59,
-          66,
-          82
+          28,
+          25,
+          20
         ],
         "player_name": [
-          235,
-          203,
-          139
+          232,
+          195,
+          105
         ],
         "backdrop_rgb": [
-          46,
-          52,
-          64
+          12,
+          11,
+          10
         ],
         "surface_panel_alpha": 255,
         "surface_title_alpha": 255,
@@ -222,10 +231,14 @@
     },
     "time_scale": {
       "text": {
-        "font_file": "SourceCodePro-Medium",
+        "font_file": "SourceCodePro-Regular",
         "bold": false,
-        "outline": 1,
-        "shadow": false
+        "outline": 2,
+        "shadow": true,
+        "glow": 0.0,
+        "spacing": -3,
+        "underline": false,
+        "size_delta": 6
       },
       "title": {
         "font_file": "SourceCodePro-Semibold",
@@ -233,54 +246,54 @@
       },
       "_colors": {
         "surface_panel": [
-          46,
-          52,
-          64
+          16,
+          15,
+          14
         ],
         "surface_title": [
-          59,
-          66,
-          82
+          24,
+          22,
+          19
         ],
         "border": [
-          76,
-          86,
-          106
+          60,
+          52,
+          38
         ],
         "border_accent": [
-          235,
-          203,
-          139
+          197,
+          160,
+          74
         ],
         "text_primary": [
+          224,
           216,
-          222,
-          233
+          196
         ],
         "text_muted": [
-          129,
-          161,
-          193
+          146,
+          136,
+          116
         ],
         "accent": [
-          136,
-          192,
-          208
+          197,
+          160,
+          74
         ],
         "player_bubble": [
-          59,
-          66,
-          82
+          28,
+          25,
+          20
         ],
         "player_name": [
-          235,
-          203,
-          139
+          232,
+          195,
+          105
         ],
         "backdrop_rgb": [
-          46,
-          52,
-          64
+          12,
+          11,
+          10
         ],
         "surface_panel_alpha": 255,
         "surface_title_alpha": 255,
@@ -292,11 +305,14 @@
     },
     "world_clock": {
       "text": {
-        "font_file": "SourceCodePro-Medium",
-        "size_delta": 1,
+        "font_file": "SourceCodePro-Regular",
+        "size_delta": 6,
         "bold": false,
-        "outline": 1,
-        "shadow": false
+        "outline": 2,
+        "shadow": true,
+        "glow": 0.0,
+        "spacing": -3,
+        "underline": false
       },
       "title": {
         "font_file": "SourceCodePro-Semibold",
@@ -304,54 +320,54 @@
       },
       "_colors": {
         "surface_panel": [
-          46,
-          52,
-          64
+          16,
+          15,
+          14
         ],
         "surface_title": [
-          59,
-          66,
-          82
+          24,
+          22,
+          19
         ],
         "border": [
-          76,
-          86,
-          106
+          60,
+          52,
+          38
         ],
         "border_accent": [
-          235,
-          203,
-          139
+          197,
+          160,
+          74
         ],
         "text_primary": [
+          224,
           216,
-          222,
-          233
+          196
         ],
         "text_muted": [
-          129,
-          161,
-          193
+          146,
+          136,
+          116
         ],
         "accent": [
-          136,
-          192,
-          208
+          197,
+          160,
+          74
         ],
         "player_bubble": [
-          59,
-          66,
-          82
+          28,
+          25,
+          20
         ],
         "player_name": [
-          235,
-          203,
-          139
+          232,
+          195,
+          105
         ],
         "backdrop_rgb": [
-          46,
-          52,
-          64
+          12,
+          11,
+          10
         ],
         "surface_panel_alpha": 255,
         "surface_title_alpha": 255,
@@ -369,62 +385,65 @@
         "size_delta": 4
       },
       "text": {
-        "font_file": "SourceCodePro-Medium",
-        "size_delta": 1,
+        "font_file": "SourceCodePro-Regular",
+        "size_delta": 6,
         "bold": false,
-        "outline": 1,
-        "shadow": false
+        "outline": 2,
+        "shadow": true,
+        "glow": 0.0,
+        "spacing": -3,
+        "underline": false
       },
       "_colors": {
         "surface_panel": [
-          46,
-          52,
-          64
+          16,
+          15,
+          14
         ],
         "surface_title": [
-          59,
-          66,
-          82
+          24,
+          22,
+          19
         ],
         "border": [
-          76,
-          86,
-          106
+          60,
+          52,
+          38
         ],
         "border_accent": [
-          235,
-          203,
-          139
+          197,
+          160,
+          74
         ],
         "text_primary": [
+          224,
           216,
-          222,
-          233
+          196
         ],
         "text_muted": [
-          129,
-          161,
-          193
+          146,
+          136,
+          116
         ],
         "accent": [
-          136,
-          192,
-          208
+          197,
+          160,
+          74
         ],
         "player_bubble": [
-          59,
-          66,
-          82
+          28,
+          25,
+          20
         ],
         "player_name": [
-          235,
-          203,
-          139
+          232,
+          195,
+          105
         ],
         "backdrop_rgb": [
-          46,
-          52,
-          64
+          12,
+          11,
+          10
         ],
         "surface_panel_alpha": 255,
         "surface_title_alpha": 255,
@@ -440,7 +459,11 @@
   "global": true,
   "window_global": {
     "journal": true,
-    "board": true
+    "board": true,
+    "world_clock": true,
+    "time_scale": true,
+    "observations": true,
+    "inventory": true
   },
   "my_style": {
     "surface_panel": [
@@ -499,5 +522,14 @@
     "border_alpha": 215,
     "border_accent_alpha": 41,
     "player_bubble_alpha": 255
-  }
+  },
+  "texture": 6,
+  "avatar_size": 60,
+  "noise_scale": 48,
+  "noise_seed": 117,
+  "noise_tint": [
+    255,
+    255,
+    255
+  ]
 }

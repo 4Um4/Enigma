@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 import threading
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from app.core.config import settings
 from app.models.schemas import PlayerAction
@@ -994,7 +994,7 @@ class DmAgent:
         # Пропускает префикс JSON до значения dm_response и стримит только содержимое строки.
         class _StreamingJsonFieldDecoder:
             _PREFIX_RE = _re.compile(r'^\s*\{?\s*"dm_response"\s*:\s*"')
-            def __init__(self):
+            def __init__(self) -> None:
                 self._buf = ""
                 self._streaming = False
                 self._done = False
@@ -1027,7 +1027,7 @@ class DmAgent:
                 self._buf = ""
                 return "".join(out)
 
-        def _producer():
+        def _producer() -> None:
             buffer = ""
             tail_len = max(len(st) for st in _STOP_TOKENS)
             decoder = _StreamingJsonFieldDecoder()
@@ -1088,7 +1088,7 @@ class DmAgent:
                 break
             yield item
 
-    async def _get_provider_async(self, capability: str):
+    async def _get_provider_async(self, capability: str) -> Any:
         from app.services.llm.provider_manager import get_model_pool
         from app.services.llm.router import CAPABILITY_MODEL_PREFERENCES, Capability
 

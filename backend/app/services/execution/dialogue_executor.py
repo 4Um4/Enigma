@@ -7,7 +7,7 @@ path: /backend/app/services/execution/dialogue_executor.py
 from __future__ import annotations
 
 import logging
-from typing import Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 from app.domain.communication import DialogueRequest
 from app.domain.disclosure import (
@@ -250,7 +250,7 @@ class DialogueExecutor:
             },
         )
 
-    def _resolve_disclosure_verdict(self, task: QueuedTask, req: DialogueRequest):
+    def _resolve_disclosure_verdict(self, task: QueuedTask, req: DialogueRequest) -> Any:
         """P7-A: ЕДИНСТВЕННОЕ вычисление вердикта на реплику — ДО слов.
         Гейты E1 (S255) сохранены дословно: bridge, target=='player',
         провайдеры, NPCState(owner), fail-open. Возвращает DisclosureOutcome

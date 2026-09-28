@@ -12,6 +12,7 @@
 import asyncio
 import logging
 import time
+from typing import Any, AsyncIterator
 
 from app.services.error_interpreter import get_error_interpreter
 from app.services.logging_tools import jsonl_log
@@ -29,7 +30,7 @@ ERROR_CODES = {
 }
 
 
-async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> dict:
+async def run_agent_safe(agent_name: str, agent: Any, args: tuple, kwargs: dict) -> dict:
     """Запуск агента с timeout, VRAM-мониторингом и структурированным логированием."""
     vram_monitor = get_vram_monitor()
     error_interpreter = get_error_interpreter()
@@ -121,7 +122,7 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
         }
 
 
-async def yield_model_info(state):
+async def yield_model_info(state: Any) -> AsyncIterator[Any]:
     """Генерирует SSE-событие с метаинфо о выбранных моделях."""
     import logging
 

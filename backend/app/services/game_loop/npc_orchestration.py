@@ -46,7 +46,7 @@ def run_npc_orchestration(
     campaign_id: str,
     location: str,
     is_session_start: bool,
-    tick_orchestrator=None,
+    tick_orchestrator: Any = None,
 ) -> Any:
     """CharacterFilter → NPC Pipeline → Reputation → Proactive → Salience.
 

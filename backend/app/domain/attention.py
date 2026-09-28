@@ -164,6 +164,7 @@ def create_attention_state(
     tick: int,
     observation: Optional[AttentionObservation] = None,
     observer_xy: Optional[Tuple[float, float]] = None,
+    approach_evidence: Optional[float] = None,
 ) -> AttentionState:
     """Рождение состояния. observation.tick обязан совпадать с tick рождения."""
     if not subject_id:
@@ -173,6 +174,9 @@ def create_attention_state(
             "create_attention_state: tick наблюдения не совпадает с tick рождения"
         )
     window = (observation,) if observation is not None else ()
+    new_evidence = approach_evidence if approach_evidence is not None else 0.0
+    if not (0.0 <= new_evidence <= 1.0):
+        raise ValueError("create_attention_state: approach_evidence вне [0, 1]")
     return AttentionState(
         subject_id=subject_id,
         phase=phase,
@@ -181,6 +185,7 @@ def create_attention_state(
         observation_window=window,
         last_distance=observation.distance if observation is not None else None,
         last_bearing=observation.bearing if observation is not None else None,
+        approach_evidence=new_evidence,
         observer_xy=observer_xy,
     )
 

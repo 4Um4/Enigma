@@ -28,7 +28,7 @@ def execute_reduction_phase(
     homeostasis_sub: Optional[Phase8Handler] = None,
     social_input_proj: Optional[Phase8Handler] = None,
     dynamic_field: Any = None,
-    l1_chronicle=None,
+    l1_chronicle: Any = None,
     resolve_spatial_fn: Optional[Callable] = None,
 ) -> None:
     """Выполнить Фазу 8: Layered Reduction.

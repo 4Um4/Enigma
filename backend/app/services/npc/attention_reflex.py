@@ -289,6 +289,29 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                     # suppress-случаи (движется/не владеет телом/поворот уже
                     # отдан другому) остаются в DETECTED — рефлекс отложен,
                     # не потерян.
+                    # Re-entry (после краткой LOST): гипотеза приближения
+                    # ВОССТАНАВЛИВАЕТСЯ с затухшим E (память гипотезы), а не
+                    # рождается с нуля — иначе LOS-мерцание сбрасывало бы
+                    # накопление каждый тик (P3d: window=1, evidence=0.0).
+                    # Объявление ДО ветвления: else-ветка (DETECTED) тоже
+                    # читает — UnboundLocalError ронял тик (TICK_CRASH, громко
+                    # пойман инвариант-защитой — инцидент закрыт этим патчем).
+                    _reentry_evidence = (
+                        round(
+                            prev_state.approach_evidence
+                            * ATTENTION_LOST_EVIDENCE_DECAY,
+                            4,
+                        )
+                        if prev_state is not None
+                        else 0.0
+                    )
+                    # Канон v0.2: entry → ORIENTED при владельце тела
+                    # (can_orient) НЕЗАВИСИМО от needs_turn — SceneChange
+                    # только когда нужен физический поворот (выравнен →
+                    # ORIENTED без записи heading). R25: re-entry из LOST
+                    # сохраняет окно наблюдений (ТЗ сценарий H) в ОБЕИХ
+                    # ветках (oriented/detected) — иначе сближение
+                    # 5.1→1.41 терялось (v̂=0 → e_t=−0.15, p3d13).
                     if can_orient and not oriented_this_tick:
                         needs_turn = (
                             angular_diff(obs_heading, abs_bearing)
@@ -304,21 +327,46 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                                 subject_id=subject_id,
                             )
                             oriented_this_tick = True
-                        new_state = create_attention_state(
-                            subject_id,
-                            AttentionPhase.ORIENTED,
-                            tick,
-                            obs_record,
-                            observer_xy=obs_xy,
-                        )
+                        # R25: re-entry (prev есть) → with_observation
+                        # сохраняет окно; первая встреча (prev None) →
+                        # честная новая гипотеза.
+                        if prev_state is not None:
+                            new_state = with_observation(
+                                prev_state,
+                                AttentionPhase.ORIENTED,
+                                tick,
+                                obs_record,
+                                approach_evidence=_reentry_evidence,
+                                observer_xy=obs_xy,
+                            )
+                        else:
+                            new_state = create_attention_state(
+                                subject_id,
+                                AttentionPhase.ORIENTED,
+                                tick,
+                                obs_record,
+                                observer_xy=obs_xy,
+                            )
                     else:
-                        new_state = create_attention_state(
-                            subject_id,
-                            AttentionPhase.DETECTED,
-                            tick,
-                            obs_record,
-                            observer_xy=obs_xy,
-                        )
+                        # suppress-путь (движется/бюджет занят/не владелец):
+                        # R25 сохраняет окно и здесь (re-entry без ориентации).
+                        if prev_state is not None:
+                            new_state = with_observation(
+                                prev_state,
+                                AttentionPhase.DETECTED,
+                                tick,
+                                obs_record,
+                                approach_evidence=_reentry_evidence,
+                                observer_xy=obs_xy,
+                            )
+                        else:
+                            new_state = create_attention_state(
+                                subject_id,
+                                AttentionPhase.DETECTED,
+                                tick,
+                                obs_record,
+                                observer_xy=obs_xy,
+                            )
                 else:
                     # Отложенный рефлекс: ранее suppress (двигался/чужой тик),
                     # теперь может повернуть. Выравнен → ORIENTED без SceneChange.

@@ -299,6 +299,9 @@ class FocusRenderer:
                     _text_color = _tok("text_muted", (160, 160, 160))
                 else:
                     _text_color = _tok("text_primary", (255, 255, 255))
+            # S3.14: штукатурка на мировых пузырях (все подложки текста)
+            if _sty is not None:
+                _sty.apply_texture(_bg, _bg.get_width(), _bg.get_height())
 
             # S170: SLAM-события масштабируются на 1.2x и получают жёсткую рамку
             if _is_slam:

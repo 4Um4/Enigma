@@ -6,11 +6,12 @@ DEGOD ITER5: E1-wiring-функции (перенос из game_loop/__init__.py
 """
 
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def _e1_extract_subject(topic: str):
+def _e1_extract_subject(topic: str) -> Any:
     """E1-wiring (S260): канонический P3-резолвер темы речи в SubjectRef
     (extract_subject; обёртка "про {topic}" — паттерн E1-фикстур и
     P7-B-подписчика game_loop:446 — единый механизм, не второй)."""
@@ -20,7 +21,7 @@ def _e1_extract_subject(topic: str):
 
 
 def e1_relationship_reader(
-    memory_manager, resolve_npcs_snapshot, campaign_id: str, knower_id: str, recipient_id: str
+    memory_manager: Any, resolve_npcs_snapshot: Any, campaign_id: str, knower_id: str, recipient_id: str
 ) -> dict:
     """E1-wiring (S260): читатель отношений для decide_disclosure.
 

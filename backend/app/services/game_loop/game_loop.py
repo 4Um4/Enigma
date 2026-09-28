@@ -378,7 +378,7 @@ class GameLoop:
             build_npc_orch_deps=self._build_npc_orch_deps,
         )
 
-    def _get_spatial_query_for_subscriber(self):
+    def _get_spatial_query_for_subscriber(self) -> Any:
         """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
         S196 FIX: Берёт актуальный SpatialQueryService из shared_context,
         устраняя зависимость от mutable hidden state _current_spatial_query.
@@ -674,7 +674,7 @@ class GameLoop:
         """
         self._session_started_campaigns.discard(campaign_id)
 
-    def _get_life_engine(self):
+    def _get_life_engine(self) -> Any:
         """Возвращает LifeEngine из TickOrchestrator."""
         return self._tick_orch._get_life_engine()
 
@@ -696,7 +696,7 @@ class GameLoop:
             return cast(list[Any], engine.get_npc_light_states(campaign_id))
         return []
 
-    def _build_dm_phase_deps(self):
+    def _build_dm_phase_deps(self) -> Any:
         """DEGOD Phase3-B1: контракт фазы DM собирается из владельцев.
         _prev_player_distances — GameLoop-owned (кросс-turn), доступ только через accessors."""
         from app.services.game_loop.dm_phase import DmPhaseDeps
@@ -711,7 +711,7 @@ class GameLoop:
             commit_distances=lambda cid, d: self._prev_player_distances.__setitem__(cid, d),
         )
 
-    def _build_npc_orch_deps(self):
+    def _build_npc_orch_deps(self) -> Any:
         """DEGOD Phase3-B2: контракт фазы NPC-оркестрации. B-состояния — через accessors,
         C — через callables (lazy/DEFERRED ownership), rel_store — идентичный захваченный объект."""
         from app.services.game_loop.npc_orchestration import NpcOrchDeps
@@ -775,7 +775,7 @@ class GameLoop:
 
     def _project_perception(
         self, campaign_id: str, scene_state: dict, all_npcs_raw: list
-    ):
+    ) -> Any:
         """ADR-TZ08-8: Вызов PerceptionProjector вне ядра."""
         from app.services.perception.perception_projector import PerceptionProjector
 
@@ -1959,7 +1959,7 @@ class GameLoop:
 
     # ────────────────────────────────────────────────────────────────────────────
 
-    def _get_task_scheduler(self):
+    def _get_task_scheduler(self) -> Any:
         """Ленивая инициализация TaskScheduler с инъекцией LLM-провайдера."""
         if not hasattr(self, "_task_scheduler"):
             from app.services.game_loop.task_scheduler import TaskScheduler
@@ -2012,7 +2012,7 @@ class GameLoop:
         """Фасад CampaignLifecycle (DEGOD Phase3B)."""
         return self._campaign_lifecycle.load_campaign(campaign_id, world_id)
 
-    def session_state(self, campaign_id: str):
+    def session_state(self, campaign_id: str) -> Any:
         """Возвращает состояние сессии для UI."""
         world_id = self._resolve_world_id(campaign_id)
 

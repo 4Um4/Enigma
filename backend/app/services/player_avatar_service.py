@@ -432,7 +432,7 @@ class PlayerAvatarService:
     def append_journal(
         self, campaign_id: str, speaker: str, text: str,
         channel: str = "narrative", event_id: str = "", tick: int = 0,
-    ):
+    ) -> None:
         """channel: direct (игрок-адресат) | overheard (подслушано) |
         narrative (DM/мир) | self (действия игрока). Эпистемическая метка
         канала в момент записи — проекция известного, не новая истина."""

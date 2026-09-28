@@ -2048,6 +2048,9 @@ class GameScreen:
             if getattr(self, "_workbench", None) is not None:
                 self._focus_renderer.style = self._workbench
                 self._focus_renderer.font_small = self._workbench.world_font()
+                # S3.8: сцена — имена NPC шрифтом/цветом из мирового стиля
+                self.renderer.font_small = self._workbench.world_font()
+                self.renderer.name_style = self._workbench.world_style()
             self._portrait_renderer = getattr(self, "_portrait_renderer", PortraitRenderer())
             self._casting_repo = getattr(self, "_casting_repo", VisualCastingRepository())
             
