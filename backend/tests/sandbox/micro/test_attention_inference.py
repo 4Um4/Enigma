@@ -12,7 +12,6 @@ path: backend/tests/sandbox/micro/test_attention_inference.py
 import math
 
 import pytest
-
 from app.domain.attention import AttentionObservation
 from app.domain.attention_inference import infer_approach
 

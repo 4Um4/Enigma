@@ -20,12 +20,12 @@ from ui_workbench import (
     WindowState,
     WorkbenchPersistence,
 )
+from ui_workbench.editor_board_stub import EditorBoardStub
+from ui_workbench.fonts import FontProvider as _FontProvider
 from ui_workbench.layout import AnchoredRect
 from ui_workbench.snap_engine import SnapEngine
-from ui_workbench.editor_board_stub import EditorBoardStub
 from ui_workbench.windows.board_window import BOARD_MANIFEST
 from ui_workbench.windows.journal_window import JOURNAL_MANIFEST
-from ui_workbench.fonts import FontProvider as _FontProvider
 
 _WORKBENCH_DIR = Path(__file__).parent
 _LAYOUT_PATH = _WORKBENCH_DIR / "window_layout.json"

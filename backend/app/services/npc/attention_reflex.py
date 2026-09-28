@@ -25,6 +25,8 @@ from typing import Any, Dict, List, Optional, Tuple
 # Временная диагностика P2 (Часть VIII.5): env-гейт, в проде молчит.
 _DIAG = os.environ.get("COGNITION_DIAG", "").strip().lower() in ("1", "true", "yes")
 
+from typing import Mapping
+
 from app.domain.attention import (
     ATTENTION_DEFAULT_FOV_RAD,
     ATTENTION_MAX_SUBJECTS,
@@ -41,11 +43,10 @@ from app.domain.attention import (
     wrap_pi,
 )
 from app.domain.attention_dispositions import get_attention_disposition
-from typing import Mapping
 from app.domain.attention_inference import (
     CognitionSnapshot,
-    InterpretedIntent,
     InferredKinematics,
+    InterpretedIntent,
     ObservedFacts,
     evidence_delta,
     infer_approach,
@@ -59,15 +60,14 @@ from app.services.npc.attention_config import (
     ATTENTION_APPROACH_SCALE_M,
     ATTENTION_DETECT_RADIUS_M,
     ATTENTION_EVIDENCE_ALIGN_W,
+    ATTENTION_EVIDENCE_HYSTERESIS,
     ATTENTION_EVIDENCE_LAMBDA,
     ATTENTION_EVIDENCE_RADIAL_REF,
     ATTENTION_EVIDENCE_RADIAL_W,
-    ATTENTION_EVIDENCE_THRESHOLD,
     ATTENTION_EVIDENCE_STILL_PENALTY,
+    ATTENTION_EVIDENCE_THRESHOLD,
     ATTENTION_EVIDENCE_TURN_MIN_RAD,
     ATTENTION_EVIDENCE_TURN_W,
-    ATTENTION_EVIDENCE_THRESHOLD,
-    ATTENTION_EVIDENCE_HYSTERESIS,
     ATTENTION_LOST_EVIDENCE_DECAY,
     ATTENTION_LOST_GC_TICKS,
     ATTENTION_MODIFIER_MAX,

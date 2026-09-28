@@ -999,7 +999,8 @@ class DmAgent:
                 self._streaming = False
                 self._done = False
             def feed(self, token: str) -> str:
-                if self._done: return ""
+                if self._done:
+                    return ""
                 self._buf += token
                 if not self._streaming:
                     m = self._PREFIX_RE.match(self._buf)
@@ -1018,12 +1019,15 @@ class DmAgent:
                 while i < len(self._buf):
                     c = self._buf[i]
                     if c == '\\' and i + 1 < len(self._buf):
-                        out.append(self._buf[i+1]); i += 2; continue
+                        out.append(self._buf[i+1])
+                        i += 2
+                        continue
                     if c == '"':
                         self._done = True
                         self._buf = ""
                         return "".join(out)
-                    out.append(c); i += 1
+                    out.append(c)
+                    i += 1
                 self._buf = ""
                 return "".join(out)
 

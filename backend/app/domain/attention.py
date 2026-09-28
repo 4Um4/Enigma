@@ -20,9 +20,9 @@ path: backend/app/domain/attention.py
     create_attention_state, with_observation, attention_to_dict,
     attention_from_dict, ATTENTION_MAX_SUBJECTS, ATTENTION_OBS_WINDOW.
 """
+import math
 from dataclasses import dataclass
 from enum import Enum
-import math
 from typing import Any, Dict, Final, Optional, Tuple
 
 # Зачем cap: бюджет тика O(N·k) (ADR-PRE-FLIGHT п.4). Наблюдатель не держит

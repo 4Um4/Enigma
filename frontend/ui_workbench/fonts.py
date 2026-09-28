@@ -7,9 +7,10 @@ path: /project/frontend/ui_workbench/fonts.py
 Зависимости: pygame, pathlib, typing
 Основные сущности: FontProvider
 """
-import pygame
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
+
+import pygame
 
 _FONT_ROOT = Path(__file__).parent.parent / "assets" / "fonts"
 _BASE_SIZES = {"title": 16, "text": 14, "ui": 12}

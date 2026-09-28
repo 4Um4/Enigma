@@ -14,7 +14,6 @@ path: backend/tests/sandbox/micro/test_attention_reflex_fsm.py
 import math
 
 import pytest
-
 from app.domain.tick import create_tick_state
 from app.services.npc import attention_reflex as ar
 

@@ -41,13 +41,13 @@ from app.core.config import settings
 settings.saves_dir = tempfile.mkdtemp(prefix="cognition_p2_")
 
 from app.domain.attention import angular_diff
+from app.services.events.event_bus import get_event_bus
+from app.services.events.event_types import EventType
+from app.services.npc import attention_reflex as ar
 from app.services.npc.attention_config import (
     ATTENTION_ORIENT_MIN_DELTA_RAD,
     COGNITION_V0,
 )
-from app.services.npc import attention_reflex as ar
-from app.services.events.event_bus import get_event_bus
-from app.services.events.event_types import EventType
 
 CAMPAIGN = "Open_road"
 

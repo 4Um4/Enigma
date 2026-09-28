@@ -2250,7 +2250,6 @@ class GameScreen:
         поток завершён. Живут только: overlay статистики + ENTER (выход в
         меню) + QUIT. Вызывается сразу после срабатывания триггера выхода,
         из run() — основной цикл run() на этот кадр не продолжается."""
-        from end_screen_renderer import EndScreenRenderer
         _es = EndScreenRenderer(self.screen)
         while True:
             _es.render(self.end_screen_data)
@@ -2269,7 +2268,6 @@ class GameScreen:
         не тикает, не рендерится, не принимает игровой ввод — каузальный
         поток завершён. Живут только: overlay статистики + ENTER/ESC (в меню).
         Вызывается из триггера выхода; run() дальше этого кадра не идёт."""
-        from end_screen_renderer import EndScreenRenderer
         _es = EndScreenRenderer(self.screen)
         while True:
             _es.render(self.end_screen_data)

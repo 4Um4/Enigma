@@ -12,7 +12,6 @@ path: backend/tests/sandbox/micro/test_attention_roundtrip.py
 import dataclasses
 
 import pytest
-
 from app.domain.attention import (
     ATTENTION_OBS_WINDOW,
     AttentionObservation,

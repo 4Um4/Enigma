@@ -21,6 +21,7 @@ path: backend/app/domain/attention_inference.py
 Основные сущности: ApproachInference, infer_approach, ESTIMATE_WINDOW_TICKS.
 """
 import math
+import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Final, Optional, Sequence, Tuple
@@ -30,7 +31,6 @@ from app.domain.attention import (
     AttentionPhase,
     angular_diff,
 )
-import os
 
 # Глубина оценки скорости: простая разность «последняя − первая из k»
 # (Мастер §14: v̂ = (x_t − x_{t−k})/(k·Δt)). Короткое k = быстрее видит

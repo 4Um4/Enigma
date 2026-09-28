@@ -14,7 +14,6 @@ path: backend/tests/sandbox/micro/test_prediction_error.py
 import math
 
 import pytest
-
 from app.domain.attention import AttentionObservation
 from app.domain.attention_inference import prediction_error
 

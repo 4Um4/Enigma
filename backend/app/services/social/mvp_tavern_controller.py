@@ -246,8 +246,8 @@ class MvpTavernController:
         # не статический персонаж → «Игрок» (канон бэкенда).
         _name_map: Dict[str, str] = {"player": "Игрок"}
         try:
-            from pathlib import Path as _Path
             import json as _json
+            from pathlib import Path as _Path
             _npc_root = _Path("config/npc")
             if _npc_root.exists():
                 for _f in sorted(_npc_root.glob("*.json")):

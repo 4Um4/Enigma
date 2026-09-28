@@ -603,7 +603,7 @@ def inv_snapshot_topology(world: TestWorld) -> InvariantResult:
     Presentation v2.0: ключ есть ⇒ содержит структурную топологию (пустые
     слоты легальны); None в снапшоте при живой сцене = проекционная ложь."""
     try:
-        result = world.idle_tick()  
+        result = world.idle_tick()
         _snap = (result or {}).get("world_snapshot")
         # S292-урок: world_snapshot в idle-ответе — DICT (не DTO): чтение
         # через getattr всегда возвращало default → ложнокрасный инвариант.

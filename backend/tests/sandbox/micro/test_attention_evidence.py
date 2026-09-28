@@ -13,8 +13,13 @@ path: backend/tests/sandbox/micro/test_attention_evidence.py
 import math
 
 import pytest
-
-from app.domain.attention import AttentionObservation, attention_from_dict, attention_to_dict, create_attention_state, with_observation
+from app.domain.attention import (
+    AttentionObservation,
+    attention_from_dict,
+    attention_to_dict,
+    create_attention_state,
+    with_observation,
+)
 from app.domain.attention_inference import (
     ApproachInference,
     evidence_delta,

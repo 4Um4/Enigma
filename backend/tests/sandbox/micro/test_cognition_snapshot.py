@@ -11,7 +11,6 @@ path: backend/tests/sandbox/micro/test_cognition_snapshot.py
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_cognition_snapshot.py -v; cd ..
 """
 import pytest
-
 from app.domain.tick import create_tick_state
 from app.services.npc import attention_reflex as ar
 

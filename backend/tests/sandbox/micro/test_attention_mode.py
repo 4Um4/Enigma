@@ -11,7 +11,6 @@ path: backend/tests/sandbox/micro/test_attention_mode.py
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_attention_mode.py -v; cd ..
 """
 import pytest
-
 from app.domain.attention_inference import AttentionMode, attention_mode
 
 _KW = dict(surprise_threshold=0.5, evidence_threshold=0.6)

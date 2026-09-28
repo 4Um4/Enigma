@@ -12,7 +12,6 @@ path: backend/tests/sandbox/micro/test_cognition_modifiers.py
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_cognition_modifiers.py -v; cd ..
 """
 import pytest
-
 from app.services.npc import attention_reflex as ar
 from app.services.npc.decision_hub import DecisionHub
 
