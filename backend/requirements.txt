@@ -11,8 +11,10 @@ httpx==0.28.1
 aiohttp==3.10.11
 pytest==8.3.3
 pymorphy3
+pymorphy3-dicts-ru==2.4.417150.4580142
 pygame==2.6.1
 networkx>=3.1
+pyyaml==6.0.3
 
 # llama.cpp — нативный бинарник, устанавливается через start_llm.bat
 # llama-cpp-python не нужен
