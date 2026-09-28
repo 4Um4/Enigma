@@ -21,6 +21,7 @@ from app.domain.attention import (
     attention_to_dict,
     create_attention_state,
     with_observation,
+    with_phase,
 )
 
 
@@ -93,3 +94,24 @@ def test_non_finite_rel_vector_rejected() -> None:
         AttentionObservation(
             tick=1, distance=1.0, bearing=0.0, subject_heading=0.0, rel_dx=float("inf")
         )
+
+
+def test_observer_xy_roundtrip() -> None:
+    # P3d (R24): позиция наблюдателя переживает сериализацию.
+    st = create_attention_state("a", AttentionPhase.DETECTED, 5, _obs(5, 3.0))
+    st = with_observation(st, AttentionPhase.ORIENTED, 6, _obs(6, 2.0), observer_xy=(1.5, -2.0))
+    restored = attention_from_dict(attention_to_dict(st))
+    assert restored.observer_xy == (1.5, -2.0)
+    # Без обновления — наследуется от prev.
+    st2 = with_observation(st, AttentionPhase.NEAR, 7, _obs(7, 1.0))
+    assert st2.observer_xy == (1.5, -2.0)
+
+
+def test_lost_phase_decay_of_evidence() -> None:
+    # Сценарий Д: E затухает в LOST (λ), окно-память живёт.
+    st = create_attention_state("a", AttentionPhase.APPROACHING, 5, _obs(5, 3.0))
+    st = with_observation(st, AttentionPhase.APPROACHING, 6, _obs(6, 2.0), approach_evidence=0.9)
+    lost = with_phase(st, AttentionPhase.LOST, 7, approach_evidence=0.9 * 0.85)
+    assert lost.phase is AttentionPhase.LOST
+    assert lost.approach_evidence == pytest.approx(0.765)
+    assert len(lost.observation_window) == 2  # память не стёрта

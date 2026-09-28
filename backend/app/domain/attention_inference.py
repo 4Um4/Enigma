@@ -23,7 +23,7 @@ path: backend/app/domain/attention_inference.py
 import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Final, Optional, Sequence
+from typing import Final, Optional, Sequence, Tuple
 
 from app.domain.attention import (
     AttentionObservation,
@@ -67,6 +67,7 @@ def infer_approach(
     window: Sequence[AttentionObservation],
     rel_dx: float,
     rel_dy: float,
+    observer_velocity: Optional[Tuple[float, float]] = None,
 ) -> ApproachInference:
     """Вывод по последним k наблюдениям окна + текущему rel-вектору.
 
@@ -87,6 +88,13 @@ def infer_approach(
 
     vx = (last.rel_dx - first.rel_dx) / dt
     vy = (last.rel_dy - first.rel_dy) / dt
+    # R24 mitigation (P3d): v̂ — ОТНОСИТЕЛЬНАЯ скорость «субъект−наблюдатель».
+    # Намерение субъекта живёт в его МИРОВОЙ скорости: v_subj = v_rel + v_obs.
+    # Без коррекции собственное движение наблюдателя ложно накапливало бы
+    # evidence «он идёт ко мне».
+    if observer_velocity is not None:
+        vx += observer_velocity[0]
+        vy += observer_velocity[1]
     speed = math.hypot(vx, vy)
     r_len = math.hypot(rel_dx, rel_dy)
     if r_len < _STATIONARY_EPS:

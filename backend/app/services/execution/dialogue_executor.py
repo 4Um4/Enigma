@@ -196,6 +196,7 @@ class DialogueExecutor:
                 f"[LANG_LEAK] {task.owner_id}: latin_share={_latin_share(text):.2f} "
                 f"text={text[:80]!r} — retry with reinforced directive"
             )
+            _retry_timer = None  # пред-связывание: finally ссылается всегда
             try:
                 import threading as _th
                 _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
@@ -213,12 +214,13 @@ class DialogueExecutor:
             except Exception as _retry_err:
                 logger.error(f"[LANG_LEAK] retry failed for {task.owner_id}: {_retry_err}")
             finally:
-                try:
-                    _retry_timer.cancel()
-                except Exception as _cancel_err:
-                    # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
-                    # исходная генерация не деградирует от этого отказа.
-                    logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
+                if _retry_timer is not None:
+                    try:
+                        _retry_timer.cancel()
+                    except Exception as _cancel_err:
+                        # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
+                        # исходная генерация не деградирует от этого отказа.
+                        logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
             if _latin_share(text) >= 0.25:
                 logger.error(
                     f"[LANG_LEAK] {task.owner_id}: retry still leaked "

@@ -43,6 +43,60 @@ _TOKEN_RU = {
     "text_primary": "Текст основной",
     "text_muted": "Текст приглушённый",
     "accent": "Акцент",
+    "player_bubble": "Пузырь игрока",
+    "player_name": "Имя игрока",
+}
+
+# S3.7: дефолты нестандартных токенов (их нет в theme.json)
+_TOKEN_DEFAULTS = {
+    "player_bubble": (35, 45, 70),
+    "player_name": (255, 200, 100),
+}
+
+# S3.10: пресеты палитр окон — благородные сочетания, читаемость текста.
+# Каждый пресет полностью задаёт _colors (включая альфы поверхностей
+# и прозрачную подложку — фон окон единообразен, см. S3.9-фикс).
+_COLOR_PRESETS = {
+    "Полночь": {
+        "surface_panel": (26, 26, 36), "surface_title": (34, 34, 48),
+        "border": (70, 70, 90), "border_accent": (200, 160, 80),
+        "text_primary": (222, 222, 232), "text_muted": (150, 150, 165),
+        "accent": (200, 160, 80), "player_bubble": (35, 45, 70),
+        "player_name": (255, 200, 100), "backdrop_rgb": (10, 10, 18),
+        "surface_panel_alpha": 255, "surface_title_alpha": 255,
+        "border_alpha": 255, "border_accent_alpha": 255,
+        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+    },
+    "Грувбокс": {  # gruvbox dark: тёплый винтаж, золотой акцент
+        "surface_panel": (40, 40, 38), "surface_title": (60, 56, 54),
+        "border": (80, 73, 69), "border_accent": (215, 153, 33),
+        "text_primary": (235, 219, 178), "text_muted": (146, 131, 116),
+        "accent": (215, 153, 33), "player_bubble": (60, 56, 54),
+        "player_name": (250, 189, 47), "backdrop_rgb": (40, 40, 38),
+        "surface_panel_alpha": 255, "surface_title_alpha": 255,
+        "border_alpha": 255, "border_accent_alpha": 255,
+        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+    },
+    "Солариз": {  # solarized dark: CIELAB-контраст, глубокий сине-зелёный
+        "surface_panel": (0, 43, 54), "surface_title": (7, 54, 66),
+        "border": (88, 110, 117), "border_accent": (181, 137, 0),
+        "text_primary": (131, 148, 150), "text_muted": (88, 110, 117),
+        "accent": (181, 137, 0), "player_bubble": (7, 54, 66),
+        "player_name": (203, 161, 30), "backdrop_rgb": (0, 43, 54),
+        "surface_panel_alpha": 255, "surface_title_alpha": 255,
+        "border_alpha": 255, "border_accent_alpha": 255,
+        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+    },
+    "Норд": {  # nord: полярная ночь + тёплая «аврора»
+        "surface_panel": (46, 52, 64), "surface_title": (59, 66, 82),
+        "border": (76, 86, 106), "border_accent": (235, 203, 139),
+        "text_primary": (216, 222, 233), "text_muted": (129, 161, 193),
+        "accent": (136, 192, 208), "player_bubble": (59, 66, 82),
+        "player_name": (235, 203, 139), "backdrop_rgb": (46, 52, 64),
+        "surface_panel_alpha": 255, "surface_title_alpha": 255,
+        "border_alpha": 255, "border_accent_alpha": 255,
+        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+    },
 }
 
 
@@ -57,6 +111,58 @@ class _WindowThemeAdapter:
 
     def token(self, name: str):
         return self._wb._ct(self._wid, name)
+
+
+class _StyledFontProxy:
+    """S3.7: обёртка Font — render() применяет типографику стиля окна
+    (обводка/тень букв). Все точки рендера зовут .render() как раньше —
+    прокси прозрачен для вызывающих. Эффекты per-role (title/text)."""
+
+    def __init__(self, font, wb, role: str, wid: Optional[str] = None):
+        self._font = font
+        self._wb = wb
+        self._role = role
+        self._wid = wid  # S3.8: фиксация окна для мировых потребителей
+
+    def _pad(self) -> int:
+        _ov = self._wb._ov(self._role, self._wid)
+        return int(_ov.get("outline", 0)) * 2 + (3 if _ov.get("shadow") else 0)
+
+    def render(self, text, antialias, color):
+        _ov = self._wb._ov(self._role, self._wid)
+        _ol = int(_ov.get("outline", 0))
+        _sh = bool(_ov.get("shadow", False))
+        base = self._font.render(text, antialias, color)
+        if _ol <= 0 and not _sh:
+            return base
+        _p = self._pad()
+        surf = pygame.Surface((base.get_width() + _p * 2, base.get_height() + _p * 2),
+                              pygame.SRCALPHA)
+        if _sh:
+            # Тень: полупрозрачная копия со смещением вниз-вправо
+            _shc = tuple(_ov.get("shadow_color", (0, 0, 0, 150)))
+            surf.blit(self._font.render(text, antialias, _shc), (_p + 2, _p + 2))
+        if _ol > 0:
+            # Обводка: 8/24/48 смещённых копий цветом контура
+            _oc = tuple(_ov.get("outline_color", (10, 10, 14)))
+            _ols = self._font.render(text, antialias, _oc)
+            for _dx in range(-_ol, _ol + 1):
+                for _dy in range(-_ol, _ol + 1):
+                    if _dx or _dy:
+                        surf.blit(_ols, (_p + _dx, _p + _dy))
+        surf.blit(base, (_p, _p))
+        return surf
+
+    def get_linesize(self):
+        return self._font.get_linesize() + self._pad()
+
+    def get_height(self):
+        return self._font.get_height() + self._pad()
+
+    def size(self, text):
+        w, h = self._font.size(text)
+        _p = self._pad()
+        return (w + _p * 2, h + _p * 2)
 
 
 class WorkbenchScreen:
@@ -196,6 +302,8 @@ class WorkbenchScreen:
         # окно (default ON). Флаг хранит только отклонения от дефолта.
         self._style_global: bool = False
         self._style_window_global: dict = {}
+        # S3.10: именованный снимок стиля игрока («Мой стиль»)
+        self._my_style: dict = {}
         # S3.5: HSV-пикер (ползунки + градиентные шкалы, как в графредакторах)
         self._picker_token: Optional[str] = None
         self._picker_hsv: list = [0.0, 0.0, 0.0]
@@ -218,6 +326,7 @@ class WorkbenchScreen:
                         self._style_global = bool(_d.get("global", False))
                         self._style_window_global = {
                             k: bool(v) for k, v in _d.get("window_global", {}).items()}
+                        self._my_style = _d.get("my_style", {}) or {}
         except Exception as _e:
             print(f"[STYLE_LOAD] failed: {_e}")
 
@@ -225,42 +334,49 @@ class WorkbenchScreen:
     # 44 точки рендера читают _font_title/_font_text — прокси подставляет
     # per-window шрифт по текущему _render_wid. Fallback — базовые SysFont.
 
-    def _ov(self, role: str) -> dict:
-        wid = self._render_wid
-        return getattr(self, "_style_overrides", {}).get(wid, {}).get(role, {}) if wid else {}
+    def _ov(self, role: str, wid: Optional[str] = None) -> dict:
+        # S3.8: явный wid — для мировых элементов (пузыри над NPC):
+        # вне цикла окон _render_wid равен None
+        _w = wid or self._render_wid
+        return getattr(self, "_style_overrides", {}).get(_w, {}).get(role, {}) if _w else {}
 
 
     @property
-    def _font_title(self) -> pygame.font.Font:
-        # B2: broadcast-модель — глобальная правка уже записана в каждое
-        # окно, у окна ровно один набор overrides, приоритетов нет.
+    def _font_title(self) -> "_StyledFontProxy":
+        # B2: broadcast-модель; S3.7: обёртка добавляет обводку/тень букв
         ov = self._ov("title")
-        return self._font_provider.get("title", ov.get("font_file", ""),
-                                       int(ov.get("size_delta", 0)),
-                                       bool(ov.get("bold", False)),
-                                       bool(ov.get("italic", False)))
+        return _StyledFontProxy(self._font_provider.get(
+            "title", ov.get("font_file", ""),
+            int(ov.get("size_delta", 0)),
+            bool(ov.get("bold", False)),
+            bool(ov.get("italic", False))), self, "title")
 
     @property
-    def _font_text(self) -> pygame.font.Font:
+    def _font_text(self) -> "_StyledFontProxy":
         ov = self._ov("text")
-        return self._font_provider.get("text", ov.get("font_file", ""),
-                                       int(ov.get("size_delta", 0)),
-                                       bool(ov.get("bold", False)),
-                                       bool(ov.get("italic", False)))
+        return _StyledFontProxy(self._font_provider.get(
+            "text", ov.get("font_file", ""),
+            int(ov.get("size_delta", 0)),
+            bool(ov.get("bold", False)),
+            bool(ov.get("italic", False))), self, "text")
 
     # ── S3: цветовой прокси (per-window _colors > токен темы) ────────
-    def _ct(self, wid: Optional[str], token: str):
-        """Цвет окна: оверрайд из _colors, иначе токен темы. Broadcast уже
-        разнёс глобальные правки по окнам — затенения нет."""
+    def _ct(self, wid: Optional[str], token: str, default=None):
+        """Цвет окна: оверрайд из _colors, иначе токен темы (или явный
+        default для нестандартных токенов). Broadcast уже разнёс
+        глобальные правки по окнам — затенения нет."""
         _c = self._style_overrides.get(wid, {}).get("_colors", {}).get(token)
         if _c:
             return tuple(_c)
+        if default is not None:
+            return tuple(default)
         return self.theme.token(token)
 
     def _backdrop_alpha(self, wid: Optional[str]) -> int:
-        """Прозрачность подложки ленты журнала (default 215)."""
+        """Прозрачность подложки ленты. Default 0 (S3.9-фикс): фон журнала
+        единообразен с остальными окнами («Фон окна»); подложка — опция."""
         _a = self._style_overrides.get(wid, {}).get("_colors", {}).get("backdrop_alpha")
-        return int(_a) if _a is not None else 215
+        return int(_a) if _a is not None else 0
 
     def _backdrop_rgb(self, wid: Optional[str]) -> tuple:
         """S3.5: цвет подложки ленты журнала (default 10,10,18)."""
@@ -268,10 +384,10 @@ class WorkbenchScreen:
         return tuple(_c) if _c else (10, 10, 18)
 
     # ── S3.6: прозрачность поверхностей (текст — всегда непрозрачен) ──
-    def _cta(self, wid: Optional[str], token: str) -> tuple:
+    def _cta(self, wid: Optional[str], token: str, default=None) -> tuple:
         """(RGB, alpha) токена окна; alpha default 255 (непрозрачно)."""
         _a = self._style_overrides.get(wid, {}).get("_colors", {}).get(token + "_alpha")
-        return self._ct(wid, token), (int(_a) if _a is not None else 255)
+        return self._ct(wid, token, default), (int(_a) if _a is not None else 255)
 
     def _fill_alpha(self, screen, rect, rgb, alpha, radius=0) -> None:
         """Заливка с альфой (255 — быстрый путь pygame.draw)."""
@@ -290,6 +406,33 @@ class WorkbenchScreen:
         _s = pygame.Surface(rect.size, pygame.SRCALPHA)
         pygame.draw.rect(_s, (*rgb, alpha), _s.get_rect(), width, border_radius=radius)
         screen.blit(_s, rect.topleft)
+
+    # ── S3.8: «мировой» стиль — общая палитра игровых элементов ───────
+    def world_style(self) -> "_WindowThemeAdapter":
+        """Пузыри/маркеры над NPC и прочие мировые элементы красятся из
+        стиля Журнала (вердикт Мастера: «копируют общий стиль»)."""
+        return _WindowThemeAdapter(self, "journal")
+
+    def world_font(self) -> "_StyledFontProxy":
+        """Шрифт мировых элементов — текстовая роль Журнала (+ эффекты)."""
+        ov = self._ov("text", "journal")
+        return _StyledFontProxy(self._font_provider.get(
+            "text", ov.get("font_file", ""),
+            int(ov.get("size_delta", 0)),
+            bool(ov.get("bold", False)),
+            bool(ov.get("italic", False))), self, "text", "journal")
+
+    def world_cta(self, token: str, default=None) -> tuple:
+        """S3.8: (RGB, alpha) мирового стиля для нестандартных токенов."""
+        return self._cta("journal", token, default)
+
+    def world_backdrop(self) -> tuple:
+        """S3.8: (RGB, alpha) мировых пузырей: оверрайд ленты Журнала,
+        если Мастер её настраивал; иначе видимый литерал-дефолт."""
+        _c = self._style_overrides.get("journal", {}).get("_colors", {})
+        if "backdrop_rgb" in _c or "backdrop_alpha" in _c:
+            return self._backdrop_rgb("journal"), self._backdrop_alpha("journal")
+        return (25, 25, 45), 210
 
     # ── Данные окна ──────────────────────────────────────────────────
 
@@ -352,7 +495,8 @@ class WorkbenchScreen:
             _styles = {"_version": 2, "overrides": self._style_overrides,
                        "target": self._style_target, "role": self._style_role,
                        "global": bool(getattr(self, "_style_global", False)),
-                       "window_global": dict(getattr(self, "_style_window_global", {}))}
+                       "window_global": dict(getattr(self, "_style_window_global", {})),
+                       "my_style": dict(getattr(self, "_my_style", {}))}
             _STYLES_PATH.write_text(json.dumps(_styles, ensure_ascii=False, indent=2),
                                     encoding="utf-8")
         except Exception as _e:
@@ -426,7 +570,15 @@ class WorkbenchScreen:
             by = int(sy - 30 - bh)
             alpha = 235 if ch == "direct" else 150
             surf = pygame.Surface((bw, bh + 6), pygame.SRCALPHA)
-            pygame.draw.rect(surf, (18, 18, 28, alpha), pygame.Rect(0, 0, bw, bh), border_radius=6)
+            # S3.7/S3.9: подложка демо-пузыря — оверрайд ленты журнала,
+            # если настраивалась; иначе прежний видимый литерал
+            _bc = self._style_overrides.get("journal", {}).get("_colors", {})
+            if "backdrop_rgb" in _bc or "backdrop_alpha" in _bc:
+                _br, _ba = self._backdrop_rgb("journal"), self._backdrop_alpha("journal")
+            else:
+                _br, _ba = (18, 18, 28), 215
+            pygame.draw.rect(surf, (*_br, int(alpha * _ba / 255)),
+                             pygame.Rect(0, 0, bw, bh), border_radius=6)
             pygame.draw.rect(surf, self._ct("journal", "border"), pygame.Rect(0, 0, bw, bh), 1, border_radius=6)
             ty = 5
             for line in lines:
@@ -1517,7 +1669,7 @@ class WorkbenchScreen:
     def _draw_style_panel(self, screen, viewport: pygame.Rect) -> None:
         """S2: панель стилизации (только F12). Кликабельна: цель/роль/шрифт/
         размер/жирность/курсив/сброс + список шрифтов (скролл колесом)."""
-        _pw, _ph = 300, 600
+        _pw, _ph = 300, 640
         panel = pygame.Rect(viewport.right - _pw - 12, viewport.top + 12, _pw, _ph)
         self._style_panel_rect = panel
         pygame.draw.rect(screen, self.theme.token("surface_panel"), panel, border_radius=8)
@@ -1555,17 +1707,43 @@ class WorkbenchScreen:
              "text_primary", "size_cycle")
         _row(f"Жирный: {'ДА' if _ov.get('bold') else 'нет'}", "text_primary", "bold")
         _row(f"Курсив: {'ДА' if _ov.get('italic') else 'нет'}", "text_primary", "italic")
+        # S3.7: типографика (per-role) — читаемость текста без фона
+        _row(f"Обводка букв: {_ov.get('outline', 0)}   (клик +1 / Shift −1)",
+             "text_primary", "outline")
+        _row(f"Тень букв: {'ДА' if _ov.get('shadow') else 'нет'}", "text_primary", "shadow")
         # S3: цвета и прозрачность (per-window, роль-независимо; broadcast
         # в глобальном режиме уже записал значения в окна — показываем цель)
         _sov = self._style_overrides.get(self._style_target, {}).get("_colors", {})
         _row("── Цвет: клик = пикер (ползунки) ──", "text_muted")
         for _tok in ("surface_panel", "surface_title", "border", "border_accent",
-                     "text_primary", "text_muted", "accent"):
-            _c = _sov.get(_tok, list(self.theme.token(_tok)))
+                     "text_primary", "text_muted", "accent", "player_bubble",
+                     "player_name"):
+            _c = _sov.get(_tok) or _TOKEN_DEFAULTS.get(_tok) or list(self.theme.token(_tok))
             _row(f"{_TOKEN_RU.get(_tok, _tok)}  {tuple(_c)}", "text_primary", "color_edit", _tok)
-        _row(f"Подложка журнала (цвет+альфа): a {_sov.get('backdrop_alpha', 215)}",
+        _row(f"Подложка журнала (цвет+альфа): a {_sov.get('backdrop_alpha', 0)}",
              "text_primary", "backdrop")
         _row("[Сбросить это окно]", "border_accent", "reset")
+        _y += 6
+        # S3.10: пресеты палитр — строка кнопок (каждое имя = своя зона)
+        _row("── Стили окон (клик = применить) ──", "text_muted")
+        _px = panel.x + 10
+        for _pname in _COLOR_PRESETS:
+            _s = _f.render(_pname, True, self.theme.token("text_primary"))
+            screen.blit(_s, (_px, _y))
+            self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
+                                     "preset", _pname))
+            _px += _s.get_width() + 14
+        if getattr(self, "_my_style", None):
+            _s = _f.render("·Мой стиль", True, self.theme.token("accent"))
+            screen.blit(_s, (_px, _y))
+            self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
+                                     "preset", "__my__"))
+        _y += _lh
+        _s = _f.render("[Сохранить мой стиль (с цели)]", True, self.theme.token("border_accent"))
+        screen.blit(_s, (panel.x + 10, _y))
+        self._style_hits.append((pygame.Rect(panel.x + 6, _y - 2, _s.get_width() + 8, _lh),
+                                 "style_save", ""))
+        _y += _lh
         _y += 6
         # B2: строки окон — ДВЕ клик-зоны в строке: [X]-бокс (30px слева) =
         # флаг «в глобальном стиле» (broadcast-правки трогают/не трогают
@@ -1643,12 +1821,25 @@ class WorkbenchScreen:
                 _new = not _ov.get("italic", False)
                 for _w in _wids:
                     self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["italic"] = _new
+            elif act == "outline":
+                _mods = pygame.key.get_mods()
+                _new = max(0, min(4, int(_ov.get("outline", 0))
+                                  + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
+                for _w in _wids:
+                    self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["outline"] = _new
+            elif act == "shadow":
+                _new = not _ov.get("shadow", False)
+                for _w in _wids:
+                    self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["shadow"] = _new
             elif act == "color_edit":
                 # S3.5: клик по цветовой строке = открыть HSV-пикер (ползунки)
                 _base = self._style_overrides.get(self._style_target, {}) \
                     .get("_colors", {}).get(val)
                 if _base is None:
-                    _base = list(self.theme.token(val))
+                    # dict.get(k, expr) вычисляет expr ВСЕГДА — даже когда
+                    # ключ найден; fail-fast theme поднимал KeyError
+                    _d = _TOKEN_DEFAULTS.get(val)
+                    _base = list(_d) if _d is not None else list(self.theme.token(val))
                 h, s, v = colorsys.rgb_to_hsv(_base[0] / 255.0, _base[1] / 255.0,
                                               _base[2] / 255.0)
                 self._picker_hsv = [h, s, v]
@@ -1663,11 +1854,37 @@ class WorkbenchScreen:
                 h, s, v = colorsys.rgb_to_hsv(_base[0] / 255.0, _base[1] / 255.0,
                                               _base[2] / 255.0)
                 self._picker_hsv = [h, s, v]
-                self._picker_alpha = int(_c.get("backdrop_alpha", 215))
+                self._picker_alpha = int(_c.get("backdrop_alpha", 0))
                 self._picker_token = "backdrop"
             elif act == "reset":
                 for _w in _wids:
                     self._style_overrides.pop(_w, None)
+            elif act == "preset":
+                # S3.10: пресет/«Мой стиль» — полный набор _colors всем адресатам
+                _p = dict(_COLOR_PRESETS[val]) if val != "__my__" \
+                    else dict(getattr(self, "_my_style", {}))
+                if not _p:
+                    return True
+                for _w in _wids:
+                    self._style_overrides.setdefault(_w, {})["_colors"] = dict(_p)
+            elif act == "style_save":
+                # S3.10: снимок ЭФФЕКТИВНЫХ цветов+альф цели (включая
+                # унаследованные из темы дефолты — восстановимо целиком)
+                _snap: dict = {}
+                for _tok in ("surface_panel", "surface_title", "border", "border_accent",
+                             "text_primary", "text_muted", "accent", "player_bubble",
+                             "player_name"):
+                    _snap[_tok] = list(self._ct(self._style_target, _tok,
+                                                _TOKEN_DEFAULTS.get(_tok)))
+                _snap["backdrop_rgb"] = list(self._backdrop_rgb(self._style_target))
+                _snap["backdrop_alpha"] = self._backdrop_alpha(self._style_target)
+                for _tok in ("surface_panel", "surface_title", "border",
+                             "border_accent", "player_bubble"):
+                    _a = self._style_overrides.get(self._style_target, {}) \
+                        .get("_colors", {}).get(_tok + "_alpha")
+                    if _a is not None:
+                        _snap[_tok + "_alpha"] = int(_a)
+                self._my_style = _snap
             elif act == "win_toggle":
                 _st = self.registry.state(val)
                 if _st == WindowState.HIDDEN:
@@ -1710,8 +1927,6 @@ class WorkbenchScreen:
         _tok = self._picker_token
         if not _tok or not self._style_target:
             return
-        print(f"[DIAG_STYLE] tok={_tok} global={getattr(self, '_style_global', False)} "
-              f"targets={self._style_targets()}")  # DIAG: снять после диагноза
         h, s, v = self._picker_hsv
         r, g, b = colorsys.hsv_to_rgb(h, s, v)
         _rgb = [int(round(r * 255)), int(round(g * 255)), int(round(b * 255))]
@@ -1722,7 +1937,7 @@ class WorkbenchScreen:
                 _c["backdrop_alpha"] = int(self._picker_alpha)
         else:
             # S3.6: альфа пишется только поверхностям — текст непрозрачен
-            _with_a = _tok not in ("text_primary", "text_muted", "accent")
+            _with_a = _tok not in ("text_primary", "text_muted", "accent", "player_name")
             for _w in self._style_targets():
                 _c = self._style_overrides.setdefault(_w, {}).setdefault("_colors", {})
                 _c[_tok] = _rgb
@@ -1827,7 +2042,7 @@ class WorkbenchScreen:
         _bar("s", "Насыщенность", s, _y)
         _y += 34
         _bar("v", "Яркость", v, _y)
-        if _tok not in ("text_primary", "text_muted", "accent"):
+        if _tok not in ("text_primary", "text_muted", "accent", "player_name"):
             # S3.6: прозрачность поверхностей (рамки/фоны/подложка)
             _y += 34
             _bar("a", f"Прозрачность: {int(self._picker_alpha)}",
@@ -2005,9 +2220,13 @@ class WorkbenchScreen:
             if ch == "self":
                 bx = body.right - w - 10
                 bubble = pygame.Rect(bx, y, w, h - 6)
-                pygame.draw.rect(screen, (35, 45, 70), bubble, border_radius=8)
-                pygame.draw.rect(screen, theme.token("border_accent"), bubble, 1, border_radius=8)
-                name_s = self._font_text.render(speaker, True, theme.token("border_accent"))
+                # S3.7: пузырь игрока — токен (был RGB-литерал 35,45,70)
+                self._fill_alpha(screen, bubble, *self._cta(wid, "player_bubble", (35, 45, 70)), 8)
+                self._stroke_alpha(screen, bubble, *self._cta(wid, "border_accent"), 1, 8)
+                # S3.9: имя игрока — отдельный токен «Имя игрока» (был
+                # сцеплен с border_accent: затемнение рамки чернило имя)
+                name_s = self._font_text.render(
+                    speaker, True, self._ct(wid, "player_name", _TOKEN_DEFAULTS["player_name"]))
                 screen.blit(name_s, (bx + 8, y + 2))
                 ty = y + 18
                 for line in lines:
@@ -2026,8 +2245,8 @@ class WorkbenchScreen:
             else:
                 bw = max(w, 120)
                 bubble = pygame.Rect(body.x + 10, y, bw, h - 6)
-                pygame.draw.rect(screen, theme.token("surface_title"), bubble, border_radius=8)
-                pygame.draw.rect(screen, theme.token("border"), bubble, 1, border_radius=8)
+                self._fill_alpha(screen, bubble, *self._cta(wid, "surface_title"), 8)
+                self._stroke_alpha(screen, bubble, *self._cta(wid, "border"), 1, 8)
                 # M12 (вердикт): эпистемические маркеры у имени.
                 # ● = сказано тебе (direct), ◌ = подслушано (overheard).
                 # Цвет имени дублирует маркер (цветовая избыточность —

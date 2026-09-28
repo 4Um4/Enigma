@@ -40,6 +40,8 @@ from app.domain.attention import (
     with_phase,
     wrap_pi,
 )
+from app.domain.attention_dispositions import get_attention_disposition
+from typing import Mapping
 from app.domain.attention_inference import (
     CognitionSnapshot,
     InterpretedIntent,
@@ -64,7 +66,11 @@ from app.services.npc.attention_config import (
     ATTENTION_EVIDENCE_STILL_PENALTY,
     ATTENTION_EVIDENCE_TURN_MIN_RAD,
     ATTENTION_EVIDENCE_TURN_W,
+    ATTENTION_EVIDENCE_THRESHOLD,
+    ATTENTION_EVIDENCE_HYSTERESIS,
+    ATTENTION_LOST_EVIDENCE_DECAY,
     ATTENTION_LOST_GC_TICKS,
+    ATTENTION_MODIFIER_MAX,
     ATTENTION_ORIENT_MIN_DELTA_RAD,
     ATTENTION_PERIPHERAL_RADIUS_M,
     ATTENTION_PREDICT_SCALE_M,
@@ -299,11 +305,19 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                             )
                             oriented_this_tick = True
                         new_state = create_attention_state(
-                            subject_id, AttentionPhase.ORIENTED, tick, obs_record
+                            subject_id,
+                            AttentionPhase.ORIENTED,
+                            tick,
+                            obs_record,
+                            observer_xy=obs_xy,
                         )
                     else:
                         new_state = create_attention_state(
-                            subject_id, AttentionPhase.DETECTED, tick, obs_record
+                            subject_id,
+                            AttentionPhase.DETECTED,
+                            tick,
+                            obs_record,
+                            observer_xy=obs_xy,
                         )
                 else:
                     # Отложенный рефлекс: ранее suppress (двигался/чужой тик),
@@ -355,8 +369,21 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                     # рефлексе (наблюдатель движется). (Ре)вход стартует
                     # с E=0 (новая гипотеза — create_attention_state).
                     _inf_window = (*prev_state.observation_window, obs_record)
+                    # R24 mitigation: скорость НАБЛЮДАТЕЛЯ за последний
+                    # интервал — вычитается из относительной (см. infer_approach).
+                    _obs_vel = None
+                    if prev_state.observer_xy is not None:
+                        _obs_dt = tick - prev_state.last_update_tick
+                        if _obs_dt > 0:
+                            _obs_vel = (
+                                (obs_xy[0] - prev_state.observer_xy[0]) / _obs_dt,
+                                (obs_xy[1] - prev_state.observer_xy[1]) / _obs_dt,
+                            )
                     _inf = infer_approach(
-                        _inf_window, obs_record.rel_dx, obs_record.rel_dy
+                        _inf_window,
+                        obs_record.rel_dx,
+                        obs_record.rel_dy,
+                        observer_velocity=_obs_vel,
                     )
                     _turned = subject_turned_toward(
                         _inf_window, min_rad=ATTENTION_EVIDENCE_TURN_MIN_RAD
@@ -385,6 +412,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                         tick,
                         obs_record,
                         approach_evidence=_e_new,
+                        observer_xy=obs_xy,
                     )
                 # P3c-3: снимок «что наблюдатель выводит о субъекте».
                 # Слои различимы (Мастер 3.2); surprise_used=None честно
@@ -444,8 +472,19 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                     if tick - prev_state.last_update_tick > ATTENTION_LOST_GC_TICKS:
                         delta_subs[subject_id] = None  # GC: субъект забыт
                     continue
+                # Сценарий Д: субъект исчез — гипотеза приближения плавно
+                # угасает (λ-затухание); окно-память не стирается.
                 delta_subs[subject_id] = attention_to_dict(
-                    with_phase(prev_state, AttentionPhase.LOST, tick)
+                    with_phase(
+                        prev_state,
+                        AttentionPhase.LOST,
+                        tick,
+                        approach_evidence=round(
+                            prev_state.approach_evidence
+                            * ATTENTION_LOST_EVIDENCE_DECAY,
+                            4,
+                        ),
+                    )
                 )
 
         if _DIAG:
@@ -465,3 +504,50 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
             attention_delta[observer_id] = delta_subs
 
     return attention_delta, orient_changes, cognition_snapshots
+
+
+
+def produce_cognition_modifiers(
+    snapshots: Optional[List[Dict[str, Any]]],
+    drives: Optional[Mapping[str, float]] = None,
+) -> Dict[str, float]:
+    """P3d (санкция Мастера): мост перцепция → evidence → utility.
+    Возвращает модификаторы СУЩЕСТВУЮЩИХ интентов для DecisionHub.
+    БЕЗ новых интентов/FSM/памяти/владения (красная линия). Максимум по
+    парам: салиентнейшее приближение определяет реакцию (толпа не
+    суммируется). Рампа с гистерезисом (анти-дребезг R22). Disposition
+    архетипа — источник различий реакций. OFF → {} (байтовый no-op)."""
+    if not COGNITION_V0:
+        return {}
+    top_evidence: Optional[float] = None
+    for _s in snapshots or []:
+        _interp = _s.get("interpretation") or {}
+        if not _interp.get("probably_approaching_me"):
+            continue
+        _e = float(_s.get("evidence", 0.0))
+        if top_evidence is None or _e > top_evidence:
+            top_evidence = _e
+    if top_evidence is None:
+        return {}
+    if top_evidence >= ATTENTION_EVIDENCE_THRESHOLD:
+        _ramp = 1.0
+    elif top_evidence >= (
+        ATTENTION_EVIDENCE_THRESHOLD - ATTENTION_EVIDENCE_HYSTERESIS
+    ):
+        _ramp = 0.5  # зона удержания: реакция ещё жива, но ослаблена
+    else:
+        return {}
+    _base = ATTENTION_MODIFIER_MAX * _ramp
+    _mods: Dict[str, float] = {}
+    for _intent_key, _weight in get_attention_disposition(drives).items():
+        if _weight <= 0.0:
+            continue
+        _val = round(_base * _weight, 4)
+        # Санкционная граница ±0.5 — громкий отказ (L4), не тихий зажим.
+        if abs(_val) > ATTENTION_MODIFIER_MAX + 1e-9:
+            raise ValueError(
+                f"cognition modifier {_intent_key}={_val} вне санкции "
+                f"±{ATTENTION_MODIFIER_MAX}"
+            )
+        _mods[_intent_key] = _val
+    return _mods

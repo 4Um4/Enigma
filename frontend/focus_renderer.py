@@ -254,6 +254,13 @@ class FocusRenderer:
                                 b2["y"] -= push
 
         _line_h = self.font_small.get_height() + 2
+        # S3.8: мировой стиль (верстак, окно Журнала); None = литералы
+        _sty = getattr(self, "style", None)
+        _ws = _sty.world_style() if _sty is not None else None
+
+        def _tok(name: str, fallback):
+            return _ws.token(name) if _ws is not None else fallback
+
         for bub in bubbles:
             _bub_x = int(bub["x"])
             _bub_y = int(bub["y"])
@@ -267,20 +274,31 @@ class FocusRenderer:
             _is_slam = bub.get("is_slam", False)
             
             _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
+            # S3.8: цвета пузырей — мировой стиль (вердикт Мастера:
+            # «копируют общий стиль»). SHOUT-красный и SLAM-белый —
+            # семантика восприятия, литералы сохранены намеренно.
             if _is_player:
-                _bg.fill((15, 30, 50, min(_alpha, 210)))
-                _border_color = (80, 160, 240, _alpha)
-                _text_color = (200, 230, 255)
+                if _ws is not None:
+                    _prgb, _pa = _sty.world_cta("player_bubble", (15, 30, 50))
+                else:
+                    _prgb, _pa = (15, 30, 50), 210
+                _bg.fill((*_prgb, int(_alpha * _pa / 255)))
+                _border_color = (*_tok("border_accent", (80, 160, 240)), _alpha)
+                _text_color = _tok("text_primary", (200, 230, 255))
             else:
-                _bg.fill((25, 25, 45, min(_alpha, 210)))
-                _border_color = (160, 170, 220, _alpha)
+                if _ws is not None:
+                    _brgb, _ba = _sty.world_backdrop()
+                else:
+                    _brgb, _ba = (25, 25, 45), 210
+                _bg.fill((*_brgb, int(_alpha * _ba / 255)))
+                _border_color = (*_tok("border", (160, 170, 220)), _alpha)
                 if _delivery == "SHOUT":
-                    _text_color = (255, 80, 80)
+                    _text_color = (255, 80, 80)  # семантика крика
                     _border_color = (255, 50, 50, _alpha)
                 elif _delivery == "WHISPER":
-                    _text_color = (160, 160, 160)
+                    _text_color = _tok("text_muted", (160, 160, 160))
                 else:
-                    _text_color = (255, 255, 255)
+                    _text_color = _tok("text_primary", (255, 255, 255))
 
             # S170: SLAM-события масштабируются на 1.2x и получают жёсткую рамку
             if _is_slam:

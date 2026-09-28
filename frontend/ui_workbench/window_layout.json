@@ -2,12 +2,12 @@
   "_version": 1,
   "window_states": {
     "journal": {
-      "state": "full",
+      "state": "collapsed",
       "free_rect": [
-        896,
-        38,
+        470,
+        34,
         504,
-        546
+        512
       ]
     },
     "world_clock": {
@@ -25,34 +25,34 @@
         1117,
         0,
         90,
-        45
+        34
       ]
     },
     "observations": {
-      "state": "full",
+      "state": "collapsed",
       "free_rect": [
         3,
         0,
-        392,
+        438,
         270
       ]
     },
     "inventory": {
-      "state": "full",
+      "state": "collapsed",
       "free_rect": [
         0,
         270,
-        397,
+        440,
         593
       ]
     },
     "board": {
       "state": "collapsed",
       "free_rect": [
-        397,
-        4,
-        638,
-        867
+        441,
+        0,
+        560,
+        630
       ]
     }
   }

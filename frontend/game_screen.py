@@ -2042,6 +2042,12 @@ class GameScreen:
             from portrait_renderer import PortraitRenderer
             from visual_casting_repository import VisualCastingRepository
             self._focus_renderer = getattr(self, "_focus_renderer", FocusRenderer(self.renderer.font_small))
+            # S3.8: пузыри мира — шрифт и палитра из верстака (Журнал);
+            # прокси пересоздаётся каждый кадр — смена шрифта/эффектов
+            # подхватывается без перезапуска
+            if getattr(self, "_workbench", None) is not None:
+                self._focus_renderer.style = self._workbench
+                self._focus_renderer.font_small = self._workbench.world_font()
             self._portrait_renderer = getattr(self, "_portrait_renderer", PortraitRenderer())
             self._casting_repo = getattr(self, "_casting_repo", VisualCastingRepository())
             

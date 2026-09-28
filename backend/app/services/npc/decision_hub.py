@@ -397,6 +397,7 @@ class DecisionHub:
         npc_memory_modifiers: Optional[Dict[str, float]] = None,
         epistemic_modifiers: Optional[Dict[str, float]] = None,
         causal_modifiers: Optional[Dict[str, float]] = None,
+        cognition_modifiers: Optional[Dict[str, float]] = None,  # P3d: перцепция→utility (санкция)
     ) -> Dict[str, float]:
         """S188: Чистая функция (Pure Reducer) для аддитивного применения модификаторов.
         Не мутирует входной словарь scores, возвращает новый.
@@ -406,7 +407,7 @@ class DecisionHub:
         all_mods = [
             eco_modifiers, social_modifiers, reputation_modifiers,
             drive_modifiers, contract_modifiers, npc_memory_modifiers,
-            epistemic_modifiers, causal_modifiers
+            epistemic_modifiers, causal_modifiers, cognition_modifiers
         ]
         for mod_dict in all_mods:
             if mod_dict:
@@ -441,6 +442,7 @@ class DecisionHub:
         campaign_id: str = "",  # S135: Ключ кампании для SSOT
         epistemic_context: Optional[Any] = None,  # S197: Для извлечения trigger_proposition
         causal_modifiers: Optional[Dict[str, float]] = None,  # R5: DesiredChange→Modifier Contract
+        cognition_modifiers: Optional[Dict[str, float]] = None,  # P3d: внимание→utility (санкция, P3d-записка v3)
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -557,7 +559,8 @@ class DecisionHub:
             contract_modifiers=contract_modifiers,
             npc_memory_modifiers=npc_memory_modifiers,
             epistemic_modifiers=epistemic_modifiers,
-            causal_modifiers=causal_modifiers
+            causal_modifiers=causal_modifiers,
+            cognition_modifiers=cognition_modifiers
         )
 
         # ── Причинный слой: ReflexConstraints (ограничения от рефлекса) ──

@@ -166,6 +166,22 @@ class NpcTickPipeline:
         _l1_events: List[Any] = []
         memory_events: List[Any] = []
 
+        # CognitionContext v0 (P3d): проход внимания ДО цикла решений —
+        # cognition_modifiers обязаны быть СВЕЖИМИ в compute этого тика
+        # (Закон 3.1: Stale Cognition = баг). Pure-проход: TickState →
+        # дельты внимания + orient SceneChange + снимки. Флаг OFF → no-op.
+        from app.services.npc.attention_reflex import run_attention_pass
+
+        _pass = run_attention_pass(state)
+        _attention_delta = _pass.attention_delta
+        _orient_changes = _pass.orient_changes
+        if _attention_delta or _orient_changes or _pass.cognition_snapshots:
+            logger.info(
+                f"[ATTENTION] tick={state.tick_id} observers={len(_attention_delta)} "
+                f"orients={len(_orient_changes)} "
+                f"snapshots={len(_pass.cognition_snapshots)}"
+            )
+
         for npc in _npcs_to_process:
             npc_id = npc.get("npc_id") or npc.get("id")
             _los = (
@@ -821,6 +837,36 @@ class NpcTickPipeline:
             # и S203.x-исполнителей; TemporalSpec-домен остаётся для их
             # будущей интеграции (не легаси-веткой в редюсере).
 
+            # P3d (санкция Мастера): транспорт перцептивного вывода → utility.
+            # Снимки внимания этого наблюдателя → cognition_modifiers для
+            # compute ЭТОГО же тика (Закон 3.1: свежесть). Producer pure,
+            # OFF → {} (no-op); ключи — существующие интенты, ±0.5-санкция.
+            from app.services.npc.attention_reflex import produce_cognition_modifiers
+
+            _cognition_mods = produce_cognition_modifiers(
+                [
+                    _s
+                    for _s in _pass.cognition_snapshots
+                    if _s.get("observer_id") == npc_id
+                ],
+                drives=dict(getattr(_effective_drives, "values", {}) or {}),
+            )
+
+            # P3d (санкция Мастера): транспорт перцептивного вывода → utility.
+            # Снимки внимания ЭТОГО наблюдателя → cognition_modifiers для
+            # compute ЭТОГО тика; характер — пирамида драйвов L3 (не
+            # профессия; формульные веса ∈ [0,1] → санкция ±0.5 недостижима).
+            from app.services.npc.attention_reflex import produce_cognition_modifiers
+
+            _cognition_mods = produce_cognition_modifiers(
+                [
+                    _s
+                    for _s in _pass.cognition_snapshots
+                    if _s.get("observer_id") == npc_id
+                ],
+                drives=dict(getattr(_effective_drives, "values", {}) or {}),
+            )
+
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id, salt="decision_hub")
             _all_npc_ids = [
@@ -885,6 +931,7 @@ class NpcTickPipeline:
                 campaign_id=state.campaign_id, # S135: SSOT
                 epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
                 causal_modifiers=_causal_modifiers, # R5: ADR среза CS2
+                cognition_modifiers=_cognition_mods, # P3d: внимание→utility (санкция)
                 epistemic_context=_epistemic_ctx, # S197: Causal Provenance
                 opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER
             )
@@ -1115,21 +1162,9 @@ class NpcTickPipeline:
             except Exception as e:
                 logger.warning(f"[MEMORY_EVENT] create_memory_event failed for {npc_id}: {e}")
 
-        # CognitionContext v0 (P2): единый проход внимания ПОСЛЕ цикла решений.
-        # Pure: читает TickState → дельты + готовые orient SceneChange; применение —
-        # оркестратор. Флаг OFF → ({}, []) — no-op. В P2 DecisionHub внимание не
-        # читает; в P3 проход поднимется внутрь цикла (до compute) для свежести.
-        from app.services.npc.attention_reflex import run_attention_pass
-
-        _pass = run_attention_pass(state)
-        _attention_delta = _pass.attention_delta
-        _orient_changes = _pass.orient_changes
-        if _attention_delta or _orient_changes or _pass.cognition_snapshots:
-            logger.info(
-                f"[ATTENTION] tick={state.tick_id} observers={len(_attention_delta)} "
-                f"orients={len(_orient_changes)} "
-                f"snapshots={len(_pass.cognition_snapshots)}"
-            )
+        # CognitionContext v0 (P3d): проход внимания ПЕРЕНЕСЁН в начало Фазы 5 —
+        # cognition_modifiers обязаны быть СВЕЖИМИ в compute этого же тика
+        # (Закон 3.1: Stale Cognition = баг). Дельты/orient/снимки — те же.
 
         # INV-PLAYER-AUTHORSHIP (мини-ADR F1, уровень 3): детектор на границе
         # формирования мутации. Ловит ЛЮБОЙ путь рождения авторского акта

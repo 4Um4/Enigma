@@ -42,6 +42,7 @@ _K_WINDOW = "observation_window"
 _K_LAST_DISTANCE = "last_distance"
 _K_LAST_BEARING = "last_bearing"
 _K_EVIDENCE = "approach_evidence"
+_K_OBS_XY = "observer_xy"
 _K_TICK = "tick"
 _K_DISTANCE = "distance"
 _K_BEARING = "bearing"
@@ -147,9 +148,14 @@ class AttentionState:
     last_distance: Optional[float] = None
     last_bearing: Optional[float] = None
     # P3b (M4): накопленное свидетельство «направляется ко мне», E ∈ [0, 1].
-    # Рождается 0 (новая гипотеза), замораживается в LOST (без наблюдений
-    # нет обновлений — память не стирается), GC уносит вместе с состоянием.
+    # Рождается 0 (новая гипотеза), ЗАТУХАЕТ в LOST (сценарий Д), GC уносит
+    # вместе с состоянием.
     approach_evidence: float = 0.0
+    # P3d (R24 mitigation): позиция наблюдателя при последнем наблюдении —
+    # для вычитания СВОЕГО смещения из относительной скорости (v̂ —
+    # скорость «субъект−наблюдатель»; без коррекции движение наблюдателя
+    # ложно атрибутируется субъекту).
+    observer_xy: Optional[Tuple[float, float]] = None
 
 
 def create_attention_state(
@@ -157,6 +163,7 @@ def create_attention_state(
     phase: AttentionPhase,
     tick: int,
     observation: Optional[AttentionObservation] = None,
+    observer_xy: Optional[Tuple[float, float]] = None,
 ) -> AttentionState:
     """Рождение состояния. observation.tick обязан совпадать с tick рождения."""
     if not subject_id:
@@ -174,6 +181,7 @@ def create_attention_state(
         observation_window=window,
         last_distance=observation.distance if observation is not None else None,
         last_bearing=observation.bearing if observation is not None else None,
+        observer_xy=observer_xy,
     )
 
 
@@ -183,6 +191,7 @@ def with_observation(
     tick: int,
     observation: AttentionObservation,
     approach_evidence: Optional[float] = None,
+    observer_xy: Optional[Tuple[float, float]] = None,
 ) -> AttentionState:
     """Добавляет наблюдение, двигает фазу, держит окно в пределах cap.
 
@@ -213,6 +222,7 @@ def with_observation(
         last_distance=observation.distance,
         last_bearing=observation.bearing,
         approach_evidence=new_evidence,
+        observer_xy=observer_xy if observer_xy is not None else prev.observer_xy,
     )
 
 
@@ -227,6 +237,7 @@ def attention_to_dict(state: AttentionState) -> Dict[str, Any]:
         _K_LAST_DISTANCE: state.last_distance,
         _K_LAST_BEARING: state.last_bearing,
         _K_EVIDENCE: state.approach_evidence,
+        _K_OBS_XY: list(state.observer_xy) if state.observer_xy else None,
     }
 
 
@@ -268,12 +279,20 @@ def is_facing(
 
 
 def with_phase(
-    prev: AttentionState, phase: AttentionPhase, tick: int
+    prev: AttentionState,
+    phase: AttentionPhase,
+    tick: int,
+    approach_evidence: Optional[float] = None,
 ) -> AttentionState:
     """Смена фазы БЕЗ нового наблюдения (LOST-заморозка: окно не трогаем —
     память о наблюдаемом сохраняется, ТЗ сценарий H). Монохронность (Инвариант III)."""
     if tick < prev.last_update_tick:
         raise ValueError("with_phase: перевод фазы в прошлое — Temporal Isolation")
+    new_evidence = (
+        prev.approach_evidence if approach_evidence is None else approach_evidence
+    )
+    if not (0.0 <= new_evidence <= 1.0):
+        raise ValueError("with_phase: approach_evidence вне [0, 1]")
     return AttentionState(
         subject_id=prev.subject_id,
         phase=phase,
@@ -282,7 +301,8 @@ def with_phase(
         observation_window=prev.observation_window,
         last_distance=prev.last_distance,
         last_bearing=prev.last_bearing,
-        approach_evidence=prev.approach_evidence,
+        approach_evidence=new_evidence,
+        observer_xy=prev.observer_xy,
     )
 
 
@@ -305,4 +325,9 @@ def attention_from_dict(raw: Dict[str, Any]) -> AttentionState:
             float(raw[_K_LAST_BEARING]) if raw[_K_LAST_BEARING] is not None else None
         ),
         approach_evidence=float(raw[_K_EVIDENCE]),
+        observer_xy=(
+            (float(raw[_K_OBS_XY][0]), float(raw[_K_OBS_XY][1]))
+            if raw[_K_OBS_XY] is not None
+            else None
+        ),
     )
