@@ -58,7 +58,10 @@ Name: "core"; Description: "Ядро игры (обязательно)"; Types: 
 ; докачка, прогресс, скорость, отмена). Галочка «5 ГБ», не ставящая ни
 ; байта, — ложь в UI (исходный баг тестера, закрытие).
 ; Name: "llm"; Description: "AI-модель Qwen 7B (около 5 ГБ)"; Types: full
-Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU)"; Types: full compact custom
+; FIX V.0.5.4.2.0: llama.cpp обязателен — Flags: fixed (как у core): игрок не может
+; снять компонент при установке, выбора «ставить/не ставить» нет.
+; Модель gguf НЕ затронута: по-прежнему только ручная загрузка после установки игры.
+Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU) — обязательно"; Types: full compact custom; Flags: fixed
 
 [Files]
 ; 1. Ядро игры (Берем из временной папки staging, где лежат .pyc)
