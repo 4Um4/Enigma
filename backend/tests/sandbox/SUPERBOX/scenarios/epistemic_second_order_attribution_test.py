@@ -8,6 +8,8 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_a
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_attribution_test.py
 """
 import atexit
+
+import pytest
 import logging
 import sys
 from pathlib import Path
@@ -133,6 +135,14 @@ def execute_scheduler(game_loop, result):
     )
     game_loop._task_scheduler.execute_pending(scene_state=_scene, campaign_id=CAMPAIGN_ID)
 
+@pytest.mark.skip(
+    reason="EPISTEMIC-005 deferred: Second-Order ToM (ASSERTS) сознательно "
+           "откачен к first-order (S199.6 FIX в belief_revision_engine / "
+           "S202 EPISTEMIC CORE GATE; вердикт Мастера — вариант Б). Тест "
+           "сохранён как документированное отложенное требование: "
+           "возвращается вместе с реализацией слоя EPISTEMIC-005. "
+           "Production first-order поведение НЕ меняется ради теста."
+)
 def test_superbox_014_second_order_attribution():
     logger.info("=== SUPERBOX-014: SECOND-ORDER ATTRIBUTION TEST ===")
     

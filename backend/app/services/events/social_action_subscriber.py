@@ -9,6 +9,7 @@ import logging
 
 from app.domain.events import EventDTO
 from app.services.events.event_bus import EventBus
+from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class SocialActionSubscriber:
         # 1. Projection → COMMUNICATION_CLAIM (если есть proposition)
         if prop:
             claim_event = EventDTO.create(
-                event_type="communication_claim",
+                event_type=EventType.COMMUNICATION_CLAIM.value,
                 source=event.source,
                 payload={
                     "target_id": target,
@@ -48,7 +49,7 @@ class SocialActionSubscriber:
         # 2. Projection → NPC_SPOKE (если action == DIALOGUE или есть text)
         if action == "DIALOGUE" and text:
             spoke_event = EventDTO.create(
-                event_type="npc_spoke",
+                event_type=EventType.NPC_SPOKE.value,
                 source=event.source,
                 payload={
                     "target_id": target,
@@ -65,7 +66,7 @@ class SocialActionSubscriber:
         # 3. Projection → ACTOR_ATTACKS (если action == ATTACK)
         if action == "ATTACK":
             attack_event = EventDTO.create(
-                event_type="actor_attacks",
+                event_type=EventType.ACTOR_ATTACKS.value,
                 source=event.source,
                 payload={
                     "target_id": target,

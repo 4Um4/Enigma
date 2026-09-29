@@ -22,6 +22,7 @@
 import pytest
 from app.domain.epistemology import (
     ClaimEvent,
+    EpistemicRecord,
     Predicate,
     Proposition,
 )
@@ -152,3 +153,96 @@ def test_self_modifier_survives_apply_modifiers():
     assert merged["talk"] == pytest.approx(1.0 + mods["talk"])
     # Чистота Modifier Contract: вход не мутирован
     assert base_scores == {"talk": 1.0, "observe": 0.5}
+
+
+# ── GATE-TRIGGER-01: predicate-фильтр trigger_proposition (баг №2) ─────────
+# Гео-запись (EXITS_TO, subject = узел графа) хранится в store легитимно,
+# но не имеет права становиться WARN-целью S197-таргетинга: can_address
+# не различает NPC и узел графа — резать обязано на уровне резолвера.
+# Записи создаются напрямую (образец EpistemicStore.from_dict) — это
+# payload-форма реального runtime-канала exploration (tick_orchestrator:874).
+
+
+def _geo_record(agent_id: str = "maid_lusya") -> EpistemicRecord:
+    # Легитимная гео-запись эксплорации: «tavern:exit_east ведёт в city_gate»
+    return EpistemicRecord(
+        agent_id=agent_id,
+        proposition=Proposition(
+            subject_id="tavern:exit_east",
+            predicate=Predicate.EXITS_TO,
+            object_id="city_gate",
+        ),
+        confidence=0.9,
+        source_id="exploration_target_resolver",
+        source_claim_id="geo-1",
+        first_observed_tick=10,
+        last_updated_tick=10,
+    )
+
+
+def test_geo_exits_to_never_trigger_proposition():
+    # Ядро фикса: дверь — не угроза, не цель WARN (шторм ~60/мин пресечён
+    # на источнике, раунды 2-4 приёмки).
+    ctx = EpistemicContextResolver(_StoreSpy([_geo_record()])).resolve("maid_lusya")
+    assert ctx.trigger_proposition is None
+    # Гео-запись не попадает и в угрози (страховочный ассерт того же контракта)
+    assert ctx.perceived_threats == ()
+
+
+def test_helped_higher_conf_does_not_steal_threat_trigger():
+    # Развязка трекеров: HELPED conf=0.9 шёл раньше STOLE conf=0.7 —
+    # старый код (условие на max_conf) терял триггер угрозы вовсе.
+    helped = EpistemicRecord(
+        agent_id="maid_lusya",
+        proposition=Proposition(
+            subject_id="merchant_goran",
+            predicate=Predicate.HELPED,
+            object_id="gold",
+        ),
+        confidence=0.9,
+        source_id="tavern_keeper_tornin",
+        source_claim_id="c-helped",
+        first_observed_tick=10,
+        last_updated_tick=10,
+    )
+    stole = EpistemicRecord(
+        agent_id="maid_lusya",
+        proposition=Proposition(
+            subject_id="thief_shadow",
+            predicate=Predicate.STOLE,
+            object_id="gold",
+        ),
+        confidence=0.7,
+        source_id="merchant_goran",
+        source_claim_id="c-stole",
+        first_observed_tick=11,
+        last_updated_tick=11,
+    )
+    ctx = EpistemicContextResolver(_StoreSpy([helped, stole])).resolve("maid_lusya")
+    # Триггер — угроза, не союзник
+    assert ctx.trigger_proposition is not None
+    assert ctx.trigger_proposition.subject_id == "thief_shadow"
+    assert ctx.trigger_proposition.predicate == Predicate.STOLE
+    # max_confidence НЕ тронут фильтром (питает to_modifiers): 0.9 от HELPED
+    assert ctx.max_confidence == pytest.approx(0.9)
+
+
+def test_threat_predicates_legacy_trigger_untouched():
+    # STOLE и ATTACKED — прежнее поведение (условие Мастера).
+    att = EpistemicRecord(
+        agent_id="maid_lusya",
+        proposition=Proposition(
+            subject_id="guard_borko",
+            predicate=Predicate.ATTACKED,
+            object_id="maid_lusya",
+        ),
+        confidence=0.8,
+        source_id="blacksmith_orm",
+        source_claim_id="c-att",
+        first_observed_tick=12,
+        last_updated_tick=12,
+    )
+    ctx = EpistemicContextResolver(_StoreSpy([att])).resolve("maid_lusya")
+    assert ctx.trigger_proposition is not None
+    assert ctx.trigger_proposition.subject_id == "guard_borko"
+    assert ctx.trigger_proposition.predicate == Predicate.ATTACKED

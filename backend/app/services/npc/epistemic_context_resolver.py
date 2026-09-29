@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 # Убеждения ниже этого порога не формируют perceived threats/allies.
 CONFIDENCE_THRESHOLD = 0.5
 
+# GATE-TRIGGER-01 (приёмка ТЗ, баг №2; вердикт Мастера): единый реестр
+# угрозных предикатов — кормит И threats, И trigger_proposition (одна
+# константа вместо двух списков, расходящихся при расширении).
+# EXITS_TO-гео-записи (subject = узел графа, «NPC помнит двери») и HELPED
+# (союзники) не могут стать WARN-целью S197-таргетинга: sanity_membrane
+# can_address не различает NPC и узел графа, гвард в DecisionHub прозрачен.
+_THREAT_PREDICATES = (Predicate.STOLE, Predicate.ATTACKED)
+
 class EpistemicContextResolver:
     """
     Преобразует EpistemicStore -> EpistemicContext.
@@ -50,6 +58,7 @@ class EpistemicContextResolver:
         max_conf = 0.0
         # S197: Сохраняем утверждение с максимальной уверенностью для Causal Provenance.
         _trigger_prop = None
+        _trigger_conf = 0.0  # GATE-TRIGGER-01: трекер conf только угрозных записей
         # GC-RELEVANCE-01 (R1): клеймы о самом себе — отдельный канал сбора.
         about_self = []
         max_self_conf = 0.0
@@ -72,9 +81,15 @@ class EpistemicContextResolver:
 
             if record.confidence > max_conf:
                 max_conf = record.confidence
+            # GATE-TRIGGER-01: trigger — только угрозный предикат,
+            # развязанный от max_conf-трекера (питает to_modifiers):
+            # HELPED conf=0.9, идущий раньше STOLE conf=0.7, больше не
+            # крадёт триггер у угрозы — гейт на СВОЁМ условии, уровень цикла.
+            if pred in _THREAT_PREDICATES and record.confidence > _trigger_conf:
+                _trigger_conf = record.confidence
                 _trigger_prop = record.proposition
 
-            if pred in [Predicate.STOLE, Predicate.ATTACKED]:
+            if pred in _THREAT_PREDICATES:
                 if subj not in threats:
                     threats.append(subj)
                 violations += 1

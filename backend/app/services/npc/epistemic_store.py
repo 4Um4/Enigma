@@ -37,31 +37,25 @@ class EpistemicStore:
         return [r for r in self._records.values() if r.agent_id == agent_id]
 
     def upsert(self, record: EpistemicRecord) -> None:
-        """S292 (⑤-B фаза-2): акторная мембрана в SSOT-точке записи.
-        Все каналы (шина claim'ов, observation, D8P-экстракция, тест-инъекции)
-        проходят здесь — мембрана на входе непроницаема для канальных дыр.
-        Subject обязан быть актором мира или player: claim о не-акторе
-        ('tavern:exit_east') отравлял убеждения → S197-таргетинг резолвил
-        дверь целью WARN (шторм ~60/мин). Fail-closed + громкий лог."""
-        from app.domain.epistemology import Predicate
-        from app.domain.sanity_membrane import can_address
-        _subj = str(getattr(record.proposition, "subject_id", "") or "")
-        _pred = str(getattr(record.proposition, "predicate", "") or "")
-        # Географические факты (EXITS_TO) — легитимные не-акторные subject'ы:
-        # персональный граф маршрутов NPC (exploration_target_resolver).
-        _geo_predicates = {str(Predicate.EXITS_TO.value)}
-        if (
-            _subj
-            and _pred not in _geo_predicates
-            and not can_address(_subj, _subj)
-            and _subj != "player"
-            and not _subj.startswith(("tavern:", "market_square:", "city_gate:"))
-        ):
-            logger.error(
-                f"[EPI_MEMBRANE] REJECT upsert: subject={_subj!r} не актор "
-                f"(agent={getattr(record, 'agent_id', '?')}, source={getattr(record, 'source_id', '?')})"
-            )
-            return
+        """S296-приёмка (баг №2): upsert — точка записи без акторного фильтра.
+        S292-мембрана удалена как мёртвый код: can_address(_subj, _subj) для
+        любого непустого не-player subject возвращал True (resolve_control_source
+        не различает NPC и узел графа) — фильтр не отклонял ничего, блоклист
+        startswith был недостижим. Защита от не-акторных WARN-целей —
+        predicate-фильтр trigger_proposition в EpistemicContextResolver
+        (GATE-TRIGGER-01, этот же коммит); реестр акторов — будущее ADR."""
+        # GATE-TRIGGER-01: S292 акторный фильтр удалён — мёртвый код.
+        # Доказательство недостижимости (статическое, раунды 2-4):
+        # can_address(_subj, _subj) для любого непустого не-player subject
+        # возвращает True (resolve_control_source не различает NPC и узел
+        # графа) → «not can_address» = False → short-circuit гасит ветку
+        # ДО startswith-блоклиста. Фильтр не отклонял НИЧЕГО с момента
+        # внесения; побочных эффектов нет (внутри только логирование).
+        # EXITS_TO-гео-записи легитимны (персональный граф маршрутов NPC,
+        # tick_orchestrator:874/:1156). Защита от не-акторных WARN-целей —
+        # predicate-фильтр trigger_proposition в EpistemicContextResolver;
+        # реестр живых акторов для can_address — отдельное будущее ADR
+        # (Two-Domain Rule: ждём второго домена-подтверждения).
         self._records[(record.agent_id, record.proposition)] = record
         logger.debug(f"[EPISTEMIC_STORE] Upserted belief for {record.agent_id}: {record.proposition} conf={record.confidence:.2f}")
 
