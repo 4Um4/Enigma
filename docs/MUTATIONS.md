@@ -8,7 +8,7 @@
 > **Сигнатура:** 🎯 Фокус | ⚙️ Delta (Изменения) | 📁 Файлы
 
 ## МЕТА
-Сессий: 202 | Доменов: 10 | Статус: Stable (IPT 39/39, 0 drifts) | Аудит: S03-S217
+Сессий: 301 | Доменов: 10 | Статус: Stable (IPT — актуальный счёт подставить после финального прогона, 0 drifts) | Аудит: S03-S301
 
 ## 0. ENIGMA ONTOLOGY (Context Anchor)
 *   **Psyche Layers:** `L0`=Physics/Body, `L1`=Chronicle (append-only SQLite facts), `L2`=Identity/Beliefs (crystalized), `L3`=Drives (ephemeral, per-tick).
@@ -2014,6 +2014,76 @@ pipeline, tick, orchestrator, 8 тест-файлов (~70 тестов).
 🎯 Полная верификация «недостоверного» ТЗ предшественника: все заявленные файлы/ADR-O-406/mембраны оказались РЕАЛЬНЫМИ (снимок документации был обрезан). Инцидент P0: NameError 'os' в незакоммиченном Н-18-коде (decision_hub:789) убивал Фазу 5 каждый тик (~357 тиков живой сессии, SHI=0%, NPC без реплик) — починен автором Н-18 до нашего патча (алиасный импорт), наша роль: диагноз по traceback + верификационная цепочка (py_compile/BOM/AST-scan/IPT/живой прогон). GATE-TRIGGER-01 (баг №2, вердикт Мастера): predicate-фильтр trigger_proposition — единая константа _THREAT_PREDICATES (STOLE/ATTACKED) кормит И threats, И trigger; развязка трекеров max_conf (питает to_modifiers, не тронут) / _trigger_conf; EXITS_TO-гео-записи и HELPED больше не могут стать WARN-целью S197-таргетинга (can_address не различает NPC и узел графа — гварды S292 были прозрачны). Удалена мёртвая S292-мембрана в epistemic_store.upsert (can_address(x,x)=True для любого непустого subject → reject-ветка недостижима; доказано статически раундами 2-4). SUPERBOX-014: pytest.mark.skip EPISTEMIC-005 deferred (вердикт Мастера Б: Second-Order ToM — отдельный слой, production first-order не меняется ради теста). Баг №6 (парные NPC_SPOKE) — ОТРИЦАТЕЛЬНЫЙ вердикт: полный аудит издателей = dialogue_materializer (canonical) + social_action_subscriber (мёртвая проекция: turn_pipeline не кладёт text в SOCIAL_ACTION payload) + social_input_projector (подписчик); дубль в текущем коде невозможен, Δ~12мс = законная пара NPC_SPOKE+COMMUNICATION_CLAIM. ADR-O-349: EventType.value вместо сырых строк в social_action_subscriber. Регрессия: 3 теста в test_self_relevance_gate.py (EXITS_TO не цель; HELPED-выше-STOLE не крадёт триггер — поймал мой же дефект индентации первой версии патча ДО коммита; STOLE/ATTACKED легаси). Observations: OPPOSES в causal_slice_threat:72 — несуществующий enum-член (мёртвое значение); 12 BOM-файлов (EF BB BF: player_epistemics, subject_ref, player_epistemic_state, economy/__init__, npc_dialogue_subscriber, game_loop, task_scheduler, turn_pipeline, knowledge_retrieval, player_cognition×3) — ломают AST-инструментарий, очистка отложена до коммита параллельных сессий; CROSS_LOC_INTERCEPT тройного перехвата у tavern:exit_east — наблюдение.
 📁 svc/npc/epistemic_context_resolver (_THREAT_PREDICATES, _trigger_conf), svc/npc/epistemic_store (удаление мёртвой мембраны), svc/events/social_action_subscriber (EventType), tests/micro/test_self_relevance_gate (+3), tests/SUPERBOX/scenarios/epistemic_second_order_attribution_test (skip)
 
+### S298: UI Workbench — S3/S4 целиком: F12-редактор стиля (B2-broadcast, HSV-пикер, типографика, аватары, мировой стиль, клавиатура всех меню) | ✅ runtime-верифицировано в редакторе и игре
+🎯 Замыкание хендоффа верстака: S3-цвета/альфа, S4-персист, эргономика (вердикты Мастера по каждому пункту). Каркас не тронут — надстройка над `workbench_screen` + интеграции.
+⚙️ **Модель стиля (B2, вердикт Мастера):** broadcast вместо `__global__`-приоритета — глобальная правка пишется ПРЯМО в каждое окно с флагом [X] «в глобальном стиле» (default ON); тумблер панели «СТИЛЬ ДЛЯ ВСЕХ ОКОН» выбирает адресата; затенение исключено конструктивно. Персист v2: overrides/target/role/global/window_global/my_style/texture/avatar_size/noise_scale/noise_seed/noise_tint/bubble_size/bubble_spacing/bubble_leading.
+⚙️ **Цвет:** HSV-пикер (drag-ползунки, градиентные шкалы, A для поверхностей, текст непрозрачен — вердикт); альфа всех поверхностей через `_cta/_fill_alpha/_stroke_alpha` (2×pad в высоте строк — фикс «текст прижат к низу» и наложения строк); `backdrop_rgb`+α подложки; русификация панели; пресеты 6 палитр (Полночь/Грувбокс/Солариз/Норд/Обсидиан/Багрянец — три легендарные из редакторов, три фэнтези по вердикту) + «Мой стиль» (снимок эффективных цветов+альф, применение).
+⚙️ **Штукатурка:** value-noise (2 октавы, smoothstep, бесшовный тайл), глубина ±6 (минус = светлый ADD-рельеф), масштаб/зерно/подтон (пикер) — на все подложки текста, заголовки чистые (вердикт).
+⚙️ **Типографика `_StyledFontProxy`** (44 точки рендера не тронуты): обводка/тень/подчёркивание ниже выносных/разрядка с межсловным интервалом (пробел = 2×шаг)/свечение — аддитивный halo (BLEND_RGBA_ADD) с пирамидальным blur и множителем интенсивности (дробный ползунок 0–1; 3 итерации до честного ореола — «двойник» и «койма» пойманы и убиты). Shift+клик = назад во всех числовых переключателях (размер/шрифт/обводка/разрядка/глубина).
+⚙️ **Аватары журнала (Discord-стиль):** фото NPC из individuals-конфигов (visual_casting fallback, ленивый репозиторий), верхний квадратный кроп (голова), круговая маска BLEND_RGBA_MIN, кольцо палитры; кэш (имя, размер); живой ползунок 24–96.
+⚙️ **Мировой стиль (вердикт «копируют общий стиль»):** `world_font/world_style/world_cta/world_backdrop/apply_texture`; имена NPC над головами — шрифт/цвет из палитры (name_style, эффект незнакомца S169 сохранён); **подавление имён сцены при активном пузыре** (`suppress_names` — дубль имён исключён в источнике, вердикт Мастера; платка-стератель упразднена); пузыри: собственные кегль/разрядка/межстрочный (3 живых ползунка, кламп 4px), центровка строк (горизонталь + середина слота), демо-пузыри редактора живы (фикс `_norm_coord` для формата `{"sx","sy","radius"}` — пузырей не было вовсе).
+⚙️ **Панель СТИЛЬ:** сворачиваемые секции (Шрифт/Цвет/Стили/Окна), 6 живых ползунков (аватар/узор/свечение/кегль/разрядка/межстрочный), вертикальный центр правого края (не под мини-окнами). Журнал: чипы собеседников с динамической высотой и переносом строк; хит-зоны вкладок/стрелок/имён из фактических surface-высот (эффекты растят); «▲ к началу» — прыжок к старейшим (clamp до K_max), «▼ к последним».
+⚙️ **Игровые интеграции:** Alt+Enter (toggle_fullscreen); инвентарь в игре стартует HIDDEN — только по «I» (персистентное состояние не навязывается); легаси-панель темпа удалена (замена — мини-окно time_scale); Tab-закрытие диалога сворачивает журнал (`collapse_journal`, FSM FULL→COLLAPSED); единый размер экрана редактора и игры (display_manager/user_settings.yaml); game_menu — ↑/↓/Enter + фикс ЛИПКОЙ подсветки (`hovered = hovered or selected` накапливал все кнопки — «выбора не было видно») + подсказка клавиш; SettingsScreen — сеточная навигация (←/→ внутри ряда, ↑/↓ между рядами с сохранением колонки, ряды из Y-группировки) + клавиатура ВСЕХ модалок (Да/Нет с безопасным дефолтом «Нет», действия модели ↑/↓, скачивание Enter=Esc, вложенная активация) с рамкой-акцентом и мышь-синхронизацией фокуса.
+⚙️ **Диагнозы на эскалацию:** обрезка длинных реплик в журнале — фронт срезов не имеет (греп-доказано), источник — backend-канал dialog_journal (зонд [DIAG_JC2] semantic-сессии); мир-пузыри режут by design (10 строк + «…»).
+⚠️ Инциденты: 3 якоря-промаха при много блочных вставках (урок: блоки вставлять по одному, py_compile после каждого); итерации свечения (двойник→койма→орел) — каждая поймана Мастером вживую. Хвосты: Embodied-иконки (долг, Закон Телесности), инвентарь v2 (ждёт backend equip/unequip), кэш глифов эффектов при просадке FPS, кэширование load_keybinds (читает JSON на каждое нажатие), очистка [DIAG_MERGE] (game_screen, чужой).
+📁 frontend/ui_workbench/workbench_screen.py (ядро), frontend/focus_renderer.py, frontend/scene_renderer.py, frontend/game_screen.py, frontend/game_menu.py, frontend/settings_screen.py, frontend/map_editor/editor_core.py, frontend/ui_workbench/style_overrides.json (контент — релизный дефолт Мастера)
+
+### S299: UI Workbench — D4/D5: клавиатура end-screen + Esc-семантика дропдауна | ✅ py_compile ×3, кратности сверены
+🎯 Довести клавиатуру до 100% (правило «везде», очередь §6 handoff S298).
+⚙️ D4: SPACE рядом с ENTER в обоих терминальных контурах end-screen
+(inline-цикл run() + _end_screen_terminal_loop); серый хинт → видимая
+кнопка единого стиля (рамка COLOR_JOURNAL_TITLE, inflate-канон
+_SettingsButton, ноль RGB-литералов — только импортированные константы).
+⚙️ D5: Esc при открытом дропдауне разрешений закрывает ТОЛЬКО дропдаун
+(модальность изнутри наружу, канон LLM-модалок), настройки — вторым Esc;
+стрелки/Enter дропдауна уже работали через общую сетку _kb_rows
+(живая проверка Мастера — правка не потребовалась).
+⚙️ Аудит Esc/дублей (вердикт Мастера «где ещё такое — профиксить»):
+найден и удалён ДУБЛИКАТ _end_screen_terminal_loop (мёртвая копия с
+campaign_folder-аргументом перекрывалась живой безаргументной — класс
+S293-легаси-дублей; единственный вызов :1035 без аргумента); унификация
+набора клавиш ENTER/SPACE/ESC в живых терминальных контурах.
+📁 frontend/game_screen.py, frontend/end_screen_renderer.py, frontend/settings_screen.py
+Эскалации semantic-сессии: [DIAG_JC2]-обрезка реплик (их зона), инвентарь
+v2 (backend equip), [DIAG_MERGE]-зонд (снять с их ведома).
+
+### S299.5/S300: UI Workbench — D6: кэш биндов + миграция K_*-хардкодов | ✅ py_compile, кратности сверены
+🎯 Очередь §6 handoff S298, п.3: единый источник клавиш + гигиена event-loop.
+⚙️ Мемоизация load_keybinds (модуль-владелец): 7 call-site'ов event-loop
+game_screen читали keybinds.json с диска на КАЖДЫЙ KEYDOWN. Кэш
+_KEYBINDS_CACHE в keybindings.py, возврат — копия (мутация потребителя
+не протекает), инвалидация ТОЛЬКО в save_keybinds (единственный писатель)
+— ребинд жив для всех потребителей без перезапуска. Потребители не
+тронуты (8 точек получили фикс бесплатно).
+⚙️ Миграция прямых литералов на бинды (конвенция AUDIT #12 доведена):
+skip_time_500="3", skip_time_2000="4", observations="backquote" в
+DEFAULT_KEYBINDS; замены в event-loop game_screen. Ё-раскладочный алиас
+сохранён как комментарий-контракт (физическая клавиша бинда на русской
+раскладке = Ё: pygame даёт BACKQUOTE, unicode несёт букву — ловим оба).
+⚙️ Хинт-задача handoff («F12-хинт врёт при ребинде») закрыта ОТРИЦАТЕЛЬНЫМ
+вердиктом: аудит показал — хинт workbench:1370 содержит только жёсткие
+клавиши режимов (F12/ESC, Ctrl+Shift+L, мышь), ни одного биндимого
+действия; ложная тревога предшественника, задокументирована.
+Инцидентов врезки нет (все кратности сошлись; два расхождения прогноза —
+арифметика прогноза, не код: global-операторы и легаси-строка
+_journal_active_tab="observations" :530).
+📁 frontend/keybindings.py (кэш + 3 дефолта), frontend/game_screen.py (3 замены)
+Эскалации semantic-сессии продлены: [DIAG_JC2]-обрезка реплик, инвентарь
+v2 (backend equip), [DIAG_MERGE]-зонд.
+
+### S301: Replay Phantom (частичное закрытие, Опция A+B) + recognition-расследование + harness-гигиена | 🟡 R1-R4 закрыты; R5 отложен до ReplayPlayer v2
+🎯 ТЗ «Replay Recording Phantom» (P1): фантомный «REPLAY SESSION RECORDED» без записи. RCA археологией: writer (game_loop:237) писал replay.db в temp data_dir DriftLab (mkdtemp, уничтожался teardown'ом — drift_laboratory:335/333/429), reader (Mode H, :1129) читал живой data_dir — запись/чтение разведены изоляцией; печать успеха — по наличию session_id, не по факту тиков. Флаг settings.replay_record — мёртвый конфиг (0 читателей; гейт записи = replay_mode != "off").
+⚙️ P1–P7: settings.replay_store_path (SSOT пути, вне зоны изоляции DriftLab; parent-каталог создаёт ReplayStore); ReplayStore.count_ticks(session_id) — честный признак записи (COUNT по tick_snapshots); writer/reader переведены на SSOT-путь; teardown захватывает recorded_ticks ДО close; RECORDED только при ≥1 тике, иначе 🔴 NOT RECORDED (L4); Mode H: 0 воспроизведённых тиков → NO_DATA, не MISMATCH-дрейф. Инцидент врезки: при P6 старый безусловный блок печати не вошёл в СТАЛО → двойная фантомная печать (урок S207/S211 «якорь обязан включать хвост», повторно подтверждён); хвост удалён.
+⚙️ Живая верификация цепи: mass_traversal 200 тиков → Session 45f0e601, Recorded ticks: 200 (файл пережил teardown, читается cross-process) → replay_compare: Mode H исполнен, вердикт 🔴 MISMATCH 29/100, класс A-only (B/C/D/E = 0). RCA MISMATCH: ReplayPlayer упрощён (replay_player:72 «воспроизведение interventions пока упрощено», :98-99 «убраны tick_state_json и tick_mutation_json») → сравнение позиций двух НЕЗАВИСИМЫХ прогонов, не детерминированное воспроизведение. Гейт R5 (200 тиков → MATCH) при текущем плеере недостижим архитектурно.
+⚙️ Вердикт Мастера: Опция A+B (C отклонена — не сужаем сравнение до удобных полей). R1–R4 закрыты; R5 НЕ пройден; формулировка: «Инфраструктура записи и чтения проверена. Полноценный детерминированный replay отложен до ReplayPlayer v2». RCA плеера объясняет невалидность R5, но не доказывает исключение прочих причин расхождений. ReplayPlayer v2 — бэклог-кампания: восстановление tick_state + interventions + LLM-кэш (get_llm_call), контроль async-порядка, сравнение на одинаковых тиках, регрессионный тест; ключевое требование — воспроизводить исходную сессию, а не создавать новый мир; отдельно определить, какие внешние источники недетерминизма фиксируются записью, какие вне контракта replay.
+⚙️ DEBT-ASYNC-SETTLE: ЗАКРЫТ — гипотеза «async-оседание recognition» опровергнута археологией (буфер синхронен, подписчик в main thread — npc_dialogue_subscriber:62-66). Симптом «имена появляются через тик» = by-design M17 (вердикт Мастера в integration.py:597-601: близость/время имя НЕ дают, только события речи).
+⚙️ Инцидент А (recognition/имена): закрыт по формулировке Мастера — «Ложная тревога устранена (первый RED — артефакт чтения по несуществующему ключу локации tavern_silver_wolf вместо канонического tavern); дефект M17 не подтверждён; персистенция recognition отдельно не проверена». Инструментарий: tests/gameplay/test_m17_recognition_persistence.py (T1 lifecycle / T2 player-писатель-диагностика / T3 round-trip c SKIP-гвардией: пустой recognition = «ПРОВЕРКА НЕ ВЫПОЛНЕНА: NPC_SPOKE не состоялся», не PASS); harness._LOCATION исправлен на канонический "tavern" (state_kv/_tick_scenes согласованы под "tavern").
+⚠️ Эскалации Мастеру: (1) Инцидент Б — диалоговая труба пространственно слепа: постановка dialogue-task (post_decision:218-275) и executor не проверяют дистанцию/LOS (стражник отвечает из соседней комнаты); прецедент мембраны — ObservationSubscriber; точка гейта (enqueue vs execute) — решение Мастера; (2) DEBT-FE-DELTAS — game_loop.py:1385 проецирует significant_events (List[StateDeltas]) во фронт-канал events: Rule 11/§6.3 + типовой разрыв с domain/tick.py:239 (зона чужая); (3) DEBT-RECOG-DUAL-READER — два reader-пути имён с расщеплёнными порогами (world_snapshot_builder:288-291 vs presentation_assembler:72-77); (4) MD-отчётчик Mode H писал общий шаблон Mode E с плейсхолдерами «?» и ложным выводом «скрытая энтропия» (класс «печать не привязана к факту», тот же, что исходный Phantom) — исправлен в этой сессии (ветвление по hash_a); (5) 30/200 crashed ticks в записи (CSV-колонки крашей не содержат — деградация отчётности); (6) LLM-пул недоступен в gameplay-тестах (§3.12-класс); (7) реестр логов: MISSING_TRAVERSAL_PROPOSAL ×2 (SSM:951, ADR-O-323), DRIFT-D ×2 (equivalence_validator:428, Rule 122), SC-3 foreign node массово (SSM:1400 — кандидат на связь с дефектом №3 S276), [AVATAR] имя не совпадает None != Tester (player_avatar_service:102).
+⚙️ S276-хвост (карта кампании): Фикс №1 prefix-authoritative target_loc — CLOSED (movement_engine:320, замок test_prefix_target_loc_gate.py); Фикс №2 динамический START-допуск — CLOSED (event_compiler:832); Фикс №2b сегментная ghost-интерполяция — CLOSED (изоляция эффекта — оговорка); Дефект №3 relocation vs reality shift — OPEN, гипотеза не доказана; SCALE 24×200 (153.11/208.19) и 60×200 (374.47/584.02) на ab659ca8, 120 — отдельное измерение; процессные уроки 7 (включая «негативная верификация staged = СТОП коммита», «branch identity в preflight»); карта коммитов 37de5672/9519a9b1/b6aa28c8. Мандат сессии-2: чтение relocation-генератора life_engine по пяти вопросам (до завершения чтения — никаких патчей; приоритет: не допускать эмиссию заведомо невыполнимого relocation-intent без известного маршрута, не ценой блокировки законных переходов). Материал уже виден: tick=1 «reason=schedule:guarding_gate+relocation» в replay-логе.
+Долги/бэклог: ReplayPlayer v2 (кампания), 19 sandbox-хардкодов replay.db вне SSOT (одноразовые пробы), retention reports/replay_sessions/, мёртвый флаг settings.replay_record.
+📁 core/config (replay_store_path), svc/replay/replay_store (count_ticks), svc/game_loop/game_loop (writer SSOT), tests/sandbox/SUPERBOX/drift_laboratory (reader SSOT, teardown count, честная печать, NO_DATA, удаление фантомного хвоста, MD-ветвление Mode H), tests/gameplay/harness (_LOCATION), tests/gameplay/test_m17_recognition_persistence (нов).
+
+
 
 
 
@@ -2028,7 +2098,6 @@ pipeline, tick, orchestrator, 8 тест-файлов (~70 тестов).
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-
 
 
 
