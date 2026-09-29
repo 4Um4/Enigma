@@ -1842,6 +1842,37 @@ class DriftReporter:
             # S269-Д2: replay-режимы раньше не оставляли ничего в MD
             # (snapshots пуст → ранний return). Вердикт + автотекст-вывод:
             # «выводы, а не цифры» — требование Мастера к инструменту.
+            # S299: Mode H (replay_compare) имеет ТОЛЬКО replay_verdict —
+            # hash_a/b и seed принадлежат Mode E. Раньше общий шаблон рисовал
+            # Mode E-таблицу с плейсхолдерами «?» и ложным выводом «скрытая
+            # энтропия» (S299-эскалация №4: «печать не привязана к факту»).
+            _is_mode_h = "hash_a" not in r.final_stats
+            if _is_mode_h:
+                _h_ticks = r.final_stats.get("replay_ticks", "?")
+                _h_drifts = r.final_stats.get("total_drifts", "?")
+                lines.append("# Лаборатория Дрейфа — Вердикт Реплея (Mode H: Replay Compare)")
+                lines.append("")
+                lines.append(f"**Дата:** {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                lines.append(f"**Вердикт:** {_rv}")
+                lines.append("")
+                lines.append("| Параметр | Значение |")
+                lines.append("|---|---|")
+                lines.append(f"| Воспроизведено тиков | {_h_ticks} |")
+                lines.append(f"| Дрейфов | {_h_drifts} |")
+                lines.append("")
+                if _rv == "MATCH":
+                    lines.append("**Вывод:** Воспроизведение совпало с записью на сравнённых тиках.")
+                elif _rv == "NO_DATA":
+                    lines.append("**Вывод:** Запись пуста или не содержит тиков — вердикт о дрейфе невозможен (инфраструктурный NO_DATA, S299 P7).")
+                else:
+                    lines.append("**Вывод:** Расхождение между записью и воспроизведением. ВНИМАНИЕ (S299): текущий ReplayPlayer — упрощённый (не восстанавливает tick_state/interventions), сравнивает два независимых прогона; MISMATCH сам по себе НЕ доказывает нарушение детерминизма. Полноценный replay — кампания ReplayPlayer v2 (вердикт Мастера, Опция B).")
+                lines.append("")
+                lines.append("---")
+                lines.append("*Авто-сгенерировано Лабораторией Дрейфа ENIGMA*")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(lines))
+                print(f"  📝 Markdown-отчёт (Mode H) сохранён: {path}")
+                return
             _ha = str(r.final_stats.get("hash_a", "?"))
             _hb = str(r.final_stats.get("hash_b", "?"))
             _tk = r.final_stats.get("replay_ticks", "?")
