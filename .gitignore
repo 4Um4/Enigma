@@ -77,3 +77,4 @@ mypy_report.txt
 docs/Научная обоснованность/_tex_src/
 
 reports/dna_history.jsonl
+backend/data/session_memory_*.jsonl
