@@ -6,11 +6,21 @@ __pycache__/
 *.db-shm
 *.db-wal
 
-# Разрешаем логи в папках logs
-!backend/logs/
-!backend/logs/**
-!backend/data/logs/
-!backend/data/logs/**
+# Runtime-логи не коммитятся никогда (whitelist-инверсия удалена —
+# она протекала: любой новый .log/.jsonl становился кандидатом на коммит)
+backend/logs/
+backend/data/logs/
+*.log
+
+# Рантайм-состояние сессий — игрокские сейвы, не код (merge-конфликты)
+backend/data/sessions/
+
+# Тестовый мусор: mock-объект как campaign_id создал реальные директории
+backend/data/campaigns/MagicMock/
+
+# Рантайм CDS-история (для истории — LAST_SESSION.md, не jsonl)
+reports/history/
+reports/dna_history.jsonl
 
 saves/
 
