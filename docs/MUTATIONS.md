@@ -8,7 +8,7 @@
 > **Сигнатура:** 🎯 Фокус | ⚙️ Delta (Изменения) | 📁 Файлы
 
 ## МЕТА
-Сессий: 301 | Доменов: 10 | Статус: Stable (IPT — актуальный счёт подставить после финального прогона, 0 drifts) | Аудит: S03-S301
+Сессий: 301 | Доменов: 10 | Статус: Stable (IPT <ФАКТ>, 0 drifts) | Аудит: S03-S301
 
 ## 0. ENIGMA ONTOLOGY (Context Anchor)
 *   **Psyche Layers:** `L0`=Physics/Body, `L1`=Chronicle (append-only SQLite facts), `L2`=Identity/Beliefs (crystalized), `L3`=Drives (ephemeral, per-tick).
