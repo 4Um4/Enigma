@@ -572,8 +572,10 @@ class DecisionHub:
             "1", "true", "yes"
         ):
             _post_top = sorted(scores.items(), key=lambda kv: -kv[1])[:5]
+            _winner = _post_top[0][0] if _post_top else "?"
             print(
                 f"[COG_UTIL] npc={state.npc_id} cog={cognition_modifiers} "
+                f"winner={_winner} "
                 f"pre_top={[(k, round(v, 3)) for k, v in _pre_mod_top]} "
                 f"post_top={[(k, round(v, 3)) for k, v in _post_top]}"
             )
@@ -778,7 +780,29 @@ class DecisionHub:
             if pressure > 0:
                 accumulated = min(accumulated + pressure, 1.0)
             else:
-                accumulated *= 0.85
+                # Н-18/EXP-01 (санкция Мастера): внимание к ЖИВОМУ
+                # направленному приближению — легитимное давление (Устав
+                # 12.1-канон: каузальное давление инерции), НЕ фон.
+                # Без этого демпфинг 0.85/тик гасил бы observe-давление
+                # быстрее, чем оно копится при однотиковых победах
+                # (трейс p3d20: winner=observe ×2, затем демпф).
+                # Локальный импорт (прецедент файла: math, PerceptualKernel).
+                import os as _os_n18  # noqa: PLC0415 — экспериментальный гейт
+
+                _n18 = _os_n18.environ.get("N18_EXP", "").strip().lower() in (
+                    "1", "true", "yes"
+                )
+                if _n18 and "observe" in scores:
+                    _cog_obs = float((cognition_modifiers or {}).get("observe", 0.0))
+                    if _cog_obs > 0.0:
+                        # Внимание живо (рампа ≥ half): решение хаба
+                        # (observe выиграл pre-commitment argmax — трейс
+                        # p3d20 ×2) ОБЯЗАНО материализоваться. accumulated
+                        # = 1.0 гарантирует срабатывание гейта при любом
+                        # threshold ∈ [0, 1] (шкала аккумулятора). Когда
+                        # внимание угаснет (cog={}) — каноничное затухание
+                        # вернёт инерцию (сценарий Д) без TTL.
+                        accumulated = 1.0
             state.pressure_accumulator[acc_key] = accumulated
 
         # 7.4: WHY-лог. Чтение capture-based трассировки (чистая функция).

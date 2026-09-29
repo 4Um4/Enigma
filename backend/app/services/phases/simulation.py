@@ -133,6 +133,64 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             # S203.4: enforce_for_intent — вердикт + исполнение INTERRUPT
             if CommitmentArbiter.enforce_for_intent(ctx.scene_state, _i, ctx.tick_number)
         ]
+        # ── Н-18/EXP-01 (санкция Мастера, ограниченный эксперимент) ──
+        # Согласование решения хаба с деятельностью. Точка = Гейт①:
+        # единственное место гейтинга LifeEngine-интентов ДО исполнения
+        # (трассировка Этапа A: merge-point слишком позден — traversal
+        # уже создан). Фильтр ТОЛЬКО reason="schedule:*" (need_driven/
+        # еда защищены — прецедент reason-проверки SLEEP_GUARD
+        # pipeline_runner:150) для NPC, чьё ПЕРСИСТЕНТНОЕ решение
+        # прошлого тика (StateDeltas.intent → npc-dict 'intent',
+        # pipeline:1118) = observe И внимание живо (attention_states:
+        # evidence ≥ порога−гистерезиса, фаза ≠ lost). Возврат
+        # естественный: E затухает → хаб меняет решение → фильтр
+        # отпускает → расписание (свежая эмиссия каждый тик)
+        # восстанавливается без TTL (ответ на риск №4). Flag default
+        # OFF = поведение байтово прежнее; откат = снятие флага.
+        import os as _os_n18  # noqa: PLC0415 — экспериментальный гейт
+
+        if _os_n18.environ.get("N18_EXP", "").strip().lower() in (
+            "1", "true", "yes"
+        ):
+            _att_map = ctx.scene_state.get("attention_states") or {}
+            # этап 2 / п-1 (санкция): приоритет ram-канона сцены (npc_intents
+            # — single-writer проекция ssot-решений текущего тика) над
+            # life-кэш-проекцией (adr-117), не получающей intent-обновлений.
+            # контрфакт-зонд v4: фильтр слеп на источнике прода. fallback на
+            # кэш сохранён (канон наполняется с первого тика моста). семантика
+            # предиката не изменена (тот же ==observe, порог, фазы).
+            _ssot_intents = ctx.scene_state.get("npc_intents") or {}
+            _intents_by_id = {
+                (n.get("npc_id") or n.get("id")): str(n.get("intent", "")).lower()
+                for n in (ctx.all_npcs_raw or [])
+                if isinstance(n, dict)
+            }
+            _intents_by_id.update(_ssot_intents)
+            _dropped = 0
+            _kept = []
+            for _i in life_intents:
+                _aid = getattr(_i, "actor_id", "")
+                _reason = str(getattr(_i, "reason", "") or "")
+                if (
+                    _reason.startswith("schedule")
+                    and _intents_by_id.get(_aid) == "observe"
+                ):
+                    _pair = ((_att_map.get(_aid) or {}).get("player") or {})
+                    _e = float(_pair.get("approach_evidence", 0.0) or 0.0)
+                    _phase = _pair.get("phase", "")
+                    if (
+                        _e >= 0.45  # порог−гистерезис: зона удержания
+                        and _phase in ("oriented", "approaching", "near")
+                    ):
+                        _dropped += 1
+                        continue  # NPC решил наблюдать — рутина ждёт
+                _kept.append(_i)
+            if _dropped:
+                logger.info(
+                    f"[N18_EXP] tick={ctx.tick_number} suppressed={_dropped} "
+                    f"schedule intents (hub=observe, attention fresh)"
+                )
+            life_intents = _kept
         # DRF: Претензии уже собраны напрямую в ctx.claim_field через Side-Channel Bus
         from app.services.spatial.movement_engine import MovementEngine
 

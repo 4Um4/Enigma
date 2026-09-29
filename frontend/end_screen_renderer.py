@@ -113,9 +113,17 @@ class EndScreenRenderer:
                 self.screen.blit(surf, (120, y))
                 y += 25
 
-        # Подсказка для выхода
-        y = h - 60
-        hint = self.font_body.render(t("ui:end_screen_return_hint"), True, COLOR_TEXT_DIM)
-        self.screen.blit(hint, (w // 2 - hint.get_width() // 2, y))
+        # D4 (вердикт Мастера): единственный выход — видимая кнопка в
+        # едином стиле: рамка-акцент тем же золотым, что заголовок экрана
+        # (канон focused-подсветки _SettingsButton — inflate + рамка).
+        # Фон не нужен: overlay под кнопкой уже плотный. Выход безусловен
+        # — подсветка постоянна, ENTER/SPACE (game_screen).
+        hint = self.font_body.render(t("ui:end_screen_return_hint"), True, COLOR_TEXT_DEFAULT)
+        _bw, _bh = hint.get_width() + 48, hint.get_height() + 20
+        _btn = pygame.Rect(w // 2 - _bw // 2, h - 84, _bw, _bh)
+        pygame.draw.rect(self.screen, COLOR_JOURNAL_TITLE, _btn, 2,
+                         border_radius=6)
+        self.screen.blit(hint, (w // 2 - hint.get_width() // 2,
+                                _btn.centery - hint.get_height() // 2))
         
         return True

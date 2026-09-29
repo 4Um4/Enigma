@@ -73,14 +73,16 @@ class _SettingsButton:
                 return True
         return False
 
-    def draw(self, screen, font):
-        # Тактильный отклик: при наведении кнопка увеличивается
-        _rect = self.rect.inflate(4, 4) if self.hovered else self.rect
-        color = self.color_hover if self.hovered else self.color
+    def draw(self, screen, font, focused: bool = False):
+        # S3.18: focused — клавиатурный выбор (↑/↓): тот же визуал,
+        # что у hover (тактильный отклик + акцентная рамка)
+        _hl = self.hovered or focused
+        _rect = self.rect.inflate(4, 4) if _hl else self.rect
+        color = self.color_hover if _hl else self.color
         pygame.draw.rect(screen, color, _rect, border_radius=6)
-        
-        border_color = _MENU_COLORS["accent_blue"] if (self.is_selected or self.hovered) else _MENU_COLORS["border"]
-        border_width = 2 if (self.is_selected or self.hovered) else 1
+
+        border_color = _MENU_COLORS["accent_blue"] if (self.is_selected or _hl) else _MENU_COLORS["border"]
+        border_width = 2 if (self.is_selected or _hl) else 1
         pygame.draw.rect(screen, border_color, _rect, border_width, border_radius=6)
         
         _draw_font = getattr(self, "_font", font)
@@ -464,7 +466,8 @@ class SettingsScreen:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit(0)
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                    # S3.19: Enter = Esc (закрыть; отмена скачивания — мышью)
                     waiting = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if _cancel_rect.collidepoint(event.pos):
@@ -492,13 +495,25 @@ class SettingsScreen:
                     _q_font = pygame.font.SysFont("consolas", 18, bold=True)
                     _yes_rect = pygame.Rect(_dx + _dw//2 - 190, _dy + _dh - 60, 170, 40)
                     _no_rect = pygame.Rect(_dx + _dw//2 + 20, _dy + _dh - 60, 170, 40)
+                    _kb2 = 0  # S3.19: фокус на «Да, активировать»
                     _choosing = True
                     while _choosing:
                         for event in pygame.event.get():
                             if event.type == pygame.QUIT:
                                 sys.exit(0)
-                            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                                _choosing = False
+                            elif event.type == pygame.KEYDOWN:
+                                # S3.19: ←/→ — выбор, Enter — активация
+                                if event.key == pygame.K_ESCAPE:
+                                    _choosing = False
+                                elif event.key in (pygame.K_LEFT, pygame.K_RIGHT):
+                                    _kb2 = 1 - _kb2
+                                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                                    if _kb2 == 0:
+                                        _choosing = False
+                                        waiting = False
+                                        self._test_llm_modal(model_key)
+                                    else:
+                                        _choosing = False
                             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                                 if _yes_rect.collidepoint(event.pos):
                                     _choosing = False
@@ -518,11 +533,25 @@ class SettingsScreen:
                         self.screen.blit(_t3, _t3.get_rect(center=(_dx + _dw//2, _dy + 132)))
                         _mouse = pygame.mouse.get_pos()
                         _yh = _yes_rect.collidepoint(_mouse)
-                        pygame.draw.rect(self.screen, _MENU_COLORS["accent_green"] if _yh else _MENU_COLORS["btn_primary"], _yes_rect.inflate(4, 4), border_radius=6)
+                        if _yh:
+                            _kb2 = 0
+                        _ycol = (_MENU_COLORS["accent_green"]
+                                 if (_yh or _kb2 == 0) else _MENU_COLORS["btn_primary"])
+                        pygame.draw.rect(self.screen, _ycol, _yes_rect.inflate(4, 4), border_radius=6)
+                        if _kb2 == 0:
+                            pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                             _yes_rect.inflate(8, 8), 2, border_radius=6)
                         _yt = _small_font.render("Да, активировать", True, _MENU_COLORS["text"])
                         self.screen.blit(_yt, _yt.get_rect(center=_yes_rect.center))
                         _nh = _no_rect.collidepoint(_mouse)
-                        pygame.draw.rect(self.screen, _MENU_COLORS["btn_secondary_hover"] if _nh else _MENU_COLORS["btn_secondary"], _no_rect.inflate(4, 4), border_radius=6)
+                        if _nh:
+                            _kb2 = 1
+                        _ncol = (_MENU_COLORS["btn_secondary_hover"]
+                                 if (_nh or _kb2 == 1) else _MENU_COLORS["btn_secondary"])
+                        pygame.draw.rect(self.screen, _ncol, _no_rect.inflate(4, 4), border_radius=6)
+                        if _kb2 == 1:
+                            pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                             _no_rect.inflate(8, 8), 2, border_radius=6)
                         _nt = _small_font.render("Позже", True, _MENU_COLORS["text"])
                         self.screen.blit(_nt, _nt.get_rect(center=_no_rect.center))
                         pygame.display.flip()
@@ -606,11 +635,24 @@ class SettingsScreen:
         _redownload_rect = pygame.Rect(_btn_x, _dy + 170, _btn_w, _btn_h)
         _test_rect = pygame.Rect(_btn_x, _dy + 240, _btn_w, _btn_h)
         
+        # S3.19: ↑/↓ — по столбику кнопок, Enter — активация
+        _kb = 0
         waiting = True
         while waiting:
             for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    waiting = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        waiting = False
+                    elif event.key in (pygame.K_UP, pygame.K_DOWN):
+                        _kb = (_kb + (1 if event.key == pygame.K_DOWN else -1)) % 3
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if _kb == 0:
+                            self._select_llm(model_key)
+                        elif _kb == 1:
+                            self._download_llm(model_key, force=True)
+                        else:
+                            self._test_llm_modal(model_key)
+                        waiting = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if _active_rect.collidepoint(event.pos):
                         self._select_llm(model_key)
@@ -624,11 +666,17 @@ class SettingsScreen:
                 elif event.type == pygame.QUIT:
                     sys.exit(0)
                     
-            # Подсветка наведённых кнопок
+            # Подсветка наведённых кнопок + клавиатурного фокуса
             _mouse_pos = pygame.mouse.get_pos()
             _a_hovered = _active_rect.collidepoint(_mouse_pos)
             _r_hovered = _redownload_rect.collidepoint(_mouse_pos)
             _t_hovered = _test_rect.collidepoint(_mouse_pos)
+            if _a_hovered:
+                _kb = 0
+            elif _r_hovered:
+                _kb = 1
+            elif _t_hovered:
+                _kb = 2
             
             pygame.draw.rect(self.screen, (20, 20, 20), (_dx, _dy, _dw, _dh), border_radius=8)
             pygame.draw.rect(self.screen, _MENU_COLORS["accent_green"], (_dx, _dy, _dw, _dh), 2, border_radius=8)
@@ -636,18 +684,30 @@ class SettingsScreen:
             _title = _font.render("Действия с моделью", True, _MENU_COLORS["text"])
             self.screen.blit(_title, _title.get_rect(center=(_dx + _dw//2, _dy + 50)))
             
-            _a_color = _MENU_COLORS["accent_blue"] if _a_hovered else _MENU_COLORS["accent_green"]
+            _a_color = (_MENU_COLORS["accent_blue"]
+                        if (_a_hovered or _kb == 0) else _MENU_COLORS["accent_green"])
             pygame.draw.rect(self.screen, _a_color, _active_rect.inflate(4, 4), border_radius=6)
+            if _kb == 0:
+                pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                 _active_rect.inflate(8, 8), 2, border_radius=6)
             _a_text = _btn_font.render("Сделать активной", True, _MENU_COLORS["text"])
             self.screen.blit(_a_text, _a_text.get_rect(center=_active_rect.center))
             
-            _r_color = _MENU_COLORS["btn_danger_hover"] if _r_hovered else _MENU_COLORS["btn_danger"]
+            _r_color = (_MENU_COLORS["btn_danger_hover"]
+                        if (_r_hovered or _kb == 1) else _MENU_COLORS["btn_danger"])
             pygame.draw.rect(self.screen, _r_color, _redownload_rect.inflate(4, 4), border_radius=6)
+            if _kb == 1:
+                pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                 _redownload_rect.inflate(8, 8), 2, border_radius=6)
             _r_text = _btn_font.render("Скачать заново", True, _MENU_COLORS["text"])
             self.screen.blit(_r_text, _r_text.get_rect(center=_redownload_rect.center))
             
-            _t_color = _MENU_COLORS["btn_primary_hover"] if _t_hovered else _MENU_COLORS["btn_primary"]
+            _t_color = (_MENU_COLORS["btn_primary_hover"]
+                        if (_t_hovered or _kb == 2) else _MENU_COLORS["btn_primary"])
             pygame.draw.rect(self.screen, _t_color, _test_rect.inflate(4, 4), border_radius=6)
+            if _kb == 2:
+                pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                 _test_rect.inflate(8, 8), 2, border_radius=6)
             _t_text = _btn_font.render("Проверить модель", True, _MENU_COLORS["text"])
             self.screen.blit(_t_text, _t_text.get_rect(center=_test_rect.center))
             
@@ -741,12 +801,22 @@ class SettingsScreen:
         
         _yes_rect = pygame.Rect(_dx + 40, _dy + 150, 140, 50)
         _no_rect = pygame.Rect(_dx + 220, _dy + 150, 140, 50)
+        # S3.19: ←/→ — выбор, Enter — активация; фокус на «Нет»
+        # (безопасная сторона: случайный Enter не закроет игру)
+        _kb = 1
         
         waiting = True
         while waiting:
             for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    waiting = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        waiting = False
+                    elif event.key in (pygame.K_LEFT, pygame.K_RIGHT):
+                        _kb = 1 - _kb
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if _kb == 0:
+                            sys.exit(0)
+                        waiting = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if _yes_rect.collidepoint(event.pos):
                         sys.exit(0)
@@ -755,10 +825,14 @@ class SettingsScreen:
                 elif event.type == pygame.QUIT:
                     sys.exit(0)
                     
-            # Подсветка наведённых кнопок
+            # Подсветка наведённых кнопок + клавиатурного фокуса
             _mouse_pos = pygame.mouse.get_pos()
             _yes_hovered = _yes_rect.collidepoint(_mouse_pos)
             _no_hovered = _no_rect.collidepoint(_mouse_pos)
+            if _yes_hovered:
+                _kb = 0
+            elif _no_hovered:
+                _kb = 1
             
             # Рисуем прямо на экране для гарантии отображения
             pygame.draw.rect(self.screen, (20, 20, 20), (_dx, _dy, _dw, _dh), border_radius=8)
@@ -767,13 +841,21 @@ class SettingsScreen:
             _q = _font.render("Выйти из игры?", True, _MENU_COLORS["text"])
             self.screen.blit(_q, _q.get_rect(center=(_dx + _dw//2, _dy + 80)))
             
-            _y_color = _MENU_COLORS["btn_danger_hover"] if _yes_hovered else _MENU_COLORS["btn_danger"]
+            _y_color = (_MENU_COLORS["btn_danger_hover"]
+                        if (_yes_hovered or _kb == 0) else _MENU_COLORS["btn_danger"])
             pygame.draw.rect(self.screen, _y_color, _yes_rect.inflate(4, 4), border_radius=6)
+            if _kb == 0:
+                pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                 _yes_rect.inflate(8, 8), 2, border_radius=6)
             _yes_text = _btn_font.render("Да", True, _MENU_COLORS["text"])
             self.screen.blit(_yes_text, _yes_text.get_rect(center=_yes_rect.center))
             
-            _n_color = _MENU_COLORS["btn_secondary_hover"] if _no_hovered else _MENU_COLORS["btn_secondary"]
+            _n_color = (_MENU_COLORS["btn_secondary_hover"]
+                        if (_no_hovered or _kb == 1) else _MENU_COLORS["btn_secondary"])
             pygame.draw.rect(self.screen, _n_color, _no_rect.inflate(4, 4), border_radius=6)
+            if _kb == 1:
+                pygame.draw.rect(self.screen, _MENU_COLORS["accent_blue"],
+                                 _no_rect.inflate(8, 8), 2, border_radius=6)
             _no_text = _btn_font.render("Нет", True, _MENU_COLORS["text"])
             self.screen.blit(_no_text, _no_text.get_rect(center=_no_rect.center))
             
@@ -838,10 +920,34 @@ class SettingsScreen:
             print(f"Failed to save content policy: {e}")
         self.buttons = self._build_buttons()
 
+    def _kb_rows(self) -> list:
+        """S3.18: кнопки, сгруппированные в ряды по Y (вкладки / ряды
+        контента / нижняя панель). ←/→ — внутри ряда, ↑/↓ — между
+        рядами (вердикт Мастера: повторяет визуальную сетку экрана)."""
+        _items = sorted(enumerate(self.buttons),
+                        key=lambda p: (p[1].rect.y, p[1].rect.x))
+        _rows: list = []
+        _row_y = None
+        for _i, _b in _items:
+            if _rows and _row_y is not None and abs(_b.rect.y - _row_y) <= _b.rect.height // 2:
+                _rows[-1].append(_i)
+            else:
+                _rows.append([_i])
+                _row_y = _b.rect.y
+        return _rows
+
+    def _kb_pos(self, rows: list, idx: int) -> tuple:
+        """(ряд, позиция в ряду) для плоского индекса; вне — (0, 0)."""
+        for _r, _row in enumerate(rows):
+            if idx in _row:
+                return _r, _row.index(idx)
+        return 0, 0
+
     def run(self, initial_tab: str = "graphics"):
         self._active_tab = initial_tab
         self.buttons = self._build_buttons()
         self._result = None
+        self._kb_idx = 0  # S3.18: клавиатурный фокус (↑/↓ + Enter)
         while self._result is None:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -858,15 +964,53 @@ class SettingsScreen:
                         self.buttons = self._build_buttons()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        self._result = "back"
-                    elif event.key == pygame.K_RETURN:
-                        hovered_btn = next((b for b in self.buttons if b.hovered), None)
-                        if hovered_btn:
-                            hovered_btn.on_click()
+                        # D5 (вердикт Мастера): модальность изнутри наружу —
+                        # при открытом дропдауне Esc закрывает ТОЛЬКО его
+                        # (канон LLM-модалок), настройки — вторым Esc.
+                        if (self._active_tab == "graphics"
+                                and self._dropdown_open):
+                            self._dropdown_open = False
+                            self.buttons = self._build_buttons()
+                        else:
+                            self._result = "back"
+                    elif event.key in (pygame.K_LEFT, pygame.K_RIGHT):
+                        # S3.18: ←/→ — движение внутри ряда (вкладки, низ)
+                        if self.buttons:
+                            _rows = self._kb_rows()
+                            _r, _c = self._kb_pos(_rows, getattr(self, "_kb_idx", 0))
+                            _row = _rows[_r]
+                            _d = -1 if event.key == pygame.K_LEFT else 1
+                            self._kb_idx = _row[(_c + _d) % len(_row)]
+                    elif event.key in (pygame.K_UP, pygame.K_DOWN):
+                        # S3.18: ↑/↓ — переход между рядами (вкладки ↔
+                        # контент ↔ нижняя панель), колонка сохраняется
+                        if self.buttons:
+                            _rows = self._kb_rows()
+                            _r, _c = self._kb_pos(_rows, getattr(self, "_kb_idx", 0))
+                            _d = -1 if event.key == pygame.K_UP else 1
+                            _row = _rows[(_r + _d) % len(_rows)]
+                            self._kb_idx = _row[min(_c, len(_row) - 1)]
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        # Активация: клавиатурный фокус, иначе hover (как было)
+                        _btn = None
+                        if self.buttons:
+                            _idx = min(max(getattr(self, "_kb_idx", 0), 0),
+                                       len(self.buttons) - 1)
+                            _btn = self.buttons[_idx]
+                        if _btn is None:
+                            _btn = next((b for b in self.buttons if b.hovered), None)
+                        if _btn is not None:
+                            _btn.on_click()
                 else:
                     for btn in self.buttons:
                         if btn.handle_event(event):
                             break
+                    # S3.18: мышь и клавиатура — один фокус
+                    if event.type == pygame.MOUSEMOTION:
+                        for _i, _b in enumerate(self.buttons):
+                            if _b.hovered:
+                                self._kb_idx = _i
+                                break
                             
             if self._active_tab == "llm" and pygame.time.get_ticks() - self._last_llm_fetch > 2000:
                 new_status = self._fetch_llm_status()
@@ -881,10 +1025,12 @@ class SettingsScreen:
             title_rect = title_surf.get_rect(center=(self.screen.get_width() // 2, 60))
             self.screen.blit(title_surf, title_rect)
             
-            for btn in self.buttons:
-                btn.draw(self.screen, self.font_button)
+            _kbi = getattr(self, "_kb_idx", -1)
+            for _i, btn in enumerate(self.buttons):
+                btn.draw(self.screen, self.font_button, focused=(_i == _kbi))
             
-            hovered_btn = next((b for b in self.buttons if b.hovered and b.tooltip), None)
+            hovered_btn = next((b for j, b in enumerate(self.buttons)
+                                if (b.hovered or j == _kbi) and b.tooltip), None)
             if hovered_btn:
                 tip_surf = self.font_small.render(hovered_btn.tooltip, True, _MENU_COLORS["text"])
                 tip_rect = tip_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() - 60))

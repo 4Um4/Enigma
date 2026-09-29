@@ -34,7 +34,29 @@ try:
         print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
     atexit.register(kill_llama_server)
 except ModuleNotFoundError as e:
-    print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). IPT продолжает работу без LLM.")
+        print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). MVP продолжает работу без LLM.")
+
+# ── KILLER_SPIRIT (санкция Мастера): убийца призрачных backend-связок ──
+# Долг TZ-GHOST-1: ланчер умирает, не убив детей (llama-server:8181 +
+# uvicorn:8000). Каждый запуск IPT = гигиена проекта: осиротевшие связки
+# убиваются ДО инвариантов. Деградация канала, не тика: любой отказ
+# уборщика печатается громко и НЕ роняет IPT (L4: без тихих глотаний).
+# Opt-out: env IPT_NO_REAPER=1 (CI/спец-прогоны). psutil обязан быть в venv.
+try:
+    import os as _os_reaper
+
+    if _os_reaper.environ.get("IPT_NO_REAPER", "").strip().lower() not in ("1", "true", "yes"):
+        from scripts.ghost_reaper import reap as _reap
+
+        _reaper_pre = _reap(dry_run=False)
+        print(
+            "[IPT] KILLER_SPIRIT старт: убито="
+            f"{len(_reaper_pre.get('killed', []))}, пощажено="
+            f"{len(_reaper_pre.get('spared', []))}, отказов="
+            f"{len(_reaper_pre.get('fault', []))}"
+        )
+except Exception as _reaper_exc:  # noqa: BLE001 — канальный отказ, не тика
+    print(f"[IPT] KILLER_SPIRIT FAULT (не критично): {_reaper_exc!r}")
     _llm_ok = False
 
 
@@ -2094,6 +2116,60 @@ def inv_world_object_topology(world: TestWorld) -> InvariantResult:
             "INV-WORLD-OBJECT-TOPOLOGY", "CRITICAL", False,
             f"Ошибка выполнения: {_e}", ["backend/tests/IPT.py"])
 
+
+def inv_n18_source(world: TestWorld) -> InvariantResult:
+    """этап 2 / п-1 (санкция мастера): гейт① обязан читать актуальный intent.
+
+    корень obs-dict-1 (контрфакт-зонд v4): life-кэш не получает intent;
+    ram-канон scene_state["npc_intents"] (single-writer оркестратор) —
+    единственный честный источник для n18-предиката. инвариант структурный:
+    (1) читатель применяет канон поверх кэша (update после построения);
+    (2) писатель проецирует только intent-дельты текущего тика.
+    ast-греп по обоим файлам — без запуска мира (симуляционный бюджет не тратим).
+    """
+    import re as _re
+    import pathlib as _pl
+
+    _sim = _pl.Path(__file__).parent.parent / "app" / "services" / "phases" / "simulation.py"
+    _orch = _pl.Path(__file__).parent.parent / "app" / "services" / "tick_orchestrator.py"
+    _sim_src = _sim.read_text(encoding="utf-8")
+    _orch_src = _orch.read_text(encoding="utf-8")
+
+    suspects: list = []
+    ok = True
+
+    # читатель: канон читается и применяется поверх кэш-словаря (порядок).
+    if '_ssot_intents = ctx.scene_state.get("npc_intents")' not in _sim_src:
+        ok = False
+        suspects.append(f"{_sim}: читатель npc_intents отсутствует (п-1 регрессия)")
+    if "_intents_by_id.update(_ssot_intents)" not in _sim_src:
+        ok = False
+        suspects.append(f"{_sim}: update(канон поверх кэша) отсутствует — порядок источника нарушен")
+
+    # писатель: single-writer проекция intent-дельт.
+    if '_KEY_NPC_INTENTS = "npc_intents"' not in _orch_src:
+        ok = False
+        suspects.append(f"{_orch}: писатель npc_intents отсутствует (п-1 регрессия)")
+    _w_block = _re.search(
+        r'_intent_map\[_d_npc\]\s*=\s*str\(getattr\(_d_intent, "value", _d_intent\)\)\.lower\(\)',
+        _orch_src,
+    )
+    if _w_block is None:
+        ok = False
+        suspects.append(f"{_orch}: тело writer-проекции изменено — сверить с п-1")
+
+    if ok:
+        return InvariantResult(
+            "INV-N18-SOURCE", "CRITICAL", True,
+            "Гейт① читает актуальный intent (npc_intents-канон поверх кэша; writer single-point)",
+            [],
+        )
+    return InvariantResult(
+        "INV-N18-SOURCE", "CRITICAL", False,
+        "П-1 источник Гейт① нарушен: " + "; ".join(suspects),
+        suspects,
+    )
+
 INVARIANTS: List[Callable] = [
     inv_scene_entity_isolation,
     inv_replay_determinism,
@@ -2143,7 +2219,11 @@ INVARIANTS: List[Callable] = [
     inv_commit_cardinality,
     inv_world_object_topology,
     inv_event_identity,
+    inv_n18_source,
 ]
+
+
+
 
 def run_invariants() -> int:
     """Главная точка входа. Возвращает exit code (0 = OK, 1 = есть FAIL)."""
@@ -2177,7 +2257,31 @@ def run_invariants() -> int:
     passed = sum(1 for r in results if r.passed)
     failed = sum(1 for r in results if not r.passed)
     critical_failed = sum(1 for r in results if not r.passed and r.severity == "CRITICAL")
-    print(f"ИТОГО: {passed} passed / {failed} failed ({critical_failed} CRITICAL)")
+
+    # KILLER_SPIRIT (финал): само-очистка после инвариантов — IPT не
+    # оставляет своих призраков (llama-server поднят шапкой, если start
+    # прошёл — обязан быть убит atexit; здесь добиваем осиротевшее ДО
+    # запуска IPT-LLM). Гонки смерти НЕ критичны (NoSuchProcess = победа).
+    try:
+        import os as _os_reaper2
+
+        if _os_reaper2.environ.get("IPT_NO_REAPER", "").strip().lower() not in ("1", "true", "yes"):
+            from scripts.ghost_reaper import reap as _reap2
+
+            _reaper_post = _reap2(dry_run=False)
+            print(
+                f"ИТОГО: {passed} passed / {failed} failed "
+                f"({critical_failed} CRITICAL) | [KILLER_SPIRIT] убито="
+                f"{len(_reaper_post.get('killed', []))}, пощажено="
+                f"{len(_reaper_post.get('spared', []))}"
+            )
+        else:
+            print(f"ИТОГО: {passed} passed / {failed} failed ({critical_failed} CRITICAL)")
+    except Exception as _reaper2_exc:  # noqa: BLE001 — канальный отказ
+        print(
+            f"ИТОГО: {passed} passed / {failed} failed ({critical_failed} CRITICAL) "
+            f"| [KILLER_SPIRIT] FAULT: {_reaper2_exc!r}"
+        )
 
     if failed > 0:
         print("\n🔴 КРИТИЧНЫЕ НАРУШЕНИЯ:")

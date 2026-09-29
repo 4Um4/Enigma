@@ -20,7 +20,7 @@ path: backend/app/services/combat/combat_subscriber.py
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 if TYPE_CHECKING:
     # ADR-O-373 (вердикт Q7): аннотации контракта снапшота — только типизация;
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from app.models.idle_tick import NPCStateSnapshot
 
 from app.domain.constants import ACTION_INTENSITY
+from app.domain.events import EventDTO
 from app.models.impact import ImpactIntentDTO
 from app.models.phase8 import Phase8Context, Phase8Result
 from app.services.combat.impact_engine import resolve_physical_impact
@@ -73,8 +74,12 @@ class CombatSubscriber:
         for et in _COMBAT_EVENT_TYPES:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event) -> Optional[dict]:
-        """EventHandler: накапливает событие для обработки на Фазе 8."""
+    def _on_event(self, event: EventDTO) -> Optional[EventDTO]:
+        """EventHandler: накапливает событие для обработки на Фазе 8.
+
+        Контракт EventBus (§2.1 Устава): Callable[[EventDTO], Optional[EventDTO]].
+        None = событие поглощено, производное на шину не публикуется.
+        """
         logger.debug(
             f"[DIAG_COMBAT_ON_EVENT] type={getattr(event, 'type', '?')}, source={getattr(event, 'source', '?')}"
         )
@@ -253,7 +258,7 @@ class CombatSubscriber:
         return result
 
     def _extract_impact_intent(
-        self, event, npc_by_id: dict[str, dict]
+        self, event: Any, npc_by_id: dict[str, dict]
     ) -> Optional[ImpactIntentDTO]:
         """Извлекает ImpactIntentDTO из EventDTO.payload.
 
@@ -274,7 +279,9 @@ class CombatSubscriber:
         )
 
         # Определяем участников
-        actor_id = payload.get("actor_id") or getattr(event, "source", "player")
+        # WOUNDS-TZ FIX: getattr(source) мог вернуть None → actor_id гарантированно str
+        # (контракт ImpactIntentDTO требует str, не Optional).
+        actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")
         target_id = payload.get("target_id")
 
         # ADR-035 FIX: Если Слой 2 не дал ID, пробуем найти по target_reference (имени)

@@ -165,7 +165,7 @@ def _can_hear(
 
 def filter_perceiving_npcs(
     npc_ids: List[str],
-    event,  # GameEvent или dict
+    event: Any,  # GameEvent или dict
     scene_state: Dict[str, Any],
     spatial_query: "SpatialQueryService",
 ) -> List[str]:
@@ -242,7 +242,7 @@ def filter_perceiving_npcs(
 def build_perception_context(
     npc_id: str,
     npc_name: str,
-    event,
+    event: Any,
     scene_state: Dict[str, Any],
     spatial_query: Optional["SpatialQueryService"] = None,
 ) -> str:

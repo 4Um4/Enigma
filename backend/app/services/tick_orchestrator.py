@@ -2304,6 +2304,25 @@ class TickOrchestrator:
                     else:
                         _obs_entry[_subj_id] = _state_dict
 
+        # Этап 2 / П-1 (ДИРЕКТИВА МАСТЕРА, САНКЦИЯ): ПРОЕКЦИЯ АКТУАЛЬНОГО
+        # INTENT В RAM-КАНОН СЦЕНЫ — SINGLE-writer (образец attention_states).
+        # Корень OBS-dict-1: Гейт① читал life-кэш, не получающий intent
+        # (контрфакт v4: 0 подавлений при E=1.0 ∧ SSOT=observe). Семантика
+        # дельт доказана: StateDeltas(intent=...) рождается КАЖДЫЙ тик
+        # решения с ПОЛНЫМ текущим выбором (несмена → best_intent=state.intent,
+        # decision_hub:830-836) — НЕ ТОЛЬКО ИЗМЕНЕНИЯМИ, STALE-state не
+        # создаётся. NPC без решения в тик (MOVING-скип) легитимно держит
+        # прошлый intent — его SSOT действительно не менялся. Ключ-константа
+        # §12.1. Порог/предикат/защищённый список — у читателя, не изменены.
+        _KEY_NPC_INTENTS = "npc_intents"
+        _intent_map = ctx.scene_state.setdefault(_KEY_NPC_INTENTS, {})
+        for _d in (getattr(ctx.tick_mutation, "npc_deltas", None) or []):
+            _d_intent = getattr(_d, "intent", None)
+            _d_npc = getattr(_d, "npc_id", None)
+            if _d_intent is None or not _d_npc:
+                continue
+            _intent_map[_d_npc] = str(getattr(_d_intent, "value", _d_intent)).lower()
+
     def _phase_6_post_decision(self, ctx: _TickContext) -> None:
         """IntentEventAdapter: CommunicationIntent → EventDTO (Устав §3.3)."""
         from app.services.phases.post_decision import run_phase_6_post_decision

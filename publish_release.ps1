@@ -13,6 +13,16 @@
 
 Write-Host "🚀 Начинаем сборку и публикацию релиза Bloodloom..." -ForegroundColor Cyan
 
+# Hygiene-гейт (P0-урок: NameError 'os' в незакоммиченном коде убил Фазу 5
+# на 357 тиках; релиз из грязной копии возит непроверенный код). Спрашиваем
+# ДО инкремента version.txt — отказ не сжигает номер релиза.
+ $_dirty = git status --short
+if ($_dirty) {
+    Write-Host "⚠️  Рабочая копия ГРЯЗНАЯ ($(@($_dirty).Count) файлов). Релиз соберёт НЕЗАКОММИЧЕННЫЙ код (урок P0: NameError-os, 357 мёртвых тиков)." -ForegroundColor Yellow
+    $ans = Read-Host "Продолжить всё равно? (y/N)"
+    if ($ans -ne 'y') { Write-Host "Отменено."; exit }
+}
+
 # 0. Очистка папки build (оставляем только установщик моделей)
 Write-Host "🧹 Очистка папки build..." -ForegroundColor Cyan
 if (Test-Path "build") {
@@ -85,7 +95,10 @@ Write-Host "✅ Bloodloom.exe и Splash Screen собраны" -ForegroundColor 
 
 # 2.5 Подготовка копии кода (Staging)
 Write-Host "📦 Подготовка кода (копирование исходников)..." -ForegroundColor Cyan
- $StagingDir = "build\staging"
+ # Staging ВНЕ корня проекта: build/ внутри корня копил 1.3 ГБ мусора
+ # между сборками, попадал в поле git/robocopy и распухал бэкапы.
+ # Явный абсолютный путь (вердикт Мастера): RELIZZ рядом с проектом.
+ $StagingDir = "C:\DDD\Codex\VSC_Enigma\RELIZZ"
 if (Test-Path $StagingDir) { Remove-Item -Recurse -Force $StagingDir }
 New-Item -ItemType Directory -Path $StagingDir | Out-Null
 
@@ -96,7 +109,7 @@ New-Item -ItemType Directory -Path $StagingDir | Out-Null
 robocopy . $StagingDir /E `
     /XD .venv .git .github .vscode .githooks .hypothesis .pytest_cache .mypy_cache .ruff_cache `
         build dist logs reports __pycache__ "Models LLM" payload `
-        saves saves_census runtime_cache test_data diagnostics _archive `
+        saves saves_census runtime_cache test_data diagnostics _archive data `
         docs scripts tests Tests lint `
         backup_s256 backup_s259 `
     /XF *.pyc *.log *.spec *.db *.db-shm *.db-wal *_crash.log *.bak eatlog_out*.txt Math_GAME.md TODO.md `

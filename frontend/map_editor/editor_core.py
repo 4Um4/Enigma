@@ -94,6 +94,16 @@ class EditorCore:
     def __init__(self, width: int = 1400, height: int = 900):
         pygame.init()
         pygame.display.set_caption("R4 Spatial Map Editor v2.0")
+        # S3.16: единый источник размера с игрой — display_manager
+        # (user_settings.yaml): редактор и игра открываются одинаково,
+        # а не каждый со своим захардкоженным размером
+        try:
+            from display_manager import load_display_settings
+            _ds = load_display_settings().get("resolution", {}) or {}
+            width = int(_ds.get("width", width))
+            height = int(_ds.get("height", height))
+        except Exception:
+            pass  # нет конфига/модуля — прежние размеры (безопасно)
         self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
 
@@ -1775,6 +1785,9 @@ class EditorCore:
                     # каждый кадр — смена шрифта/обводки/тени в F12 живая
                     self._scene_renderer.font_small = self.workbench_screen.world_font()
                     self._scene_renderer.name_style = self.workbench_screen.world_style()
+                    # S3.15: у NPC с демо-пузырём имя сцены не рисуется
+                    self._scene_renderer.suppress_names = \
+                        self.workbench_screen.demo_bubble_names()
                     _coords = self._scene_renderer.render(
                         scene=_scene, scene_w=_sw, scene_h=_sh,
                         walls=_walls, obstacles=_obst, player_xy=_pxy,

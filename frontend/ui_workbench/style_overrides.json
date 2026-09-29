@@ -3,13 +3,13 @@
   "overrides": {
     "journal": {
       "text": {
-        "font_file": "SourceCodePro-Regular",
-        "size_delta": 6,
+        "font_file": "Roboto-Medium",
+        "size_delta": 5,
         "bold": false,
         "outline": 2,
         "shadow": true,
-        "glow": 0.0,
-        "spacing": -3,
+        "glow": 0.15,
+        "spacing": 0,
         "underline": false
       },
       "title": {
@@ -69,23 +69,23 @@
           11,
           10
         ],
-        "surface_panel_alpha": 255,
+        "backdrop_alpha": 0,
+        "surface_panel_alpha": 151,
         "surface_title_alpha": 255,
         "border_alpha": 255,
         "border_accent_alpha": 255,
-        "player_bubble_alpha": 255,
-        "backdrop_alpha": 0
+        "player_bubble_alpha": 255
       }
     },
     "inventory": {
       "text": {
-        "font_file": "SourceCodePro-Regular",
-        "size_delta": 6,
+        "font_file": "Roboto-Medium",
+        "size_delta": 5,
         "bold": false,
         "outline": 2,
         "shadow": true,
-        "glow": 0.0,
-        "spacing": -3,
+        "glow": 0.15,
+        "spacing": 0,
         "underline": false
       },
       "title": {
@@ -145,23 +145,23 @@
           11,
           10
         ],
-        "surface_panel_alpha": 255,
+        "backdrop_alpha": 0,
+        "surface_panel_alpha": 151,
         "surface_title_alpha": 255,
         "border_alpha": 255,
         "border_accent_alpha": 255,
-        "player_bubble_alpha": 255,
-        "backdrop_alpha": 0
+        "player_bubble_alpha": 255
       }
     },
     "observations": {
       "text": {
-        "font_file": "SourceCodePro-Regular",
-        "size_delta": 6,
+        "font_file": "Roboto-Medium",
+        "size_delta": 5,
         "bold": false,
         "outline": 2,
         "shadow": true,
-        "glow": 0.0,
-        "spacing": -3,
+        "glow": 0.15,
+        "spacing": 0,
         "underline": false
       },
       "title": {
@@ -221,24 +221,24 @@
           11,
           10
         ],
-        "surface_panel_alpha": 255,
+        "backdrop_alpha": 0,
+        "surface_panel_alpha": 151,
         "surface_title_alpha": 255,
         "border_alpha": 255,
         "border_accent_alpha": 255,
-        "player_bubble_alpha": 255,
-        "backdrop_alpha": 0
+        "player_bubble_alpha": 255
       }
     },
     "time_scale": {
       "text": {
-        "font_file": "SourceCodePro-Regular",
+        "font_file": "Roboto-Medium",
         "bold": false,
         "outline": 2,
         "shadow": true,
-        "glow": 0.0,
-        "spacing": -3,
+        "glow": 0.15,
+        "spacing": 0,
         "underline": false,
-        "size_delta": 6
+        "size_delta": 5
       },
       "title": {
         "font_file": "SourceCodePro-Semibold",
@@ -295,23 +295,23 @@
           11,
           10
         ],
-        "surface_panel_alpha": 255,
+        "backdrop_alpha": 0,
+        "surface_panel_alpha": 151,
         "surface_title_alpha": 255,
         "border_alpha": 255,
         "border_accent_alpha": 255,
-        "player_bubble_alpha": 255,
-        "backdrop_alpha": 0
+        "player_bubble_alpha": 255
       }
     },
     "world_clock": {
       "text": {
-        "font_file": "SourceCodePro-Regular",
-        "size_delta": 6,
+        "font_file": "Roboto-Medium",
+        "size_delta": 5,
         "bold": false,
         "outline": 2,
         "shadow": true,
-        "glow": 0.0,
-        "spacing": -3,
+        "glow": 0.15,
+        "spacing": 0,
         "underline": false
       },
       "title": {
@@ -369,12 +369,12 @@
           11,
           10
         ],
-        "surface_panel_alpha": 255,
+        "backdrop_alpha": 0,
+        "surface_panel_alpha": 151,
         "surface_title_alpha": 255,
         "border_alpha": 255,
         "border_accent_alpha": 255,
-        "player_bubble_alpha": 255,
-        "backdrop_alpha": 0
+        "player_bubble_alpha": 255
       }
     },
     "board": {
@@ -385,13 +385,13 @@
         "size_delta": 4
       },
       "text": {
-        "font_file": "SourceCodePro-Regular",
-        "size_delta": 6,
+        "font_file": "Roboto-Medium",
+        "size_delta": 5,
         "bold": false,
         "outline": 2,
         "shadow": true,
-        "glow": 0.0,
-        "spacing": -3,
+        "glow": 0.15,
+        "spacing": 0,
         "underline": false
       },
       "_colors": {
@@ -445,12 +445,12 @@
           11,
           10
         ],
-        "surface_panel_alpha": 255,
+        "backdrop_alpha": 0,
+        "surface_panel_alpha": 151,
         "surface_title_alpha": 255,
         "border_alpha": 255,
         "border_accent_alpha": 255,
-        "player_bubble_alpha": 255,
-        "backdrop_alpha": 0
+        "player_bubble_alpha": 255
       }
     }
   },
@@ -467,69 +467,72 @@
   },
   "my_style": {
     "surface_panel": [
-      48,
-      47,
-      34
+      16,
+      15,
+      14
     ],
     "surface_title": [
-      73,
-      105,
-      110
+      24,
+      22,
+      19
     ],
     "border": [
-      70,
-      70,
-      95
+      60,
+      52,
+      38
     ],
     "border_accent": [
-      0,
-      0,
-      0
-    ],
-    "text_primary": [
-      94,
-      206,
-      127
-    ],
-    "text_muted": [
-      78,
-      78,
-      90
-    ],
-    "accent": [
-      65,
-      150,
-      13
-    ],
-    "player_bubble": [
-      104,
-      101,
+      197,
+      160,
       74
     ],
+    "text_primary": [
+      224,
+      216,
+      196
+    ],
+    "text_muted": [
+      146,
+      136,
+      116
+    ],
+    "accent": [
+      197,
+      160,
+      74
+    ],
+    "player_bubble": [
+      28,
+      25,
+      20
+    ],
     "player_name": [
-      255,
-      200,
-      100
+      232,
+      195,
+      105
     ],
     "backdrop_rgb": [
-      75,
-      125,
-      95
+      12,
+      11,
+      10
     ],
     "backdrop_alpha": 0,
-    "surface_panel_alpha": 59,
-    "surface_title_alpha": 167,
-    "border_alpha": 215,
-    "border_accent_alpha": 41,
+    "surface_panel_alpha": 151,
+    "surface_title_alpha": 255,
+    "border_alpha": 255,
+    "border_accent_alpha": 255,
     "player_bubble_alpha": 255
   },
-  "texture": 6,
+  "texture": -2,
   "avatar_size": 60,
-  "noise_scale": 48,
-  "noise_seed": 117,
+  "bubble_size": -3,
+  "bubble_spacing": 0,
+  "bubble_leading": -10,
+  "noise_scale": 10,
+  "noise_seed": 132,
   "noise_tint": [
-    255,
-    255,
-    255
+    8,
+    8,
+    8
   ]
 }

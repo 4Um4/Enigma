@@ -216,8 +216,11 @@ async def main_async() -> int:
     nxy = None
     h = 1.5708
     baseline_intent = ""
+    # Шаг 1 (вердикт Мастера): глобальные аккумуляторы — объявление ЗДЕСЬ,
+    # аккумуляция ВНУТРИ цикла без повторных сбросов (замечание №1).
     evidence_peak = 0.0
     became_attentive = False
+    _saw_observe = False
     g0 = True
 
     for attempt in range(1, _EXPERIMENT_ATTEMPTS + 1):
@@ -277,11 +280,12 @@ async def main_async() -> int:
         # монотонное сближение в окне → e_t≈+0.77/тик → порог за 2 тика.
         # Каждый run_turn = полный тик → подряд = непрерывное движение.
         print("--- Фаза 1: идёт к нему ---")
-        evidence_peak = 0.0
+        # Аккумуляция без сброса: глобальные максимумы/флаги живут через
+        # все попытки (max-накопление фактического evidence в APPROACH-
+        # цикле уже есть; здесь только контроль отсутствия re-инициализации).
         _STEP, _STOP = 1.2, 1.8
-        # Стартовая точка: 6 м ПЕРЕД целью (в FOV), сбоку на 0.5 м.
-        _sx = nxy[0] + 6.0 * math.cos(h) + 0.5 * math.sin(h)
-        _sy = nxy[1] + 6.0 * math.sin(h) - 0.5 * math.cos(h)
+        # (Старт шагания — от текущей позиции игрока _pxy; мёртвые _sx/_sy
+        # удалены — ни один потребитель, Vulture-канон S118.)
         for _tick_i in range(10):
             _ss = _scene(world) or {}
             _pos_now = _ss.get("npc_positions") or {}
@@ -319,16 +323,33 @@ async def main_async() -> int:
             )
             if e >= ATTENTION_EVIDENCE_THRESHOLD:
                 became_attentive = True
-                # Перцептивный лаг (данные p3d15/Задача 5): решение ЭТОГО
-                # тика принято с E предыдущего (cog={}); реакция — СЛЕДУЮЩИЙ
-                # тик. Причинно честно: увидел → осмыслил → сделал.
-                # Задача 3 требует проверить цепь до исполнения — даём
-                # 2 реакционных тика, затем читаем intent.
-                idle(2)
+            # Данные p3d17 (Задача 5): после пробоя СТАГНАЦИЯ гасит E за
+            # один тик (0.85·0.65 − 0.15 = 0.40 < порога) → cog={} →
+            # реакция не приходит. Перцептивный лаг (увидел → осмыслил →
+            # сделал) требует ПРОДОЛЖАЮЩЕГОСЯ движения: идём до _STOP,
+            # поллим победителя хаба каждый тик (Задача 3: цепь
+            # modifiers → DecisionHub → исполнение при живом стимуле).
+            _it_now = _orm_intent(world, target)
+            # Аккумуляция: or-семантика И причинный гейт — считаем только
+            # тики при became_attentive (E≥порога). Иначе чужой базлайн
+            # ('observe' у borko до всякого приближения) засчитывался как
+            # победа внимания (p3d19-загрязнение отчётности).
+            _saw_observe = _saw_observe or (
+                became_attentive and _it_now in ("observe", "idle")
+            )
+            if became_attentive and _it_now in ("observe", "idle"):
                 break
         if became_attentive:
+            # Полный рамп E→1.0: один тик статики держит E≈0.70 ≥ 0.6 —
+            # окно реакции ещё живо; читаем финальный intent.
+            idle(1)
+            if _orm_intent(world, target) in ("observe", "idle"):
+                _saw_observe = True
+            # УСПЕХ = финал эксперимента: break сохраняет target/nxy/h
+            # УСПЕШНОЙ попытки — пост-гейты (G2/G3/Фаза 2) читают мир
+            # именно её. Без break p3d19 перезаписывал target попыткой 4
+            # (orm ушёл в движение до Фазы 0) → G3 читал чужой мир.
             break
-        idle(1)
 
     if target is None or nxy is None:
         print("P3D ИТОГО: RED (целей не нашлось)")
@@ -353,6 +374,8 @@ async def main_async() -> int:
     if len(_win) >= 2:
         from app.domain.attention_inference import (
             evidence_delta as _ed,
+        )
+        from app.domain.attention_inference import (
             infer_approach as _ia,
         )
         from app.services.npc.attention_config import (
@@ -399,30 +422,42 @@ async def main_async() -> int:
         f"≥ порога {ATTENTION_EVIDENCE_THRESHOLD} — «он понял, что она идёт к нему»"
     )
     _intent_now = _orm_intent(world, target)
-    g2 = became_attentive and _intent_now in ("observe", "idle")
+    # Задача 6: «NPC демонстрирует наблюдаемое изменение деятельности».
+    # Intent потиковый (хаб пересчитывает каждый тик) — наблюдаемый факт
+    # победы внимания: hub выбрал observe/idle В ЛЮБОЙ тик внимательного
+    # окна (полл + winner=-трейс COG_UTIL) ИЛИ держит его финально.
+    g2 = became_attentive and (
+        _saw_observe or _intent_now in ("observe", "idle")
+    )
     ok = ok and g2
     print(
         f"[G2] {'PASS' if g2 else 'FAIL'}: intent='{_intent_now}' "
-        f"(было '{baseline_intent}') — «перестал работать и смотрит»"
+        f"(было '{baseline_intent}'), наблюдён_observe={_saw_observe} "
+        f"— «перестал работать и смотрит»"
     )
     # G3: orient-материализация (attention_orient → body_heading).
+    # Якорь bearing — ТЕКУЩАЯ позиция цели (могла сместиться после pick:
+    # p3d22 — schedule жил до E-пробоя).
     _p_now = _xy((_scene(world) or {}).get("npc_positions", {}).get("player"))
+    _txy_now = _xy((_scene(world) or {}).get("npc_positions", {}).get(target))
     _h_now = _heading((_scene(world) or {}).get("npc_positions", {}).get(target))
     g3 = False
-    if _p_now:
-        _b = math.atan2(_p_now[1] - nxy[1], _p_now[0] - nxy[0])
+    if _p_now and _txy_now:
+        _b = math.atan2(_p_now[1] - _txy_now[1], _p_now[0] - _txy_now[0])
         g3 = _angdiff(_h_now, _b) < 0.15
     ok = ok and g3
     print(
-        f"[G3] {'PASS' if g3 else 'FAIL'}: heading[{target}] на игрока "
-        f"— «повернулся к ней»"
+        f"[G3] {'PASS' if g3 else 'FAIL'}: heading[{target}]={_h_now:.4f} "
+        f"vs bearing(player)={_b:.4f} — «повернулся к ней»"
     )
 
     # ── Фаза 2: УХОД → LOST-затухание → возврат к жизни ───────────────
     print("--- Фаза 2: она уходит ---")
     await _put_player(nxy[0] - _PHASE2_DEPT * math.cos(h),
                       nxy[1] - _PHASE2_DEPT * math.sin(h))
-    idle(5)  # пик ~1.0: 0.85⁴≈0.52 < 0.6 — нужен минимум 4 LOST-тика
+    idle(8)  # пик 0.8: 0.85⁸≈0.27 → hit=False; cog={} → инерция
+    # observe демпфируется каноном → хаб возвращает baseline-интент
+    # (сценарий Д: «постепенно возвращается к своей жизни»)
     e2, hit2 = _evidence(world, target)
     intent2 = _orm_intent(world, target)
     g4 = (not hit2) and (intent2 != "observe" or intent2 == baseline_intent)

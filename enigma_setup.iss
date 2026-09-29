@@ -65,7 +65,7 @@ Name: "llama_cpp"; Description: "Движок llama.cpp (CUDA + CPU) — обя�
 
 [Files]
 ; 1. Ядро игры (Берем из временной папки staging, где лежат .pyc)
-Source: "build\staging\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload,saves,saves_census,runtime_cache,dist,*.db,*.db-shm,*.db-wal,backend\data\campaigns\test_campaign,config\calibration,build_graph.py,backend\backend"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
+Source: "C:\DDD\Codex\VSC_Enigma\RELIZZ\*"; DestDir: "{app}"; Excludes: ".venv,.git,__pycache__,*.log,logs,backend\logs,reports,build,*.egg-info,*.spec,docs,Tests,tests,Models LLM,payload,saves,saves_census,runtime_cache,dist,*.db,*.db-shm,*.db-wal,backend\data\campaigns\test_campaign,config\calibration,build_graph.py,backend\backend"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog
 
 ; 1.1 Портативный Python — S210: payload-пайплайн не автоматизирован (payload/
 ; не создаётся сборкой). До его реализации установщик — dev-дистрибутив:

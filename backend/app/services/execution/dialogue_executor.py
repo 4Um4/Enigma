@@ -40,16 +40,16 @@ class DialogueExecutor:
 
     def __init__(
         self,
-        router=None,
+        router: Any = None,
         context_provider: Optional[Callable[[str, str], dict]] = None,
-        belief_store=None,
-        memory_manager=None,
-        confession_parser=None, # V8-MVP-12 FIX
-        discovery_bridge=None,  # P6/E1 (S255): Bridge — владелец перехода
-        npc_states_provider=None,  # P6/E1: Callable[[cid], list[dict]]
-        relationship_provider=None,  # P6/E1: Callable[[cid, k, r], dict]
-        subject_resolver=None,  # P6/E1: Callable[[topic], SubjectRef]
-    ):
+        belief_store: Any = None,
+        memory_manager: Any = None,
+        confession_parser: Any = None,  # V8-MVP-12 FIX
+        discovery_bridge: Any = None,  # P6/E1 (S255): Bridge — владелец перехода
+        npc_states_provider: Any = None,  # P6/E1: Callable[[cid], list[dict]]
+        relationship_provider: Any = None,  # P6/E1: Callable[[cid, k, r], dict]
+        subject_resolver: Any = None,  # P6/E1: Callable[[topic], SubjectRef]
+    ) -> None:
         self._router = router
         self._memory_manager = memory_manager
         self._get_context = context_provider or (
@@ -87,10 +87,10 @@ class DialogueExecutor:
 
     def set_epistemic_wiring(
         self,
-        discovery_bridge=None,
-        npc_states_provider=None,
-        relationship_provider=None,
-        subject_resolver=None,
+        discovery_bridge: Any = None,
+        npc_states_provider: Any = None,
+        relationship_provider: Any = None,
+        subject_resolver: Any = None,
     ) -> None:
         """P6/E1 (S255): late-binding игрок-контура (прецеденты:
         set_spatial_query_service; S211 set_epistemic_resolver)."""
@@ -304,7 +304,7 @@ class DialogueExecutor:
             logger.warning(f"[P6_E1] verdict resolve failed (fail-open): {e}", exc_info=True)
             return None
 
-    def _emit_dialogue_outcome(self, task: QueuedTask, req: DialogueRequest, verdict) -> None:
+    def _emit_dialogue_outcome(self, task: QueuedTask, req: DialogueRequest, verdict: Any) -> None:
         """P7-A: эмит из УЖЕ вычисленного вердикта (точка доставки — та же,
         что в E1: DISCOVERY IS DELIVERY). Повторное вычисление вердикта
         здесь = DOUBLE TRUTH — запрещено (инвариант Мастера)."""
@@ -327,7 +327,7 @@ class DialogueExecutor:
             logger.warning(f"[P6_E1] emit failed (fail-open): {e}", exc_info=True)
 
     @staticmethod
-    def _verdict_directive(verdict) -> str:
+    def _verdict_directive(verdict: Any) -> str:
         """P7-A: сериализация вердикта в поведенческую директиву промпта.
         P5 решил ЧТО; P7 вербализует КАК; LLM не решает (DisclosureLevel)."""
         from app.domain.disclosure import DisclosureLevel as _DL
@@ -346,7 +346,7 @@ class DialogueExecutor:
             return ""
         return f"[ДИРЕКТИВА РАСКРЫТИЯ: {verdict.level.value.upper()}] {_t}."
 
-    def _generate_with_router(self, task: QueuedTask, req: DialogueRequest, verdict=None) -> str:
+    def _generate_with_router(self, task: QueuedTask, req: DialogueRequest, verdict: Any = None) -> str:
         """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""
         ctx = self._get_context(task.campaign_id, task.owner_id)
 

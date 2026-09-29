@@ -798,11 +798,16 @@ class GameScreen:
                         and self._workbench.handle_event_overlay(event)):
                     continue
                 elif event.type == pygame.KEYDOWN:
+                    if (event.key == pygame.K_RETURN
+                            and (pygame.key.get_mods() & pygame.KMOD_ALT)):
+                        # S3.16 (вердикт Мастера): Alt+Enter — полный экран,
+                        # повторное нажатие возвращает оконный размер
+                        pygame.display.toggle_fullscreen()
                     # FIX(диалог-выход): ESC при сфокусированном вводе закрывает
                     # ввод, а не паузу. Раньше PAUSE-ветка перехватывала ESC
                     # раньше TextInput — его собственный ESC-unfocus
                     # (text_input.py:305) был мёртвым кодом из игрового цикла.
-                    if event.key == pygame.K_ESCAPE and text_input.focused:
+                    elif event.key == pygame.K_ESCAPE and text_input.focused:
                         text_input.focused = False
                     elif event.key == get_key(load_keybinds(), "pause"):
                         action_queue.stop()
@@ -822,9 +827,12 @@ class GameScreen:
                         text_input.visible = not text_input.visible
                         text_input.focused = text_input.visible
                         # Workbench: авто-открытие журнала на вкладке «Диалог»
-                        # при фокусе ввода (решение: фокус = намерение беседовать)
+                        # при фокусе ввода (решение: фокус = намерение беседовать);
+                        # закрыл диалог Tab'ом — лента сворачивается (S3.16)
                         if text_input.focused:
                             self._workbench.open_journal_dialog_tab()
+                        else:
+                            self._workbench.collapse_journal()
                     # ADR-JOURNAL v2: журнал = JournalWindow (Workbench). Старый
                     # show_journal-рендер удалён (DOUBLE TRUTH). J = toggle окна.
                     elif not text_input.focused and event.key == get_key(load_keybinds(), "open_journal"):
@@ -850,16 +858,19 @@ class GameScreen:
                         threading.Thread(
                             target=lambda: _do_skip_time(100), daemon=True
                         ).start()
-                    elif event.key == pygame.K_3 and not text_input.focused:
+                    elif event.key == get_key(load_keybinds(), "skip_time_500") and not text_input.focused:
                         threading.Thread(
                             target=lambda: _do_skip_time(500), daemon=True
                         ).start()
-                    elif event.key == pygame.K_4 and not text_input.focused:
+                    elif event.key == get_key(load_keybinds(), "skip_time_2000") and not text_input.focused:
                         threading.Thread(
                             target=lambda: _do_skip_time(2000), daemon=True
                         ).start()
                     elif not text_input.focused and (
-                        event.key == pygame.K_BACKQUOTE
+                        event.key == get_key(load_keybinds(), "observations")
+                        # Раскладочный алиас: физическая клавиша бинда на
+                        # русской раскладке = Ё (pygame даёт BACKQUOTE, но
+                        # unicode несёт букву — ловим оба представления)
                         or getattr(event, "unicode", "") in ("ё", "Ё")
                     ):
                         self._workbench.toggle_observations()
@@ -2051,6 +2062,9 @@ class GameScreen:
                 # S3.8: сцена — имена NPC шрифтом/цветом из мирового стиля
                 self.renderer.font_small = self._workbench.world_font()
                 self.renderer.name_style = self._workbench.world_style()
+                # S3.15: у NPC с активным речевым пузырём имя не рисуем
+                # (ставится после рендера — действует со след. кадра)
+                self.renderer.suppress_names = set(self.npc_speech_bubbles.keys())
             self._portrait_renderer = getattr(self, "_portrait_renderer", PortraitRenderer())
             self._casting_repo = getattr(self, "_casting_repo", VisualCastingRepository())
             
@@ -2122,9 +2136,8 @@ class GameScreen:
             # Удаление полностью растворившихся пузырей из памяти
             message_log[:] = [b for b in message_log if b.alpha > 0]
 
-            self._draw_time_scale(
-                narrative_renderer, _time_scale
-            )
+            # S3.16: легаси-панель темпа не рисуется — её заменило мини-окно
+            # time_scale верстака (M-HUD); вызов удалён
 
             # ТЗ EMBODIED UI PERCEPTION: Слои 2-3 (Атмосфера и Центральное внимание)
             # Рендерим активные восприятия по центру экрана с затуханием (intensity -> alpha)
@@ -2233,7 +2246,8 @@ class GameScreen:
                 pygame.display.flip()
                 self.clock.tick(60)
                 for _es_evt in pygame.event.get():
-                    if _es_evt.type == pygame.KEYDOWN and _es_evt.key == pygame.K_RETURN:
+                    if (_es_evt.type == pygame.KEYDOWN
+                            and _es_evt.key in (pygame.K_RETURN, pygame.K_SPACE)):
                         return "END_SCREEN"
                     if _es_evt.type == pygame.QUIT:
                         return "END_SCREEN"
@@ -2243,25 +2257,6 @@ class GameScreen:
             self.clock.tick(60)
 
     # ── UI методы ──────────────────────────────────────────────────────
-
-    def _end_screen_terminal_loop(self, campaign_folder: str) -> str:
-        """MVP game-over: ТЕРМИНАЛЬНОЕ состояние. Мир после finalize_campaign
-        не тикает, не рендерится, не принимает игровой ввод — каузальный
-        поток завершён. Живут только: overlay статистики + ENTER (выход в
-        меню) + QUIT. Вызывается сразу после срабатывания триггера выхода,
-        из run() — основной цикл run() на этот кадр не продолжается."""
-        _es = EndScreenRenderer(self.screen)
-        while True:
-            _es.render(self.end_screen_data)
-            pygame.display.flip()
-            self.clock.tick(60)
-            for _evt in pygame.event.get():
-                if _evt.type == pygame.QUIT:
-                    return "QUIT"
-                if _evt.type == pygame.KEYDOWN and _evt.key == pygame.K_RETURN:
-                    return "MENU"
-                if _evt.type == pygame.KEYDOWN and _evt.key == pygame.K_ESCAPE:
-                    return "MENU"
 
     def _end_screen_terminal_loop(self) -> str:
         """MVP game-over: ТЕРМИНАЛЬНОЕ состояние. Мир после finalize_campaign
@@ -2276,7 +2271,9 @@ class GameScreen:
             for _evt in pygame.event.get():
                 if _evt.type == pygame.QUIT:
                     return "QUIT"
-                if _evt.type == pygame.KEYDOWN and _evt.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                if (_evt.type == pygame.KEYDOWN
+                        and _evt.key in (pygame.K_RETURN, pygame.K_SPACE,
+                                         pygame.K_ESCAPE)):
                     return "MENU"
 
     def collect_observation_lines(self, scene_state: dict) -> list:
@@ -2367,6 +2364,12 @@ class GameScreen:
             print(f"[DIAG_JC2] speaker={_dj.get('speaker','')!r} channel={_dj.get('channel','')!r} tick={_dj.get('tick','')!r} text={_dj.get('text','')[:45]!r}")
         old_count = len(self._dialog_journal_backend)
         self._dialog_journal_backend = entries
+        # идея-7: нечитанное = записи, пришедшие при свёрнутом журнале.
+        # direct уже разворачивает журнал ниже (авто-фокус m13) — копят
+        # только narrative/overheard. счётчик сессионный: сессия = живое
+        # чтение, fifo-журнал не помечает прочитанность в сейве.
+        if self._workbench.registry.state("journal") != windowstate.full:
+            self._workbench.journal_unread += max(0, len(entries) - old_count)
         if len(entries) >= old_count:
             new_entries = entries[old_count:]
         else:

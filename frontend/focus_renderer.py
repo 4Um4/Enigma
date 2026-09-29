@@ -321,4 +321,8 @@ class FocusRenderer:
                 _ls = self.font_small.render(_ragged_ll, True, _text_color)
                 _la = _ls.copy()
                 _la.set_alpha(_alpha)
-                screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
+                # S3.17: центровка — строка по горизонтали пузыря и по
+                # середине своего межстрочного слота (leading/2 вниз)
+                _lead = getattr(self.font_small, "leading", lambda: 0)()
+                screen.blit(_la, (_bub_x + (_bub_w - _la.get_width()) // 2,
+                                  _bub_y + 5 + _li * _line_h + max(0, _lead) // 2))

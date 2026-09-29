@@ -787,6 +787,60 @@ class NpcTickPipeline:
                         f"for {npc_id}: {_griev_err}"
                     )
 
+            # R8 CAUSAL SLICE 4 (ADR-O-398): affection-проводка. Каскад
+            # причин: threat > hunger > grievance > affection. Тёплая
+            # пара + видимый голод B + capacity A → забота. CS18-долг:
+            # чтение B.hunger из world-снапшота (proxy, perception-
+            # мембрана — будущий шов). Ось читается attraction|affection.
+            if _causal_modifiers is None:
+                try:
+                    from app.core.constants import GOODS_PRICES
+                    from app.services.npc.causal_slice_affection import (
+                        AffectionDesiredChangeProducer,
+                    )
+
+                    _eco_map = getattr(state, "economic_profiles_map", {}) or {}
+                    _others_state: Dict[str, Dict[str, float]] = {}
+                    for _n in (state.all_npcs_raw or []):
+                        _nid = _n.get("npc_id") or _n.get("id")
+                        if _nid and _nid != npc_id:
+                            _bs = _n.get("body_state") or {}
+                            _others_state[_nid] = {
+                                "hunger": float(_bs.get("hunger", 0.0) or 0.0)
+                            }
+                    _aff_dist: Dict[str, float] = {}
+                    if state.spatial_query is not None:
+                        for _nid in _others_state:
+                            try:
+                                _aff_dist[_nid] = float(
+                                    state.spatial_query.distance(npc_id, _nid)
+                                )
+                            except Exception:
+                                _aff_dist[_nid] = float("inf")
+                    _dc_a = AffectionDesiredChangeProducer.resolve(
+                        who=npc_id,
+                        rel=_rel_view,
+                        others_state=_others_state,
+                        own_profile=_eco_map.get(npc_id),
+                        distances=_aff_dist,
+                        food_price=float(GOODS_PRICES.get("food", 2.0)),
+                    )
+                    _causal_modifiers = (
+                        AffectionDesiredChangeProducer.to_modifiers(_dc_a) or None
+                    )
+                    if _dc_a is not None:
+                        logger.info(
+                            f"[CAUSAL_SLICE_AFFECTION] npc={npc_id} "
+                            f"desired_change={_dc_a.state_type}:"
+                            f"{_dc_a.target_of_change}←care "
+                            f"methods={_dc_a.method_weights}"
+                        )
+                except Exception as _aff_err:
+                    logger.warning(
+                        f"[CAUSAL_SLICE_AFFECTION] producer failed (no-op) "
+                        f"for {npc_id}: {_aff_err}"
+                    )
+
             # R6: дубликат-черновик hunger-блока удалён (двойное применение
             # патча; урок D-R6-DUPLICATE-PATCH). Единственный блок — выше.
 

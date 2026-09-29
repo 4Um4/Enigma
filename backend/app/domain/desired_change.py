@@ -115,3 +115,23 @@ def grievance_hold(
         addressee=target,
         method_weights=dict(method_weights),
     )
+
+
+def nurture(
+    who: str,
+    target: str,
+    method_weights: Dict[str, float],
+) -> DesiredChange:
+    """Фабрика среза 4 (R8): «who заботится о состоянии target».
+
+    Первое СТРУКТУРНОЕ различение CS3: who ≠ target_of_change —
+    агент меняет состояние ДРУГОГО (B.food↑ через заботу A).
+    R5/CS-совпадения были частными; здесь — суть среза."""
+    return DesiredChange(
+        who=who,
+        reason=REASON_AFFECTION,
+        state_type=STATE_TYPE_RESOURCE,
+        target_of_change=target,
+        addressee=target,
+        method_weights=dict(method_weights),
+    )

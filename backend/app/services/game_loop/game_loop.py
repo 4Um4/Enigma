@@ -1023,8 +1023,12 @@ class GameLoop:
         """E.2: Инкапсуляция scene_manager.apply_changes"""
         self.scene_manager.apply_changes(campaign_id, changes, scene_state)
 
-    def get_scene_state(self, campaign_id: str, location_id: str) -> dict:
-        """E.2: Инкапсуляция scene_manager.get_scene_state"""
+    def get_scene_state(self, campaign_id: str, location_id: str) -> dict | None:
+        """E.2: Инкапсуляция scene_manager.get_scene_state.
+
+        WOUNDS-TZ FIX: контракт зеркалит SceneStateManager.get_scene_state —
+        сцены может не быть вовсе (None), а не только пустой словарь.
+        """
         return self.scene_manager.get_scene_state(campaign_id, location_id)
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
@@ -1642,9 +1646,11 @@ class GameLoop:
         # (deepcopy от commit_tick_result), чтобы мутации task_scheduler и
         # подписчиков EventBus попали в финальный unlock_tick, а не потерялись
         # в устаревшей ссылке shared_context.scene_state.
+        # WOUNDS-TZ FIX: _auth_scene объявляется ДО ветки — иначе при пустом
+        # shared_context ниже был NameError, а при непустом — передача None.
+        _auth_scene: dict | None = None
         if state.shared_context and state.shared_context.scene_state:
             _turn_scene = state.shared_context.scene_state
-            _auth_scene = None
             if self.scene_manager:
                 _loc_key = _turn_scene.get("location_id", "default")
                 _auth_scene = self.scene_manager._tick_scenes.get(_loc_key)  # noqa: ENIGMA001
@@ -1659,7 +1665,7 @@ class GameLoop:
             # терминалы прошлого цикла применяются даже при пустой очереди.
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
         # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
-        if getattr(self, "_npc_dialogue_subscriber", None):
+        if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:
             self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
 
         # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge

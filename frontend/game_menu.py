@@ -74,10 +74,13 @@ class _MenuButton:
                 return True
         return False
 
-    def draw(self, screen: pygame.Surface, font: pygame.font.Font) -> None:
-        color = self.color_hover if self.hovered else self.color
+    def draw(self, screen: pygame.Surface, font: pygame.font.Font,
+             selected: bool = False) -> None:
+        # S3.16: selected — выбор клавиатурой: hover-цвет + акцентная рамка
+        color = self.color_hover if (self.hovered or selected) else self.color
         pygame.draw.rect(screen, color, self.rect, border_radius=6)
-        pygame.draw.rect(screen, _MENU_COLORS["border"], self.rect, 1, border_radius=6)
+        _bc = _MENU_COLORS["accent_blue"] if selected else _MENU_COLORS["border"]
+        pygame.draw.rect(screen, _bc, self.rect, 2, border_radius=6)
 
         text_surf = font.render(self.text, True, _MENU_COLORS["text"])
         text_rect = text_surf.get_rect(center=self.rect.center)
@@ -234,6 +237,14 @@ class GameMenu:
                         self._buttons[self._selected_idx].on_click()
                     elif event.key == pygame.K_ESCAPE:
                         self._result = MenuAction.EXIT
+                elif event.type == pygame.MOUSEMOTION:
+                    # S3.16: мышь и клавиатура — один выбор: hover
+                    # двигает _selected_idx (Enter активирует то же)
+                    for i, btn in enumerate(self._buttons):
+                        _h = btn.rect.collidepoint(event.pos)
+                        btn.hovered = _h
+                        if _h:
+                            self._selected_idx = i
                 else:
                     for btn in self._buttons:
                         if btn.handle_event(event):
@@ -286,10 +297,18 @@ class GameMenu:
         sub_rect = sub_surf.get_rect(centerx=w // 2, y=title_rect.bottom + 8)
         self.screen.blit(sub_surf, sub_rect)
 
-        # Кнопки — подсвечиваем выбранную клавиатурой
+        # Кнопки: S3.16-фикс — прежний `hovered = hovered or selected`
+        # накапливал подсветку (загорались все — «выбора не видно»);
+        # теперь выбор передаётся явно и hover не мутируется
+        _sel = getattr(self, "_selected_idx", -1)
         for i, btn in enumerate(self._buttons):
-            btn.hovered = btn.hovered or (i == getattr(self, "_selected_idx", -1))
-            btn.draw(self.screen, self.font_button)
+            btn.draw(self.screen, self.font_button, selected=(i == _sel))
+        # Подсказка управления
+        _hint = self.font_small.render(
+            "↑/↓ — выбор · Enter — активировать · Esc — выход",
+            True, _MENU_COLORS["text_dim"])
+        _hy = self._buttons[-1].rect.bottom + 18 if self._buttons else h - 60
+        self.screen.blit(_hint, (w // 2 - _hint.get_width() // 2, _hy))
 
         # Версия
         # ИСПРАВЛЕНО: версия берётся из constants.py, а не хардкодится.

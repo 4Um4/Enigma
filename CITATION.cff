@@ -8,9 +8,9 @@ authors:
   - family-names: Gritsaenko
     given-names: Mikhail
     affiliation: Independent Researcher
-version: 0.5.4.2.0
+version: 0.5.4.2.1
 doi: 10.5281/zenodo.22831764
-date-released: "2026-09-28"
+date-released: "2026-09-30"
 license: CC-BY-4.0
 url: "https://github.com/4Um4/Enigma"
 repository-code: "https://github.com/4Um4/Enigma"

@@ -385,6 +385,9 @@ class SceneRenderer:
         dt: float = 0.016,
     ) -> dict:
         _npc_coords = {}
+        # S3.15: имена NPC с активным речевым пузырём сцена НЕ рисует —
+        # пузырь несёт имя сам (дубль исключён в корне, без заплаток)
+        _sup = getattr(self, "suppress_names", None) or set()
 
         for entity in entities:
             if entity.entity_type != "npc":
@@ -584,8 +587,9 @@ class SceneRenderer:
                     )  # Белый контур периферии
 
             # Имя по confidence; S3.8: цвет — из мирового стиля верстака
-            # (name_style), фоллбэк — прежние семантические литералы
-            if entity.display_name:
+            # (name_style), фоллбэк — прежние семантические литералы;
+            # S3.15: подавление при активном пузыре
+            if entity.display_name and entity.display_name not in _sup:
                 _blur = getattr(entity, "blur_intensity", 0.0)
                 _ns = getattr(self, "name_style", None)
                 # S169: Эффект "незнакомца" - приглушённое имя

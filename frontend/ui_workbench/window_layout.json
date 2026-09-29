@@ -2,43 +2,43 @@
   "_version": 1,
   "window_states": {
     "journal": {
-      "state": "collapsed",
+      "state": "full",
       "free_rect": [
-        441,
-        35,
+        0,
+        358,
         504,
-        811
+        669
       ]
     },
     "world_clock": {
       "state": "collapsed",
       "free_rect": [
-        1126,
+        2289,
         0,
         271,
-        34
+        82
       ]
     },
     "time_scale": {
       "state": "collapsed",
       "free_rect": [
-        1036,
+        2199,
         0,
         90,
-        45
+        68
       ]
     },
     "observations": {
-      "state": "full",
+      "state": "collapsed",
       "free_rect": [
-        3,
+        0,
         0,
         438,
-        270
+        324
       ]
     },
     "inventory": {
-      "state": "full",
+      "state": "hidden",
       "free_rect": [
         0,
         270,
@@ -49,10 +49,10 @@
     "board": {
       "state": "collapsed",
       "free_rect": [
-        441,
-        1,
+        657,
+        2,
         590,
-        630
+        756
       ]
     }
   }

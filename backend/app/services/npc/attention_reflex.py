@@ -516,9 +516,29 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                 if prev_state is None:
                     continue  # не видели и не видим — состояния нет (нет события)
                 if prev_state.phase is AttentionPhase.LOST:
-                    # LOST-заморозка: наблюдения не пишутся, память не стирается.
+                    # Сценарий Д (ТЗ): затухание продолжается КАЖДЫЙ тик
+                    # LOST (E·0.85ⁿ → 0), а не заморозка на первом значении
+                    # (G4: 1.0→0.85 и застыло ≥ порога — гипотеза не умирала).
+                    # Окно-память по-прежнему не стирается до GC.
                     if tick - prev_state.last_update_tick > ATTENTION_LOST_GC_TICKS:
                         delta_subs[subject_id] = None  # GC: субъект забыт
+                    else:
+                        _decayed = round(
+                            prev_state.approach_evidence
+                            * ATTENTION_LOST_EVIDENCE_DECAY,
+                            4,
+                        )
+                        if _decayed < 1e-4:
+                            delta_subs[subject_id] = None  # гипотеза умерла
+                        else:
+                            delta_subs[subject_id] = attention_to_dict(
+                                with_phase(
+                                    prev_state,
+                                    AttentionPhase.LOST,
+                                    tick,
+                                    approach_evidence=_decayed,
+                                )
+                            )
                     continue
                 # Сценарий Д: субъект исчез — гипотеза приближения плавно
                 # угасает (λ-затухание); окно-память не стирается.

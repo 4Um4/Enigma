@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-09-28 02:34
+# ENIGMA Session State — 2026-09-30 02:42
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,25 +16,25 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 0.1 мин | Тиков: 0 | LLM-вызовов: 0_
+_Сессия: 0.4 мин | Тиков: 2 | LLM-вызовов: 2_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
-| **SHI** (Simulation Health) | 0% | → +0.0% | ⛔ МЕРТВА: решений нет. Проверь DecisionHub.compute() |
-| **NPI** (NPC Pipeline) | 0% | → +0.0% | нет данных о NPC |
+| **SHI** (Simulation Health) | 100% | → +0.0% | ✅ норма: NPC активно принимают решения |
+| **NPI** (NPC Pipeline) | 100% | → +0.0% | ✅ 6/6 NPC с реальными координатами |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 0.00/мин | → +0.0 | LLM не вызывалась: сессия без действий игрока |
+| **CVS** (Causal Velocity) | 5.51/мин | ↓ -2.3 | ✅ 5.51/мин: активная сессия |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
 | **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
-| **BCI** (Belief Crystallization) | 0 (idx=0.00) | → | ⚠️ Память не кристаллизуется (BCI=0) |
-| **BPI** (Break Progress) | 0 (broken=0) | → | ⚠️ NPC не ломаются (BPI=0) |
+| **BCI** (Belief Crystallization) | 22 (idx=11.00) | → | ✅ Убеждения формируются |
+| **BPI** (Break Progress) | 13 (broken=0) | → | ✅ Давление доходит |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1269 записей_
+_История: `reports/dna_history.jsonl` — 1279 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +54,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 2aa5e467 Merge remote-tracking branch 'origin/V.0.5.4.1.8_Внимательность_1'
-  - 0acc431b V.0.5.4.1.8_Внимательность_1: полное сохранение проекта. Версии унифицированы до 0.5.4.1.8 (version.txt, CITATION.cff, backend/pyproject.toml, frontend/constants.py PROJECT_VERSION, README.md + ветка) — единообразие достигнуто: все 5 SSOT-источников = 0.5.4.1.8. Mypy-доводка: -11 ошибок (185→174) в 2 файлах без вмешательства в логику — attention_reflex (8: Optional-сужения subj_xy/prev_state — guard-continue no-op на данных, кандидаты уже отфильтрованы по координатам, guard в ветке else от is_entry недостижим по построению), scene_init (3 redundant-cast на возвратах _ensure_player_topology/scene_state). Гейты: mypy backend/app в стиле CI (mypy.ini) 174 ошибки, py_compile OK, ruff OK, pytest attention micro 19 passed. Контент: attention-стек (domain/attention.py, attention_reflex, attention_config), cognition P2-сценарии SUPERBOX, UI workbench/fonts/assets, отчёты сессии, ADR-O-407.
-  - ad0631dd Merge branch 'V.0.5.4.1.7_Болтаем_2'
-  - fc2175ac V.0.5.4.1.7_Болтаем_2: полное сохранение проекта. Версии унифицированы до 0.5.4.1.7 (version.txt, CITATION.cff + date-released 2026-09-26, backend/pyproject.toml, frontend/constants.py PROJECT_VERSION, README.md + ветка). Mypy-доводка: -10 ошибок (184→174) в 8 файлах без вмешательства в логику — intent_compressor (2 name-defined: добавлен module-level logger, ранее NameError-риск в рантайме на ветках ValueError), constants (WEAPON_REACH_M: dict -> dict[str, float], корень no-any-return в effective_reach_m), turn_pipeline (cast(dict) на возврате _prepare_and_lock_scene), campaign_lifecycle (var-annotated _npcs_for_commit: list[Any]), game_loop (2: Optional[WorldContinuityMode] implicit-Optional в new_game + cast(list) на _resolve_npcs_light_snapshot), relationship_store (аннотация data: Dict[str, Any] на json.loads), layered_memory (cast(Dict) на json.load), dialogue_consolidator (cast(Optional[str]) на structural summary). Гейты: mypy backend/app в стиле CI (mypy.ini) 174 ошибки/0 целевых, py_compile OK (9 файлов), ruff-автофиксы (71: import-sort/F401/W292 по базе, конфиг fix=true), pytest 36 passed (intent/roundtrip/relationship-gc11/board-gates/pattern-watermark/outbox-determinism). UI/прочее: workbench, game_screen, отчёты сессии, новые sandbox-микротесты (claim_guard, reconciler_v0, x1_intent_shadowing и др.).
-  - 59b1b6cd Merge branch 'V.0.5.4.1.6_Болтаем_1'
+  - 0aa6611c chore: untrack replay.db (60MB рантайм-БД реплея) + combat_log
+  - 045a4b65 chore: untrack dna_history.jsonl (runtime CDS-история; LAST_SESSION.md — канон истории сессий)
+  - af8aa4b6 chore: хвост гигиены — ignore session_memory, диск-очистка одноразовых дампов
+  - b9b4af6a chore: gitignore — dna_history.jsonl (пропущенная строка из a5fab11e)
+  - 33c51773 chore: cds-ротатор (дополнение a5fab11e, упомянутый в его message)
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -83,8 +83,13 @@ _(баги не обнаружены в этой сессии)_
 (не определено — обнови MUTATIONS.md)
 
 ### Состояние рендеринга (из последней сессии игры):
-- NPC с известными координатами (0):
-  - _(нет данных о координатах — SNAPSHOT-паттерн не сработал)_
+- NPC с известными координатами (6):
+  - `guard_borko`: x=16.7 y=3.8
+  - `merchant_goran`: x=8.3 y=5.8
+  - `maid_lusya`: x=9.8 y=2.2
+  - `blacksmith_orm`: x=9.2 y=4.5
+  - `thief_shadow`: x=11.5 y=11.0
+  - `tavern_keeper_tornin`: x=6.0 y=2.6
 - NPC без координат (lerp не работает, 0):
   - _(нет)_
 - Граф-fallback локаций: нет
@@ -106,17 +111,24 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 0 | Decisions > 0: 0/0 | LLM: 0 вызовов / 0 ответов | Симуляция: ✅ живёт
+Тиков: 2 | Decisions > 0: 1/2 | LLM: 2 вызовов / 2 ответов | Симуляция: ✅ живёт
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
-- LLM сервер: ❌ (не доступен при старте)
+- LLM сервер: ✅
 
 **Предупреждения:**
   - _(нет)_
 
 **Movement Pipeline (по NPC):**
-_Нет данных по NPC_
+| NPC | Intent | Score | Traversal | Координаты | Виден игроку |
+|-----|--------|-------|-----------|------------|--------------|
+| blacksmith_orm | request_service | 0.747 | ✅ | x=9.2 y=4.5 | ❌ |
+| guard_borko | block_path | 0.330 | ✅ | x=16.7 y=3.8 | ❌ |
+| maid_lusya | flee | 0.511 | ✅ | x=9.8 y=2.2 | ❌ |
+| merchant_goran | offer_job | 0.558 | ✅ | x=8.3 y=5.8 | ❌ |
+| tavern_keeper_tornin | call_for_help | 0.333 | ✅ | x=6.0 y=2.6 | ❌ |
+| thief_shadow | observe | 0.185 | ✅ | x=11.5 y=11.0 | ❌ |
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
   - _(нет разрывов в movement pipeline)_

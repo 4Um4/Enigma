@@ -26,7 +26,14 @@ from typing import Dict, List, Optional, cast
 
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.character import CharacterProfile
-from app.models.npc_state import BODY_STATE_HEALTHY, NPCState, WillState, _emotion_from_str, _pk_from_dict
+from app.models.npc_state import (
+    BODY_STATE_HEALTHY,
+    NPCState,
+    TemporaryDrive,
+    WillState,
+    _emotion_from_str,
+    _pk_from_dict,
+)
 from app.models.physical import Condition, Wound
 from app.models.schemas import CharacterSheet
 
@@ -40,6 +47,28 @@ def _will_state_from_str(s: str) -> WillState:
     except (ValueError, KeyError) as e:
         logger.debug(f"Invalid WillState, returning FREE: {e}")
         return WillState.FREE
+
+
+def _temporary_drives_from_raw(raw: object) -> List[TemporaryDrive]:
+    """ФАЗА 4-ROLE.2: восстановление temporary_drives из персистенции.
+
+    Канон — list[dict]. Legacy-сейвы хранили {} (следствие бага сериализации
+    dict(list) на write-path) — читаются как пустой список. Битые записи
+    пропускаются (fail-soft): потеря одной цели не роняет загрузку аватара.
+    """
+    if isinstance(raw, dict):
+        raw = list(raw.values())
+    if not isinstance(raw, list):
+        return []
+    drives: List[TemporaryDrive] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        try:
+            drives.append(TemporaryDrive(**item))
+        except TypeError:
+            logger.warning(f"[AVATAR] пропуск temporary_drive: {item}")
+    return drives
 
 
 class PlayerAvatarService:
@@ -272,10 +301,15 @@ class PlayerAvatarService:
                 "severity": v.severity,
                 "duration_ticks": v.duration_ticks,
                 "decay_per_tick": v.decay_per_tick,
-                "tick": v.tick,
+                # WOUNDS-TZ FIX: канон поля Condition — tick_applied. Раньше писался
+                # bound method v.tick → json.dumps падал (TypeError) на любом condition.
+                "tick": v.tick_applied,
             }
 
         # Wounds: list[Wound] → list[dict]
+        # WOUNDS-TZ FIX: канон модели Wound — cause / tick_received / persistent /
+        # heal_ticks. Раньше писались несуществующие damage_type/tick/healing_ticks:
+        # AttributeError на write-path и молчаливая потеря ран на read-path.
         wounds = []
         for w in state.wounds:
             wounds.append(
@@ -284,11 +318,10 @@ class PlayerAvatarService:
                     "severity": w.severity.value
                     if hasattr(w.severity, "value")
                     else str(w.severity),
-                    "damage_type": w.damage_type.value
-                    if hasattr(w.damage_type, "value")
-                    else str(w.damage_type),
-                    "tick": w.tick,
-                    "healing_ticks": w.healing_ticks,
+                    "cause": w.cause,
+                    "tick_received": w.tick_received,
+                    "persistent": w.persistent,
+                    "heal_ticks": w.heal_ticks,
                 }
             )
 
@@ -339,7 +372,19 @@ class PlayerAvatarService:
             "life_project": state.life_project,
             "life_project_state": state.life_project_state,
             "social_input_ema": state.social_input_ema,
-            "temporary_drives": dict(state.temporary_drives),
+            # WOUNDS-TZ FIX: temporary_drives — list[TemporaryDrive], не пары
+            # ключ-значение: dict(list) падал (TypeError) при непустом списке.
+            "temporary_drives": [
+                {
+                    "drive_type": d.drive_type,
+                    "urgency": d.urgency,
+                    "reason": d.reason,
+                    "source_npc_id": d.source_npc_id,
+                    "tick_born": d.tick_born,
+                    "tick_age": d.tick_age,
+                }
+                for d in state.temporary_drives
+            ],
             "drives_runtime": dict(state.drives_runtime),
             "strain_memory": dict(state.strain_memory),
             "perceptual_kernel": {
@@ -362,20 +407,25 @@ class PlayerAvatarService:
                 severity=v.get("severity", 0.0),
                 duration_ticks=v.get("duration_ticks", 1),
                 decay_per_tick=v.get("decay_per_tick", 0.1),
-                tick=v.get("tick", 0),
+                # WOUNDS-TZ FIX: канон — tick_applied; "tick" — legacy-ключ старых сейвов.
+                tick_applied=v.get("tick_applied", v.get("tick", 0)) or 0,
             )
 
         # Wounds
+        # WOUNDS-TZ FIX: канон Wound (cause / tick_received / persistent / heal_ticks);
+        # legacy-ключи (damage_type / tick / healing_ticks) читаются как fallback.
+        # Wound.from_dict сам приводит severity к WoundSeverity.
         wounds = []
         for w in data.get("wounds", []):
             try:
                 wounds.append(
-                    Wound(
-                        body_part=w["body_part"],
-                        severity=w["severity"],
-                        damage_type=w["damage_type"],
-                        tick=w.get("tick", 0),
-                        healing_ticks=w.get("healing_ticks", 0),
+                    Wound.from_dict(
+                        {
+                            **w,
+                            "cause": w.get("cause") or w.get("damage_type", ""),
+                            "tick_received": w.get("tick_received", w.get("tick", 0)),
+                            "heal_ticks": w.get("heal_ticks", w.get("healing_ticks", 0)),
+                        }
                     )
                 )
             except Exception:
@@ -419,6 +469,9 @@ class PlayerAvatarService:
             # ADR-128: perceptual_kernel — субъективная модель восприятия.
             # Без этого threat_gradient/initiative_suppression = 0.0 при каждой загрузке.
             perceptual_kernel=_pk_from_dict(data.get("perceptual_kernel", {})),
+            # WOUNDS-TZ FIX: temporary_drives (ФАЗА 4-ROLE.2) — канон list[dict];
+            # legacy {} читается как пустой список (fail-soft к битым записям).
+            temporary_drives=_temporary_drives_from_raw(data.get("temporary_drives")),
             # ADR-GENDER: Восстановление пола аватара из персистенции.
             gender=data.get("gender", "male"),
         )
