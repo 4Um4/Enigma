@@ -5,50 +5,37 @@ __pycache__/
 *.db
 *.db-shm
 *.db-wal
-
 # Runtime-логи не коммитятся никогда (whitelist-инверсия удалена —
 # она протекала: любой новый .log/.jsonl становился кандидатом на коммит)
 backend/logs/
 backend/data/logs/
 *.log
-
 # Рантайм-состояние сессий — игрокские сейвы, не код (merge-конфликты)
 backend/data/sessions/
-
 # Тестовый мусор: mock-объект как campaign_id создал реальные директории
 backend/data/campaigns/MagicMock/
-
 # Рантайм CDS-история (для истории — LAST_SESSION.md, не jsonl)
 reports/history/
 reports/dna_history.jsonl
-
 saves/
-
 # Models - too large for Git
 Models LLM/
-
 # PDF books - not needed in repo
 data/pdf_drop/
-
 # Temporary trash / moved local cleanup
 COMPARISON_REPORT/
 ROAD_MAP_MUSOR/
-
 # IDE
 .vscode/
 .idea/
-
 # Python virtual env
 .venv/
 venv/
-
 # OS
 .DS_Store
 Thumbs.db
-
 # Large log files (>100MB)
 backend/logs/cds_backend.log
-
 # CDS session logs (runtime, десятки-сотни МБ)
 backend/logs/cds_session_*.log
 backend/logs/cds_session_20260724_235539.log
@@ -59,22 +46,16 @@ backend/data/logs/enigma_20260913.jsonl
 data/logs/combat_log.jsonl
 backend/logs/llama_server.log
 backend/logs/llama_server_stderr.log
-
 # Build artifacts
 build/
 dist/
 *.exe
 payload/
-
 # Debug temp files
 debug_launch.py
 sleep_debug.txt
 sleep_test.log
 *_crash.log
-
 mypy_report.txt
-
 docs/Научная обоснованность/_tex_src/
-
-reports/dna_history.jsonl
 backend/data/session_memory_*.jsonl
