@@ -1,3 +1,0 @@
-[SLEEPF] body_state container: НЕ НАЙДЕН — fatigue-канал отключён
-
-[SLEEPF] ===== FIXTURE CLASSIFICATION =====

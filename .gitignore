@@ -59,3 +59,11 @@ sleep_test.log
 mypy_report.txt
 docs/Научная обоснованность/_tex_src/
 backend/data/session_memory_*.jsonl
+
+# Корневые диагностические дампы сессий (S262-S295 классы)
+sleep_*.txt bsf*.txt rcb*.txt sdf*.txt spk_*.txt mvt_out.txt
+d1_*.txt d2_*.txt d2a_*.txt d3_*.txt d_pop*.txt d_freeze*.txt d_wall.txt
+eatlog_out*.txt arch_out*.txt mypy_*.txt ctx_diag.txt diff_out.txt TODO.md Math_GAME.md
+
+data/replay.db
+data/logs/
