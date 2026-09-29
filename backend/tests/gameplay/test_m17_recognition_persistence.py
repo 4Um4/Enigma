@@ -155,15 +155,40 @@ def test_t3_recognition_persistence_roundtrip(harness):
         print(f"[M17-T3-DB] state_kv keys={_keys}")
     except Exception as _e:
         print(f"[M17-T3-DB] key dump failed: {_e}")
-    for _loc in ("tavern", "tavern_silver_wolf", harness.location):
+    # Динамический обход ВСЕХ ключей сейва — отсев «читали не тот ключ».
+    import sqlite3 as _sq2
+    try:
+        _c2 = _sq2.connect(str(getattr(pers, "_db_path", "")))
+        _scene_keys = [r[0] for r in _c2.execute(
+            "SELECT key FROM state_kv WHERE key LIKE 'scene:%'").fetchall()]
+        _c2.close()
+    except Exception as _e2:
+        _scene_keys = []
+        print(f"[M17-T3-DB] scene key dump failed: {_e2}")
+    for _k in _scene_keys:
+        _loc = _k.split(":", 2)[2]
         _r = _recog(pers.load_scene_at(_CAMPAIGN, _loc) or {})
-        print(f"[M17-T3-DB] load_scene_at({_loc}) recognition={_r}")
+        print(f"[M17-T3-DB] {_k} recognition={_r}")
+    _tk = getattr(harness.game_loop.scene_manager, "_tick_scenes", {}) or {}
+    print(f"[M17-T3-DB] _tick_scenes keys={list(_tk.keys())} "
+          f"recog_per_key={ {k: list(_recog(v).keys()) for k, v in _tk.items()} }")
 
     rec_saved = _loaded_rec()
     if rec_live:
         # Дрен-лаг: один догоняющий тик, чтобы последний дрен закоммитился.
         harness.advance_ticks(1)
         rec_saved = _loaded_rec()
+    else:
+        # SKIP-гвардия (вердикт Мастера S299, §3.12-дисциплина): пустой
+        # вход ≠ PASS. NPC_SPOKE не состоялся — проверка персистенции
+        # recognition НЕ ВЫПОЛНЕНА. Это skip с явной причиной, не успех.
+        _spoke = harness.counters.events_by_type.get("npc_spoke", 0)
+        pytest.skip(
+            f"ПРОВЕРКА НЕ ВЫПОЛНЕНА: NPC_SPOKE не состоялся за {_IDLE_TICKS} "
+            f"тиков (npc_spoke={_spoke}) — recognition не сформирован, "
+            f"персистенция recognition не проверена"
+        )
+
 
     print(f"[M17-T3] live={rec_live}")
     print(f"[M17-T3] saved={rec_saved}")

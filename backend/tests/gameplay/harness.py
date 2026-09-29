@@ -39,7 +39,10 @@ def _restore_dir(root: Path, snap: Optional[Dict[Path, bytes]]) -> None:
         _f.write_bytes(_data)
 
 _CAMPAIGN = "Open_road"
-_LOCATION = "tavern_silver_wolf"  # по player-прецеденту; DriftLab "tavern" — расхождение, диагностируется
+# S299: расхождение диагностировано — канонический ключ мира "tavern"
+# (constants.py:160 DEFAULT_LOCATION_ID; подтверждено state_kv/_tick_scenes).
+# "tavern_silver_wolf" — устаревший display-имя, в persistence не существует.
+_LOCATION = "tavern"
 _PLAYER = "Tester"
 
 # Пассивный tap-набор (зеркало ObservabilityTap; getattr-фильтр защищает
