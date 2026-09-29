@@ -707,7 +707,10 @@ Files: backend/app/domain/control_source.py (NEW), backend/app/services/npc/deci
 Status: APPROVED-BY-MASTER (рекомендация (а) принята; реализация — отдельная сессия: флаг player_turn_in_flight в game_loop по образцу workbench_paused, инвариант INV-PLAYER-TURN-TIME-GATE)
 Files: backend/app/services/game_loop/game_loop.py (будущий гейт), docs/audits/ADR-O-407_IMPACT.md (создать при реализации)
 
-
+`ADR-408` [FIX] **GATE-TRIGGER-01 — Predicate-фильтр trigger_proposition (S296)** — EpistemicContextResolver выбирает WARN-триггер S197-таргетинга только из угрозных предикатов `_THREAT_PREDICATES = (STOLE, ATTACKED)` — единая константа кормит И `perceived_threats`, И `trigger_proposition` (расхождение списков = следующий баг). Трекер `_trigger_conf` развязан с `max_conf` (модификаторы `to_modifiers` НЕ фильтруются — их математика не тронута). Причина: EXITS_TO-гео-записи (subject = узел графа, легитимная механика «NPC помнит двери», tick_orchestrator:874/:1156) и HELPED (союзники) становились WARN-целью: `sanity_membrane.can_address` не различает NPC и узел графа (`_PLAYER_ACTORS = {"player"}`, всё прочее → NPC_DECISION), гварды S292 в decision_hub:1991 / claim_event_subscriber:179 были прозрачны, S292-мембрана в `epistemic_store.upsert` — мёртвый код (short-circuit `not can_address(x,x)` = False для любого непустого subject → reject-ветка недостижима; удалена в том же коммите 1e564812). Downstream `ThreatDesiredChangeProducer` имеет собственный predicate-гейт (ATTACKED) — фикс даёт defence-in-depth, не конфликт. Регрессия: `tests/micro/test_self_relevance_gate.py` +3 (EXITS_TO не цель; HELPED-выше-STOLE не крадёт триггер; STOLE/ATTACKED легаси). Реестр живых акторов для `can_address` — ОТЛОЖЕН как отдельное будущее ADR (Two-Domain Rule; сейчас защитой служит npc_positions-проверка в npc_dialogue_subscriber:175-180).
+  Taboo: ❌ расширение `_THREAT_PREDICATES` без мини-ADR; фильтрация `max_confidence` (питает to_modifiers); воскрешение upsert-мембраны без реестра акторов.
+  Status: ACTIVE
+  Files: `svc/npc/epistemic_context_resolver.py`, `svc/npc/epistemic_store.py`, `tests/micro/test_self_relevance_gate.py`, `docs/audits/ADR-408_IMPACT.md`
 
 
 

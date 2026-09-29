@@ -1982,6 +1982,37 @@ INTERACTION (решение Мастера №1); субстрат окна по
 tests/sandbox/micro/test_attention_roundtrip.py (8),
 tests/sandbox/micro/test_attention_reflex_fsm.py (нов, 11).
 
+### S296: CognitionContext v0 — P3d: внимание → наблюдаемое поведение (ТЗ Этапы 1-4, верховный критерий) | ✅ микро 63/63, живой контур G0/G1/G2/G4 GREEN, G3 изоляционно
+🎯 NPC впервые изменил деятельность ПО СОБСТВЕННОМУ перцептивному решению:
+E-пробой → cognition_modifiers → OBSERVE побеждает utility → pressure-гейт
+открывает смену → N18-фильтр гасит schedule → NPC стоит и смотрит.
+⚙️ P3a-M1..M3 (геометрия намерения: v̂/alignment/t*/d*), P3b-M4 (evidence
+E←λE+e_t, d*-гейтинг анти-барсука), P3c (снимки слоёв, S-v2 prediction
+error per-pair, квадранты), P3d (cognition_modifiers — 9-й аддитивный
+канал ADR-O-355; disposition-веса из ТРЁХМЕРНОЙ ПИРАМИДЫ ДРАЙВОВ —
+формулы fear/desire/control, ноль таблиц профессий, 1000+ NPC).
+⚙️ EXP-01 (Н-18, санкция): (1) pressure-признание — внимание к живому
+приближению = accumulated 1.0 (threshold-гейт открывает смену; демпфинг
+0.85 вернул канон при угасании — сценарий Д); (2) Гейт①-фильтр
+reason="schedule:*" при hub=observe + evidence fresh (need_driven/еда/
+сон/SURVIVAL/разговор защищены канонически). Flags COGNITION_V0+N18_EXP,
+default OFF = no-op.
+⚙️ R25: re-entry сохраняет окно (сценарий H); LOST-затухание каждый тик
+(сценарий Д); контроллер игрока через публичный client-интерфейс
+(player_position, T1.7) — ноль инъекций.
+Живые доказательства: E 0→0.65→1.0; winner=observe ×2 (0.523>0.470,
+0.445>0.442); N18-подавление schedule; мульти-субъектность (5 NPC
+независимо накапливали приближение — сценарий G); блуждание 0.25 vs
+подход 0.85 (различение без хаков); offline=боевой бит-в-бит.
+Ограничения (реестр): G3-бюджет one-per-tick (TZ-OBS-6, P4 salience);
+S-ось не Surprise; R24-коррекция observer-скорости; наблюдаемая
+презентация attention (P4).
+📁 dom/attention*.py, svc/npc/attention_*.py, decision_hub, simulation.py,
+pipeline, tick, orchestrator, 8 тест-файлов (~70 тестов).
+
+### S297: Приёмка ТЗ предшественника — GATE-TRIGGER-01 + P0-расследование | ✅ IPT 48/48, регрессия 12/12
+🎯 Полная верификация «недостоверного» ТЗ предшественника: все заявленные файлы/ADR-O-406/mембраны оказались РЕАЛЬНЫМИ (снимок документации был обрезан). Инцидент P0: NameError 'os' в незакоммиченном Н-18-коде (decision_hub:789) убивал Фазу 5 каждый тик (~357 тиков живой сессии, SHI=0%, NPC без реплик) — починен автором Н-18 до нашего патча (алиасный импорт), наша роль: диагноз по traceback + верификационная цепочка (py_compile/BOM/AST-scan/IPT/живой прогон). GATE-TRIGGER-01 (баг №2, вердикт Мастера): predicate-фильтр trigger_proposition — единая константа _THREAT_PREDICATES (STOLE/ATTACKED) кормит И threats, И trigger; развязка трекеров max_conf (питает to_modifiers, не тронут) / _trigger_conf; EXITS_TO-гео-записи и HELPED больше не могут стать WARN-целью S197-таргетинга (can_address не различает NPC и узел графа — гварды S292 были прозрачны). Удалена мёртвая S292-мембрана в epistemic_store.upsert (can_address(x,x)=True для любого непустого subject → reject-ветка недостижима; доказано статически раундами 2-4). SUPERBOX-014: pytest.mark.skip EPISTEMIC-005 deferred (вердикт Мастера Б: Second-Order ToM — отдельный слой, production first-order не меняется ради теста). Баг №6 (парные NPC_SPOKE) — ОТРИЦАТЕЛЬНЫЙ вердикт: полный аудит издателей = dialogue_materializer (canonical) + social_action_subscriber (мёртвая проекция: turn_pipeline не кладёт text в SOCIAL_ACTION payload) + social_input_projector (подписчик); дубль в текущем коде невозможен, Δ~12мс = законная пара NPC_SPOKE+COMMUNICATION_CLAIM. ADR-O-349: EventType.value вместо сырых строк в social_action_subscriber. Регрессия: 3 теста в test_self_relevance_gate.py (EXITS_TO не цель; HELPED-выше-STOLE не крадёт триггер — поймал мой же дефект индентации первой версии патча ДО коммита; STOLE/ATTACKED легаси). Observations: OPPOSES в causal_slice_threat:72 — несуществующий enum-член (мёртвое значение); 12 BOM-файлов (EF BB BF: player_epistemics, subject_ref, player_epistemic_state, economy/__init__, npc_dialogue_subscriber, game_loop, task_scheduler, turn_pipeline, knowledge_retrieval, player_cognition×3) — ломают AST-инструментарий, очистка отложена до коммита параллельных сессий; CROSS_LOC_INTERCEPT тройного перехвата у tavern:exit_east — наблюдение.
+📁 svc/npc/epistemic_context_resolver (_THREAT_PREDICATES, _trigger_conf), svc/npc/epistemic_store (удаление мёртвой мембраны), svc/events/social_action_subscriber (EventType), tests/micro/test_self_relevance_gate (+3), tests/SUPERBOX/scenarios/epistemic_second_order_attribution_test (skip)
 
 
 
@@ -1997,5 +2028,7 @@ tests/sandbox/micro/test_attention_reflex_fsm.py (нов, 11).
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
+
+
 
 
