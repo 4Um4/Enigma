@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 import math
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, MovementIntent
 from app.domain.movement_contract import (
@@ -34,6 +34,11 @@ TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
     os.environ.get("TRAVERSAL_OWNERSHIP_ENFORCEMENT", "").strip().lower()
     in ("1", "true", "yes")
 )
+
+# FIX-6c: мгновенный кросс-локационный перенос отключён (перенос делает S186
+# через boundary_dwell). Флаг-выключатель оставлен осознанно; именованная
+# константа вместо «if False:» — тот же semantics, но mypy не считает ветку мёртвой.
+CROSS_LOC_MATERIALIZE_ENABLED: bool = False
 
 from app.domain.traversal_schema import (
     MovementPlanResult,
@@ -442,8 +447,8 @@ class MovementEngine:
                                 # FIX-6g: гасим intent и здесь (симметрично dist-ветке),
                                 # иначе block_path каждый тик возрождается и гоняет
                                 # NPC маятником через boundary (borko tavern↔city_gate).
-                                npc_positions[intent.actor_id].pop("intent", None)
-                                npc_positions[intent.actor_id].pop("intent_target", None)
+                                (npc_positions or {})[intent.actor_id].pop("intent", None)
+                                (npc_positions or {})[intent.actor_id].pop("intent_target", None)
                                 if intent.actor_id not in _dwell_map:
                                     _dwell_map[intent.actor_id] = {
                                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
@@ -466,10 +471,10 @@ class MovementEngine:
                                         "via": boundary_node.node_id,
                                     }
                                     logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} near {boundary_node.node_id} (dist={_dist_to_boundary:.2f}); transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
-                                npc_positions[intent.actor_id].pop("intent", None)
-                                npc_positions[intent.actor_id].pop("intent_target", None)
+                                (npc_positions or {})[intent.actor_id].pop("intent", None)
+                                (npc_positions or {})[intent.actor_id].pop("intent_target", None)
                                 continue
-                            if False:  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
+                            if CROSS_LOC_MATERIALIZE_ENABLED:  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
 
@@ -806,7 +811,9 @@ class MovementEngine:
             npc_id=intent.actor_id,
             source_node=current_pos,
             target_node=target_node_obj.node_id,
-            path_waypoints=tuple(tuple(wp) for wp in waypoints),
+            path_waypoints=tuple(
+                cast(Tuple[float, float], tuple(wp)) for wp in waypoints
+            ),
             distance=distance,
             speed=speed,
             duration_ticks=duration_ticks,
@@ -895,7 +902,9 @@ class MovementEngine:
             npc_id=intent.actor_id,
             source_node=current_pos,
             target_node=target_node_obj.node_id,
-            path_waypoints=tuple(tuple(wp) for wp in waypoints),
+            path_waypoints=tuple(
+                cast(Tuple[float, float], tuple(wp)) for wp in waypoints
+            ),
             distance=distance,
             speed=speed,
             duration_ticks=duration_ticks,

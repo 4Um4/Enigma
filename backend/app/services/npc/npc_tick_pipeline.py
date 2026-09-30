@@ -603,6 +603,9 @@ class NpcTickPipeline:
             # проекция в Modifier Contract. None/ошибка = no-op (срез
             # аддитивен; мир без угроз не меняется).
             _causal_modifiers: Optional[Dict[str, float]] = None
+            # 2b-ii: адресат победившей причины каскада (threat>hunger>
+            # grievance>affection) — доезжает в _resolve_target ступенью 1.5
+            _causal_addressee: Optional[str] = None
             # R6 (ADR-O-395): rel-view общий для причинных продюсеров
             # (угроза R5 + голод R6); вынесен из try среза-1, чтобы
             # исключение в threat-блоке не осиротило hunger-блок.
@@ -651,6 +654,7 @@ class NpcTickPipeline:
                 )
                 _causal_modifiers = ThreatDesiredChangeProducer.to_modifiers(_dc) or None
                 if _dc is not None:
+                    _causal_addressee = _dc.addressee
                     logger.info(
                         f"[CAUSAL_SLICE] npc={npc_id} desired_change="
                         f"{_dc.state_type}:{_dc.target_of_change} methods={_dc.method_weights}"
@@ -721,6 +725,7 @@ class NpcTickPipeline:
                             HungerDesiredChangeProducer.to_modifiers(_dc_h) or None
                         )
                         if _dc_h is not None:
+                            _causal_addressee = _dc_h.addressee
                             logger.info(
                                 f"[CAUSAL_SLICE_HUNGER] npc={npc_id} "
                                 f"desired_change={_dc_h.state_type}:"
@@ -775,6 +780,7 @@ class NpcTickPipeline:
                         GrievanceDesiredChangeProducer.to_modifiers(_dc_g) or None
                     )
                     if _dc_g is not None:
+                        _causal_addressee = _dc_g.addressee
                         logger.info(
                             f"[CAUSAL_SLICE_GRIEVANCE] npc={npc_id} "
                             f"desired_change={_dc_g.state_type}:"
@@ -829,6 +835,7 @@ class NpcTickPipeline:
                         AffectionDesiredChangeProducer.to_modifiers(_dc_a) or None
                     )
                     if _dc_a is not None:
+                        _causal_addressee = _dc_a.addressee
                         logger.info(
                             f"[CAUSAL_SLICE_AFFECTION] npc={npc_id} "
                             f"desired_change={_dc_a.state_type}:"
@@ -985,6 +992,7 @@ class NpcTickPipeline:
                 campaign_id=state.campaign_id, # S135: SSOT
                 epistemic_modifiers=_epistemic_modifiers, # S189: ADR-O-354/355
                 causal_modifiers=_causal_modifiers, # R5: ADR среза CS2
+                causal_addressee=_causal_addressee, # 2b-ii: причина→адресат→действие
                 cognition_modifiers=_cognition_mods, # P3d: внимание→utility (санкция)
                 epistemic_context=_epistemic_ctx, # S197: Causal Provenance
                 opportunity_ctx=_opp_ctx,  # ADR-O-366: DEBT-OPP-PRODUCER

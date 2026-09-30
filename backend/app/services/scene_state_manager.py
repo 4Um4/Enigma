@@ -1104,7 +1104,7 @@ class SceneStateManager:
         self,
         campaign_id: str,
         scene_state: dict,
-        extraction_result,
+        extraction_result: Any,
     ) -> None:
         """
         R2.2.8: применяет ExtractionResult к SceneState.

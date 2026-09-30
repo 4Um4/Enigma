@@ -148,8 +148,8 @@ class TaskScheduler:
                 return _n.get("intent") == "flee"
         return False
 
-    def set_epistemic_wiring(self, discovery_bridge=None, npc_states_provider=None,
-                             relationship_provider=None, subject_resolver=None) -> None:
+    def set_epistemic_wiring(self, discovery_bridge: Any = None, npc_states_provider: Any = None,
+                             relationship_provider: Any = None, subject_resolver: Any = None) -> None:
         """P6/E1 (S255): проброс игрок-контура P3→P4→P5→P6 в DialogueExecutor
         (late-binding; прецедент set_spatial_query_service)."""
         _dlg = self._executors.get(TaskKind.DIALOGUE)
@@ -249,8 +249,8 @@ class TaskScheduler:
             if _rec.speech_reset is not None and hasattr(self, '_speech_scheduler'):
                 self._speech_scheduler.reset_context(_rec.speech_reset)
 
-    def _push_task_artifact(self, submit_tick: int, task_id: str, events: list,
-                            dialogue_entry, talks: list, speech_reset) -> None:
+    def _push_task_artifact(self, submit_tick: int, task_id: str, events: list[Any],
+                            dialogue_entry: Any, talks: list[Any], speech_reset: Any) -> None:
         """ADR-O-399: единственный push воркера в outbox (данные, не эффекты)."""
         with self._task_outbox_lock:
             self._task_outbox.append(_TaskArtifactRecord(

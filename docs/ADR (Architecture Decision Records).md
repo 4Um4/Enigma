@@ -712,7 +712,47 @@ Files: backend/app/services/game_loop/game_loop.py (будущий гейт), do
   Status: ACTIVE
   Files: `svc/npc/epistemic_context_resolver.py`, `svc/npc/epistemic_store.py`, `tests/micro/test_self_relevance_gate.py`, `docs/audits/ADR-408_IMPACT.md`
 
+ADR-O-409 [ONTO] **Name-Gate Closure — FACE/NAME/LINK**
+Суть: Две оси знания + одна ось связи: RecognitionMemory (FACE —
+«узнаю этого человека», существует, M17) / NameKnowledge (NAME — «знаю,
+как его зовут», per-campaign, персистенция player_avatar.json) /
+player_link доски (LINK — «считаю, что имя = это лицо»). Отображение
+имени: show_name = recognition_confirmed AND name_confirmed. Прогрессия
+UI: Незнакомец → «человек с фартуком» (generic из visible_markers) →
+«Имя (?)» → Имя. КАНОНИЧЕСКИЙ ИНВАРИАНТ: npc_id в backend ≠ знание
+игрока — наличие machine-identity не даёт игроку имени. M17-direct
+СУЖЕН: разговор подтверждает лицо, не имя (вердикт Мастера). Каналы
+NAME: SELF_INTRO (SPEAKER_MENTION в собственной реплике) · NPC_MENTION
+(услышанное имя → tentative ТОЛЬКО; identity-link с фото ЗАПРЕЩЁН на
+уровне механизма — «Торнин сказал, что видел Горана» не связывает имя
+Горана с лицом) · PLAYER_LINK (доска: фото-карточка + имя → confirmed;
+решение игрока, не системы). Journal writer-gate: speaker → display_name
+по NAME-оси; npc_id — скрытый провенанс записи (машина знает ≠ игрок
+знает; кормит фото-джойн доски). EncounterHistory/recognition_layer НЕ
+подключается (третий SSOT cognition запрещён); _generic_description —
+реюз как чистая presentation-функция. DM-промпт «NPC не произносит имя
+без представления» — эскалация semantic-сессии (LLM-слой).
+❌ Taboo: identity-link из услышанного имени; имя из npc_id напрямую;
+авто-inference имён; NameKnowledge вне avatar_service-владельца;
+подключение EncounterHistory как второго источника.
+Status: APPROVED (эскиз утверждён Мастера дословно; реализация —
+следующий заход: backend NameKnowledge + journal-gate + провенанс).
+Files: (план) backend/app/services/player_avatar_service.py (NameKnowledge
++ персистенция), backend/app/services/events/npc_dialogue_subscriber.py
+(writer-gate, npc_id-провенанс), frontend/ui_workbench/workbench_screen.py
+(потребление display_name; фото-джойн уже по К1/S301)
 
+`ADR-O-400` [ONTO] **Causal Slice 4: Affection — забота о состоянии другого (S303, R8)**
+Суть: Четвёртый причинный срез: тёплая связь (trust ≥ 40 ∧ attraction ≥ 40 по осям RelationshipStore) + видимый distress B (world-снапшот, 0-100) + capacity A → DesiredChange(who=A, reason=affection, state_type=resource, target_of_change=B, addressee=B) — ПЕРВОЕ структурное who ≠ target_of_change. CS17 affection = проекция тёплых осей, не сущность. CS18 чужой distress читается из world-снапшота (perception-мембрана — долг честности). CS19 capacity: без ресурса и денег → честный None. Способы существующие: talk/trade/call_for_help; нормировка суммы ≤ 1.0; каскад причин threat > hunger > grievance > affection. НАХОДКА: enrichment ронял base_affection канона — attraction-слот V2 никогда не наполнялся; патч вернул тёплый мир в runtime (бисекция: 0 вклада в фейлы). Production-доказано: orm→lusya←care (trade 0.512 — купить для любимой); каскадный феномен hunger > affection.
+Taboo: ❌ affection-сущности/флаги/Store/второй SSOT; ❌ чтение чужого distress мимо world-снапшота; ❌ забота без capacity; ❌ обход каскада причин; ❌ новые интенты; ❌ npc_id-хардкоды.
+Status: ACTIVE (production-доказан живым probe)
+Files: `backend/app/domain/desired_change.py` (nurture), `backend/app/services/npc/causal_slice_affection.py` (NEW), `backend/app/services/npc/npc_loader.py` (attraction-патч), `backend/app/services/npc/npc_tick_pipeline.py` (проводка R8), `backend/tests/gameplay/test_r8_causal_slice_affection.py` (NEW, 10), `docs/audits/ADR-O-400_IMPACT.md`
+
+`ADR-O-408` [ONTO] **Canonical Attention→Action Integration — Evidence & Boundaries (S304)**
+Суть: История доказательства и границ (НЕ новый runtime-контракт): (1) OBS-DICT-1→П-1 — установлен источник истины для Gate①: RAM-канон scene_state["npc_intents"] (single-writer — оркестратор в точке attention-моста, проекция npc_deltas текущего тика; семантика дельт доказана: полный выбор, не только изменения) читается ПОВЕРХ ADR-117-life-кэша; прежний источник не получал intent-обновлений (контрфакт-зонд: 0 подавлений при E=1.0 ∧ SSOT=observe). (2) P3e доказал attention→cognition→decision→physical consequence в автоматическом сценарии. (3) S304 integration I–V подтвердил тот же путь на живом NPC-рельсе: observe останавливает несовместимое движение (Δp=0 в observe-окнах); approach порождает встречное движение (reactive:approach). (4) Case C (decision→execution ignored) не воспроизведён за 12 прогонов трёх сценариев. (5) NEED-EXEC-1 — отдельный execution-gap need-driven рельса («застывшие эмиттеры»: интент эмиттится без исполнения); НЕ классифицирован как attention-defect. (6) Phase VI (APPROACH→CONTACT→COMBAT) остаётся отдельным continuation. Границы применимости: доказан контур внимания→решения→физического поведения — НЕ «attention fully integrated everywhere» (бой/контакт — недоказаны).
+Taboo: ❌ чтение Гейт① life-кэша как источника intent (INV-N18-SOURCE); ❌ объявление need_driven-продолжения при observe багом внимания (Case A/B — потребности/исполнение, не perception); ❌ патч Гейт①-предиката ради сценариев; ❌ интерпретация этой записи как полного внедрения во все контуры.
+Status: ACTIVE (S304 CLOSED)
+Files: backend/app/services/tick_orchestrator.py (writer npc_intents), backend/app/services/phases/simulation.py (reader Gate①), backend/tests/IPT.py (INV-N18-SOURCE), backend/tests/sandbox/micro/test_gate1_source.py, backend/tests/sandbox/SUPERBOX/scenarios/cognition_p3e_test.py, backend/tests/sandbox/SUPERBOX/scenarios/cognition_attention_integration_test.py, scripts/ghost_reaper.py
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 

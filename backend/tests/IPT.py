@@ -2127,8 +2127,8 @@ def inv_n18_source(world: TestWorld) -> InvariantResult:
     (2) писатель проецирует только intent-дельты текущего тика.
     ast-греп по обоим файлам — без запуска мира (симуляционный бюджет не тратим).
     """
-    import re as _re
     import pathlib as _pl
+    import re as _re
 
     _sim = _pl.Path(__file__).parent.parent / "app" / "services" / "phases" / "simulation.py"
     _orch = _pl.Path(__file__).parent.parent / "app" / "services" / "tick_orchestrator.py"

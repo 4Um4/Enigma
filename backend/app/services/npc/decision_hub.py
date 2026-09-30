@@ -16,7 +16,7 @@ R2.2 — DecisionHub: чистая функция принятия решени�
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -442,6 +442,9 @@ class DecisionHub:
         campaign_id: str = "",  # S135: Ключ кампании для SSOT
         epistemic_context: Optional[Any] = None,  # S197: Для извлечения trigger_proposition
         causal_modifiers: Optional[Dict[str, float]] = None,  # R5: DesiredChange→Modifier Contract
+        # 2b-ii [санкция Мастера, ревью SOCIAL]: причинный адресат —
+        # цель, которую знает причина (DesiredChange.addressee).
+        causal_addressee: Optional[str] = None,
         cognition_modifiers: Optional[Dict[str, float]] = None,  # P3d: внимание→utility (санкция, P3d-записка v3)
     ) -> AgentAction:
         """
@@ -453,6 +456,9 @@ class DecisionHub:
         # S135: Сохраняем SSOT для доступа из вложенных методов (_get_rel_value, _resolve_target)
         self._rel_store = relationship_store
         self._campaign_id = campaign_id
+        # 2b-ii [санкция Мастера, ревью SOCIAL]: причинный адресат —
+        # доставкой по паттерну _rel_store, без смены сигнатуры резолвера
+        self._causal_addressee = causal_addressee
         # ── Vital State Guard: мёртвые и без сознания не принимают решения ──
         # ЕДИНСТВЕННАЯ точка блокировки DecisionHub.
         # evaluate_vital_state — единственный владелец решения о жизни/смерти.
@@ -2039,6 +2045,17 @@ class DecisionHub:
         # 1. Приоритет: Явная цель (игрок атаковал/приказал)
         if event.target_id and event.event_type != EventType.WORLD_TICK:
             return event.target_id
+
+        # 1.5 2b-ii [санкция Мастера, ревью SOCIAL]: ПРИЧИННЫЙ АДРЕСАТ —
+        # цель, которую знает причина (DesiredChange.addressee от
+        # продюсеров hunger/grievance/affection). Порядок железный:
+        # явная цель > причинный адресат > резолвер близости > фоллбэк.
+        # Лечит intent-without-target системно: причинный интент несёт
+        # адресата (находка R7, Stage-1-валидатор больше не встречает
+        # пустую цель от причинного слоя).
+        _causal_addr = getattr(self, "_causal_addressee", None)
+        if _causal_addr and _causal_addr != state.npc_id:
+            return cast(str, _causal_addr)
 
         # 2. S129: Bridge 7 — Если NPC отвечает на реплику (TALK), адресат уже известен причинно.
         if (

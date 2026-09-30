@@ -6,6 +6,7 @@ DEGOD ITER3: презентационные проекции scene_state (пер
 """
 
 import logging
+from typing import Any
 
 from app.services.scene_state.npc_display_name import _npc_id_to_display
 from app.services.spatial.spatial_runtime import euclidean_distance
@@ -53,7 +54,7 @@ def build_npc_context_block(
     scene_state: dict,
     npc_id: str,
     npc_name: str,
-    spatial_service=None,
+    spatial_service: Any = None,
 ) -> str:
     """
     Строит пространственный блок для промпта конкретного NPC.

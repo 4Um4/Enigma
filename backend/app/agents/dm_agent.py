@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 import threading
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from app.core.config import settings
 from app.models.schemas import PlayerAction
@@ -737,7 +737,7 @@ class DmAgent:
         return "Ты — Мастер Подземелий D&D 5e. Отвечай ТОЛЬКО по-русски. НЕ ПИШИ по-китайски (中文). 2-3 предложения. Не говори за игрока."
 
     @staticmethod
-    def _as_dict(ctx) -> dict:
+    def _as_dict(ctx: Any) -> dict:
         """PipelineContext → dict. Совместимость с legacy .get()/[] в _build_contract."""
         if ctx is None:
             return {}
@@ -914,15 +914,15 @@ class DmAgent:
 
     async def stream_narrate(
         self,
-        location,
-        actions,
-        rules_result,
-        npc_result,
-        world_result,
-        world_canon_exists,
-        context=None,
-        is_session_start=False,
-    ):
+        location: Any,
+        actions: Any,
+        rules_result: Any,
+        npc_result: Any,
+        world_result: Any,
+        world_canon_exists: Any,
+        context: Any = None,
+        is_session_start: Any = False,
+    ) -> AsyncIterator[str]:
         """
         Async streaming генерация для SSE роута.
         Загружает модель через ModelPool.get_model_async(), затем стримит токены.
@@ -969,7 +969,7 @@ class DmAgent:
         provider = await self._get_provider_async("narrative")
 
         if provider is None or not hasattr(provider, "stream_tokens"):
-            result = await self.router.request(
+            result: Any = await self.router.request(
                 capability="narrative",
                 prompt=prompt,
                 system_prompt=system_prompt,
@@ -1006,15 +1006,15 @@ class DmAgent:
                     m = self._PREFIX_RE.match(self._buf)
                     if not m and len(self._buf) > 60:
                         self._streaming = True
-                        out = self._buf
+                        head = self._buf
                         self._buf = ""
-                        return out
+                        return head
                     if m:
                         self._buf = self._buf[m.end():]
                         self._streaming = True
                     else:
                         return ""
-                out = []
+                out: list[str] = []
                 i = 0
                 while i < len(self._buf):
                     c = self._buf[i]

@@ -21,7 +21,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, Optional, cast
+from typing import Callable, Generator, Optional, cast
 
 from app.core.config import settings
 from app.services.llm.provider import (
@@ -348,7 +348,7 @@ class LlamaCppProvider(StreamingLlmProvider):
         prompt: str,
         params: GenerationParams | None = None,
         system_prompt: str | None = None,
-        callback=None,
+        callback: Callable[[str], None] | None = None,
     ) -> str:
         if not self._use_server:
             result = self.complete(prompt, params, system_prompt)

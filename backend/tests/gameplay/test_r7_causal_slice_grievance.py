@@ -1,9 +1,15 @@
 # path: /project/backend/tests/gameplay/test_r7_causal_slice_grievance.py
-# Назначение: R7 CAUSAL SLICE 3 (grievance, ADR-O-396) — RED/GREEN.
-#   Контрфакты Тай: один вред → разные натуры = разные способы;
-#   холодное/горячее разделение (CS15); жертва может молчать (CS16).
-# Зависимости: app.domain.desired_change, app.services.npc.causal_slice_grievance (RED: отсутствует)
-# Основные сущности: GrievanceDesiredChangeProducer
+# Назначение: R7 CAUSAL SLICE 3 (ADR-O-397, CS14-CS16): накопленный
+#     вред (trust ≤ -12 осей SSOT) в холодной фазе (threat < 0.35,
+#     CS15) → DesiredChange(grievance, behavior, target=addressee=
+#     вредитель) → веса (intimidate/warn/spread_rumor/call_for_help).
+#     Контрфакты Тай: один вред × разные натуры = разные способы;
+#     жертва может молчать (CS16 viability); cf-группа — меняется
+#     НАБОР методов от социальных условий (союзники), не только веса.
+# Зависимости: app.domain.desired_change, app.services.npc.causal_slice_grievance
+# Основные сущности: T1-T3 (пины), W1-W5 (контрфакт), cf×2 (набор
+#     методов), test_aa_noop_projection
+# Запуск: cd backend; python -m pytest tests/gameplay/test_r7_causal_slice_grievance.py -v -s
 
 from unittest.mock import MagicMock
 
@@ -110,6 +116,27 @@ def test_w5_harm_depth_matters():
         or max(deep.method_weights.values()) > max(weak.method_weights.values())
     )
 
+
+# ═══ Контрфакты Тай §2: меняется НАБОР методов, не только веса ═══
+
+def test_cf_social_conditions_change_method_set():
+    """Одна grievance + разные социальные условия = разные ДОСТУПНЫЕ методы."""
+    solo = _resolve(state=_state(drives={"fear": 0.5, "control": 0.3,
+                                         "significance": 0.8}), allies=0)
+    allied = _resolve(state=_state(drives={"fear": 0.5, "control": 0.3,
+                                           "significance": 0.8}), allies=2)
+    assert solo.method_weights.get("call_for_help", 0.0) < 0.05
+    assert allied.method_weights["call_for_help"] > 0.1
+    crushed = _resolve(
+        state=_state(drives={"fear": 0.9, "control": 0.05, "significance": 0.1}),
+        rel={HARMER: {"trust": -20.0, "fear": 60.0}},
+        allies=0,
+    )
+    assert crushed is None
+
+def test_cf_harm_presence_is_binary_gate():
+    """Набор пуст без вреда — гейт до любых весов."""
+    assert _resolve(rel={HARMER: {"trust": 10.0, "fear": 0.0}}) is None
 
 # ═══ A/A ═══
 

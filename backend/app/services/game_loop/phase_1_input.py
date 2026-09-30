@@ -189,6 +189,7 @@ def resolve_player_intent(
         # «нет информации → None» едина с проекцией B-блока (§ENIGMA-003).
         target_zone=(semantic_field.target_zone.value if semantic_field.target_zone != TargetZone.UNDEFINED else None),
         zone_raw=semantic_field.zone_raw,
+        semantic_acts=[dict(a) for a in (semantic_field.semantic_acts or [])],  # копии — не живые ссылки
         proposition_subject=(semantic_field.proposition.subject_id if semantic_field.proposition else None),
         proposition_predicate=(semantic_field.proposition.predicate.value if semantic_field.proposition else None),
         proposition_object_id=(semantic_field.proposition.object_id if semantic_field.proposition else None),
@@ -266,6 +267,8 @@ def build_intent_projection(
         projection["condition"] = params.condition
     if params.addressee is not None:
         projection["addressee"] = params.addressee
+    if params.semantic_acts:
+        projection["semantic_acts"] = [dict(a) for a in params.semantic_acts]
     if params.tool_reference is not None:
         projection["tool_reference"] = params.tool_reference
     if params.target_zone is not None:

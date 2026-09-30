@@ -350,6 +350,7 @@ class WorkbenchScreen:
         self._board_drag_off = (0, 0)
         self._board_link_kind = "PLAYER_SUPPORTS"
         self._board_hover_tips: Dict[str, Optional[tuple]] = {}  # B3: cid → (speaker, полный текст)
+        self._board_tip_since: Dict[str, int] = {}  # К3: cid → тик входа курсора (задержка tooltip 400мс)
         self._board_input = None            # C1: inline-TextInput гипотезы (ленивый)
         self._board_input_mode: Optional[tuple] = None  # None | ("create",) | ("edit", hyp_id)
         self._board_stub = EditorBoardStub()  # P: полигон редактора (in-memory)
@@ -456,7 +457,7 @@ class WorkbenchScreen:
                     if _d.get("_version") >= 2:
                         self._style_global = bool(_d.get("global", False))
                         self._style_window_global = {
-                            k: bool(v) for k, v in _d.get("window_global", {}).items()} 
+                            k: bool(v) for k, v in _d.get("window_global", {}).items()}
                         self._my_style = _d.get("my_style", {}) or {}
                         self._style_texture = int(_d.get("texture", 0))
                         self._style_avatar_size = int(_d.get("avatar_size", _AVATAR))
@@ -1840,6 +1841,7 @@ class WorkbenchScreen:
             _lines: list = []   # [(текст, цвет)] — материал карточки
             _body = ""
             _hover_tip = None   # (заголовок, полный текст) для tooltip
+            _av_spk = ""        # К1: спикер для слота фото (джойн _journal_portrait)
             if _c.get("ref_type") == "journal":
                 _entry = _jmat.get(_c.get("ref_id", ""))
                 _alive = _entry is not None
@@ -1847,17 +1849,25 @@ class WorkbenchScreen:
                     # Материал = speaker + текст реплики (джойн M7).
                     # spans[]/event_id остаются в ref-происхождении —
                     # задел на работу с сущностями, UI не интерпретирует.
+                    # К2: эпистемический маркер канала (канон M12,
+                    # _draw_journal): ● = сказано тебе, ◌ = подслушано.
+                    _ch = _entry.get("channel", "")
+                    _mk = "● " if _ch == "direct" else ("◌ " if _ch == "overheard" else "")
                     _lines.append(
-                        (_entry.get("speaker", "???"),
+                        (_mk + _entry.get("speaker", "???"),
                          self.theme.token("accent")))
                     _body = _entry.get("text", "")
-                    _hover_tip = (_entry.get("speaker", "???"),
+                    _hover_tip = (_mk + _entry.get("speaker", "???"),
                                   _entry.get("text", ""))
+                    _av_spk = _entry.get("speaker", "???")
                 else:
                     # Мёртвая journal-карточка: FIFO cap-100 вытеснил
                     # запись из журнала — валидное состояние (ТЗ Phase 4
                     # §2). Указатель не врёт и не выдумывает материал:
                     # честная формула + provenance-хвост для игрока.
+                    # К1: мёртвая = фото/инициал серым — «помню ЧЕЛОВЕКА,
+                    # забыл слова» (детективная семантика, вердикт М)
+                    _av_spk = _c.get("ref_id", "")[:12]
                     _lines.append(("материал вытеснен из журнала",
                                    self.theme.token("text_muted")))
                     _lines.append((f"ref: {_c.get('ref_id', '')[:24]}",
@@ -1886,8 +1896,42 @@ class WorkbenchScreen:
             # усечение помечаем «…» — игрок видит, что текст длиннее
             _lh = self._font_text.get_linesize() + 1
             _max_lines = (self._BOARD_CARD_H - 10) // _lh
-            _wrapped = (self._wrap(_body, self._BOARD_CARD_W - 12)
-                        if _body else [])
+            # К1: слот фото слева (та же механика, что у журнала —
+            # _journal_portrait с кэшем; размер — живой ползунок
+            # журнала, вердикт М «фото украдем из журнала целиком»).
+            # Нет фото → инициал-круг (хэш-цвет спикера, канон :2725).
+            # Wrap сжимается на ширину слота. Рect НЕ расширяем:
+            # кламп/каскад живут на _BOARD_CARD_W — фото в существующих
+            # габаритах, аватар ≤ 40px (floor от ползунка).
+            _av = min(40, self._avatar_size())
+            _txt_x = _x + 6
+            if _av_spk:
+                _ph = self._journal_portrait(_av_spk)
+                _ay = _y + 5
+                if _ph is not None:
+                    _ph_s = pygame.transform.smoothscale(_ph, (_av, _av))
+                    screen.blit(_ph_s, (_x + 6, _ay))
+                    pygame.draw.circle(
+                        screen, self.theme.token("border_accent"),
+                        (_x + 6 + _av // 2, _ay + _av // 2), _av // 2, 2)
+                else:
+                    _h = (sum(ord(c) for c in _av_spk) % 360) / 360.0
+                    import colorsys as _cs
+                    _r, _g, _b = _cs.hsv_to_rgb(_h, 0.45, 0.72)
+                    pygame.draw.circle(
+                        screen,
+                        (int(_r * 255), int(_g * 255), int(_b * 255)),
+                        (_x + 6 + _av // 2, _ay + _av // 2), _av // 2)
+                    _if = self._font_provider.get("text", "", _av - 14, False, False)
+                    _is = _if.render(_av_spk[:1].upper(), True,
+                                     self.theme.token("text_primary"))
+                    screen.blit(_is, (
+                        _x + 6 + _av // 2 - _is.get_width() // 2,
+                        _ay + _av // 2 - _is.get_height() // 2))
+                _txt_x = _x + 6 + _av + 8
+            _wrapped = (self._wrap(
+                _body, self._BOARD_CARD_W - 12 - (_txt_x - _x - 6))
+                if _body else [])
             _budget = _max_lines - len(_lines)
             if _budget > 0:
                 # №6: прокрутка вместо обрезки — wheel листает текст,
@@ -1909,7 +1953,7 @@ class WorkbenchScreen:
             _ty = _y + 5
             for _lt, _lc in _lines:
                 screen.blit(self._font_text.render(
-                    _lt, True, _lc), (_x + 6, _ty))
+                    _lt, True, _lc), (_txt_x, _ty))
                 _ty += _lh
         # D: рёбра — двумя проходами нельзя терять z-порядок дёшево; линии
         # после карточек читаются как связи ПОВЕРХ материала — осознанный
@@ -1968,12 +2012,23 @@ class WorkbenchScreen:
         # легальна: UI-слой, не симуляция (§15.2).
         if self._board_drag_id is None:
             _mp = pygame.mouse.get_pos()
+            # К3: задержка 400мс — курсор, пролетающий к цели, не
+            # вспыхивает tooltip'ами каждой карточки на пути. Смена
+            # карточки = перезапуск отсчёта; выход/нечего показывать =
+            # сброс. get_ticks в UI-рендере легален (§15.2).
+            _hit = None
             for _cid, _rect in self._board_card_rects.items():
-                if not _rect.collidepoint(_mp):
-                    continue
-                _tip = self._board_hover_tips.get(_cid)
-                if _tip is None:
+                if _rect.collidepoint(_mp):
+                    _hit = _cid
                     break
+            if _hit is None or self._board_hover_tips.get(_hit) is None:
+                self._board_tip_since.clear()
+            elif _hit not in self._board_tip_since:
+                self._board_tip_since = {_hit: pygame.time.get_ticks()}
+            elif pygame.time.get_ticks() - self._board_tip_since[_hit] < 400:
+                pass
+            else:
+                _tip = self._board_hover_tips[_hit]
                 _head, _full = _tip
                 _tl = self._wrap(_full, self._BOARD_TIP_W - 16)[:8]
                 _th = 6 + self._font_text.get_linesize() + 2 + len(_tl) * (self._font_text.get_linesize() + 1) + 6
@@ -1987,7 +2042,6 @@ class WorkbenchScreen:
                 for _l in _tl:
                     screen.blit(self._font_text.render(_l, True, self.theme.token("text_primary")), (_tx + 8, _tyy))
                     _tyy += self._font_text.get_linesize() + 1
-                break
 
     def _demo_topology(self) -> dict:
         """Editor-F12: демо-топология для стилизации инвентаря без игры."""

@@ -1,16 +1,15 @@
 # path: /project/backend/tests/gameplay/test_r6_wiring_hunger_pipeline.py
-# Назначение: R6 СРЕЗ 2b-i — production-проводка hunger-продюсера в
-#   npc_tick_pipeline (зеркально срезу-1 R5/S189). Два контура:
-#   (1) ВАКУУМ-ПИН: production-режим (пустые goods) → модификаторы
-#       отсутствуют на уровне ПРОВОДКИ, а не только продюсера.
-#   (2) СТОК-КЕЙС: инъекция профиля с food + голод → модификаторы
-#       доходят до DecisionHub.compute(causal_modifiers=...) —
-#       каузальный канал жив до границы решателя.
-#   ГРАНИЦА 2b-ii (addressee→_resolve_target) — территория SOCIAL-
-#   сессии S262+, сюда НЕ входит.
-# Зависимости: pytest, unittest.mock, app.services.npc.causal_slice_hunger,
-#   tests.gameplay.harness (если есть — иначе прямой вызов проводки)
-# Основные сущности: проводка HungerDesiredChangeProducer в pipeline
+# Назначение: R6 СРЕЗ 2b-i (ADR-O-395) — контракт production-проводки
+#     hunger-продюсера: (1) ВАКУУМ-ПИН: пустые goods → модификаторов
+#     нет на уровне проводки (инертность); (2) СТОК-КЕЙС: профиль с
+#     food + голод → модификаторы доходят до compute(causal_modifiers=);
+#     (3) P3: production-источник голода body_state["hunger"] 0-100
+#     (LEGACY до S2B.10) приоритетно над needs-слоем 0-1.
+#     2b-ii (addressee→_resolve_target) — координация SOCIAL.
+# Зависимости: app.services.npc.causal_slice_hunger, app.services.economy.profile_factory
+# Основные сущности: TestProducerWiringContract (W-VAC/W-LIVE),
+#     TestPipelineBlock (P1/P2/P3)
+# Запуск: cd backend; python -m pytest tests/gameplay/test_r6_wiring_hunger_pipeline.py -v -s
 
 from unittest.mock import MagicMock
 
