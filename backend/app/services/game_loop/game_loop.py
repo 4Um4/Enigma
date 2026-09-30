@@ -97,20 +97,20 @@ class GameLoop:
         self,
         *,
         data_dir: Path,
-        memory_manager,  # MemoryManager — единая точка записи (Закон 4.1.2)
+        memory_manager: Any,  # MemoryManager — единая точка записи (Закон 4.1.2)
         dm_orchestrator: DMOrchestrator,
         scene_manager: SceneStateManager,
         world_scheduler: WorldScheduler,
         character_service: CharacterService,
-        avatar_service,
-        dm_agent,
-        rules_agent,
-        load_npcs_func,
+        avatar_service: Any,
+        dm_agent: Any,
+        rules_agent: Any,
+        load_npcs_func: Any,
         # adventure_loader удалён (ADR-O-146)
         system_requirements: SystemRequirements,
         saves_dir: Optional[Path] = None,
-        store=None,
-    ):
+        store: Any = None,
+    ) -> None:
         self.data_dir = data_dir
         self._saves_dir = Path(saves_dir) if saves_dir else data_dir / "campaigns"
         self.memory_manager = memory_manager
@@ -1795,7 +1795,7 @@ class GameLoop:
         player: str,
         action_text: str,
         location: str,
-        campaign_state=None,
+        campaign_state: Any = None,
         player_position: tuple[float, float] | None = None,
     ) -> AsyncIterator[dict]:
         world_id = "manual"

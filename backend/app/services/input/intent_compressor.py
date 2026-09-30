@@ -10,7 +10,7 @@ TODO: В будущем IntentCompressor может быть расширен д
 
 import logging
 import re
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 from app.domain.epistemology import Predicate, Proposition, SocialIntent, SpeechAct
 from app.domain.intent_profile import (
@@ -208,6 +208,34 @@ _ZONE_SYNONYMS = {
     "EYE_LEFT": "HEAD", "EYE_RIGHT": "HEAD",
     "NOSE": "HEAD",
 }
+
+
+_VALID_ACT_TYPES = {
+    "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION",
+    "SELF_INTRODUCTION", "QUESTION", "ASSERT", "ORDER",
+    "THREAT", "COMPLIMENT", "FAREWELL",
+    # Вердикт Мастера: confirmation-seeking — канонический акт (не отдельная
+    # онтология; params.topic + флаг переносит семантику QUESTION-семейства)
+    "CONFIRMATION_SEEKING",
+}
+
+
+def _validate_acts(raw_acts: Any) -> List[Dict[str, Any]]:
+    """Multi-Act: Python-валидация актов LLM (белый список типов, params
+    строковые). Мусор по-элементно, валидные сохраняются."""
+    _out: List[Dict[str, Any]] = []
+    if not isinstance(raw_acts, list):
+        return _out
+    for _raw in raw_acts:
+        if not isinstance(_raw, dict):
+            continue
+        _t = str(_raw.get("type", "")).upper()
+        if _t not in _VALID_ACT_TYPES:
+            continue
+        _p_raw = _raw.get("params")
+        _p = {str(k): str(v) for k, v in _p_raw.items()} if isinstance(_p_raw, dict) else {}
+        _out.append({"type": _t, "params": _p})
+    return _out
 
 
 def normalize_zone(val: Any) -> Optional[TargetZone]:
@@ -416,22 +444,39 @@ class IntentCompressor:
     async def compress(
         self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[DialogueSession] = None
     ) -> IntentSemanticField:
+        """Каноническая схема comprehension (вердикт Мастера):
+        classify → preliminary field → LLM (если нужно) → enrich →
+        ACT RECOVERY (единая граница нормализации) → return.
+        Recovery стоит на ВЫХОДЕ comprehension: любой результат
+        (fast-only / slow-only / fast+LLM) проходит одну границу."""
         fast_result = self._fast_path_parse(raw_text, dialogue_session)
+
+        # Классификация пути (вердикт: три входа — одна граница)
+        _llm: Optional[Dict[str, Any]] = None
         if fast_result is None:
-            return await self._slow_path_parse(raw_text, scene_context, dialogue_session)
-        # Reconciler v0 (вердикт Мастера): fast-path = предварительное предложение,
-        # не вето. Неполный физический акт → LLM enrichment пустых полей.
-        if not self._fast_incomplete(fast_result, scene_context):
-            return fast_result
-        try:
-            _llm = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
-        except Exception as _e:
-            print(f"[RECONCILE] llm EXC {type(_e).__name__}: fast остаётся")
-            return fast_result
-        if _llm is None:
-            print("[RECONCILE] llm None: fast остаётся")
-            return fast_result
-        return self._enrich(fast_result, _llm, scene_context)
+            # SLOW-ONLY: fast не увидел ничего — LLM обязана разобрать
+            _field = await self._recover_acts(
+                await self._slow_path_parse(raw_text, scene_context, dialogue_session),
+                None, scene_context,
+            )
+        elif self._fast_incomplete(fast_result, scene_context):
+            # FAST-INCOMPLETE: fast нашёл якорь, но неполон — LLM дополняет
+            try:
+                _llm = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
+            except Exception as _e:
+                import traceback as _tb
+                print(f"[RECONCILE] llm EXC {type(_e).__name__}: {_e}")
+                _tb.print_exc()
+                _llm = None
+            if _llm is None:
+                print("[RECONCILE] llm None: fast остаётся")
+                return await self._recover_acts(fast_result, None, scene_context)
+            _field = self._enrich(fast_result, _llm, scene_context)
+        else:
+            _field = fast_result
+
+        # ЕДИНАЯ ГРАНИЦА: recovery/canonicalization для ВСЕХ путей
+        return await self._recover_acts(_field, _llm, scene_context)
 
     def _scene_npc_ids(self, scene_context: Any) -> set:
         """Канонические id сцены — проверка резолва сущностей."""
@@ -443,6 +488,20 @@ class IntentCompressor:
         """Критерии полноты v0 (вердикт): физическое действие несёт зону,
         proposition (если есть) опирается на резолвнутую сущность."""
         if fast.action not in (ActionType.ATTACK, ActionType.THREATEN, ActionType.STEAL):
+            # Multi-Act (вердикт): диалог с несколькими предложениями и пустыми
+            # актами неполон — LLM раскладывает на акты (fast не арбитр).
+            _parts = len(re.split(r"[.!?]+", fast.raw_text))
+            print(
+                f"[Z-TEST] action={fast.action!r} is_dialogue={fast.action is ActionType.DIALOGUE} "
+                f"acts_empty={not fast.semantic_acts} parts={_parts} "
+                f"decision={fast.action is ActionType.DIALOGUE and not fast.semantic_acts and _parts > 2}"
+            )
+            if (
+                fast.action is ActionType.DIALOGUE
+                and not fast.semantic_acts
+                and _parts > 2
+            ):
+                return True
             return False
         if fast.target_zone == TargetZone.UNDEFINED and not fast.zone_raw:
             return True
@@ -496,12 +555,109 @@ class IntentCompressor:
                 else:
                     _u["proposition"] = None
                 print(f"[RECONCILE] proposition raw-entity {_obj!r} снята/заменена (LLM)")
+        # 4b. Multi-Act: пустые акты ← LLM (заполнение пустых полей;
+        # перезапись непустых запрещена — вердикт enrichment-only)
+        if not fast.semantic_acts:
+            _acts = _validate_acts(llm.get("semantic_acts"))
+            if not _acts:
+                # ACT RECOVERY (вердикт Мастера): normalization-слой, НЕ второй
+                # пониматель. Закрытый белый список преобразований из полей,
+                # которые LLM УЖЕ структурировала. Исходники сохраняются для
+                # диагностики (source_fields). Если придётся расширять этот
+                # список под новые классы фраз — сигнал чинить контракт LLM,
+                # не расширять recovery (STOP вердикта).
+                _sa = str(llm.get("speech_act") or "").lower()
+                _ro = str(llm.get("requested_outcome") or "").lower()
+                if _sa == "question":
+                    _t = "CONFIRMATION_SEEKING" if "confirmation" in _ro else "QUESTION"
+                    _acts = [{"type": _t, "params": {"topic": _ro or "unspecified"}}]
+                elif _sa == "greeting":
+                    _acts = [{"type": "GREETING", "params": {}}]
+                elif _sa == "assert" and not llm.get("proposition"):
+                    _acts = [{"type": "ASSERT", "params": {"claim": _ro or fast.raw_text[:120]}}]
+                if _acts:
+                    _acts[0]["source_fields"] = {"speech_act": _sa, "requested_outcome": _ro}
+            if _acts:
+                _u["semantic_acts"] = _acts
+
         # 4. Конфликты — только телеметрия, без перезаписи (v0)
         if fast.target and llm.get("target") and str(llm["target"]).lower() != str(fast.target).lower():
             print(f"[RECONCILE] CONFLICT target: fast={fast.target!r} llm={llm['target']!r} (v0: fast)")
         if _u:
             print(f"[RECONCILE] enriched={sorted(_u)} (пустые поля fast заполнены)")
         return fast.model_copy(update=_u)
+
+    async def _recover_acts(
+        self, field: IntentSemanticField, llm: Optional[Dict[str, Any]], scene_context: Any
+    ) -> IntentSemanticField:
+        """ACT RECOVERY boundary (вердикт Мастера): уже структурированная
+        информация не имеет права исчезнуть на переходе к canonical актам.
+        Работает над ТЕМ полем, которое реально получилось (fast/enriched/slow).
+        Recovery ≠ enrichment: не добавляет нового понимания, только
+        канонизирует существующее. Закрытый белый список преобразований;
+        расширение списка = сигнал чинить контракт LLM (STOP вердикта)."""
+        _u: Dict[str, Any] = {}
+
+        # R1-инвариант: fast-якорь одного класса не закрывает multi-act ввод.
+        # Многопредложенная фраза без актов = сомнение в fast-полноте →
+        # отправить на LLM comprehension (не решать за словарь).
+        # Считаем только НЕПУСТЫЕ сегменты: split даёт хвостовую '' на
+        # завершающем знаке ("Ты слуга?" → 2 элемента, 1 предложение)
+        _sentences = len([s for s in re.split(r"[.!?]+", field.raw_text or "") if s.strip()]) if field.raw_text else 0
+        if (
+            not field.semantic_acts
+            and _sentences > 1
+            and llm is None
+            and field.raw_text != getattr(self, "_last_recovery_raw", None)
+        ):
+            # Одноразовый повтор: recovery запросил LLM-разбор для фразы,
+            # которую fast закрыл единственным якорем (случай C вердикта).
+            self._last_recovery_raw = field.raw_text
+            print(f"[RECOVERY] multi-sentence fast={field.action.value} → LLM comprehension")
+            try:
+                # Правильный await: recovery вызывается из async compress —
+                # asyncio.run здесь = RE-D2 класс (loop already running)
+                _llm2 = await self._llm_client.compress_intent(
+                    field.raw_text, scene_context or {}, None
+                )
+                if _llm2:
+                    _acts = _validate_acts(_llm2.get("semantic_acts"))
+                    if _acts:
+                        _u["semantic_acts"] = _acts
+                        print(f"[RECOVERY] recovered {len(_acts)} acts from LLM")
+            except Exception as _e:
+                print(f"[RECOVERY] llm EXC {type(_e).__name__}: {_e}")
+
+        # Recovery из legacy-полей LLM (когда LLM-ответ есть, а актов нет)
+        if not _u.get("semantic_acts") and not field.semantic_acts and llm:
+            _sa = str(llm.get("speech_act") or "").lower()
+            _ro = str(llm.get("requested_outcome") or "").lower()
+            _acts: List[Dict[str, Any]] = []
+            if _sa == "question":
+                _t = "CONFIRMATION_SEEKING" if "confirmation" in _ro else "QUESTION"
+                _acts = [{"type": _t, "params": {"topic": _ro or "unspecified"}}]
+            elif _sa == "greeting":
+                _acts = [{"type": "GREETING", "params": {}}]
+            elif _sa == "assert" and not llm.get("proposition"):
+                _acts = [{"type": "ASSERT", "params": {"claim": _ro or field.raw_text[:120]}}]
+            if _acts:
+                _acts[0]["source_fields"] = {"speech_act": _sa, "requested_outcome": _ro}
+                _u["semantic_acts"] = _acts
+
+        # Proposition → ASSERT-акт (slow-path часто структурирует сюда; не терять)
+        if not _u.get("semantic_acts") and not field.semantic_acts and field.proposition is not None:
+            _u["semantic_acts"] = [{
+                "type": "ASSERT",
+                "params": {
+                    "claim": str(field.proposition.object_id or ""),
+                    "subject": str(field.proposition.subject_id or ""),
+                },
+            }]
+
+        if _u:
+            print(f"[RECOVERY] applied={sorted(_u)}")
+            return field.model_copy(update=_u)
+        return field
 
     def _lemmatize(self, text: str) -> set:
         """Разбивает текст на токены и приводит к начальной форме (лемме)."""

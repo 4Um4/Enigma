@@ -56,7 +56,6 @@ except ModuleNotFoundError as _e:
 
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop
-from app.services.npc.attention_config import ATTENTION_EVIDENCE_THRESHOLD as _ETH
 
 CAMPAIGN, LOCATION, WORLD = "Open_road", "tavern", "default"
 TARGET = "guard_borko"
@@ -182,7 +181,7 @@ async def main_async() -> int:
             sched_ticks.append(c["t"])
         print(f"T{c['t']:02d}[{c['phase']}] {c['cache']} | {c['ssot']} | "
               f"E={c['e']:.2f} att={c['att_phase']} | факт={f_hit} | контрфакт={cf_hit}"
-              + (f" | schedule:жив" if c["sched"] else ""))
+              + (" | schedule:жив" if c["sched"] else ""))
     print(f"\n[ИТОГ] подавлений на источнике прода: {fact_hits}; "
           f"контрфактически (SSOT): {cf_hits}; "
           f"тиков с живым schedule-интеном у borko: {len(sched_ticks)} {sched_ticks}")

@@ -77,7 +77,10 @@ class LlamaCppCompressorClient:
                 if json_match:
                     content = json_match.group(0)
 
-                return cast(Dict[str, Any], json.loads(content))
+                _parsed = cast(Dict[str, Any], json.loads(content))
+                # [DIAG-RAW] временный зонд Multi-Act: сырой ответ сервера
+                print(f"[DIAG-RAW] llm_response={content[:800]}")
+                return _parsed
         except json.JSONDecodeError as e:
             # S203 FIX: Логируем сырой ответ LLM, чтобы понять, почему парсинг падает.
             logger.error(f"[LLM_COMPRESSOR] JSONDecodeError: {e}. Raw content: {content if 'content' in locals() else 'N/A'}")
@@ -114,6 +117,7 @@ class LlamaCppCompressorClient:
 Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
 Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
+- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL". Пример: "Здравствуй! Как звать? Я Мю." -> acts: [{{"type": "GREETING"}}, {{"type": "ASK_NAME"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}]. Для одиночного действия — один акт или [].
 Допустимые social_intent и их жесткая связь с action и speech_act:
 - "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
 - "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).
@@ -157,8 +161,12 @@ class LlamaCppCompressorClient:
 Ввод: "что ты скрываешь?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "question"}}
 Ввод: "признавайся, что у тебя за секрет?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "order"}}
 Ввод: "привет, как дела?" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "greeting"}}
-Ввод: "ты молодец" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "compliment"}}
-Ввод: "ты хорошо работаешь" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "compliment"}}
+Ввод: "Привет. Я Марко, а ты кто?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Марко"}}}}, {{"type": "ASK_IDENTITY"}}], "speech_act": "question"}}
+Ввод: "Я ищу Горана. Ты его сегодня видел?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "видел ли Горана"}}}}], "speech_act": "question"}}
+Ввод: "ты молодец" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "COMPLIMENT"}}], "social_intent": "build_rapport", "speech_act": "compliment"}}
+Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я слуга этого дома десять лет", "subject": "player", "topic": "occupation"}}}}], "speech_act": "assert"}}
+Ввод: "Ты слуга этого дома?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "occupation", "target": "npc"}}}}], "speech_act": "question"}}
+Ввод: "Ты ведь слуга этого дома, да?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "CONFIRMATION_SEEKING", "params": {{"topic": "occupation", "target": "npc"}}}}], "speech_act": "question"}}
 Ввод: "ткни его ножом" -> {{"action": "ATTACK", "tool_reference": "нож", "physical_force": 0.9}}
 Ввод: "ударь его палкой" -> {{"action": "ATTACK", "tool_reference": "палка", "physical_force": 0.6}}
 

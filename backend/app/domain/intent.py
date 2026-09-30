@@ -7,7 +7,7 @@ path: /backend/app/domain/intent.py
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,8 @@ class IntentParametersDTO:
     tool_reference: Optional[str] = None  # чем (сырая строка; канонизация — будущий реестр предметов)
     target_zone: Optional[str] = None  # нормализованная зона (боевая логика)
     zone_raw: Optional[str] = None  # сырая зона LLM (латеральность; гранулярная модель — доктрина §1-3)
+    # Multi-Act: набор актов фразы (валидация Python — белые списки в компрессоре)
+    semantic_acts: List[Dict[str, Any]] = field(default_factory=list)
     proposition_subject: Optional[str] = None
     proposition_predicate: Optional[str] = None
     proposition_object_id: Optional[str] = None

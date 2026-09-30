@@ -750,7 +750,7 @@ class ModelRouter:
 
     # === Legacy compatibility ===
 
-    def switch(self, selection) -> None:
+    def switch(self, selection: Any) -> None:
         """Legacy: ручное переключение модели."""
         if hasattr(selection, "model_name"):
             self._current_model_key = selection.model_name

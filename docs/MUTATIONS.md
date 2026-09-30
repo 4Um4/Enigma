@@ -2047,7 +2047,7 @@ S293-легаси-дублей; единственный вызов :1035 без
 Эскалации semantic-сессии: [DIAG_JC2]-обрезка реплик (их зона), инвентарь
 v2 (backend equip), [DIAG_MERGE]-зонд (снять с их ведома).
 
-### S299.5/S300: UI Workbench — D6: кэш биндов + миграция K_*-хардкодов | ✅ py_compile, кратности сверены
+### S300: UI Workbench — D6: кэш биндов + миграция K_*-хардкодов | ✅ py_compile, кратности сверены
 🎯 Очередь §6 handoff S298, п.3: единый источник клавиш + гигиена event-loop.
 ⚙️ Мемоизация load_keybinds (модуль-владелец): 7 call-site'ов event-loop
 game_screen читали keybinds.json с диска на КАЖДЫЙ KEYDOWN. Кэш
@@ -2083,7 +2083,98 @@ v2 (backend equip), [DIAG_MERGE]-зонд.
 Долги/бэклог: ReplayPlayer v2 (кампания), 19 sandbox-хардкодов replay.db вне SSOT (одноразовые пробы), retention reports/replay_sessions/, мёртвый флаг settings.replay_record.
 📁 core/config (replay_store_path), svc/replay/replay_store (count_ticks), svc/game_loop/game_loop (writer SSOT), tests/sandbox/SUPERBOX/drift_laboratory (reader SSOT, teardown count, честная печать, NO_DATA, удаление фантомного хвоста, MD-ветвление Mode H), tests/gameplay/harness (_LOCATION), tests/gameplay/test_m17_recognition_persistence (нов).
 
+### S301: Доска-детектив К1: фото NPC + маркеры каналов + hover-задержка | ✅ py_compile, кратности сверены
+🎯 Контур 1 детективной доски (вердикты Мастера: фото — основа доски,
+размер из журнала; ●/◌; hover-задержка). Presentation-layer — не ждёт
+ADR-O-408 (NameKnowledge уточнит только текст имени, не механизм).
+⚙️ К1: слот фото на journal-карточках — джойн _journal_portrait
+(«украден из журнала целиком»: кэш, кроп-голова, ползунок размера),
+floor 40px в габаритах карточки; нет фото → инициал-круг хэш-цветом
+спикера; мёртвая карточка → серый инициал («помню человека, забыл
+слова» — детективная семантика, вердикт М); wrap текста сжимается на
+ширину слота; кламп/каскад не тронуты (константа _BOARD_CARD_W жива).
+⚙️ К2: маркеры канала ● (direct) / ◌ (overheard) перед спикером —
+M12-канон, консистентно журналу; tooltip-заголовок тоже с маркером.
+⚙️ К3: tooltip с задержкой 400мс — курсор к цели не вспыхивает
+плашками на пролетающих карточках; смена карточки = перезапуск
+отсчёта; выход = сброс; при drag не рисуется (унаследовано).
+Процесс-урок (третий случай): прогноз кратности считать ПОСТРОЧНО из
+финального СТАЛО, не по памяти правки (дважды ошибся в минус: строки
+инициала К1d и девятая строка К3-гейта); паттерны кратности — с
+word-boundary (\b_hit\b) — жадные подстроки ловят легаси-переменные.
+📁 frontend/ui_workbench/workbench_screen.py
+Заход согласован с ADR-O-408 (эскиз утверждён Мастером дословно):
+три оси FACE/NAME/LINK; канонический инвариант npc_id ≠ знание
+игрока; STOP на identity-link в NPC_MENTION (heard → только
+tentative-имя); M17-direct сужен до recognition лица; журнал-гейт +
+провенанс npc_id + персистенция NameKnowledge — backend-следующий
+заход; DM-промпт «имя без представления» — эскалация semantic-сессии.
+Отклонено Мастером за заход: клик-пузырь→журнал, мини-окно
+«Расследование», любые счётчики during-game (принцип).
 
+### S302: Доска-детектив К1: фото NPC + маркеры каналов + hover-задержка | ✅ py_compile, кратности сверены
+🎯 Контур 1 детективной доски (вердикты Мастера: фото — основа доски,
+размер из журнала; ●/◌; hover-задержка). Presentation-layer — не ждёт
+ADR-O-409 (NameKnowledge уточнит только текст имени, не механизм).
+⚙️ К1: слот фото на journal-карточках — джойн _journal_portrait
+(«украден из журнала целиком»: кэш, кроп-голова, ползунок размера),
+floor 40px в габаритах карточки; нет фото → инициал-круг хэш-цветом
+спикера; мёртвая карточка → серый инициал («помню человека, забыл
+слова» — детективная семантика, вердикт М); wrap текста сжимается на
+ширину слота; кламп/каскад не тронуты (константа _BOARD_CARD_W жива).
+⚙️ К2: маркеры канала ● (direct) / ◌ (overheard) перед спикером —
+M12-канон, консистентно журналу; tooltip-заголовок тоже с маркером.
+⚙️ К3: tooltip с задержкой 400мс — курсор к цели не вспыхивает
+плашками на пролетающих карточках; смена карточки = перезапуск
+отсчёта; выход = сброс; при drag не рисуется (унаследовано).
+Процесс-урок (третий случай): прогноз кратности считать ПОСТРОЧНО из
+финального СТАЛО, не по памяти правки (дважды ошибся в минус); паттерны
+кратности — с word-boundary (\b_hit\b): жадные подстроки ловят
+легаси-переменные чипов/журнала.
+📁 frontend/ui_workbench/workbench_screen.py
+ADR-O-409 (Name-Gate Closure, FACE/NAME/LINK) утверждён и внесён в
+атлас отдельной записью; backend-реализация NameKnowledge — следующий
+заход. Отклонено Мастером за заход: клик-пузырь→журнал, мини-окно
+«Расследование», любые счётчики during-game (принцип).
+
+### S303: R8 CAUSAL SLICE 4 — affection: тёплая связь → забота о состоянии ДРУГОГО (ADR-O-400) | ✅ RED ImportError · GREEN 10/10 · причинные сьюты 46/46 · IPT 49/0 · PRODUCTION-ПРОБ: orm→lusya←care · атрибуция бисекцией: 0 моих фейлов (12=12 дифф)
+🎯 Четвёртый причинный срез (программа R5→R8) и первое СТРУКТУРНОЕ who ≠ target_of_change: A меняет состояние B (B.food↑ через заботу). CS17: affection = проекция тёплых осей (trust ≥ 40 ∧ attraction ≥ 40, шкала SSOT 0-100), не сущность; флаги is_loving/CareStore запрещены. CS18: чужой distress из world-снапшота (all_npcs_raw body_state; perception-мембрана «A видит голод B» — эпистемический долг). CS19: capacity-гейт (нет еды И нет денег → None: желание без возможности не действие). Каскад причин в конвейере: threat > hunger > grievance > affection.
+⚙️ Продюсер AffectionDesiredChangeProducer + фабрика nurture (REASON_AFFECTION существовал) + способы существующие: talk(тепло×distress×ресурс-фактор) / trade(купить ДЛЯ B: деньги×тепло×distress) / call_for_help(тяжёлый distress>0.6). Production-числа: orm warmth=0.8 (trust 70 + attraction 90), дистресс 0.8, своей еды нет → trade=0.512 доминирует — КУПИТЬ для любимой. Каскадный феномен: голодная Люсья молчит о любимом Борко (hunger > affection — причинная иерархия потребностей вживую).
+⚙️ ГЛАВНАЯ НАХОДКА-ПАТЧ (мировые данные): _enrich_with_social_relations ронял base_affection канона (6 тёплых пар, lusya→borko 0.8) — тёплый мир был невидим runtime-решениям. Патч: base_affection [-1..1] → attraction [-100..100] — заявленный слот _LEGACY_SCALARS (V2-бэкенд не тронут, писатель один — loader). Первый случай программы: причинный слой не только построен, но и ПОЧИНИЛ данные мира. Оговорки: старые сейвы не мигрируются (existing-RAM-wins) — долг; attraction видна всем читателям V2 — бисекция (stash-дифф 12=12) доказала нулевой вклад в красноту.
+📁 domain/desired_change.py (nurture), services/npc/causal_slice_affection.py (NEW), npc_loader.py (attraction-патч), npc_tick_pipeline.py (проводка R8), tests/gameplay/test_r8_causal_slice_affection.py (NEW, 10)
+⚠️ Долги: perception-мембрана чужого distress (CS18) · миграция attraction старых сейвов · 4-уровневый каскад причин (масштабирование) · ЭСКАЛАЦИЯ: 11 чужих фейлов gameplay (m17×1, p6_e2×5, p7×5) воспроизводятся на 6bb8cbea независимо от R8 — владельцам eavesdrop/p7-вертикалей
+
+### S304: CLOSED — Canonical Attention→Action Integration GREEN (Контракт Барсука I–V)
+🎯 Директива Мастера: P3e GREEN ≠ завершение — доказать внимание в каноническом
+   жизненном конуре. Доказано: perception → directed-approach inference → cognition →
+   DecisionHub → reaction → physical consequence → interest loss → return to life
+   на живом NPC-рельсе. Observe останавливает несовместимое движение (Δp=0 в
+   observe-окнах); Approach порождает встречное движение (orm T33: E=0.95 →
+   winner=approach → reactive:approach — первая живая позитивная реакция
+   сближения). Case C (decision→execution ignored) не воспроизведён за 12
+   прогонов трёх сценариев. NEED-EXEC-1 — отдельный execution-gap, не attention.
+   Фаза VI (APPROACH→CONTACT→COMBAT) — NEXT CONTINUATION.
+⚙️ Попутно сессии: KILLER_SPIRIT (scripts/ghost_reaper.py + IPT-интеграция:
+   доктрина сигнатура/сиротство/пощада; TZ-GHOST-1 — ланчер без cleanup);
+   археология A1/A2 (защитная матрица; activity-рельс дормантен; UI-label = план);
+   OBS-DICT-1 открыт→валидирован (v3: 50 раздельных raw-списков; v4-контрфакт:
+   0 подавлений при E=1.0∧SSOT=observe) → П-1 применён по санкции: writer
+   scene_state["npc_intents"] (tick_orchestrator:2317+, single-writer) + reader
+   Гейт① (simulation.py:156+, канон поверх ADR-117-кэша); семантика дельт
+   доказана (полный выбор, не изменения); матрица 6/6 + INV-N18-SOURCE (IPT 49).
+   Сценарии: cognition_p3e_test.py (GREEN×2, STIM-DIFF=0) +
+   cognition_attention_integration_test.py (GREEN×2, STIM-DIFF=0; retry-пул,
+   фронтальная геометрия, HOLD-раскачка, Case A/B/C-классификация).
+📁 scripts/ghost_reaper.py (нов), tests/IPT.py (INV-N18-SOURCE+reaper),
+   tick_orchestrator.py + simulation.py (П-1, за N18_EXP),
+   tests/sandbox/micro/test_gate1_source.py (нов, 6/6),
+   SUPERBOX: cognition_p3e_test.py, cognition_attention_integration_test.py,
+   activity_gap_probe.py (зонд-серия v1–v4).
+Гейты: IPT 49/49 · микро 63 · P3e GREEN×2 · INT GREEN×2 · STIM-DIFF 0×2 · L4.
+Долги сессии: NEED-EXEC-1 (need-интенты без исполнения — «застывшие эмиттеры»,
+   borko×9 тиков, goran/orm в observe-окнах; следующий рабочий вопрос Мастера),
+   TZ-GHOST-1, NEED-SAT-1, LANG_LEAK/RE-D2, TZ-OBS-5, DIAG-зонды ×10,
+   [SHADOW_COMPILER] FAILED.
 
 
 
@@ -2098,6 +2189,5 @@ v2 (backend equip), [DIAG_MERGE]-зонд.
 
 
 *Новые сессии добавляются в конец Раздела 2 строго в порядке возрастания номера.*
-
 
 

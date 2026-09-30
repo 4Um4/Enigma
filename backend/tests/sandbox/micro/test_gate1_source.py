@@ -14,7 +14,6 @@ path: backend/tests/sandbox/micro/test_gate1_source.py
 Основные сущности: TestGate1SourceMatrix.
 """
 
-import os
 import unittest
 from types import SimpleNamespace
 

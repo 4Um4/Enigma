@@ -25,14 +25,14 @@ class CampaignLifecycle:
     def __init__(
         self,
         *,
-        scene_manager,
-        rel_store,
-        memory_manager,
-        tick_orch,
-        avatar_service,
-        mvp_controller,
-        get_life_engine,
-        load_npcs,
+        scene_manager: Any,
+        rel_store: Any,
+        memory_manager: Any,
+        tick_orch: Any,
+        avatar_service: Any,
+        mvp_controller: Any,
+        get_life_engine: Any,
+        load_npcs: Any,
         saves_dir: Path,
     ) -> None:
         self.scene_manager = scene_manager

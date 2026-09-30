@@ -68,7 +68,7 @@ class EventCompiler:
             return None
 
         if change.type != ChangeType.NPC_POSITION:
-            result = self._compile_non_spatial(snapshot, change)
+            result: Optional[ThickSceneChange] = self._compile_non_spatial(snapshot, change)
             logger.debug(
                 f"[SHADOW_COMPILER] passthrough: type={change.type.value} "
                 f"target={change.target}"

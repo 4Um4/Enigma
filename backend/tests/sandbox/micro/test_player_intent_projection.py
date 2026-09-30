@@ -18,7 +18,7 @@ from app.services.game_loop.phase_1_input import (
 _ALLOWED_KEYS = {
     "action", "target", "semantic_action", "target_reference", "target_id",
     "actor_id", "condition", "tool_reference", "target_zone", "proposition",
-    "addressee", "zone_raw",
+    "addressee", "zone_raw", "semantic_acts",
 }
 
 

@@ -9,7 +9,6 @@ path: backend/tests/sandbox/micro/test_ghost_reaper.py
 Основные сущности: TestGhostReaper.
 """
 
-import os
 import unittest
 from unittest import mock
 

@@ -8,11 +8,11 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_a
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_attribution_test.py
 """
 import atexit
-
-import pytest
 import logging
 import sys
 from pathlib import Path
+
+import pytest
 
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))

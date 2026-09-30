@@ -1,13 +1,15 @@
 # path: /project/backend/tests/gameplay/test_r8_causal_slice_affection.py
-# Назначение: R8 CAUSAL SLICE 4 (affection, ADR-O-398) — RED/GREEN.
-#   Первое DesiredChange, где who ≠ target_of_change ПО СУЩЕСТВУ:
-#   A (тёплая связь) хочет изменить состояние B (голоден) → B.food↑.
-#   CS17: проекция тёплых осей; CS18: чужой distress из world-снапшота
-#   (proxy, эпистемический долг); CS19: capacity-гейт (нет ресурса/денег
-#   → None: желание без возможности не действие).
-# Зависимости: app.domain.desired_change,
-#   app.services.npc.causal_slice_affection (RED: отсутствует)
-# Основные сущности: AffectionDesiredChangeProducer
+# Назначение: R8 CAUSAL SLICE 4 (ADR-O-400, CS17-CS19): тёплая связь
+#     (trust ≥ 40 ∧ attraction ≥ 40) + видимый голод B (world-снапшот,
+#     CS18-долг perception) + capacity A (CS19) → DesiredChange(who=A,
+#     target_of_change=B — первое структурное who ≠ target) →
+#     talk/trade(купить ДЛЯ B)/call_for_help. Каскад: threat > hunger >
+#     grievance > affection.
+# Зависимости: app.domain.desired_change, app.services.npc.causal_slice_affection,
+#     app.services.economy.profile_factory
+# Основные сущности: T1-T4 (пины, T4 — who≠target контракт),
+#     W1-W5 (контрфакт), test_aa_noop_projection
+# Запуск: cd backend; python -m pytest tests/gameplay/test_r8_causal_slice_affection.py -v -s
 
 from app.domain.desired_change import REASON_AFFECTION, STATE_TYPE_RESOURCE
 from app.services.economy.profile_factory import create_profile_from_npc

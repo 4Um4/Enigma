@@ -202,8 +202,14 @@ def _enrich_with_social_relations(
     Конвертация: base_trust * 100.
 
     Формат обогащения:
-      relationship_cache[target] = {trust, fear, base_trust, nature}
+      relationship_cache[target] = {trust, fear, attraction, base_trust, nature}
       base_values[target] = base_trust * 100
+
+    R8 (ADR-O-398): base_affection [-1..1] → attraction [-100..100] —
+    attraction ∈ _LEGACY_SCALARS (заявленный слот V2-контракта,
+    relationship_state_store.py:70). До этого патча обогащение роняло
+    base_affection: тёплый мир канона (6 пар, включая lusya→borko 0.8)
+    был невидим runtime-решениям — находка R8, поймана production-пробом.
 
     Не перезаписывает существующие записи (runtime мог мутировать).
     Мутирует NPC dicts in-place — вызывается только при загрузке.
@@ -244,6 +250,11 @@ def _enrich_with_social_relations(
 
             base_trust_01 = float(rel_data.get("base_trust", 0.0))
             base_trust_100 = base_trust_01 * 100.0
+            # R8: тёплая ось — та же конверсия, что trust (шаг находки:
+            # attraction заявлен V2-контрактом, но никогда не наполнялся)
+            base_affection_100 = (
+                float(rel_data.get("base_affection", 0.0)) * 100.0
+            )
             nature = rel_data.get("nature", "unknown")
 
             # Не перезаписываем существующие (runtime мог мутировать)
@@ -251,6 +262,7 @@ def _enrich_with_social_relations(
                 rc[target_id] = {
                     "trust": base_trust_100,
                     "fear": 0.0,
+                    "attraction": base_affection_100,
                     "base_trust": base_trust_100,
                     "nature": nature,
                 }

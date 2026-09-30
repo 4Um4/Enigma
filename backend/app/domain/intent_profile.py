@@ -9,7 +9,7 @@ TODO: В будущем может потребоваться расширить
 """
 
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -101,6 +101,11 @@ class IntentSemanticField(BaseModel):
     subject_hint: Optional[str] = Field(default=None, description="сырая NP; переживает нерезолв")
     social_intent: Optional[SocialIntent] = Field(default=None)
     addressee: Optional[str] = Field(default=None, description="Кому адресована фраза (обращение); ≠ target/actor (доктрина телесной семантики §12-1)")
+    # Multi-Act Understanding (вердикт Мастера): одна фраза = несколько
+    # семантических актов. LLM ПРЕДЛАГАЕТ, Python валидирует (тип+параметры).
+    # semantic_acts — канонический акт; верхнеуровневые поля (action/speech_act)
+    # остаются главным актом (первым/самым значимым) для обратной совместимости.
+    semantic_acts: List[Dict[str, Any]] = Field(default_factory=list, description="[{type: GREETING|ASK_NAME|SELF_INTRODUCTION|ASK_IDENTITY|ASK_LOCATION|ASSERT|ORDER|THREAT|COMPLIMENT|QUESTION|FAREWELL, params: {...}}]")
     requested_outcome: Optional[str] = Field(default=None, description="Что игрок хочет получить")
     offered_outcome: Optional[str] = Field(default=None, description="Что игрок предлагает")
     condition: Optional[str] = Field(default=None, description="Условие («если будешь хорошо вести»)")

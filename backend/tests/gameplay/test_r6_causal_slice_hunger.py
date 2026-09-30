@@ -1,14 +1,16 @@
 # path: /project/backend/tests/gameplay/test_r6_causal_slice_hunger.py
-# Назначение: R6 CAUSAL SLICE 2a (capability) — RED/GREEN сьют.
-#   Контрфактический закон CS13 (Мастер Тай): один A, один desired_change,
-#   меняется ТОЛЬКО мир → меняется цепочка candidate set → available
-#   methods → selected action. НЕ одно число.
-#   Граница: SOCIAL-сессия (S262+) владеет target-stage — addressee-
-#   интеграция (RH5/2b) сюда НЕ входит.
-# Зависимости: pytest, app.domain.desired_change,
-#   app.services.economy.profile_factory (фабрика, §13.4),
-#   app.services.npc.causal_slice_hunger (RED: отсутствует → ImportError)
-# Основные сущности: T1-T4 (пины), W1-W5/W4b (контрфакт), A1-A3 (факторы)
+# Назначение: R6 CAUSAL SLICE 2a (ADR-O-395, CS7-CS13): голод →
+#     DesiredChange(A.food↑) → capability-скан (has_good) → addressee →
+#     method_weights. Контрфактический закон CS13 (Мастер Тай): один A,
+#     один desired_change, меняется ТОЛЬКО мир → меняется цепочка
+#     candidate set → available methods → selected action. НЕ одно число.
+#     Пины: capability-вакуум = честный None (CS9, production-режим);
+#     свой food → путь EAT-предшественника (CS11).
+# Зависимости: app.domain.desired_change, app.services.economy.profile_factory
+#     (фабрика, §13.4 — никаких конструкторов)
+# Основные сущности: T1-T4 (пины), W1-W5+W4b (контрфакт), A1-A3 (факторы),
+#     test_aa_noop_projection
+# Запуск: cd backend; python -m pytest tests/gameplay/test_r6_causal_slice_hunger.py -v -s
 """
 Запуск: cd backend; python -m pytest tests/gameplay/test_r6_causal_slice_hunger.py -v 2>&1 | Select-Object -Last 15; cd ..
 """
