@@ -17,6 +17,13 @@ os.environ["PYTHONUTF8"] = "1"
 # наблюдено замерами; страховка дистрибутива, нулевой эффект на чистых машинах.
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 os.environ["no_proxy"] = "localhost,127.0.0.1"
+# RE-D2 (Шаг 1 ТЗ Understanding Track): активация IntelligenceQueue
+# (ADR-O-382, D8P) — LLM-экстракция диалога уходит с потока event loop
+# на executor-пул TaskScheduler, sync/async пересечение в
+# request_for_agent устраняется по построению (INV-LLM-LOOP-EXILE).
+# Слой полностью проводён и принят d8p_intelligence_test; setdefault —
+# явный env извне сохраняет право переопределения.
+os.environ.setdefault("D8P_ENABLED", "1")
 
 import asyncio
 import logging

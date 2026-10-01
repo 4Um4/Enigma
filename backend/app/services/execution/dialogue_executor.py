@@ -116,6 +116,12 @@ class DialogueExecutor:
             return
 
         req = task.payload
+        # A1 (RE-D2, вердикт Мастера): provenance текста — по ПРОИСХОЖДЕНИЮ,
+        # не эвристикой по содержимому. "llm" ставится только в LLM-ветке;
+        # детерминированная материализация (stub / requires_llm=False) содержит
+        # machine-id латиницей BY DESIGN — LANG_LEAK (замок S292) к ней не
+        # применяется: ложный ретрай звал LLM с потока петли → RE-D2.
+        _text_source = "deterministic"
         logger.debug(
             f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
         )
@@ -143,6 +149,7 @@ class DialogueExecutor:
 
             try:
                 _timer.start()
+                _text_source = "llm"
                 text = self._generate_with_router(task, req, _verdict)
             except DialogueContractViolation as e:
                 logger.warning(f"[DIALOGUE_EXEC] Contract violated: {e}")
@@ -191,7 +198,9 @@ class DialogueExecutor:
             _latin = sum(1 for w in _words if _re.search(r"[A-Za-z]", w))
             return _latin / len(_words)
 
-        if _latin_share(text) >= 0.25:
+        # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+        # текст публикуется как есть (machine-id ≠ language leak).
+        if _text_source == "llm" and _latin_share(text) >= 0.25:
             logger.warning(
                 f"[LANG_LEAK] {task.owner_id}: latin_share={_latin_share(text):.2f} "
                 f"text={text[:80]!r} — retry with reinforced directive"
@@ -221,11 +230,13 @@ class DialogueExecutor:
                         # L4 (S292): cancel-сбой логируется; ретрай уже завершён —
                         # исходная генерация не деградирует от этого отказа.
                         logger.debug(f"[LANG_LEAK] retry timer cancel skipped: {_cancel_err}")
-            if _latin_share(text) >= 0.25:
-                logger.error(
-                    f"[LANG_LEAK] {task.owner_id}: retry still leaked "
-                    f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
-                )
+        # A1: LANG_LEAK гейтит ТОЛЬКО текст LLM-происхождения. Детерминированный
+        # текст публикуется как есть (machine-id ≠ language leak).
+        if _text_source == "llm" and _latin_share(text) >= 0.25:
+            logger.error(
+                f"[LANG_LEAK] {task.owner_id}: retry still leaked "
+                f"(share={_latin_share(text):.2f}) — publishing as-is (honest degradation)"
+            )
 
         # P6/E1 (S255): эмит — ТОЧКА УСПЕШНОЙ ДОСТАВКИ (DISCOVERY IS
         # DELIVERY: решение P5 материально только при доставленной

@@ -954,9 +954,16 @@ class NpcTickPipeline:
             _weapon_access_fact = bool(
                 getattr(state, "affordance_facts_map", {}).get(npc_id, False)
             )
+            # ADR-O-410 (G3 Этап 2): объектная цель воли из preloaded-карты
+            # (getattr-гвард по прецеденту weapon_access — частичный откат
+            # P17-без-P16 консервативен: цели нет).
+            _steal_target_fact = getattr(state, "object_target_map", {}).get(
+                npc_id
+            )
             _opp_ctx = _OppCtx(
                 player_attention=_opp_att, distance=_opp_dist,
                 weapon_access=_weapon_access_fact, allies=_opp_allies,
+                steal_target=_steal_target_fact,
             )
             # [HOTFIX-FOR-ADR-O-366, санкция Мастера W2, DIAGNOSTIC_PROBE_CRASH]:
             # TickState не несёт will_state (DTO Registry §11; воля живёт per-NPC

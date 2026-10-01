@@ -341,16 +341,6 @@ class TurnPipeline:
                 scene_context=scene_state,
                 dialogue_session=_dialogue_session
             )
-            # [DIAG-G] временный зонд G-исследования: полный слой C.
-            # v2: ambiguity+conf.parse различают fast(PARTIAL)/LLM-ok(CLEAR,0.8)/LLM-dead(AMBIGUOUS,0.1);
-            # subject_* — ASK-контур (M1/P3).
-            print(f"[DIAG-G] action={_semantic_field.action}, amb={_semantic_field.ambiguity}, "
-                  f"conf.parse={_semantic_field.confidence.parse}, conf.target={_semantic_field.confidence.target}, "
-                  f"zone={_semantic_field.target_zone}, tool={_semantic_field.tool_reference!r}, "
-                  f"sf.target={_semantic_field.target!r}, sf.actor={_semantic_field.actor!r}, "
-                  f"speech={_semantic_field.speech_act}, social={_semantic_field.social_intent}, "
-                  f"prop={_semantic_field.proposition}, "
-                  f"subj={_semantic_field.subject_kind!r}/{_semantic_field.subject_id!r}/{_semantic_field.subject_hint!r}")
 
             # S201/S202: Публикуем SOCIAL_ACTION в EventBus для наблюдателей
             _action_val = _semantic_field.action.value if _semantic_field.action else "UNCERTAIN"

@@ -643,6 +643,39 @@ async def set_avatar_gender(payload: dict, game_loop: Any = Depends(get_game_loo
     return {"status": "ok", "gender": gender}
 
 
+@router.post("/avatar/{campaign_id}/names/link")
+async def link_player_name(
+    campaign_id: str, payload: dict,
+    game_loop: Any = Depends(get_game_loop),
+) -> dict:
+    """ADR-O-409 PLAYER_LINK: игрок связал имя с лицом на доске →
+    NameKnowledge confirmed (source=player_link). Решение игрока, не
+    системы. Тонкий эндпоинт (канон routes_board): валидация контракта
+    → делегация владельцу (avatar_service — единственный write-path
+    NAME-оси, монотонная решётка внутри)."""
+    if not campaign_id or "/" in campaign_id or "\\" in campaign_id or ".." in campaign_id:
+        raise HTTPException(status_code=400, detail="Invalid campaign_id")
+    _npc_id = str(payload.get("npc_id", "") or "").strip()
+    _name = str(payload.get("name", "") or "").strip()
+    if not _npc_id or not _name:
+        raise HTTPException(status_code=422, detail="npc_id и name обязательны")
+    game_loop.avatar_service.note_name_linked(campaign_id, _npc_id, _name)
+    return {"status": "ok", "npc_id": _npc_id, "name": _name}
+
+
+@router.get("/avatar/{campaign_id}/names")
+async def get_known_names(campaign_id: str, request: Request) -> dict:
+    """ADR-O-409 читатель NAME-оси для UI (доска/меню ассоциации
+    рисуют, что игрок уже знает; write-path — только link-эндпоинт)."""
+    if not campaign_id or "/" in campaign_id or "\\" in campaign_id or ".." in campaign_id:
+        raise HTTPException(status_code=400, detail="Invalid campaign_id")
+    _game_loop = get_game_loop(request)
+    _svc = getattr(_game_loop, "avatar_service", None)
+    if _svc is None:
+        raise HTTPException(status_code=503, detail="avatar_service недоступен")
+    return {"names": _svc._name_knowledge.get(campaign_id, {})}
+
+
 @router.post("/game/turn", response_model=ChatTurnResponse)
 async def game_turn(
     request: ChatTurnRequest, game_loop: Any = Depends(get_game_loop)

@@ -119,7 +119,7 @@ class ServiceFactory:
                 continue
 
             # Товары из carried_objects (физические предметы)
-            _goods = {}
+            _goods: Dict[str, float] = {}
             for _item in _npc.get("carried_objects", []):
                 if is_physical_object(_item):
                     _goods[_item] = 1

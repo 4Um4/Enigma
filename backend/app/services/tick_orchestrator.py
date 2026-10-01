@@ -2200,6 +2200,31 @@ class TickOrchestrator:
             location_id=ctx.scene_state.get("location_id", ""),
         )
 
+        # ADR-O-410 (G3 Этап 2): продюсер объектных целей воли — тот же
+        # вход (freeze-снапшот), тот же флаг W3_G3_ENABLED (default OFF =
+        # пустая карта без вычислений). Pure read (INV-III); детерминизм
+        # nearest+lex — canonical resolver, LLM объекты мира не выбирает.
+        _object_target_map: Dict[str, str] = {}
+        if os.environ.get("W3_G3_ENABLED", "").strip().lower() in (
+            "1", "true", "yes", "on",
+        ):
+            try:
+                from app.services.world.object_target_facts import (
+                    compute_object_target_facts,
+                )
+
+                _object_target_map = compute_object_target_facts(
+                    snapshot=ctx.tick_snapshot,
+                    npc_ids=tuple(
+                        _n.get("npc_id") or _n.get("id") or ""
+                        for _n in _alive_npcs
+                    ),
+                    location_id=ctx.scene_state.get("location_id", ""),
+                )
+            except Exception as _tgt_e:
+                logger.warning(f"[G3_TGT] producer fault: {_tgt_e}")
+                _object_target_map = {}
+
         _tick_state = build_tick_state(
             ctx=ctx,
             alive_npcs=_alive_npcs,
@@ -2223,6 +2248,7 @@ class TickOrchestrator:
             # До P2 ключ в scene_state не рождается (продюсеров нет) →
             # всегда {} → фабрика даст {} → байтовый no-op.
             attention_states_map=ctx.scene_state.get("attention_states") or {},
+            object_target_map=_object_target_map, # ADR-O-410 (G3 Этап 2): цели воли
         )
 
         _drf_ctx = DRFExecutionContext(

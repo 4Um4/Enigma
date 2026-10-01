@@ -302,7 +302,12 @@ class WorldSnapshotBuilder:
             _recog_status = _recog_data.get("status", "")
             logger.debug(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} status={_recog_status}")
             if _recog_status == "confirmed" or _confidence >= 0.9:
-                _display_name = _real_name
+                # ADR-O-409 (шаг 6): над головой show_name =
+                # recognition ∧ name. Гейт-поле пишет subscriber-drain
+                # (runtime-мост); builder остаётся чистой проекцией.
+                # Нет ключа / OFF = прежнее поведение (паритет).
+                _display_name = scene_state.get(
+                    "name_gate", {}).get(npc_id, _real_name)
             elif _recog_status == "tentative" or _confidence >= 0.6:
                 _display_name = f"{_real_name} (?)"
 

@@ -26,7 +26,7 @@ READ ONLY. Никаких мутаций.
 
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, FrozenSet
+from typing import Any, Dict, FrozenSet, Optional
 
 from app.models.behavior_mask import BehaviorMask
 from app.models.npc_state import Intent
@@ -96,6 +96,9 @@ class OpportunityContext:
 
     player_attention: float = 1.0  # по умолчанию — игрок смотрит
     distance: float = 0.0  # по умолчанию — вплотную
+    # ADR-O-410 (G3 Этап 2): детерминированная объектная цель воли
+    # (wo_id из object_target_map; None = цели нет — Vacuum, не «0»).
+    steal_target: Optional[str] = None
     weapon_access: bool = False
     allies: int = 0
 

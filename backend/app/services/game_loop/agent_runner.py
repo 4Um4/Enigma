@@ -12,7 +12,7 @@
 import asyncio
 import logging
 import time
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, cast
 
 from app.services.error_interpreter import get_error_interpreter
 from app.services.logging_tools import jsonl_log
@@ -77,7 +77,7 @@ async def run_agent_safe(agent_name: str, agent: Any, args: tuple, kwargs: dict)
 
             _pool = get_model_pool()
             if _pool._active_model:
-                _pool._active_model.provider.abort_generation()
+                cast(Any, _pool._active_model.provider).abort_generation()
                 logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
         except Exception as e:
             logger.warning(f"[B5-FIX] silent failure suppressed: {e}")

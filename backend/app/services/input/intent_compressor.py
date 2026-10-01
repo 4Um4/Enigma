@@ -464,12 +464,10 @@ class IntentCompressor:
             try:
                 _llm = await self._llm_client.compress_intent(raw_text, scene_context, dialogue_session)
             except Exception as _e:
-                import traceback as _tb
-                print(f"[RECONCILE] llm EXC {type(_e).__name__}: {_e}")
-                _tb.print_exc()
+                logger.warning(f"[RECONCILE] llm EXC {type(_e).__name__}: {_e}", exc_info=True)
                 _llm = None
             if _llm is None:
-                print("[RECONCILE] llm None: fast остаётся")
+                logger.warning("[RECONCILE] llm None: fast остаётся")
                 return await self._recover_acts(fast_result, None, scene_context)
             _field = self._enrich(fast_result, _llm, scene_context)
         else:
@@ -490,16 +488,10 @@ class IntentCompressor:
         if fast.action not in (ActionType.ATTACK, ActionType.THREATEN, ActionType.STEAL):
             # Multi-Act (вердикт): диалог с несколькими предложениями и пустыми
             # актами неполон — LLM раскладывает на акты (fast не арбитр).
-            _parts = len(re.split(r"[.!?]+", fast.raw_text))
-            print(
-                f"[Z-TEST] action={fast.action!r} is_dialogue={fast.action is ActionType.DIALOGUE} "
-                f"acts_empty={not fast.semantic_acts} parts={_parts} "
-                f"decision={fast.action is ActionType.DIALOGUE and not fast.semantic_acts and _parts > 2}"
-            )
             if (
                 fast.action is ActionType.DIALOGUE
                 and not fast.semantic_acts
-                and _parts > 2
+                and len(re.split(r"[.!?]+", fast.raw_text)) > 2
             ):
                 return True
             return False
@@ -584,7 +576,7 @@ class IntentCompressor:
         if fast.target and llm.get("target") and str(llm["target"]).lower() != str(fast.target).lower():
             print(f"[RECONCILE] CONFLICT target: fast={fast.target!r} llm={llm['target']!r} (v0: fast)")
         if _u:
-            print(f"[RECONCILE] enriched={sorted(_u)} (пустые поля fast заполнены)")
+            logger.info(f"[RECONCILE] enriched={sorted(_u)}")
         return fast.model_copy(update=_u)
 
     async def _recover_acts(
@@ -621,6 +613,10 @@ class IntentCompressor:
                     field.raw_text, scene_context or {}, None
                 )
                 if _llm2:
+                    # LLM-словарь передаётся в legacy-блок ниже: его поля
+                    # (speech_act/requested_outcome) — источник recovery,
+                    # когда semantic_acts нет (прогон «Ты ведь слуга, да?..»)
+                    llm = _llm2
                     _acts = _validate_acts(_llm2.get("semantic_acts"))
                     if _acts:
                         _u["semantic_acts"] = _acts
@@ -628,21 +624,30 @@ class IntentCompressor:
             except Exception as _e:
                 print(f"[RECOVERY] llm EXC {type(_e).__name__}: {_e}")
 
-        # Recovery из legacy-полей LLM (когда LLM-ответ есть, а актов нет)
-        if not _u.get("semantic_acts") and not field.semantic_acts and llm:
-            _sa = str(llm.get("speech_act") or "").lower()
-            _ro = str(llm.get("requested_outcome") or "").lower()
-            _acts: List[Dict[str, Any]] = []
+        # Recovery из legacy-полей: источник — САМО поле (slow-path кладёт
+        # speech_act/requested_outcome в IntentSemanticField), llm-словарь —
+        # fallback для fast-incomplete пути. Без гейта на llm: в slow-only
+        # пути llm=None, а данные уже в field (прогон «Ты слуга?»).
+        if not _u.get("semantic_acts") and not field.semantic_acts:
+            _sa_raw = getattr(field, "speech_act", None)
+            _sa = str(getattr(_sa_raw, "value", _sa_raw) or "").lower()  # enum → value
+            _ro = str(getattr(field, "requested_outcome", None) or "").lower()
+            if not _sa and llm:
+                _sa = str(llm.get("speech_act") or "").lower()
+            if not _ro and llm:
+                _ro = str(llm.get("requested_outcome") or "").lower()
+            _acts = []
             if _sa == "question":
                 _t = "CONFIRMATION_SEEKING" if "confirmation" in _ro else "QUESTION"
                 _acts = [{"type": _t, "params": {"topic": _ro or "unspecified"}}]
             elif _sa == "greeting":
                 _acts = [{"type": "GREETING", "params": {}}]
-            elif _sa == "assert" and not llm.get("proposition"):
+            elif _sa == "assert" and not (llm or {}).get("proposition"):
                 _acts = [{"type": "ASSERT", "params": {"claim": _ro or field.raw_text[:120]}}]
             if _acts:
                 _acts[0]["source_fields"] = {"speech_act": _sa, "requested_outcome": _ro}
                 _u["semantic_acts"] = _acts
+                logger.info(f"[RECOVERY] acts recovered from legacy fields ({_t if _sa == 'question' else _sa})")
 
         # Proposition → ASSERT-акт (slow-path часто структурирует сюда; не терять)
         if not _u.get("semantic_acts") and not field.semantic_acts and field.proposition is not None:
@@ -901,19 +906,20 @@ class IntentCompressor:
             _zone_raw = str(_tz_val).upper() if _tz_val and str(_tz_val).upper() != "UNDEFINED" else None
 
             return IntentSemanticField(
-                action=_action,
+                action=_action or ActionType.UNCERTAIN,
                 actor=llm_response.get("actor", llm_response.get("actor_reference")),
                 target=llm_response.get("target", llm_response.get("target_reference")),
                 speech_act=_speech_act,
                 proposition=_proposition,
                 social_intent=_social_intent,
                 addressee=llm_response.get("addressee"),
+                semantic_acts=_validate_acts(llm_response.get("semantic_acts")),
                 requested_outcome=llm_response.get("requested_outcome"),
                 offered_outcome=llm_response.get("offered_outcome"),
                 condition=llm_response.get("condition"),
                 conversation_continuation=llm_response.get("conversation_continuation"),
                 dialogue_thread=dialogue_session.thread_id if dialogue_session else None,
-                target_zone=_target_zone,
+                target_zone=_target_zone or TargetZone.UNDEFINED,
                 zone_raw=_zone_raw,
                 physical_force=float(llm_response.get("physical_force") or 0.5),
                 emotional_charge=float(llm_response.get("emotional_charge") or 0.5),
