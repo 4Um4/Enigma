@@ -87,6 +87,7 @@ CAUSE_UNKNOWN_LEGACY_SOURCE: str = "UNKNOWN_LEGACY_SOURCE"
 INTERRUPT_PRIORITY_SUPERSEDE: str = "PRIORITY_SUPERSEDE"  # арбитр-INTERRUPT (S203.4)
 INTERRUPT_TASK_VANISHED: str = "TASK_VANISHED"  # sweep: task-исполнитель исчез (grace)
 INTERRUPT_WINDUP_STALE_INTENT: str = "WINDUP_STALE_INTENT"  # Фаза 7: stale-интент
+INTERRUPT_G3_OBJECT_REJECT: str = "G3_OBJECT_REJECT"  # Фаза 7/G3 (ADR-O-410): FSM-отказ объектного действия — исполнитель принял ответственность, мутации не будет
 # [GC-I01-E2] GC-INTERRUPT-01: Фаза-5 intent владельца сменился на flee —
 # воля ушла из разговора, вербальная задача устарела (симметрия
 # WINDUP_STALE_INTENT: событие мира, не решение актора).

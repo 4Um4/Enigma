@@ -64,6 +64,70 @@ _OBJECT_TARGET_KINDS: Tuple[ObjectRelationKind, ...] = (
     ObjectRelationKind.CONTAINED_BY,
 )
 
+# ═══ Г4 (ADR-O-410): caller-цензус write-операций стора ═══
+# Вводится вместе с первым легальным runtime-writer'ом (g3_executor) —
+# вердикт ADR-O-371/W3 «enforcement ради enforcement запрещён» исполнен.
+# Прецедент: _PK_ALLOWED_WRITERS (ADR-O-379). Расширение цензуса =
+# мини-ADR. Экзаменационный G3-сценарий сюда НЕ вносится — его DENY-атака
+# обязана поднимать ArchitecturalViolationError (замок экзамена).
+_ALLOWED_WRITERS: Tuple[str, ...] = (
+    "app.services.world.world_object_store",
+    "app.services.world.world_object_spawner",
+    "app.services.world.g3_executor",
+    "tests.test_world_object_topology",
+    "tests.test_world_object_spawner",
+    "tests.test_object_fsms",
+    "tests.gameplay.harness",
+    "tests.test_g3_executor",
+    # IPT.py выполняется как __main__ (python IPT.py): smoke-часть
+    # INV-WORLD-OBJECT-TOPOLOGY спавнит/мутирует wo-объекты напрямую —
+    # тест-инфраструктура инварианта, не production-путь (цензус-класс
+    # E2.0-c прецедента PK-guard). G3-приёмочный сценарий сюда НЕ вносить:
+    # его DENY-атака обязана падать.
+    "__main__",
+)
+
+
+def _assert_write_allowed() -> None:
+    """Г4: write-путь стора разрешён только цензусу.
+
+    Поднимается по стеку до первого кадра вне этого модуля
+    (внешний вызыватель → op → helpers → guard); первый внешний кадр
+    обязан состоять в _ALLOWED_WRITERS. Нарушение =
+    ArchitecturalViolationError: ownership из документа становится
+    исполняемым инвариантом.
+    """
+    import sys
+
+    _caller = ""
+    _depth = 1
+    while True:
+        try:
+            _frame = sys._getframe(_depth)
+        except ValueError:
+            break
+        _caller = _frame.f_globals.get("__name__", "")
+        if _caller and _caller != __name__:
+            break
+        _depth += 1
+    for _mod in _ALLOWED_WRITERS:
+        # Тройное правило: точное имя / подпакет / хвостовой компонент
+        # (conftest кладёт backend/ в sys.path → тестовые модули видны и
+        # как 'tests.X', и как 'X' — прецедент npc_state PK-guard, где
+        # двойственность решалась парными записями; здесь — одним
+        # условием, семантика точного соответствия сохранена).
+        if (
+            _caller == _mod
+            or _caller.startswith(_mod + ".")
+            or _mod.endswith("." + _caller)
+        ):
+            return
+    from app.errors import ArchitecturalViolationError
+
+    raise ArchitecturalViolationError(
+        f"world_objects write-op (caller={_caller!r})", _caller
+    )
+
 
 def _read_subtree(scene_state: Dict[str, Any]) -> Dict[str, Any]:
     """Read-view subtree. Отсутствие = легитимный дефолт (старые сейвы
@@ -81,6 +145,10 @@ def _read_subtree(scene_state: Dict[str, Any]) -> Dict[str, Any]:
 def _write_subtree(scene_state: Dict[str, Any]) -> Dict[str, Any]:
     """Mutable subtree для write-пути. Ленивое создание — ТОЛЬКО здесь
     (прецедент M1a: чтение никогда не создаёт subtree)."""
+    # Г4 (ADR-O-410): единственный write-шлюз — цензус проверяется здесь,
+    # один раз на все write-ops (spawn/establish/release/relocate/
+    # apply_transition/apply_damage).
+    _assert_write_allowed()
     subtree = scene_state.get(_KEY_WORLD_OBJECTS)
     if subtree is None:
         subtree = {}

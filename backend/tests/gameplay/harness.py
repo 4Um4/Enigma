@@ -351,6 +351,44 @@ class TavernGameplayHarness:
         except Exception:
             return None
 
+    def spawn_world_object(
+        self,
+        object_id: str,
+        archetype: str,
+        position: "tuple[float, float]",
+        state: str = "INTACT",
+    ) -> bool:
+        """GC-08-зависимость (роадмап §3, G3-acceptance): capability
+        спавна WorldObject в живой сцене. Легальная граница Г4 —
+        WorldObjectStore.spawn (typed-op, цензусный вызыватель
+        tests.gameplay.harness). Только get→spawn→save вне тика
+        (B1.4-паттерн «сцена не найдена — честный отказ»)."""
+        try:
+            # S242-fix-прецедент (b1_4._canon_checkpoint): фактический ключ
+            # сцены ≠ константа харнесса ('tavern_silver_wolf' —
+            # player-прецедент; реальная сцена 'tavern'). Резолв из живой
+            # post-tick сцены, fallback на константу.
+            _loc = self.location
+            if isinstance(self._last_tick_scene, dict):
+                _live_loc = self._last_tick_scene.get("location_id")
+                if isinstance(_live_loc, str) and _live_loc:
+                    _loc = _live_loc
+            _scene = self.game_loop.scene_manager.get_scene_state(
+                _CAMPAIGN, _loc
+            )
+            if not isinstance(_scene, dict):
+                return False
+            from app.services.world.world_object_store import WorldObjectStore
+
+            WorldObjectStore.spawn(
+                _scene, object_id, archetype, self.location, position, state=state
+            )
+            self.game_loop.scene_manager.save_scene_state(_CAMPAIGN, _scene)
+            return True
+        except Exception as e:
+            logger.warning(f"[GC00] spawn_world_object failed: {e}")
+            return False
+
     def _restore_sessions(self) -> None:
         """Байтовое восстановление host-sessions после прогона."""
         _root = getattr(self, "_sessions_root", None)

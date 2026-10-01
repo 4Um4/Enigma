@@ -390,9 +390,14 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
     Если windup завершён (started_tick + duration_ticks <= ctx.tick_number),
     реконструирует CommunicationIntent из ActionCommitment и передаёт в IntentEventAdapter.
     """
+    from app.domain.action_commitment import INTERRUPT_G3_OBJECT_REJECT
     from app.domain.action_windup import ActionWindup, WindupStatus
     from app.services.events.event_bus import get_event_bus
     from app.services.events.intent_event_adapter import IntentEventAdapter
+    from app.services.world.g3_executor import (
+        G3Status,
+        execute_object_action,
+    )
 
     bus = get_event_bus()
     adapter = IntentEventAdapter()
@@ -414,6 +419,9 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
         updated_windups = []
         for _wdict in _windup_dicts:
             windup = ActionWindup.from_dict(_wdict)
+            # G3 (ADR-O-410): причина INTERRUPTED этого windup
+            # (пусто = устоявшаяся семантика stale-интента).
+            _g3_interrupt_reason = ""
             if windup.status == WindupStatus.PENDING:
                 if windup.started_tick + windup.duration_ticks <= ctx.tick_number:
                     # DEBT-310.1: Windup completed! Pure release of held intent.
@@ -498,12 +506,33 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                     windup, status=WindupStatus.INTERRUPTED
                                 )
                             else:
-                                event = adapter.to_event(_held_intent)
-                                bus.publish(event)
-                                executed_windups += 1
-                                windup = dataclasses.replace(
-                                    windup, status=WindupStatus.COMPLETED
+                                # G3 (ADR-O-410): объектная цель — исполнитель
+                                # мира ДО проекции-события (D4: событие =
+                                # утверждение факта, не намерения). SKIP —
+                                # passthrough существующего пути (D7a).
+                                _g3 = execute_object_action(
+                                    ctx.scene_state,
+                                    windup.action_type,
+                                    _actor_id,
+                                    _target_id,
+                                    ctx.tick_number,
                                 )
+                                if _g3.status is G3Status.G3_REJECT:
+                                    logger.info(
+                                        f"[PHASE_7][G3_REJECT] npc={_actor_id} "
+                                        f"target={_target_id} reason={_g3.reason}"
+                                    )
+                                    _g3_interrupt_reason = INTERRUPT_G3_OBJECT_REJECT
+                                    windup = dataclasses.replace(
+                                        windup, status=WindupStatus.INTERRUPTED
+                                    )
+                                else:
+                                    event = adapter.to_event(_held_intent)
+                                    bus.publish(event)
+                                    executed_windups += 1
+                                    windup = dataclasses.replace(
+                                        windup, status=WindupStatus.COMPLETED
+                                    )
                         else:
                             windup = dataclasses.replace(
                                 windup, status=WindupStatus.COMPLETED
@@ -521,7 +550,9 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                 CommitmentRegistry.mirror_task_terminal(
                     ctx.scene_state, windup.actor_id, ctx.tick_number,
                     "INTERRUPTED",
-                    interrupt_reason=INTERRUPT_WINDUP_STALE_INTENT,
+                    interrupt_reason=(
+                        _g3_interrupt_reason or INTERRUPT_WINDUP_STALE_INTENT
+                    ),
                     executor="windup",
                 )
             elif windup.status == WindupStatus.COMPLETED:
