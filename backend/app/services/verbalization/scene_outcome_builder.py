@@ -572,7 +572,7 @@ class SceneOutcomeBuilder:
         decision: DecisionResult,
         context: SceneContext,
         real_state: Optional[Dict[str, Any]] = None,
-        distortion_bias: Optional[Dict[str, Any]] = None,
+        distortion_bias: Optional["DistortionProfile"] = None,
         profile: Optional[NPCProfileL0] = None,
         topic: str = "",
     ) -> NpcOutcome:
@@ -801,7 +801,7 @@ class SceneOutcomeBuilder:
             for d in decisions
         )
         raw_sum = raw_stress + raw_fear
-        ET = min(TENSION_CAP, raw_sum / 0.5)
+        _ET = min(TENSION_CAP, raw_sum / 0.5)
 
         # Trend (из ET — не зависит от ST/NE)
         has_trauma = any(

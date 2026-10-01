@@ -5,7 +5,7 @@
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from app.domain.observatory import (
     ObservatoryAgentDTO,
@@ -46,7 +46,7 @@ class SpatialObservatoryService:
     ) -> SpatialObservatoryDTO:
         """
         Главная точка входа. Возвращает полную проекцию пространства.
-        
+
         :param editor_data: Сырой JSON карты (nodes, walls, doors).
         :param agents_data: Словарь NPC позиций и их интентов {npc_id: {position, intent}}.
         """
@@ -132,7 +132,12 @@ class SpatialObservatoryService:
                     ))
                 else:
                     path_dto = self._calculate_path(
-                        svc, pos, resolved.position, resolved.anchor_node_id, resolved.mode
+                        # RESOLVED ⇒ резолвер гарантирует позицию; cast поведенчески нейтрален
+                        svc,
+                        pos,
+                        cast(Tuple[float, float], resolved.position),
+                        resolved.anchor_node_id,
+                        resolved.mode,
                     )
                     if path_dto and path_dto.status == "BLOCKED":
                         diagnostics.append(ObservatoryCausalDiagnosticDTO(
@@ -240,13 +245,16 @@ class SpatialObservatoryService:
         pos = data.get("local_position", data.get("position"))
         if isinstance(pos, dict):
             x, y = pos.get("x"), pos.get("y")
-            if x is None or y is None: return (0.0, 0.0)
-            try: return float(x), float(y)
+            if x is None or y is None:
+                return (0.0, 0.0)
+            try:
+                return float(x), float(y)
             except (TypeError, ValueError) as e:
                 logger.debug(f"Coord parse error: {e}")
                 return (0.0, 0.0)
         if isinstance(pos, (list, tuple)) and len(pos) == 2:
-            try: return float(pos[0]), float(pos[1])
+            try:
+                return float(pos[0]), float(pos[1])
             except (TypeError, ValueError) as e:
                 logger.debug(f"Coord parse error: {e}")
                 return (0.0, 0.0)

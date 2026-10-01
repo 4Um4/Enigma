@@ -148,8 +148,11 @@ class DialogueSession:
             q.answer_tick = tick
 
     def to_prompt_block(self) -> str:
-        """Текстуализация для LLM-промпта (расширенная)."""
-        if not self.buffer:
+        """Текстуализация для LLM-промпта (расширенная).
+        Consumption v0: claims/вопросы рендерятся и при пустом буфере —
+        реплики игрока не пишут turn'ы в сессию NPC, и без этого гарда
+        Claim от SELF_INTRODUCTION не доезжает до cognition NPC."""
+        if not self.buffer and not self.claims and not self.open_questions:
             return ""
         lines = ["[Краткая память — текущий разговор]"]
         if self.partner_id:

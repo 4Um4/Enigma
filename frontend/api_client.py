@@ -354,6 +354,12 @@ class BackendContract:
             _payload["status"] = status
         return self._t.post(f"/api/board/{campaign_id}/hypotheses", _payload)
 
+    def player_link_name(self, campaign_id: str, npc_id: str, name: str) -> dict:
+        """ADR-O-409 PLAYER_LINK: ассоциация имя↔лицо — решение игрока,
+        не системы (канал player_link → NameKnowledge confirmed)."""
+        return self._t.post(f"/api/avatar/{campaign_id}/names/link",
+                            {"npc_id": npc_id, "name": name})
+
     @staticmethod
     def _map_action_response(raw: dict) -> GameActionResponse:
         """Маппинг JSON → доменный объект. Единственное место с полями ответа."""
@@ -520,6 +526,9 @@ class HttpGameGateway:
         return self._contract.board_hypothesis(
             campaign_id, op, hyp_id, text, status,
         )
+
+    def player_link_name(self, campaign_id: str, npc_id: str, name: str) -> dict:
+        return self._contract.player_link_name(campaign_id, npc_id, name)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -805,6 +814,13 @@ class FallbackGateway:
             return self._primary.board_hypothesis(
                 campaign_id, op, hyp_id, text, status)
         raise BackendError("Board недоступна: primary gateway offline",
+                           status_code=None)
+
+    def player_link_name(self, campaign_id: str, npc_id: str, name: str) -> dict:
+        """ADR-O-409 PLAYER_LINK — fallback-слой (канон board-методов)."""
+        if self._primary and hasattr(self._primary, "player_link_name"):
+            return self._primary.player_link_name(campaign_id, npc_id, name)
+        raise BackendError("PLAYER_LINK недоступна: primary gateway offline",
                            status_code=None)
 
     """

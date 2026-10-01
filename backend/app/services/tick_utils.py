@@ -243,6 +243,21 @@ def _reduce_additive(p1: Any, p2: Any) -> Any:
             will_state_override=p2.will_state_override
             if p2.will_state_override is not None
             else p1.will_state_override,
+            # S115: раньше эти поля терялись при агрегации (мерджился только
+            # trio identity_integrity/pressure/will_state — остальные обнулялись).
+            compliance_bias_delta=p1.compliance_bias_delta + p2.compliance_bias_delta,
+            aggression_inhibition_delta=p1.aggression_inhibition_delta
+            + p2.aggression_inhibition_delta,
+            initiative_suppression_delta=p1.initiative_suppression_delta
+            + p2.initiative_suppression_delta,
+            recent_directive_data=p2.recent_directive_data
+            or p1.recent_directive_data,
+            drives_snapshot=p2.drives_snapshot
+            if p2.drives_snapshot is not None
+            else p1.drives_snapshot,
+            strain_snapshot=p2.strain_snapshot
+            if p2.strain_snapshot is not None
+            else p1.strain_snapshot,
         )
     if isinstance(p1, PerceptionPayload):
         return PerceptionPayload(
@@ -304,26 +319,11 @@ def aggregate_deltas(deltas: list) -> list:
                 existing.pressure_resistance_delta += d.pressure_resistance_delta
                 if d.will_state_override is not None:
                     existing.will_state_override = d.will_state_override
-                # S115 FIX: Мерж IdentityPayload (compliance_bias, recent_directive, etc.)
-                # Без этого payload от DirectiveInterpretationSubscriber теряется при агрегации.
-                from app.models.delta_payloads import IdentityPayload
-
-                if isinstance(d.payload, IdentityPayload) and isinstance(
-                    existing.payload, IdentityPayload
-                ):
-                    existing.payload.compliance_bias_delta += (
-                        d.payload.compliance_bias_delta
-                    )
-                    existing.payload.aggression_inhibition_delta += (
-                        d.payload.aggression_inhibition_delta
-                    )
-                    existing.payload.initiative_suppression_delta += (
-                        d.payload.initiative_suppression_delta
-                    )
-                    if d.payload.recent_directive_data:
-                        existing.payload.recent_directive_data = (
-                            d.payload.recent_directive_data
-                        )
+                # S115 FIX: мерж payload (compliance/recent_directive и пр.) выполняется
+                # в _reduce_additive (единая точка мержа payload, ниже по коду):
+                # инкремент frozen-полей IdentityPayload здесь падал бы с
+                # FrozenInstanceError, а результат в любом случае затирался бы
+                # общим мержем payload той же итерации.
             else:
                 existing.stress_delta += d.stress_delta
                 existing.emotion_delta += d.emotion_delta
