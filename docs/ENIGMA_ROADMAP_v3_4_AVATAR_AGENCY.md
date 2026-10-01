@@ -500,7 +500,7 @@ conclusion_delta с provenance и causal parent).
     W2→решение (weapon_access → OpportunityContext;
     DEBT-OPP-PRODUCER закрыт; DecisionHub object-agnostic, сигнатуры
     не менялись; W3_G2_ENABLED default OFF).
--   [ ] **G3 (Execution)** --- СЛЕДУЮЩИЙ ШАГ W-трека: executor
+-   [x] **G3 (Execution)** --- ЗАКРЫТ (S307/ADR-O-410, коммиты 1ce0a00f+4169f77e): воля → объектная цель → intent → исполнитель → мутация мира → событие. Этап 1: g3_executor + Г4-цензус стора + Фаза 7 + W3_G3_ENABLED. Этап 2: compute_object_target_facts (nearest+lex, TARGETABLE_ARCHETYPES=chair→TAKE — calibration policy) → DecisionHub. Гейты: Tier-A юнит (winner=steal 1.67 target=wo_id, входы — мир-параметры, веса не тронуты) · GC-00 A/B GREEN (ON: holder=thief_shadow+THEFT; OFF: байт-идентично) · IPT 49/49. Honest-zero + замок R6.3 задокументированы; следующий слой — cognition (CAN_STEAL≠ACCEPT/WANT, находка Мастера). Reusable-паттерн для TAKE/USE/MOVE/GIVE/FOLLOW.
     объектных действий (commitment → ревалидация W2-кортежей →
     transition → мутация → Fact/L1Chronicle; тогда же Г4 caller-guard
     `_ALLOWED_WRITERS` --- writers сейчас 0). **G3-acceptance

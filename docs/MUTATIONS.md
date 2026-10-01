@@ -2257,6 +2257,99 @@ DM-промпт имён — эскалация semantic-сессии остаё
 археологического вывода, hot-файлы требуют перечитывания зоны перед
 каждой врезкой.
 
+### S307: W-TRACK G3 — EXECUTION (ADR-O-410): воля → объектная цель → мутация мира → событие | ✅ двухэтапно GREEN
+🎯 Главный критерий Мастера исполнен: не «NPC крадёт стул», а reusable causal
+vertical «живой агент → объектная цель → intent → исполнитель → реальная
+мутация мира → событие», 500-NPC-масштабируемая. Этап 1 (коммит 1ce0a00f):
+g3_executor (PASS/NO_OP/REJECT/SKIP; provenance-обёртка D2; целеполагание
+вне контура И-1) + врезка Фазы 7 (REJECT→INTERRUPTED(G3_OBJECT_REJECT);
+событие только после мутации D4; SKIP=passthrough D7a) + Г4-цензус в
+_write_subtree (тройное правило dual-name; расширение=мини-ADR) + флаг
+W3_G3_ENABLED OFF=no-op. Этап 2 (bulk вошёл соседским merge a76be638 —
+known provenance note, прецедент S239-класса; финал — коммит 4169f77e):
+compute_object_target_facts (pure, freeze-read, nearest+lex детерминизм,
+FREE-only, TARGETABLE_ARCHETYPES={chair→TAKE} — calibration policy,
+вердикт №3) → TickState.object_target_map → OpportunityContext.steal_target
+→ DecisionHub: STEAL получает объектную цель (переопределяет None и
+фиктивный fall-through; hub object-agnostic).
+⚙️ Доказательства: Tier-A юнит [G3-T1] winner=steal score=1.67
+target=wo_g3_tier_a_chair при raw=0.675>0.65 (входы — ТОЛЬКО мир-параметры:
+world-tick-канон, игрок далеко, союзники; веса production не тронуты;
+thief→STEAL не вводился — вердикты Мастера RED-замки соблюдены); T2:
+замок закрыт при attention=1.0 (CAN_STEAL≠ACCEPT/WANT). Tier-B: E2E
+execution_probe GREEN (ON: holder=thief_shadow + THEFT; OFF: байт-идентично
+— INV-G3-NOOP); will_probe = honest-zero с задокументированным замком R6.3
+(вор FREE в спокойной таверне не ворует; живой вор при закрытом моменте
+торговал — правильная философия, не баг — вердикт Мастера).
+⚙️ Инциденты (все закрыты, хроника в IMPACT): (1) build_tick_state-обёртка
+pipeline_runner — мой полу-патч дал TICK_CRASH каждый тик; пойман
+execution_probe (regression-гейт Этапа 1 отработал), закрыт pass-through
+P32; урок: import-цепочка до обёртки при проектировании патча. (2) Г4
+первоначально DENY'ил собственные тест-инфраструктуры (conftest dual-name
++ test_affordance_facts + IPT-__main__) — цензус расширен по прецеденту
+PK-guard E2.0-c. (3) Двойник-цикл Tier-A (:1857→:1086→:1299→risk:61) —
+нарушение §13.4 «фабрики, не мечты»; закрыт переходом на реальные
+NPCState/NPCPersonality/EventContext/EffectiveDrives по калибровочному
+прецеденту. (4) Retro-RED ×2 (файлы применялись до первого прогона) —
+снят изоляцией модулей; урок: RED и имплементация — разные сообщения.
+(5) P41: честный тест нашёл реальный дефект канала (fall-through
+event.actor_id перекрывал объектную цель) — не подгонка, а фикс.
+⚙️ Эскалации (чужие зоны, закон №15): sleep-onset KeyError
+(test_action_commitment S236-фикстура vs эволюция SleepLifecycleService) —
+pre-existing, вне диффа G3; ruff-шум tick_orchestrator (5 pre-existing
+соседских F841/W293). CAN_STEAL/WANT_OUTCOME/ACCEPT_STEAL/
+EXPECTED_LIFE_COST/RECENT_HISTORY — следующий cognition-слой (находка
+Мастера, НЕ скоуп G3). GC-08-цепочка: spawn_world_object capability в
+harness — закрыта (роадмап-зависимость W-G3).
+📁 Полный список: ADR-O-410 (атлас + docs/audits/ADR-O-410_IMPACT.md),
+svc/world/g3_executor.py (нов), svc/world/object_target_facts.py (нов),
+domain/tick.py, svc/pipeline_runner.py, svc/tick_orchestrator.py,
+svc/npc/npc_tick_pipeline.py, svc/economy/opportunity_engine.py,
+svc/npc/decision_hub.py, svc/world/world_object_store.py (Г4),
+domain/action_commitment.py, tests: test_g3_executor (9),
+test_object_target_facts (7), test_g3_will_integration (2),
+sandbox/g3_execution_probe, sandbox/g3_will_probe, gameplay/harness
+(spawn_world_object).
+IPT: ✅ 49/49. КРАСНЫЕ ИНВАРИАНТЫ: 0 🔴 моих (1 pre-existing sleep-onset —
+атрибутирован, эскалирован).
+
+Ренумбер-нота (прецедент S243 — история коммитов не переписывается,
+отображение фиксируется здесь): коммит-сообщения 1ce0a00f (Stage-1) и
+4169f77e (Stage-2) несут маркер «S305»; каноническая запись — S307
+(S305/S306 заняты параллельными сериями G-TRACK Understanding и
+NameKnowledge в окне между коммитами и регистрацией). Атлас-entry
+ADR-O-410 (:759) также несёт «(S305)» → читать как S307.
+
+### S308: ADR-O-409 PLAYER_LINK — третий канал: доска связывает имя↔лицо | ✅ name_gate 7/7, компиляция, isolation ✅
+🎯 Замыкание трёхосевой модели (FACE/NAME/LINK): LINK-канал — решение
+игрока, не системы. Полный цикл: фото-карточка → P → меню имён →
+Enter → NameKnowledge confirmed (source=player_link).
+⚙️ REST (routes.py, Depends get_game_loop — прецедент avatar/gender):
+POST /avatar/{c}/names/link (валидация npc_id/name непустые, traversal-
+гард; делегация avatar_service.note_name_linked — единственный write-
+path) + GET /avatar/{c}/names (читатель NAME-оси для UI).
+⚙️ api_client — 3 слоя (контракт/делегат/fallback по канону board-
+методов, BackendError status_code=None). DirectGameGateway не реализует
+board-семейство (F-9r-археология) — 3 слоя достаточны, Direct-режим
+получает честный BackendError.
+⚙️ Фронт: провенанс-джойн (_board_card_npc: cid→npc_id из записи);
+P-ветка (модальное меню: ↑/↓/Enter/Esc — канон клавиатуры «везде»);
+меню имён — ТОЛЬКО direct/overheard-спикеры журнала (вердикт Мастера:
+доска не подсказывает — услышанное ≠ угаданное); рендер — рамка-акцент,
+_fill/_stroke_alpha-канон, ноль RGB.
+Инцидент-урок (пойман картой методов): меню легло в board_input_event
+по неуникальному якорю «handle_event/return True» (два метода) —
+перенос в _board_handle_event по якорю с уникализирующим окружением
+(тройка handle_event→return True→if MOUSEWHEEL). Правило: якорь обязан
+включать соседа, исключающего двусмысленность; при промахе — карта
+методов Select-String'ом до повторной врезки.
+📁 backend/app/api/routes.py (+2 эндпоинта), frontend/api_client.py
+(3 слоя), frontend/ui_workbench/workbench_screen.py (P/меню/рендер/
+провенанс)
+Статус ADR-O-409: все три канала реализованы (SELF_INTRO/NPC_MENTION/
+PLAYER_LINK) + writer-гейт + гейт головы. Осталось: включение
+NAME_GATE_ENABLED в прод (после smoke) — решение Мастера.
+
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`
 *   **Traversal/Death:** `ZOMBIE`, `DEATH-LOCK`, `TERMINALITY`
