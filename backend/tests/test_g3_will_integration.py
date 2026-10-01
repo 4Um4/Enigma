@@ -91,16 +91,19 @@ class TestG3WillIntegration:
                 f"STEAL победил, но цель-канал пуст: target={_res.intent_target!r}"
             )
         # Честная фиксация текущих весов (для будущей калибровки; не assert).
+        # PEP 701: многострочное выражение внутри f-string допустимо только с 3.12,
+        # а CI гоняет матрицу 3.11/3.12 — поэтому top3 считается до подстановки.
+        _top3 = sorted(
+            ((k, v) for k, v in _res.scores_trace.items()
+             if isinstance(v, (int, float)) and k not in (
+                 'opp_attention_component', 'opp_distance_component',
+                 'opp_weapon_component', 'opp_allies_component',
+                 'opp_raw_score', 'opp_threshold')),
+            key=lambda x: -x[1])[:3]
         print(
             f"[G3-T1] raw={_opp_raw} winner={_res.intent.value} "
             f"target={_res.intent_target!r} "
-            f"top3={sorted(
-                ((k, v) for k, v in _res.scores_trace.items()
-                 if isinstance(v, (int, float)) and k not in (
-                     'opp_attention_component', 'opp_distance_component',
-                     'opp_weapon_component', 'opp_allies_component',
-                     'opp_raw_score', 'opp_threshold')),
-                key=lambda x: -x[1])[:3]}"
+            f"top3={_top3}"
         )
 
     def test_closed_moment_keeps_steal_locked(self):

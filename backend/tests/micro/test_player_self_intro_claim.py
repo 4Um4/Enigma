@@ -10,7 +10,6 @@
 Запуск: cd backend; python -m pytest tests/micro/test_player_self_intro_claim.py -v; cd ..
 """
 
-from types import SimpleNamespace
 
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType

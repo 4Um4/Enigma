@@ -17,7 +17,6 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.domain.intent_profile import IntentSemanticField
-from app.services.input.intent_compressor import IntentCompressor
 
 BATCH = [
     # (фраза, ожидаем SELF_INTRODUCTION)
@@ -49,8 +48,8 @@ def _intro_name(field: IntentSemanticField) -> str:
 
 
 async def main() -> None:
-    from app.services.input.llm_compressor_client import LlamaCppCompressorClient
     from app.services.input.intent_compressor import IntentCompressor
+    from app.services.input.llm_compressor_client import LlamaCppCompressorClient
 
     compressor = IntentCompressor(LlamaCppCompressorClient())
     ok = 0

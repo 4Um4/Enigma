@@ -189,16 +189,16 @@ def main() -> int:
     )
     _intent_val = getattr(_result, "intent", None)
     _intent_val = getattr(_intent_val, "value", _intent_val)
-    print(f"[G1-DIAG] intent={_intent_val}; result_fields="
-          f"{[f for f in ('scores', 'scores_trace', 'components_trace', 'intent')
-              if hasattr(_result, f)]}")
+    # PEP 701: многострочное выражение внутри f-string допустимо только с 3.12,
+    # а CI гоняет матрицу 3.11/3.12 — поэтому список строится до подстановки.
+    _fields = [f for f in ('scores', 'scores_trace', 'components_trace', 'intent')
+               if hasattr(_result, f)]
+    print(f"[G1-DIAG] intent={_intent_val}; result_fields={_fields}")
     if hasattr(_result, "scores_trace"):
         print(f"[G1-DIAG] trace={_result.scores_trace}")
     elif hasattr(_result, "scores"):
         print(f"[G1-DIAG] scores={_result.scores}")
-    print(f"[G1-DIAG] intent={_intent_val}; result_fields="
-          f"{[f for f in ('scores', 'scores_trace', 'components_trace', 'intent')
-              if hasattr(_result, f)]}")
+    print(f"[G1-DIAG] intent={_intent_val}; result_fields={_fields}")
     if hasattr(_result, "scores_trace"):
         print(f"[G1-DIAG] trace={_result.scores_trace}")
     elif hasattr(_result, "scores"):
