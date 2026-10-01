@@ -10,7 +10,7 @@ path: backend/app/services/action/dm_scene_builder.py
 
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 if TYPE_CHECKING:
     from app.services.npc.decision_hub import EventContext
@@ -25,7 +25,7 @@ class SceneContext:
 
     location_id: str
     nearby_npcs: List[Dict[str, Any]]
-    visible_objects: List[str]
+    visible_objects: Dict[str, Any]
     environmental_modifiers: Dict[str, float] = field(default_factory=dict)
     line_of_sight: Dict[str, bool] = field(default_factory=dict)
 
@@ -147,13 +147,14 @@ class DMSceneBuilder:
         SceneBuilder — единственное место где текстовые факты становятся миром.
         """
         from app.services.action.dm_router import RawEvent
+        from app.services.events.event_types import EventType
         from app.services.npc.decision_hub import EventContext
 
         visible_count = sum(1 for v in scene_context.line_of_sight.values() if v)
 
         if isinstance(raw_event, RawEvent):
             return EventContext(
-                event_type=raw_event.event_type,
+                event_type=cast(EventType, raw_event.event_type),
                 actor_id=raw_event.actor_id,
                 intensity=raw_event.base_intensity,
                 witness_count=visible_count,
@@ -162,7 +163,7 @@ class DMSceneBuilder:
             )
 
         return EventContext(
-            event_type="player_interacts",
+            event_type=cast(EventType, "player_interacts"),
             actor_id="player",
             witness_count=visible_count,
             location=scene_context.location_id,

@@ -159,6 +159,12 @@ class LlamaCppCompressorClient:
 Ввод: "признавайся, что у тебя за секрет?" -> {{"action": "DIALOGUE", "social_intent": "obtain_information", "speech_act": "order"}}
 Ввод: "привет, как дела?" -> {{"action": "DIALOGUE", "social_intent": "build_rapport", "speech_act": "greeting"}}
 Ввод: "Привет. Я Марко, а ты кто?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Марко"}}}}, {{"type": "ASK_IDENTITY"}}], "speech_act": "question"}}
+Ввод: "Я Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "assert"}}
+Ввод: "Меня зовут Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "assert"}}
+Ввод: "Привет, я Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "greeting"}}
+Ввод: "Я — Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "assert"}}
+Ввод: "Здравствуй, меня зовут Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "greeting"}}
+Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я слуга этого дома десять лет", "subject": "player", "topic": "occupation"}}}}], "speech_act": "assert"}}
 Ввод: "Я ищу Горана. Ты его сегодня видел?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "видел ли Горана"}}}}], "speech_act": "question"}}
 Ввод: "ты молодец" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "COMPLIMENT"}}], "social_intent": "build_rapport", "speech_act": "compliment"}}
 Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я слуга этого дома десять лет", "subject": "player", "topic": "occupation"}}}}], "speech_act": "assert"}}

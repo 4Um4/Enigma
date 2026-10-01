@@ -735,10 +735,10 @@ NAME: SELF_INTRO (SPEAKER_MENTION в собственной реплике) · N
 ❌ Taboo: identity-link из услышанного имени; имя из npc_id напрямую;
 авто-inference имён; NameKnowledge вне avatar_service-владельца;
 подключение EncounterHistory как второго источника.
-Status: ACTIVE (реализация S306: хранилище+API+writer-гейт+NPC_MENTION+
-гейт головы за NAME_GATE_ENABLED default OFF; name_gate 7/7, IPT ALL
-GREEN; флаг-декларация реанимирована S305-сессией после якорь-промаха
-горячего файла; PLAYER_LINK-фронт и включение флага — следующие заходы).
+Status: ACTIVE — полная реализация (S306 ядро + S308 PLAYER_LINK: все
+три канала SELF_INTRO/NPC_MENTION/PLAYER_LINK, writer-гейт, гейт
+головы, REST-мост; name_gate 7/7). Остаётся включение NAME_GATE_ENABLED
+в прод (решение Мастера по живому smoke).
 Files: (план) backend/app/services/player_avatar_service.py (NameKnowledge
 + персистенция), backend/app/services/events/npc_dialogue_subscriber.py
 (writer-gate, npc_id-провенанс), frontend/ui_workbench/workbench_screen.py

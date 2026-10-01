@@ -511,6 +511,16 @@ class GameLoop:
             _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
             _bus.subscribe(EventType.NPC_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
             _bus.subscribe(EventType.PLAYER_SPOKE, _mem_subscriber.on_event) # V8-DLG-06
+            # Consumption v0 (вердикт Мастера): речевые акты игрока → Claim.
+            from app.services.events.player_speech_act_subscriber import (
+                PlayerSpeechActSubscriber,
+            )
+            _speech_act_sub = PlayerSpeechActSubscriber(
+                memory_manager=memory_manager,
+                campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+                tick_provider=lambda: int(getattr(self, "_current_tick", 0)),
+            )
+            _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
 
             # S150 FIX: Подписываем EconomyTracker для учёта диалогов (SOCIAL need)
             _bus.subscribe(EventType.NPC_SPOKE, self._on_npc_spoke_economy_tracker)

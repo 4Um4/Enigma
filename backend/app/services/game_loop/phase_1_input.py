@@ -150,7 +150,7 @@ def resolve_player_intent(
             "[ARCHAE-FASTPATH-FALLBACK] semantic_field is None → UNCERTAIN"
         )
         semantic_field = IntentSemanticField(
-            raw_text=raw_action, action_type=ActionType.UNCERTAIN
+            raw_text=raw_action, action=ActionType.UNCERTAIN
         )
     else:
         logger.debug(
@@ -407,6 +407,7 @@ def publish_classified_player_event(
     _target_id = None
     _physical_force = 0.1
     _social_pressure = 0.0
+    _semantic_acts: list = []
     if (
         hasattr(shared_context, "intent_resolution")
         and shared_context.intent_resolution
@@ -418,6 +419,8 @@ def publish_classified_player_event(
             _target_id = _params.target_id  # Извлекаем ID Слоя 2
             _physical_force = _params.physical_force
             _social_pressure = _params.social_pressure
+            # Consumption v0: акты едут с событием (копии, не живые ссылки).
+            _semantic_acts = [dict(a) for a in (_params.semantic_acts or [])]
         else:
             logger.error(
                 f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}"
@@ -467,6 +470,11 @@ def publish_classified_player_event(
         _payload["social_pressure"] = _social_pressure
     if _target_reference:
         _payload["target_reference"] = _target_reference.lower()
+    # Consumption v0 (вердикт Мастера): semantic_acts доезжают до шины —
+    # инвариант «понятое не умирает на SemanticField→DTO→payload границе».
+    # Потребитель: PlayerSpeechActSubscriber (SELF_INTRODUCTION → Claim).
+    if _semantic_acts:
+        _payload["semantic_acts"] = _semantic_acts
     # Перехват ID цели из Слоя 2, если старый контекст пуст
     if _target_id and not _payload.get("target_id"):
         _payload["target_id"] = _target_id

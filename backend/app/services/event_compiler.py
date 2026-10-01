@@ -225,7 +225,7 @@ class EventCompiler:
 
         target_xy = (node.x, node.y)
         # Source = same as target — movement completed, NPC is AT target
-        source_xy = target_xy
+        _source_xy = target_xy
 
         return ThickSceneChange(
             change_type=change.type.value,
@@ -674,7 +674,7 @@ class EventCompiler:
         Fix: shadow must return None when blocked and no valid path found.
         """
         # E11: Wall blocking check (из snapshot, не из live scene_state)
-        is_path_blocked = self._check_wall_blocking(snapshot, source_xy, target_xy)
+        _is_path_blocked = self._check_wall_blocking(snapshot, source_xy, target_xy)
 
         # E12-E13: Pathfinding + waypoint assembly
         # ADR-O-323 (Fix Rule 120 Drift): Shadow Compiler больше НЕ вычисляет путь.
@@ -682,7 +682,7 @@ class EventCompiler:
         # Любая попытка пересчёта здесь приводит к рассинхрону (Rule 120 Drift).
 
         # Восстанавливаем target_loc, который был случайно удалён другим архитектором
-        target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
+        _target_loc_restored = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
 
         proposal = getattr(change, "traversal_proposal", None)  # noqa: ENIGMA002
 
@@ -693,7 +693,7 @@ class EventCompiler:
                 # Не требует TraversalProposal, но должен быть скомпилирован в ThickSceneChange,
                 # иначе Legacy pipeline применит его, а Shadow упадёт (Class D Causal Drift).
                 if getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
-                    _target_loc = getattr(change, "target_location_id", None)  # noqa: ENIGMA002
+                    _target_loc = str(getattr(change, "target_location_id", None) or "")  # noqa: ENIGMA002
                     # ADR-O-326: is_boundary должен быть True только при реальной смене локации,
                     # чтобы совпадать с legacy_is_boundary (validation.py: _legacy_location != snapshot.location_id)
                     _is_real_boundary = bool(_target_loc and _target_loc != snapshot.location_id)
