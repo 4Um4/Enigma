@@ -86,6 +86,11 @@ class PlayerAvatarService:
         # ADR-JOURNAL: Буфер последних 100 реплик (RAM SSOT)
         # B1.3-FIX: Привязка журнала к campaign_id (раньше был общий список).
         self._dialog_journals: Dict[str, List[Dict[str, str]]] = {}
+        # ADR-O-409: NAME-ось — per-campaign знание ИМЁН игроком.
+        # Формат: npc_id → {"status": "unknown|tentative|confirmed",
+        #                   "name": str, "source": "heard|intro|player_link"}
+        # FACE-ось (recognition) живёт отдельно в scene_state — не смешиваем.
+        self._name_knowledge: Dict[str, Dict[str, dict]] = {}
 
     def clear_journal(self, campaign_id: str) -> None:
         """B1.3-FIX: Очистка RAM-кэша журнала при new_game (устранение утечки старых данных)."""
@@ -104,6 +109,9 @@ class PlayerAvatarService:
         if existed:
             path.unlink()
         self.clear_journal(campaign_id)
+        # ADR-O-409: NAME-ось — часть прохождения (reset = новая история,
+        # прецедент board_state.json, вердикт Мастера 1/S293)
+        self._name_knowledge.pop(campaign_id, None)
         return existed
 
     def _avatar_path(self, campaign_id: str) -> Path:
@@ -142,6 +150,12 @@ class PlayerAvatarService:
                 self._dialog_journals[campaign_id] = (
                     _ram if len(_ram) >= len(_disk) else _disk
                 )
+            # ADR-O-409: NAME-оси merge не нужен (dict, не список):
+            # RAM-версия всегда новее (note_* персистит сразу)
+            if self._KEY_NAME_KNOWLEDGE in data and isinstance(
+                    data[self._KEY_NAME_KNOWLEDGE], dict):
+                self._name_knowledge[campaign_id] = dict(
+                    data[self._KEY_NAME_KNOWLEDGE])
             return cast(dict, data)
         except Exception as e:
             # P0-D (S208): violation обязан быть различим от игровой ошибки
@@ -481,10 +495,13 @@ class PlayerAvatarService:
     # Event Identity (ADR-O-404): ключи журнала — константы (§12.1)
     _KEY_EVENT_ID = "event_id"
     _KEY_TICK = "tick"
+    _KEY_NPC_ID = "npc_id"   # ADR-O-409: скрытый провенанс спикера (не UI)
+    _KEY_NAME_KNOWLEDGE = "name_knowledge"   # ADR-O-409: NAME-ось (§12.1)
 
     def append_journal(
         self, campaign_id: str, speaker: str, text: str,
         channel: str = "narrative", event_id: str = "", tick: int = 0,
+        npc_id: str = "",
     ) -> None:
         """channel: direct (игрок-адресат) | overheard (подслушано) |
         narrative (DM/мир) | self (действия игрока). Эпистемическая метка
@@ -505,6 +522,10 @@ class PlayerAvatarService:
             _entry[self._KEY_EVENT_ID] = event_id
         if tick:
             _entry[self._KEY_TICK] = tick
+        if npc_id:
+            # ADR-O-409: провенанс — машина знает спикера, игрок не
+            # обязан (кормит фото-джойн доски; НЕ читается UI-рендером)
+            _entry[self._KEY_NPC_ID] = npc_id
         self._dialog_journals[campaign_id].append(_entry)
         # Ограничение 100 последних высказываний
         if len(self._dialog_journals[campaign_id]) > 100:
@@ -525,7 +546,17 @@ class PlayerAvatarService:
             data = json.loads(path.read_text(encoding="utf-8-sig"))
         except Exception:
             data = {}
-        data["dialog_journal"] = self._dialog_journals[campaign_id]
+        # ADR-O-409-фикс (пойман тестом name_gate): NAME-заметка может
+        # прийти ДО первой реплики журнала — персист не имеет права
+        # падать на неинициализированной кампании. Неинициализированный
+        # журнал на диск не пишем (нет ключа — нет секции; merge-при
+        # загрузке переживёт отсутствие).
+        _journal = self._dialog_journals.get(campaign_id)
+        if _journal is not None:
+            data["dialog_journal"] = _journal
+        # ADR-O-409: NAME-ось персистится тем же файлом (владелец один)
+        data[self._KEY_NAME_KNOWLEDGE] = self._name_knowledge.get(
+            campaign_id, {})
         path.write_text(
             json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
@@ -533,6 +564,65 @@ class PlayerAvatarService:
     def get_journal(self, campaign_id: str) -> list:
         """Возвращает буфер журнала для проекции во WorldSnapshotDTO (копия, чтобы предотвратить мутацию)."""
         return list(self._dialog_journals.get(campaign_id, []))
+
+    # ── ADR-O-409: NAME-ось (знание ИМЁН игроком) ─────────────────────
+
+    def get_name_display(self, campaign_id: str, npc_id: str,
+                         true_name: str,
+                         recognition_confirmed: bool) -> str:
+        """ADR-O-409: show_name = recognition_confirmed AND name_confirmed.
+        Прогрессия: Незнакомец → «Имя (?)» → Имя. FACE (recognition)
+        передаётся параметром — владельцем остаётся M17/scene_state;
+        этот метод — только NAME-гейт. true_name — SSOT мира
+        (npc_positions["name"]), НЕ знание игрока: неизвестное имя
+        игроку не возвращается никогда (инвариант npc_id ≠ знание)."""
+        _rec = self._name_knowledge.get(campaign_id, {}).get(npc_id)
+        if _rec is None:
+            return "Незнакомец"
+        if _rec.get("status") == "confirmed":
+            # Обе оси: лицо (M17) ∧ имя (канал intro/player_link)
+            return true_name if recognition_confirmed else "Незнакомец"
+        # tentative (heard): имя известно как СЛОВО, не идентичность
+        return f"{_rec.get('name', true_name)} (?)"
+
+    def note_name_heard(self, campaign_id: str, npc_id: str,
+                        name: str) -> None:
+        """NPC_MENTION: услышанное имя → tentative ТОЛЬКО (STOP-вердикт
+        Мастера: identity-link отсутствует физически — метод не принимает
+        ни фото, ни лица; «Торнин видел Горана» не связывает имя с телом).
+        Апгрейд unknown→tentative; понижение confirmed запрещено."""
+        self._note_name(campaign_id, npc_id, name, "tentative", "heard")
+
+    def note_name_intro(self, campaign_id: str, npc_id: str,
+                        name: str) -> None:
+        """SELF_INTRO: спикер произнёс своё имя → confirmed."""
+        self._note_name(campaign_id, npc_id, name, "confirmed", "intro")
+
+    def note_name_linked(self, campaign_id: str, npc_id: str,
+                         name: str) -> None:
+        """PLAYER_LINK (доска): игрок связал имя с лицом → confirmed,
+        source=player_link. Решение игрока, не системы — внешний
+        интерфейс мышления (BOARD, S293-формула)."""
+        self._note_name(campaign_id, npc_id, name, "confirmed", "player_link")
+
+    def _note_name(self, campaign_id: str, npc_id: str, name: str,
+                   status: str, source: str) -> None:
+        """Единственный write-path NAME-оси. Решётка статусов
+        монотонна: unknown→tentative→confirmed; понижение запрещено
+        (услышанное позже intro не «разучивает»). Персистенция
+        write-through (владелец файла один — прецедент append)."""
+        _rank = {"unknown": 0, "tentative": 1, "confirmed": 2}
+        _cmap = self._name_knowledge.setdefault(campaign_id, {})
+        _cur = _cmap.get(npc_id)
+        if _cur is None:
+            _cmap[npc_id] = {"status": status, "name": name,
+                             "source": source}
+        elif _rank.get(status, 0) > _rank.get(_cur.get("status") or "", 0):
+            _cur.update({"status": status, "name": name,
+                         "source": source})
+        else:
+            return  # без апгрейда — без записи
+        self._persist_journal(campaign_id)
 
 
 # Глобальный экземпляр

@@ -8,7 +8,6 @@ Includes Phase 1 error handling + VRAM logging.
 """
 
 import asyncio
-import json
 import logging
 import threading
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
@@ -864,22 +863,11 @@ class DmAgent:
                 system_prompt=_reinforced_system,
                 params=GenerationParams(max_tokens=settings.dm_max_tokens),
             )
-            if isinstance(raw_retry, str):
-                try:
-                    _result_retry = json.loads(raw_retry)
-                    # json.loads может вернуть str/int/list — оборачиваем в dict
-                    if not isinstance(_result_retry, dict):
-                        _result_retry = {"dm_response": str(_result_retry).strip()}
-                except Exception:
-                    _result_retry = {"dm_response": raw_retry.strip()}
-            else:
-                _result_retry = (
-                    raw_retry
-                    if isinstance(raw_retry, dict)
-                    else {"dm_response": str(raw_retry)}
-                )
-
-            dm_text = _result_retry.get("dm_response", "")
+            # R18-A (вердикт Мастера): retry не парсит JSON сам — единый
+            # владелец нормализации DMResponseNormalizer (ADR-TZ05-2, запрет
+            # №49: dm_agent не знает, как устроен JSON-ответ LLM). Третий
+            # формат в будущем = правка нормализатора, не нового if здесь.
+            dm_text = DMResponseNormalizer.normalize(raw_retry).dm_text
             # A4-FIX: передаём recent_text для проверки повторов.
             _recent = self._get_last_dm_response()
             validation = validator.validate(dm_text, recent_text=_recent)

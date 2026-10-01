@@ -860,6 +860,15 @@ class DecisionHub:
             pending_response_target=pending_response_target,
             epistemic_context=epistemic_context, # S197: Передаём для выбора цели убеждения
         )
+        # ADR-O-410 (G3 Этап 2): объектная цель воли. STEAL без цели
+        # деградирует в OBSERVE (BUG-01: STEAL вне списка исключений) —
+        # объектный факт оживляет канал. Hub object-agnostic: строка
+        # приходит данными (opportunity_ctx.steal_target); выбор объекта —
+        # canonical resolver (nearest+lex), LLM объекты мира не выбирает.
+        if best_intent is Intent.STEAL and intent_target is None:
+            _obj_target = getattr(opportunity_ctx, "steal_target", None)
+            if _obj_target:
+                intent_target = _obj_target
         # BUG-01 слой 1 (§ENIGMA-006): intent без target после резолва —
         # Unresolved Reference, не ошибка. Деградация до OBSERVE на CREATE:
         # сломанный intent не достигает ни NPCState-валидатора (слой 2,

@@ -2143,6 +2143,22 @@ ADR-O-409 (Name-Gate Closure, FACE/NAME/LINK) утверждён и внесён
 ⚙️ ГЛАВНАЯ НАХОДКА-ПАТЧ (мировые данные): _enrich_with_social_relations ронял base_affection канона (6 тёплых пар, lusya→borko 0.8) — тёплый мир был невидим runtime-решениям. Патч: base_affection [-1..1] → attraction [-100..100] — заявленный слот _LEGACY_SCALARS (V2-бэкенд не тронут, писатель один — loader). Первый случай программы: причинный слой не только построен, но и ПОЧИНИЛ данные мира. Оговорки: старые сейвы не мигрируются (existing-RAM-wins) — долг; attraction видна всем читателям V2 — бисекция (stash-дифф 12=12) доказала нулевой вклад в красноту.
 📁 domain/desired_change.py (nurture), services/npc/causal_slice_affection.py (NEW), npc_loader.py (attraction-патч), npc_tick_pipeline.py (проводка R8), tests/gameplay/test_r8_causal_slice_affection.py (NEW, 10)
 ⚠️ Долги: perception-мембрана чужого distress (CS18) · миграция attraction старых сейвов · 4-уровневый каскад причин (масштабирование) · ЭСКАЛАЦИЯ: 11 чужих фейлов gameplay (m17×1, p6_e2×5, p7×5) воспроизводятся на 6bb8cbea независимо от R8 — владельцам eavesdrop/p7-вертикалей
+⚙️ ДОПОЛНЕНИЕ 2b-ii (та же сессия, по ранжированию Мастера; ревью-метка SOCIAL):
+causal_addressee проведён сквозь решатель — compute(causal_addressee=) →
+self-доставка (паттерн S135) → _resolve_target ступень 1.5 (порядок:
+event.target_id > причинный адресат > резолвер > фоллбэк). Проводка
+адресатов из всех 4 продюсеров каскада (threat/hunger/grievance/affection).
+PRODUCTION-ДОКАЗАТЕЛЬСТВО: голодная maid_lusya → TRADE победил (0.44) →
+адресат tavern_keeper_tornin; Лечит intent-without-target системно (находка
+R7). Их зона (decision_hub, 5 строк) внесена R-сессией с ревью-меткой для
+SOCIAL — файлы их вертикали были чистыми (терминальный коммит S264+релиз
+0.5.4.2.1). Отмечен и THEIR S264-фикс threat-блока (state=state_l2 —
+живая проводка R5, тот же класс D-R6-LIVE-PROBE).
+⚠️ Инциденты 2b-ii: D-R8-MANGLED-F-ANCHOR (F-патч лег в чужой блок на
+движущемся дереве → кросс-NPC-утечка _dc_h/_dc_g через итерации цикла —
+худший исход класса; якорь-патч обязан предваряться свежей картой региона).
+Тест: tests/gameplay/test_2bii_causal_addressee.py (3).
+
 
 ### S304: CLOSED — Canonical Attention→Action Integration GREEN (Контракт Барсука I–V)
 🎯 Директива Мастера: P3e GREEN ≠ завершение — доказать внимание в каноническом
@@ -2176,6 +2192,70 @@ ADR-O-409 (Name-Gate Closure, FACE/NAME/LINK) утверждён и внесён
    TZ-GHOST-1, NEED-SAT-1, LANG_LEAK/RE-D2, TZ-OBS-5, DIAG-зонды ×10,
    [SHADOW_COMPILER] FAILED.
 
+### S305: G-TRACK — Understanding Pipeline: Multi-Act + World Validation + Player-Move + Recovery Boundary | ✅ micro 95/95 · IPT 49/0 · Gate A 3/3
+🎯 Директива Мастера: G1 «проекция понимания» → Understanding Engine. Доказано: одна человеческая фраза → несколько semantic acts → детерминированная валидация → core → NPC-ответ, осмысленный относительно актов.
+⚙️ **Multi-Act Understanding:** `IntentSemanticField.semantic_acts[]` + `IntentParametersDTO.semantic_acts` (аддитивно; §ENIGMA-003 — нет данных → ключ отсутствует). F-B фикса промпта компрессора (64K chars дампа сцены → компактный контекст: имена/id NPC + диалог) — **оживил мёртвый LLM slow-path** (R7: промпт 28K токенов > ctx 8192 → 400 → тихий fallback → система работала на словаре, LLM никогда не отвечала). Контрастный few-shot (Марко/Горан-поиск/confirmation-инверсия).
+⚙️ **Reconciler v0** (compress-канон: fast-complete → return; fast-incomplete → LLM → enrich; slow-only → return; **все выходы через ACT RECOVERY boundary**). Enrichment-only пустых полей; R4-фантомы (proposition с нерезолвнутой сущностью) сняты живьём; recovery из legacy-полей (speech_act/requested_outcome → QUESTION/CONFIRMATION_SEEKING/GREETING/ASSERT) + proposition→ASSERT; Gate A 3/3 CONFIRMATION_SEEKING после контрастного few-shot.
+⚙️ **World Validation v0** (WV): SSOT досягаемости `BODY_REACH_M=0.8` + `WEAPON_REACH_M` (dom/constants, Q1-вердикт: тело+reach предмета, без магических 2.0/5.0); реактивация range gate в CombatSubscriber (мёртв с MVP-теста); WV-гейт в turn_pipeline ДО DM (OUT_OF_RANGE/MISSING_TOOL → `physics_validation` → DM-канал отказа); **«попытка ≠ событие»**: `action_rejected` гейтит PLAYER_ATTACKED-публикацию (свидетели не получают вер о несостоявшемся ударе); inversions: DM-галлюцинация удара устранена, «Люся убегает и помнит» = правильная социальная причинность (BODY_REACH не тронут — вердикт).
+⚙️ **Z-фикс player-MOVE** (ADR-O-330 труба была мертва: инжект в _TickContext умирал): `PipelineContext.pending_movement_intents` → сидирование в create_tick_context (критерий `_is_player`, отсекает time-ctx) → movement_bridge. Player физически перемещается (Y 5.5→3.0, инкрементально).
+⚙️ **NAME_GATE реанимация** (ADR-O-409): `NameError _NAME_GATE_ENABLED` ронял on_npc_spoke → journal/event_id не писались (10 красных identity-тестов). Объявление восстановлено (env NAME_GATE_ENABLED, default OFF = паритет) + заглушка теста обновлена под `npc_id`-провенанс.
+⚙️ **Съём зондов:** [DIAG-*]/[Z-*]/[RECONCILE] print → logger (RE-D2-класс только logger.error), [DIAG-MV]/[Z-ID]/[Z-TEST] удалены.
+📁 domain/intent.py, domain/intent_profile.py, services/input/intent_compressor.py, services/input/llm_compressor_client.py, services/game_loop/phase_1_input.py, services/game_loop/turn_pipeline.py, services/game_loop/game_loop.py, services/game_loop/dm_phase.py, services/combat/combat_subscriber.py, services/tick_orchestrator.py, services/tick_utils.py, services/phases/movement_bridge.py, services/events/npc_dialogue_subscriber.py, services/events/claim_event_subscriber.py, models/schemas.py, models/pipeline_context.py, tests/sandbox/micro/test_player_intent_projection.py (+5), test_understanding_schema_transport.py (+3), test_claim_guard.py (+3), test_target_resolve_canonical_id.py (+3), test_reconciler_v0.py (+3), test_r8_continue_gate.py (+2), test_x1_intent_shadowing.py (+2)
+⚠️ Открытые: RE-D2 (STM async boundary — блокер consumption), R18 (DM JSON-обёртка в тексте), R16 (actor/addressee различение), R17 (имя-дрейф Горан→Горох), multi-act preservation («…да? Пойдем за мной» → ORDER теряется), Z-player-MOVE инкрементальность. IPT-47-й инвариант и NAME_GATE — зоны параллельных сессий.
+IPT: ✅ 49/0 · micro: ✅ 95/95 · красные инварианты: 0 🔴
+
+### S306: ADR-O-409 реализация — NameKnowledge (NAME-ось) + writer-гейт + гейт головы | ✅ name_gate 7/7, IPT ALL GREEN
+🎯 Реализация утверждённого ADR-O-409 (FACE/NAME/LINK): канонический
+инвариант npc_id ≠ знание игрока получает write-path и гейты. Всё за
+флагом NAME_GATE_ENABLED (env, default OFF — OFF = байтовый паритет,
+IPT-доказано: прогон зелёный при OFF).
+⚙️ Шаг 1-2 (avatar_service): хранилище _name_knowledge (per-campaign,
+npc_id → status/name/source) + персистенция секцией player_avatar.json
+(RMW save_state секцию сохраняет — проверено N-18); reset_campaign
+чистит (расследование = часть прохождения); API: get_name_display
+(show_name = recognition ∧ name; confirmed-без-лица → Незнакомец —
+строгое И; tentative → «Имя (?)» без FACE-условия: имя-как-слово
+слышимо из-за угла) + note_name_heard/intro/linked (закрытый список
+каналов; identity-link отсутствует физически — STOP-вердикт Мастера);
+_note_name — единый write-path, монотонная решётка unknown→tentative→
+confirmed (понижение запрещено), write-through персистенция.
+⚙️ Шаг 3+5 (subscriber writer-зона): гейт под флагом — _speaker_name
+через get_name_display (FACE-проекция канала = M17-семантика direct,
+не второй SSOT); SELF_INTRO (_resolved in text → intro); NPC_MENTION
+(все npc_positions-имена в text → heard-tentative, только канонический
+name-SSOT, player исключён); провенанс npc_id в append_journal (скрытое
+поле, кормит фото-джойн доски; game_loop-вызовы без npc_id — player и
+Рассказчик корректно без провенанса).
+⚙️ Шаг 6 (гейт головы, Вариант B по слоистости): _refresh_name_gate в
+drain_pending_recognition (пересборка ДО early-return — NAME-знание
+меняется в writer-гейте без pending) пишет scene_state["name_gate"]
+= {npc_id: display_name} (runtime-мост, модель player_recognition;
+SSOT — player_avatar.json); builder читает готовое поле в
+confirmed-ветке — остаётся чистой проекцией, ноль сервисов (N-31:
+avatar_service в builder'е отсутствовал — тянуть = ломать слои).
+⚙️ БАГ-НАХОДКА (пойман тестом до включения флага): _persist_journal
+падал KeyError при NAME-заметке до первой реплики (неинициализированный
+_journal) — фикс: гард .get() с пропуском секции; в живом контуре
+спал (журнал всегда раньше), любая будущая точка note_* уронила бы прод.
+⚙️ Тесты (tests/micro/test_name_gate.py, 7): гейт-инвариант (нет
+NAME → Незнакомец при FACE-confirmed), confirmed-без-лица, полная
+прогрессия, STOP-кейс (heard не линкует identity, дважды-heard не
+апгрейдит), монотонность (heard после intro не разучивает), round-trip
+(секция в JSON + перезагрузка), провенанс-аддитивность (легаси-записи
+без npc_id валидны).
+📁 backend/app/services/player_avatar_service.py (хранилище+API+персист),
+backend/app/services/events/npc_dialogue_subscriber.py (writer-гейт,
+SELF_INTRO, NPC_MENTION, name_gate-мост, флаг),
+backend/app/services/integration/world_snapshot_builder.py (reader),
+backend/tests/micro/test_name_gate.py (NEW)
+Дальше: PLAYER_LINK (доска-ассоциация фото↔имя → note_name_linked) —
+фронт-заход; включение флага в прод — после живого smoke обоих гейтов;
+DM-промпт имён — эскалация semantic-сессии остаётся.
+Кросс-сессия: флаг-декларация _NAME_GATE_ENABLED погибала при якорь-
+промахе горячего файла (поймал S305-GATE-TRACK, восстановлена) —
+подтверждение урока ловушки №5 handoff: якоря только из свежего
+археологического вывода, hot-файлы требуют перечитывания зоны перед
+каждой врезкой.
 
 
 *   **Dialogues:** `STM`, `SCHEDULER-FAIL` (L4), `LIVENESS`

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 
 # ADR-O-399: атомарный контейнер результата worker-задачи. Не SSOT, не шина,
@@ -156,7 +156,7 @@ class TaskScheduler:
         if _dlg is None:
             logger.warning("[TASK_SCHED] set_epistemic_wiring: DialogueExecutor отсутствует")
             return
-        _dlg.set_epistemic_wiring(
+        cast(Any, _dlg).set_epistemic_wiring(
             discovery_bridge=discovery_bridge,
             npc_states_provider=npc_states_provider,
             relationship_provider=relationship_provider,

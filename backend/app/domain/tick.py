@@ -83,6 +83,10 @@ def create_tick_state(
     # Пустая карта (флаг OFF / продюсеров нет до P2) → честный {} — no-op
     # по паттерну ADR-O-378 (affordance_facts_map).
     attention_states_map: Optional[Dict[str, Any]] = None,
+    # ADR-O-410 (G3 Этап 2): per-NPC объектная цель воли (v1: steal_target,
+    # wo_id) из замороженного снапшота. Пустая карта (флаг OFF / целей нет)
+    # → потребитель читает None, байт-идентично легаси.
+    object_target_map: Optional[Dict[str, str]] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -137,6 +141,7 @@ def create_tick_state(
         epoch_id=epoch_id,
         world_view=world_view,
         attention_states_map=frozen(attention_states_map) if attention_states_map else {},
+        object_target_map=frozen(object_target_map) if object_target_map else {},
     )
 
 
@@ -217,6 +222,9 @@ class TickState:
     # CognitionContext v0 (P1): preloaded внимание (dict as-is по семантике
     # frozen() S268; редюсер только читает — INV-хеш-трипвайр ловит мутацию).
     attention_states_map: Any = field(default_factory=dict)
+    # ADR-O-410 (G3 Этап 2): {npc_id: wo_id} — детерминированный выбор цели
+    # (nearest+lex); читает только редюсер, пишет только оркестратор.
+    object_target_map: Any = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

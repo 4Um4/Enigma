@@ -103,6 +103,20 @@ class DMResponseNormalizer:
         else:
             return DMOutput(dm_text=str(raw).strip(), schema_type="unknown")
 
+        # R18-B (вердикт Мастера): decode depth 1 — РОВНО один уровень
+        # JSON-in-JSON. Первый decode вернул строку, являющуюся JSON-объектом
+        # (double-encoded) → декодируем ещё раз, без рекурсии/цикла.
+        # Обычная строка ("Привет, Михаил") не начинается с { — остаётся текстом.
+        if isinstance(result, str):
+            _r = result.strip()
+            if _r.startswith("{") and _r.endswith("}"):
+                try:
+                    result = json.loads(_r)
+                except Exception as _e:
+                    # Не JSON-объект, просто текст, начинающийся с '{' —
+                    # прежнее поведение (текст без второго декода).
+                    logger.debug(f"[DM_NORMALIZER] depth-1 decode skipped: {_e}")
+
         if not isinstance(result, dict):
             return DMOutput(dm_text=str(result).strip(), schema_type="unknown")
 

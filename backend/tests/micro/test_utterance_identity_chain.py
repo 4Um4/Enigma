@@ -62,10 +62,13 @@ class _CapturingAvatar:
         self.calls = []
 
     def append_journal(self, campaign_id, speaker, text, channel="narrative",
-                       event_id="", tick=0):
+                       event_id="", tick=0, **kwargs):
+        # ADR-O-409: провенанс npc_id пришёл в production-подпись — заглушка
+        # принимает расширения kwargs (контракт живой, тест не должен падать
+        # на каждом новом поле журнала).
         self.calls.append(
             {"speaker": speaker, "text": text, "channel": channel,
-             "event_id": event_id, "tick": tick}
+             "event_id": event_id, "tick": tick, **kwargs}
         )
 
 

@@ -79,6 +79,10 @@ _ALLOWED_WRITERS: Tuple[str, ...] = (
     "tests.test_object_fsms",
     "tests.gameplay.harness",
     "tests.test_g3_executor",
+    # G2-фактовый сьют (ADR-O-378) спавнит wo-фикстуры через стор (:52) —
+    # легитимная тест-инфраструктура, скрыто красная с активацией Г4
+    # (пропуск гейт-блока коммита №1: сьют не гонялся; вскрыт Этапом 2).
+    "tests.test_affordance_facts",
     # IPT.py выполняется как __main__ (python IPT.py): smoke-часть
     # INV-WORLD-OBJECT-TOPOLOGY спавнит/мутирует wo-объекты напрямую —
     # тест-инфраструктура инварианта, не production-путь (цензус-класс

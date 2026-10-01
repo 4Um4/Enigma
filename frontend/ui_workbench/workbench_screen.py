@@ -355,6 +355,7 @@ class WorkbenchScreen:
         self._board_input_mode: Optional[tuple] = None  # None | ("create",) | ("edit", hyp_id)
         self._board_stub = EditorBoardStub()  # P: полигон редактора (in-memory)
         self._board_card_scroll: Dict[str, int] = {}  # №6: cid → скрытые строки сверху
+        self._board_card_npc: Dict[str, str] = {}  # PLAYER_LINK: cid → npc_id (провенанс записи)
         self.journal_unread: int = 0  # Идея-7: записи, пришедшие при свёрнутом журнале (сессионный, не персистится)
 
         # Демо-данные (editor-контекст); game_context их не использует.
@@ -943,6 +944,40 @@ class WorkbenchScreen:
                 return True
             self._board_input.handle_event(event)
             return True
+        # PLAYER_LINK-меню (ADR-O-409): ↑/↓/Enter/Esc; имена — из
+        # журнала игрока, только direct/overheard (вердикт: доска не
+        # подсказывает; Рассказчик — не человек). Модально: весь
+        # остальной ввод доски съеден, пока меню открыто. Стоит ПОСЛЕ
+        # C1-инпута (набор гипотезы приоритетнее) и ДО всех клавиш —
+        # P-меню перехватывает стрелки/Enter до L/U/E/X.
+        _menu = getattr(self, "_board_link_menu", None)
+        if _menu is not None:
+            _names = sorted({
+                e.get("speaker", "") for e in self._journal_entries("all")
+                if e.get("speaker") and e.get("speaker") != "Ты"
+                and e.get("channel") in ("direct", "overheard")})
+            if not _names or (event.type == pygame.KEYDOWN
+                              and event.key == pygame.K_ESCAPE):
+                self._board_link_menu = None
+                return True
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
+                _menu["idx"] = (_menu["idx"] + 1) % len(_names)
+                return True
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
+                _menu["idx"] = (_menu["idx"] - 1) % len(_names)
+                return True
+            if (event.type == pygame.KEYDOWN
+                    and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)):
+                if self.game_context:
+                    try:
+                        self._core._gateway.player_link_name(
+                            self._board_campaign, _menu["npc_id"],
+                            _names[_menu["idx"]])
+                    except Exception as e:
+                        self._board_error = str(e)
+                self._board_link_menu = None
+                return True
+            return True
         if event.type == pygame.MOUSEWHEEL:
             # №6: wheel над карточкой = внутренняя прокрутка текста.
             # Верхняя граница клампится в рендере (по числу строк против
@@ -1043,6 +1078,15 @@ class WorkbenchScreen:
                             self._board_error = str(e)
                 self._refresh_board()
                 return True or _removed
+            if (event.key == pygame.K_p and len(self._board_selected) == 1):
+                # ADR-O-409 PLAYER_LINK: P = связать имя (вердикт меню —
+                # только имена, встречавшиеся в журнале; доска не подсказывает)
+                _pc = next((_c for _c in self._board_cache.get("cards", [])
+                            if _c.get("id") == self._board_selected[0]), None)
+                _pnid = self._board_card_npc.get(self._board_selected[0])
+                if _pnid:
+                    self._board_link_menu = {"npc_id": _pnid, "idx": 0}
+                return True
             if (event.key == pygame.K_e and len(self._board_selected) == 1):
                 # C2 (вердикт М 7): E = edit — консистентный command
                 # surface N/L/U/X/E вместо double-click (temporal state).
@@ -1860,6 +1904,10 @@ class WorkbenchScreen:
                     _hover_tip = (_mk + _entry.get("speaker", "???"),
                                   _entry.get("text", ""))
                     _av_spk = _entry.get("speaker", "???")
+                    _pn = _entry.get("npc_id", "")
+                    if _pn:
+                        self._board_card_npc[_cid] = _pn
+                    _av_npc = _entry.get("npc_id", "")   # ADR-O-409 провенанс → PLAYER_LINK
                 else:
                     # Мёртвая journal-карточка: FIFO cap-100 вытеснил
                     # запись из журнала — валидное состояние (ТЗ Phase 4
@@ -2006,6 +2054,44 @@ class WorkbenchScreen:
                 "Enter — сохранить · Esc — отмена", True,
                 self.theme.token("text_muted"))
             screen.blit(_hint, (body.x + 8, body.bottom - 94))
+        # PLAYER_LINK-рендер (ADR-O-409): список имён из журнала —
+        # только услышанное, доска не подсказывает. Курсор — рамка-
+        # акцент (канон клавиатурных меню S3.18); Esc/Enter — в вводе.
+        _menu = getattr(self, "_board_link_menu", None)
+        if _menu is not None:
+            _names = sorted({
+                e.get("speaker", "") for e in self._journal_entries("all")
+                if e.get("speaker") and e.get("speaker") != "Ты"
+                and e.get("channel") in ("direct", "overheard")})
+            if not _names:
+                _menu["idx"] = 0
+                _names = ["(имён в журнале нет)"]
+            _menu["idx"] = _menu["idx"] % len(_names)
+            _mw = 260
+            _mh = 34 + len(_names) * 22 + 10
+            _mx = body.centerx - _mw // 2
+            _my = body.centery - _mh // 2
+            _mrect = pygame.Rect(_mx, _my, _mw, _mh)
+            self._fill_alpha(screen, _mrect,
+                             *self._cta(None, "surface_title"), 235)
+            self._stroke_alpha(screen, _mrect,
+                               *self._cta(None, "border_accent"), 2, 220)
+            _hs = self._font_text.render(
+                "Связать имя (Enter — выбрать, Esc — отмена)", True,
+                self._ct(None, "text_primary"))
+            screen.blit(_hs, (_mx + 10, _my + 6))
+            _ny = _my + 34
+            for _i, _nm in enumerate(_names):
+                _sel = _i == _menu["idx"]
+                if _sel:
+                    _rr = pygame.Rect(_mx + 6, _ny - 2, _mw - 12, 22)
+                    self._stroke_alpha(screen, _rr,
+                                       *self._cta(None, "accent"), 1, 200)
+                _ns = self._font_text.render(
+                    _nm, True,
+                    self._ct(None, "accent" if _sel else "text_muted"))
+                screen.blit(_ns, (_mx + 12, _ny))
+                _ny += 22
         # Tooltip (hover): полный материал карточки — чтение без
         # заглядывания в журнал. Не рисуем при активном drag (рука
         # занята — tooltip после того, как положили). Мышь в рендере

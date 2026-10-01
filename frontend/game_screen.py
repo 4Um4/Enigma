@@ -2209,9 +2209,14 @@ class GameScreen:
                 )
 
 
-            # S151: Отрисовка панели воплощённого статуса (деньги, еда, потребности)
+            # HUD аватара: числа-виджеты до-релиза (вердикт Мастера —
+            # интегрируемый файл: замена avatar_hud.py меняет отображение).
+            # Анализ-рендерер S151 заменён; его embodied-ветка больше не
+            # зовётся (AnalysisRenderer остаётся для своих прочих задач).
             if isinstance(scene_state, dict):
-                self._analysis_renderer.draw_embodied_status(scene_state.get("embodied_status", {}))
+                import avatar_hud
+                avatar_hud.draw(self.screen, scene_state,
+                                self._workbench.theme)
 
             # UI Workbench: окна поверх всего кадра (после HUD/пузырей, до флипа).
             # Только пока верстак активен (F12): иначе нулевой оверхед.

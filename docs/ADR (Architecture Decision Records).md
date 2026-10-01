@@ -735,8 +735,10 @@ NAME: SELF_INTRO (SPEAKER_MENTION в собственной реплике) · N
 ❌ Taboo: identity-link из услышанного имени; имя из npc_id напрямую;
 авто-inference имён; NameKnowledge вне avatar_service-владельца;
 подключение EncounterHistory как второго источника.
-Status: APPROVED (эскиз утверждён Мастера дословно; реализация —
-следующий заход: backend NameKnowledge + journal-gate + провенанс).
+Status: ACTIVE (реализация S306: хранилище+API+writer-гейт+NPC_MENTION+
+гейт головы за NAME_GATE_ENABLED default OFF; name_gate 7/7, IPT ALL
+GREEN; флаг-декларация реанимирована S305-сессией после якорь-промаха
+горячего файла; PLAYER_LINK-фронт и включение флага — следующие заходы).
 Files: (план) backend/app/services/player_avatar_service.py (NameKnowledge
 + персистенция), backend/app/services/events/npc_dialogue_subscriber.py
 (writer-gate, npc_id-провенанс), frontend/ui_workbench/workbench_screen.py
@@ -753,6 +755,13 @@ Files: `backend/app/domain/desired_change.py` (nurture), `backend/app/services/n
 Taboo: ❌ чтение Гейт① life-кэша как источника intent (INV-N18-SOURCE); ❌ объявление need_driven-продолжения при observe багом внимания (Case A/B — потребности/исполнение, не perception); ❌ патч Гейт①-предиката ради сценариев; ❌ интерпретация этой записи как полного внедрения во все контуры.
 Status: ACTIVE (S304 CLOSED)
 Files: backend/app/services/tick_orchestrator.py (writer npc_intents), backend/app/services/phases/simulation.py (reader Gate①), backend/tests/IPT.py (INV-N18-SOURCE), backend/tests/sandbox/micro/test_gate1_source.py, backend/tests/sandbox/SUPERBOX/scenarios/cognition_p3e_test.py, backend/tests/sandbox/SUPERBOX/scenarios/cognition_attention_integration_test.py, scripts/ghost_reaper.py
+
+`ADR-O-410` [ONTO] **W-Track G3 — Object Action Executor: первый runtime-writer WorldObjectStore (S305)**
+Суть: Вертикаль `intent → исполнитель → мутация мира → событие` замкнута. G3-executor (svc/world/g3_executor.py) получает УЖЕ разрешённый интент (STEAL, target_id=wo_*) и отвечает только «исполнимо ли → мутация → исход»; целеполагание — не его контур (И-1). Врезка — Фаза 7 release-ветка, до to_event: PASS → apply_transition (TAKE; STEAL=W5-интерпретация, ADR-O-376) + событие существующим путём; REJECT → INTERRUPTED(INTERRUPT_G3_OBJECT_REJECT), событие НЕ публикуется (D4: событие = утверждение факта); SKIP → passthrough (D7a: «не утверждает, что действие исполнено; лишь не принимает ownership unresolved intent»; honest-zero — steal-цели без wo_-identity в production). Г4-цензус `_ALLOWED_WRITERS` в write-шлюзе `_write_subtree` (тройное правило матча — conftest dual-name, прецедент PK-guard); расширение = мини-ADR. Статус-словарь G3_PASS/G3_NO_OP/G3_REJECT/G3_SKIP. Флаг W3_G3_ENABLED default OFF = no-op до вычислений (прецедент W3_G2_ENABLED). D5-факт: chair-TAKE NO_OP недостижим (уже-held → NOT_FREE REJECT) — дубль-THEFT онтологически невозможен; ветвь NO_OP = контракт будущих маппингов. Extension contract: канал world-facts→intent(target) — общий (Этап 2). Приёмка: юнит 9/9; GC-00 A/B OFF/ON GREEN (ON: holder=thief_shadow; OFF: holder=None при живом THEFT).
+Taboo: executor целеполагает; расширение закрытых реестров (_ACTION_TO_WORLD, цензус Г4) без мини-ADR; write мимо стора; событие при REJECT; повторный WillpowerGate на release (OUT OF SCOPE v1); MutationRecord до потребителя.
+Status: ACTIVE (Этап 1 — исполнительное ядро; Этап 2 — живая воля, отдельный коммит)
+Files: backend/app/services/world/g3_executor.py (нов), world_object_store.py (Г4), phases/post_decision.py (врезка Фазы 7), domain/action_commitment.py (reason-константа), tests/test_g3_executor.py (нов, 9), tests/gameplay/harness.py (spawn_world_object), tests/sandbox/g3_execution_probe.py (нов, приёмка)
+
 
 ## 🧬 EQUIVALENCE VALIDATOR (Drift Measurement)
 

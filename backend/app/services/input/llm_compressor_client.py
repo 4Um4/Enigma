@@ -19,7 +19,8 @@ class LLMCompressorClient(Protocol):
     """Интерфейс компрессора. LLM = Voice, но здесь она Semantic Parser."""
 
     async def compress_intent(
-        self, raw_text: str, scene_context: Dict[str, Any]
+        self, raw_text: str, scene_context: Dict[str, Any],
+        dialogue_session: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]: ...
 
 
@@ -43,8 +44,6 @@ class LlamaCppCompressorClient:
         import urllib.request
 
         system_prompt, user_prompt = self._build_prompts(raw_text, scene_context, dialogue_session)
-        # [DIAG-LLM] v3: размеры промпта — проверка H4 (переполнение n_ctx)
-        print(f"[DIAG-LLM] prompt sizes: system={len(system_prompt)} user={len(user_prompt)} total={len(system_prompt)+len(user_prompt)} chars")
         payload = {
             "messages": [
                 {"role": "system", "content": system_prompt},
@@ -77,26 +76,24 @@ class LlamaCppCompressorClient:
                 if json_match:
                     content = json_match.group(0)
 
-                _parsed = cast(Dict[str, Any], json.loads(content))
-                # [DIAG-RAW] временный зонд Multi-Act: сырой ответ сервера
-                print(f"[DIAG-RAW] llm_response={content[:800]}")
-                return _parsed
+                return cast(Dict[str, Any], json.loads(content))
         except json.JSONDecodeError as e:
             # S203 FIX: Логируем сырой ответ LLM, чтобы понять, почему парсинг падает.
             logger.error(f"[LLM_COMPRESSOR] JSONDecodeError: {e}. Raw content: {content if 'content' in locals() else 'N/A'}")
             return None
         except (urllib.error.URLError, KeyError, IndexError) as e:
-            logger.debug(f"LLM compressor request failed: {e}")
-            # [DIAG-LLM] v3: тело ответа сервера — причина 400 его словами
+            # L4: причина отказа видима на error-уровне (урок R7 — debug
+            # прятал смерть LLM-слоя 12 ходов); тело HTTPError — диагноз сервера.
             _body = ""
             if isinstance(e, urllib.error.HTTPError):
                 try:
                     _body = e.read().decode("utf-8", errors="replace")[:600]
                 except Exception as read_error:
-                    # L4: тихий отказ устранён — неудача чтения тела ошибки
-                    # не отменяет обработку исходной ошибки компрессора.
-                    logger.debug(f"[DIAG-LLM] Failed to read HTTP error body: {read_error}")
-            print(f"[DIAG-LLM] compress FAILED: {type(e).__name__} code={getattr(e, 'code', '')} | SERVER BODY: {_body}")
+                    logger.debug(f"Failed to read HTTP error body: {read_error}")
+            logger.error(
+                f"[LLM_COMPRESSOR] request failed: {type(e).__name__} "
+                f"code={getattr(e, 'code', '')} | SERVER BODY: {_body}"
+            )
             return None
         except Exception as e:
             logger.error(f"[LLM_COMPRESSOR] Unexpected error: {e}")
@@ -214,7 +211,7 @@ class LlamaCppCompressorClient:
                   f"top12={_top}")
         else:
             print(f"[DIAG-PROMPT] scene_context type={type(scene_context).__name__} len={len(str(scene_context))}")
-        print(f"[DIAG-PROMPT] raw_text={len(raw_text)} system={len(system_prompt)} dialogue_ctx={len(dialogue_context_str)}")
+
 
         # F-B (директива Understanding Layer, п.1): компактный контекст семантического
         # разбора вместо дампа мира. Замер [DIAG-PROMPT]: 49-50K chars из 50K user_prompt

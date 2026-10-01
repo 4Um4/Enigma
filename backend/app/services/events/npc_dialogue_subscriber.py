@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from app.domain.communication import SELF_TALK_SENTINEL
 from app.domain.player_epistemics import SurfaceEvent, SurfaceKind
@@ -21,6 +21,13 @@ from app.services.memory.intelligence_queue import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ADR-O-409: writer-gate имён журнала (default OFF — OFF = байтовый
+# паритет прежнего резолва speaker из npc_positions). Прецедент env-
+# флагов: d8p_enabled выше; ARBITER_ENFORCEMENT/COGNITION_V0.
+import os as _os
+
+_NAME_GATE_ENABLED = _os.environ.get("NAME_GATE_ENABLED", "0") == "1"
 
 
 class NpcDialogueSubscriber:
@@ -115,10 +122,44 @@ class NpcDialogueSubscriber:
             )
             return None, None
 
+    def _refresh_name_gate(self, scene_state: dict) -> None:
+        """ADR-O-409: scene_state["name_gate"] = {npc_id: display_name}
+        для всех NPC с recognition-записью (кандидаты видимости над
+        головой). Имена мира — из _npc_positions (SSOT, тот же источник,
+        что и writer-резолв); NAME-ось — avatar_service. Builder читает
+        готовое поле — остаётся чистой проекцией (ноль сервисов)."""
+        _campaign_id = self._get_campaign_id()
+        _recog = scene_state.get("player_recognition", {})
+        if not _campaign_id or not _recog:
+            return
+        _positions: Dict[str, Any] = {}
+        if self._get_spatial_query:
+            _sq = self._get_spatial_query()
+            _positions = (getattr(_sq, "_npc_positions", None) or {}
+                          if _sq else {})
+        _gate = scene_state.setdefault("name_gate", {})
+        for _nid, _rent in _recog.items():
+            _pdata = _positions.get(_nid)
+            _tname = (
+                _pdata.get("name")
+                if isinstance(_pdata, dict)
+                else getattr(_pdata, "name", None)
+            ) or _nid
+            _gate[_nid] = self._avatar_service.get_name_display(
+                _campaign_id, _nid, _tname,
+                _rent.get("status") == "confirmed")
+
     def drain_pending_recognition(self, scene_state: dict) -> None:
         """M17 этап 2: применение pending tentative-записей в drain-границе
         (прецедент drain_commitment_outbox, те же точки вызова).
         confirmed НЕ понижается — предположение никогда не затирает знание."""
+        # ADR-O-409 (шаг 6, тот же флаг): пересборка name_gate ДО
+        # early-return — NAME-знание (SELF_INTRO/NPC_MENTION) меняется
+        # в writer-гейте без pending-recognition, гейт головы обязан
+        # это видеть. Поле — runtime-мост (та же модель, что
+        # player_recognition), SSOT — player_avatar.json.
+        if _NAME_GATE_ENABLED and scene_state:
+            self._refresh_name_gate(scene_state)
         if not self._pending_recognition or not scene_state:
             return
         _recog = scene_state.setdefault("player_recognition", {})
@@ -255,11 +296,46 @@ class NpcDialogueSubscriber:
                     # M17-recognition ниже НЕ гардим: tentative-распознавание
                     # адресата легально и для player-спикера.
                     if speaker != "player":
+                        # ADR-O-409 writer-gate (флаг, default OFF):
+                        # журнал хранит display_name по NAME-оси — имя
+                        # появляется, когда заработано. OFF = прежний
+                        # резолв из npc_positions (байтовый паритет).
+                        if _NAME_GATE_ENABLED:
+                            # FACE-проекция канала = M17-семантика
+                            # (direct: разговор состоялся — тот же факт,
+                            # по которому drain_pending_recognition
+                            # пишет confirmed). Не второй SSOT.
+                            _face = _channel == "direct"
+                            # SELF_INTRO: спикер произнёс собственное имя
+                            if _resolved and _resolved in text:
+                                self._avatar_service.note_name_intro(
+                                    _campaign_id, speaker, _resolved)
+                            # NPC_MENTION (ADR-O-409, STOP-вердикт):
+                            # чужие имена, услышанные в тексте → tentative
+                            # ТОЛЬКО. Identity-link НЕ создаётся: услышать
+                            # «Торнин видел Горана» не значит связать имя
+                            # Горана с лицом. Кормит NAME-ось, не FACE.
+                            for _oid, _odata in _npc_positions.items():
+                                if _oid == speaker or _oid == "player":
+                                    continue
+                                _oname = (
+                                    _odata.get("name")
+                                    if isinstance(_odata, dict)
+                                    else getattr(_odata, "name", None)
+                                )
+                                if _oname and _oname in text:
+                                    self._avatar_service.note_name_heard(
+                                        _campaign_id, _oid, _oname)
+                            _speaker_name = (
+                                self._avatar_service.get_name_display(
+                                    _campaign_id, speaker, _resolved, _face)
+                                if _resolved else _speaker_name)
                         self._avatar_service.append_journal(
                             campaign_id=_campaign_id, speaker=_speaker_name, text=text,
                             channel=_channel,
                             event_id=str(getattr(event, "id", "") or ""),
                             tick=int(_event_tick or tick or 0),
+                            npc_id=speaker,  # ADR-O-409: провенанс (машина знает ≠ игрок знает)
                         )
                     # M17 этап 2 (вердикт Мастера: «всё согласовано с логикой
                     # слышимости и видимости»): tentative адресата — ТОЛЬКО здесь,

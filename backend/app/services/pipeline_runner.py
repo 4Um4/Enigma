@@ -38,6 +38,7 @@ def build_tick_state(
     epistemic_context_resolver: Optional[Any] = None, # S189: Инъекция EpistemicContextResolver
     affordance_facts_map: Optional[Dict[str, bool]] = None, # ADR-O-378 (G2 v1): preloaded факты W2
     attention_states_map: Optional[Dict[str, Any]] = None, # CognitionContext v0 (P1): preloaded внимание
+    object_target_map: Optional[Dict[str, str]] = None, # ADR-O-410 (G3 Этап 2): цели воли
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
     
@@ -105,7 +106,8 @@ def build_tick_state(
         idle_pressure_map=idle_pressure_map, # V8-SOC-5 FIX
         epistemic_store=epistemic_store, # S189: Epistemic Core
         epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
-        affordance_facts_map=affordance_facts_map, # ADR-O-378 (G2 v1): pass-through
+        affordance_facts_map=affordance_facts_map,
+        object_target_map=object_target_map, # ADR-O-378 (G2 v1): pass-through
         attention_states_map=attention_states_map, # CognitionContext v0 (P1): pass-through
         epoch_id=ctx.tick_number,  # PR-5 (S268): Temporal Epoch carrier
         world_view=_world_view,    # PR-5 (S268): read-only проекция эпохи
@@ -183,7 +185,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         from app.models.npc_state import NPCState
         from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 
-        _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
+        _spatial_query: Any = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
         if _spatial_query is None:
             logger.debug("SpatialQueryService missing in shared_context. Falling back to scene_state reader (IPT/DriftLab).")
         if not _spatial_query and ctx.scene_state:
