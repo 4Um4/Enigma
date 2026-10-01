@@ -861,11 +861,13 @@ class DecisionHub:
             epistemic_context=epistemic_context, # S197: Передаём для выбора цели убеждения
         )
         # ADR-O-410 (G3 Этап 2): объектная цель воли. STEAL без цели
-        # деградирует в OBSERVE (BUG-01: STEAL вне списка исключений) —
-        # объектный факт оживляет канал. Hub object-agnostic: строка
-        # приходит данными (opportunity_ctx.steal_target); выбор объекта —
-        # canonical resolver (nearest+lex), LLM объекты мира не выбирает.
-        if best_intent is Intent.STEAL and intent_target is None:
+        # деградирует в OBSERVE (BUG-01), а _resolve_target отдаёт
+        # фиктивный fall-through (event.actor_id) для не-сущностных целей —
+        # объектный факт переопределяет ОБА случая: канал воли владеет
+        # целью кражи. Hub object-agnostic: строка приходит данными
+        # (opportunity_ctx.steal_target); выбор объекта — canonical
+        # resolver (nearest+lex), LLM объекты мира не выбирает.
+        if best_intent is Intent.STEAL:
             _obj_target = getattr(opportunity_ctx, "steal_target", None)
             if _obj_target:
                 intent_target = _obj_target
