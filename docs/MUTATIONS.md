@@ -5,7 +5,7 @@
 > **Протокол ведения (вперёд):** завершая сессию — (1) добавить строку в реестр ниже (ID + суть + вердикт + ADR); (2) живые хвосты → раздел «Живые хвосты» (или roadmap §7, если затрагивает активные треки); (3) ничего многострочного в этот файл. MЕТА содержит только счётчик записей — проверяемый.
 
 ## МЕТА
-Записей: 165 (166 заголовков: дубль S301; пропуски номеров — артефакты ренумберов, см. ниже) | Доменов: 10 | Базлайн: IPT 49/49
+Записей: 166 (167 заголовков: дубль S301; пропуски номеров — артефакты ренумберов, см. ниже) | Доменов: 10 | Базлайн: IPT 49/49
 
 **Примечания целостности номеров:**
 - Пропуски S153/S171/S173/S197/S232/S275–S277 — артефакты параллельных серий и ренумберов (прецедент: S243, ренумбер S241→S243; S242, перенумерация при коллизии). Не восстанавливать.
@@ -206,7 +206,7 @@
 - **S308** PLAYER_LINK: третий канал — доска связывает имя↔лицо · ✅ · ADR-O-409
 - **S309** S2B.7 Pain/Injury: вечный FLAT-гвард + зонная capability-деривация + тик раны · ✅
 - **S310** TRADE MATERIALIZATION β-Stage 1: Capability Projection (β-Stage 2 + ресток — живые швы) · ✅ · ADR-O-412
-- **S311** Doc-Restructure + ADR-Net гигиена: roadmap v4.0 (3389→1277) · MUTATIONS v5.0 (2383→249, one-liner протокол) · атлас v8.0 (814→712, единый Format-Б, 12 Format-А возвращены графу) · parser-fix точка в ID (+3 теста, граф 281→285) · 62 IMPACT-шапки нормализованы · +5 stub (O-368/383/393/396/413) · ренумбер Affection→O-413 (Устав 11.1.1) · долги: AUD-D8/T3-STALE ✅ без кода, T5-ложная тревога ✅, Н-55 BORKO-debug ✅ удалён (3 debug-ветки), T6-ордек ✅ 6 корневых скриптов удалены (~31 КБ), T2 CLI-QUIET ✅ (basicConfig + IMPACT-стаб) · коммит 83bf7cee (net −4123) + cleanup-коммит · следующая цель: DTO Registry
+- **S311** Doc-Restructure + ADR-Net гигиена: roadmap v4.0 (3389→1277) · MUTATIONS v5.0 (2383→249, one-liner протокол) · атлас v8.0 (814→712, единый Format-Б, 12 Format-А возвращены графу) · parser-fix точка в ID (+3 теста, граф 281→285) · 62 IMPACT-шапки нормализованы · +5 stub (O-368/383/393/396/413) · ренумбер Affection→O-413 (Устав 11.1.1) · долги: AUD-D8/T3-STALE ✅ без кода, T5-ложная тревога ✅, Н-55 BORKO-debug ✅ удалён (3 debug-ветки), T6-ордек ✅ 6 корневых скриптов удалены (~31 КБ), T2 CLI-QUIET ✅ · 8 коммитов: 83bf7cee/3fb96020/0955c57a/4489456a/0ca69296/6e393586/58770cd8/46a6921d · протокол: LAST_SESSION.md — условный источник (headless-разработка не обновляет его; основной гейт = живой IPT; РЕЖИМ §3/§3.11, Правила §14/Health Checker/принцип №4 приведены) · следующая цель: кодовый фронт — Ступень 1 §0.2 (RE-01 M1b.3.5)
 
 ## 3. Живые хвосты (открытое; владелец обязателен)
 
@@ -238,11 +238,14 @@
 - **S306 recognition-набор**: RE-D2 (STM async boundary — блокер consumption; ⚠️ омоним закрытого RE-D2 S248 — другой баг), R18 (DM JSON-обёртка в тексте), R16 (actor/addressee различение), R17 (имя-дрейф Горан→Горох) + прочие из записи S306.
 - **S310 живые швы**: β-Stage 2 + ресток (конечный сток → honest FAILED, retry-churn borko).
 - **S309 Wound** (physical.py:244): dormant Multiple Representation — аватарный D&D-путь _check_wound, таксономии несовместимы.
+- **S312 ТЗДНЯ** (2 дефекта преемнику + починка старых тестов): P1 CI-blocker закрыт (source-guard llm_server_manager + except-мембраны ×2; collection 8 errors→0); P2 full_loop восстановлен (мембрана scene_state в reaction_subscriber:232 + тест к контракту S113/TickResultDTO — pure reducer, вход не мутируется); 70/72 старых падений закрыто (актуализации: S210 perceiving-контракт + or-ловушка хелпера, S214 reason-константа, S267 action=, S268 copy/overlay, S276 prefix-target_loc, S292 text-payload, IRON RIVER game_time-оси, DEGOD пути-фасады, SLEEP-SLICE/FIX-SCENE atomicity, цензус Г4: +activity_lifecycle_service runtime-writer +3 тестовых; NPCState._ALLOWED_WRITERS: +2 sandbox PK-scoped) · мини-ADR ×2 (цензусы) · коммит: git
 - **S255 GC-SOCIAL-01 S2.6–8**: механизм доказан замком; end-to-end — живая сессия.
 - **GC09-B(-R2) статус клетки**: вердикт S250 «закрыт через ADR-O-383 V1», но в прогонах S259–V.0.5.4.2.3 фигурирует как pre-existing RED — сверить матрицу §9.10 roadmap при первом касании.
-- **_FakeAvatar.append_journal без channel** (ADR-O-404): ×10 pre-existing падений gameplay-сьюты.
 - **S248-хвосты** (статус не подтверждён, проверить при касании): F-NS1, O1-аудит _request_in_progress, M-08, B1/B3 design-q, avatar×2, imp=0.80-lead.
 - **S276-хвост**: Фикс №1 (prefix-authoritative target_loc) CLOSED; Фикс №2 (динамическая карта) — статус в источнике обрезан, сверить.
+- **S312 reconciler_v0** (fc2175ac «Болтаем_2»): R4-контракт «incomplete attack → proposition=None» нарушен — recovery semantic_acts обогащает пропозицию ([RECOVERY] applied=['semantic_acts']). Владелец — автор теста; в 72-пул ТЗДНЯ не входил.
+- **S312 admit() docstring** (speech_scheduler:50-52): обещает легаси-деградацию «первая реплика всегда допущена» при game_time=0.0 — код даёт PACING (now-0 < latency 120). Ветка или docstring — решение владельца IRON RIVER.
+- **S312 als L4** (activity_lifecycle_service:72/:133/:293/:565/:719): except Exception глотает ArchitecturalViolationError от Г4-цензуса — маскировка guard-отказов (до цензуса давало тихий holder=None в кластере activity).
 
 ## 4. Правила ведения (вперёд)
 
