@@ -37,6 +37,8 @@
 >
 > Правила: (1) сверху вниз; (2) параллельные сессии — по трекам с Anti-Race Protocol (§11.1.1 Устава); (3) 🔴 инварианты живого IPT-прогона всегда раньше очереди (LAST_SESSION.md — только если последняя сессия завершалась запуском игры; headless-разработка его не обновляет); (4) ступень = контрактный гейт + линтеры + IPT + запись в MUTATIONS; (5) закрытие стадии с назначенным acceptance-обязательством — по §9 (реестр привязок §9.9).
 
+**Инструмент сессий (S314, 4041294e):** F5-лаборатория = microscope над production (ExperimentRunner → build_game_loop → idle_tick; temp-saves + MockProvider + ObservabilityTap; рычаг начальных состояний `npc_overrides.social` — canonical WriteGate; headless-прецедент `backend/tests/sandbox/lab_r001_clone_differential.py`). Назначение: GC-11, причинные верификации, калибровки. Отдельные ad-hoc probe не писать.
+
 **Ступень 1 — RE-01: закрыть M1b (активный фронт)**
 - [x] M1b.3.5 — flat-readers-зонд закрыт S314 (SHA 4041294e): статика + runtime P1–P6 + лаборатория R001; GAP-1 = 1A Store→cache 🟢 prod / 1B cache→reader 🟢 unit (reader починен) / 1C activation 🔴 NOT BUILT (хвост §3); вход M1b.3.6 — вердикт-матрица
 - [ ] M1b.3.6 — S128-разделение по вердикту зонда
