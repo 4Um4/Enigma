@@ -5,6 +5,7 @@ path: /frontend/focus_renderer.py
 Зависимости: pygame, constants
 Основные сущности: FocusRenderer
 """
+
 import math
 import random
 from typing import Optional
@@ -19,13 +20,13 @@ class FocusRenderer:
     def __init__(self, font_small: pygame.font.Font):
         self.font_small = font_small
         self._activity_cache = {}  # S165: Кэш для отслеживания смены активности
-        self._activity_timers = {} # S165: Таймеры исчезновения маркеров
+        self._activity_timers = {}  # S165: Таймеры исчезновения маркеров
 
     def draw_manifestations(self, screen: pygame.Surface, npc_coords: dict, manifest_indicators: dict) -> None:
         """Отрисовка наблюдаемых физических проявлений (текст под именем)."""
         if not manifest_indicators:
             return
-            
+
         for npc_id, coords in npc_coords.items():
             _manif = manifest_indicators.get(npc_id)
             if _manif and _manif.get("text"):
@@ -33,8 +34,7 @@ class FocusRenderer:
                 _manif_color = _manif.get("color", COLOR_MANIFEST_DEFAULT)
                 _manif_surf = self.font_small.render(_manif_text, True, _manif_color)
                 screen.blit(
-                    _manif_surf,
-                    (coords["sx"] - _manif_surf.get_width() // 2, coords["sy"] + coords["radius"] + 14)
+                    _manif_surf, (coords["sx"] - _manif_surf.get_width() // 2, coords["sy"] + coords["radius"] + 14)
                 )
 
     def draw_action_markers(self, screen: pygame.Surface, npc_coords: dict, entities: list) -> None:
@@ -47,17 +47,17 @@ class FocusRenderer:
             "idle": None,
         }
         _now = pygame.time.get_ticks()
-        
+
         for entity in entities:
             if entity.entity_type != "npc" or not entity.visible:
                 continue
-                
+
             _coords = npc_coords.get(entity.entity_id)
             if not _coords:
                 continue
-                
+
             _activity = getattr(entity, "activity", "idle")
-            
+
             # S165: Запускаем таймер только при смене активности
             if _activity != self._activity_cache.get(entity.entity_id):
                 if _activity in _activity_map and _activity_map[_activity] is not None:
@@ -71,7 +71,7 @@ class FocusRenderer:
                 _color = _activity_map.get(_activity) or (160, 160, 160)
                 _sx = _coords["sx"]
                 _sy = _coords["sy"] - _coords["radius"] - 32
-                
+
                 # Плавное исчезновение в последние 0.2 секунды
                 _time_left = self._activity_timers[entity.entity_id] - _now
                 if _time_left < 200:
@@ -105,10 +105,17 @@ class FocusRenderer:
 
                 screen.blit(_icon_surf, (_sx - 8, _sy - 8))
 
-    def draw_bubbles(self, screen: pygame.Surface, npc_coords: dict, speech_bubbles: dict, player_coords: dict, player_speech: Optional[dict]) -> None:
+    def draw_bubbles(
+        self,
+        screen: pygame.Surface,
+        npc_coords: dict,
+        speech_bubbles: dict,
+        player_coords: dict,
+        player_speech: Optional[dict],
+    ) -> None:
         """Отрисовка речевых облачков с разрешением коллизий."""
         _pending_bubbles = []
-        
+
         # NPC Bubbles
         if speech_bubbles:
             for npc_id, coords in npc_coords.items():
@@ -134,12 +141,16 @@ class FocusRenderer:
                             if self.font_small.size(_test)[0] <= _max_w:
                                 _cur = _test
                             else:
-                                if _cur: _lines.append(_cur)
+                                if _cur:
+                                    _lines.append(_cur)
                                 _cur = _w
-                        if _cur: _lines.append(_cur)
+                        if _cur:
+                            _lines.append(_cur)
                         if len(_lines) > _max_lines:
                             _combined = " ".join(_lines[:_max_lines])
-                            _last_sent = max(_combined.rfind("."), _combined.rfind("!"), _combined.rfind("?"), _combined.rfind("—"))
+                            _last_sent = max(
+                                _combined.rfind("."), _combined.rfind("!"), _combined.rfind("?"), _combined.rfind("—")
+                            )
                             if _last_sent > len(_combined) // 2:
                                 _words2 = _combined[: _last_sent + 1].split(" ")
                                 _lines = []
@@ -149,9 +160,11 @@ class FocusRenderer:
                                     if self.font_small.size(_test2)[0] <= _max_w:
                                         _cur2 = _test2
                                     else:
-                                        if _cur2: _lines.append(_cur2)
+                                        if _cur2:
+                                            _lines.append(_cur2)
                                         _cur2 = _w2
-                                if _cur2: _lines.append(_cur2)
+                                if _cur2:
+                                    _lines.append(_cur2)
                             else:
                                 _lines = _lines[:_max_lines]
                                 _lines[-1] = _lines[-1].rstrip(" ,—") + "…"
@@ -164,13 +177,20 @@ class FocusRenderer:
                         _delivery = _bubble_data.get("delivery_type", "NORMAL")
                         # Прозрачность зависит от того, насколько чётко игрок услышал текст
                         _final_alpha = int(_alpha * max(0.2, _clarity))
-                        _pending_bubbles.append({
-                            "x": _bub_x, "y": _bub_y, "w": _bub_w, "h": _bub_h,
-                            "lines": _lines, "alpha": _final_alpha,
-                            "delivery_type": _delivery, "is_player": False,
-                            "auditory_clarity": _clarity,
-                            "is_slam": _bubble_data.get("attention_weight", 0.0) >= 1.0
-                        })
+                        _pending_bubbles.append(
+                            {
+                                "x": _bub_x,
+                                "y": _bub_y,
+                                "w": _bub_w,
+                                "h": _bub_h,
+                                "lines": _lines,
+                                "alpha": _final_alpha,
+                                "delivery_type": _delivery,
+                                "is_player": False,
+                                "auditory_clarity": _clarity,
+                                "is_slam": _bubble_data.get("attention_weight", 0.0) >= 1.0,
+                            }
+                        )
 
         # Player Bubble
         if player_speech:
@@ -194,12 +214,16 @@ class FocusRenderer:
                     if self.font_small.size(_test)[0] <= _max_w:
                         _cur = _test
                     else:
-                        if _cur: _lines.append(_cur)
+                        if _cur:
+                            _lines.append(_cur)
                         _cur = _w
-                if _cur: _lines.append(_cur)
+                if _cur:
+                    _lines.append(_cur)
                 if len(_lines) > _max_lines:
                     _combined = " ".join(_lines[:_max_lines])
-                    _last_sent = max(_combined.rfind("."), _combined.rfind("!"), _combined.rfind("?"), _combined.rfind("—"))
+                    _last_sent = max(
+                        _combined.rfind("."), _combined.rfind("!"), _combined.rfind("?"), _combined.rfind("—")
+                    )
                     if _last_sent > len(_combined) // 2:
                         _words2 = _combined[: _last_sent + 1].split(" ")
                         _lines = []
@@ -209,9 +233,11 @@ class FocusRenderer:
                             if self.font_small.size(_test2)[0] <= _max_w:
                                 _cur2 = _test2
                             else:
-                                if _cur2: _lines.append(_cur2)
+                                if _cur2:
+                                    _lines.append(_cur2)
                                 _cur2 = _w2
-                        if _cur2: _lines.append(_cur2)
+                        if _cur2:
+                            _lines.append(_cur2)
                     else:
                         _lines = _lines[:_max_lines]
                         _lines[-1] = _lines[-1].rstrip(" ,—") + "…"
@@ -220,7 +246,18 @@ class FocusRenderer:
                 _bub_x = player_coords["sx"] - _bub_w // 2
                 _bub_y = player_coords["sy"] - 28 - _bub_h
                 # Игрок всегда слышит себя чётко
-                _pending_bubbles.append({"x": _bub_x, "y": _bub_y, "w": _bub_w, "h": _bub_h, "lines": _lines, "alpha": _alpha, "delivery_type": "NORMAL", "is_player": True})
+                _pending_bubbles.append(
+                    {
+                        "x": _bub_x,
+                        "y": _bub_y,
+                        "w": _bub_w,
+                        "h": _bub_h,
+                        "lines": _lines,
+                        "alpha": _alpha,
+                        "delivery_type": "NORMAL",
+                        "is_player": True,
+                    }
+                )
 
         if _pending_bubbles:
             self._resolve_and_draw_bubbles(screen, _pending_bubbles)
@@ -270,9 +307,9 @@ class FocusRenderer:
             _is_player = bub.get("is_player", False)
             _delivery = bub.get("delivery_type", "NORMAL")
             _clarity = bub.get("auditory_clarity", 1.0)
-            
+
             _is_slam = bub.get("is_slam", False)
-            
+
             _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
             # S3.8: цвета пузырей — мировой стиль (вердикт Мастера:
             # «копируют общий стиль»). SHOUT-красный и SLAM-белый —
@@ -309,7 +346,7 @@ class FocusRenderer:
                 pygame.draw.rect(_bg, _border_color, _bg.get_rect(), 3, border_radius=4)
             else:
                 pygame.draw.rect(_bg, _border_color, _bg.get_rect(), 1, border_radius=4)
-                
+
             screen.blit(_bg, (_bub_x, _bub_y))
             for _li, _ll in enumerate(bub["lines"]):
                 # S169: Epistemic Honesty - рваный текст при плохой слышимости
@@ -317,12 +354,13 @@ class FocusRenderer:
                     _ragged_ll = "".join([c if random.random() < (_clarity + 0.2) else "." for c in _ll])
                 else:
                     _ragged_ll = _ll
-                    
+
                 _ls = self.font_small.render(_ragged_ll, True, _text_color)
                 _la = _ls.copy()
                 _la.set_alpha(_alpha)
                 # S3.17: центровка — строка по горизонтали пузыря и по
                 # середине своего межстрочного слота (leading/2 вниз)
                 _lead = getattr(self.font_small, "leading", lambda: 0)()
-                screen.blit(_la, (_bub_x + (_bub_w - _la.get_width()) // 2,
-                                  _bub_y + 5 + _li * _line_h + max(0, _lead) // 2))
+                screen.blit(
+                    _la, (_bub_x + (_bub_w - _la.get_width()) // 2, _bub_y + 5 + _li * _line_h + max(0, _lead) // 2)
+                )

@@ -6,19 +6,23 @@ path: /frontend/expression_resolver.py
 Зависимости: dataclasses, typing
 Основные сущности: ExpressionResolver, ExpressionResult
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class ExpressionResult:
     """Результат разрешения визуального состояния."""
+
     expression_id: str
     asset: Optional[List]
     rule_id: Optional[str] = None
     priority: int = 0
+
 
 class ExpressionResolver:
     """Разрешает визуальное состояние NPC на основе data-driven правил."""
@@ -42,7 +46,7 @@ class ExpressionResolver:
                         expression_id=rule.get("expression_id", "unknown"),
                         asset=rule.get("asset"),
                         rule_id=rule.get("rule_id"),
-                        priority=priority
+                        priority=priority,
                     )
 
         if best_candidate:
@@ -51,33 +55,37 @@ class ExpressionResolver:
         # Фоллбэк на нейтральное состояние
         fallback = casting_config.get("fallback", {})
         return ExpressionResult(
-            expression_id=fallback.get("expression_id", "neutral"),
-            asset=fallback.get("asset"),
-            priority=-1
+            expression_id=fallback.get("expression_id", "neutral"), asset=fallback.get("asset"), priority=-1
         )
 
     def _check_evidence(self, entity: Any, evidence: List[Dict]) -> bool:
         """Проверяет, выполняются ли все условия из массива evidence."""
         if not evidence:
             return False
-            
+
         for condition in evidence:
             field = condition.get("field")
             op = condition.get("op")
             val = condition.get("value")
-            
+
             entity_val = getattr(entity, field, None)
             if entity_val is None:
                 return False
-                
+
             try:
-                if op == "==" and not (entity_val == val): return False
-                elif op == "!=" and not (entity_val != val): return False
-                elif op == ">" and not (float(entity_val) > float(val)): return False
-                elif op == "<" and not (float(entity_val) < float(val)): return False
-                elif op == ">=" and not (float(entity_val) >= float(val)): return False
-                elif op == "<=" and not (float(entity_val) <= float(val)): return False
+                if op == "==" and not (entity_val == val):
+                    return False
+                elif op == "!=" and not (entity_val != val):
+                    return False
+                elif op == ">" and not (float(entity_val) > float(val)):
+                    return False
+                elif op == "<" and not (float(entity_val) < float(val)):
+                    return False
+                elif op == ">=" and not (float(entity_val) >= float(val)):
+                    return False
+                elif op == "<=" and not (float(entity_val) <= float(val)):
+                    return False
             except (ValueError, TypeError):
                 return False
-                
+
         return True

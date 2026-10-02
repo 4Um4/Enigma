@@ -239,7 +239,7 @@ class AnalysisRenderer:
         self.screen.blit(_inv_surf, (self.screen.get_width() - _panel_width, 0))
 
     def draw_embodied_status(self, status_data: dict) -> None:
-        """S164: Minimalist HUD (Закон Минимального Вмешательства). 
+        """S164: Minimalist HUD (Закон Минимального Вмешательства).
         Рисует только критичные потребности в виде мини-иконок в углу."""
         if not status_data:
             return

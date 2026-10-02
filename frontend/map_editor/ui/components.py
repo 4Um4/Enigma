@@ -2,6 +2,7 @@
 map_editor/ui/components.py
 Базовые атомарные виджеты UI: Button, TextInput, Dropdown, Slider и т.д.
 """
+
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pygame
@@ -35,9 +36,22 @@ COLORS = {
     "accent_red": (255, 100, 100),
 }
 
+
 class Button:
     """Кнопка с текстом или иконкой"""
-    def __init__(self, x: int, y: int, width: int, height: int, text: str = "", icon: str = "", color_key: str = "btn_primary", on_click: Optional[Callable] = None, tooltip: str = ""):
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        text: str = "",
+        icon: str = "",
+        color_key: str = "btn_primary",
+        on_click: Optional[Callable] = None,
+        tooltip: str = "",
+    ):
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
         self.icon = icon
@@ -49,10 +63,14 @@ class Button:
         self.enabled = True
 
     def draw(self, screen: pygame.Surface, font: pygame.font.Font):
-        if not self.visible: return
-        if not self.enabled: color = (50, 50, 55)
-        elif self.hovered: color = COLORS.get(f"{self.color_key}_hover", COLORS["btn_primary_hover"])
-        else: color = COLORS.get(self.color_key, COLORS["btn_primary"])
+        if not self.visible:
+            return
+        if not self.enabled:
+            color = (50, 50, 55)
+        elif self.hovered:
+            color = COLORS.get(f"{self.color_key}_hover", COLORS["btn_primary_hover"])
+        else:
+            color = COLORS.get(self.color_key, COLORS["btn_primary"])
         pygame.draw.rect(screen, color, self.rect, border_radius=6)
         pygame.draw.rect(screen, COLORS["border"], self.rect, 1, border_radius=6)
         text_to_render = self.icon if self.icon else self.text
@@ -62,17 +80,32 @@ class Button:
         screen.blit(text_surf, text_rect)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible or not self.enabled: return False
-        if event.type == pygame.MOUSEMOTION: self.hovered = self.rect.collidepoint(event.pos)
+        if not self.visible or not self.enabled:
+            return False
+        if event.type == pygame.MOUSEMOTION:
+            self.hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
-                if self.on_click: self.on_click()
+                if self.on_click:
+                    self.on_click()
                 return True
         return False
 
+
 class ToggleButton(Button):
     """Кнопка-переключатель (вкл/выкл)"""
-    def __init__(self, x: int, y: int, width: int, height: int, text: str = "", icon: str = "", on_toggle: Optional[Callable[[bool], None]] = None, initial_state: bool = False):
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        text: str = "",
+        icon: str = "",
+        on_toggle: Optional[Callable[[bool], None]] = None,
+        initial_state: bool = False,
+    ):
         super().__init__(x, y, width, height, text, icon, "btn_secondary")
         self.state = initial_state
         self.on_toggle = on_toggle
@@ -82,17 +115,31 @@ class ToggleButton(Button):
         super().draw(screen, font)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible or not self.enabled: return False
+        if not self.visible or not self.enabled:
+            return False
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.state = not self.state
-                if self.on_toggle: self.on_toggle(self.state)
+                if self.on_toggle:
+                    self.on_toggle(self.state)
                 return True
         return False
 
+
 class TextInput:
     """Поле ввода текста"""
-    def __init__(self, x: int, y: int, width: int, height: int = 32, label: str = "", placeholder: str = "", value: str = "", numeric: bool = False):
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int = 32,
+        label: str = "",
+        placeholder: str = "",
+        value: str = "",
+        numeric: bool = False,
+    ):
         self.rect = pygame.Rect(x, y, width, height)
         self.label = label
         self.placeholder = placeholder
@@ -103,7 +150,8 @@ class TextInput:
         self.visible = True
 
     def draw(self, screen: pygame.Surface, font: pygame.font.Font, small_font: pygame.font.Font):
-        if not self.visible: return
+        if not self.visible:
+            return
         if self.label:
             label_surf = small_font.render(self.label, True, COLORS["text"])
             screen.blit(label_surf, (self.rect.x, self.rect.y - 18))
@@ -112,8 +160,10 @@ class TextInput:
         border_color = COLORS["border_highlight"] if self.active else COLORS["border"]
         pygame.draw.rect(screen, border_color, self.rect, 2 if self.active else 1, border_radius=4)
         display_text = self.value
-        if self.active: display_text += "|"
-        elif not self.value: display_text = self.placeholder
+        if self.active:
+            display_text += "|"
+        elif not self.value:
+            display_text = self.placeholder
         text_color = COLORS["text"] if (self.value or self.active) else COLORS["text_dim"]
         text_surf = font.render(display_text, True, text_color)
         if text_surf.get_width() > self.rect.width - 16:
@@ -121,11 +171,13 @@ class TextInput:
         screen.blit(text_surf, (self.rect.x + 8, self.rect.y + 8))
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible: return False
+        if not self.visible:
+            return False
         if event.type == pygame.MOUSEBUTTONDOWN:
             was_active = self.active
             self.active = self.rect.collidepoint(event.pos)
-            if self.active != was_active: return True
+            if self.active != was_active:
+                return True
         elif event.type == pygame.KEYDOWN and self.active:
             if event.key == pygame.K_BACKSPACE:
                 if self.cursor_pos > 0:
@@ -134,27 +186,41 @@ class TextInput:
             elif event.key == pygame.K_DELETE:
                 if self.cursor_pos < len(self.value):
                     self.value = self.value[: self.cursor_pos] + self.value[self.cursor_pos + 1 :]
-            elif event.key == pygame.K_LEFT: self.cursor_pos = max(0, self.cursor_pos - 1)
-            elif event.key == pygame.K_RIGHT: self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
-            elif event.key == pygame.K_HOME: self.cursor_pos = 0
-            elif event.key == pygame.K_END: self.cursor_pos = len(self.value)
+            elif event.key == pygame.K_LEFT:
+                self.cursor_pos = max(0, self.cursor_pos - 1)
+            elif event.key == pygame.K_RIGHT:
+                self.cursor_pos = min(len(self.value), self.cursor_pos + 1)
+            elif event.key == pygame.K_HOME:
+                self.cursor_pos = 0
+            elif event.key == pygame.K_END:
+                self.cursor_pos = len(self.value)
             elif event.unicode.isprintable():
-                if self.numeric and not (event.unicode.isdigit() or event.unicode in "-.+."): return True
+                if self.numeric and not (event.unicode.isdigit() or event.unicode in "-.+."):
+                    return True
                 self.value = self.value[: self.cursor_pos] + event.unicode + self.value[self.cursor_pos :]
                 self.cursor_pos += 1
             return True
         return False
 
-    def get_value(self) -> str: return self.value
+    def get_value(self) -> str:
+        return self.value
+
     def get_int(self) -> int:
-        try: return int(self.value)
-        except ValueError: return 0
+        try:
+            return int(self.value)
+        except ValueError:
+            return 0
+
     def get_float(self) -> float:
-        try: return float(self.value)
-        except ValueError: return 0.0
+        try:
+            return float(self.value)
+        except ValueError:
+            return 0.0
+
 
 class Dropdown:
     """Выпадающий список"""
+
     def __init__(self, x: int, y: int, width: int, height: int = 32, options: List[str] = None, label: str = ""):
         self.rect = pygame.Rect(x, y, width, height)
         self.options = options or []
@@ -165,14 +231,17 @@ class Dropdown:
         self.on_select: Optional[Callable[[int, str], None]] = None
 
     def draw(self, screen: pygame.Surface, font: pygame.font.Font, small_font: pygame.font.Font):
-        if not self.visible: return
+        if not self.visible:
+            return
         if self.label:
             label_surf = small_font.render(self.label, True, COLORS["text"])
             screen.blit(label_surf, (self.rect.x, self.rect.y - 18))
         pygame.draw.rect(screen, COLORS["bg_input"], self.rect, border_radius=4)
         pygame.draw.rect(screen, COLORS["border"], self.rect, 1, border_radius=4)
-        if 0 <= self.selected < len(self.options): text = self.options[self.selected]
-        else: text = "Выберите..."
+        if 0 <= self.selected < len(self.options):
+            text = self.options[self.selected]
+        else:
+            text = "Выберите..."
         text_surf = font.render(text, True, COLORS["text"])
         screen.blit(text_surf, (self.rect.x + 8, self.rect.y + 8))
         arrow = "▼" if self.opened else "▶"
@@ -191,7 +260,8 @@ class Dropdown:
                 screen.blit(opt_surf, (opt_rect.x + 8, opt_rect.y + 6))
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible: return False
+        if not self.visible:
+            return False
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.opened = not self.opened
@@ -202,17 +272,21 @@ class Dropdown:
                     if opt_rect.collidepoint(event.pos):
                         self.selected = i
                         self.opened = False
-                        if self.on_select: self.on_select(i, option)
+                        if self.on_select:
+                            self.on_select(i, option)
                         return True
                 self.opened = False
         return False
 
     def get_selected(self) -> Tuple[int, str]:
-        if 0 <= self.selected < len(self.options): return self.selected, self.options[self.selected]
+        if 0 <= self.selected < len(self.options):
+            return self.selected, self.options[self.selected]
         return -1, ""
+
 
 class DropDownMenu:
     """Выпадающее меню с пунктами и разделителями"""
+
     def __init__(self, x: int, y: int, items: List[Dict[str, Any]]):
         self.items = items
         self.item_height = 28
@@ -220,18 +294,21 @@ class DropDownMenu:
         self.active = True
         max_w = 160
         for item in self.items:
-            if item.get("type") == "separator": continue
+            if item.get("type") == "separator":
+                continue
             text = item.get("label", "")
             sc = item.get("shortcut", "")
             w = len(text) * 8 + len(sc) * 8 + 40
-            if w > max_w: max_w = w
+            if w > max_w:
+                max_w = w
         visible_count = sum(1 for i in self.items if i.get("type") != "separator")
         self.height = visible_count * self.item_height + (len(self.items) - visible_count) * 10 + self.padding * 2
         self.width = max_w
         self.rect = pygame.Rect(x, y, self.width, self.height)
 
     def draw(self, screen: pygame.Surface, font: pygame.font.Font):
-        if not self.active: return
+        if not self.active:
+            return
         bg = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         bg.fill((35, 35, 42, 245))
         screen.blit(bg, self.rect.topleft)
@@ -258,7 +335,8 @@ class DropDownMenu:
             y += self.item_height
 
     def handle_event(self, event: pygame.event.Event) -> Optional[str]:
-        if not self.active: return None
+        if not self.active:
+            return None
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not self.rect.collidepoint(event.pos):
                 self.active = False
@@ -271,16 +349,31 @@ class DropDownMenu:
                 item_rect = pygame.Rect(self.rect.x, y, self.width, self.item_height)
                 if item_rect.collidepoint(event.pos):
                     self.active = False
-                    if item.get("disabled"): return None
+                    if item.get("disabled"):
+                        return None
                     action = item.get("action")
-                    if action: action()
+                    if action:
+                        action()
                     return "selected"
                 y += self.item_height
         return None
 
+
 class Slider:
     """Слайдер для калибровки психики NPC (M0)"""
-    def __init__(self, x: int, y: int, w: int, h: int, min_val: float, max_val: float, value: float, label: str, is_float: bool = True):
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        min_val: float,
+        max_val: float,
+        value: float,
+        label: str,
+        is_float: bool = True,
+    ):
         self.rect = pygame.Rect(x, y, w, h)
         self.min_val = min_val
         self.max_val = max_val

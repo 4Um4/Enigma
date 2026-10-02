@@ -68,7 +68,7 @@ def main() -> int:
         player_session_service.select_player(cfg.campaign_id, "player")
         runner.step(_TICKS)
         initial = getattr(runner, "_initial_social_applied", {})
-        step_out = runner.step(0) if False else None  # step(0) не вызываем
+        runner.step(0) if False else None  # step(0) не вызываем
         # Intent после 30 тиков — из capture последнего тика
         npcs = runner.step.__doc__  # noqa: F841 (заглушка типа; реальные данные ниже)
         result = runner.stop()

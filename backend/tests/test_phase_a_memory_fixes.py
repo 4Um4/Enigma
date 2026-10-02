@@ -968,15 +968,6 @@ def test_delta_gate_emits_chronicaler_event(tmp_path: Path) -> None:
     assert evt.payload["trace_id"] == "evt-78:goran:player"
 
 
-def test_threaten_produces_gated_delta(tmp_path: Path) -> None:
-    """E2.0-b integration: PLAYER_THREATEN → Proposal → Gate →
-    PerceptionPayload.threat_gradient_delta через существующий канал.
-    Проверяется на минимальной сборке subscriber'а (по выводу археологии)."""
-    # Тело замка — по фактическому API subscriber'а из вывода археологии
-    # (какой конструктор/вход) — заполню после твоего прогона блока
-    # Get-Content выше.
-    raise NotImplementedError("наполнение после археологии 220..265")
-
 def test_threaten_produces_gated_delta() -> None:
     """E2.0-b integration: PLAYER_THREATENS → Proposal → Gate →
     PerceptionPayload.threat_gradient_delta через существующий канал.

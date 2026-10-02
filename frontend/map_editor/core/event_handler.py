@@ -4,7 +4,7 @@ map_editor/core/event_handler.py
 """
 
 import pygame
-from tools.constants import MODE_LAB, MODE_LOCAL, MODE_UIWORKBENCH, MODE_WORLD
+from tools.constants import MODE_LAB, MODE_UIWORKBENCH, MODE_WORLD
 
 from core.commands import (
     MirrorObjectCommand,
@@ -17,9 +17,6 @@ SCALE = 20
 ZOOM_STEP = 1.2
 MIN_ZOOM = 0.4
 MAX_ZOOM = 5.0
-
-MODE_WORLD = "world"
-MODE_LOCAL = "local"
 
 class EventHandler:
     """Управляет всей обработкой ввода в редакторе карт"""

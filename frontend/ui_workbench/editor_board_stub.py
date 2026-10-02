@@ -72,8 +72,8 @@ class EditorBoardStub:
         if len(self._board[self._K_CARDS]) == _before:
             raise ValueError(f"[BOARD-STUB] Карточка {card_id} не существует")
         self._board[self._K_LINKS] = [
-            l for l in self._board[self._K_LINKS]
-            if l.get(self._K_FROM) != card_id and l.get(self._K_TO) != card_id]
+            ln for ln in self._board[self._K_LINKS]
+            if ln.get(self._K_FROM) != card_id and ln.get(self._K_TO) != card_id]
         return {"status": "ok"}
 
     def board_link(self, campaign_id: str, from_id: str, to_id: str,
@@ -88,9 +88,9 @@ class EditorBoardStub:
             return {"status": "ok", "result": "linked"}
         _before = len(self._board[self._K_LINKS])
         self._board[self._K_LINKS] = [
-            l for l in self._board[self._K_LINKS]
-            if not (l[self._K_FROM] == from_id and l[self._K_TO] == to_id
-                    and l[self._K_KIND] == kind)]
+            ln for ln in self._board[self._K_LINKS]
+            if not (ln[self._K_FROM] == from_id and ln[self._K_TO] == to_id
+                    and ln[self._K_KIND] == kind)]
         return {"status": "ok", "result":
                 "unlinked" if len(self._board[self._K_LINKS]) < _before else "noop"}
 
@@ -126,6 +126,6 @@ class EditorBoardStub:
             c for c in self._board[self._K_CARDS]
             if c[self._K_ID] not in _doomed]
         self._board[self._K_LINKS] = [
-            l for l in self._board[self._K_LINKS]
-            if l[self._K_FROM] not in _doomed and l[self._K_TO] not in _doomed]
+            ln for ln in self._board[self._K_LINKS]
+            if ln[self._K_FROM] not in _doomed and ln[self._K_TO] not in _doomed]
         return {"status": "ok"}

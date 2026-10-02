@@ -802,7 +802,6 @@ class WorkbenchScreen:
         _used = set()
         # S3.12: шрифт пузырей — мировой (Журнал: обводка/тень вживую)
         font = self.world_font()
-        theme = self.theme
         for npc_id, entry in npc_coords.items():
             sx, sy = self._norm_coord(entry)
             if sx is None:
@@ -818,7 +817,7 @@ class WorkbenchScreen:
             text, ch = match
             lines = self._wrap(text, 170)
             lh = font.get_linesize() + 1
-            bw = max(font.size(l)[0] for l in lines) + 16
+            bw = max(font.size(ln)[0] for ln in lines) + 16
             bh = len(lines) * lh + 10
             bx = int(sx - bw // 2)
             # Пузырь занимает место имени (имя перерисуется выше пузыря)
@@ -1325,13 +1324,13 @@ class WorkbenchScreen:
             if not r or not r.collidepoint(pos):
                 continue
             m = 7
-            l = abs(pos[0] - r.left) <= m
+            lf = abs(pos[0] - r.left) <= m
             rt = abs(pos[0] - r.right) <= m
             t = abs(pos[1] - r.top) <= m
             b = abs(pos[1] - r.bottom) <= m
-            if not (l or rt or t or b):
+            if not (lf or rt or t or b):
                 continue
-            return [wid, [l, rt, t, b], [r.x, r.y, r.width, r.height]]
+            return [wid, [lf, rt, t, b], [r.x, r.y, r.width, r.height]]
         return None
 
     def _do_resize(self, pos) -> None:
@@ -1339,10 +1338,10 @@ class WorkbenchScreen:
         при выходе из F12 (уже работает — exit() пишет _free_rects)."""
         wid, edges, start = self._resize
         mw, mh = self.registry.manifest(wid).min_size
-        l, rt, t, b = edges
+        lf, rt, t, b = edges
         x0, y0, w0, h0 = start
         new_x, new_y, new_w, new_h = x0, y0, w0, h0
-        if l:
+        if lf:
             new_x = min(pos[0], x0 + w0 - mw)
             new_w = x0 + w0 - new_x
         if rt:
@@ -1477,7 +1476,6 @@ class WorkbenchScreen:
         return getattr(self, "hud_time_scale", "▶ 1x")
 
     def _draw_window_frame(self, screen, wid: str, manifest, rect, collapsed: bool) -> None:
-        theme = self.theme
         # Тень/контраст: двойная рамка отделяет окно от сцены (фикс «всё смешалось»)
         # S3.6: каждый элемент рамки — со своей альфой (можно без фона вообще)
         self._stroke_alpha(screen, rect.inflate(4, 4), *self._cta(wid, "border_accent"), 1, 10)
@@ -1529,7 +1527,6 @@ class WorkbenchScreen:
     _JOURNAL_TABS = [("dialog", "Диалог"), ("npc", "Услышанное"), ("narrator", "Рассказчик")]
 
     def _draw_content(self, screen, wid: str, manifest, rect) -> None:
-        theme = self.theme
         body = pygame.Rect(rect.x, rect.y + _TITLE_H, rect.width, rect.height - _TITLE_H)
 
         self._fill_alpha(screen, body, *self._cta(wid, "surface_panel"), 8)
@@ -1987,8 +1984,8 @@ class WorkbenchScreen:
                 _sc = max(0, min(self._board_card_scroll.get(_cid, 0),
                                  max(0, len(_wrapped) - _budget)))
                 self._board_card_scroll[_cid] = _sc
-                _lines += [(l, self.theme.token("text_primary"))
-                           for l in _wrapped[_sc:_sc + _budget]]
+                _lines += [(_ln, self.theme.token("text_primary"))
+                           for _ln in _wrapped[_sc:_sc + _budget]]
                 if _sc + _budget < len(_wrapped) and _lines:
                     _t, _col = _lines[-1]
                     _lines[-1] = (
@@ -2131,7 +2128,8 @@ class WorkbenchScreen:
 
     def _demo_topology(self) -> dict:
         """Editor-F12: демо-топология для стилизации инвентаря без игры."""
-        _slot = lambda sid, bp: {"slot_id": sid, "body_part": bp}
+        def _slot(sid, bp):
+            return {"slot_id": sid, "body_part": bp}
         _cont = {"hand_right": [{"name": "Короткий нож", "weight": 0.8, "bulk": 1}],
                  "belt_pouch": [{"name": "Мешочек с монетами", "weight": 0.3, "bulk": 1}],
                  "backpack_main": [{"name": "Буханка чёрного хлеба", "weight": 1.0, "bulk": 2},

@@ -5,7 +5,7 @@
 
 """
 
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from app.models.player_belief import BeliefValue
 from app.models.truth_state import TruthState
@@ -41,7 +41,6 @@ class WorldDiffBuilder:
                 world_events.append(f"{state.npc_id}_{state.resolved_fate.value}")
 
         # P7-13 FIX: Отношения не переносятся между кампаниями (строгий контракт WorldStateDiff).
-        rel_changes: Dict[str, Any] = {}  # P7-13: Изоляция отношений
         # 3. Фракции
         faction_alignments: Dict[str, float] = {}
         player_reputation: Dict[str, str] = {}

@@ -527,7 +527,6 @@ async def main_async() -> int:
         intent_fin = x_rows[-1]["intent"][npc] if x_rows else "?"
         b0_intent = _B0[npc]["intent"]
         mov_after = [m["reason"] for r in x_rows for m in r["mov"] if m["actor"] == npc]
-        dpos_after = None
         p0, p1 = _B0[npc]["xy"], x_rows[-1]["xy"].get(npc) if x_rows else None
         if p0 and p1:
             _dpos_after = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2)

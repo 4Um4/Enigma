@@ -190,7 +190,7 @@ def main() -> int:
         for nid in npc_ids:
             tr = npc_trace[nid]
             # Сжатие в последовательность состояний по подряд-идущим позициям
-            moving_streak, idle_streak, gaps = [], [], []
+            _moving_streak, _idle_streak, gaps = [], [], []
             cur_idle = 0
             dist_total = 0.0
             states: list[str] = []

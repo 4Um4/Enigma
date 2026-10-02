@@ -2044,8 +2044,6 @@ class TickOrchestrator:
         from app.models.npc_state import NPCIdentityL1
 
         effective_drives_map: Dict[str, EffectiveDrives] = {}
-        drives_updates: Dict[str, Dict[str, float]] = {}
-        strain_updates: Dict[str, Dict[str, float]] = {}
 
         if hasattr(self, "drive_resolver") and hasattr(self, "l1_chronicle"):
             from app.models.npc_state import personality_from_legacy

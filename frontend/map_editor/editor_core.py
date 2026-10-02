@@ -43,10 +43,6 @@ MIN_ZOOM = 0.3
 MAX_ZOOM = 3.0
 ZOOM_STEP = 1.2
 
-# Режимы работы
-MODE_WORLD = "world"  # Карта мира - выбор локаций
-MODE_LOCAL = "local"  # Редактирование локации
-
 # Инструменты
 from tools.constants import (
     MODE_LAB,

@@ -5,6 +5,7 @@ path: /frontend/map_editor/visual_casting_editor.py
 Зависимости: pygame, tkinter, ui_components, data_manager, sprite_registry
 Основные сущности: VisualCastingEditor
 """
+
 import os
 import tkinter as tk
 from tkinter import filedialog
@@ -30,59 +31,59 @@ class VisualCastingEditor:
         sw, sh = screen.get_size()
         w, h = min(1100, sw - 40), min(700, sh - 40)
         self.rect = pygame.Rect((sw - w) // 2, (sh - h) // 2, w, h)
-        
+
         self._buttons: List[Button] = []
         self._emotion_buttons: List[Button] = []
-        
+
         # Состояние спрайтшита
         self.sheet_surface: Optional[pygame.Surface] = None
         self.sheet_name: str = ""
-        
+
         # Точный прямоугольник выделения (в пикселях оригинала)
         self.current_rect: Optional[pygame.Rect] = None
         self._selected_emotion: str = "neutral"
-        
+
         # Настройки обработки спрайта
         self.threshold: int = 220
         self.outline: int = 1
-        
+
         # Состояние ползунков
         self.dragging_slider: Optional[str] = None
-        
+
         # Зум превью
         self.preview_zoom: float = 1.0
-        
+
         # Локальный кэш назначенных ассетов: {expr_id: [sheet, x, y, w, h]}
         self._assigned: Dict[str, List[Any]] = {}
-        
+
         # S177: Локальный кэш направлений для simple_mode
         self._directions: Dict[str, List[Any]] = {}
         self._selected_direction: Optional[str] = None
         self._parse_directions()
-        
+
         self._parse_casting()
-        
+
         # Для выделения мышью (экранные координаты)
         self.drag_start: Optional[Tuple[int, int]] = None
         self.drag_curr: Optional[Tuple[int, int]] = None
-        
+
         # Сообщения (Toast)
         self.message: str = ""
         self.message_timer: int = 0
-        
+
         self._build_ui()
         self._auto_load_sheet()
 
     def _parse_casting(self):
         """Извлекает уже назначенные ассеты из конфига для превью."""
         self._assigned.clear()
-        
+
         # S177: Сначала загружаем направления, если они есть
         if self._directions:
             for dir_key, asset in self._directions.items():
                 if isinstance(asset, list) and len(asset) >= 3 and asset[0]:
                     self._assigned[dir_key] = asset
-                    
+
         for expr in STANDARD_EXPRESSIONS:
             asset = None
             if expr["id"] == "neutral":
@@ -102,18 +103,15 @@ class VisualCastingEditor:
         # Если casting.asset уже словарь направлений (новый формат)
         if isinstance(self.casting.get("fallback", {}).get("asset"), dict):
             self._directions = self.casting["fallback"]["asset"].copy()
-            
+
     def _assign_picked_direction(self):
         """S177: Назначает выделенную область на активное направление."""
         if self.current_rect and self.sheet_name and self._selected_direction:
             r = self.current_rect
-            asset = [
-                self.sheet_name, r.x, r.y, r.w, r.h,
-                self.threshold, self.outline
-            ]
+            asset = [self.sheet_name, r.x, r.y, r.w, r.h, self.threshold, self.outline]
             self._directions[self._selected_direction] = asset
             self._assigned[self._selected_direction] = asset
-            
+
             # S177: Авто-зеркалирование E <-> W
             _mirrors = {"E": "W", "W": "E", "SE": "SW", "SW": "SE", "NE": "NW", "NW": "NE"}
             _mirror_dir = _mirrors.get(self._selected_direction)
@@ -151,21 +149,27 @@ class VisualCastingEditor:
     def _build_ui(self):
         self._buttons.clear()
         self._emotion_buttons.clear()
-        
+
         # Кнопки
         btn_load = Button(self.rect.x + 20, self.rect.bottom - 50, 120, 35, "Выбрать лист", color_key="btn_primary")
         btn_load.action = "load"
         self._buttons.append(btn_load)
-        
+
         btn_save = Button(self.rect.right - 260, self.rect.bottom - 50, 120, 35, "Сохранить", color_key="btn_success")
         btn_save.action = "save"
         self._buttons.append(btn_save)
-        
+
         if self.simple_mode:
             # S177: 8-Directional Sprite Picker. Кнопки направлений работают как эмоции.
             _dir_keys = [
-                ("NW", "СЗ"), ("N", "С"), ("NE", "СВ"), ("E", "В"),
-                ("SE", "ЮВ"), ("S", "Ю"), ("SW", "ЮЗ"), ("W", "З")
+                ("NW", "СЗ"),
+                ("N", "С"),
+                ("NE", "СВ"),
+                ("E", "В"),
+                ("SE", "ЮВ"),
+                ("S", "Ю"),
+                ("SW", "ЮЗ"),
+                ("W", "З"),
             ]
             _btn_w = 50
             _btn_h = 30
@@ -179,16 +183,20 @@ class VisualCastingEditor:
                 btn = Button(bx, by, _btn_w, _btn_h, label, color_key="btn_secondary")
                 btn.action = f"dir:{key}"
                 self._buttons.append(btn)
-                
+
             # Кнопка Применить для направлений
-            btn_apply = Button(self.rect.right - 130, self.rect.bottom - 50, 120, 35, "Применить", color_key="btn_primary")
+            btn_apply = Button(
+                self.rect.right - 130, self.rect.bottom - 50, 120, 35, "Применить", color_key="btn_primary"
+            )
             btn_apply.action = "apply_simple_dir"
             self._buttons.append(btn_apply)
         else:
-            btn_apply = Button(self.rect.right - 130, self.rect.bottom - 50, 120, 35, "Применить", color_key="btn_primary")
+            btn_apply = Button(
+                self.rect.right - 130, self.rect.bottom - 50, 120, 35, "Применить", color_key="btn_primary"
+            )
             btn_apply.action = "apply_portrait"
             self._buttons.append(btn_apply)
-            
+
             # Кнопки эмоций
             y = self.rect.y + 60
             for expr in STANDARD_EXPRESSIONS:
@@ -205,7 +213,7 @@ class VisualCastingEditor:
         file_path = filedialog.askopenfilename(
             title="Выберите спрайтшит",
             initialdir=sprite_registry.base_dir,
-            filetypes=[("PNG Images", "*.png"), ("All Files", "*.*")]
+            filetypes=[("PNG Images", "*.png"), ("All Files", "*.*")],
         )
         root.destroy()
         if file_path:
@@ -229,8 +237,9 @@ class VisualCastingEditor:
             self._show_message("Ошибка загрузки файла!")
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.active: return False
-            
+        if not self.active:
+            return False
+
         # Масштабирование превью колесом мыши
         if event.type == pygame.MOUSEWHEEL:
             prev_x, prev_y = self.rect.right - 220, self.rect.y + 60
@@ -246,7 +255,7 @@ class VisualCastingEditor:
             if not self.rect.collidepoint(event.pos):
                 self.active = False
                 return True
-                
+
             # Обработка кнопок
             for btn in self._buttons + self._emotion_buttons:
                 if btn.handle_event(event):
@@ -273,11 +282,10 @@ class VisualCastingEditor:
                         self._assign_picked()
                     return True
 
-                    
             # Обработка ползунков
             if self._handle_sliders(event):
                 return True
-                    
+
             # Начало выделения на спрайтшите
             if self.sheet_surface:
                 sheet_rect = self._get_sheet_rect()
@@ -285,20 +293,20 @@ class VisualCastingEditor:
                     self.drag_start = event.pos
                     self.drag_curr = event.pos
                     return True
-                    
+
         elif event.type == pygame.MOUSEMOTION:
             if self.dragging_slider:
                 self._update_slider(event.pos)
                 return True
-                
+
             if self.drag_start:
                 self.drag_curr = event.pos
-                
+
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.dragging_slider:
                 self.dragging_slider = None
                 return True
-                
+
             if self.drag_start and self.sheet_surface:
                 sheet_rect = self._get_sheet_rect()
                 # Завершаем выделение только если отпустили внутри листа
@@ -307,7 +315,7 @@ class VisualCastingEditor:
                 self.drag_start = None
                 self.drag_curr = None
                 return True
-                
+
         return True
 
     def _handle_sliders(self, event) -> bool:
@@ -332,14 +340,14 @@ class VisualCastingEditor:
         # Ползунки теперь находятся на x + 450
         rel_x = max(0, min(200, mx - (self.rect.x + 450)))
         if self.dragging_slider == "threshold":
-            self.threshold = int(50 + (rel_x / 200) * 205) # Диапазон 50-255
+            self.threshold = int(50 + (rel_x / 200) * 205)  # Диапазон 50-255
         elif self.dragging_slider == "outline":
-            self.outline = int((rel_x / 200) * 6) # Диапазон 0-6
+            self.outline = int((rel_x / 200) * 6)  # Диапазон 0-6
 
     def _draw_sliders(self, font):
         """Отрисовывает ползунки настроек."""
         x0 = self.rect.x + 450
-        
+
         # Ползунок 1: Порог фона
         y0 = self.rect.bottom - 80
         pygame.draw.rect(self.screen, (50, 50, 50), (x0, y0, 200, 4), border_radius=2)
@@ -347,7 +355,7 @@ class VisualCastingEditor:
         pygame.draw.circle(self.screen, (255, 255, 255), (x0 + t_pos, y0 + 2), 8)
         txt1 = font.render(f"Порог фона: {self.threshold}", True, COLORS["text"])
         self.screen.blit(txt1, (x0, y0 - 20))
-        
+
         # Ползунок 2: Обводка
         y1 = self.rect.bottom - 50
         pygame.draw.rect(self.screen, (50, 50, 50), (x0, y1, 200, 4), border_radius=2)
@@ -372,20 +380,20 @@ class VisualCastingEditor:
         y1 = min(self.drag_start[1], self.drag_curr[1])
         x2 = max(self.drag_start[0], self.drag_curr[0])
         y2 = max(self.drag_start[1], self.drag_curr[1])
-        
+
         orig_w, orig_h = self.sheet_surface.get_size()
         scale_x = orig_w / sheet_rect.width
         scale_y = orig_h / sheet_rect.height
-        
+
         # Переводим в координаты оригинального изображения
         ox1 = int((x1 - sheet_rect.x) * scale_x)
         oy1 = int((y1 - sheet_rect.y) * scale_y)
         ox2 = int((x2 - sheet_rect.x) * scale_x)
         oy2 = int((y2 - sheet_rect.y) * scale_y)
-        
+
         w = ox2 - ox1
         h = oy2 - oy1
-        
+
         # Запоминаем выделение, только если протянули мышь достаточно далеко
         if w > 5 and h > 5:
             self.current_rect = pygame.Rect(ox1, oy1, w, h)
@@ -396,9 +404,7 @@ class VisualCastingEditor:
         if self.current_rect and self.sheet_name:
             r = self.current_rect
             # Сохраняем вместе с настройками threshold и outline
-            self._assigned[self._selected_emotion] = [
-                self.sheet_name, r.x, r.y, r.w, r.h, self.threshold, self.outline
-            ]
+            self._assigned[self._selected_emotion] = [self.sheet_name, r.x, r.y, r.w, r.h, self.threshold, self.outline]
             label = next((e["label"] for e in STANDARD_EXPRESSIONS if e["id"] == self._selected_emotion), "")
             self._show_message(f"Успех! Назначено на: {label}")
         else:
@@ -416,16 +422,18 @@ class VisualCastingEditor:
                 else:
                     asset[5] = self.threshold
                     asset[6] = self.outline
-                    
+
                 if expr["id"] == "neutral":
                     new_casting["fallback"] = {"expression_id": "neutral", "asset": asset}
                 else:
-                    new_casting["rules"].append({
-                        "expression_id": expr["id"],
-                        "priority": expr["priority"],
-                        "asset": asset,
-                        "evidence": expr["evidence"]
-                    })
+                    new_casting["rules"].append(
+                        {
+                            "expression_id": expr["id"],
+                            "priority": expr["priority"],
+                            "asset": asset,
+                            "evidence": expr["evidence"],
+                        }
+                    )
         self.casting = new_casting
         if self.on_save:
             if self.simple_mode and self._directions:
@@ -435,28 +443,33 @@ class VisualCastingEditor:
         self.active = False
 
     def draw(self, font: pygame.font.Font, small_font: pygame.font.Font):
-        if not self.active: return
-        
+        if not self.active:
+            return
+
         pygame.draw.rect(self.screen, COLORS["bg_panel"], self.rect, border_radius=8)
         pygame.draw.rect(self.screen, COLORS["border"], self.rect, 2, border_radius=8)
-        
+
         title = font.render(f"Visual Picker: {self.npc_id}", True, COLORS["text_highlight"])
         self.screen.blit(title, (self.rect.x + 20, self.rect.y + 15))
-        
+
         # Подсказка
-        hint = small_font.render("1. Выделите спрайт мышью (белый фон удалится). 2. Сохраните пропорции и примените.", True, COLORS["text_dim"])
+        hint = small_font.render(
+            "1. Выделите спрайт мышью (белый фон удалится). 2. Сохраните пропорции и примените.",
+            True,
+            COLORS["text_dim"],
+        )
         self.screen.blit(hint, (self.rect.x + 20, self.rect.y + 40))
-        
+
         # Отрисовка спрайтшита
         if self.sheet_surface:
             sheet_rect = self._get_sheet_rect()
             scaled = pygame.transform.scale(self.sheet_surface, (sheet_rect.width, sheet_rect.height))
             self.screen.blit(scaled, sheet_rect.topleft)
-            
+
             orig_w, orig_h = self.sheet_surface.get_size()
             scale_x = sheet_rect.width / orig_w
             scale_y = sheet_rect.height / orig_h
-                
+
             # Подсветка активного выделения
             if self.current_rect:
                 r = self.current_rect
@@ -465,7 +478,7 @@ class VisualCastingEditor:
                 hw = int(r.w * scale_x)
                 hh = int(r.h * scale_y)
                 pygame.draw.rect(self.screen, (255, 255, 0), (hx, hy, hw, hh), 2)
-                
+
             # Отрисовка процесса перетаскивания
             if self.drag_start and self.drag_curr:
                 rx = min(self.drag_start[0], self.drag_curr[0])
@@ -480,23 +493,25 @@ class VisualCastingEditor:
         else:
             hint = small_font.render("Нажмите 'Выбрать лист' для загрузки изображения", True, COLORS["text_dim"])
             self.screen.blit(hint, (self.rect.x + 500, self.rect.y + 200))
-            
+
         # Отрисовка эмоций и направлений (S177)
         for btn in self._emotion_buttons + self._buttons:
             if btn.action.startswith("expr:"):
                 is_selected = btn.action == f"expr:{self._selected_emotion}"
                 btn.color_key = "btn_primary" if is_selected else "btn_secondary"
                 btn.draw(self.screen, font)
-                
+
                 expr_id = btn.action.split(":")[1]
                 asset = self._assigned.get(expr_id)
-                
+
                 # Зеленая рамка, если эмоция уже назначена
                 if asset and isinstance(asset, list) and len(asset) >= 5:
                     pygame.draw.rect(self.screen, (0, 255, 0), btn.rect, 3, border_radius=4)
                     # Превью тайла на кнопке
                     try:
-                        surf = sprite_registry.get_rect(asset[0], int(asset[1]), int(asset[2]), int(asset[3]), int(asset[4]))
+                        surf = sprite_registry.get_rect(
+                            asset[0], int(asset[1]), int(asset[2]), int(asset[3]), int(asset[4])
+                        )
                         if surf:
                             scaled = pygame.transform.scale(surf, (40, 40))
                             self.screen.blit(scaled, (btn.rect.right - 50, btn.rect.y + 5))
@@ -506,23 +521,23 @@ class VisualCastingEditor:
                 is_selected = btn.action == f"dir:{self._selected_direction}"
                 btn.color_key = "btn_primary" if is_selected else "btn_secondary"
                 btn.draw(self.screen, font)
-                
+
                 dir_id = btn.action.split(":")[1]
                 asset = self._assigned.get(dir_id)
-                
+
                 # Зеленая рамка, если направление уже назначено
                 if asset and isinstance(asset, list) and len(asset) >= 5:
                     pygame.draw.rect(self.screen, (0, 255, 0), btn.rect, 3, border_radius=4)
 
         # Отрисовка ползунков
         self._draw_sliders(small_font)
-        
+
         # Окно превью активной эмоции (Live Preview)
         prev_x, prev_y = self.rect.right - 220, self.rect.y + 60
         prev_w, prev_h = 200, 280
         pygame.draw.rect(self.screen, (30, 30, 30), (prev_x, prev_y, prev_w, prev_h), border_radius=4)
         pygame.draw.rect(self.screen, COLORS["border"], (prev_x, prev_y, prev_w, prev_h), 2, border_radius=4)
-        
+
         expr_id = self._selected_emotion
         if self.simple_mode:
             label = f"Направление: {self._selected_direction or '...'}"
@@ -535,7 +550,9 @@ class VisualCastingEditor:
         if asset and isinstance(asset, list) and len(asset) >= 5:
             try:
                 # Для превью всегда используем текущие значения ползунков, чтобы видеть изменения в реальном времени
-                surf = sprite_registry.get_rect(asset[0], int(asset[1]), int(asset[2]), int(asset[3]), int(asset[4]), self.threshold, self.outline)
+                surf = sprite_registry.get_rect(
+                    asset[0], int(asset[1]), int(asset[2]), int(asset[3]), int(asset[4]), self.threshold, self.outline
+                )
                 if surf:
                     sw, sh = surf.get_size()
                     # Применяем зум к базовому размеру 160
@@ -558,7 +575,7 @@ class VisualCastingEditor:
         if self.message and pygame.time.get_ticks() - self.message_timer < 3000:
             msg_surf = small_font.render(self.message, True, (255, 255, 0))
             self.screen.blit(msg_surf, (self.rect.x + 20, self.rect.bottom - 90))
-            
+
         # Кнопки
         for btn in self._buttons:
             btn.draw(self.screen, font)

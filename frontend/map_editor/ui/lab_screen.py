@@ -186,7 +186,6 @@ class LabScreen:
         self.btn_exit.draw(self.screen, self.font)
         
         # Панель управления
-        ctrl_y = 60
         self.btn_pause.text = "Продолжить" if self.is_paused else "Пауза"
         self.btn_pause.color_key = "btn_success" if self.is_paused else "btn_primary"
         self.btn_pause.draw(self.screen, self.font)

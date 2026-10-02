@@ -757,12 +757,6 @@ class FallbackGateway:
         logger.warning("[FALLBACK_GATEWAY] finalize_campaign not available, returning empty")
         return {}
 
-    def get_end_screen(self, campaign_id: str) -> dict:
-        if self._primary and hasattr(self._primary, "get_end_screen"):
-            return self._primary.get_end_screen(campaign_id)
-        logger.warning("[FALLBACK_GATEWAY] get_end_screen not available, returning empty")
-        return {}
-
     # ── Phase 4: Investigation Board (S290-фикс: FallbackGateway не имел
     # board-методов → AttributeError. Отклонение от прецедента заглушки
     # осознанное: пустая доска в офлайне лжёт игроку («расследование

@@ -2,6 +2,7 @@
 map_editor/render/map_renderer.py
 Отрисовка карты: сетка, локации, объекты, NPC, UI элементы.
 """
+
 import math
 from typing import Dict, List, Optional, Tuple
 
@@ -20,6 +21,7 @@ OBJECT_COLORS = {
 }
 
 SCALE = 20  # Масштаб: 1 метр = 20 пикселей (базовый, до зума)
+
 
 class MapRenderer:
     """Управляет всей отрисовкой редактора карт"""
@@ -186,7 +188,9 @@ class MapRenderer:
 
         for x in range(start_x * 2, end_x * 2):
             sx = x * SCALE * core.zoom * 0.5 + core.camera_x
-            pygame.draw.line(core.screen, COLORS["grid_minor"], (sx, core.menu_height + core.toolbar_height), (sx, screen_h))
+            pygame.draw.line(
+                core.screen, COLORS["grid_minor"], (sx, core.menu_height + core.toolbar_height), (sx, screen_h)
+            )
         for y in range(start_y * 2, end_y * 2):
             sy = y * SCALE * core.zoom * 0.5 + core.camera_y
             pygame.draw.line(core.screen, COLORS["grid_minor"], (0, sy), (screen_w, sy))
@@ -202,7 +206,13 @@ class MapRenderer:
 
         origin_x, origin_y = self._world_to_screen(core, 0, 0)
         if 0 <= origin_x <= screen_w:
-            pygame.draw.line(core.screen, COLORS["accent_red"], (origin_x, core.menu_height + core.toolbar_height), (origin_x, screen_h), 2)
+            pygame.draw.line(
+                core.screen,
+                COLORS["accent_red"],
+                (origin_x, core.menu_height + core.toolbar_height),
+                (origin_x, screen_h),
+                2,
+            )
         if core.menu_height + core.toolbar_height <= origin_y <= screen_h:
             pygame.draw.line(core.screen, COLORS["accent_green"], (0, origin_y), (screen_w, origin_y), 2)
 
@@ -245,15 +255,19 @@ class MapRenderer:
         while cx < max_x - text_w // 2 - 4:
             cy = min_y + text_h // 2 + 4
             while cy < max_y - text_h // 2 - 4:
-                if (DataManager._point_in_polygon(cx - text_w // 2, cy - text_h // 2, screen_poly) and
-                    DataManager._point_in_polygon(cx + text_w // 2, cy - text_h // 2, screen_poly) and
-                    DataManager._point_in_polygon(cx - text_w // 2, cy + text_h // 2, screen_poly) and
-                    DataManager._point_in_polygon(cx + text_w // 2, cy + text_h // 2, screen_poly)):
+                if (
+                    DataManager._point_in_polygon(cx - text_w // 2, cy - text_h // 2, screen_poly)
+                    and DataManager._point_in_polygon(cx + text_w // 2, cy - text_h // 2, screen_poly)
+                    and DataManager._point_in_polygon(cx - text_w // 2, cy + text_h // 2, screen_poly)
+                    and DataManager._point_in_polygon(cx + text_w // 2, cy + text_h // 2, screen_poly)
+                ):
                     min_d = float("inf")
                     for ox, oy in obj_positions:
                         d = math.hypot(cx - ox, cy - oy)
-                        if d < min_d: min_d = d
-                    if not obj_positions: min_d = 999
+                        if d < min_d:
+                            min_d = d
+                    if not obj_positions:
+                        min_d = 999
                     if min_d > best_dist:
                         best_dist = min_d
                         best_pos = (int(cx) - text_w // 2, int(cy) - text_h // 2)
@@ -263,7 +277,8 @@ class MapRenderer:
 
     def _draw_rooms(self, core):
         """Отрисовывает комнаты"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for room in loc.get("rooms", []):
             poly = room.get("polygon")
@@ -278,7 +293,11 @@ class MapRenderer:
                 pygame.draw.rect(core.screen, (60, 60, 70), (rx, ry, rw, rh))
                 pygame.draw.rect(core.screen, (100, 100, 120), (rx, ry, rw, rh), 2)
 
-            objects_in = [o for o in loc.get("objects", []) if core.dm.find_room_at(core.current_file, o["position"]["x"], o["position"]["y"]) == room["id"]]
+            objects_in = [
+                o
+                for o in loc.get("objects", [])
+                if core.dm.find_room_at(core.current_file, o["position"]["x"], o["position"]["y"]) == room["id"]
+            ]
             lx, ly = self._find_label_position(core, room, objects_in)
             area = room.get("area_sqm", round(room["width"] * room["height"], 1))
             label_str = f"{room['name']} — {area:.1f} м²"
@@ -287,7 +306,8 @@ class MapRenderer:
 
     def _draw_walls(self, core):
         """Отрисовывает стены"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for wall in loc.get("walls", []):
             x1, y1 = self._world_to_screen(core, wall["x1"], wall["y1"])
@@ -299,10 +319,12 @@ class MapRenderer:
 
     def _draw_passages(self, core):
         """Отрисовывает проходы"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for passage in loc.get("passages", []):
-            if passage.get("z", 0) != core.current_z: continue
+            if passage.get("z", 0) != core.current_z:
+                continue
             sx, sy = self._world_to_screen(core, passage["position"]["x"], passage["position"]["y"])
             ptype = passage.get("type", "door")
             color = {"door": (255, 215, 0), "window": (135, 206, 235), "gap": (170, 170, 170)}.get(ptype, (255, 215, 0))
@@ -313,27 +335,33 @@ class MapRenderer:
 
     def _draw_labels(self, core):
         """Отрисовывает надписи"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for lbl in loc.get("labels", []):
             sx, sy = self._world_to_screen(core, lbl["x"], lbl["y"])
             text = lbl.get("text", "")
-            if not text: continue
+            if not text:
+                continue
             color = COLORS["text_highlight"]
-            if core.selected_object == ("label", lbl["id"]): color = COLORS["accent_yellow"]
+            if core.selected_object == ("label", lbl["id"]):
+                color = COLORS["accent_yellow"]
             rendered = core.font_small.render(text, True, color)
             core.screen.blit(rendered, (sx, sy))
 
     def _draw_objects(self, core):
         """Отрисовывает объекты"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for i, obj in enumerate(loc.get("objects", [])):
             sx, sy = self._world_to_screen(core, obj["position"]["x"], obj["position"]["y"])
             w = obj["size"]["w"] * SCALE * core.zoom
             h = obj["size"]["h"] * SCALE * core.zoom
-            try: rotation = float(obj.get("rotation") or 0)
-            except (ValueError, TypeError): rotation = 0.0
+            try:
+                rotation = float(obj.get("rotation") or 0)
+            except (ValueError, TypeError):
+                rotation = 0.0
             color = OBJECT_COLORS.get(obj["type"], OBJECT_COLORS["decoration"])
 
             preset = OBJECT_PRESETS.get(obj["type"], {})
@@ -343,7 +371,15 @@ class MapRenderer:
                 if len(sprite_info) >= 5:
                     _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
                     _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
-                    sprite_surf = sprite_registry.get_rect(sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), int(sprite_info[3]), int(sprite_info[4]), _t, _o)
+                    sprite_surf = sprite_registry.get_rect(
+                        sprite_info[0],
+                        int(sprite_info[1]),
+                        int(sprite_info[2]),
+                        int(sprite_info[3]),
+                        int(sprite_info[4]),
+                        _t,
+                        _o,
+                    )
                 else:
                     sprite_surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
 
@@ -352,7 +388,8 @@ class MapRenderer:
                 ratio = min(w / sw, h / sh)
                 nw, nh = int(sw * ratio), int(sh * ratio)
                 scaled = pygame.transform.scale(sprite_surf, (nw, nh))
-                if rotation % 360 != 0: scaled = pygame.transform.rotate(scaled, -rotation)
+                if rotation % 360 != 0:
+                    scaled = pygame.transform.rotate(scaled, -rotation)
                 scaled_rect = scaled.get_rect(center=(int(sx), int(sy)))
                 core.screen.blit(scaled, scaled_rect)
             else:
@@ -372,7 +409,8 @@ class MapRenderer:
 
     def _draw_npcs(self, core):
         """Отрисовывает NPC"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for npc in loc.get("npcs", []):
             sx, sy = self._world_to_screen(core, npc["position"]["x"], npc["position"]["y"])
@@ -386,7 +424,15 @@ class MapRenderer:
                 if len(sprite_info) >= 5:
                     _t = int(sprite_info[5]) if len(sprite_info) > 5 else 220
                     _o = int(sprite_info[6]) if len(sprite_info) > 6 else 1
-                    sprite_surf = sprite_registry.get_rect(sprite_info[0], int(sprite_info[1]), int(sprite_info[2]), int(sprite_info[3]), int(sprite_info[4]), _t, _o)
+                    sprite_surf = sprite_registry.get_rect(
+                        sprite_info[0],
+                        int(sprite_info[1]),
+                        int(sprite_info[2]),
+                        int(sprite_info[3]),
+                        int(sprite_info[4]),
+                        _t,
+                        _o,
+                    )
                 else:
                     sprite_surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
 
@@ -398,7 +444,8 @@ class MapRenderer:
                 scaled = pygame.transform.scale(sprite_surf, (nw, nh))
                 rect = scaled.get_rect(center=(int(sx), int(sy)))
                 core.screen.blit(scaled, rect)
-                if is_selected: pygame.draw.rect(core.screen, COLORS["accent_yellow"], rect.inflate(4, 4), 2)
+                if is_selected:
+                    pygame.draw.rect(core.screen, COLORS["accent_yellow"], rect.inflate(4, 4), 2)
             else:
                 color = COLORS["accent_yellow"] if is_selected else (100, 180, 100)
                 pygame.draw.circle(core.screen, color, (int(sx), int(sy)), size // 2)
@@ -409,10 +456,12 @@ class MapRenderer:
 
     def _draw_spawn(self, core):
         """Отрисовывает точку спавна игрока"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         spawn = loc.get("player_spawn")
-        if not spawn: return
+        if not spawn:
+            return
         sx, sy = self._world_to_screen(core, spawn["x"], spawn["y"])
         is_selected = core.selected_object == ("spawn", "player_spawn")
         size = int(SCALE * core.zoom * 0.5)
@@ -425,7 +474,8 @@ class MapRenderer:
 
     def _draw_nodes(self, core):
         """Отрисовывает навигационные узлы"""
-        if not core.current_file: return
+        if not core.current_file:
+            return
         loc = core.dm.locations[core.current_file]
         for nid, ndata in loc.get("nodes", {}).items():
             sx, sy = self._world_to_screen(core, ndata["x"], ndata["y"])
@@ -436,11 +486,14 @@ class MapRenderer:
                 elif ":" in conn:
                     ex, ey = sx + 30, sy
                     for j in range(0, 30, 8):
-                        pygame.draw.line(core.screen, COLORS["accent_yellow"], (sx + j, sy), (sx + min(j + 4, 30), sy), 2)
+                        pygame.draw.line(
+                            core.screen, COLORS["accent_yellow"], (sx + j, sy), (sx + min(j + 4, 30), sy), 2
+                        )
 
         for nid, ndata in loc.get("nodes", {}).items():
             sx, sy = self._world_to_screen(core, ndata["x"], ndata["y"])
-            if core.node_link_start == nid: pygame.draw.circle(core.screen, COLORS["accent_yellow"], (sx, sy), 12)
+            if core.node_link_start == nid:
+                pygame.draw.circle(core.screen, COLORS["accent_yellow"], (sx, sy), 12)
             pygame.draw.circle(core.screen, COLORS["accent_blue"], (sx, sy), 8)
             pygame.draw.circle(core.screen, COLORS["text_highlight"], (sx, sy), 8, 2)
             label = core.font_small.render(ndata.get("label", nid), True, COLORS["text"])
@@ -471,11 +524,14 @@ class MapRenderer:
             if area > 0.5:
                 area_text = f"{area:.1f} м² ({w_m:.1f}×{h_m:.1f})"
                 area_surf = core.font_small.render(area_text, True, COLORS["accent_yellow"])
-                core.screen.blit(area_surf, (rect.centerx - area_surf.get_width() // 2, rect.centery - area_surf.get_height() // 2))
+                core.screen.blit(
+                    area_surf, (rect.centerx - area_surf.get_width() // 2, rect.centery - area_surf.get_height() // 2)
+                )
 
     def _draw_selection(self, core):
         """Отрисовывает выделение объекта"""
-        if not core.current_file or not core.selected_object: return
+        if not core.current_file or not core.selected_object:
+            return
         obj_type, obj_key = core.selected_object
         loc = core.dm.locations[core.current_file]
 
@@ -485,8 +541,10 @@ class MapRenderer:
                 sx, sy = self._world_to_screen(core, obj["position"]["x"], obj["position"]["y"])
                 w = obj["size"]["w"] * SCALE * core.zoom
                 h = obj["size"]["h"] * SCALE * core.zoom
-                try: rotation = float(obj.get("rotation") or 0)
-                except (ValueError, TypeError): rotation = 0.0
+                try:
+                    rotation = float(obj.get("rotation") or 0)
+                except (ValueError, TypeError):
+                    rotation = 0.0
                 preset = OBJECT_PRESETS.get(obj["type"], {})
                 if not preset.get("sprite"):
                     if rotation % 360 != 0:
@@ -507,11 +565,17 @@ class MapRenderer:
                         cx, cy = r.center
                         if btn.get("action") == "mirror":
                             pygame.draw.line(core.screen, COLORS["text"], (cx - 5, cy), (cx + 5, cy), 2)
-                            pygame.draw.polygon(core.screen, COLORS["text"], [(cx + 5, cy), (cx + 2, cy - 3), (cx + 2, cy + 3)])
-                            pygame.draw.polygon(core.screen, COLORS["text"], [(cx - 5, cy), (cx - 2, cy - 3), (cx - 2, cy + 3)])
+                            pygame.draw.polygon(
+                                core.screen, COLORS["text"], [(cx + 5, cy), (cx + 2, cy - 3), (cx + 2, cy + 3)]
+                            )
+                            pygame.draw.polygon(
+                                core.screen, COLORS["text"], [(cx - 5, cy), (cx - 2, cy - 3), (cx - 2, cy + 3)]
+                            )
                         else:
-                            if btn["delta"] > 0: pts = [(cx - 4, cy - 4), (cx - 4, cy + 4), (cx + 4, cy)]
-                            else: pts = [(cx + 4, cy - 4), (cx + 4, cy + 4), (cx - 4, cy)]
+                            if btn["delta"] > 0:
+                                pts = [(cx - 4, cy - 4), (cx - 4, cy + 4), (cx + 4, cy)]
+                            else:
+                                pts = [(cx + 4, cy - 4), (cx + 4, cy + 4), (cx - 4, cy)]
                             pygame.draw.polygon(core.screen, COLORS["text"], pts)
 
         elif obj_type == "portal":
@@ -544,18 +608,33 @@ class MapRenderer:
     def draw_ui(self, core):
         """Отрисовывает пользовательский интерфейс"""
         pygame.draw.rect(core.screen, COLORS["bg_menu"], (0, 0, core.screen.get_width(), core.menu_height))
-        pygame.draw.line(core.screen, COLORS["border"], (0, core.menu_height), (core.screen.get_width(), core.menu_height))
-        for btn in core.menu_buttons: btn.draw(core.screen, core.font)
+        pygame.draw.line(
+            core.screen, COLORS["border"], (0, core.menu_height), (core.screen.get_width(), core.menu_height)
+        )
+        for btn in core.menu_buttons:
+            btn.draw(core.screen, core.font)
 
         toolbar_y = core.menu_height
-        pygame.draw.rect(core.screen, COLORS["bg_panel"], (0, toolbar_y, core.screen.get_width() - core.panel_width, core.toolbar_height))
-        pygame.draw.line(core.screen, COLORS["border"], (0, toolbar_y + core.toolbar_height), (core.screen.get_width() - core.panel_width, toolbar_y + core.toolbar_height))
-        for btn in core.toolbar_buttons: btn.draw(core.screen, core.font)
+        pygame.draw.rect(
+            core.screen,
+            COLORS["bg_panel"],
+            (0, toolbar_y, core.screen.get_width() - core.panel_width, core.toolbar_height),
+        )
+        pygame.draw.line(
+            core.screen,
+            COLORS["border"],
+            (0, toolbar_y + core.toolbar_height),
+            (core.screen.get_width() - core.panel_width, toolbar_y + core.toolbar_height),
+        )
+        for btn in core.toolbar_buttons:
+            btn.draw(core.screen, core.font)
 
-        if core.object_dropdown: core.object_dropdown.draw(core.screen, core.font, core.font_small)
+        if core.object_dropdown:
+            core.object_dropdown.draw(core.screen, core.font, core.font_small)
         core.property_panel.draw(core.screen, core.font, core.font_small)
         self._draw_status_bar(core)
-        if core.toast_timer > 0: self._draw_toast(core)
+        if core.toast_timer > 0:
+            self._draw_toast(core)
 
     def _draw_status_bar(self, core):
         """Отрисовывает статусную строку"""
@@ -569,7 +648,11 @@ class MapRenderer:
 
         if core.mode == MODE_LOCAL:
             undo_info = f" | Отмена:{core.undo.undo_label}" if core.undo.can_undo else ""
-            camp_info = f" | Кампания: {core.cm.campaign_data.get('name', core.cm.current_campaign_name or '?')}" if core.cm.is_open else " | (без кампании)"
+            camp_info = (
+                f" | Кампания: {core.cm.campaign_data.get('name', core.cm.current_campaign_name or '?')}"
+                if core.cm.is_open
+                else " | (без кампании)"
+            )
             info = f"X:{wx:.1f} Y:{wy:.1f} | Этаж:{core.current_z} | Zoom:{core.zoom:.1f}x | {core.current_file or '—'}{camp_info}{undo_info}"
         else:
             info = f"Карта мира | Локаций: {len(core.dm.locations)}"
@@ -583,7 +666,8 @@ class MapRenderer:
 
     def _draw_toast(self, core):
         """Отрисовывает всплывающее сообщение"""
-        if not core.toast_message: return
+        if not core.toast_message:
+            return
         padding = 15
         text = core.font.render(core.toast_message, True, COLORS["text_highlight"])
         w = text.get_width() + padding * 2
@@ -598,10 +682,11 @@ class MapRenderer:
 
     def _find_room_perimeter_walls(self, core, room: dict) -> list:
         """Находит стены, совпадающие с рёбрами комнаты"""
-        if not core.current_file: return []
+        if not core.current_file:
+            return []
         loc = core.dm.locations[core.current_file]
         walls = loc.get("walls", [])
-        if not walls: return []
-        edges = []
-        poly = room.get("polygon")
+        if not walls:
+            return []
+        room.get("polygon")
         return []

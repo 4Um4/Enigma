@@ -42,6 +42,7 @@ from i18n import t  # noqa: E402
 from keybindings import get_key, load_keybinds  # noqa: E402
 from scene_renderer import SceneRenderer  # noqa: E402
 from text_input import TextInput  # noqa: E402
+from ui_workbench.manifests import WindowState  # noqa: E402
 
 
 def _clean_dm_response(text: str) -> str:
@@ -2373,7 +2374,7 @@ class GameScreen:
         # direct уже разворачивает журнал ниже (авто-фокус m13) — копят
         # только narrative/overheard. счётчик сессионный: сессия = живое
         # чтение, fifo-журнал не помечает прочитанность в сейве.
-        if self._workbench.registry.state("journal") != windowstate.full:
+        if self._workbench.registry.state("journal") != WindowState.FULL:
             self._workbench.journal_unread += max(0, len(entries) - old_count)
         if len(entries) >= old_count:
             new_entries = entries[old_count:]
