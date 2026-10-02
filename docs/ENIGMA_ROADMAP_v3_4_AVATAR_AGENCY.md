@@ -646,7 +646,6 @@ player command → avatar appraisal → accept/modify/resist/refuse
 |---|---|---|---|---|---|
 | AUD-D1 | **mypy: 726 ошибок в backend/app**. Hotspots: game_loop/__init__.py (63), tick_orchestrator.py (49), api/routes.py (37), llm/router.py (20), dm_agent.py (20), combat_math.py (17). Runtime-класс (union-attr/arg-type/attr-defined/call-arg ≈209) — латентные краши | P1 | cross | триаж P17; CI-храповик «новых ошибок нет» | открыт |
 | AUD-D2 | social_subscriber None-инвариант (`RelationshipWriteGate\|None.apply` ×5) | P1 | events | — | ✅ закрыт (Шаг 5: провод стора + skip-путь; P97-верификатор зелёный) |
-| AUD-D3 | `agent_runner.py:79` вызывает несуществующий `LlmProvider.abort_generation` → AttributeError при первой отмене | P2 | llm/agents | реализовать в провайдерах или убрать мёртвый вызов | открыт |
 | AUD-D4 | `npc_state.py:613–621` `_ALLOWED_WRITERS`: 4 wildcard-писателя (`"*"`: npc_loader, phases.decision, phases.memory, life_engine) — контракт «StateApplicator = единственный L2 writer» обойдён санкционированно | P1 | npc | зарегистрировать как A11; мигрировать 4 модуля; сузить `"*"` (прецедент avatar_state_applicator) | открыт |
 | AUD-D5 | Legacy `RelationshipStore` жив в прод-пути (state_applicator:62, memory_manager:28): (а) TTL 3600 c через `time.time()` — wall-clock ветка, кандидат replay-дрейфа; (б) `except → тихий {}` — сброс данных; (в) `_save` пишет legacy JSON | P2 | RE | решение судьбы в M1b.5/M1b.3.5; минимум TTL→tick-based, except→Fail Loud | открыт |
 | AUD-D6 | **DilemmaEngine — мёртвый контур в проде**: `check_triggers()` каждый тик, но `register_dilemma()` не вызывается никем → `_dilemmas` пуст | P2 | social/MVP | канон `dilemmas.json` + загрузчик в init_campaign, или исключить check_triggers | открыт |
@@ -655,7 +654,6 @@ player command → avatar appraisal → accept/modify/resist/refuse
 | AUD-D9 | `dm_phase.py:175–176` — `intent="dialogue"`, `tone=""` захардкожены: метаданные памяти обеднены | P3 | game_loop | LLM-классификация полей или mini-ADR об MVP-упрощении | открыт |
 | AUD-D10 | **Ambient-наблюдения не попадают в ObservationLog**: прод-писатели только action_consequence_compiler:108 и npc_confession_parser:95; `visual_cue`/`eavesdrop` без источника — журнал расследования слеп | P2 | player_cognition/T9 | мост perception → observation_log (T9) | открыт |
 | AUD-D11 | TODO/FIXME: 75 маркеров в 48 файлах (отслеживалось только 5 в domain/) | P3 | cross | классификация P4 | открыт |
-| AUD-D12 | combat_math: 10 функций `rng or random`; impact_engine:124 `rng_seed=42`; клиентский d20 (routes:582) — rng-бомба/П-7/П-11 актуальны; `lint_kernel_rng` не видит Optional-дефолты | — | combat | MATH-8/P18 | открыт |
 
 ### 7.4. Хвосты полевых тестов и журнала (преемник «Пункт 5»)
 
@@ -681,8 +679,8 @@ player command → avatar appraisal → accept/modify/resist/refuse
 - [~] TODO/FIXME domain/ — 5 backlog-маркеров (не баги).
 - [x] ~~DEBT-IPT-RUFF~~ ✅ ruff clean.
 - [ ] **DEBT-QUIESCE** (async-interleaving недетерминизм) — внешняя зона (async-слой), НЕ косметика тестов. Симптом (S237): между идентичными OFF-прогонами варьируют пропорция COMPLETED/INTERRUPTED и микропозиции при стабильных терминалах/наборах. Влияние: A/B-гейты закрываются с ambient qualification (GORAN β G1 — прецедент). Вердикт Мастера: воспроизводимые причинные цепочки уровня «кража → наблюдение → вера → смена цели» требуют execution/interleaving-детерминизм как ФУНДАМЕНТАЛЬНЫЙ слой — кандидат W-контура после стабилизации. Точка данных: latent TICK_CRASH npc_tick_pipeline:703 (active_commitments DOUBLE TRUTH) — interleaving-зависим. Связь: GC-19.
-- [ ] **rng-бомба** (`rng or random` в боевом ядре) — все функции combat_math принимают `rng: Optional[random.Random] = None` и делают `_rng = rng or random`. Один call-site без инъекции KernelRNG = глобальный недетерминизм (ADR-O-301, INV-REPLAY-DETERMINISM). AST-линтер не видит. Проверка call-sites — мини-пакет; отдельный запах: `apply_damage` пишет `target["status"]="dead"` — display-дубль рядом с каноническим life_status (мягкий DOUBLE TRUTH). Связь: P18, AUD-D12.
-- [ ] **W-ретрансляции Мастеру:** F821 `Intent` `npc_tick_pipeline.py:~697` — runtime-достижимый latent NameError (Bridge-7; TYPE_CHECKING-mypy-доводка runtime не лечит); `data/replay.db` = 754 МБ / 68k snapshots (рост без ротации).
+- [ ] **rng-бомба** (остаток MATH-8/П-7/П-11) — линтер v2 ловит Optional-дефолты и literal-seed (S315), 9 сайтов промаркированы `ADR-O-301-DEBT`; боевые фиксы (KernelRNG-инъекция в combat_math, routes d20, `apply_damage` status-дубль) — MATH-8.
+- [ ] **W-ретрансляции Мастеру:** `data/replay.db` = 754 МБ / 68k snapshots (рост без ротации).
 - [x] ~~DEBT-W-AUDIT~~ ✅ (S240, §4.1). · [x] ~~DEBT-W-STORE-INCIDENT~~ ✅ ACCEPT (закон-урок §4.2).
 
 ### 7.6. Прочие реестровые хвосты
@@ -1110,7 +1108,6 @@ Feature считается **CLOSED** только если:
 |---|---|---|
 | AUD-D1 | latent type/interface crashes могут оборвать реальный путь | GC-00/01/24 + NEG-01 |
 | AUD-D2 | социальная реакция падает в production None-ветке | GC-11 + NEG-01 |
-| AUD-D3 | отмена LLM → AttributeError, isolation нарушена | GC-24 + NEG-06 |
 | AUD-D4 | competing writers перетирают canonical NPC state | GC-17 + NEG-04 |
 | AUD-D5 | отношения зависят от wall-clock / тихо обнуляются | GC-18/20/21 + NEG-05 |
 | AUD-D6 | feature существует, но игрок никогда не может вызвать | GC-23 + REACH-03 |
