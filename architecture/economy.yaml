@@ -1,4 +1,4 @@
-domain: ECONOMY
+﻿domain: ECONOMY
 description: "Экономика NPC: потребности, торговля, психо-экономика. Стресс от нужды, транзакции, рынок. S85.2: Экономические решения конкурируют с когнитивными убеждениями (L2.5) в DecisionHub."
 
 nodes:
@@ -20,23 +20,33 @@ nodes:
     label: "Psycho Economy"
     description: "Психологический профиль экономики: decay_modifier, savings_tendency, risk_tolerance, consumption_frequency."
     code_ref: "economy/psycho_economy.py"
+  WorkOrders:
+    type: service
+    layer: Application
+    label: "Work Orders (Transaction Lifecycle: PROPOSED-ACCEPTED-COMPLETED/FAILED)"
+    description: "ADR-O-391 (S256): замыкание Intent.TRADE - WORLD CHANGE. ORDER к продавцу (SocialTargetResolver != экономический контрагент), дедуп один-заказ-на-покупателя; settle_order - валидация ДО мутаций, атомарный SSOT-обмен. WORK_ENABLED default OFF = no causal footprint."
+  TradableProjection:
+    type: service
+    layer: Application
+    label: "Capability Projection - Tradable Channel"
+    description: "ADR-O-412 (S310): carried_objects - goods (владение) - stock_for_sale (TRADABLE, фильтр GOODS_PRICES). Закон: PHYSICAL != TRADABLE != USABLE."
   TradeResolver:
     type: service
     layer: Application
     label: "Trade Resolver"
-    description: "Резолвит торговлю: determine_needed_good → find_seller → calculate_price → execute."
+    description: "BURIED (AUDIT #6, ADR-O-391): захороненный контур, воскрешение запрещено. Историческая запись. (Резолвит торговлю: determine_needed_good → find_seller → calculate_price → execute.)"
     code_ref: "economy/trade_resolver.py"
   TransactionEngine:
     type: service
     layer: Domain
     label: "Transaction Engine"
-    description: "Исполнение транзакций: execute_sale, execute_employment, process_contract_payments. Atomic."
+    description: "BURIED (AUDIT #6, ADR-O-391): захоронен, воскрешение запрещено. Исполнение транзакций: execute_sale, execute_employment, process_contract_payments. Atomic."
     code_ref: "economy/transaction_engine.py"
   MarketState:
     type: dto
     layer: Domain
     label: "Market State"
-    description: "Фаза рынка (BOOM/STABLE/RECESSION/CRASH). visit_probability, demand_bias."
+    description: "BURIED (AUDIT #6, ADR-O-391): захоронен, воскрешение запрещено. Фаза рынка (BOOM/STABLE/RECESSION/CRASH). visit_probability, demand_bias."
     code_ref: "economy/market_state.py"
   OpportunityEngine:
     type: service
@@ -54,14 +64,19 @@ nodes:
     type: service
     layer: Domain
     label: "Stress Calculator"
-    description: "calculate_economic_stress: потребности → стресс для DecisionHub."
+    description: "BURIED (AUDIT #6, ADR-O-391): захоронен, воскрешение запрещено. calculate_economic_stress: потребности → стресс для DecisionHub."
     code_ref: "economy/stress_calculator.py"
   TravellerGenerator:
     type: service
     layer: Domain
     label: "Traveller Generator"
-    description: "Генерирует путешественников: maybe_generate → TravellerVisit (visit_type, buy_cost)."
+    description: "BURIED (AUDIT #6, ADR-O-391): захоронен, воскрешение запрещено. Генерирует путешественников: maybe_generate → TravellerVisit (visit_type, buy_cost)."
     code_ref: "economy/traveller.py"
+  TemporalConstants:
+    type: domain
+    layer: Domain
+    label: "Temporal Constants (System-Wide Time Invariants)"
+    description: "ADR-S96.3: Centralized time constants. NEED_DECAY_PER_TICK = 0.08."
   ProfileFactory:
     type: service
     layer: Domain
@@ -126,6 +141,15 @@ edges:
     condition: "Money transfer = state mutation via DeltaBuffer"
     code_ref: "economy/transaction_engine.py"
 
+  - from: WorkOrders
+    to: ProfileFactory
+    label: "settle_order — атомарный SSOT-обмен economic_profiles (O-391)"
+  - from: TradableProjection
+    to: ProfileFactory
+    label: "carried_objects → goods → stock_for_sale (O-412)"
+  - from: OpportunityEngine
+    to: WorkOrders
+    label: "TRADE intent → ORDER (продюсер, не бухгалтерия)"
 constraints:
   - source: TransactionEngine
     target: NPCState
@@ -137,6 +161,7 @@ constraints:
     rule: "REQUIRED: Critical needs MUST influence decision"
     condition: "is_critical() → must generate pressure on DecisionHub. Starving NPC cannot ignore food. (Unless L2.5 Belief overrides, e.g. fasting for faith)."
     severity: HIGH
+
 
 ownership:
   EconomicProfile:
@@ -182,8 +207,3 @@ sequences:
         message: "6. Money deltas"
 
 
-TemporalConstants:
-  type: domain
-  layer: Domain
-  label: "Temporal Constants (System-Wide Time Invariants)"
-  description: "ADR-S96.3: Centralized time constants to prevent multi-timescale drift. NEED_DECAY_PER_TICK = 0.08."

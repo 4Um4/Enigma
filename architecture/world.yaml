@@ -41,6 +41,11 @@ nodes:
     layer: Application
     label: "AffordanceShadow (Gate-1 Discovery Shadow)"
     description: "ADR-O-376 G1: snapshot → projection → resolver → [W3_SHADOW] log/metric. Точка: после build_snapshot, ДО PRE-TICK/Фаз 0+ (affordances ДО решений — Q2). Discovery читает ТОЛЬКО фотографию тика. env W3_SHADOW_ENABLED default OFF=no-op. Ноль writers/decisions/events. ShadowMetrics = discovery-статистика (≠ G3-execution-причины). GORAN β G1: GREEN + ambient qualification (AB {2,6,2,2} vs фон {4,7}). G2/G3 — КОНТРАКТ, не реализовано."
+  G3Executor:
+    type: service
+    layer: Application
+    label: "G3 Executor (Object Action: intent → мутация мира → событие)"
+    description: "ADR-O-410 (S307): первый runtime-writer WorldObjectStore. Получает УЖЕ разрешённый intent (STEAL, target_id=wo_*); PASS → apply_transition + событие; REJECT → INTERRUPTED(G3_OBJECT_REJECT), событие НЕ публикуется; SKIP → passthrough. Г4-цензус _ALLOWED_WRITERS в _write_subtree. W3_G3_ENABLED default OFF = no-op до вычислений. Этап 2: compute_object_target_facts → TickState.object_target_map → DecisionHub (живая воля)."
 edges:
   - from: WorldObjectStore
     to: WorldObject
@@ -82,6 +87,15 @@ edges:
     to: AffordanceResolver
     label: "Tuple[WorldObject] → resolve (pure)"
     condition: "W2 остаётся pure; хранилище не трогается; замена представления не требует переписывания W2."
+  - from: PostDecisionPhase7
+    to: G3Executor
+    label: "release-ветка Фазы 7: PASS/NO_OP/REJECT/SKIP (ADR-O-410)"
+  - from: G3Executor
+    to: WorldObjectStore
+    label: "apply_transition — единственный легальный runtime-writer (Г4-цензус)"
+  - from: G3Executor
+    to: WorldObjectStore
+    label: "compute_object_target_facts (Этап 2) → TickState.object_target_map → DecisionHub"
 constraints:
   - source: AffordanceResolver
     target: WorldObject
@@ -132,3 +146,8 @@ constraints:
     rule: "REQUIRED: G2 (AffordanceSet → DecisionHub read-only вход) и G3 (исполнение: ревалидация precondition-кортежей → transition → мутация → Fact) — отдельные гейты; STEAL = W5-интерпретация TAKE; TRANSFER = атомарный W6-примитив; async-шум не SSOT"
     severity: HIGH
     adr_ref: "ADR-O-376"
+  - source: G3Executor
+    target: WorldObjectStore
+    rule: "FORBIDDEN: write мимо стора; событие при REJECT (D4: событие = утверждение факта); executor целеполагает (И-1); расширение _ACTION_TO_WORLD/цензуса Г4 без мини-ADR; MutationRecord до потребителя"
+    severity: CRITICAL
+    adr_ref: "ADR-O-410"

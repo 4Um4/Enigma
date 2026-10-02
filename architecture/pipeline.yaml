@@ -235,6 +235,41 @@ nodes:
     type: domain
     layer: Domain
     label: "Intent Domain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)"
+  CommitmentRegistry:
+    type: service
+    layer: Application
+    label: "Commitment Registry (Behavioral Owner)"
+    description: "ADR-O-363: единственный писатель scene_state['active_commitments'] + history (cap 10/NPC) + ordinals. commitment_id=md5(tick:npc:action:ordinal), uuid4 запрещён. Флаг COMMITMENT_REGISTRY_ENABLED default OFF (shadow). Зеркала материализации: ProjectionEngine._apply_position (primary) / SSM.apply_change (fallback)."
+  CommitmentArbiter:
+    type: service
+    layer: Application
+    label: "Commitment Arbiter (PASS/REJECT Gate)"
+    description: "ADR-O-363/S203.2: read-only арбитр перед исполнителями движения; вердикты PASS|REJECT(DUPLICATE/INCUMBENT); два invocation points (simulation.py Гейт① + movement_bridge.py Гейт②). ARBITER_ENFORCEMENT default OFF. A/B: SUPERSEDED→0, COMPLETED→100%."
+  DeltaGate:
+    type: service
+    layer: Application
+    label: "Delta Gate (Interpretation → State Bridge)"
+    description: "AG1 E2.0 (S238): единственный мост интерпретация→состояние (INV-LLM-NOT-SSOT). WHITELIST полей → клампы → идемпотентность по trace_id → StateApplicator. Событие EXPERIENCE_DELTA_COMMITTED — observation-only. Gate = аудит, не писатель."
+  IntelligenceQueue:
+    type: queue
+    layer: Application
+    label: "Intelligence Queue (Non-Blocking LLM Extraction)"
+    description: "ADR-O-382 (S251): dialogue-экстракция декомпозирована от события; FIFO через существующий executor TaskScheduler; STALE-гейт; применение только через MemoryManager. D8P_ENABLED default OFF (INV-D8P-NOOP). Production-форма ADR-O-377."
+  EventIdentity:
+    type: service
+    layer: Application
+    label: "Event Identity (Deterministic)"
+    description: "ADR-O-404 (S283): identity(event)=(type, source, event_tick, ordinal); ordinal — персистентный счётчик scene_state; финализация id — только на входе в EventBus (_finalize_identity). INV-EVENT-IDENTITY. uuid4/provisional — легален только вне lock-окон."
+  ConclusionGate:
+    type: service
+    layer: Application
+    label: "Conclusion Gate (Experience → Conclusion Membrane)"
+    description: "ADR-O-381 (S247): мембрана по образу DeltaGate; закрытый predicate-реестр (IS_DANGEROUS); идемпотентность (trace_id, subject, predicate); NO-VACUUM. Gate = аудит, не писатель. BC1_ENABLED default OFF (INV-BC1-NOOP)."
+  ConclusionStore:
+    type: service
+    layer: Application
+    label: "Conclusion Store (Per-Agent L2.5+)"
+    description: "ADR-O-381: единственный write-path apply() (caller-цензус: conclusion_gate); round-trip scene_state['conclusions']; reinforcement = union evidence + max confidence. Мост CONCLUSION→EXPECTATION закрыт до BC-2."
   BreakProgressEngine:
     type: service
     layer: Application
@@ -390,6 +425,39 @@ edges:
   - from: GameLoop
     to: TimeSkipExecutor
     label: "get_npcs_callback"
+  - from: TickOrchestrator
+    to: CommitmentRegistry
+    label: "sweep + mirrors (S203.1)"
+  - from: CommitmentRegistry
+    to: CommitmentArbiter
+    label: "has_behavioral_owner (projection)"
+  - from: CommitmentArbiter
+    to: MovementEngine
+    label: "Gate① simulation / Gate② movement_bridge (ARBITER_ENFORCEMENT)"
+  - from: NpcTickPipeline
+    to: DeltaGate
+    label: "EXPERIENCE_DELTA → StateDeltaProposal (E2.0-b)"
+  - from: DeltaGate
+    to: StateApplicator
+    label: "authorized delta apply (whitelist+clamp+trace-once)"
+  - from: TickOrchestrator
+    to: ConclusionGate
+    label: "Phase 9 wrapper (BC1_ENABLED)"
+  - from: ConclusionGate
+    to: ConclusionStore
+    label: "apply — единственный write-path (ADR-O-381)"
+  - from: NpcDialogueSubscriber
+    to: IntelligenceQueue
+    label: "enqueue IntelligenceTask (D8P_ENABLED)"
+  - from: IntelligenceQueue
+    to: TaskScheduler
+    label: "FIFO via existing executor rail (ADR-O-382)"
+  - from: EventBus
+    to: EventIdentity
+    label: "_finalize_identity at publish (ADR-O-404)"
+  - from: NpcDialogueSubscriber
+    to: DeltaGate
+    label: "witness/target Proposal routing (S238)"
 constraints:
   - source: LifeEngine
     target: NPC_Position

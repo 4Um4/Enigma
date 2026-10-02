@@ -47,6 +47,8 @@ flowchart TD
         InvariantHealthChecker("Invariant Health Checker"):::application
         IPT("Invariant Probe Tests (IPT)"):::application
         EconomyTracker("Economy Tracker"):::application
+        WorkOrders("Work Orders (Transaction Lifecycle: PROPOSED-ACCEPTED-COMPLETED/FAILED)"):::application
+        TradableProjection("Capability Projection - Tradable Channel"):::application
         TradeResolver("Trade Resolver"):::application
         FactExtractor("FactExtractor"):::application
         DecisionHub("Decision Hub (Projection-Native Scoring)"):::application
@@ -72,6 +74,7 @@ flowchart TD
         BeliefCrystallizationEngine("Belief Crystallization Engine (L2.5)"):::application
         CrystallizedBeliefStore("Crystallized Belief Store (L2.5 Storage)"):::application
         MemoryManager("Memory Manager"):::application
+        DeltaGate("Delta Gate (Interpretation → State Bridge)"):::application
         TickOrchestrator("Tick Orchestrator"):::application
         StateApplicator("State Applicator"):::application
         CognitiveOverlay("Cognitive Overlay (T+0)"):::application
@@ -87,6 +90,12 @@ flowchart TD
         ProjectionEngine("Projection Engine (Pure State Writer)"):::application
         TimeSkipExecutor("Time Skip (Observation Layer)"):::application
         WorldProjectionBuffer("World Projection Buffer (Shadow Causality)"):::application
+        CommitmentRegistry("Commitment Registry (Behavioral Owner)"):::application
+        CommitmentArbiter("Commitment Arbiter (PASS/REJECT Gate)"):::application
+        IntelligenceQueue(("Intelligence Queue (Non-Blocking LLM Extraction)")):::application
+        EventIdentity("Event Identity (Deterministic)"):::application
+        ConclusionGate("Conclusion Gate (Experience → Conclusion Membrane)"):::application
+        ConclusionStore("Conclusion Store (Per-Agent L2.5+)"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
         RelationshipEvents("Реестр событий §5.5 — 20 типов"):::application
         RelationshipStateStore("Relationship State Store — SSOT"):::application
@@ -115,6 +124,7 @@ flowchart TD
         WorldObjectSpawner("WorldObjectSpawner (Production Spawn: editor→runtime)"):::application
         WorldObjectProjection("WorldObjectProjection (W1→W2 Snapshot Bridge)"):::application
         AffordanceShadow("AffordanceShadow (Gate-1 Discovery Shadow)"):::application
+        G3Executor("G3 Executor (Object Action: intent → мутация мира → событие)"):::application
     end
 
     subgraph DOMAIN[Domain Layer]
@@ -149,6 +159,7 @@ flowchart TD
         EconomicModifier("Economic Modifier"):::domain
         StressCalculator("Stress Calculator"):::domain
         TravellerGenerator("Traveller Generator"):::domain
+        TemporalConstants("Temporal Constants (System-Wide Time Invariants)"):::domain
         ProfileFactory("Profile Factory"):::domain
         ManifestationState("ManifestationState (Immutable)"):::domain
         Reality("Reality (Internal State)"):::domain
@@ -173,6 +184,8 @@ flowchart TD
         BeliefModifierResolver("Belief Modifier Resolver"):::domain
         NarrativeCache["Narrative Cache (L2)"]:::domain
         EventSemanticTagger("Event Semantic Tagger"):::domain
+        ExperienceTrace["Experience Trace (EMRL E1.0)"]:::domain
+        MemoryCrystal["Memory Crystal (Semantic Layer, E1.2)"]:::domain
         BodyState("Body State (Physiology Container)"):::domain
         ImpactEngine("Impact Engine (Pure Function)"):::domain
         PhysiologyPayload["PhysiologyPayload (pain, blood_loss, shock_impulse)"]:::domain
@@ -392,6 +405,9 @@ flowchart TD
     TravellerGenerator -->|"traveller visit → trade opportunity"| TradeResolver
     EconomicModifier -->|"wealth modifier → price adjustment"| TradeResolver
     TransactionEngine -->|"transaction result → state delta"| DeltaBuffer
+    WorkOrders -->|"settle_order — атомарный SSOT-обмен economic_profiles (O-391)"| ProfileFactory
+    TradableProjection -->|"carried_objects → goods → stock_for_sale (O-412)"| ProfileFactory
+    OpportunityEngine -->|"TRADE intent → ORDER (продюсер, не бухгалтерия)"| WorkOrders
     GameScreen ==>|"POST /action (IntentDTO)"| APIRoutes
     APIRoutes -->|"resolve_player_intent()"| TickOrchestrator
     StateApplicator -->|"WorldSnapshotDTO + will_conflict"| APIRoutes
@@ -440,6 +456,9 @@ flowchart TD
     RelationshipStore -->|"relationship_cache updates"| StateApplicator
     TickOrchestrator -->|"_phase_3_memory: compress_narrative_cache"| MemoryManager
     TickOrchestrator -->|"_phase_3_memory: check_identity_promotion"| MemoryManager
+    NpcDialogueSubscriber -->|"witness/target StateDeltaProposal (S115-точка)"| DeltaGate
+    DeltaGate -->|"authorized delta (whitelist+clamp+trace-once)"| StateApplicator
+    DeltaGate -->|"EXPERIENCE_DELTA_COMMITTED (observation-only)"| EventBus
     PerceivedSignal -->|"reads"| FactExtractor
     FactExtractor -->|"produces"| ObservedFact
     Reality -->|"manifests"| ManifestationState
@@ -522,6 +541,17 @@ flowchart TD
     WorldProjectionBuffer -->|"generates derived events"| WorldProjectionEvent
     TimeSkipExecutor -->|"kernel.execute() loop"| TickOrchestrator
     GameLoop -->|"get_npcs_callback"| TimeSkipExecutor
+    TickOrchestrator -->|"sweep + mirrors (S203.1)"| CommitmentRegistry
+    CommitmentRegistry -->|"has_behavioral_owner (projection)"| CommitmentArbiter
+    CommitmentArbiter -->|"Gate① simulation / Gate② movement_bridge (ARBITER_ENFORCEMENT)"| MovementEngine
+    NpcTickPipeline -->|"EXPERIENCE_DELTA → StateDeltaProposal (E2.0-b)"| DeltaGate
+    DeltaGate -->|"authorized delta apply (whitelist+clamp+trace-once)"| StateApplicator
+    TickOrchestrator -->|"Phase 9 wrapper (BC1_ENABLED)"| ConclusionGate
+    ConclusionGate -->|"apply — единственный write-path (ADR-O-381)"| ConclusionStore
+    NpcDialogueSubscriber -->|"enqueue IntelligenceTask (D8P_ENABLED)"| IntelligenceQueue
+    IntelligenceQueue -->|"FIFO via existing executor rail (ADR-O-382)"| TaskScheduler
+    EventBus -->|"_finalize_identity at publish (ADR-O-404)"| EventIdentity
+    NpcDialogueSubscriber -->|"witness/target Proposal routing (S238)"| DeltaGate
     PerceptionLayer -->|"visible/audible entities → distance + LOS"| SpatialLayer
     SpatialLayer -->|"spatial data → recognition confidence"| RecognitionLayer
     RecognitionLayer -->|"recognized entities → attention filter"| AttentionLayer
@@ -621,6 +651,9 @@ flowchart TD
     TickOrchestrator -->|"G1-врезка после build_snapshot (до PRE-TICK)"| AffordanceShadow
     AffordanceShadow -->|"discovery по проекции снапшота"| WorldObjectProjection
     WorldObjectProjection -->|"Tuple[WorldObject] → resolve (pure)"| AffordanceResolver
+    PostDecisionPhase7 -->|"release-ветка Фазы 7: PASS/NO_OP/REJECT/SKIP (ADR-O-410)"| G3Executor
+    G3Executor -->|"apply_transition — единственный легальный runtime-writer (Г4-цензус)"| WorldObjectStore
+    G3Executor -->|"compute_object_target_facts (Этап 2) → TickState.object_target_map → DecisionHub"| WorldObjectStore
 
     %% === АРХИТЕКТУРНЫЕ ЗАПРЕТЫ ===
     DecisionHub -.->|"🚫 FORBIDDEN: Use T+0 pressure (Only T-1)"| Raw_Delta:::forbidden
@@ -911,6 +944,7 @@ flowchart TD
     AffordanceShadow -.->|"🚫 FORBIDDEN: discovery читает живой scene_state (только проекция замороженного снапшота тика); результат тени входит в decision-вход"| SceneState:::forbidden
     WorldObjectSpawner -.->|"🚫 FORBIDDEN: identity содержит локацию как семантику; спавн вне initialize_scene; presentation-поля в проекции; расширение SpawnMapping без мини-записи"| WorldObject:::forbidden
     Any -.->|"🚫 REQUIRED: G2 (AffordanceSet → DecisionHub read-only вход) и G3 (исполнение: ревалидация precondition-кортежей → transition → мутация → Fact) — отдельные гейты; STEAL = W5-интерпретация TAKE; TRANSFER = атомарный W6-примитив; async-шум не SSOT"| AffordanceShadow:::forbidden
+    G3Executor -.->|"🚫 FORBIDDEN: write мимо стора; событие при REJECT (D4: событие = утверждение факта); executor целеполагает (И-1); расширение _ACTION_TO_WORLD/цензуса Г4 без мини-ADR; MutationRecord до потребителя"| WorldObjectStore:::forbidden
 ```
 
 ## ⏱ Временные Диаграммы (Sequence Diagrams)
@@ -1458,6 +1492,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TravellerGenerator | TradeResolver | traveller visit → trade opportunity | maybe_generate on tick → new buyer/seller | `economy/traveller.py` | - |
 | EconomicModifier | TradeResolver | wealth modifier → price adjustment | calculate(profile) → price modification | `economy/economic_modifier.py` | - |
 | TransactionEngine | DeltaBuffer | transaction result → state delta | Money transfer = state mutation via DeltaBuffer | `economy/transaction_engine.py` | - |
+| WorkOrders | ProfileFactory | settle_order — атомарный SSOT-обмен economic_profiles (O-391) | - | `-` | - |
+| TradableProjection | ProfileFactory | carried_objects → goods → stock_for_sale (O-412) | - | `-` | - |
+| OpportunityEngine | WorkOrders | TRADE intent → ORDER (продюсер, не бухгалтерия) | - | `-` | - |
 | GameScreen | APIRoutes | POST /action (IntentDTO) | On Enter key | `api_client.py` | - |
 | APIRoutes | TickOrchestrator | resolve_player_intent() | Validate DTO | `routes.py` | - |
 | StateApplicator | APIRoutes | WorldSnapshotDTO + will_conflict | End of action tick | `routes.py` | ADR-068 |
@@ -1506,6 +1543,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | RelationshipStore | StateApplicator | relationship_cache updates | Via DeltaBuffer (Устав §4.1.2) | `memory/relationship_store.py` | - |
 | TickOrchestrator | MemoryManager | _phase_3_memory: compress_narrative_cache | Every 10 ticks (idle allowed - structural optimization) | `tick_orchestrator.py` | ADR-S86.7 |
 | TickOrchestrator | MemoryManager | _phase_3_memory: check_identity_promotion | Every 50 ticks (REQUIRES phase_2_events - prevents phantom drift) | `tick_orchestrator.py` | ADR-S86.7 |
+| NpcDialogueSubscriber | DeltaGate | witness/target StateDeltaProposal (S115-точка) | - | `-` | - |
+| DeltaGate | StateApplicator | authorized delta (whitelist+clamp+trace-once) | - | `-` | - |
+| DeltaGate | EventBus | EXPERIENCE_DELTA_COMMITTED (observation-only) | - | `-` | - |
 | PerceivedSignal | FactExtractor | reads | - | `-` | - |
 | FactExtractor | ObservedFact | produces | - | `-` | - |
 | Reality | ManifestationState | manifests | - | `-` | - |
@@ -1588,6 +1628,17 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | WorldProjectionBuffer | WorldProjectionEvent | generates derived events | - | `-` | - |
 | TimeSkipExecutor | TickOrchestrator | kernel.execute() loop | - | `-` | - |
 | GameLoop | TimeSkipExecutor | get_npcs_callback | - | `-` | - |
+| TickOrchestrator | CommitmentRegistry | sweep + mirrors (S203.1) | - | `-` | - |
+| CommitmentRegistry | CommitmentArbiter | has_behavioral_owner (projection) | - | `-` | - |
+| CommitmentArbiter | MovementEngine | Gate① simulation / Gate② movement_bridge (ARBITER_ENFORCEMENT) | - | `-` | - |
+| NpcTickPipeline | DeltaGate | EXPERIENCE_DELTA → StateDeltaProposal (E2.0-b) | - | `-` | - |
+| DeltaGate | StateApplicator | authorized delta apply (whitelist+clamp+trace-once) | - | `-` | - |
+| TickOrchestrator | ConclusionGate | Phase 9 wrapper (BC1_ENABLED) | - | `-` | - |
+| ConclusionGate | ConclusionStore | apply — единственный write-path (ADR-O-381) | - | `-` | - |
+| NpcDialogueSubscriber | IntelligenceQueue | enqueue IntelligenceTask (D8P_ENABLED) | - | `-` | - |
+| IntelligenceQueue | TaskScheduler | FIFO via existing executor rail (ADR-O-382) | - | `-` | - |
+| EventBus | EventIdentity | _finalize_identity at publish (ADR-O-404) | - | `-` | - |
+| NpcDialogueSubscriber | DeltaGate | witness/target Proposal routing (S238) | - | `-` | - |
 | PerceptionLayer | SpatialLayer | visible/audible entities → distance + LOS | Only perceived entities get spatial data | `player_cognition/perception_layer.py` | - |
 | SpatialLayer | RecognitionLayer | spatial data → recognition confidence | Distance affects recognition confidence | `player_cognition/spatial_layer.py` | - |
 | RecognitionLayer | AttentionLayer | recognized entities → attention filter | Known entities get higher attention score | `player_cognition/recognition_layer.py` | - |
@@ -1687,6 +1738,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TickOrchestrator | AffordanceShadow | G1-врезка после build_snapshot (до PRE-TICK) | Ноль decision-input: результат НЕ кладётся в ctx; флаг OFF=no-op; отказ наблюдателя не роняет тик (§11). | `-` | - |
 | AffordanceShadow | WorldObjectProjection | discovery по проекции снапшота | Позиции NPC — только snapshot.npc_positions; живой scene_state discovery не читает. | `-` | - |
 | WorldObjectProjection | AffordanceResolver | Tuple[WorldObject] → resolve (pure) | W2 остаётся pure; хранилище не трогается; замена представления не требует переписывания W2. | `-` | - |
+| PostDecisionPhase7 | G3Executor | release-ветка Фазы 7: PASS/NO_OP/REJECT/SKIP (ADR-O-410) | - | `-` | - |
+| G3Executor | WorldObjectStore | apply_transition — единственный легальный runtime-writer (Г4-цензус) | - | `-` | - |
+| G3Executor | WorldObjectStore | compute_object_target_facts (Этап 2) → TickState.object_target_map → DecisionHub | - | `-` | - |
 
 ### Архитектурные запреты (Constraints)
 
@@ -1980,3 +2034,4 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | AffordanceShadow | SceneState | FORBIDDEN: discovery читает живой scene_state (только проекция замороженного снапшота тика); результат тени входит в decision-вход | `-` |
 | WorldObjectSpawner | WorldObject | FORBIDDEN: identity содержит локацию как семантику; спавн вне initialize_scene; presentation-поля в проекции; расширение SpawnMapping без мини-записи | `-` |
 | Any | AffordanceShadow | REQUIRED: G2 (AffordanceSet → DecisionHub read-only вход) и G3 (исполнение: ревалидация precondition-кортежей → transition → мутация → Fact) — отдельные гейты; STEAL = W5-интерпретация TAKE; TRANSFER = атомарный W6-примитив; async-шум не SSOT | `-` |
+| G3Executor | WorldObjectStore | FORBIDDEN: write мимо стора; событие при REJECT (D4: событие = утверждение факта); executor целеполагает (И-1); расширение _ACTION_TO_WORLD/цензуса Г4 без мини-ADR; MutationRecord до потребителя | `-` |

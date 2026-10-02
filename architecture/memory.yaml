@@ -111,6 +111,21 @@ nodes:
     description: "Извлекает тему для DecisionHub (Фаза 4). topic не может быть пустым (Устав §3.2)."
     code_ref: "npc/topic_extractor.py"
 
+  ExperienceTrace:
+    type: dto
+    layer: Domain
+    label: "Experience Trace (EMRL E1.0)"
+    description: "S238: опыт с provenance (TraceSource: DIRECT_EXPERIENCE | TESTIMONY — TESTIMONY ≠ копия чужого состояния). Персистенция sqlite_store (save_trace/load_traces). Decay-семантика E1.1: floor = is_compressed (суть бессмертна, шум умирает). AG1-INV-TRACE-ONCE: один event.id → один trace → ≤1 дельты."
+  MemoryCrystal:
+    type: dto
+    layer: Domain
+    label: "Memory Crystal (Semantic Layer, E1.2)"
+    description: "S238: консолидированная суть эпизода; confidence ≠ retrieval_strength (разделены); домен-граница с CrystallizedBelief (identity ≠ memory). Персистенция sqlite_store."
+  DeltaGate:
+    type: service
+    layer: Application
+    label: "Delta Gate (Interpretation → State Bridge)"
+    description: "AG1 E2.0 (S238): единственный мост интерпретация→состояние (INV-LLM-NOT-SSOT). WHITELIST field→(lo,hi,consumer) → кламп → идемпотентность trace_id → StateApplicator. EXPERIENCE_DELTA_COMMITTED observation-only. Gate = аудит, не писатель."
 edges:
   - from: MemoryManager
     to: LayeredMemory
@@ -189,6 +204,15 @@ edges:
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-S86.7"
 
+  - from: NpcDialogueSubscriber
+    to: DeltaGate
+    label: "witness/target StateDeltaProposal (S115-точка)"
+  - from: DeltaGate
+    to: StateApplicator
+    label: "authorized delta (whitelist+clamp+trace-once)"
+  - from: DeltaGate
+    to: EventBus
+    label: "EXPERIENCE_DELTA_COMMITTED (observation-only)"
 constraints:
   - source: Any
     target: MemoryManager
