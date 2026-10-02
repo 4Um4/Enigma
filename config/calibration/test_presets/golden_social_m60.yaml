@@ -1,0 +1,23 @@
+# R001-B: клон enigma_golden + initial trust(merchant_goran→player) delta -60
+meta:
+  preset_id: golden_social_m60
+  description: "R001-B: один субъект (goran), initial trust=-60"
+constants:
+  TRAIT_DECAY_RATE: 0.018
+  THETA_UP: 0.55
+  THETA_DOWN: 0.20
+  INTENT_INERTIA_WEIGHT: 0.20
+  INTENT_INERTIA_MAX_TICKS: 10
+  REACTIVE_URGENCY_THRESHOLD: 0.78
+  SCORE_NOISE_RANGE: 0.08
+  AFFECT_DECAY_BASE_RATE: 0.06
+  THREAT_AMPLIFICATION_FACTOR: 0.18
+  DISTRUST_STRESS_BOOST: 9.0
+  RESENTMENT_BIAS_FACTOR: 0.20
+npc_overrides:
+  "*":
+    psyche:
+      identity_rigidity: 0.42
+  merchant_goran:
+    social:
+      trust: -60.0

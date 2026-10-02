@@ -128,12 +128,19 @@ class InterpretationEngine:
         trust_bias = 0.0
         salience_bias = 0.0
 
-        # NOTE(mypy): relationship_cache типизирован Dict[str, Dict[str, float]]
-        # (ADR-121: вложенный {target_id: {trust, fear}}), а код читает плоские
-        # ключи ("fear"/"trust") — runtime-факты SimpleNamespace/плоских кэшей.
-        # Any-прочтение не меняет поведение, только снимает ложноположительный тип.
-        fear_value: Any = state.relationship_cache.get("fear", 0.0)
-        trust_value: Any = state.relationship_cache.get("trust", 0.0)
+        # GAP-1 (RE-D8): relationship_cache вложен {target: {trust, fear}} —
+        # формат ВСЕХ прод-писателей (npc_loader:205, V2 get_all_for_source,
+        # snapshot-merge). Плоских ключей верхнего уровня не существует →
+        # прежний flat-read давал всегда 0.0 (relationship-blind интерпретация,
+        # RED: reports/gap1_red2.txt). Ремонт читателя: при player-событии
+        # берём отношение к player; при не-игроковых — 0.0 (точно прежнее
+        # фактическое поведение, т.к. плоских ключей не существовало).
+        # Порог, формула и клампы НЕ тронуты (один несоответствие → один ремонт).
+        _bias_rel = (
+            state.relationship_cache.get("player", {}) if actor_is_player else {}
+        )
+        fear_value: Any = _bias_rel.get("fear", 0.0)
+        trust_value: Any = _bias_rel.get("trust", 0.0)
 
         # Страх усиливает воспринимаемую угрозу
         if fear_value > 0:
@@ -142,6 +149,7 @@ class InterpretationEngine:
         # Накопленная обида + низкое доверие → подозрительность
         if actor_is_player and trust_value < DISTRUST_STRESS_THRESHOLD:
             trust_bias = -0.2
+
         if state.resentment > 50.0:
             trust_bias -= (state.resentment - 50.0) * 0.004
 

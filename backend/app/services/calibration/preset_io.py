@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from app.core import constants as _default_constants
+from app.services.social.relationship_write_gate import SCALAR_WHITELIST
 from yaml import safe_load
 
 # ── Реестры валидации ────────────────────────────────────────────────────
@@ -58,7 +59,7 @@ _DRIVES_KEYS: tuple[str, ...] = ("control", "significance", "fear", "desire")
 
 _ROOT_KEYS: frozenset = frozenset({"meta", "constants", "npc_overrides"})
 _META_KEYS: frozenset = frozenset({"preset_id", "description"})
-_OVERRIDE_KEYS: frozenset = frozenset({"psyche", "drives"})
+_OVERRIDE_KEYS: frozenset = frozenset({"psyche", "drives", "social"})
 
 
 class CalibrationPresetError(RuntimeError):
@@ -71,6 +72,10 @@ class NpcOverride:
 
     psyche: dict[str, float] = field(default_factory=dict)
     drives: Optional[dict[str, float]] = None
+    # R001: начальное отношение к player — ДЕЛЬТЫ пяти скаляров гейта,
+    # применяются canonical writer'ом (update_relationships → WriteGate →
+    # Store) после первого тика; при свежей сессии дельта от Vacuum ≈ абсолют.
+    social: Optional[dict[str, float]] = None
 
 
 @dataclass(frozen=True)
@@ -182,6 +187,42 @@ def _validate_psyche(raw: Any, errors: list[str], npc_key: str) -> dict[str, flo
     return result
 
 
+def _validate_social(
+    raw: Any, errors: list[str], npc_key: str
+) -> Optional[dict[str, float]]:
+    """R001: социальные дельты начального состояния. Whitelist = SSOT
+    SCALAR_WHITELIST гейта (дубликат запрещён); NaN/bool — громкий отказ."""
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        errors.append(f"npc_overrides.{npc_key}.social: ожидается отображение")
+        return None
+    _keys = sorted(SCALAR_WHITELIST)
+    extra = [k for k in raw if k not in _keys]
+    if extra:
+        errors.append(
+            f"npc_overrides.{npc_key}.social: ключи вне whitelist гейта {extra} "
+            f"(разрешены {_keys})"
+        )
+    result: dict[str, float] = {}
+    for key, value in raw.items():
+        if key not in _keys:
+            continue
+        if not _is_number(value):
+            errors.append(
+                f"npc_overrides.{npc_key}.social.{key}: ожидается число, получено {value!r}"
+            )
+            continue
+        _v = float(value)
+        if not (-100.0 <= _v <= 100.0):
+            errors.append(
+                f"npc_overrides.{npc_key}.social.{key}: дельта вне [-100, 100]: {value!r}"
+            )
+            continue
+        result[key] = _v
+    return result or None
+
+
 def _validate_drives(
     raw: Any, errors: list[str], npc_key: str
 ) -> Optional[dict[str, float]]:
@@ -233,15 +274,16 @@ def _validate_npc_overrides(raw: Any, errors: list[str]) -> dict[str, NpcOverrid
         unknown = [k for k in entry if k not in _OVERRIDE_KEYS]
         if unknown:
             errors.append(
-                f"npc_overrides.{npc_key}: неизвестные ключи {unknown} (разрешены psyche, drives)"
+                f"npc_overrides.{npc_key}: неизвестные ключи {unknown} (разрешены psyche, drives, social)"
             )
             continue
         psyche = _validate_psyche(entry.get("psyche"), errors, npc_key)
         drives = _validate_drives(entry.get("drives"), errors, npc_key)
-        if not psyche and drives is None:
-            errors.append(f"npc_overrides.{npc_key}: пустой оверрайд — укажи psyche и/или drives")
+        social = _validate_social(entry.get("social"), errors, npc_key)
+        if not psyche and drives is None and social is None:
+            errors.append(f"npc_overrides.{npc_key}: пустой оверрайд — укажи psyche и/или drives и/или social")
             continue
-        result[npc_key] = NpcOverride(psyche=psyche, drives=drives)
+        result[npc_key] = NpcOverride(psyche=psyche, drives=drives, social=social)
     return result
 
 

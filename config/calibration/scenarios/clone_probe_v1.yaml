@@ -1,0 +1,9 @@
+# R001: player-событие без trust-дельт (MOVE — директивная ветвь S115),
+# активирует actor_is_player в интерпретации, не искажая дифференциал
+scenario_id: clone_probe_v1
+description: "MOVE→merchant_goran на тике 11 — зонд доставки trust к интерпретации"
+seed: 7331
+events:
+  - tick: 11
+    action: MOVE
+    target: merchant_goran

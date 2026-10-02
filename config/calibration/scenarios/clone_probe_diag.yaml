@@ -1,0 +1,7 @@
+scenario_id: clone_probe_diag
+description: "R14-диагностика: DIALOGUE→goran тик 2 — вербальный канал player→hub_event (без trust-дельт)"
+seed: 7331
+events:
+  - tick: 2
+    action: DIALOGUE
+    target: merchant_goran

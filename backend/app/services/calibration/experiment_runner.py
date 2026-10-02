@@ -34,6 +34,7 @@ from app.services.calibration.observability_tap import ObservabilityTap
 from app.services.calibration.preset_io import Preset, load_preset
 from app.services.calibration.preset_materializer import materialize_preset
 from app.services.calibration.scenario_player import ScenarioPlayer, load_scenario
+from app.models.npc_state import NPCStateAdapter
 from app.services.game_loop_builder import build_game_loop
 from app.services.llm.provider import ProviderType
 
@@ -424,6 +425,58 @@ class ExperimentRunner:
 
         return self._experiment_id
 
+    def _apply_initial_social(
+        self, preset: Any, game_loop: Any, campaign_id: str
+    ) -> Dict[str, Dict[str, Any]]:
+        """R001: npc_overrides.*.social — начальное отношение к player.
+        Канонический writer (ADR-SSOT-ECONOMIC): update_relationships →
+        RelationshipWriteGate → Store. Вызов после тика 1 (мир заспавнен,
+        Store забинден) и до любого player-события. Возвращает
+        {npc_id: {preset, store_read}} для протокола Initial≠Read."""
+        social_map = {
+            npc_id: ov.social
+            for npc_id, ov in preset.npc_overrides.items()
+            if npc_id != "*" and ov.social is not None
+        }
+        if not social_map:
+            return {}
+        engine = game_loop._get_life_engine()  # noqa: ENIGMA002 — домен-сосед (прецедент step)
+        app = game_loop._svc.get_state_applicator(  # noqa: ENIGMA002
+            relationship_store=getattr(game_loop, "_rel_store", None)
+        )
+        if app is None:
+            raise ExperimentError(
+                "initial social: StateApplicator недоступен (rel_store не забинден)"
+            )
+        rel_store = getattr(game_loop, "_rel_store", None)
+        applied: Dict[str, Dict[str, Any]] = {}
+        for npc_dict in engine.get_npc_states(campaign_id):
+            if not isinstance(npc_dict, dict):
+                continue
+            nid = npc_dict.get("id") or npc_dict.get("npc_id")
+            if nid not in social_map:
+                continue
+            d = social_map[nid]
+            state = NPCStateAdapter.from_legacy(npc_dict)
+            app.update_relationships(
+                state=state,
+                campaign_id=campaign_id,
+                target_id="player",
+                trust_delta=float(d.get("trust", 0.0)),
+                fear_delta=float(d.get("fear", 0.0)),
+                debt_delta=float(d.get("debt", 0.0)),
+            )
+            store_read: Dict[str, Any] = {}
+            if rel_store is not None and hasattr(rel_store, "get_pair"):
+                store_read = rel_store.get_pair(campaign_id, nid, "player")
+            applied[nid] = {"preset": dict(d), "store_read": store_read}
+        missing = set(social_map) - set(applied)
+        if missing:
+            raise ExperimentError(
+                f"initial social: NPC не найдены в get_npc_states: {sorted(missing)}"
+            )
+        return applied
+
     def step(self, ticks: int = 1) -> Dict[str, Any]:
         """Выполняет N тиков и возвращает текущее состояние NPC (LiveStateDTO)."""
         if not hasattr(self, "_active_game_loop") or not self._active_game_loop:
@@ -444,6 +497,12 @@ class ExperimentRunner:
                 else []
             )
             tick_result = game_loop.idle_tick(config.campaign_id, interventions=interventions)
+            if self._ticks_executed == 0 and not getattr(
+                self, "_initial_social_applied", None
+            ):
+                self._initial_social_applied = self._apply_initial_social(
+                    self._active_preset, game_loop, config.campaign_id
+                )
             self._statuses.append(str(tick_result.get("status", "unknown")))
             self._settle_async_dialogue_layer(game_loop, config)
 
