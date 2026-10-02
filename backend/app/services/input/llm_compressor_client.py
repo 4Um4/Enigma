@@ -136,6 +136,20 @@ class LlamaCppCompressorClient:
 
         names_hint = ", ".join(npc_names) if npc_names else "нет"
 
+        # RC8 A/B (вердикт Мастера): env ENIGMA_RC8_STATE='A' убирает ТОЛЬКО
+        # три контрастные few-shot-строки ASK_PROVENANCE/QUESTION. Контракт
+        # типа (описание ASK_PROVENANCE в списке acts выше) остаётся в обоих
+        # состояниях — переменная эксперимента изолирована ровно до этих
+        # строк. Default (env не задан / 'B') = STATE-B, production-промпт
+        # байт-идентичен прежнему.
+        _rc8_fewshot = ""
+        if os.environ.get("ENIGMA_RC8_STATE") != "A":
+            _rc8_fewshot = (
+                'Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'
+                'Ввод: "Откуда ты знаешь, что я Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'
+                'Ввод: "Кто разговаривал с Люсей?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "QUESTION", "params": {"topic": "кто разговаривал с Люсей"}}], "speech_act": "question"}\n'
+            )
+
         system_prompt = f"""Ты — продвинутый семантический парсер. Переведи ввод игрока в строгий JSON, отражающий многомерную семантику высказывания.
 Допустимые action: ["MOVE", "OBSERVE", "INTERACT", "ATTACK", "THREATEN", "PERSUADE", "FLIRT", "STEAL", "GIVE", "DIALOGUE", "UNCERTAIN"].
 Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
@@ -191,10 +205,7 @@ class LlamaCppCompressorClient:
 Ввод: "Привет, я Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "greeting"}}
 Ввод: "Я — Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "assert"}}
 Ввод: "Здравствуй, меня зовут Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "greeting"}}
-Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASK_PROVENANCE", "params": {{"about": "имя игрока"}}}}], "speech_act": "question"}}
-Ввод: "Откуда ты знаешь, что я Мю?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASK_PROVENANCE", "params": {{"about": "имя игрока"}}}}], "speech_act": "question"}}
-Ввод: "Кто разговаривал с Люсей?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "кто разговаривал с Люсей"}}}}], "speech_act": "question"}}
-Ввод: "Я ищу Горана. Ты его сегодня видел?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "видел ли Горана"}}}}], "speech_act": "question"}}
+{_rc8_fewshot}Ввод: "Я ищу Горана. Ты его сегодня видел?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "видел ли Горана"}}}}], "speech_act": "question"}}
 Ввод: "ты молодец" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "COMPLIMENT"}}], "social_intent": "build_rapport", "speech_act": "compliment"}}
 Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я слуга этого дома десять лет", "subject": "player", "topic": "occupation"}}}}], "speech_act": "assert"}}
 Ввод: "Ты слуга этого дома?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "occupation", "target": "npc"}}}}], "speech_act": "question"}}
