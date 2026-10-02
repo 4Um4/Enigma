@@ -42,9 +42,9 @@ from app.services.tick_orchestrator import (
 )
 
 if TYPE_CHECKING:
-    from app.services.tick_orchestrator import TickResultDTO
     from app.contracts.interventions import InterventionEvent
     from app.models.world_continuity import WorldContinuityMode
+    from app.services.tick_orchestrator import TickResultDTO
 
 # ─────────────────────────────────────────────────────────────────────────────
 # R3 DIRECT MODE: DM как единственный источник речи

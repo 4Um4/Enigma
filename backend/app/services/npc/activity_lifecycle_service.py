@@ -13,7 +13,6 @@ path: /project/backend/app/services/npc/activity_lifecycle_service.py
 Основные сущности: run_activity_lifecycle, _try_onset, _advance, _terminate
 """
 from __future__ import annotations
-from app.errors import ArchitecturalViolationError  # S313 L4
 
 import dataclasses
 import logging
@@ -32,6 +31,7 @@ from app.domain.desire import Desire
 from app.domain.movement import PRIORITY_NEEDS, PRIORITY_REACTIVE, IntentDomain, MacroMovementGoal
 from app.domain.semantic_action import WorldActionType
 from app.domain.world_object import ObjectRelationKind, WorldObject
+from app.errors import ArchitecturalViolationError  # S313 L4
 from app.models.spatial_contracts import NodeRole
 from app.services.npc.activity_catalog import _SPEC_BY_TYPE, ACTIVITY_CATALOG
 from app.services.scene_change import ChangeType, SceneChange

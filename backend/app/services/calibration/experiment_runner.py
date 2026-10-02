@@ -28,13 +28,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
+from app.models.npc_state import NPCStateAdapter
 from app.services.calibration.config_overlay import overlay_active, overlay_constants
 from app.services.calibration.metrics import build_metrics_bundle
 from app.services.calibration.observability_tap import ObservabilityTap
 from app.services.calibration.preset_io import Preset, load_preset
 from app.services.calibration.preset_materializer import materialize_preset
 from app.services.calibration.scenario_player import ScenarioPlayer, load_scenario
-from app.models.npc_state import NPCStateAdapter
 from app.services.game_loop_builder import build_game_loop
 from app.services.llm.provider import ProviderType
 
