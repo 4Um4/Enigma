@@ -24,6 +24,7 @@ import logging
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))

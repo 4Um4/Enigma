@@ -63,7 +63,9 @@ def test_observer_in_radius_gets_belief(setup):
         "speech_act": "assert",
         "tick": 1
     }
-    event = EventDTO.create(event_type="communication_claim", source="player", payload=payload)
+    # ADR-148: create без radius даёт сентинел 999 → мембрана радиуса
+    # пробита, «далёкий» наблюдатель получал веру. Честный радиус слуха.
+    event = EventDTO.create(event_type="communication_claim", source="player", payload=payload, radius=10.0)
     bus.publish(event)
     
     # Borko should have the belief
@@ -83,7 +85,9 @@ def test_observer_out_of_radius_no_belief(setup):
         "speech_act": "assert",
         "tick": 1
     }
-    event = EventDTO.create(event_type="communication_claim", source="player", payload=payload)
+    # ADR-148: create без radius даёт сентинел 999 → мембрана радиуса
+    # пробита, «далёкий» наблюдатель получал веру. Честный радиус слуха.
+    event = EventDTO.create(event_type="communication_claim", source="player", payload=payload, radius=10.0)
     bus.publish(event)
     
     # Borko should NOT have the belief

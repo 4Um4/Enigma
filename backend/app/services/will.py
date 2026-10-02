@@ -43,7 +43,7 @@ def resolve_intent_pressure(
         or getattr(intent, "action", "")  # noqa: ENIGMA002
         or ""
     ).lower()
-    target = (
+    _target = (
         getattr(intent, "parameters", None)  # noqa: ENIGMA002
         and intent.parameters.target_reference
         or getattr(intent, "target", "")  # noqa: ENIGMA002

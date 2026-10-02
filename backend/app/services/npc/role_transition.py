@@ -218,7 +218,7 @@ class RoleTransition:
         # Обновляем состояние через dataclass replace
         from dataclasses import replace
 
-        new_state = replace(
+        _new_state = replace(
             state,
             current_role=target_role,
             role_history=new_history,

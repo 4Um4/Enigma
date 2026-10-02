@@ -13,6 +13,7 @@ path: /project/backend/app/services/npc/activity_lifecycle_service.py
 Основные сущности: run_activity_lifecycle, _try_onset, _advance, _terminate
 """
 from __future__ import annotations
+from app.errors import ArchitecturalViolationError  # S313 L4
 
 import dataclasses
 import logging
@@ -72,6 +73,7 @@ def _emit_label_change(ctx: Any, orchestrator: Any, npc_id: str, label: str) -> 
     except Exception as exc:
         # Деградация канала видимости, не тика (G2 D5); L4: громко
         logger.warning(f"[ACTIVITY] label emit fault {npc_id}: {exc}")
+        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
 
 
 def _activity_enabled() -> bool:
@@ -133,6 +135,7 @@ def _get_object(scene_state: Dict[str, Any], object_id: str) -> Optional[WorldOb
     except Exception as exc:
         # Отсутствие цели — легальный исход (target_vanished), не тихий None (L4)
         logger.info(f"[ACTIVITY] get_object {object_id}: {type(exc).__name__}: {exc}")
+        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
         return None
 
 
@@ -292,6 +295,7 @@ def _publish_outcome(
         )
     except Exception as exc:
         logger.warning(f"[ACTIVITY] outcome event fault (degraded): {exc}")
+        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
 
 
 def _advance(
@@ -565,6 +569,7 @@ def _onset_for_desire(
     except Exception as exc:
         # Мир не ответил путём — деятельность не рождается; громко (L4)
         logger.warning(f"[ACTIVITY] spatial resolve fault: {exc}")
+        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
         _spatial = None
     if _spatial is not None:
         _ref = _spatial.resolve_node(role=NodeRole.BAR, origin_xy=_obj.position)
@@ -718,4 +723,5 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
         _reconcile_activity_ownership(ctx)
     except Exception as exc:
         logger.warning(f"[ACTIVITY] converter fault (degraded, tick continues): {exc}")
+        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
     return _goals

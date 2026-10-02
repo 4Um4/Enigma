@@ -73,6 +73,9 @@ class TestIPTInvariants:
 
     def test_trav_dict_invariant(self):
         """INV-TRAV-DICT: active_traversals должен быть dict, не list."""
-        content = read_file(SSM_PATH)
-        assert 'active_traversals = {}' in content or 'active_traversals": {}' in content, \
-            "INV-TRAV-DICT: active_tr traversals инициализируется не как dict!"
+        # Инициализация пустого корня переехала в SceneFactory (SSM — fallback);
+        # греп следует за владельцем (прецедент relationship_state M1a).
+        factory_path = os.path.join(_APP_DIR, "services", "scene_state", "scene_factory.py")
+        content = read_file(factory_path) + read_file(SSM_PATH)
+        assert 'active_traversals = {}' in content or '"active_traversals": {}' in content, \
+            "INV-TRAV-DICT: active_traversals инициализируется не как dict!"

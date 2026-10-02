@@ -151,7 +151,7 @@ class BehaviorManifestationService:
     ) -> EmbodiedTraceDTO:
         # Rule X (ADR-101/112): Моторика определяется строго физиологией и PerceptualKernel
         # НЕ телепатия: мы не читаем "NPC боится", мы наблюдаем дрожь рук и напряжённую позу
-        in_transit = bool(data.get("in_transit", False))
+        _in_transit = bool(data.get("in_transit", False))
 
         # Читаем физиологию из body_state
         pain = 0.0

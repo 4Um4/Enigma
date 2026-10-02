@@ -4,7 +4,7 @@
 # Основные сущности: ExposureLevel, CommunicationIntent
 
 from dataclasses import dataclass
-from typing import Any, Literal, Optional
+from typing import Any, Dict, Literal, Optional
 
 from app.domain.epistemology import Proposition
 
@@ -104,7 +104,7 @@ class DialogueRequest:
     # V8-DLG-10 FIX: Готовый промпт от VerbalizationContext, собранный в post_decision
     prepared_prompt: str = ""
     # S197: Эпистемический мост. Если реплика несёт утверждение (claim), оно передаётся сюда.
-    proposition: Optional[dict] = None
+    proposition: Optional[Dict[str, Any]] = None  # claim-payload (S197)
 
 
 @dataclass(frozen=True)
@@ -133,7 +133,7 @@ class CommunicationIntent:
     # Пробрасывается из EpistemicContext через DecisionHub в DialogueRequest.
     proposition: Optional[Proposition] = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Э6 (Н-40): JSON-сериализация для scene_state-персистентности
         (_pending_intents → scene_state). Все поля — примитивы или
         сериализуемые доменные объекты (§12 WARA)."""
@@ -154,7 +154,7 @@ class CommunicationIntent:
         }
 
     @staticmethod
-    def from_dict(d: dict) -> "CommunicationIntent":
+    def from_dict(d: Dict[str, Any]) -> "CommunicationIntent":
         from app.domain.epistemology import Proposition
 
         _exp = ExposureLevel.from_dict(d["exposure_level"])

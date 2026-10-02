@@ -32,6 +32,7 @@ def _make_npc(npc_id: str = "npc_1", stress: float = 30.0) -> dict:
     """Создаёт тестовый NPC dict (аналог _make_npc из test_reaction_subscriber)."""
     return {
         "id": npc_id,
+        "location_id": "test_room",  # P2-fix (ТЗДНЯ): фильтр локации отсеивает NPC без location_id
         "psyche": {
             "stress": stress,
             "willpower": 50.0,
@@ -55,6 +56,15 @@ def _make_scene_state() -> dict:
         "spatial_walls": [],
         "spatial_obstacles": [],
         "npc_positions": {
+            # P2-fix (ТЗДНЯ): без позиции игрока дистанция атаки = 999 → miss,
+            # физические дельты и шок не рождаются.
+            "player": {
+                "location_id": "test_room",
+                "position": "",
+                "activity": "idle",
+                "visible": True,
+                "local_position": {"x": 6.0, "y": 4.0},
+            },
             "npc_1": {
                 "location_id": "test_room",
                 "position": "",
@@ -97,6 +107,7 @@ def test_tick_orchestrator_full_loop_player_attacks():
 
     # Мок LifeEngine: возвращает нашего NPC через get_npc_states()
     npc_raw = _make_npc(stress=30.0)
+    all_npcs = [npc_raw]  # P2-fix (ТЗДНЯ, факт 4): собственная ссылка для финального утверждения
     life_engine_mock = MagicMock()
     life_engine_mock.tick.return_value = ([], [])  # Фаза 0: нет физ. изменений, нет life_intents
     life_engine_mock.get_npc_states.return_value = [npc_raw]
@@ -104,8 +115,8 @@ def test_tick_orchestrator_full_loop_player_attacks():
     life_engine_mock.get_idle_pressure_map.return_value = {}  # FIX: Возвращает пустой dict, а не MagicMock
     orchestrator._life_engine = life_engine_mock
 
-    # Устраняем зависимость от app.core.config.settings.RUNTIME_PATH
-    orchestrator._get_npc_runtime_path = MagicMock(return_value="test_runtime")
+    # P2-fix (ТЗДНЯ): стаб _get_npc_runtime_path удалён — метода больше нет
+    # в TickOrchestrator (проверено Select-String, 0 вхождений).
 
     # Мок SnapshotBuilder (Фаза 9)
     snapshot_builder_mock = MagicMock()
@@ -125,6 +136,7 @@ def test_tick_orchestrator_full_loop_player_attacks():
     result = orchestrator.execute(
         campaign_id="test_campaign",
         scene_state=_make_scene_state(),
+        all_npcs_raw=all_npcs,  # P2-fix (ТЗДНЯ): контракт S113 — явная передача NPC в Фазу 8
         tick_number=1,
     )
 
@@ -134,7 +146,22 @@ def test_tick_orchestrator_full_loop_player_attacks():
     # Проверяем, что стресс NPC увеличился (ReactionSubscriber генерирует stress_delta)
     # Если ctx.all_npcs_raw не был синхронизирован с ctx.npc_states, мутация не применится!
     # Этот тест ДОЛЖЕН упасть, обнаружив баг с пустым all_npcs_raw в idle-тикете.
-    final_npc = life_engine_mock.get_npc_states("test_campaign")[0]
+    # P2-fix (ТЗДНЯ, вердикт зонда v2): дельты применяются к нормализованным
+    # копиям (L2.2 Entity Birth Contract); входной all_npcs_raw ядро НЕ мутирует
+    # (ADR-TZ09-1 pure reducer, L3: результат возвращается значением).
+    # Авторитетный пост-тик словарь — TickResultDTO.all_npcs_raw.
+    final_npcs = getattr(result, "all_npcs_raw", None) or []
+    final_npc = next(
+        (
+            n
+            for n in final_npcs
+            if n.get("id") == "npc_1" or n.get("npc_id") == "npc_1"
+        ),
+        None,
+    )
+    assert final_npc is not None, (
+        "npc_1 отсутствует в TickResultDTO.all_npcs_raw — контракт результата ядра нарушен."
+    )
     assert final_npc["psyche"]["stress"] > 30.0, (
         "Стресс NPC не увеличился — дельта из Phase 8 не применена в Phase 10! Вероятно, ctx.all_npcs_raw не заполнен."
     )

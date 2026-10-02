@@ -424,7 +424,7 @@ class SocialEngine:
         if not connections:
             return modifiers
 
-        target_dist = (
+        _target_dist = (
             player_distances.get(event_target, 999.0) if event_target else 999.0
         )
 

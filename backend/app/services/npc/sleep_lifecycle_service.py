@@ -293,7 +293,7 @@ class SleepLifecycleService:
 
     def _process_wake_lifecycle(self, npc: Dict[str, Any]) -> None:
         """S188 ARCH-SLEEP Phase A/D: Физиология бодрствования.
-        
+
         Накапливает sleep_pressure (потребность во сне) и модулирует arousal (возбуждение).
         arousal затухает в покое, но взлетает при наличии стимулов.
         """
@@ -325,7 +325,7 @@ class SleepLifecycleService:
 
     def _accumulate_arousal_from_stimuli(self, npc: Dict[str, Any]) -> None:
         """S189 ARCH-SLEEP Phase D: Динамическая аккумуляция arousal от стимулов CFRM.
-        
+
         Читает PerceptualKernel (threat, uncertainty, anomaly, directive) и накапливает arousal в body_state.
         Вызывается как во сне, так и при бодрствовании, чтобы тело могло естественно реагировать на стимулы.
         """

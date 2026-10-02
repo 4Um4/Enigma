@@ -108,9 +108,24 @@ class TestDualRailPipeline:
     """Тесты pipeline: snapshot → compile → legacy apply → validate."""
 
     def setup_method(self):
+        from unittest.mock import MagicMock, patch
+
         self.compiler = EventCompiler()
         self.validator = EquivalenceValidator()
         self.svc = _make_test_spatial_service()
+        # EventCompiler резолвит через SpatialFactory.build_for_campaign
+        # (event_compiler.py:342-349): без инъекции уходил в реальную фабрику
+        # → "test/tavern" editor JSON отсутствует → svc=None → компиляция None.
+        # Локальный import внутри compile() резолвит атрибут модуля-источника
+        # в момент вызова — патчить источник, не потребителя.
+        self._factory_patch = patch(
+            "app.services.spatial.spatial_factory.SpatialFactory"
+        )
+        self._mock_factory = self._factory_patch.start()
+        self._mock_factory.build_for_campaign = MagicMock(return_value=self.svc)
+
+    def teardown_method(self):
+        self._factory_patch.stop()
 
     def test_no_drift_same_node_movement(self):
         """Legacy и shadow совпадают при перемещении в известный узел."""

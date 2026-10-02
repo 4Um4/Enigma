@@ -38,8 +38,8 @@ def main(paths: list[str]) -> None:
         pygame.image.save(b, os.path.join(out_dir, f"probe_{base}_B_threshold.png"))
         # Количественная метрика: сколько пикселей Вариант Б убил, а А оставил
         arr_orig = pygame.surfarray.array3d(sheet)
-        arr_a = pygame.surfarray.array3d(a)
-        killed_b = int(
+        _arr_a = pygame.surfarray.array3d(a)
+        _killed_b = int(
             (
                 (arr_orig[:, :, 0] >= 220)
                 & (arr_orig[:, :, 1] >= 220)

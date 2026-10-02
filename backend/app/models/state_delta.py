@@ -191,3 +191,15 @@ class StateDeltas:
                     "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
                     "(используйте reputation_delta)"
                 )
+
+
+__all__ = [
+    "DeltaDomain",
+    "StateDeltas",
+    "EmotionPayload",
+    "SocialPayload",
+    "PerceptionPayload",
+    "PhysiologyPayload",
+    "ReputationPayload",
+    "EmotionTag",
+]

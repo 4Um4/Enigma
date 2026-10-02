@@ -31,7 +31,10 @@ class _FakeAvatar:
     def __init__(self) -> None:
         self.entries = []
 
-    def append_journal(self, campaign_id, speaker, text) -> None:
+    # ADR-O-409 / M17-этап-2: прод пробрасывает channel/event_id/tick/npc_id.
+    # Фейк принимает их, кортеж entries не меняем — существующие ассерты живы.
+    def append_journal(self, campaign_id, speaker, text, channel=None,
+                       event_id="", tick=0, npc_id=None) -> None:
         self.entries.append((campaign_id, speaker, text))
 
 

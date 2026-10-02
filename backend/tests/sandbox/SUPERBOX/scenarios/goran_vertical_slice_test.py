@@ -219,8 +219,10 @@ def main() -> int:
         exposure_level=ExposureLevel.from_semantic("whisper"),
         target_id="gold_chest",
     )
+    # CAMPEIGN→CAMPAIGN: опечатка в мёртвой ветке (if False) — имя валидно,
+    # мёртвый морф оставлен как исторический артефакт вертикального среза.
     _scene = world.game_loop.scene_manager.get_scene_state(
-        CAMPAIGN, world.game_loop.scene_manager.get_active_location(CAMPEIGN) or "tavern"
+        CAMPAIGN, world.game_loop.scene_manager.get_active_location(CAMPAIGN) or "tavern"
     ) if False else world.game_loop.scene_manager.get_scene_state(CAMPAIGN, "tavern") or {}
     _phase6_ctx = types.SimpleNamespace(
         communication_intents=[_intent],

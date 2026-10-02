@@ -287,7 +287,7 @@ class ReputationEngine:
 
         return results
 
-    def apply_deltas(self, deltas: List["StateDeltas"]) -> None:
+    def apply_deltas(self, deltas: List[Any]) -> None:  # S313: legacy dict-формат легален (apply_event_impact возвращает List[dict])
         """Единственная точка мутации FactionState.
         Вызывается ТОЛЬКО из StateApplicator._apply_faction_delta().
 

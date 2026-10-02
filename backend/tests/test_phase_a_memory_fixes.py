@@ -1199,11 +1199,21 @@ def test_reaction_telepathy_guard_observable() -> None:
                  "intensity": 0.7},
         persistence_level="working",
     )
+    # S210-контракт: «никто не видел» = честная мембрана (spatial_query,
+    # оба NPC за радиусом). Без spatial_query подписчик громко падает
+    # в fallback на ВСЕХ NPC. Дистанция > 999 — сентинел radius (ADR-148).
+    class _FarSpatial:
+        def player_distances(self, ids):
+            return {i: 1_000_000.0 for i in ids}
+
+        def distance(self, a, b):
+            return 1_000_000.0
+
     ctx = SimpleNamespace(
         all_npcs_raw=[{"id": "merchant_goran"}, {"id": "maid_lusya"}],
         physical_deltas_materialized=[],
         scene_state={},
-        shared_context=SimpleNamespace(perceiving_npcs=[]),  # НИКТО
+        shared_context=SimpleNamespace(spatial_query=_FarSpatial()),
     )
     result = sub.handle([evt], ctx)
     deltas = result.deltas if hasattr(result, "deltas") else result

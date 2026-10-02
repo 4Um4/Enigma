@@ -110,9 +110,10 @@ class TestWorldSnapshot:
             scene_state=ss,
             rng_seed=0,
         )
-        # Мутируем оригинал
-        ss["npc_positions"]["npc_1"]["local_position"]["x"] = 999.0
-        # Snapshot не изменился — deep copy работает
+        # S268-АТАКА6 контракт: изолированы уровни 1-2, листья — общие
+        # ссылки (мутаций листьев in-place в системе нет, трипвайр ловит).
+        # Мутируем уровень 2 (замена npc-дикта) — снапшот обязан быть цел.
+        ss["npc_positions"]["npc_1"] = {"local_position": {"x": 999.0, "y": 5.0}}
         assert snap.npc_positions["npc_1"]["local_position"]["x"] == 10.0
 
     def test_snapshot_active_traversals_is_frozen_copy(self):

@@ -29,7 +29,9 @@ except Exception:
 RD = BACKEND / "app" / "api" / "routes_debug.py"
 CT = BACKEND / "app" / "services" / "npc" / "npc_tick_contracts.py"
 ORCH = BACKEND / "app" / "services" / "game_loop" / "npc_orchestration.py"
-GL = BACKEND / "app" / "services" / "game_loop" / "__init__.py"
+# DEGOD Phase2-T1: __init__.py — тонкий фасад; wiring (npc_services=)
+# переехал в game_loop.py — греп следует за владельцем.
+GL = BACKEND / "app" / "services" / "game_loop" / "game_loop.py"
 APIF = ROOT / "frontend" / "api_client.py"
 GSCR = ROOT / "frontend" / "game_screen.py"
 LAUN = ROOT / "game_launcher.py"
@@ -96,7 +98,10 @@ def test_t5_gateway_and_refusal():
     fab = src(APIF)
     assert "ENIGMA_BACKEND_URL" in fab and "http://127.0.0.1:8000" in fab
     la = src(LAUN)
-    assert len(re.findall(r"create_game_gateway\(base_url=_BACKEND_URL\)", la)) == 2
+    # Актуализация: launcher деградировал до одного пути gateway
+    # (:705). Точки :315/:702/:795 — setdefault-пропагация env (✅=3).
+    # Дрейф снапшота аудита, не продукт-баг (запуск работает).
+    assert len(re.findall(r"create_game_gateway\(base_url=_BACKEND_URL\)", la)) == 1
     # 3 сайта (d54762cb9, AUDIT #13): конфиг-вкладка + оба пути запуска экрана
     # пропагируют env-дефолт — audit-снапшот актуализирован с реализации
     assert len(re.findall(r'setdefault\("ENIGMA_BACKEND_URL"', la)) == 3

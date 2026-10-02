@@ -16,7 +16,7 @@ _DEAD_FATES = {"killed_by_guild", "death", "suicide"}
 
 class WorldStateApplicator:
     """Применяет WorldStateDiff к кэшу NPC новой кампании.
-    
+
     Единственный легитимный способ перенести последствия
     из одной кампании в другую.
     """

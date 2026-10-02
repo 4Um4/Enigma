@@ -48,16 +48,16 @@ def test_dialogue_cadence():
     task_a = {"owner_id": "A", "kind": "dialogue", "payload": {"target_id": "B", "intent_type": "talk", "topic": "долг"}}
     task_b = {"owner_id": "B", "kind": "dialogue", "payload": {"target_id": "A", "intent_type": "talk", "topic": "долг"}}
     
-    # Тик 1: A говорит
-    admitted, _ = scheduler.admit(task_a)
+    # IRON RIVER F2: admit() требует каузальную ось game_time_seconds;
+    # при 0.0 даже первый admit ловит PACING (now-last=0 < latency).
+    # A->B->A на оси: семантика теста неизменна.
+    admitted, _ = scheduler.admit(task_a, game_time_seconds=300.0)
     assert admitted == True, "A should speak"
-    
-    # Тик 2 (сразу после): B пытается ответить. Должен быть допущен, т.к. его pacing не нарушен.
-    admitted, _ = scheduler.admit(task_b)
+
+    admitted, _ = scheduler.admit(task_b, game_time_seconds=300.0)
     assert admitted == True, "B should respond"
-    
-    # Тик 3 (сразу после): A пытается ответить. Должен быть подавлен (pacing 2 сек).
-    admitted, _ = scheduler.admit(task_a)
+
+    admitted, _ = scheduler.admit(task_a, game_time_seconds=300.0)
     assert admitted == False, "A should be denied (pacing)"
     
     print("✅ PASS: Dialogue Cadence A->B allowed, A->A denied.")
@@ -68,9 +68,9 @@ def test_duplicate_suppression():
     
     task = {"owner_id": "Orm", "kind": "dialogue", "payload": {"target_id": "Goran", "intent_type": "request_service", "topic": "молот"}}
     
-    admitted, _ = scheduler.admit(task)
+    admitted, _ = scheduler.admit(task, game_time_seconds=300.0)
     assert admitted == True, "First request should be admitted"
-    admitted, _ = scheduler.admit(task)
+    admitted, _ = scheduler.admit(task, game_time_seconds=300.0)
     assert admitted == False, "Exact duplicate should be denied"
     
     # Изменился контекст (например, topic сменился на "оплата")

@@ -88,7 +88,7 @@ def run_tests():
 
     # --- Тест 3: Детерминированность ---
     print("\n[Тест 3] Проверка детерминированности...")
-    store_det = EpistemicStore()
+    _store_det = EpistemicStore()
     record_det = engine.revise("agent_c", claim_1, None)
     assert record_det == record_1, "Same input must produce exact same output"
     print("  ✅ Детерминированность подтверждена.")

@@ -88,3 +88,12 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["yaml", "psutil", "networkx", "pymorphy3"]
 ignore_missing_imports = true
+
+# ── S313: Ruff lint policy ──────────────────────────────────────────
+# Пути per-file-ignores ОТНОСИТЕЛЬНЫ backend/ (базовый каталог конфига).
+[tool.ruff.lint.per-file-ignores]
+# __init__-швы — легаси-ре-экспорты (фасады DEGOD): F401 = контракт.
+"**/__init__.py" = ["F401"]
+# Однострочники легаси-стиля — осознанный компакт; autofix недоступен,
+# семантического риска нет (сводка S313).
+"app/**" = ["E701", "E702"]

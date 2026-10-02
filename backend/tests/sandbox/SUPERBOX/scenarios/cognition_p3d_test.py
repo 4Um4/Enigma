@@ -54,7 +54,10 @@ try:
     if not start_llama_server():
         print("[G0] ⚠ LLM не поднялась — семантика MOVE резолвится fast-path")
     atexit.register(kill_llama_server)
-except ModuleNotFoundError as _e:
+except (ModuleNotFoundError, OSError) as _e:
+    # P1-fix (ТЗДНЯ): FileNotFoundError/PermissionError от Popen при отсутствии
+    # llama-server (CI-чекут без gitignored "Models LLM/") — не ModuleNotFoundError;
+    # ронял collection всего набора тестов.
     print(f"[G0] llm_server_manager недоступен ({_e})")
 
 from app.domain.attention import AttentionObservation

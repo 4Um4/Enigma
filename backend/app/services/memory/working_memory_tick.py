@@ -60,7 +60,7 @@ def write_npc_reactions_to_memory(
 
     for reaction in npc_reactions:
         if not isinstance(reaction, str):
-            continue
+            continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
         if not reaction or ":" not in reaction:
             continue
 

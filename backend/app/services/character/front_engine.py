@@ -152,7 +152,7 @@ class FrontEngine:
 
         # Усиление если давление растёт
         if total >= PRESSURE_INTENSIFY_THRESHOLD:
-            old_intensity = current_front.intensity
+            _old_intensity = current_front.intensity
             return FrontDecision(
                 action="intensify",
                 front_type=current_front.front_type,

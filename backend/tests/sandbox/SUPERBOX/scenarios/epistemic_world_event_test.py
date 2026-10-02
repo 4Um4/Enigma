@@ -2,7 +2,7 @@
 """
 SUPERBOX-012: Каузальное Событие Мира (World Event Causation).
 
-Тест доказывает замыкание каузальной петли: 
+Тест доказывает замыкание каузальной петли:
 QueuedTask исполняется TaskScheduler и порождает реальный EventDTO (NPC_SPOKE) в EventBus.
 
 Control: Нет убеждения -> 0 задач от guard_borko -> 0 событий NPC_SPOKE от guard_borko.

@@ -37,7 +37,7 @@ class ReplayStore:
                 commit_hash TEXT NOT NULL,
                 started_at REAL NOT NULL
             );
-            
+
             CREATE TABLE IF NOT EXISTS tick_snapshots (
                 session_id TEXT NOT NULL,
                 tick_id INTEGER NOT NULL,
@@ -48,7 +48,7 @@ class ReplayStore:
                 PRIMARY KEY (session_id, tick_id),
                 FOREIGN KEY (session_id) REFERENCES sessions(session_id)
             );
-            
+
             CREATE TABLE IF NOT EXISTS interventions (
                 intervention_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -58,7 +58,7 @@ class ReplayStore:
                 intent_compression_json BLOB,
                 FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
             );
-            
+
             CREATE TABLE IF NOT EXISTS llm_calls (
                 call_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -71,7 +71,7 @@ class ReplayStore:
                 latency_ms INTEGER,
                 FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
             );
-            
+
             CREATE TABLE IF NOT EXISTS causal_probes (
                 probe_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -81,7 +81,7 @@ class ReplayStore:
                 details_json BLOB,
                 FOREIGN KEY (session_id, tick_id) REFERENCES tick_snapshots(session_id, tick_id)
             );
-            
+
             CREATE TABLE IF NOT EXISTS scene_changes (
                 change_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -147,14 +147,14 @@ class ReplayStore:
         with self._lock:
             # 1. Гарантируем существование строки (заполняем NOT NULL поля дефолтами, если строки нет)
             self.conn.execute(
-                """INSERT OR IGNORE INTO tick_snapshots 
-                   (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json) 
+                """INSERT OR IGNORE INTO tick_snapshots
+                   (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (session_id, tick_id, game_time_seconds, b'{}', b'{}', b'{}')
             )
             # 2. Точечно обновляем только переданные поля
             self.conn.execute(
-                """UPDATE tick_snapshots SET 
+                """UPDATE tick_snapshots SET
                        game_time_seconds = COALESCE(?, game_time_seconds),
                        tick_state_json = COALESCE(?, tick_state_json),
                        tick_mutation_json = COALESCE(?, tick_mutation_json),

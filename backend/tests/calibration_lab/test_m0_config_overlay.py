@@ -1,5 +1,5 @@
 """
-path: backend/tests/calibration_lab/test_m0_config_overlay.py 
+path: backend/tests/calibration_lab/test_m0_config_overlay.py
 Назначение: Приёмочные тесты границы overlay (M0-AC-006 + регрессия A1:
     патч from-import биндингов decision_hub + отсутствие cross-patch
     интернированных равных значений).

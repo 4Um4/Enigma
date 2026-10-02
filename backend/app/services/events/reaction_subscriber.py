@@ -229,7 +229,17 @@ class ReactionSubscriber:
                     filter_perceiving_npcs(
                         npc_ids=_npc_ids,
                         event=event,
-                        scene_state=ctx.shared_context.scene_state,
+                        # P2-fix (ТЗДНЯ Проблема 2): Phase8Context.shared_context — Any и
+                        # может существовать БЕЗ scene_state; прямой доступ ронял обработчик
+                        # ([PHASE8_CRASH]) и события тика терялись. Паттерн соседа
+                        # (social_input_projector.py:96/114).
+                        scene_state=(
+                            # 3b: tick_ctx тоже Any/None в unit-контекстах
+                            # (test_perception_witness) — getattr на обоих членах.
+                            getattr(ctx.shared_context, "scene_state", None)
+                            or getattr(getattr(ctx, "tick_ctx", None), "scene_state", None)
+                            or {}
+                        ),  # noqa: ENIGMA002
                         spatial_query=_spatial_q,
                     )
                 )

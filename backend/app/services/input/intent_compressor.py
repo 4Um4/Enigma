@@ -214,6 +214,10 @@ _VALID_ACT_TYPES = {
     "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION",
     "SELF_INTRODUCTION", "QUESTION", "ASSERT", "ORDER",
     "THREAT", "COMPLIMENT", "FAREWELL",
+    # Шаг 4/RC8 (вердикт Мастера): provenance — канонический тип акта.
+    # Ownership перенесён из consumer (keyword-детектор удалён) в
+    # canonicalization: LLM классифицирует, consumer детерминирован.
+    "ASK_PROVENANCE",
     # Вердикт Мастера: confirmation-seeking — канонический акт (не отдельная
     # онтология; params.topic + флаг переносит семантику QUESTION-семейства)
     "CONFIRMATION_SEEKING",
@@ -494,6 +498,17 @@ class IntentCompressor:
                 and len(re.split(r"[.!?]+", fast.raw_text)) > 2
             ):
                 return True
+            # Canonicalization (вердикт Мастера): однопредложенный вопрос с
+            # пустыми актами — fast не извлекает темы; topic вопроса живёт
+            # только в LLM-слое. Неполон → LLM comprehension (граница, не
+            # словарь: детектор формальный — знак вопроса в raw).
+            if (
+                fast.action is ActionType.DIALOGUE
+                and not fast.semantic_acts
+                and getattr(fast, "speech_act", None) is not None
+                and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"
+            ):
+                return True
             return False
         if fast.target_zone == TargetZone.UNDEFINED and not fast.zone_raw:
             return True
@@ -531,7 +546,13 @@ class IntentCompressor:
         # = incomplete). LLM подтверждает → замена; иначе → None.
         if fast.proposition is not None:
             _obj = str(fast.proposition.object_id or "").lower()
-            if _obj not in _ids:
+            # P1-фикс (живой регресс): падежные формы имён NPC («горана»)
+            # резолвятся существующим падеже-устойчивым резолвером —
+            # цель реального NPC НЕ фантом, proposition не снимается.
+            _obj_is_known_npc = _obj in _ids or (
+                _obj and _resolve_npc_by_name(_obj) is not None
+            )
+            if not _obj_is_known_npc and _obj not in _ids:
                 _lp = llm.get("proposition")
                 if isinstance(_lp, dict) and _lp.get("subject_id") and _lp.get("object_id"):
                     try:
@@ -547,6 +568,30 @@ class IntentCompressor:
                 else:
                     _u["proposition"] = None
                 print(f"[RECONCILE] proposition raw-entity {_obj!r} снята/заменена (LLM)")
+                # P1/RC2 (вердикт Мастера): fast-фантомный ATTACK. Если fast
+                # классифицировал ATTACK/THREATEN, но его proposition снята
+                # как фантом (нерезолвнутая сущность), и LLM-слой уверенно
+                # классифицирует иначе — action корректируется на LLM-класс.
+                # Это arbitration-коррекция доказанного конфликта, не второй
+                # пониматель: триггер = снятая fast-пропозиция, источник = LLM.
+                # Строгий гейт: толькоAttack/Threaten-family; мёртвая LLM —
+                # честная деградация ADR-113 (action остаётся, фиксируем).
+                if fast.action in (ActionType.ATTACK, ActionType.THREATEN):
+                    _llm_action = str(llm.get("action") or "").upper()
+                    try:
+                        _new_action = ActionType(_llm_action)
+                    except ValueError:
+                        _new_action = None
+                    if (
+                        _new_action is not None
+                        and _new_action is not ActionType.UNCERTAIN
+                        and _new_action not in (ActionType.ATTACK, ActionType.THREATEN)
+                    ):
+                        _u["action"] = _new_action
+                        print(
+                            f"[RECONCILE] action overridden: fast={fast.action.value} "
+                            f"→ llm={_new_action.value} (phantom proposition)"
+                        )
         # 4b. Multi-Act: пустые акты ← LLM (заполнение пустых полей;
         # перезапись непустых запрещена — вердикт enrichment-only)
         if not fast.semantic_acts:

@@ -19,7 +19,7 @@ def main() -> None:
     impact_parser = subparsers.add_parser("impact", help="Что ломается, если я поменяю файл?")
     impact_parser.add_argument("--file", required=True, help="Путь к файлу (например, backend/app/services/tick_orchestrator.py)")
 
-    conflicts_parser = subparsers.add_parser("conflicts", help="Проверить граф на конфликты")
+    _conflicts_parser = subparsers.add_parser("conflicts", help="Проверить граф на конфликты")
 
     visualize_parser = subparsers.add_parser("visualize", help="Сгенерировать Mermaid-граф")
     visualize_parser.add_argument("--output", default="docs/_adr_graph.md", help="Путь к выходному файлу")

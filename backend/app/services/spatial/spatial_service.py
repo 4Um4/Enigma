@@ -55,7 +55,7 @@ class SpatialService:
         editor_data_override: Optional[Dict[str, Any]] = None,
     ) -> Optional["SpatialService"]:
         """Фабрика: компилирует граф и оверлей для текущей локации и сцены.
-        
+
         ADR-O-330: Если передан editor_data_override, использует его вместо чтения с диска.
         Необходимо для Spatial Observatory (валидация черновика карты).
         """
@@ -786,3 +786,9 @@ class SpatialService:
         if zone_id:
             results = [n for n in results if n.zone_id == zone_id]
         return results
+
+
+__all__ = [
+    "SpatialService",
+    "Urgency",
+]

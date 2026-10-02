@@ -1,7 +1,7 @@
 """
 SUPERBOX-014: Эпистемическое замыкание для игрока (Player Epistemic Closure).
 
-Тест доказывает, что реплики NPC (NPC_SPOKE) порождают убеждения (EpistemicRecord) 
+Тест доказывает, что реплики NPC (NPC_SPOKE) порождают убеждения (EpistemicRecord)
 в EpistemicStore игрока, и что confidence зависит от доверия (trust) игрока к говорящему.
 
 Control: NPC_A (друг, trust=80) обвиняет (accuse) NPC_B -> confidence > 0.5

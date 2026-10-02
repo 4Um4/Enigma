@@ -66,7 +66,7 @@ class AvatarStatusBuilder:
     ) -> float:
         """
         Извлекает количество еды.
-        TODO (S152): Заменить на InventoryService.count_food(), когда появится 
+        TODO (S152): Заменить на InventoryService.count_food(), когда появится
         детальная классификация предметов (хлеб, мясо, ягоды).
         Пока берём из EconomicProfile, так как TradeResolver кладёт товары туда.
         """

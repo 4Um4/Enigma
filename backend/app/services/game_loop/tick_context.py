@@ -66,6 +66,10 @@ class TickBuffer:
     # ── ENIGMA SELF-HEALING: For probes (Level 1) ──
     mvp_controller: Any = None
 
+    # Step 5 (вердикт Мастера): read-only доступ для CognitionContextResolver.
+    # Буфер — не владелец, только транспорт ссылки; резолвер не пишет.
+    memory_manager: Any = None
+
 
 @dataclass(frozen=True)
 class TickOutput:

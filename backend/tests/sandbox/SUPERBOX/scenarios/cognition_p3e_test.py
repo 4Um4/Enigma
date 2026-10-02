@@ -530,7 +530,7 @@ async def main_async() -> int:
         dpos_after = None
         p0, p1 = _B0[npc]["xy"], x_rows[-1]["xy"].get(npc) if x_rows else None
         if p0 and p1:
-            dpos_after = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2)
+            _dpos_after = round(math.hypot(p1[0] - p0[0], p1[1] - p0[1]), 2)
         # P3e-run2 диагноз: borko финишировал intent=observe при E=0 —
         # alive=True прошёл через mov_after (чужие интенты в X/R). Строгий
         # stuck: intent=observe ∧ E<порога ∧ последние 3 тика без его

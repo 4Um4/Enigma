@@ -1,4 +1,4 @@
-﻿"""
+"""
 backend/app/services/game_loop/__init__.py
 
 Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
@@ -42,6 +42,7 @@ from app.services.tick_orchestrator import (
 )
 
 if TYPE_CHECKING:
+    from app.services.tick_orchestrator import TickResultDTO
     from app.contracts.interventions import InterventionEvent
     from app.models.world_continuity import WorldContinuityMode
 
@@ -117,6 +118,11 @@ class GameLoop:
         # S159: Инъекция NarrativeProjector для фильтрации реплик
         from app.services.perception.narrative_projector import NarrativeProjector
         self._narrative_projector = NarrativeProjector()
+        # S313: pre-declare lazy-атрибутов (использование в lambda/ветках
+        # раньше присвоения; типы Any — классы импортируются локально ниже).
+        self._load_npcs: Any = load_npcs_func
+        self.mvp_controller: Any = None
+        self._current_spatial_query: Any = None
 
         # P7-MVP: Инициализация эпистемического фасада
 
@@ -519,6 +525,12 @@ class GameLoop:
                 memory_manager=memory_manager,
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 tick_provider=lambda: int(getattr(self, "_current_tick", 0)),
+                # Шаг 4 (1α): ленивый провайдер — epistemic-регистрация идёт
+                # ПОЗЖЕ dialogue-регистрации (game_loop:286 vs :314), прямая
+                # ссылка взяла бы None. Разрешение — в момент использования.
+                claim_subscriber_provider=lambda: getattr(
+                    self, "_claim_event_subscriber", None
+                ),
             )
             _bus.subscribe(EventType.PLAYER_SPOKE, _speech_act_sub.on_player_spoke)
 
@@ -559,6 +571,9 @@ class GameLoop:
                 store=_epistemic_store,
                 spatial_query_provider=self._get_spatial_query_for_subscriber
             )
+            # Шаг 4 (1α): ссылка для PlayerSpeechActSubscriber — детерминированный
+            # канал SELF_INTRODUCTION → EpistemicStore (без публикаций в шину).
+            self._claim_event_subscriber = _subscriber
             _bus = get_event_bus()
             _bus.subscribe(EventType.COMMUNICATION_CLAIM, _subscriber.on_claim_event)
             # S199 (Фаза 8.3): Подписка на NPC_SPOKE для детерминированного fallback и интеграции игрока.
@@ -992,8 +1007,11 @@ class GameLoop:
             _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
             _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
             _p_stability = 1.0
-            if result.world_snapshot and result.world_snapshot.avatar_state:
-                _p_stability = result.world_snapshot.avatar_state.perceptual_stability
+            # S313: TimeSkipResult не несёт world_snapshot (J8.1) — getattr-гвард
+            # для обоих носителей результата (snapshot-DTO / time-skip).
+            _ws = getattr(result, "world_snapshot", None)
+            if _ws and _ws.avatar_state:
+                _p_stability = _ws.avatar_state.perceptual_stability
             _ctx = PerceptionContext(
                 player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
                 speaker_positions=_sp_positions,
@@ -1057,7 +1075,7 @@ class GameLoop:
         import copy as _copy
 
         if not isinstance(scene_state, dict):
-            logger.warning(f"[B14-RECV] non-dict payload ({type(scene_state).__name__}) — ignored")
+            logger.warning(f"[B14-RECV] non-dict payload ({type(scene_state).__name__}) — ignored")  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             return
         _loc_id = scene_state.get("location_id", "")
         _npc_pos = scene_state.get("npc_positions")
@@ -1206,7 +1224,7 @@ class GameLoop:
         try:
             from app.services.campaign_state_service import get_campaign_state_service
             _campaign_svc = get_campaign_state_service()
-            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
+            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # type: ignore[no-redef]  # S313: тот же запрос в другом контуре
             if _cs:
                 _saved_wx = _cs.metadata.get("player_world_x")
                 _saved_wy = _cs.metadata.get("player_world_y")
@@ -1296,6 +1314,10 @@ class GameLoop:
             npc_services=_npc_svc,  # AUDIT-003 §3.3
         )
 
+        # S313: idle-путь возвращает только TickResultDTO (TickPlayerResultDTO —
+        # REST/turn-контур); cast фиксирует инвариант пути для mypy.
+        result = cast("TickResultDTO", result)
+
         # Коммит результатов оркестратора (если ядро не сделало это само)
         if result and result.final_scene_state is not None:
 
@@ -1317,7 +1339,7 @@ class GameLoop:
                         _updated_npcs[_nid] = n
                 _engine.update_cache(campaign_id, list(_updated_npcs.values()))
 
-        if result is None:
+        if result is None:  # type: ignore[unreachable]  # S313: cast — типизация, не рантайм; ядро легально возвращает None ("no_scene")
             return {"status": "no_scene", "npc_positions": {}}
 
         # BUG-PERC-001 / BUG-CORE-006 FIX: GameLoop больше не перезаписывает perception.
@@ -2132,3 +2154,6 @@ class GameLoop:
         logger.info(
             "[GAME_LOOP] Disposed — all SQLite connections closed, services released"
         )
+
+
+__all__ = ["GameLoop", "_PipelineState"]  # _PipelineState — контракт фасада __init__

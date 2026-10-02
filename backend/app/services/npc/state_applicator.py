@@ -898,6 +898,10 @@ class StateApplicator:
                 energy_delta=energy_delta,
                 hydration_delta=hydration_delta,
                 nutrition_delta=nutrition_delta,
+                # S2B.7-G: provenance-канон файла (intent_formed_at, как
+                # CausalEntry :909); точная прокидка tick_number через
+                # apply_batch — [S2B7-G-debt], вердикт Мастера.
+                current_tick=getattr(state, "intent_formed_at", 0),
             )
 
         self._apply_perception_deltas(
@@ -1036,6 +1040,7 @@ class StateApplicator:
         energy_delta: float = 0.0,  # S2B.1: default 0.0 (backward compat)
         hydration_delta: float = 0.0,  # S2B.3: default 0.0
         nutrition_delta: float = 0.0,  # S2B.4: default 0.0
+        current_tick: int = 0,  # S2B.7-G: тик эпизода раны (мост к S2B.8)
     ) -> None:
         """Применяет дельты физиологии (HP, боль, шок) к body_state."""
         # Инициализация body_state при первом применении
@@ -1102,9 +1107,16 @@ class StateApplicator:
             )
 
         if add_injuries:
-            # Конвертируем InjuryDTO в dict для JSON-сериализации
+            # Конвертируем InjuryDTO в dict для JSON-сериализации.
+            # S2B.7-G: received_tick — дата эпизода раны: возраст раны =
+            # now − received_tick (структура для S2B.8 Recovery; лечение
+            # в S2B.7 НЕ реализуется — мост только). Аддитивный ключ,
+            # round-trip-safe: injuries — свободные dict-поля body_state.
             state.body_state.setdefault("injuries", []).extend(
-                [asdict(inj) for inj in add_injuries]
+                [
+                    dict(asdict(inj), received_tick=current_tick)
+                    for inj in add_injuries
+                ]
             )
             logger.debug(
                 f"[INJURY_APPLIED] npc={state.npc_id} total_injuries={len(state.body_state.get('injuries', []))} new={[i.damage_type for i in add_injuries]}"

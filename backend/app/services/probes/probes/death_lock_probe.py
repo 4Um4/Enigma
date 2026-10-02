@@ -17,7 +17,7 @@ class DeathLockProbe(Probe):
 
         for npc in ctx.all_npcs_raw:
             if not isinstance(npc, dict):
-                continue
+                continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             nid = npc.get("npc_id") or npc.get("id")
             if not nid:
                 continue

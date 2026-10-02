@@ -67,6 +67,12 @@ def test_boundary_traversal_emits_transition_scene_change():
 
     orch = TickOrchestrator()
     orch._spatial_service = _make_spatial_service_mock()
+    # Mock SM с инт-возвратом С ПЕРВОГО вызова: traversal.py:288 завершает
+    # int(apply_changes(...)); реальный SM вернул None → int(None) краш.
+    mock_sm = MagicMock()
+    captured_changes = []
+    mock_sm.apply_changes = lambda cid, changes, ss: (captured_changes.extend(changes), len(changes))[1]
+    orch._scene_manager = mock_sm
 
     trav = _make_traversal(target_node="tavern:exit_east")
     scene_state = {
@@ -85,7 +91,7 @@ def test_boundary_traversal_emits_transition_scene_change():
     # Проверка применения статуса будет в тесте SSM.
 
     # Проверяем что apply_changes был вызван с SceneChange
-    applied = orch._scene_manager is not None
+    _applied = orch._scene_manager is not None
     if orch._scene_manager:
         # Если scene_manager есть — изменения через apply_changes
         pass
@@ -97,7 +103,7 @@ def test_boundary_traversal_emits_transition_scene_change():
 
     # Верификация: напрямую проверить что SceneChange создан правильно
     # Для этого нужен доступ к completion_changes — тестируем через mock
-    changes_applied = []
+    _changes_applied = []
 
     if orch._scene_manager:
         # Уже применено
@@ -106,7 +112,8 @@ def test_boundary_traversal_emits_transition_scene_change():
         # Создаём оркестратор с mock scene_manager
         mock_sm = MagicMock()
         captured_changes = []
-        mock_sm.apply_changes = lambda cid, changes, ss: captured_changes.extend(changes)
+        # traversal.py:288 завершает int(apply_changes(...)) — mock возвращает len.
+        mock_sm.apply_changes = lambda cid, changes, ss: (captured_changes.extend(changes), len(changes))[1]
         orch._scene_manager = mock_sm
 
         # Переустанавливаем traversal
@@ -191,15 +198,17 @@ def test_runtime_applies_boundary_snap():
         target_location_id="city_gate",
     )
 
-    # Mock SpatialService — патчим на месте импорта (локальный import внутри метода)
-    # Используем spec=NodeRef, чтобы mock поддерживал атрибуты x и y как реальные числа.
+    # SSM snap резолвит через SpatialFactory.build_for_campaign
+    # (scene_state_manager.py:860-864) — патчить надо ФАБРИКУ, а не
+    # SpatialService (прежний патч не пробивал: реальные графы "city_gate"
+    # в чекауте нет → get_node None → snap тихо пропущен).
     mock_node = NodeRef(node_id="city_gate:entry_west", x=20.0, y=15.0, role=NodeRole.ENTRANCE, zone_id="city_gate", tags=["entrance"])
     mock_svc_instance = MagicMock()
     mock_svc_instance.get_node = MagicMock(return_value=mock_node)
     mock_svc_instance.build_for_location = MagicMock(return_value=mock_svc_instance)
 
-    with patch("app.services.spatial.spatial_service.SpatialService") as MockSvc:
-        MockSvc.build_for_location = MagicMock(return_value=mock_svc_instance)
+    with patch("app.services.spatial.spatial_factory.SpatialFactory") as MockFactory:
+        MockFactory.build_for_campaign = MagicMock(return_value=mock_svc_instance)
 
         mgr.apply_changes("test_campaign", [boundary_change], scene_state)
 

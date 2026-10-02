@@ -30,10 +30,14 @@ class PlayerSpeechActSubscriber:
         memory_manager: Any,
         campaign_id_provider: Any = None,
         tick_provider: Any = None,
+        claim_subscriber_provider: Any = None,  # Шаг 4 (1α): ленивый геттер ClaimEventSubscriber
     ) -> None:
         self._memory = memory_manager
         self._get_campaign_id = campaign_id_provider or (lambda: "Open_road")
         self._get_tick = tick_provider or (lambda: 0)
+        # Ленивое разрешение: epistemic-подписчик регистрируется позже
+        # dialogue-проводки — ссылка резолвится в момент использования.
+        self._get_claim_subscriber = claim_subscriber_provider or (lambda: None)
 
     def on_player_spoke(self, event: Any) -> None:
         try:
@@ -83,6 +87,33 @@ class PlayerSpeechActSubscriber:
                     f"[SPEECH_ACT] SELF_INTRODUCTION → claim в сессию {npc_id} "
                     f"(event={event_id[:8]}, name-len={len(name)})"
                 )
+                # Шаг 4 (вердикт Мастера, 1α): детерминированная Proposition
+                # player.name=X → существующий BeliefRevisionEngine →
+                # EpistemicStore (SSOT epistemic competition/provenance).
+                # CLAIM ≠ BELIEF ≠ TRUTH: запись о факте утверждения.
+                # LLM не участвует. Мембрана слышимости — внутри on_claim_event.
+                _claim_sub = self._get_claim_subscriber()
+                if _claim_sub is not None:
+                    import dataclasses as _dc
+                    _new_payload = dict(payload)
+                    _new_payload["proposition"] = {
+                        "subject_id": "player",
+                        "predicate": "name",
+                        "object_id": name,
+                        "polarity": True,
+                    }
+                    _new_payload.setdefault(
+                        "claim_id", f"player-selfintro-{event_id}"
+                    )
+                    _new_payload.setdefault("speech_act", "assert")
+                    _new_payload.setdefault("target_id", npc_id)
+                    _claim_sub.on_claim_event(
+                        _dc.replace(event, payload=_new_payload)
+                    )
+                    logger.info(
+                        f"[SPEECH_ACT] player.name={name} → EpistemicStore "
+                        f"(listener={npc_id}, claim=player-selfintro-{event_id[:8]})"
+                    )
         except Exception as e:
             # Подписчик не роняет тик (прецедент per-listener изоляции S208).
             logger.warning(f"[SPEECH_ACT] on_player_spoke failed: {e}")
@@ -94,3 +125,4 @@ class PlayerSpeechActSubscriber:
         if not npc_id or npc_id in ("player", "all"):
             return ""
         return npc_id
+

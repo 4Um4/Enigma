@@ -172,6 +172,60 @@ def is_conscious(body_state: Dict[str, Any]) -> bool:
 _PAIN_INCAPACITATED: float = 70.0
 _SHOCK_INCAPACITATED: float = 0.7
 
+# S2B.7-5 (Embodied Agency): структурная невозможность действия от ран.
+# Порог ЛУЧШЕЙ руки: обе руки ≥ 0.95 потери функции → манипуляция
+# невозможна. Одна здоровая рука сохраняет объектные действия
+# (физика совокупности, не порог настройки).
+_MANIPULATION_INCAPACITATED: float = 0.95
+
+# Функциональные зоны (таксономия InjuryDTO.target_zone).
+_LOCOMOTION_ZONES = frozenset({"leg_l", "leg_r", "torso_groin"})
+_ARM_ZONES = frozenset({"arm_l", "arm_r"})
+
+
+def _max_zone_loss(injuries: Any, zones: frozenset[str]) -> Dict[str, float]:
+    """Максимальная functional_loss по каждой зоне набора.
+
+    Раны накапливаются append-only: несколько ран одной зоны —
+    худшая (max), не сумма (два пореза руки ≠ уничтоженная рука).
+    """
+    out: Dict[str, float] = {zone: 0.0 for zone in zones}
+    for inj in injuries or ():
+        if not isinstance(inj, dict):
+            continue
+        zone = str(inj.get("target_zone", "") or "")
+        if zone in out:
+            loss = float(inj.get("functional_loss", 0.0) or 0.0)
+            if loss > out[zone]:
+                out[zone] = loss
+    return out
+
+
+def locomotion_impairment(injuries: Any) -> float:
+    """Совокупная деградация перемещения: 1 − Π(1 − loss) по leg/groin.
+
+    Pure function над injury-диктами (форма asdict(InjuryDTO)).
+    0.0 = зоны целы; 1.0 = полное разрушение locomotion-зон.
+    Потребитель: BodyEngine — стоимость движения (S2B.7-5, закон №8:
+    pressure через стоимость, не decision).
+    """
+    losses = _max_zone_loss(injuries, _LOCOMOTION_ZONES)
+    _capacity = 1.0
+    for _loss in losses.values():
+        _capacity *= 1.0 - min(max(_loss, 0.0), 1.0)
+    return round(1.0 - _capacity, 4)
+
+
+def manipulation_impairment(injuries: Any) -> float:
+    """Потеря ЛУЧШЕЙ руки (0.0–1.0): min потерь по arm_l/arm_r.
+
+    Одна здоровая рука сохраняет объектные действия. Потребитель:
+    is_capable (структурный вет манипуляции).
+    """
+    losses = _max_zone_loss(injuries, _ARM_ZONES)
+    _best = min(losses.values())
+    return round(min(max(_best, 0.0), 1.0), 4)
+
 
 def is_capable(body_state: Dict[str, Any]) -> bool:
     """Pure function: BodyState → может действовать/нет.
@@ -184,5 +238,14 @@ def is_capable(body_state: Dict[str, Any]) -> bool:
 
     pain = float(body_state.get("pain", 0.0))
     shock_impulse = float(body_state.get("shock_impulse", 0.0))
+    if pain >= _PAIN_INCAPACITATED or shock_impulse >= _SHOCK_INCAPACITATED:
+        return False
 
-    return pain < _PAIN_INCAPACITATED and shock_impulse < _SHOCK_INCAPACITATED
+    # S2B.7-5: следствие — физическое, не эмоция. Боль/шок — первичные
+    # моторные блокираторы (сигнал); потеря обеих рук — структурная
+    # невозможность манипуляции. Ноги НЕ ветят capability бинарно:
+    # движение деградирует стоимостью (BodyEngine × locomotion_impairment).
+    return (
+        manipulation_impairment(body_state.get("injuries", []))
+        < _MANIPULATION_INCAPACITATED
+    )

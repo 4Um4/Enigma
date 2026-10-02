@@ -274,7 +274,7 @@ class DmAgent:
                             break
                 # 2. Если DMFrame не дал имени — используем канонический резолвер
                 if _target_name == _target_id:
-                    from app.services.scene_state_manager import _npc_id_to_display
+                    from app.services.scene_state_manager import npc_id_to_display as _npc_id_to_display
 
                     _resolved = _npc_id_to_display(_target_id)
                     if _resolved != _target_id:
@@ -684,8 +684,10 @@ class DmAgent:
                     )
             builder.add_custom_block("Очередность реакций", reaction_block)
 
-        # Финальная директива — для 7B последний блок имеет наибольший вес
-        _final_lines = [f"Игрок: {actions_str.strip()}"]
+        # Финальная директива — для 7B последний блок имеет наибольший вес.
+        # Пакет C: actions_str уже канонизирован (raw запрещён инвариантом C) —
+        # здесь сырого текста быть не может, вторая точка закрыта той же строкой.
+        _final_lines = [f"Действие игрока: {actions_str.strip()}"]
         if _target_id:
             _final_lines.append(
                 f"Опиши реакцию {_target_name}. Не описывай перемещение — NPC уже рядом."
@@ -695,6 +697,65 @@ class DmAgent:
         # Строим контракт с внешним system_prompt
         system_prompt = self._get_system_prompt(is_r3_direct=(_dm_frame is not None))
         return builder.build(system_prompt=system_prompt)
+
+    @staticmethod
+    def _presentation_safe_actions(context: Optional[Dict], actions: List[PlayerAction]) -> str:
+        """Пакет C: канонизированное описание хода игрока для DM.
+
+        Источник — player_intent_projection (результат Understanding:
+        semantic_action / semantic_acts / target). Никакого сырого текста
+        PlayerAction.action (инвариант C, вердикт Мастера).
+        Деградация: без projection — нейтральный факт действия, без содержания.
+        """
+        _proj = (context or {}).get("player_intent_projection") or {}
+        if not _proj:
+            # Деградация без projection: нейтральный факт, БЕЗ чтения полей
+            # PlayerAction (инвариант C: player_name/action недоступны DM).
+            return "Действие игрока (детали недоступны — канонизация не удалась)"
+        _acts = _proj.get("semantic_acts") or []
+        _act_desc: list = []
+        for _a in _acts:
+            _t = str(_a.get("type") or "").upper()
+            _p = _a.get("params") or {}
+            if _t == "GREETING":
+                _act_desc.append("приветствие")
+            elif _t == "SELF_INTRODUCTION":
+                # Имя — знание NPC, НЕ факт DM: в summary имя НЕ попадает
+                # (его источник — cognition-блок адресата в DMFrame).
+                _act_desc.append("представление себя")
+            elif _t == "QUESTION":
+                _topic = _p.get("topic")
+                _act_desc.append(f"вопрос (тема: {_topic})" if _topic else "вопрос")
+            elif _t == "ASSERT":
+                _claim = str(_p.get("claim") or "")
+                # Содержимое claim — знание NPC через cognition, DM не получает.
+                _act_desc.append("утверждение о себе/мире")
+            elif _t == "ASK_NAME":
+                _act_desc.append("вопрос об имени")
+            elif _t == "ASK_IDENTITY":
+                _act_desc.append("вопрос о личности собеседника")
+            elif _t == "ASK_LOCATION":
+                _act_desc.append("вопрос о местоположении")
+            elif _t == "FAREWELL":
+                _act_desc.append("прощание")
+            elif _t == "COMPLIMENT":
+                _act_desc.append("комплимент")
+            elif _t == "THREAT":
+                _act_desc.append("угроза")
+            else:
+                _act_desc.append(f"речевой акт {_t.lower()}" if _t else "неопределённый акт")
+        _target = _proj.get("target") or _proj.get("target_id") or ""
+        _sem = _proj.get("semantic_action") or ""
+        _lines = ["Действие игрока (канонизировано):"]
+        if _sem:
+            _lines.append(f"- тип действия: {_sem}")
+        if _target:
+            _lines.append(f"- адресат: {_target}")
+        if _act_desc:
+            _lines.append("- речевые акты: " + "; ".join(_act_desc))
+        else:
+            _lines.append("- речевые акты: не определены")
+        return "\n".join(_lines)
 
     def _build_prompt(
         self,
@@ -757,11 +818,8 @@ class DmAgent:
         context: Optional[Dict] = None,
     ) -> Dict:
         context = self._as_dict(context)
-        actions_str = (
-            "\n".join(f"{a.player_name}: {a.action}" for a in actions)
-            if actions
-            else "Нет действий"
-        )
+        # Пакет C: инвариант C — канонизация вместо raw (второй путь).
+        actions_str = self._presentation_safe_actions(context, actions)
 
         # Строим контракт (содержит system + user prompt)
         contract = self._build_contract(
@@ -916,11 +974,9 @@ class DmAgent:
         Загружает модель через ModelPool.get_model_async(), затем стримит токены.
         """
         context = self._as_dict(context)
-        actions_str = (
-            "\n".join(f"{a.player_name}: {a.action}" for a in actions)
-            if actions
-            else "Нет действий"
-        )
+        # Пакет C (вердикт Мастера): RAW PLAYER TEXT запрещён как канал
+        # знания DM (инвариант C). Канонизированная проекция Understanding.
+        actions_str = self._presentation_safe_actions(context, actions)
 
         # Контракт всегда — intro через флаг в контексте, не отдельный промпт
         if is_session_start and context:
@@ -1091,7 +1147,7 @@ class DmAgent:
 
         pool = get_model_pool()
         if pool is None:
-            return None
+            return None  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
 
         for model_key in preferred_keys:
             if pool.is_model_available(model_key):

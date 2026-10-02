@@ -94,7 +94,7 @@ def run_epistemology_test():
 
     data_dir = Path(settings.data_dir)
     game_loop = build_game_loop(data_dir)
-    engine = get_life_engine()
+    _engine = get_life_engine()
 
     # ВАЖНО: Правильный регистр и конкретная локация
     campaign_id = "Open_road"

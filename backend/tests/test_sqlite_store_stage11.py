@@ -237,12 +237,14 @@ class TestSqliteBatch:
     def test_batch_uses_sequence_id_for_mem_id(self, store: SqliteMemoryStore) -> None:
         mems = self._make_memories(3)
         store.save_event_memories_batch("c1", "npc_1", mems)
-        # Должны быть доступны по id npc_1_seq_0, npc_1_seq_1, npc_1_seq_2
+        # Контракт ef5efa6a (2026-09-13): суффикс _{i} защищает mem_id от
+        # коллизий при повторных батчах с пересекающимися sequence_id.
+        # TECH_DEBT_NOTE: суффикс позиционно зависим — запах, не чиню здесь.
         row = store._conn.execute(
             "SELECT id FROM event_memories WHERE npc_id = 'npc_1' AND campaign_id = 'c1' ORDER BY sequence_id"
         ).fetchall()
         ids = [r["id"] for r in row]
-        assert ids == ["npc_1_seq_0", "npc_1_seq_1", "npc_1_seq_2"]
+        assert ids == ["npc_1_seq_0_0", "npc_1_seq_1_1", "npc_1_seq_2_2"]
 
     def test_batch_rollback_on_bad_data(self, store: SqliteMemoryStore) -> None:
         """Если одно воспоминание невалидно — все откатываются (Закон 4.2.1)."""

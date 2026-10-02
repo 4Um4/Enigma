@@ -871,7 +871,7 @@ class LifeEngine:
         """
         name = npc.get("name", npc.get("id", "NPC"))
         activity = npc.get("routine", {}).get("current", "")
-        location = npc.get("location", "")
+        _location = npc.get("location", "")
 
         _activity_phrases = {
             "sleeping": "спит",
@@ -2228,7 +2228,8 @@ class LifeEngine:
             if (going_to_sleep and self._spatial_service is not None)
             else None
         )
-        _norm_node = lambda s: s.split(":")[-1] if s else s  # noqa: E731
+        def _norm_node(s: str) -> str:
+            return s.split(":")[-1] if s else s
         _on_bed = bool(
             going_to_sleep
             and new_position

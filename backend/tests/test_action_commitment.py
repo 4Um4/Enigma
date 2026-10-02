@@ -1669,6 +1669,253 @@ class TestS2B5ProjectionContract:
         assert _deltas[0].payload.energy_delta != 0.0
 
 
+class TestS2B7ProjectionContract:
+    """ADR S2B.7-6: вечный FLAT-гвард класса «unit input ≠ production input»
+    для InjuryProcessor. Третий рецидив класса (BodyEngine → combat-билдеры →
+    InjuryProcessor:244 читал несуществующий в снапшоте ключ "body_state")
+    закрыт навсегда: production-снапшот ⊇ всё, что процессор читает."""
+
+    RAW = {  # production-форма входа build_npc_snapshots (tick_utils:58)
+        "id": "n1",
+        "psyche": {"stress": 0.0},
+        "body_state": {
+            "current_hp": 70.0, "pain": 20.0, "fatigue": 0.0,
+            "blood_loss": 0.1, "consciousness": 1.0, "shock_impulse": 0.2,
+            "life_status": "ALIVE",
+            "injuries": [{
+                "damage_type": "slash", "target_zone": "leg_l",
+                "structural_damage": 0.4, "functional_loss": 0.3,
+                "critical_effects": ("bleeding",),
+            }],
+            "coupling_profile": {"coupling_mode": "FULL_WAKE"},
+        },
+        "routine": {"current": "idle"},
+    }
+
+    def test_snapshot_carries_injury_contract(self):
+        from app.services.tick_utils import build_npc_snapshots
+        _snap = build_npc_snapshots([dict(self.RAW)])[0]
+        assert _snap["injuries_by_zone"]["leg_l"]
+        assert _snap["life_status"] == "ALIVE"
+        assert _snap["blood_loss"] == 0.1
+
+    def test_processor_emits_on_real_projection(self):
+        """Процессор ЖИВ на production-снапшоте: рана → хронические дельты."""
+        from app.services.combat.injury_processor import InjuryProcessor
+        from app.services.tick_utils import build_npc_snapshots
+        _snaps = build_npc_snapshots([dict(self.RAW)])
+        _deltas = InjuryProcessor().handle(_snaps, "t", 1)
+        assert len(_deltas) == 1
+        assert _deltas[0].payload.blood_loss_delta > 0.0
+        assert _deltas[0].payload.pain_delta > 0.0
+
+    def test_dead_npc_produces_no_deltas(self):
+        """ADR-127 DEATH LOCK: мёртвый с ранами НЕ получает физиологии.
+        До S2B.7 DEAD-check читал несуществующий ключ — был мёртв."""
+        from app.services.combat.injury_processor import InjuryProcessor
+        from app.services.tick_utils import build_npc_snapshots
+        _raw = dict(self.RAW)
+        _raw["body_state"] = {**self.RAW["body_state"], "life_status": "DEAD"}
+        _snaps = build_npc_snapshots([_raw])
+        assert _snaps[0]["life_status"] == "DEAD"
+        assert InjuryProcessor().handle(_snaps, "t", 1) == []
+
+    def test_processor_reads_only_snapshot_contract(self):
+        """ВЕЧНЫЙ гвард: каждое npc.get(...) в InjuryProcessor.handle обязано
+        читать ключ из NPCStateSnapshot. Новый reader мимо контракта = красный
+        ДО первого юнит-зелёного прогона (класс закрыт структурно)."""
+        import ast
+        import inspect
+
+        from app.models.idle_tick import NPCStateSnapshot
+        from app.services.combat import injury_processor as _ip
+        _contract = set(NPCStateSnapshot.__annotations__.keys())
+        _tree = ast.parse(inspect.getsource(_ip))
+        _handle = next(
+            n for n in ast.walk(_tree)
+            if isinstance(n, ast.FunctionDef) and n.name == "handle"
+        )
+        _illegal = set()
+        for _node in ast.walk(_handle):
+            if (
+                isinstance(_node, ast.Call)
+                and isinstance(_node.func, ast.Attribute)
+                and _node.func.attr == "get"
+                and isinstance(_node.func.value, ast.Name)
+                and _node.func.value.id == "npc"
+                and _node.args
+                and isinstance(_node.args[0], ast.Constant)
+                and isinstance(_node.args[0].value, str)
+            ):
+                if _node.args[0].value not in _contract:
+                    _illegal.add(_node.args[0].value)
+        assert not _illegal, (
+            f"InjuryProcessor читает ключи вне NPCStateSnapshot: "
+            f"{sorted(_illegal)} — рецидив класса «unit ≠ production» (S2B.7-6)"
+        )
+
+
+class TestS2B7CapabilityDegradation:
+    """S2B.7-5 (Embodied Agency): следствие раны — физическое.
+    HP ≠ pain ≠ injury severity ≠ blood loss ≠ shock (S2B.7-3):
+    capability деградирует через функциональную потерю зоны, не через
+    боль-как-второй-HP и не через emotion (S2B.7-4)."""
+
+    @staticmethod
+    def _inj(zone: str, loss: float) -> dict:
+        return {
+            "damage_type": "slash",
+            "target_zone": zone,
+            "structural_damage": loss,
+            "functional_loss": loss,
+            "critical_effects": (),
+        }
+
+    def test_locomotion_combined_not_summed(self):
+        from app.domain.vital_state import locomotion_impairment
+
+        assert locomotion_impairment([]) == 0.0
+        assert locomotion_impairment([self._inj("leg_l", 0.5)]) == 0.5
+        # обе ноги: 1 − (1−0.5)(1−0.5) = 0.75 — совокупность, не сумма
+        assert (
+            locomotion_impairment(
+                [self._inj("leg_l", 0.5), self._inj("leg_r", 0.5)]
+            )
+            == 0.75
+        )
+        # рука не влияет на locomotion
+        assert locomotion_impairment([self._inj("arm_r", 0.9)]) == 0.0
+
+    def test_manipulation_is_best_arm(self):
+        from app.domain.vital_state import manipulation_impairment
+
+        # одна целая рука сохраняет действия (лучшая = min потерь)
+        assert (
+            manipulation_impairment(
+                [self._inj("arm_l", 1.0), self._inj("arm_r", 0.0)]
+            )
+            == 0.0
+        )
+        assert (
+            manipulation_impairment(
+                [self._inj("arm_l", 0.6), self._inj("arm_r", 0.3)]
+            )
+            == 0.3
+        )
+        assert manipulation_impairment([]) == 0.0
+
+    def test_is_capable_structural_arm_veto(self):
+        from app.domain.vital_state import is_capable
+
+        _base = {"pain": 0.0, "shock_impulse": 0.0}
+        # обе руки ≥ 0.95 → структурная невозможность манипуляции
+        assert (
+            is_capable(
+                {
+                    **_base,
+                    "injuries": [self._inj("arm_l", 1.0), self._inj("arm_r", 0.95)],
+                }
+            )
+            is False
+        )
+        # одна целая рука → способен
+        assert (
+            is_capable(
+                {
+                    **_base,
+                    "injuries": [self._inj("arm_l", 1.0), self._inj("arm_r", 0.3)],
+                }
+            )
+            is True
+        )
+        # ноги НЕ бинарно ветят capability (движение — стоимость, не veto)
+        assert (
+            is_capable(
+                {
+                    **_base,
+                    "injuries": [self._inj("leg_l", 1.0), self._inj("leg_r", 1.0)],
+                }
+            )
+            is True
+        )
+        # боль/шок — прежние первичные блокираторы, семантика не тронута
+        assert (
+            is_capable({"pain": 80.0, "shock_impulse": 0.0, "injuries": []})
+            is False
+        )
+        assert (
+            is_capable({"pain": 0.0, "shock_impulse": 0.8, "injuries": []})
+            is False
+        )
+
+    def test_view_contrast_wounded_vs_healthy(self):
+        """Дифференциальный гейт §4.4 (ось capability): контраст."""
+        from app.domain.body_state_view import build_body_state_view
+
+        _healthy = {"pain": 0.0, "shock_impulse": 0.0, "injuries": []}
+        _wounded = {
+            "pain": 0.0,
+            "shock_impulse": 0.0,
+            "injuries": [self._inj("arm_l", 1.0), self._inj("arm_r", 1.0)],
+        }
+        assert build_body_state_view(_healthy, "h1").is_capable is True
+        assert build_body_state_view(_wounded, "w1").is_capable is False
+
+    def test_is_capable_predicate_injury_aware(self):
+        """F-контур: предикат IS_CAPABLE (реестр W2) injury-aware через ось
+        vital_state. Реестр не расширялся (мини-ADR ADR-O-372 не нужен):
+        раненый теряет объектные действия — вето через affordances."""
+        from app.domain.body_state_view import build_body_state_view
+        from app.services.world.affordance_resolver import PRECONDITION_REGISTRY
+
+        _healthy = build_body_state_view(
+            {"pain": 0.0, "shock_impulse": 0.0, "injuries": []}, "h"
+        )
+        _wounded = build_body_state_view(
+            {
+                "pain": 0.0,
+                "shock_impulse": 0.0,
+                "injuries": [self._inj("arm_l", 1.0), self._inj("arm_r", 1.0)],
+            },
+            "w",
+        )
+        _pred = PRECONDITION_REGISTRY["IS_CAPABLE"]
+        assert _pred(None, _healthy, (0.0, 0.0), ()) is True
+        assert _pred(None, _wounded, (0.0, 0.0), ()) is False
+
+    def test_body_engine_movement_cost_differential(self):
+        """S2B.7-5: рана ног → движение дороже (износ + расход).
+        Здоровый байт-идентичен калибровке S2B.5 — регрессии нет."""
+        from app.services.body.body_engine import BodyEngine
+
+        _e = BodyEngine()
+        _base = {
+            "npc_id": "n1",
+            "life_status": "ALIVE",
+            "stress": 0.0,
+            "velocity": (0.8, 0.0),
+            "activity": "",
+            "coupling_mode": "",
+            "body_mass": 1.0,
+        }
+        _healthy = dict(_base)
+        _wounded = dict(
+            _base,
+            injuries_by_zone={
+                "leg_l": [self._inj("leg_l", 0.6)],
+                "leg_r": [self._inj("leg_r", 0.6)],
+            },
+        )
+        _h = _e.handle([_healthy], "t", 1)[0].payload
+        _w = _e.handle([_wounded], "t", 1)[0].payload
+        # здоровый: RUN = S2B.5-калибровка — ничего не сдвинулось
+        assert _h.fatigue_delta == 0.215
+        # раненый: impairment = 1 − 0.4·0.4 = 0.84 → износ ×1.84
+        # 0.225·1.84 − 0.01 = 0.404
+        assert _w.fatigue_delta == 0.404
+        assert _w.energy_delta < _h.energy_delta
+
+
 class TestS2B5Fatigue:
     """S2B.5 (ADR-O-373): fatigue — two-way износ, единственная per-tick
     проекция. Шкала: 0=свеж, 100=истощён («плохо вверх», инверсия energy).

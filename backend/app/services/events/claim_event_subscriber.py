@@ -165,7 +165,7 @@ class ClaimEventSubscriber:
             elif not prop.object_id:
                 _guard_reason = f"empty object_id={prop.object_id!r}"
             elif prop.polarity is None:
-                _guard_reason = "polarity=None"
+                _guard_reason = "polarity=None"  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             else:
                 # ⑤-B фаза-2 (S292): акторная мембрана subject'а. Claim о
                 # не-акторе (subject='tavern:exit_south' — узел графа из

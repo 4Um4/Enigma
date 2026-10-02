@@ -27,7 +27,13 @@ def test_new_8_scene_manager_preserves_recognition():
     initial_scene = {
         "location_id": location_id,
         "tick": 1,
-        "npc_positions": {npc_id: {"x": 1.0, "y": 2.0, "name": "Люся"}},
+        # FIX-RC2-v2 husk-guard: запись без location_id/position/local_position
+        # = призрак переноса и вычищается при сохранении (SC-1..SC-5).
+        "npc_positions": {npc_id: {
+            "x": 1.0, "y": 2.0, "name": "Люся",
+            "location_id": "tavern", "position": "bar",
+            "local_position": {"x": 1.0, "y": 2.0},
+        }},
         "player_recognition": {npc_id: {"confidence": 1.0}}
     }
     mgr.save_scene_state(campaign_id, initial_scene)

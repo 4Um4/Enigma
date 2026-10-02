@@ -168,7 +168,7 @@ def main():
     
     # --- CONTROL RUN ---
     logger.info("[1/4] Control Run: No lie injected.")
-    game_loop_ctrl = build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
+    _game_loop_ctrl = build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
     
     # --- TREATMENT RUN ---
     logger.info("[2/4] Treatment Run: Injecting lie into NPC_A.")

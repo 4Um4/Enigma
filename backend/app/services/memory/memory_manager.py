@@ -40,7 +40,8 @@ class MemoryManager:
         import threading
         self._identity_lock = threading.RLock()
         self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
-        self._relationships = RelationshipStore(data_dir=data_dir)
+        # S313: dual-backend M1b.4.2 (legacy store / v2 cutover) — duck-typing
+        self._relationships: Any = RelationshipStore(data_dir=data_dir)
         # M1b.4.2 (ADR-O-371): v2-cutover держателя. Легаси-инстанс выше
         # создаётся для М1b.1-совместимости (существующие сейвы читаются
         # мигратором); переключение на v2 — switch_to_v2_relationships()
@@ -888,7 +889,7 @@ class MemoryManager:
                 cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
 
             # V8-MEM-7 FIX: Персистируем обновлённый identity_cache
-            self._layered.store.save_state("identity_cache", self._identity_cache)
+            self._layered.store.save_state("identity_cache", self._identity_cache)  # type: ignore[attr-defined]  # S313: реализация store шире Protocol
 
     def get_identity_traits(
         self,

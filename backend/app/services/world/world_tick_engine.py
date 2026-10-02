@@ -42,7 +42,7 @@ class ProactiveDecision:
     intent_target: Optional[str]
     score: float
     reason: str  # для debug/tracing
-    deltas: StateDeltas  # канонический контракт мутаций (Устав §2.3)
+    deltas: List[StateDeltas]  # канонический контракт мутаций (Устав §2.3); единственный consumer :236
 
 
 @dataclass
@@ -136,11 +136,11 @@ class WorldTickEngine:
             elif isinstance(state_l2, NPCState):
                 _npc_state = state_l2
             else:
-                logger.error(f"[WORLD_TICK] Invalid type for state_l2: {type(state_l2)} for {npc_id}")
+                logger.error(f"[WORLD_TICK] Invalid type for state_l2: {type(state_l2)} for {npc_id}")  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
                 continue
 
             if _npc_state is None:
-                logger.error(f"[WORLD_TICK] NPCState is None after conversion for {npc_id}")
+                logger.error(f"[WORLD_TICK] NPCState is None after conversion for {npc_id}")  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
                 continue
 
             # Пропускаем: мёртвых, сломанных

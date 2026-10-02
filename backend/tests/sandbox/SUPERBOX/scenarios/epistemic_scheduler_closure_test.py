@@ -1,7 +1,7 @@
 """
 SUPERBOX-016: Runtime TaskScheduler Epistemic Closure.
 
-Тест доказывает, что полная рантайм-труба (TaskScheduler -> DialogueExecutor -> DialogueMaterializer -> EventBus -> ClaimEventSubscriber) 
+Тест доказывает, что полная рантайм-труба (TaskScheduler -> DialogueExecutor -> DialogueMaterializer -> EventBus -> ClaimEventSubscriber)
 замыкает эпистемическую петлю для игрока без ручных вызовов materializer.publish().
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_scheduler_closure_test.py

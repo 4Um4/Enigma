@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterator, KeysView, List, Optional, Tuple
 
 
-class ReadOnlyDict(dict):
+class ReadOnlyDict(Dict[str, Any]):
     """S269: dict-запись с запрещённой мутацией (громкий TypeError).
     Подкласс — намеренно: isinstance(x, dict) — часть контракта
     scene_state (урок PR-6a: 10 гвардов). Листья шарятся — копируется
@@ -52,7 +52,7 @@ class ReadOnlyDict(dict):
         return self
 
 
-class ReadOnlyList(list):
+class ReadOnlyList(List[Any]):
     """S269: list-аналог ReadOnlyDict (npcs и прочие списки состояния)."""
 
     def _ro(self) -> None:
@@ -286,7 +286,7 @@ class WorldView:
         )
 
 
-class TickOverlay(dict):
+class TickOverlay(Dict[str, Any]):
     """WRITE-путь тика (PR-6, S268). Tick-local буфер мутаций поверх Epoch N.
 
     S268-фикс: наследует dict — isinstance-гварды сцены (10 точек:

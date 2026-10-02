@@ -622,6 +622,7 @@ class TaskScheduler:
                 continue
 
             # Блокер 5: Маршрутизация ambient -> NpcConversation, canonical -> DialogueExecutor
+            executor: Any  # S313: два несводимых типа исполнителей в одной переменной
             if _task_type == "ambient":
                 executor = self._ambient_executor
             else:

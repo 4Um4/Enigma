@@ -61,7 +61,7 @@ def run_test():
     _rng_c = KernelRNG(tick=1, npc_id="guard_borko")
     hub_c = DecisionHub(rng=_rng_c)
     dec_c = hub_c.compute(state=state, personality=personality, effective_drives=effective_drives, event=event, decision_ctx=DecisionContext(source="test"))
-    score_c_warn = dec_c.intent_scores.get("warn", 0.0) if hasattr(dec_c, "intent_scores") else dec_c.score
+    _score_c_warn = dec_c.intent_scores.get("warn", 0.0) if hasattr(dec_c, "intent_scores") else dec_c.score
     
     # 3. Вызов с модификаторами
     print("\n[3/4] Вызов с Social + Epistemic...")

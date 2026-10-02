@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 
 from app.services.player_cognition.types import PerceivedEntity
-from app.services.scene_state_manager import _npc_id_to_display
+from app.services.scene_state_manager import npc_id_to_display as _npc_id_to_display
 
 
 @dataclass

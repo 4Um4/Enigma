@@ -13,7 +13,7 @@ from app.services.will import resolve_intent_pressure
 
 def test_will_directive_conflict():
     intent_move = IntentDTO(action="player_moves", target="npc_test")
-    pressure_move = resolve_intent_pressure(intent_move)
+    _pressure_move = resolve_intent_pressure(intent_move)
 
     # Теперь player_social должен генерировать давление (ADR-031)
     intent_defy = IntentDTO(action="player_social", target="npc_test")

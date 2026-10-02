@@ -285,7 +285,7 @@ def main() -> int:
     # Доказательство материализации orient переносится в КОНТРОЛИРУЕМЫЙ
     # эксперимент (приближение игрока к стационарному NPC через легальный
     # InterventionEvent — следующий шаг). Сейчас — информационный счётчик.
-    g3 = True  # PENDING: закрывается контролируемым экспериментом G3-X
+    _g3 = True  # PENDING: закрывается контролируемым экспериментом G3-X
     print(
         f"[G3] PENDING: ориентированных фаз={sum(1 for o, subs in att3.items() if o != 'player' for s, st in subs.items() if st.get('phase') == 'oriented')}; "
         f"строгих совпадений heading↔bearing={len(g3_ok_pairs)} из {len(diag)} "

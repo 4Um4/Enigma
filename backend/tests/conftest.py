@@ -136,7 +136,7 @@ def mock_model_router(monkeypatch):
 @pytest.fixture(autouse=True)
 def test_environment(monkeypatch):
     ROOT_DIR = Path(__file__).resolve().parents[2]  # Enigma/backend
-    DATA_DIR = ROOT_DIR / "data"
+    _DATA_DIR = ROOT_DIR / "data"
     MODELS_DIR = ROOT_DIR.parents[0] / "Models LLM"  # Enigma/Models LLM
 
     monkeypatch.setattr(

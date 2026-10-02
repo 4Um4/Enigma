@@ -601,6 +601,11 @@ class PerceptualKernel:
         # (import как "sandbox.*" — без префикса "tests.", см. conftest)
         "sandbox.stress.test_authority_erosion": {"*"},
         "tests.sandbox.stress.test_authority_erosion": {"*"},
+        # Системные sandbox-тесты (класс E2.0-c, прецедент выше) эмулируют
+        # давление через PK напрямую. Расширение цензуса = mini-ADR,
+        # зафиксировано в отчёте сессии. D-группа сюда НЕ вносится.
+        # Двойная форма (conftest кладёт backend/ в sys.path — caller виден
+        # и как "sandbox.*"; прецедент test_authority_erosion выше).
     }
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -665,6 +670,16 @@ class NPCState:
     # Stage 0 Task 0.4: Write Guard
     # Разрешённые модули для прямой записи в поля NPCState.
     _ALLOWED_WRITERS = {
+        # Системные sandbox-тесты (класс E2.0-c, прецедент
+        # test_cross_layer_consistency ниже): эмулируют давление через PK
+        # напрямую — field-scoped "perceptual_kernel", не "*". Двойная форма
+        # имён (conftest кладёт backend/ в sys.path → caller виден и как
+        # "sandbox.*"). Расширение цензуса = mini-ADR, зафиксировано в отчёте
+        # сессии. D-группа экзамена сюда НЕ вносится.
+        "sandbox.system.test_causal_closure": {"perceptual_kernel"},
+        "tests.sandbox.system.test_causal_closure": {"perceptual_kernel"},
+        "sandbox.system.test_life_direction_crisis": {"perceptual_kernel"},
+        "tests.sandbox.system.test_life_direction_crisis": {"perceptual_kernel"},
         "app.models.npc_state": {"*"},  # __init__ и внутренние методы
         "app.services.npc.state_applicator": {"*"},  # Единственный L2 writer
         "app.services.npc.belief_transition_engine": {"beliefs"},  # Epistemic SSOT

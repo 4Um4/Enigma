@@ -355,8 +355,10 @@ class NpcTickPipeline:
                 _belief_deltas = BeliefTransitionEngine().commit(
                     state_l2, _event_for_belief, state.tick_id
                 )
-                for _bd in _belief_deltas:
-                    StateApplicator(state.relationship_store).apply_belief_delta(state_l2, _bd)
+                if state.relationship_store is not None:
+                    _applicator = StateApplicator(state.relationship_store)
+                    for _bd in _belief_deltas:
+                        _applicator.apply_belief_delta(state_l2, _bd)
             except Exception as _belief_err:
                 logger.warning(
                     f"[BELIEF] belief update failed for {npc_id}: {_belief_err}"
@@ -1772,8 +1774,9 @@ def _resolve_reactive_movement(
         else None,
     )
     # Используем легаси-поле для прокидывания тени, чтобы не ломать DTO
-    if not hasattr(_goal, "causal_claims"):
-        object.__setattr__(_goal, "causal_claims", [])
-    _goal.causal_claims.append(_claim)
+    _claims: list = getattr(_goal, "causal_claims", [])
+    if not _claims:
+        object.__setattr__(_goal, "causal_claims", _claims)
+    _claims.append(_claim)
 
     return _goal

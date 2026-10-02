@@ -226,13 +226,14 @@ class TestRoundTrip:
 
 class TestSubstrateIsDormant:
     def test_tear_down_init_contains_empty_relationship_state(self):
-        """SSM init-блок содержит пустой корень (новые сцены) — единственная
-        интеграция M1a; заполнение только через стор (ленивые записи)."""
+        """Пустой корень новых сцен — интеграция M1a. Инициатор переезжал:
+        сейчас это SceneFactory (scene_factory.py); SSM делает только lazy
+        setdefault (_sync_relationship_directed). Греп следует за владельцем."""
         import inspect
 
-        from app.services import scene_state_manager
+        from app.services.scene_state import scene_factory
 
-        src = inspect.getsource(scene_state_manager)
+        src = inspect.getsource(scene_factory)
         assert '"relationship_state": {}' in src
 
 

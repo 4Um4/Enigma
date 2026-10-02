@@ -15,6 +15,8 @@ import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from app.core.constants import GOODS_PRICES
+
 logger = logging.getLogger(__name__)
 
 
@@ -124,10 +126,20 @@ class ServiceFactory:
                 if is_physical_object(_item):
                     _goods[_item] = 1
 
+            # Capability Projection (ADR-O-XXX): tradable-проекция SSOT вещей.
+            # PHYSICAL ≠ TRADABLE: фильтр по GOODS_PRICES отсекает non-tradable
+            # маркеры ("Potables", "keys", "apron") — create_order_from_trade_intent
+            # читает только stock_for_sale и ведёт торговлю только GOODS_PRICES-
+            # именами. Количество = количество в goods (честная проекция факта;
+            # ресток — отдельная будущая механика, не этот шов).
+            _tradable = {k: v for k, v in _goods.items() if k in GOODS_PRICES}
+
             _profiles[_nid] = create_profile_from_npc(
                 npc_data=_npc,
                 goods=_goods,
             )
+            if _tradable:
+                _profiles[_nid].stock_for_sale = dict(_tradable)
 
         # P3 FIX: Добавляем профиль игрока, чтобы он участвовал в экономике (голод, нужда)
         _profiles["player"] = create_profile_from_npc(

@@ -241,18 +241,17 @@ class InjuryProcessor:
             if not npc_id:
                 continue
 
-            # FIX-5: Пропускать мёртвых NPC и не спамить лог, если нет ран.
-            _body = npc.get("body_state")
-            if isinstance(_body, dict) and _body.get("life_status") == "DEAD":
+            # ADR-124/127 DEATH LOCK: мёртвых не обрабатываем.
+            # S2B.7-6: читаем ПЛОСКОЕ поле контракта NPCStateSnapshot —
+            # ключа "body_state" в снапшоте НЕ СУЩЕСТВУЕТ (третий рецидив
+            # класса «unit ≠ production»: DEAD-check был мёртв, и мёртвый
+            # NPC продолжал терять кровь и испытывать боль каждый тик).
+            if npc.get("life_status", "ALIVE") == "DEAD":
                 continue
 
             injuries_by_zone = npc.get("injuries_by_zone", {})
             if not injuries_by_zone:
                 continue  # Нормально — нет ран, нет обработки
-
-            logger.warning(
-                f"[INJURY_PROC] npc={npc_id} zones={list(injuries_by_zone.keys())} wounds={sum(len(v) for v in injuries_by_zone.values())}"
-            )
 
             total_blood_loss_delta = 0.0
             total_pain_delta = 0.0
@@ -260,16 +259,15 @@ class InjuryProcessor:
 
             for zone, zone_injuries in injuries_by_zone.items():
                 for inj in zone_injuries:
+                    wound_count += 1  # одна рана = один счёт (не по эффектам)
                     bleed_rate = _compute_bleeding_rate(inj)
                     if bleed_rate > 0.0:
                         total_blood_loss_delta += bleed_rate
-                        wound_count += 1
 
                     # ADR-141: Хроническая боль от открытых ран
                     pain_rate = _compute_pain_rate(inj)
                     if pain_rate > 0.0:
                         total_pain_delta += pain_rate
-                        wound_count += 1
 
             if wound_count > 0 and (total_blood_loss_delta > 0 or total_pain_delta > 0):
                 results.append(

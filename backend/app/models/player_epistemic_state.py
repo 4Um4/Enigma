@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from app.domain.player_epistemics import (
     CLUE,
@@ -30,7 +30,7 @@ from app.domain.player_epistemics import (
 class PlayerEpistemicState:
     """Уровни 0/1/2 по секретам + наблюдения (SSOT игрок-петли)."""
 
-    levels: dict = field(default_factory=dict)  # secret_id -> int (0/1/2)
+    levels: Dict[str, int] = field(default_factory=dict)  # secret_id -> int (0/1/2)
     observations: List[PlayerObservation] = field(default_factory=list)
 
     def level(self, secret_id: str) -> int:

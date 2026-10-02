@@ -44,12 +44,23 @@ class LlamaCppCompressorClient:
         import urllib.request
 
         system_prompt, user_prompt = self._build_prompts(raw_text, scene_context, dialogue_session)
+        # Deterministic comprehension (вердикт Мастера, развилка (i)):
+        # identical input → identical canonical output. temperature=0 —
+        # comprehension не художественная генерация; seed — KernelRNG
+        # (salt=prompt) — ТОТ ЖЕ прецедент, что _complete_via_server
+        # (llama_cpp_provider:163-165), не второй механизм. Только этот
+        # путь: DM/вербализация (temperature=0.9) не трогаются.
+        from app.services.npc.kernel_rng import KernelRNG
+        _seed = KernelRNG(tick=0, npc_id="intent_compressor", salt=user_prompt).randint(
+            0, 2**31 - 1
+        )
         payload = {
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.1,
+            "temperature": 0.0,
+            "seed": _seed,
             "response_format": {"type": "json_object"} # Принудительный JSON Mode
         }
 
@@ -114,7 +125,7 @@ class LlamaCppCompressorClient:
 Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
 Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
-- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL". Пример: "Здравствуй! Как звать? Я Мю." -> acts: [{{"type": "GREETING"}}, {{"type": "ASK_NAME"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}]. Для одиночного действия — один акт или [].
+- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL", "ASK_PROVENANCE" (params: {{"about": "о чём спрашивают происхождение"}}). ASK_PROVENANCE = вопрос о ПРОИСХОЖДЕНИИ знания/информации: кто сказал, откуда известно, кто сообщил, источник сведения и эквивалентные естественные формулировки. НЕ использовать для вопросов о том, кто что-то сделал с третьим лицом ("кто с ней разговаривал" — это QUESTION). Пример: "Кто тебе сказал, что я Мю?" -> acts: [{{"type": "ASK_PROVENANCE", "params": {{"about": "имя игрока"}}}}]. Для одиночного действия — один акт или [].
 Допустимые social_intent и их жесткая связь с action и speech_act:
 - "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
 - "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).
@@ -164,7 +175,9 @@ class LlamaCppCompressorClient:
 Ввод: "Привет, я Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "greeting"}}
 Ввод: "Я — Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "assert"}}
 Ввод: "Здравствуй, меня зовут Мю." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "GREETING"}}, {{"type": "SELF_INTRODUCTION", "params": {{"name": "Мю"}}}}], "speech_act": "greeting"}}
-Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я слуга этого дома десять лет", "subject": "player", "topic": "occupation"}}}}], "speech_act": "assert"}}
+Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASK_PROVENANCE", "params": {{"about": "имя игрока"}}}}], "speech_act": "question"}}
+Ввод: "Откуда ты знаешь, что я Мю?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASK_PROVENANCE", "params": {{"about": "имя игрока"}}}}], "speech_act": "question"}}
+Ввод: "Кто разговаривал с Люсей?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "кто разговаривал с Люсей"}}}}], "speech_act": "question"}}
 Ввод: "Я ищу Горана. Ты его сегодня видел?" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "QUESTION", "params": {{"topic": "видел ли Горана"}}}}], "speech_act": "question"}}
 Ввод: "ты молодец" -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "COMPLIMENT"}}], "social_intent": "build_rapport", "speech_act": "compliment"}}
 Ввод: "Я слуга этого дома десять лет." -> {{"action": "DIALOGUE", "semantic_acts": [{{"type": "ASSERT", "params": {{"claim": "Я слуга этого дома десять лет", "subject": "player", "topic": "occupation"}}}}], "speech_act": "assert"}}
@@ -216,7 +229,7 @@ class LlamaCppCompressorClient:
             print(f"[DIAG-PROMPT] keys={len(_sect)} chars_total={sum(v for v in _sect.values() if v > 0)} "
                   f"top12={_top}")
         else:
-            print(f"[DIAG-PROMPT] scene_context type={type(scene_context).__name__} len={len(str(scene_context))}")
+            print(f"[DIAG-PROMPT] scene_context type={type(scene_context).__name__} len={len(str(scene_context))}")  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
 
 
         # F-B (директива Understanding Layer, п.1): компактный контекст семантического

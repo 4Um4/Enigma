@@ -13,6 +13,7 @@ import logging
 from typing import Any, List
 
 from app.domain.body import is_sleep_coupling
+from app.domain.vital_state import locomotion_impairment
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,11 @@ class BodyEngine:
     # (вердикт Мастера), не физиологический закон.
     BASE_FATIGUE_RATE: float = 0.25  # износ per tick at load=1.0
     BASE_FATIGUE_RECOVERY: float = 0.1  # пассивный отдых per tick at load=0.0
+    # S2B.7-5 (Embodied Agency): раненые ноги/пах → движение дороже.
+    # v1 структурный коэффициент: K=1.0 (полное разрушение зон locomotion
+    # = ×2 стоимость движения) — НЕ игровая калибровка; вынесен на вердикт
+    # Мастера (закон №13; реестр долгов S2B.7).
+    INJURY_LOCOMOTION_WEAR: float = 1.0
 
     # Physiological load map (NOT occupational — body cost, not job title)
     _ACTIVITY_LOADS = {
@@ -129,8 +135,20 @@ class BodyEngine:
             _modifier = self._get_body_modifier(npc)
             _coupling = str(npc.get("coupling_mode", "") or "")
 
-            # Expenditure: load-dependent, body-mass-scaled
-            _expenditure = self.BASE_EXPENDITURE_RATE * _load * _modifier
+            # S2B.7-5: leg injury → movement capability ↓. Через СТОИМОСТЬ,
+            # не veto (закон №8: pressure, не decision). Читается из ПЛОСКОГО
+            # контракта снапшота — injuries_by_zone (вечный гвард S2B.7-6).
+            _inj_flat = [
+                _inj
+                for _zl in npc.get("injuries_by_zone", {}).values()
+                for _inj in _zl
+            ]
+            _injury_cost = 1.0 + self.INJURY_LOCOMOTION_WEAR * locomotion_impairment(_inj_flat)
+
+            # Expenditure: load-dependent, body-mass-scaled, injury-scaled (S2B.7)
+            _expenditure = (
+                self.BASE_EXPENDITURE_RATE * _load * _modifier * _injury_cost
+            )
 
             # Recovery: inverse to load; sleep bonus via coupling (NOT via activity string)
             _recovery = self.BASE_RECOVERY_RATE * (1.0 - _load)
@@ -158,7 +176,9 @@ class BodyEngine:
             # fatigue-проекция: combat (ImpactEngine) — event-продюсер;
             # PHYSICS_COMPOSITE = pass-through на агрегации, вклады
             # применяются последовательно единым StateApplicator (clamp).
-            _fatigue_wear = self.BASE_FATIGUE_RATE * _load * _modifier
+            _fatigue_wear = (
+                self.BASE_FATIGUE_RATE * _load * _modifier * _injury_cost
+            )
             _fatigue_recovery = self.BASE_FATIGUE_RECOVERY * (1.0 - _load)
             if is_sleep_coupling(_coupling):
                 _fatigue_recovery *= self.SLEEP_RECOVERY_MULTIPLIER

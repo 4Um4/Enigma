@@ -24,7 +24,7 @@ class L3EphemeralProbe(Probe):
         # 2. Проверяем npc_dicts (all_npcs_raw)
         for npc in ctx.all_npcs_raw:
             if not isinstance(npc, dict):
-                continue
+                continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             for key in npc.keys():
                 if key.lower() in ("effective_drives", "l3_drives", "l3_projection"):
                     nid = npc.get("npc_id", "unknown")

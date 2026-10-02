@@ -378,7 +378,7 @@ class ModelRouter:
             except ValueError as e:
                 logger.debug(f"Invalid Capability, returning GENERAL: {e}")
                 return Capability.GENERAL
-        return capability
+        return capability  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
 
     def _request_sync(
         self,
@@ -722,7 +722,7 @@ class ModelRouter:
 
         pool = self._get_model_pool()
         if pool is None:
-            return None
+            return None  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
 
         for model_key in preferred_keys:
             if pool.is_model_available(model_key):
@@ -758,7 +758,7 @@ class ModelRouter:
     def describe(self) -> str:
         """Legacy: описание текущей модели."""
         if self._current_model_key:
-            config = self._registry.get(self._current_model_key)
+            config = self._registry.get(self._current_model_key)  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             if config:
                 return f"{config.provider_type.value}:{config.name}"
         return "model: not selected"
@@ -790,3 +790,12 @@ def initialize_router() -> None:
 
     logger.debug(f"Router initialized. ModelPool: {pool_results}")
     logger.debug("Lazy loading enabled: only one model in VRAM at a time")
+
+__all__ = [
+    "ModelRouter",
+    "Capability",
+    "GenerationParams",
+    "CAPABILITY_MODEL_PREFERENCES",
+    "get_router",
+    "initialize_router",
+]

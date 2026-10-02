@@ -27,7 +27,7 @@ class CouplingResolver:
     def resolve(self, body_state: Dict[str, Any]) -> CouplingProfile:
         """
         Вычисляет профиль связанности на основе sleep_pressure и arousal.
-        
+
         Архитектурный сдвиг "Сон как Телесный Режим":
         - external_vision_mult: падает при низком arousal.
         - external_hearing_mult: падает, но медленнее (слух — последний бастиан).

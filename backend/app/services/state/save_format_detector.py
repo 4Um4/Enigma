@@ -5,11 +5,11 @@
 import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 logger = logging.getLogger(__name__)
 
-def is_legacy_save(campaign_state: dict) -> bool:
+def is_legacy_save(campaign_state: Any) -> bool:
     """True если сейв в старом формате (single scene_state, без scenes dict)."""
     if not isinstance(campaign_state, dict):
         return False

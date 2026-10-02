@@ -154,17 +154,19 @@ def test_hard_contract_greeting_allowed():
 
 
 def test_ttl_game_time_expiry():
-    """T6: TaskScheduler TTL очищает реплики старше 7 секунд wall-clock (ADR-O-343)."""
-    import time
+    """T6 (актуализация IRON RIVER D-1/P0-1, F1a): TTL на каузальной оси
+    game_time — timestamp = game_time, фильтр game-vs-game (TTL=120).
+    Прежний контракт «7 сек wall-clock» снят; wall-clock — только real_ts (§15.2)."""
     scheduler = TaskScheduler()
-    _now = time.time()
     
     # Реплика 100 секунд назад (wall-clock)
-    scheduler._recent_dialogues.append({"speaker_id": "A", "text": "Старая реплика", "timestamp": _now - 100.0, "game_time": 100.0})
+    # Просрочена: 160 - 30 = 130 > TTL(120)
+    scheduler._recent_dialogues.append({"speaker_id": "A", "text": "Старая реплика", "timestamp": 30.0, "game_time": 30.0})
     # Реплика 2 секунды назад (wall-clock)
-    scheduler._recent_dialogues.append({"speaker_id": "B", "text": "Новая реплика", "timestamp": _now - 2.0, "game_time": 150.0})
+    # Жива: 160 - 150 = 10 < TTL(120)
+    scheduler._recent_dialogues.append({"speaker_id": "B", "text": "Новая реплика", "timestamp": 150.0, "game_time": 150.0})
     
-    # TTL = 7.0 сек wall-clock. Должна остаться только вторая.
+    # TTL = 120 game-сек. Должна остаться только вторая.
     active = scheduler.get_recent_dialogues(160.0)
     assert len(active) == 1
     assert active[0]["speaker_id"] == "B"

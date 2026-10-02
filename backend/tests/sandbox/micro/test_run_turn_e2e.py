@@ -52,7 +52,7 @@ async def _run_e2e_test():
     )
 
     try:
-        response = await game_loop.run_turn(req)
+        _response = await game_loop.run_turn(req)
     except Exception as e:
         print(f"❌ ТЕСТ ПРОВАЛЕН: Ошибка во время run_turn: {e}")
         _kill_llama_server()

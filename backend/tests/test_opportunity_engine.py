@@ -120,7 +120,9 @@ def test_non_broken_will_state_always_denied(broken_npc_state, free_npc_state, c
         result = OpportunityEngine.calculate(high_score_ctx, state.will_state)
         assert result.hidden_action_allowed is False
         assert result.score == 0.0
-        assert result.score_trace.get("reason") == "will_state_not_broken"
+        # S214: reason-строки will-гейта слиты в одну константу
+        # (opportunity_engine.py:161-166: broken/deceptive → pass, прочее → blocks).
+        assert result.score_trace.get("reason") == "will_state_blocks_opportunity"
 
 
 def test_broken_state_with_low_score_still_denied():

@@ -70,7 +70,12 @@ def test_revenge_project_overrides_working_to_resting(life_engine):
     
     # Проверяем, что активность сменилась на resting
     _routine = npc.get("routine", {})
-    assert _routine.get("current") == "resting", "Revenge project should fallback working to resting"
+    # SLEEP-SLICE: is_sleeping относит "resting" к sleep-семейству → в пути
+    # к точке отдыха лейбл "going_to_sleep"; "resting" встанет по прибытии
+    # (no-op guard; прецедент sleeps_at_night).
+    assert _routine.get("current") == "going_to_sleep", (
+        "Revenge→resting в пути: SLEEP-SLICE лейблит going_to_sleep"
+    )
     
     # Проверяем, что интент нацелен на отдых
     assert intent is not None, "Intent should be generated for resting"

@@ -54,5 +54,6 @@ def test_nonempty_reaction_written():
     mem = _MemStub()
     npcs = [{"npc_id": "merchant_goran", "name": "Купец Горан"}]
     write_npc_reactions_to_memory(mem, ["Купец Горан: привет"], npcs, "test_ft3")
-    assert len(_seen) == 1 and _seen[0].payload["content"] == "привет"
+    # S292: payload-контракт NPC_SPOKE — "text" (был "content", никем не читался)
+    assert len(_seen) == 1 and _seen[0].payload["text"] == "привет"
     assert mem.turns == [("merchant_goran", "Купец Горан", "привет")]

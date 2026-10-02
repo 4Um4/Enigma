@@ -41,7 +41,7 @@ def build_tick_state(
     object_target_map: Optional[Dict[str, str]] = None, # ADR-O-410 (G3 Этап 2): цели воли
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
-    
+
     ADR-TZ08-1: Ядро не знает 'player' или 'dm_ctx'. Только InterventionEvent.
     Удалён легаси-мост через DMContextDTO — данные читаются напрямую из
     авторитетных источников: ctx.hub_event и ctx.shared_context (PipelineContext).
@@ -127,6 +127,15 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
 
     Без этого R3_DIRECT получает 0 decisions → DM видит пустой мир → "Ничего не произошло".
     """
+    # Step 5 (вердикт Мастера): единый read-only cognition-резолвер на всю
+    # сборку. Источник — TickBuffer.memory_manager (транспорт ссылки из
+    # turn_pipeline; mvp_controller memory_manager не владеет — проверено
+    # чтением конструктора). None → пустые cognition-блоки (sandbox-ctx).
+    from app.services.npc.cognition_context import CognitionContextResolver
+    _cog_mm = getattr(ctx, "memory_manager", None)
+    _cog_resolver: CognitionContextResolver | None = (
+        CognitionContextResolver(_cog_mm) if _cog_mm else None
+    )
     ctx.communication_intents = mutation.communication_intents or []
     # SLEEP_FIX: Объединяем интенты от Фазы 0 (LifeEngine) и Фазы 5 (DecisionHub),
     # чтобы запланированное движение к кровати не отменялось, если DecisionHub вернул IDLE.
@@ -339,6 +348,11 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 "perceived_events": [],
                 "communication_intent": _intent,
                 "scores_trace": mutation.scores_trace_map.get(_speaker, {}), # S189: SUPERBOX-005
+                # Step 5 (вердикт Мастера): cognition-блок — фактура «что NPC
+                # слышал», едет с контекстом в DMFrame. Read-only резолвер.
+                "cognition": (
+                    _cog_resolver.resolve_block(_speaker) if _cog_resolver else ""
+                ),
             }
         )
 
@@ -393,5 +407,9 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 "perceived_events": [],
                 "communication_intent": None,
                 "scores_trace": _trace,
+                # Step 5: cognition-блок молчащего NPC (гард Optional).
+                "cognition": (
+                    _cog_resolver.resolve_block(_npc_id) if _cog_resolver else ""
+                ),
             }
         )

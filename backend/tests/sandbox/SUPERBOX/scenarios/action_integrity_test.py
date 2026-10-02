@@ -88,7 +88,7 @@ def _build_world(tag: str, npc_patch: dict | None = None):
     # как goran_slice — частичная копия отрезала мир от location_templates.
     src_data = Path(settings.data_dir)
     shutil.copytree(src_data, temp_data, dirs_exist_ok=True)
-    dst_campaign = temp_data / "campaigns" / _CAMPAIGN
+    _dst_campaign = temp_data / "campaigns" / _CAMPAIGN
 
     # Н-57: NPC-конфиги не в файлах кампании — инъекция runtime после тика 0
     # (_inject_runtime в _build_world). Файловый патч удалён.
@@ -291,7 +291,7 @@ def run_scenario_b() -> dict:
         active = scene.get("active_commitments") or {}
         has_active = _TARGET_NPC in active
         npcs = scene.get("npc_positions") or {}
-        coupling = (
+        _coupling = (
             (npcs.get(_TARGET_NPC, {}) or {})
         )
         body = _npc_body_state(world)
@@ -323,7 +323,7 @@ def _npc_body_state(world) -> dict:
     raw = getattr(loop, "_tick_orch", None)
     if raw is None:
         return {}
-    ctx_np = getattr(raw, "_npc_runtime_locations", None)
+    _ctx_np = getattr(raw, "_npc_runtime_locations", None)
     # Читаем через npc_states LifeEngine (доступно после тиков)
     try:
         le = loop._tick_orch._get_life_engine()

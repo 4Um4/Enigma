@@ -101,7 +101,9 @@ def _make_ctx(
 ) -> Phase8Context:
     """Создаёт тестовый Phase8Context."""
     return Phase8Context(
-        all_npcs_raw=all_npcs_raw or [_make_npc()],
+        # S3-урок: `or` подменяет явный пустой список дефолтом —
+        # тест «нет перцепторов» получал npc_1 и рождал дельты.
+        all_npcs_raw=[_make_npc()] if all_npcs_raw is None else all_npcs_raw,
         all_npc_contexts=[],
         shared_context=shared_context,
         campaign_id="test",
@@ -162,10 +164,11 @@ class TestReactionEmptyEvents:
 
     def test_no_perceiving_npcs_returns_empty(self):
         sub = _create_subscriber()
-        npc = _make_npc("npc_1")
-        # perceiving_npcs=[] — явный пустой список, fallback не сработает
+        # S210-контракт: shared_context.perceiving_npcs мёртв — перцепторы
+        # вычисляются через spatial_query; без него fallback на ВСЕХ NPC
+        # (громкий WARNING). «Нет перцепторов» = пустой all_npcs_raw.
         ctx = _make_ctx(
-            all_npcs_raw=[npc],
+            all_npcs_raw=[],
             shared_context=_FakeSharedContext(perceiving_npcs=[]),
         )
         result = sub.handle([_make_event()], ctx)

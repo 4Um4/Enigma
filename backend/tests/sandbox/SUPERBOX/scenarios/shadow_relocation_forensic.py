@@ -69,7 +69,7 @@ def main() -> int:
     _root.addHandler(col)
 
     with TavernGameplayHarness(location="tavern") as h:
-        sm = h.game_loop.scene_manager
+        _sm = h.game_loop.scene_manager
         snaps: dict = {}
         for tick in range(1, 2 * _DAY + 1):
             h.advance_ticks(1)

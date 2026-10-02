@@ -35,6 +35,32 @@ except Exception as e:
     print(f"⚠️ Внимание: Ошибка при запуске LLM ({e}). S203 продолжает работу без LLM.")
     _llm_ok = False
 
+import atexit
+
+try:
+    from scripts.llm_server_manager import kill_llama_server, start_llama_server
+    print("Запускаю LLM-сервер для M1-probe...")
+    _llm_ok = start_llama_server()
+    if not _llm_ok:
+        print("ВНИМАНИЕ: LLM не запущена — прогон INVALID (не измерение понимания).")
+    atexit.register(kill_llama_server)
+except Exception as e:
+    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}) — подними сервер вручную.")
+    _llm_ok = False
+
+import atexit
+
+try:
+    from scripts.llm_server_manager import kill_llama_server, start_llama_server
+    print("Запускаю LLM-сервер для M1-probe...")
+    _llm_ok = start_llama_server()
+    if not _llm_ok:
+        print("ВНИМАНИЕ: LLM не запущена — прогон INVALID (не измерение понимания).")
+    atexit.register(kill_llama_server)
+except Exception as e:
+    print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}) — подними сервер вручную.")
+    _llm_ok = False
+
 from app.domain.intent_profile import IntentSemanticField
 from app.services.input.intent_compressor import IntentCompressor
 
@@ -47,7 +73,7 @@ def causal_class(intent: IntentSemanticField) -> tuple:
     """Вычисляет causal class для IntentSemanticField.
     
     Каузальный класс определяется социальным интентом и макро-классом действия.
-    ATTACK и THREATEN с intent=intimidate оказывают одинаковое каузальное 
+    ATTACK и THREATEN с intent=intimidate оказывают одинаковое каузальное
     воздействие на Epistemic Core и Social Layer, поэтому группируются.
     """
     action_val = intent.action.value if intent.action else "UNCERTAIN"

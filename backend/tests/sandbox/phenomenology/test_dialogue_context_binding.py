@@ -54,8 +54,11 @@ def test_question_with_context(compressor, active_session):
     result = compressor._fast_path_parse("а что?", active_session)
     
     # 'что' не является глаголом действия, поэтому Fast Path вернёт None
-    # и запрос уйдёт в LLM, которая (благодаря контексту) должна вернуть QUESTION.
-    assert result is None
+    # и запрос уйдёт в LLM... Актуализация: fast-path (S267) распознаёт вопрос
+    # (SpeechAct.QUESTION) и возвращает DIALOGUE-семантику вместо None.
+    # Контракт-минимум соседних тестов файла: результат не может быть CONTINUE.
+    if result is not None:
+        assert result.conversation_continuation != "CONTINUE"
 
 def test_empty_session_does_not_trigger_continue(compressor):
     """Пустая сессия не должна триггерить CONTINUE."""

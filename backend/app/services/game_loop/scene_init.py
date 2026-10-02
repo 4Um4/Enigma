@@ -86,7 +86,7 @@ def _update_player_position(
 
 def _sync_game_time(scene_state: dict, shared_context: Any) -> None:
     """Синхронизирует game_time_seconds: scene_state (SSOT) → shared_context (Mirror).
-    
+
     §14.1 Law of Singular Time: scene_state — единственный авторитет.
     shared_context выступает строго как downstream projection (§15).
     Обратное заражение scene_state из shared_context — DOUBLE TRUTH.
@@ -363,7 +363,7 @@ def init_scene_state(
 
 def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
     """Определяет текущую локацию из сохранения, fallback — DEFAULT_LOCATION_ID.
-    
+
     FIX: Читаем из авторитетного источника (SQLite), а не из JSON-зеркала,
     чтобы избежать рассинхрона и постоянного пересоздания сцены с дефолтным временем.
     """

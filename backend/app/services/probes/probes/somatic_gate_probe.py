@@ -12,10 +12,10 @@ class SomaticGateProbe(Probe):
 
     def check(self, ctx: ProbeContext) -> ProbeResult:
         active_traversals = ctx.scene_state.get("active_traversals", {})
-        npc_positions = ctx.scene_state.get("npc_positions", {})
+        _npc_positions = ctx.scene_state.get("npc_positions", {})
 
         for npc in ctx.all_npcs_raw:
-            if not isinstance(npc, dict): continue
+            if not isinstance(npc, dict): continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             npc_id = npc.get("id") or npc.get("npc_id")
             if not npc_id: continue
 

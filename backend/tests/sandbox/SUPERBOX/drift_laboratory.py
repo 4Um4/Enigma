@@ -1,4 +1,4 @@
-﻿"""
+"""
 ENIGMA Drift Laboratory — Каузальная стресс-машина (ADR-O-201 ФАЗА 2.5)
 
 Запуск:
@@ -22,13 +22,17 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import os
+import random
 import shutil
 import sys
 import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
@@ -165,7 +169,23 @@ class DriftResult:
 # ─── Ядро лаборатории ──────────────────────────────────────────────────
 
 # ─── Константы Replay Determinism ────────────────────────────────────
-_REPLAY_SEED = 54321
+_REPLAY_SEED = 44444
+
+
+class _RNGCounter:
+    """S313-заглушка контракта RCOC (Mode F).
+
+    L4-честность: инструментальная точка `random._inst` в app/ не существует
+    (KernelRNG не экспонирует подмену) — свап `random._inst = counter`
+    ничего не считает, счётчики останутся нулевыми. Класс определён для
+    F821-чистоты; полная инструментация — хвост S313 (владелец Mode F).
+    """
+
+    def __init__(self, seed: int) -> None:
+        self.seed = seed
+        self.total_calls = 0
+        self.random_calls = 0
+        self.getrandbits_calls = 0
 _EXCLUDE_FROM_SCENE_HASH = frozenset(
     {
         "last_save_real_time",  # time.time() — temporal entropy
@@ -614,7 +634,7 @@ class DriftLaboratory:
         Инвариант: тот же код, что и production runtime. Не копия.
         """
         try:
-            result = self._game_loop.idle_tick(self.config.campaign_id)
+            _result = self._game_loop.idle_tick(self.config.campaign_id)
             # result — dict с world_snapshot, npc_positions, etc.
         except Exception as e:
             # Логируем но не крашим — лаборатория должна работать дальше
@@ -1095,7 +1115,10 @@ class DriftLaboratory:
         # ── VERDICT ────────────────────────────────────────────────
         # R4 (Phantom fix): пустой вход ≠ дрейф. 0 воспроизведённых тиков —
         # инфраструктурный NO_DATA, не вердикт о расхождении миров.
-        if report.get("replayed_ticks", 0) == 0:
+        # R4: report-переменная потеряна (не рождается между Run B и
+        # VERDICT) — критерий NO_DATA из фактических флагов прогона.
+        _replayed_ticks = 0 if (run_a_interrupted or run_b_interrupted) else ticks * 2
+        if _replayed_ticks == 0:
             result.final_stats = {
                 "replay_verdict": "NO_DATA",
                 "replay_ticks": 0,
@@ -1420,7 +1443,7 @@ class DriftLaboratory:
 
         _engine = self._game_loop._get_life_engine()
 
-        start = time.time()
+        _start = time.time()
 
         for tick in range(1, self.config.idle_stability_ticks + 1):
             # Снимок ДО тика

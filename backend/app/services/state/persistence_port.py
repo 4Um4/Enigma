@@ -74,7 +74,7 @@ class PersistencePort(ABC):
         events: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         """Атомарный коммит ВСЕХ локаций за 1 транзакцию (Устав 4.2.1).
-        
+
         Защита от INV-COMMIT-CARDINALITY: 1 тик = 1 commit в БД.
         """
         ...

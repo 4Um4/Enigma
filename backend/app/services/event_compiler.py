@@ -65,7 +65,7 @@ class EventCompiler:
         """
         # Не-NPC_POSITION — passthrough без spatial вычислений
         if not isinstance(change, SceneChange):
-            return None
+            return None  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
 
         if change.type != ChangeType.NPC_POSITION:
             result: Optional[ThickSceneChange] = self._compile_non_spatial(snapshot, change)

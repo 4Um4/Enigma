@@ -25,6 +25,7 @@ _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "
 
 import math
 
+import pytest
 from app.domain.traversal_schema import TraversalProposal
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.models.world_snapshot import build_snapshot
@@ -55,6 +56,22 @@ def _make_proposal(
     )
 
 # ── Фикстуры ──────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _factory_injection():
+    """EventCompiler резолвит через SpatialFactory.build_for_campaign
+    (локальный import внутри compile(), event_compiler.py:331) — патчим
+    источник: editor JSON 'test/tavern' в чекауте нет → реальная фабрика
+    вернёт None → все spatial-компиляции красные. Инъекция возвращает
+    РЕАЛЬНЫЙ SpatialService с тестовым графом — негативные тесты
+    («Node not found → None») работают штатно."""
+    from unittest.mock import MagicMock, patch
+
+    svc = _make_test_spatial_service()
+    with patch("app.services.spatial.spatial_factory.SpatialFactory") as MockFactory:
+        MockFactory.build_for_campaign = MagicMock(return_value=svc)
+        yield
 
 
 def _make_node(node_id: str, role: NodeRole, x: float, y: float, zone_id: str = "tavern", tags: list = None) -> NodeRef:
@@ -391,11 +408,16 @@ class TestEventCompilerBoundarySnap:
         compiler = EventCompiler()
         snap = _make_snapshot()
         # Traversal completed at boundary node — _process_traversals style
+        # S276 Fix #1 (prefix-authoritative target_loc, CLOSED): value с
+        # префиксом "tavern:" перезаписывает target_location_id
+        # (event_compiler.py:173-177) → boundary-snap недостижим.
+        # Контракт завершения на границе: голое имя узла + target_location_id
+        # (как и заявляет docstring теста: value=boundary_node_id).
         change = SceneChange(
             type=ChangeType.NPC_POSITION,
             target="npc_1",
             field="position",
-            value="tavern:exit_east",
+            value="exit_east",
             cause="traversal_complete",
             tick=100,
             target_location_id="city_gate",

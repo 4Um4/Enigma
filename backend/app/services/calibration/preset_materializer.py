@@ -67,7 +67,7 @@ def _identity_bindings(target: object) -> List[Tuple[types.ModuleType, str]]:
     found: List[Tuple[types.ModuleType, str]] = []
     for module in list(sys.modules.values()):
         if not isinstance(module, types.ModuleType):
-            continue
+            continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
         for attr_name, value in list(vars(module).items()):
             if value is target:
                 found.append((module, attr_name))

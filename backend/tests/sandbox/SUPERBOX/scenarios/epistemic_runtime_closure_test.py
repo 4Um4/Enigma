@@ -1,7 +1,7 @@
 """
 SUPERBOX-015: Runtime Epistemic Closure for Player.
 
-Тест доказывает, что реальный рантайм (DialogueMaterializer -> EventBus -> ClaimEventSubscriber) 
+Тест доказывает, что реальный рантайм (DialogueMaterializer -> EventBus -> ClaimEventSubscriber)
 замыкает эпистемическую петлю для игрока без ручных вызовов подписчиков.
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_runtime_closure_test.py

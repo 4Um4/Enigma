@@ -603,7 +603,7 @@ class TurnPipeline:
                 try:
                     _death_result = await run_agent_safe(
                         "dm",
-                        self.dm_agent,
+                        getattr(self, "dm_agent", None),  # S313: атрибут инджектируется фасадом легаси-путём
                         (location, actions, {}, {}, {}, False, shared_context),
                         {},
                     )
@@ -729,7 +729,10 @@ class TurnPipeline:
         """
         # N-02 FIX: time.monotonic() для корректного start_ms во время replay.
         start_ms = time.monotonic() * 1000
-        _ctx = _TickContext(mvp_controller=self.mvp_controller)
+        _ctx = _TickContext(
+            mvp_controller=self.mvp_controller,
+            memory_manager=self.memory_manager,
+        )
 
         shared_context, world_tick_meta = self._init_pipeline_context(
             actions, campaign_id, world_id, location
@@ -740,7 +743,7 @@ class TurnPipeline:
             actions, campaign_id, location, shared_context
         )
         if _death_response is not None:
-            return _death_response
+            return _death_response  # type: ignore[return-value]  # S313: легаси-контракт возврата смерти сквозь state-пайплайн
 
         scene_state = self._prepare_and_lock_scene(
             campaign_id, location, shared_context, campaign_state, player_position

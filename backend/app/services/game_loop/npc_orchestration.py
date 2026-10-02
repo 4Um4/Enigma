@@ -346,7 +346,7 @@ def run_npc_orchestration(
                 logger.warning(f"[L1_FIXATION] failed: {_l1_err}")
     # TZ-08 v0.2: Чтение Narrative Projection из единого TickResultDTO.
     _npc_buf = NpcTickBuffer(
-        npc_contexts=_tick_result.npc_contexts,
+        npc_contexts=getattr(_tick_result, "npc_contexts", []) or [],
         dirty_npcs=getattr(_tick_result, "dirty_npcs", set()),
         activity_overrides=getattr(_tick_result, "activity_overrides", {}),  # noqa: ENIGMA002
         max_npc_stress=getattr(_tick_result, "max_npc_stress", 0.0),

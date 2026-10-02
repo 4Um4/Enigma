@@ -98,3 +98,6 @@ class IntentResolution:
     movement_request: Optional[Any] = (
         None  # ADR-O-315: Готовый контракт движения от Слоя 1 (TYPE_CHECKING не нужен, используем Any)
     )
+
+
+__all__ = ["WillState"]

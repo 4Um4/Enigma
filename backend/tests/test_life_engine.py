@@ -231,20 +231,23 @@ class TestUpdateRoutine:
         }
         changes, _intent = engine.update_routine(npc, "23:00", tick=10)
 
-        # Найдём изменение видимости
-        visible_changes = [c for c in changes if c.field == "visible"]
-        assert visible_changes, "Должно быть изменение visible"
-        # Ночью Торнин скрыт из основной сцены
-        assert visible_changes[0].value is False, "Спящий NPC должен быть visible=False"
+        # SLEEP-SLICE/FIX-SCENE: inn_rooms ≠ tavern_silver_wolf → relocation-канал
+        # ([], intent). activity/visible в ЧУЖУЮ сцену запрещены (atomicity);
+        # visible=False наступит по прибытии на BED-узел (no-op guard + Фаза 0.6).
+        assert changes == [], "Cross-loc sleep не пишет activity/visible в чужую сцену"
 
         # ADR-049: Смена локации теперь транзит (MovementIntent), а не прямой SceneChange.
         # LifeEngine генерирует Intent, а MovementEngine резолвит его в пространстве.
         assert _intent is not None, "Должен быть сгенерирован MovementIntent для сна"
         assert _intent.location_id == "inn_rooms", "Торнин должен идти в inn_rooms"
-        assert _intent.target_node_id == "inn_rooms:bed", "Торнин должен идти к кровате"
+        # Relocation-ветка FIX-SCENE: target = голый editor_id ("bed"),
+        # префиксная нормализация — на следующем этапе конвейера движения.
+        assert _intent.target_node_id == "bed", "Торнин должен идти к кровате"
 
         # Данные NPC обновились (только активность, не пространственная мутация)
-        assert npc["routine"]["current"] == "sleeping"
+        # SLEEP-SLICE: лейбл сна = проекция факта позиции — ставится после
+        # прибытия на BED, не при отправке (NPC «едет спать», а не «спит»).
+        assert npc["routine"]["current"] == "working"
         # Удалено: assert npc["location"] == "inn_rooms" (Прямая мутация запрещена ADR-049)
 
     def test_tornin_wakes_up_morning(self, engine):
@@ -265,11 +268,10 @@ class TestUpdateRoutine:
             },
         }
         changes, _intent = engine.update_routine(npc, "08:00", tick=20)
-        assert len(changes) > 0, "Должны быть SceneChange при пробуждении"
-
-        # Должен стать visible
-        visible_changes = [c for c in changes if c.field == "visible"]
-        assert any(c.value is True for c in visible_changes), "Должен быть visible=True"
+        # FIX-SCENE: inn_rooms → tavern_silver_wolf — cross-loc relocation:
+        # changes=[] (atomicity), пробуждение = движение к работе.
+        assert changes == [], "Cross-loc wake не пишет activity/visible в чужую сцену"
+        assert _intent is not None, "Должен быть relocation intent"
 
         # ADR-049: Смена локации теперь транзит (MovementIntent), а не прямая мутация.
         assert _intent is not None, "Должен быть сгенерирован MovementIntent для работы"
@@ -484,7 +486,8 @@ class TestIntegration:
         changes = [c for c in changes if hasattr(c, "target")]
         tornin_visible = [c for c in changes if c.target == "tavern_keeper_tornin" and c.field == "visible"]
 
-        # Торнин должен стать invisible (ушёл спать)
-        assert any(c.value is False for c in tornin_visible), (
-            "После 22:00 Торнин должен быть visible=False в основной локации"
+        # SLEEP-SLICE atomicity: 23:00 → sleeping в inn_rooms (cross-loc) →
+        # visible=False в ОСНОВНОЙ локации недостижим до прибытия на BED.
+        assert not any(c.value is False for c in tornin_visible), (
+            "Cross-loc sleep запрещает visible=False в чужой сцене (FIX-SCENE)"
         )

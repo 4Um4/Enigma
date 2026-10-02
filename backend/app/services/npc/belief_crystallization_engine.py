@@ -101,7 +101,7 @@ class BeliefCrystallizationEngine:
                     "desire", 0.25
                 )
                 # Позитивный эффект не имеет множителя
-                effect_magnitude = evidence.cumulative_effect
+                _effect_magnitude = evidence.cumulative_effect
 
             # Базовый вес формируемого убеждения (нормализованный к 1.0)
             # Учитываем magnitude эффекта и чувствительность личности

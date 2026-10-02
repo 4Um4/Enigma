@@ -27,7 +27,7 @@ class TestCausalOntology:
         """FAIL CONDITION: Прямая мутация позиции NPC."""
         npc_before = minimal_world["all_npcs_raw"][1].copy()
         _compressor = IntentCompressor(llm_client=None)
-        semantic_field = _compressor._fast_path_parse("Тень, иди сюда")
+        _semantic_field = _compressor._fast_path_parse("Тень, иди сюда")
         assert minimal_world["all_npcs_raw"][1] == npc_before, "ОНТОЛОГИЯ НАРУШЕНА: Слой 1 мутировал all_npcs_raw"
 
     def test_no_direct_scene_change_in_resolver(self, minimal_world):
@@ -46,7 +46,7 @@ class TestCausalOntology:
     def test_pressure_modifies_utility_not_commands(self):
         """FAIL CONDITION: Давление становится командой (ReflexEngine)."""
         semantic_field = IntentSemanticField(
-            action_type=ActionType.MOVE, target_reference="тень", social_pressure=0.9, raw_text="Тень, иди сюда"
+            action=ActionType.MOVE, target_reference="тень", social_pressure=0.9, raw_text="Тень, иди сюда"  # S267: поле action_type переименовано в action
         )
         assert semantic_field.action_type == ActionType.MOVE
         assert not hasattr(semantic_field, "movement_intent"), (

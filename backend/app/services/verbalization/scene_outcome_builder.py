@@ -137,6 +137,9 @@ class NpcOutcome:
     backstory: str = ""
     author_notes: str = ""
     memory_hints: Tuple[str, ...] = ()  # top-3 воспоминаний как текст
+    # Step 5: cognition-блок «что NPC слышал» (CognitionContextResolver,
+    # read-only; единственный cognition-канал в DMFrame).
+    cognition: str = ""
 
 
 @dataclass(frozen=True)
@@ -271,6 +274,9 @@ class SceneOutcomeBuilder:
         distortion_biases: Optional[Dict[str, "DistortionProfile"]] = None,
         npc_profiles: Optional[Dict[str, NPCProfileL0]] = None,
         topics: Optional[Dict[str, str]] = None,
+        # Step 5 (вердикт Мастера): cognition-блоки per-NPC «что NPC слышал»
+        # (CognitionContextResolver → npc_contexts → DMFrame). Read-only.
+        cognition: Optional[Dict[str, str]] = None,
         # ADR-131: Трёхосевая модель — вызывающий код извлекает из доменов
         npc_affective_loads: Optional[Dict[str, float]] = None,
         avatar_coherence: float = 1.0,
@@ -297,6 +303,7 @@ class SceneOutcomeBuilder:
                 distortion_bias=_biases.get(d.npc_id),
                 profile=_profiles.get(d.npc_id),
                 topic=_topics.get(d.npc_id, ""),
+                cognition=cognition,
             )
             for d in decisions
         ]
@@ -448,6 +455,10 @@ class SceneOutcomeBuilder:
                 # ФАЗА 4: topic — якорь для LLM (Устав 3.2)
                 if npc.topic:
                     line += f" [тема: {npc.topic}]"
+                # Step 5: cognition — что NPC слышал (граница знания;
+                # DM рендерит решение NPC на этом знании, не на raw-речи)
+                if getattr(npc, "cognition", ""):
+                    line += f" [NPC слышал: {npc.cognition}]"
                 # emotion с гендерным окончанием через pymorphy3
                 if npc.emotion:
                     emotion_key = (
@@ -575,6 +586,7 @@ class SceneOutcomeBuilder:
         distortion_bias: Optional["DistortionProfile"] = None,
         profile: Optional[NPCProfileL0] = None,
         topic: str = "",
+        cognition: Optional[Dict[str, str]] = None,
     ) -> NpcOutcome:
         """Превращает один DecisionResult в NpcOutcome с salience."""
         npc_id = decision.npc_id
@@ -688,6 +700,8 @@ class SceneOutcomeBuilder:
             backstory=_backstory,
             author_notes=_author_notes,
             memory_hints=_memory_hints,
+            # Step 5: cognition-блок (гард Optional + отсутствие ключа).
+            cognition=(cognition or {}).get(npc_id, ""),
         )
 
     def _compute_salience(

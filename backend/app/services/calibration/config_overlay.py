@@ -65,7 +65,7 @@ def _find_bindings(original: object, name: str) -> List[Tuple[types.ModuleType, 
     bindings: List[Tuple[types.ModuleType, str]] = []
     for module in list(sys.modules.values()):
         if not isinstance(module, types.ModuleType):
-            continue
+            continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
         module_vars = vars(module)
         if module_vars.get(name) is original:
             bindings.append((module, name))
@@ -188,7 +188,7 @@ def audit_constant_bindings(name: str) -> List[Tuple[str, str]]:
     found: List[Tuple[str, str]] = []
     for module in list(sys.modules.values()):
         if not isinstance(module, types.ModuleType):
-            continue
+            continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
         for attr_name, value in list(vars(module).items()):
             if value is original:
                 found.append((module.__name__, attr_name))

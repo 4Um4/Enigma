@@ -165,7 +165,7 @@ class DirectiveInterpretationSubscriber:
             irritation_intensity = base_social_force * (1.0 - legitimacy)
 
         # 5. Генерация PsychologicalPressure (искривление пространства полезности)
-        pressure = PsychologicalPressure(
+        _pressure = PsychologicalPressure(
             fear=obedience_intensity * 0.4,  # Страх отказа
             dominance_shift=-obedience_intensity,  # Подчинение доминированию
             directive_obedience=obedience_intensity,  # Давление подчинения

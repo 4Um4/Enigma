@@ -312,7 +312,7 @@ def extract_scene_for_npc(
     if not me:
         return {"nearby": [], "player": None, "available_actions": ["wait"]}
 
-    location_id = scene_state.get("location_id", "")
+    _location_id = scene_state.get("location_id", "")
 
     # --- Другие NPC в радиусе восприятия ---
     nearby: list[Dict[str, Any]] = []

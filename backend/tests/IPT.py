@@ -33,8 +33,10 @@ try:
     if not _llm_ok:
         print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
     atexit.register(kill_llama_server)
-except ModuleNotFoundError as e:
-        print(f"⚠️ Внимание: Модуль LLM-сервера не найден ({e}). MVP продолжает работу без LLM.")
+except (ModuleNotFoundError, OSError) as e:
+    # P1-fix (ТЗДНЯ): FileNotFoundError от Popen при отсутствии llama-server (CI)
+    # — не ModuleNotFoundError; ронял любой прогон, импортирующий IPT.
+    print(f"⚠️ Внимание: LLM недоступна ({e}). MVP продолжает работу без LLM.")
 
 # ── KILLER_SPIRIT (санкция Мастера): убийца призрачных backend-связок ──
 # Долг TZ-GHOST-1: ланчер умирает, не убив детей (llama-server:8181 +

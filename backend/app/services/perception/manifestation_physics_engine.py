@@ -42,7 +42,7 @@ class ManifestationPhysicsEngine:
         shock_impulse = (
             float(body_state.get("shock_impulse", 0.0)) if body_state else 0.0
         )
-        blood_loss = float(body_state.get("blood_loss", 0.0)) if body_state else 0.0
+        _blood_loss = float(body_state.get("blood_loss", 0.0)) if body_state else 0.0
 
         # 2. Извлекаем психику (Reality)
         psyche = npc_state.get("psyche", {})

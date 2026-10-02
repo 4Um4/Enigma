@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/tests/sandbox/micro/test_reconciler_v0.py
 Назначение: Reconciler v0 — неполный fast (ATTACK без зоны / фантом-proposition) → LLM enrichment только пустых полей; полный fast не вызывает LLM; LLM None → fast цел
 Зависимости: app.services.input.intent_compressor
@@ -32,7 +32,7 @@ _SCENE = {"npc_positions": {"maid_lusya": {"name": "Люся"}}}
 def test_incomplete_attack_enriched_and_phantom_dropped():
     llm = {"target_zone": "HEAD", "tool_reference": "нож", "proposition": None}
     comp = _compressor(llm)
-    fast = _fast_attack(
+    _fast = _fast_attack(
         proposition=Proposition(subject_id="player", predicate=Predicate.ATTACKED, object_id="ушко", polarity=True)
     )
     result = asyncio.run(comp.compress("ударить Люсю", _SCENE, None))

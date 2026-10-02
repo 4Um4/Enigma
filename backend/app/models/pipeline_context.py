@@ -46,6 +46,12 @@ class PipelineContext:
     all_npcs_raw_snapshot: Any = (
         None  # Фаза 9: полный снимок NPC state (description, title)
     )
+    # S313-легализация: game_loop пишет оба имени (snapshot — канон Фазы 9,
+    # all_npcs_raw — читают легаси-потребители _project_perception);
+    # observed_facts — Sprint P9, проброс фактов в DM-агент.
+    # RAM-only поля пайплайна (не сериализуются — WARA не затронут).
+    all_npcs_raw: Any = None
+    observed_facts: Any = None
     world_snapshot: Any = None  # NEW-DEGRADATION-3 FIX: Сохраняем world_snapshot из ядра
     npc_contexts: List[Any] = field(default_factory=list)
     recent_session: List[Any] = field(default_factory=list)

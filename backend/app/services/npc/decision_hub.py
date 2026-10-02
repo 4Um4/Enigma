@@ -601,11 +601,25 @@ class DecisionHub:
 
         # ── S28: Каузальная деформация пространства решений ──
         if decision_ctx:
-            # ФАЗА 1: Feasibility Filtering (Удаление невозможных действий)
-            # Если feasibility = 0.0, действие вырезается из пула кандидатов
+            # ФАЗА 1: Feasibility Filtering (R2; вердикт S254 / ADR-O-383 V1).
+            # Нормализация кейса: translator пишет UPPERCASE-семантики ("FLEE"),
+            # канон scores = Intent.values ("flee") — прежний точный матч был
+            # мёртв всегда. Контракт feasibility: 0.0 → удаление кандидата;
+            # 0 < f < 1 → множитель utility ("существенно затруднено", chronic
+            # cap; SOMATIC_VETO/ActiveCommitment оживают по замыслу своих ADR).
+            import os as _os_r2  # noqa: PLC0415 — DIAG-зонд (Часть VIII.5)
+            _r2_diag = _os_r2.environ.get("R2_DIAG", "").strip().lower() in ("1", "true")
             for intent_str, feasibility in decision_ctx.compression.constraints.items():
-                if intent_str in scores and feasibility <= 0.0:
-                    del scores[intent_str]  # Жесткий пропуск (skip candidate)
+                _k = intent_str.lower()
+                if _r2_diag and (_k == "trade" or feasibility <= 0.0):
+                    print(f"[R2_DIAG] npc={state.npc_id} c={intent_str}:{feasibility} "
+                          f"in_scores={_k in scores} score={scores.get(_k)}")
+                if _k not in scores:
+                    continue
+                if feasibility <= 0.0:
+                    del scores[_k]  # Жесткий пропуск (skip candidate)
+                elif feasibility < 1.0:
+                    scores[_k] = round(scores[_k] * feasibility, 4)
 
             # ФАЗА 2: Utility Deformation (Искривление доступного ландшафта)
             deformation = decision_ctx.deformation
@@ -1200,7 +1214,7 @@ class DecisionHub:
                 return 1.0 + 0.3 * intensity  # 1.0..1.3
             return suppression
 
-        return 1.0
+        return 1.0  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
 
     def _relationship_modifier(
         self,

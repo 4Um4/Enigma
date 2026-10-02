@@ -38,7 +38,7 @@ class PlayerTargetResult:
 
     target_id: str
     target_name: str
-    player_pos: Optional[Dict[str, Any]]
+    player_pos: Any  # S313: фактические носители разнородны (dict | str | None) — fast-path легаси
     player_dists: Optional[Dict[str, float]]
 
 

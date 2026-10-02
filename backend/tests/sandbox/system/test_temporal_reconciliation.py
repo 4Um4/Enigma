@@ -52,11 +52,12 @@ class TestTemporalReconciliation:
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 0.0, "fatigue": 0.0}}
         self.engine._npc_cache["camp"] = [npc]
 
-        # 100 секунд = 10 тиков. hunger_rate = 8.0 за тик (ADR-S96.3)
-        # hunger = 0.0 + 8.0 * 10 = 80.0
+        # 100 секунд = 10 тиков. hunger_rate ≈ 1.0/тик
+        # (life_engine.py:512: _NEED_DECAY_PER_TICK * 12.5; шкала
+        # ADR-S96.3 8.0/тик снята — тест кодировал устаревшую константу).
         self.engine.reconcile_state("camp", 100.0)
 
-        assert npc["body_state"]["hunger"] == pytest.approx(80.0, abs=1.0)
+        assert npc["body_state"]["hunger"] == pytest.approx(10.0, abs=1.0)
         # fatigue заморожена на skip: per-tick проекция — только BodyEngine
         assert npc["body_state"]["fatigue"] == 0.0
 

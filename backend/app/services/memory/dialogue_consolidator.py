@@ -19,7 +19,7 @@ class DialogueConsolidator:
 
     def consolidate(self, session: Any) -> Optional[str]:
         """Возвращает текст summary для EventMemory.
-        
+
         Пока работает без LLM (structural fallback).
         """
         if not session.buffer or len(session.buffer) < 2:

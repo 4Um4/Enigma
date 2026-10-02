@@ -64,7 +64,7 @@ def _build_perceived_environment(
     Стресс делает мир темнее и шумнее.
     """
     env = scene_state.get("environment", {})
-    modifiers = scene_state.get("environment_modifiers", {})
+    _modifiers = scene_state.get("environment_modifiers", {})
 
     light_raw = env.get("light_level", "normal")
     noise_raw = env.get("noise_level", "moderate")

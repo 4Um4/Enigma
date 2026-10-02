@@ -78,13 +78,18 @@ def test_cognitive_override_guard_blocks_schedule(engine, suppressed_npc, free_n
 
     # Вызов логики расписания (минорный цикл LifeEngine)
     changes_suppressed, _ = engine._simulate_minor(suppressed_npc, current_time=current_time, tick=1)
-    changes_free, _ = engine._simulate_minor(free_npc, current_time=current_time, tick=1)
+    # FIX-SCENE atomicity: forge ≠ home → relocation-канал ([], MacroMovementGoal).
+    changes_free, intent_free = engine._simulate_minor(free_npc, current_time=current_time, tick=1)
 
     # Аудит: Подавленный NPC не должен менять локацию (вернулся [], None)
     assert changes_suppressed == [], "Подавленный NPC не должен идти на работу (паралич воли)"
 
     # Аудит: Свободный NPC должен создать SceneChange для перехода на работу
-    assert len(changes_free) > 0, "Свободный NPC должен начать работу по расписанию"
+    # Актуализация: «начать работу» = SceneChange (same-loc) ИЛИ
+    # relocation-intent (cross-loc, forge ≠ home → changes=[]).
+    assert (len(changes_free) > 0) or (intent_free is not None), (
+        "Свободный NPC должен начать работу по расписанию"
+    )
 
     print("\n--- SCHEDULE OVERRIDE TRACE ---")
     print(f"Worker 01 (suppressed=0.85): changes={changes_suppressed} (EXPECTED: [])")

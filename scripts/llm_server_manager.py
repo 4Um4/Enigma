@@ -39,6 +39,17 @@ def start_llama_server() -> bool:
         pass
 
     print("[LLM_MANAGER] Запуск llama-server...")
+
+    # P1-fix (ТЗДНЯ): guard существования бинарника ДО Popen. При отсутствии
+    # llama-server (CI-чекут: gitignored "Models LLM/") Popen бросал
+    # FileNotFoundError — нарушение контракта "-> bool", ронявшее collection
+    # 8 тестовых файлов сразу.
+    if not Path(settings.llama_cpp_server_executable).is_file():
+        print(
+            "[LLM_MANAGER] llama-server не найден: "
+            f"{settings.llama_cpp_server_executable} — продолжаем без LLM."
+        )
+        return False
     
     server_cmd = [
         settings.llama_cpp_server_executable,

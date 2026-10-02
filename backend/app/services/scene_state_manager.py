@@ -343,8 +343,12 @@ class SceneStateManager:
             scene = data.get("scene_state")
         if not scene:
             return None
-        # P0 FIX (S71): SceneState Contract — reject non-dict
-        if not isinstance(scene, dict):
+        # P0 FIX (S71): SceneState Contract — reject non-dict.
+        # Runtime-гвард против повреждённой персистенции: аннотация
+        # адаптера лжёт на мусоре. Any-прокси глушит mypy-narrowing
+        # в обоих режимах (strict/soft) без type: ignore.
+        scene_any: Any = scene
+        if not isinstance(scene_any, dict):
             logger.warning(
                 f"[SCENE_CONTRACT] get_scene_state_uncached: тип={type(scene).__name__}, ожидается dict"
             )
@@ -453,8 +457,12 @@ class SceneStateManager:
             scene = data.get("scene_state")
         if not scene:
             return None
-        # P0 FIX (S71): SceneState Contract — reject non-dict
-        if not isinstance(scene, dict):
+        # P0 FIX (S71): SceneState Contract — reject non-dict.
+        # Runtime-гвард против повреждённой персистенции: аннотация
+        # адаптера лжёт на мусоре. Any-прокси глушит mypy-narrowing
+        # в обоих режимах (strict/soft) без type: ignore.
+        scene_any: Any = scene
+        if not isinstance(scene_any, dict):
             logger.warning(
                 f"[SCENE_CONTRACT] get_scene_state: тип={type(scene).__name__}, ожидается dict"
             )
@@ -1434,8 +1442,8 @@ class SceneStateManager:
                     _seg_frac = _seg_prog - _seg_idx
                     x1, y1 = wp[_seg_idx]
                     x2, y2 = wp[_seg_idx + 1]
-                    ix = x1 + (x2 - x1) * _seg_frac
-                    iy = y1 + (y2 - y1) * _seg_frac
+                    _ix = x1 + (x2 - x1) * _seg_frac
+                    _iy = y1 + (y2 - y1) * _seg_frac
                     # S273-GAP12 (root-cause fix, вердикт Мастера: только А2):
                     # xy НЕ пишем. TES (traversal_execution_system, Фаза 0.5,
                     # tick_orchestrator:2270) — единственный владелец производной
@@ -1709,3 +1717,14 @@ def get_scene_state_manager() -> SceneStateManager:
         _scene_state_manager = SceneStateManager()
     return _scene_state_manager
 
+
+# Публичный алиас (strict-export): потребители (recognition_layer, dm_agent)
+# используют каноническое имя без подчёркивания. Приватное остаётся для
+# внутренних вызовов SSM.
+npc_id_to_display = _npc_id_to_display
+
+__all__ = [
+    "SceneStateManager",
+    "npc_id_to_display",
+    "enrich_scene_spatial",
+]

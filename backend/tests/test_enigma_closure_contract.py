@@ -17,7 +17,8 @@ TASK_SCHEDULER_PATH = os.path.join(_APP_DIR, "services", "game_loop", "task_sche
 NPC_DIALOGUE_SUB_PATH = os.path.join(_APP_DIR, "services", "events", "npc_dialogue_subscriber.py")
 SOCIAL_DELTAS_PATH = os.path.join(_APP_DIR, "services", "npc", "decision", "social_deltas.py")
 DECISION_PATH = os.path.join(_APP_DIR, "services", "phases", "decision.py")
-GAME_LOOP_PATH = os.path.join(_APP_DIR, "services", "game_loop", "__init__.py")
+# DEGOD Phase2-T1: __init__.py — фасад; NEW-8 FIX живёт в game_loop.py:1630.
+GAME_LOOP_PATH = os.path.join(_APP_DIR, "services", "game_loop", "game_loop.py")
 TOPIC_EXTRACTOR_PATH = os.path.join(_APP_DIR, "services", "npc", "topic_extractor.py")
 VERBALIZATION_CTX_PATH = os.path.join(_APP_DIR, "services", "verbalization", "verbalization_context.py")
 

@@ -75,7 +75,7 @@ class SpatialQueryService:
         local_b = pos_b.get("local_position", {})
         ax, ay = local_a.get("x", 0.0), local_a.get("y", 0.0)
         bx, by = local_b.get("x", 0.0), local_b.get("y", 0.0)
-        dist = euclidean_distance(pos_a, pos_b)
+        _dist = euclidean_distance(pos_a, pos_b)
         return is_line_of_sight_clear(ax, ay, bx, by, self._scene_state)
 
     def cluster_relation(self, entity_a: str, entity_b: str) -> Optional[str]:
@@ -89,7 +89,7 @@ class SpatialQueryService:
         if cl_a == cl_b:
             return "same"
         # Соседство проверяем через граф кластеров
-        neighbors = self._cluster_occupancy.cluster_to_entities.get(cl_a, set())
+        _neighbors = self._cluster_occupancy.cluster_to_entities.get(cl_a, set())
         # Упрощённая эвристика: если есть хотя бы одна общая сущность в соседних кластерах
         return (
             "adjacent"

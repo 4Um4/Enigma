@@ -51,7 +51,7 @@ def test_multimodel():
             test_url = server_url + endpoint
             print(f"Testing {test_url}...")
             with urllib.request.urlopen(test_url, timeout=3) as resp:
-                response_data = resp.read().decode("utf-8", errors="ignore")
+                _response_data = resp.read().decode("utf-8", errors="ignore")
 
                 server_ok = True
                 break

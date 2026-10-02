@@ -8,7 +8,7 @@ path: backend/tests/calibration_lab/test_m0_runner.py
 Зависимости: app.services.calibration.experiment_runner.
 Основные сущности: TestExperimentRunnerSmoke.
 
-Запуск: 
+Запуск:
 """
 from pathlib import Path
 

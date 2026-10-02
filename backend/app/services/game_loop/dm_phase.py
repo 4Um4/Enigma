@@ -287,6 +287,19 @@ def run_dm_phase(
                     _sem_payload["target_id"] = _tid
                 if _tref:
                     _sem_payload["target_reference"] = _tref.lower()
+        # Пакет C (вердикт Мастера): канонизированная проекция хода игрока
+        # для DM-промпта. Источник замены raw-text (инвариант C):
+        # dm_agent._presentation_safe_actions читает её из context.
+        try:
+            from app.services.game_loop.phase_1_input import (
+                build_intent_projection,
+            )
+            shared_context.player_intent_projection = build_intent_projection(
+                shared_context.intent_resolution
+            )
+        except Exception as _proj_err:
+            logger.warning(f"[DM_PHASE] intent projection failed: {_proj_err}")
+
         # P1 ARCH: Referential Closure Principle.
         # EventContext отражает ТОЛЬКО Intent.
         # Запрет fallback на shared_context (Ghost Causality).

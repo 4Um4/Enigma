@@ -83,6 +83,18 @@ _ALLOWED_WRITERS: Tuple[str, ...] = (
     # легитимная тест-инфраструктура, скрыто красная с активацией Г4
     # (пропуск гейт-блока коммита №1: сьют не гонялся; вскрыт Этапом 2).
     "tests.test_affordance_facts",
+    # Runtime-writer (Фаза 0.7, конвертер деятельностей): establish_relation/
+    # apply_damage — production-путь потребления еды. Пропуск при вводе Г4
+    # рождал тихий отказ (guard глотался except'ами als → holder=None).
+    # Расширение цензуса = мини-ADR, зафиксировано в отчёте сессии.
+    "app.services.npc.activity_lifecycle_service",
+    # Activity/food/visibility сьюты (класс E2.0-c, прецедент выше):
+    # фикстуры спавнят wo-объекты и устанавливают отношения напрямую
+    # через стор — тест-инфраструктура, не production-путь. Мини-ADR
+    # зафиксирован в отчёте сессии (расширение цензуса = taboo без санкции).
+    "tests.test_activity_lifecycle",
+    "tests.test_food_portion_affordances",
+    "tests.test_activity_visibility",
     # IPT.py выполняется как __main__ (python IPT.py): smoke-часть
     # INV-WORLD-OBJECT-TOPOLOGY спавнит/мутирует wo-объекты напрямую —
     # тест-инфраструктура инварианта, не production-путь (цензус-класс

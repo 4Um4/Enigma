@@ -2,7 +2,7 @@
 """
 Валидаторы инвариантов для Property-Based Testing (Подсистема 1, Этап 1.2).
 
-Запуск: 
+Запуск:
 """
 from dataclasses import dataclass, field
 from typing import Any, Dict, List

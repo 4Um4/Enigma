@@ -63,7 +63,7 @@ class DialogueQueue:
 
     def enqueue(self, task_type: str, payload: dict, priority: int, game_time_seconds: float) -> str:
         """Добавить задачу в очередь с учётом BackpressurePolicy (ENIGMA-ARCH-027).
-        
+
         Правила:
         - Ambient overflow: DROP (фоновая болтовня уничтожается).
         - Canonical overflow: PRESERVE (вытесняет ambient, если队列 полна).

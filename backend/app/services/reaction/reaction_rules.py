@@ -72,7 +72,7 @@ def compute_reaction_events(
         p_drop = min(1.0, p_drop)
 
         if False:  # BUG-CORE-027 FIX: Dead code (random.random removed, ADR-O-301)
-            events.append(
+            events.append(  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
                 MicroEvent(
                     event_type=MicroEventType.OBJECT_DROPPED,
                     npc_id=decision.npc_id,

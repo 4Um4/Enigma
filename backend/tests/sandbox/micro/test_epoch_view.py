@@ -101,9 +101,18 @@ def test_tick_overlay_pr6():
 def test_deepcopy_contracts():
     """S268: immutable → self; overlay → материализованный dict."""
     import copy
+
+    # Латентный NameError (TickOverlay не импортирован) маскировался
+    # красным ассертом deepcopy выше — вскрыт после его починки.
+    # Локальный импорт — прецедент test_tick_overlay_pr6.
+    from app.domain.world_epoch import TickOverlay
+
     ep = WorldEpoch(3, {"a": 1})
     assert copy.deepcopy(ep) is ep
-    assert copy.deepcopy(ep.view()) is ep.view()
+    # view() рождает НОВЫЙ объект на вызов; контракт — deepcopy возвращает
+    # ТОТ ЖЕ view (S268), а не «два независимых вызова идентичны».
+    _v = ep.view()
+    assert copy.deepcopy(_v) is _v
     ov = TickOverlay(ep)
     ov["b"] = 2
     snap = copy.deepcopy(ov)
@@ -125,9 +134,14 @@ def test_nested_mutation_DOCUMENTED_LIMITATION():
     это маркер завершения миграции, не одобренная семантика."""
     ep = WorldEpoch(1, {"npc_positions": {"borko": {"x": 1}}})
     wv = ep.view()
-    # текущее поведение: вложенная мутация проходит МИМО гварда
-    wv["npc_positions"]["borko"]["x"] = 999
-    assert ep.state["npc_positions"]["borko"]["x"] == 999  # утечка задокументирована
-    # и через прямое свойство:
+    # S269 v3 СНЯЛ границу: вложенные значения отдаются запечатанными
+    # (ReadOnlyDict через _sealed) → вложенная мутация через view громко
+    # невозможна. Маркер Epoch-финала сработал — тест актуализирован.
+    try:
+        wv["npc_positions"]["borko"]["x"] = 999
+        raise AssertionError("вложенная мутация прошла — S269 v3 seal нарушен")
+    except TypeError:
+        pass
+    # Прямая запись в живую ссылку ep.state — контракт вызывающего (v3).
     ep.state["npc_positions"]["borko"]["x"] = 1000
     assert ep.state["npc_positions"]["borko"]["x"] == 1000

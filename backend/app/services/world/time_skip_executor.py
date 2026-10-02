@@ -402,7 +402,7 @@ class SkipPolicyC:
         event_log: List[Any] = []
         _state = scene_state
         _tick = _state.get("tick", 0)  # SSOT: время берётся только из scene_state
-        start_tick = _tick  # C9 FIX: Фиксируем начальный тик для расчёта skipped
+        _start_tick = _tick  # C9 FIX: Фиксируем начальный тик для расчёта skipped
         _prev_npcs = get_npcs(campaign_id)
 
         for _ in range(max_ticks):

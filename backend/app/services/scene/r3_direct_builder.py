@@ -110,6 +110,14 @@ def build_r3_dm_frame(
     _npc_topics = {
         ctx["npc_id"]: ctx["topic"] for ctx in _filtered_ctxs if ctx.get("topic")
     }
+    # Step 5 (вердикт Мастера): cognition-блок «что NPC слышал» из
+    # npc_contexts (CognitionContextResolver в pipeline_runner) — прокид
+    # в builder тем же паттерном, что topics/profiles.
+    _npc_cognition = {
+        ctx["npc_id"]: ctx["cognition"]
+        for ctx in _filtered_ctxs
+        if ctx.get("cognition")
+    }
 
     # Epistemic Boundary: affective_load скрыт от DM-агента.
 
@@ -141,6 +149,7 @@ def build_r3_dm_frame(
         distortion_biases={},
         npc_profiles=_npc_profiles,
         topics=_npc_topics,
+        cognition=_npc_cognition,
         npc_affective_loads={},
         avatar_coherence=_avatar_coherence,
         observed_facts=_observed_facts,  # ADR-O-318

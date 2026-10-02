@@ -26,8 +26,11 @@ class TestPhase1Implementation:
 
     def test_bridge_3_player_spoke_in_threat_types(self):
         """Bridge 3: player_spoke должен формировать beliefs (DANGER)."""
+        # Актуализация (2612dae4): player_spoke удалён из _THREAT_TYPES —
+        # речь → ClaimEvent (эпистемика S188), не угроза. Канонический
+        # DANGER-канал — player_attacks. Смысл Bridge 3 сохранён.
         from app.services.npc.belief_transition_engine import _THREAT_TYPES
-        assert "player_spoke" in _THREAT_TYPES, "Bridge 3 FAILED: player_spoke отсутствует в _THREAT_TYPES"
+        assert "player_attacks" in _THREAT_TYPES, "Bridge 3 FAILED: player_attacks отсутствует в _THREAT_TYPES"
         print("\n[Bridge 3] PASSED: player_spoke добавлен в _THREAT_TYPES.")
 
     def test_l_01_to_l_05_dialogue_executor_context(self):

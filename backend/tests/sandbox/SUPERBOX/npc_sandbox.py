@@ -28,7 +28,10 @@ import csv
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
+
+if TYPE_CHECKING:
+    from app.models.economy import EconomicProfile  # F821: только аннотации-строки
 
 # ── Добавляем backend в path ──
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
@@ -845,12 +848,12 @@ class NPCSandbox:
     def _setup_initial_contracts(
         self,
         profiles: Dict[str, "EconomicProfile"],
-        tx_engine: "TransactionEngine",
+        tx_engine: Any,  # S313: TransactionEngine не существует в app/ — Mode недописан владельцем
     ) -> None:
         """Создаёт начальные трудовые контракты для симуляции."""
         # Интервал — как часто платят (не каждый день!)
         # Контракты: (работодатель, работник, сумма_выплаты, интервал_в_днях)
-        apd = self.config.actions_per_day  # действий в день
+        _apd = self.config.actions_per_day  # действий в день
 
         EMPLOYMENT_CONTRACTS = [
             # Служанка: кров+еда от хозяина, мелкие деньги — 0.3G/день

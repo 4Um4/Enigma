@@ -195,7 +195,7 @@ def _run_group(
 
     res = _GroupResult(group=label)
     tap = _TapRegistry()
-    bus_warn = None
+    _bus_warn = None
     with TavernGameplayHarness() as h:
         tap.attach(h.game_loop)
         try:

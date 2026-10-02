@@ -70,7 +70,7 @@ class FullErrorLoggingTests(unittest.TestCase):
     @patch("app.services.error_interpreter.LOG_FILE")
     def test_jsonl_tail_analysis(self, mock_file):
         """Verify recent errors count."""
-        logs = self.interpreter.get_recent_logs(10)
+        _logs = self.interpreter.get_recent_logs(10)
         errors = self.interpreter.analyze_recent_errors()
         self.assertIsInstance(errors, dict)
         print(f"Recent errors: {errors}")

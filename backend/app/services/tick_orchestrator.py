@@ -278,6 +278,11 @@ class TickOrchestrator:
             self._snapshot_builder = WorldSnapshotBuilder()
         return self._snapshot_builder
 
+    # ADR-O-391: DI-атрибуты, привязываемые GameLoop'ом (динамически).
+    # Классовые аннотации — легализация контракта для mypy (attr-defined).
+    _economic_profiles_getter: Any = None
+    _economy_tracker: Any = None
+
     def set_social_engine_factory(self, factory: Any) -> None:
         """Внедряет фабрику SocialEngine (DI)."""
         self._social_engine_factory = factory
@@ -311,7 +316,7 @@ class TickOrchestrator:
         каждого NPC на канонический ClusterID.
         """
 
-        start_time = time.perf_counter()  # §15.2: Telemetry (profiling)
+        _start_time = time.perf_counter()  # §15.2: Telemetry (profiling)
 
         # Сброс индекса для устранения ghost-сущностей (cache invalidation)
         ctx.cluster_occupancy = ClusterOccupancy()
@@ -1104,7 +1109,7 @@ class TickOrchestrator:
 
     def _resolve_cross_location_transfers(self, ctx: _TickContext) -> None:
         """S186: Cross-Location Ownership Transfer.
-        
+
         Изымает NPC из scene_state[source] в RAM-очередь TickOrchestrator,
         если SSM пометил их location_id как целевую локацию (cross_loc_materialize).
         Очередь будет разрешена в начале тика целевой локации (_run_core_phases).
@@ -1970,7 +1975,7 @@ class TickOrchestrator:
         2. STM буфер NPC (последние реплики)
         3. Фоллбэк "наблюдение" (никогда не пустой — Устав §3.2)
         """
-        mm = self._get_memory_manager()
+        _mm = self._get_memory_manager()
 
         for npc_dict in ctx.npc_states:
             npc_id = npc_dict.get("id")
@@ -2641,3 +2646,11 @@ class TickOrchestrator:
             if _new_priority != _old_priority:
                 import dataclasses
                 intents[_idx] = dataclasses.replace(_intent, priority=_new_priority)
+
+
+__all__ = [
+    "TickOrchestrator",
+    "TickResultDTO",
+    "TickPlayerResultDTO",
+    "InterventionEvent",
+]

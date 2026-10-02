@@ -64,13 +64,13 @@ class TestNeedSatisfactionMode(unittest.TestCase):
     def test_need_driven_movement_on_prefers_unsuppressed(self):
         self._on()
         npc = _npc({"hunger": 0.9, "social_urge": 0.6})
-        goal = self._le._check_need_driven_movement(npc)
+        goal, _changes = self._le._check_need_driven_movement(npc, tick=0)  # контракт: (Goal, List[SceneChange])
         self.assertIsNotNone(goal)
         self.assertIn("social_urge", str(goal.reason))  # hunger забран конвертером
 
     def test_need_driven_movement_off_targets_hunger(self):
         npc = _npc({"hunger": 0.9, "social_urge": 0.6})
-        goal = self._le._check_need_driven_movement(npc)
+        goal, _changes = self._le._check_need_driven_movement(npc, tick=0)  # контракт: (Goal, List[SceneChange])
         self.assertIsNotNone(goal)
         self.assertIn("hunger", str(goal.reason))  # легаси: argmax без подавления
 

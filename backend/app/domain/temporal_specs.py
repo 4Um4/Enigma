@@ -37,7 +37,7 @@ class TemporalContext:
     """Lightweight pure-data context for temporal checks.
     No services — just data snapshots. Deterministic."""
     spatial_query: Optional[Any] = None  # SpatialQueryService (read-only)
-    scene_state: Optional[dict] = None
+    scene_state: Optional[Dict[str, Any]] = None
     tick: int = 0
 
 

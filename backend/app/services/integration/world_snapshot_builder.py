@@ -48,6 +48,7 @@ class WorldSnapshotBuilder:
             "PlayerPerceptionDTO"
         ] = None,  # ТЗ EMBODIED UI PERCEPTION
         recent_dialogues: Optional[List[Dict]] = None,  # ADR-O-313: Для Speech Bubbles
+        perceived_narratives: Optional[List[PerceivedNarrativeDTO]] = None,  # S313: готовая проекция S159 — перекрывает naive-конверсию
         player_body_topology: Optional[Dict] = None,  # ТЗ Presentation v2.0: Инвентарь
         visual_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал визуальной презентации
         audible_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал аудио презентации
@@ -108,16 +109,21 @@ class WorldSnapshotBuilder:
                 if r.get("agent_id") != "player"
             ]
 
-        # Sprint UI-EPISTEMIC-01A: Транспорт реплик через PerceivedNarrativeDTO
-        _perceived_narratives: List[PerceivedNarrativeDTO] = []
-        for d in recent_dialogues or []:
-            _perceived_narratives.append(
-                PerceivedNarrativeDTO(
-                    event_id=f"{d.get('speaker_id', 'unk')}_{d.get('game_time', 0.0)}",
-                    speaker_id=d.get("speaker_id"),
-                    visible_text=d.get("text", ""),
+        # Sprint UI-EPISTEMIC-01A: Транспорт реплик через PerceivedNarrativeDTO.
+        # S313: caller передал готовую проекцию (NarrativeProjector, S159) —
+        # используем её; naive-конверсия остаётся для прочих callers.
+        if perceived_narratives is not None:
+            _perceived_narratives = list(perceived_narratives)
+        else:
+            _perceived_narratives = []
+            for d in recent_dialogues or []:
+                _perceived_narratives.append(
+                    PerceivedNarrativeDTO(
+                        event_id=f"{d.get('speaker_id', 'unk')}_{d.get('game_time', 0.0)}",
+                        speaker_id=d.get("speaker_id"),
+                        visible_text=d.get("text", ""),
+                    )
                 )
-            )
 
         # ADR-O-313: recent_dialogues генерируется из новых DTO для обратной совместимости
         _legacy_dialogues = LegacyDialogueAdapter.to_legacy_dto(_perceived_narratives)

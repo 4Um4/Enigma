@@ -214,13 +214,13 @@ def run_cfrm_sandbox() -> bool:
     # ── Сценарий ──
 
     # Tick 1: Idle
-    p1 = simulate_tick(1, "idle", graph, occupancy, entity_perceptions)
+    _p1 = simulate_tick(1, "idle", graph, occupancy, entity_perceptions)
 
     # Tick 2: Player attacks Borko (Physical, прямое распространение)
     p2 = simulate_tick(2, "player_attacks", graph, occupancy, entity_perceptions)
 
     # Tick 3: Player threatens Lucy (Cognitive, через мембрану)
-    p3 = simulate_tick(3, "PLAYER_THREATENS", graph, occupancy, entity_perceptions)
+    _p3 = simulate_tick(3, "PLAYER_THREATENS", graph, occupancy, entity_perceptions)
 
     # Tick 4: Strange noise (Unknown/Fallback)
     p4 = simulate_tick(4, "strange_noise", graph, occupancy, entity_perceptions)
