@@ -6,6 +6,7 @@ path: scripts/lint_kernel_rng.py
 import ast
 import os
 from pathlib import Path
+from typing import Optional, Tuple
 
 ROOT = Path("backend/app")
 
@@ -40,6 +41,48 @@ WHITELIST_FILES = {
 }
 
 FORBIDDEN_FUNCS = {"uniform", "choice", "randint", "random", "randrange", "shuffle", "sample"}
+# P18 (AUD-D12): маркер явного подавления — молчаливых исключений нет (прецедент '# §15.2:')
+RNG_FALLBACK_MARKER = "ADR-O-301-DEBT"
+
+def _detect_random_call(node: ast.AST) -> Optional[Tuple[int, str]]:
+    """random.xxx() из запрещённого набора — прямое нарушение ADR-O-301."""
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        if isinstance(node.func.value, ast.Name) and node.func.value.id == "random":
+            if node.func.attr in FORBIDDEN_FUNCS:
+                return node.lineno, f"random.{node.func.attr}"
+    return None
+
+
+def _detect_fallback_bomb(node: ast.AST) -> Optional[Tuple[int, str]]:
+    """_rng = rng or random — RNG-бомба за Optional-дефолтом (P18/AUD-D12).
+
+    `a or b` в AST = BoolOp(Or), не BinOp (урок ревизии P18).
+    """
+    if isinstance(node, ast.Assign):
+        v = node.value
+        if (isinstance(v, ast.BoolOp) and isinstance(v.op, ast.Or)
+                and len(v.values) == 2
+                and isinstance(v.values[1], ast.Name) and v.values[1].id == "random"
+                and isinstance(v.values[0], ast.Name) and "rng" in v.values[0].id):
+            return node.lineno, "rng or random (fallback bomb)"
+    return None
+
+
+def _detect_literal_seed(node: ast.AST) -> Optional[Tuple[int, str]]:
+    """rng_seed=<литерал> — детерминированный бой (П-11/MATH-8).
+
+    lineno берётся у дефолта (не у def): маркер подавления стоит
+    на строке дефолта.
+    """
+    if isinstance(node, ast.FunctionDef):
+        pos_args = node.args.args
+        pos_defs = node.args.defaults
+        if pos_defs:
+            for a, d in zip(pos_args[-len(pos_defs):], pos_defs):
+                if a.arg == "rng_seed" and isinstance(d, ast.Constant):
+                    return d.lineno, f"rng_seed={d.value} (literal default)"
+    return None
+
 
 def find_violations(filepath: str) -> list:
     violations = []
@@ -57,13 +100,15 @@ def find_violations(filepath: str) -> list:
     except Exception:
         return violations
 
+    source_lines = source.splitlines()
+    detectors = (_detect_random_call, _detect_fallback_bomb, _detect_literal_seed)
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Attribute):
-                if isinstance(node.func.value, ast.Name) and node.func.value.id == "random":
-                    if node.func.attr in FORBIDDEN_FUNCS:
-                        violations.append((node.lineno, f"random.{node.func.attr}"))
-    return violations
+        for detect in detectors:
+            hit = detect(node)
+            if hit:
+                violations.append(hit)
+    # Подавление только явным маркером долга на строке нарушения
+    return [(ln, msg) for ln, msg in violations if RNG_FALLBACK_MARKER not in source_lines[ln - 1]]
 
 def run_lint() -> list:
     violations = []

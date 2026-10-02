@@ -77,8 +77,15 @@ async def run_agent_safe(agent_name: str, agent: Any, args: tuple, kwargs: dict)
 
             _pool = get_model_pool()
             if _pool._active_model:
-                cast(Any, _pool._active_model.provider).abort_generation()
-                logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
+                _abort_provider = _pool._active_model.provider
+                if hasattr(_abort_provider, "abort_generation"):
+                    # AUD-D3: не все провайдеры имеют abort_generation
+                    # (OpenAICompatible/Mock) — гвард по прецеденту router.py:273,
+                    # иначе AttributeError глотался except'ом и abort не доходил.
+                    cast(Any, _abort_provider).abort_generation()
+                    logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
+                else:
+                    logger.warning(f"[GAME_LOOP] abort skipped: provider={_pool.active_model_key} без abort_generation")
         except Exception as e:
             logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         jsonl_log(

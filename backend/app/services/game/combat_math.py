@@ -58,7 +58,7 @@ def _log_event(event: str, data: Dict) -> None:
 
 def roll(n: int, sides: int, rng: Optional[Union[random.Random, ModuleType]] = None) -> Tuple[List[int], int]:
     """Бросить NdM. Возвращает (список бросков, сумма)."""
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     results = [_rng.randint(1, sides) for _ in range(n)]
     total = sum(results)
     _log_roll(f"{n}d{sides}", results, total)
@@ -67,7 +67,7 @@ def roll(n: int, sides: int, rng: Optional[Union[random.Random, ModuleType]] = N
 
 def roll_advantage(sides: int = 20, rng: Optional[Union[random.Random, ModuleType]] = None) -> Tuple[int, int, int]:
     """Бросок с преимуществом. Возвращает (r1, r2, max)."""
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     r1, r2 = _rng.randint(1, sides), _rng.randint(1, sides)
     result = max(r1, r2)
     _log_roll(f"advantage d{sides}", [r1, r2], result)
@@ -76,7 +76,7 @@ def roll_advantage(sides: int = 20, rng: Optional[Union[random.Random, ModuleTyp
 
 def roll_disadvantage(sides: int = 20, rng: Optional[Union[random.Random, ModuleType]] = None) -> Tuple[int, int, int]:
     """Бросок с помехой. Возвращает (r1, r2, min)."""
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     r1, r2 = _rng.randint(1, sides), _rng.randint(1, sides)
     result = min(r1, r2)
     _log_roll(f"disadvantage d{sides}", [r1, r2], result)
@@ -199,7 +199,7 @@ def attack_roll(
 
     attacker и target — словари из characters.json / major_npcs.json.
     """
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     weapon = attacker.get("equipped_weapon", {})
     ability = weapon.get("ability", "strength")
     abilities = attacker.get("abilities", {})
@@ -282,7 +282,7 @@ def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False, rng:
 
 
 def roll_initiative(character: Dict, rng: Optional[random.Random] = None) -> int:
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     dex_mod = ability_modifier(character.get("abilities", {}).get("dexterity", 10))
     d20 = _rng.randint(1, 20)
     total = d20 + dex_mod
@@ -394,7 +394,7 @@ SKILL_TO_ABILITY: Dict[str, str] = {
 
 def skill_check(character: Dict, skill: str, dc: int, rng: Optional[random.Random] = None) -> Dict:
     """Проверка навыка. Возвращает результат."""
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     ability = SKILL_TO_ABILITY.get(skill.lower(), "strength")
     mod = ability_modifier(character.get("abilities", {}).get(ability, 10))
     has_proficiency = skill.lower() in [
@@ -422,7 +422,7 @@ def skill_check(character: Dict, skill: str, dc: int, rng: Optional[random.Rando
 
 def saving_throw(character: Dict, ability: str, dc: int, rng: Optional[random.Random] = None) -> Dict:
     """Спасбросок по характеристике."""
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     mod = ability_modifier(character.get("abilities", {}).get(ability, 10))
     save_prof = ability in character.get("saving_throw_proficiencies", [])
     prof = proficiency_bonus(character.get("level", 1)) if save_prof else 0
@@ -452,7 +452,7 @@ def death_saving_throw(character: Dict, rng: Optional[random.Random] = None) -> 
     Спасбросок от смерти (D&D 5e).
     3 успеха → стабилизация. 3 провала → смерть. 20 → 1 HP.
     """
-    _rng = rng or random
+    _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     d20 = _rng.randint(1, 20)
     _log_roll("death_save", [d20], d20)
 

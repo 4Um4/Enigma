@@ -125,7 +125,7 @@ def resolve_physical_impact(
     attacker: NPCStateSnapshot,
     defender: NPCStateSnapshot,
     intent: ImpactIntentDTO,
-    rng_seed: int = 42,
+    rng_seed: int = 42,  # ADR-O-301-DEBT: MATH-8/П-11
 ) -> List[StateDeltas]:
     """Точка входа: вычисляет каскад физических последствий.
 
