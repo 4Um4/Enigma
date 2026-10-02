@@ -105,7 +105,7 @@ class GameLoopBridge:
         campaign_id: str,
         player_name: str,
         action_text: str,
-        location: str = "tavern_silver_wolf",
+        location: str = "",
         player_x: float = 0.0,
         player_y: float = 0.0,
         world_x: float | None = None,
@@ -124,8 +124,11 @@ class GameLoopBridge:
 
         # Получаем campaign_state для location (fallback если oracle не сработал)
         campaign_state = self._get_campaign_state(campaign_id)
-        # A1-FIX: Убран хардкод "tavern_silver_wolf". Используем официальный API SceneStateManager.
-        location = "tavern_silver_wolf"  # Оставлено как last-resort fallback, если scene_manager недоступен
+        # DEBT-LOC-HARDCODE (S315): хардкод убран честно. Default "" (vacuum,
+        # §ENIGMA-003: unknown ≠ чужой id). Резолв: find_starting_location →
+        # metadata.current_location → fail-loud (гард ниже). Прежний
+        # "last-resort" fallback отправлял несуществующий id в пайплайн.
+        location = ""
         if self._ready and self._loop is not None:
             try:
                 location = self._loop.find_starting_location(campaign_id)
@@ -135,6 +138,16 @@ class GameLoopBridge:
             saved = campaign_state.metadata.get("current_location")
             if saved:
                 location = saved
+
+        # DEBT-LOC-HARDCODE (S315): fail-loud при пустом резолве вместо
+        # тихой отправки пустого id в пайплайн (NODE_NOT_FOUND каскад).
+        if not location:
+            return TurnResult(
+                error=(
+                    f"[LOC_RESOLVE] location пуст для '{campaign_id}': "
+                    "find_starting_location не сработал и metadata.current_location отсутствует"
+                )
+            )
 
         # S82: Spatial Oracle — если есть мировые координаты, вычисляем location из реестра.
         # Это тот же deterministic oracle, что и в routes.py — единая истина.
