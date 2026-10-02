@@ -682,27 +682,46 @@ class IntentCompressor:
             if not _ro and llm:
                 _ro = str(llm.get("requested_outcome") or "").lower()
             _acts = []
+            _t = ""
             if _sa == "question":
                 _t = "CONFIRMATION_SEEKING" if "confirmation" in _ro else "QUESTION"
                 _acts = [{"type": _t, "params": {"topic": _ro or "unspecified"}}]
             elif _sa == "greeting":
                 _acts = [{"type": "GREETING", "params": {}}]
             elif _sa == "assert" and not (llm or {}).get("proposition"):
-                _acts = [{"type": "ASSERT", "params": {"claim": _ro or field.raw_text[:120]}}]
+                # S313-R4: без резолвнутого объекта proposition не строится
+                # (§ENIGMA-003: сырой текст ≠ факт; фантом "люсю" бил тест
+                # reconciler_v0). Proposition рождается только от LLM-структуры.
+                if (llm or {}).get("semantic_acts") or _ro:
+                    _acts = [{"type": "ASSERT", "params": {"claim": _ro or field.raw_text[:120]}}]
+                # иначе: акт не порождаем — phantom-dropped остаётся контрактом
             if _acts:
                 _acts[0]["source_fields"] = {"speech_act": _sa, "requested_outcome": _ro}
                 _u["semantic_acts"] = _acts
                 logger.info(f"[RECOVERY] acts recovered from legacy fields ({_t if _sa == 'question' else _sa})")
 
-        # Proposition → ASSERT-акт (slow-path часто структурирует сюда; не терять)
-        if not _u.get("semantic_acts") and not field.semantic_acts and field.proposition is not None:
+        # Proposition → ASSERT-акт (slow-path часто структурирует сюда; не терять).
+        # S313-R4: гейт резолва — object_id обязан существовать (сырой None-объект
+        # не конвертируется; снятие фантома — блоком ниже).
+        if (
+            not _u.get("semantic_acts")
+            and not field.semantic_acts
+            and field.proposition is not None
+            and field.proposition.object_id
+        ):
             _u["semantic_acts"] = [{
                 "type": "ASSERT",
                 "params": {
-                    "claim": str(field.proposition.object_id or ""),
+                    "claim": str(field.proposition.object_id),
                     "subject": str(field.proposition.subject_id or ""),
                 },
             }]
+
+        # S313-R4 (§ENIGMA-003): incomplete LLM (proposition=None) — fast-фантом
+        # с сырым object_id ('люсю') обязан быть снят: неполная proposition ≠
+        # факт (прецедент reconciler_v0). Полная LLM-структура не трогается.
+        if not (llm or {}).get("proposition") and field.proposition is not None:
+            _u["proposition"] = None
 
         if _u:
             print(f"[RECOVERY] applied={sorted(_u)}")
@@ -783,7 +802,7 @@ class IntentCompressor:
             tokens_raw = re.findall(r"[а-яА-ЯёЁa-zA-Z0-9]+", raw_text)
             # Ищем NOUN с конца строки: в русском цель обычно идёт после глагола ("Подойти к Люсе")
             for token in reversed(tokens_raw):
-                parsed = MORPH.parse(token.lower())
+                parsed = MORPH.parse(token.lower()) if MORPH else []
                 # NOUN = существительное. Исключаем глаголы-существительные (например, "удар")
                 if (
                     parsed

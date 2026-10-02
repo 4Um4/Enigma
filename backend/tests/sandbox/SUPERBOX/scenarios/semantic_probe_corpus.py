@@ -12,6 +12,7 @@
 
 import asyncio
 import atexit
+import os
 import sys
 import time
 from pathlib import Path
@@ -27,7 +28,12 @@ try:
     from scripts.llm_server_manager import kill_llama_server, start_llama_server
     print("Запускаю LLM-сервер для probe corpus...")
     _llm_ok = start_llama_server()
-    atexit.register(kill_llama_server)
+    # M2-протокол (матрица M1/M2/M3, вердикт Мастера): при
+    # ENIGMA_DET_KEEP_SERVER=1 сервер НЕ убивается на выходе — следующий
+    # прогон REUSE-ит тот же инстанс (тёплый замер). Обязателен ручной
+    # teardown по PID порта после пары.
+    if os.environ.get("ENIGMA_DET_KEEP_SERVER") != "1":
+        atexit.register(kill_llama_server)
 except Exception as e:
     print(f"ВНИМАНИЕ: менеджер LLM недоступен ({e}).")
     _llm_ok = False

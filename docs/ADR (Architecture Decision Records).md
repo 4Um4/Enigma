@@ -1,4 +1,4 @@
-﻿# ENIGMA ADR MASTER INDEX (Canonical Laws)
+# ENIGMA ADR MASTER INDEX (Canonical Laws)
 
 > **Статус:** ACTIVE | **Сессия:** S310 | **Инвариантов:** 49 (IPT 49/49)
 > **Формат:** `L{N}: {Name}` = Immutable Law. Нарушение = архитектурный баг.
@@ -72,6 +72,11 @@ NPC ВСЕГДА рождается с `body_state` и `npc_id`. Все точк
 Непрерывный дрейф `drives_base` на основе `prediction_error`. Мир постоянно неожидан → драйв растёт. Успех → привыкание.
 - ❌ **Taboo:** Скалярная мутация личности; Игнорирование `prediction_error`.
 - 📁 `svc/npc/break_progress_engine.py`, `svc/tick_orchestrator.py`
+
+**L5.3: Feasibility Enforcement Law** (ADR-O-R2, S314)
+Feasibility-контракт ActionSpaceCompression исполняется: кейс-нормализация translator→Intent.values + множитель 0<feas<1 к utility (удаление при 0.0 — прежний текст ФАЗЫ 1). SOMATIC_VETO/ActiveCommitment/chronic-cap оживают по замыслу своих ADR.
+- ❌ **Taboo:** UPPERCASE-ключи constraints без нормализации; игнор 0<feas<1 (мёртвая Semantics); деградация feasibility → deformation.
+- 📁 `svc/npc/decision_hub.py` (ФАЗА 1), `svc/cfrm/pressure_translator.py`, `tests/gameplay/test_gc09_body_causality.py
 
 **L6: Cognitive Contour Law (PE Active Inference)** (ADR-S93.2, TZ08-3)
 Ожидания (T-1) → `drive_modifiers` (T0) через `tanh` + `Clamp(0.25)`. PE не доминирует над DRF.

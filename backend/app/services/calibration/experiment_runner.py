@@ -454,7 +454,8 @@ class ExperimentRunner:
             if not isinstance(npc_dict, dict):
                 continue
             nid = npc_dict.get("id") or npc_dict.get("npc_id")
-            if nid not in social_map:
+            # mypy: сужение до str — индексация applied[nid] (Any|None — index-error)
+            if not isinstance(nid, str) or nid not in social_map:
                 continue
             d = social_map[nid]
             state = NPCStateAdapter.from_legacy(npc_dict)

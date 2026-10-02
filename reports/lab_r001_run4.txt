@@ -1,0 +1,17 @@
+﻿python : [CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+At line:1 char:1
++ python backend/tests/sandbox/lab_r001_clone_differential.py 2>&1 | Ou ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-v2.Q5_K_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\lab_r001_clone_differential.py", line 115, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\sandbox\lab_r001_clone_differential.py", line 76, in main
+    _avatar.drives = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
+    ^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\models\npc_state.py", line 718, in __setattr__
+    raise ArchitecturalViolationError(name, _caller)
+app.errors.ArchitecturalViolationError: Direct write to NPCState.drives from __main__ is forbidden. Use StateApplicator.

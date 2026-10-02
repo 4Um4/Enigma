@@ -990,12 +990,14 @@ class GameLoop:
                 _npc.pop("beliefs", None)
                 _npc.pop("belief_state", None)
 
-            _ws = None
-            if result.final_state:
-                from app.services.integration.world_snapshot_builder import (
-                    WorldSnapshotBuilder,
-                )
-
+            # S313-целиком: импорт+создание атомарно (прежний импорт сидел в
+            # if, а создание — вне: NameError при пустом final_state, Pylance
+            # «возможно не привязан»); _ws строится здесь один раз —
+            # getattr-гвард удалён (TimeSkipResult несёт final_state, а не
+            # world_snapshot — снапшот не существует до build).
+            from app.services.integration.world_snapshot_builder import (
+                WorldSnapshotBuilder,
+            )
             _builder = WorldSnapshotBuilder()
             _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
             logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
@@ -1006,16 +1008,10 @@ class GameLoop:
             _npc_pos = result.final_state.get("npc_positions", {})
             _p_pos_data = _npc_pos.get("player", {}).get("local_position", {})
             _sp_positions = {nid: (d.get("local_position", {}).get("x", 0.0), d.get("local_position", {}).get("y", 0.0)) for nid, d in _npc_pos.items() if nid != "player"}
-            _p_stability = 1.0
-            # S313: TimeSkipResult не несёт world_snapshot (J8.1) — getattr-гвард
-            # для обоих носителей результата (snapshot-DTO / time-skip).
-            _ws = getattr(result, "world_snapshot", None)
-            if _ws and _ws.avatar_state:
-                _p_stability = _ws.avatar_state.perceptual_stability
             _ctx = PerceptionContext(
                 player_position=(_p_pos_data.get("x", 0.0), _p_pos_data.get("y", 0.0)),
                 speaker_positions=_sp_positions,
-                avatar_profile=AvatarPerceptionProfile(perceptual_stability=_p_stability)
+                avatar_profile=AvatarPerceptionProfile(perceptual_stability=1.0)
             )
             _narratives = self._narrative_projector.project(_recent_d, _ctx)
 
@@ -1134,7 +1130,7 @@ class GameLoop:
             try:
                 from app.services.campaign_state_service import get_campaign_state_service
 
-                _cs = get_campaign_state_service().get_campaign_state(campaign_id)
+                _cs: Any = get_campaign_state_service().get_campaign_state(campaign_id)  # S313: Optional по контракту сервиса; :1227 тот же запрос в другом контуре
                 _player_loc = _cs.metadata.get("current_location") if _cs else None
                 if _player_loc and _player_loc != _active_loc:
                     logger.info(
@@ -1224,7 +1220,7 @@ class GameLoop:
         try:
             from app.services.campaign_state_service import get_campaign_state_service
             _campaign_svc = get_campaign_state_service()
-            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # type: ignore[no-redef]  # S313: тот же запрос в другом контуре
+            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None  # noqa: ENIGMA001
             if _cs:
                 _saved_wx = _cs.metadata.get("player_world_x")
                 _saved_wy = _cs.metadata.get("player_world_y")
@@ -1339,8 +1335,9 @@ class GameLoop:
                         _updated_npcs[_nid] = n
                 _engine.update_cache(campaign_id, list(_updated_npcs.values()))
 
-        if result is None:  # type: ignore[unreachable]  # S313: cast — типизация, не рантайм; ядро легально возвращает None ("no_scene")
-            return {"status": "no_scene", "npc_positions": {}}
+        if result is None:
+            # S313: cast — типизация, не рантайм; ядро легально возвращает None ("no_scene")
+            return {"status": "no_scene", "npc_positions": {}}  # type: ignore[unreachable]
 
         # BUG-PERC-001 / BUG-CORE-006 FIX: GameLoop больше не перезаписывает perception.
         # Фаза 9 (integration.py) уже собрала корректный API DTO с observed_facts

@@ -1,0 +1,2 @@
+C:\DDD\Codex\VSC_Enigma\Enigma\scripts\det_holder.py:11: SyntaxWarning: invalid escape sequence '\d'
+  Запуск: Start-Process -FilePath "python" -ArgumentList "scripts\det_holder.py" -RedirectStandardOutput reports\det_m2_holder.txt -RedirectStandardError reports\det_m2_holder_err.txt -WindowStyle Hidden

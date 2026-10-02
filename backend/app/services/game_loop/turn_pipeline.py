@@ -722,10 +722,11 @@ class TurnPipeline:
         campaign_state: Any = None,
         is_session_start: bool = False,
         player_position: tuple[float, float] | None = None,
-    ) -> _PipelineState:
+    ) -> _PipelineState | ChatTurnResponse:
         """Фазовый пайплайн: DM → NPC → Perception → Social → Rules → Finalize → Commit.
 
         Каждый блок — отдельный модуль в game_loop/. Подробнее: dm_phase, npc_orchestration.
+        Смерть игрока — ранний возврат ChatTurnResponse (Death Guard в game_loop).
         """
         # N-02 FIX: time.monotonic() для корректного start_ms во время replay.
         start_ms = time.monotonic() * 1000
@@ -743,7 +744,7 @@ class TurnPipeline:
             actions, campaign_id, location, shared_context
         )
         if _death_response is not None:
-            return _death_response  # type: ignore[return-value]  # S313: легаси-контракт возврата смерти сквозь state-пайплайн
+            return _death_response  # S313: легаси-контракт возврата смерти сквозь state-пайплайн (заявлен в сигнатуре)
 
         scene_state = self._prepare_and_lock_scene(
             campaign_id, location, shared_context, campaign_state, player_position

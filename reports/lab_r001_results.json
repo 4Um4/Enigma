@@ -1,0 +1,184 @@
+[
+  {
+    "run_id": "R001-A",
+    "experiment_id": "calib_e73f39dddcbd",
+    "initial": {
+      "merchant_goran": {
+        "preset": {
+          "trust": 60.0
+        },
+        "store_read": {
+          "trust": 60.0
+        }
+      }
+    },
+    "status_tail": [
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok"
+    ]
+  },
+  {
+    "run_id": "R001-B",
+    "experiment_id": "calib_ddd02fb0e218",
+    "initial": {
+      "merchant_goran": {
+        "preset": {
+          "trust": -60.0
+        },
+        "store_read": {
+          "trust": -60.0
+        }
+      }
+    },
+    "status_tail": [
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok"
+    ]
+  },
+  {
+    "run_id": "R001-C",
+    "experiment_id": "calib_4dece46bc9a0",
+    "initial": {
+      "merchant_goran": {
+        "preset": {
+          "trust": 0.0
+        },
+        "store_read": {}
+      }
+    },
+    "status_tail": [
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok"
+    ]
+  },
+  {
+    "run_id": "R001-A2",
+    "experiment_id": "calib_d597a99fd52a",
+    "initial": {
+      "merchant_goran": {
+        "preset": {
+          "trust": 60.0
+        },
+        "store_read": {
+          "trust": 60.0
+        }
+      }
+    },
+    "status_tail": [
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok",
+      "ok"
+    ]
+  }
+]

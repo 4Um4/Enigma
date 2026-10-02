@@ -1,0 +1,773 @@
+﻿python : [CONFIG] Модель 'qwen_7b' (Qwen2.5-7B-Instruct-abliterated Q4_K_M) не найдена: C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+At line:1 char:1
++ python backend/tests/IPT.py 2>&1 | Out-File reports\ipt_s314_final.tx ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([CONFIG] Модель...-v2.Q5_K_M.gguf:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[LLM_MANAGER] Запуск llama-server...
+[LLM_MANAGER] llama-server запущен успешно.
+[DET-ENV] mode=SPAWN | model=Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf | port=8181 | owner_pid=19468 cmd=C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe -m C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf --port 8181 --host localhost -ngl 99 -c 8192 -t 8
+[KILLER_SPIRIT] SPARE pid=19468 llama-server.exe: дерево текущего процесса
+[KILLER_SPIRIT] щажу всё: сирот нет (1 живых владельцев)
+[IPT] KILLER_SPIRIT старт: убито=0, пощажено=1, отказов=0
+============================================================
+INVARIANT PROBE TESTS (IPT)
+============================================================
+
+✅ INV-NPC-CARDINALITY [CRITICAL]
+   SpatialRegistry не загружен.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=1 INTENT reason=schedule:guarding_gate+relocation target=guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+
+✅ INV-REPLAY-DETERMINISM [WARNING]
+   Replay infrastructure ready (tick recorded). Full A/B test requires DriftLaboratory.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=2 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.050 result=0.050
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=3 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=guard_borko delta=+0.100 result=0.100
+[SOCIAL_EMA] npc=merchant_goran delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=+0.150 result=0.150
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=4 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=merchant_goran delta=+0.100 result=0.100
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=thief_shadow delta=+0.150 result=0.150
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+
+✅ INV-SAVE-LOAD-INTEGRITY [CRITICAL]
+   Save/Load integrity verified.
+
+✅ INV-INTENT-EVENT-COMPLETENESS [CRITICAL]
+   All communicative intents have explicit event mapping.
+
+✅ INV-SEMANTIC-UNIFICATION [CRITICAL]
+
+✅ INV-DIALOGUE-CONTEXT-BINDING [CRITICAL]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=5 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] npc=thief_shadow cause=boundary_arrival:exploration:frontier field=position Macro movement without proposal (ADR-O-323 violation)
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=guard_borko delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=maid_lusya delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.100 result=0.100
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=+0.150 result=0.150
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=6 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=6 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'thief_shadow', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=guard_borko delta=-0.002 result=0.000
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.099
+[SOCIAL_EMA] npc=maid_lusya delta=-0.002 result=0.000
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.099
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=7 INTENT reason=exploration:frontier target=tavern:exit_south domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=5 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.097
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.097
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=8 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=5 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.64)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.000
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.000
+[S198_PIPELINE_ENTER] is_player_turn=False count=1 ids=['thief_shadow']
+[SC-3] NPC 'thief_shadow' has foreign node 'tavern:exit_east' in loc 'city_gate'. Resetting position.
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=9 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[SC-3] NPC 'thief_shadow' has foreign node 'tavern:exit_east' in loc 'city_gate'. Resetting position.
+[S198_PIPELINE_ENTER] is_player_turn=False count=5 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=guard_borko delta=+0.050 result=0.050
+[S198_PIPELINE_ENTER] is_player_turn=False count=1 ids=['thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.64)']
+[SOCIAL_EMA] npc=guard_borko delta=-0.001 result=0.049
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=0 targets=[]
+[Z-DIAG] is_player=False interventions=[]
+
+✅ INV-TRAV-TERMINALITY [CRITICAL]
+   No stuck traversals.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=10 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=5 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=guard_borko delta=-0.001 result=0.000
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.050 result=0.050
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=+0.050 result=0.050
+[S198_PIPELINE_ENTER] is_player_turn=False count=1 ids=['thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.72)']
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.049
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.049
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=11 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=5 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] npc=guard_borko cause=boundary_arrival:proactive_seek_ally field=position Macro movement without proposal (ADR-O-323 violation)
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.049
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.000
+[S198_PIPELINE_ENTER] is_player_turn=False count=1 ids=['thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.80)']
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.049
+[DIAG-MV] intents=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=5 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['guard_borko', 'guard_borko', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=12 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=5 ids=['guard_borko', 'merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=1 ids=['thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.88)']
+[DIAG-MV] intents=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['guard_borko', 'merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['guard_borko', 'guard_borko']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=13 INTENT reason=exploration:frontier target=tavern:exit_east domain=IntentDomain.EXPLORATION
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.64)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.64)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=1 ids=['thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SC-3] NPC 'guard_borko' has foreign node 'tavern:entrance' in loc 'city_gate'. Resetting position.
+[SC-3] NPC 'guard_borko' has foreign node 'tavern:entrance' in loc 'city_gate'. Resetting position.
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.72)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.64)']
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=14 INTENT reason=need_driven:shelter_urge=1.00 target=guard_bed domain=IntentDomain.ROUTINE
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.72)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.64)']
+[SOCIAL_EMA] npc=maid_lusya delta=+0.050 result=0.050
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.049
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.80)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.72)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.80)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.72)']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.049
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.049
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.88)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.80)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.88)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.80)']
+[SOCIAL_EMA] npc=merchant_goran delta=+0.100 result=0.100
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.000
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.150 result=0.150
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.099
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.148
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.95)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.88)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=maid_lusya delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.100 result=0.100
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.64)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.099
+[SOCIAL_EMA] npc=maid_lusya delta=-0.002 result=0.148
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.099
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.95)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.099
+[SOCIAL_EMA] npc=maid_lusya delta=-0.002 result=0.148
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.099
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.72)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.097
+[SOCIAL_EMA] npc=maid_lusya delta=-0.002 result=0.146
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.097
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.95)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.097
+[SOCIAL_EMA] npc=maid_lusya delta=-0.002 result=0.146
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.097
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.80)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.096
+[SOCIAL_EMA] npc=maid_lusya delta=-0.002 result=0.144
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.096
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.001 result=0.000
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.001 result=0.000
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.88)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=maid_lusya delta=+0.050 result=0.050
+
+✅ INV-DIALOGUE-LIVENESS [CRITICAL]
+   pending_tasks=0 (healthy).
+
+✅ INV-EVENT-CARDINALITY [CRITICAL]
+   SpatialRegistry не загружен.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+
+✅ INV-TIME-GROW [CRITICAL]
+   game_time вырос: 43340 → 43370
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+
+✅ INV-TICK-GROW [CRITICAL]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=6 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=22 INTENT reason=need_driven:shelter_urge=1.00 target=guard_bed domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.049
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.049
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.049
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.000
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ATOMIC_GUARD] npc=tavern_keeper_tornin отсутствует в сцене 'city_gate'; field=activity cause='sleep_onset_projection' — отклонено (torn-write)
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.64)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.72)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.64)']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'tavern_keeper_tornin', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_IPT_MOVE] before={'maid_lusya': (18.442637602880655, 6.266120113168724), 'blacksmith_orm': (9.166666666666666, 3.833333333333333), 'tavern_keeper_tornin': (15.154274048353907, 6.357121270576132), 'merchant_goran': (10.0, 1.0)}
+[DIAG_IPT_MOVE] after={'maid_lusya': (15.154274048353907, 6.357121270576132), 'blacksmith_orm': (9.166666666666666, 3.8333333333333335), 'tavern_keeper_tornin': (16.798455825617282, 6.311620691872428), 'merchant_goran': (10.0, 1.0)}
+[DIAG_IPT_MOVE] last_snapshot={'maid_lusya': {'npc_id': 'maid_lusya', 'local_position': {'x': 15.154274048353907, 'y': 6.357121270576132, 'z': 0.0}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': -1.197291761934082, 'head_yaw': 0.0, 'activity': 'talking_at_bar', 'name': 'Люся', 'display_name': 'Незнакомец', 'recognition_confidence': 0.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'blacksmith_orm': {'npc_id': 'blacksmith_orm', 'local_position': {'x': 9.166666666666666, 'y': 3.8333333333333335, 'z': 0.0}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': -0.5585993153435624, 'head_yaw': 0.0, 'activity': 'Обедает в общем зале', 'name': 'Кузнец Орм', 'display_name': 'Незнакомец', 'recognition_confidence': 0.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'tavern_keeper_tornin': {'npc_id': 'tavern_keeper_tornin', 'local_position': {'x': 16.798455825617282, 'y': 6.311620691872428, 'z': 0.0}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': 3.113926023669227, 'head_yaw': 0.0, 'activity': 'Обедает за столом', 'name': 'Торнин Серебряная Луна', 'display_name': 'Незнакомец', 'recognition_confidence': 0.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}, 'merchant_goran': {'npc_id': 'merchant_goran', 'local_position': {'x': 10.0, 'y': 1.0, 'z': 0.0}, 'location_id': 'tavern', 'facing': 'south', 'body_heading': -1.8157749899217608, 'head_yaw': 0.0, 'activity': 'eating', 'name': 'Купец Горан', 'display_name': 'Незнакомец', 'recognition_confidence': 0.0, 'initiative_suppression': 0.0, 'velocity': (0.0, 0.0), 'exertion_level': 0.0}}
+
+✅ INV-NPC-MOVE [CRITICAL]
+   Сдвинулись: ['maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=4 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+
+✅ INV-TRAV-DICT [CRITICAL]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'tavern_keeper_tornin']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+
+✅ INV-NPC-NAME [CRITICAL]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=28 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.80)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.72)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.88)', 'income_urge(0.60)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.80)', 'income_urge(0.60)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.64)', 'income_urge(0.60)']
+[ECO] tavern_keeper_tornin: 2 mods, drives=['income_urge(0.60)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)']
+[SOCIAL_EMA] npc=thief_shadow delta=+0.050 result=0.050
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.95)', 'income_urge(0.61)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.88)', 'income_urge(0.61)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.72)', 'income_urge(0.61)']
+[ECO] tavern_keeper_tornin: 2 mods, drives=['income_urge(0.61)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.60)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.60)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.95)', 'income_urge(0.62)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.62)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.80)', 'income_urge(0.62)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.64)', 'income_urge(0.62)']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'maid_lusya', 'maid_lusya']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=3 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] resolved=3 actors=['merchant_goran', 'maid_lusya', 'blacksmith_orm']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=32 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.61)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.61)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.95)', 'income_urge(0.63)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.63)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.88)', 'income_urge(0.63)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.72)', 'income_urge(0.63)']
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=33 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.62)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.62)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.64)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.64)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)', 'income_urge(0.64)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.80)', 'income_urge(0.64)']
+[SOCIAL_EMA] npc=merchant_goran delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.150 result=0.150
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=+0.100 result=0.100
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'maid_lusya']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=34 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[ATOMIC_GUARD] npc=maid_lusya отсутствует в сцене 'city_gate'; field=activity cause='sleep_onset_projection' — отклонено (torn-write)
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.63)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.63)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.148
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.148
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.099
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.65)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.65)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)', 'income_urge(0.65)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.88)', 'income_urge(0.65)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.148
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.148
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.099
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=35 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.64)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.64)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.146
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.146
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.097
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.66)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.66)']
+[ECO] blacksmith_orm: 3 mods, drives=['hunger(0.95)', 'income_urge(0.66)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.66)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.146
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.000
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.097
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['merchant_goran']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=36 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.65)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.65)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.144
+[SOCIAL_EMA] npc=tavern_keeper_tornin delta=-0.001 result=0.096
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.67)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.67)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.67)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.67)']
+[SOCIAL_EMA] npc=maid_lusya delta=+0.100 result=0.100
+[SOCIAL_EMA] npc=blacksmith_orm delta=+0.150 result=0.150
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['merchant_goran']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=37 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.66)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.66)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.144
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.099
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.148
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.68)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.68)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.68)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.68)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.144
+[SOCIAL_EMA] npc=maid_lusya delta=-0.001 result=0.000
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.148
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['merchant_goran']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=38 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.67)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.67)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.142
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.146
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.69)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.69)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.69)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.69)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.142
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.146
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=4 targets=['merchant_goran', 'merchant_goran', 'blacksmith_orm', 'blacksmith_orm']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=39 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.68)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.68)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.140
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.144
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 2 mods, drives=['income_urge(0.70)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.70)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.70)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.70)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.140
+[SOCIAL_EMA] npc=blacksmith_orm delta=-0.002 result=0.000
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['merchant_goran']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=40 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.69)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.69)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.138
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.64)', 'income_urge(0.71)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.71)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.71)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.71)']
+[SOCIAL_EMA] npc=merchant_goran delta=-0.002 result=0.000
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['merchant_goran']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=41 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.70)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.70)']
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.72)', 'income_urge(0.72)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.72)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.72)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.72)']
+[SOCIAL_EMA] npc=guard_borko delta=+0.100 result=0.100
+
+✅ INV-DIALOGUE-INIT [CRITICAL]
+   Диалоги успешно инициализируются и исполняются.
+
+✅ INV-PLAYER-EPISTEMIC-CLOSURE [CRITICAL]
+   NPC_SPOKE -> EpistemicStore[player] работает.
+
+✅ INV-EPISTEMIC-TRUST-MONOTONICITY [CRITICAL]
+   Reliability монотонно зависит от trust.
+
+✅ INV-EPISTEMIC-TRUTH-IMMUTABILITY [CRITICAL]
+   World Truth неизменна после ClaimEvent.
+
+✅ INV-DIALOGUE-STM [CRITICAL]
+   Каузальная цепь NPC_SPOKE -> STM работает.
+
+✅ INV-DIALOGUE-SCHEDULER-FAIL [CRITICAL]
+   Тихих отказов нет.
+
+✅ INV-TRAV-ZOMBIE [CRITICAL]
+
+✅ INV-DEATH-LOCK [CRITICAL]
+
+✅ INV-TIME-FREEZER [CRITICAL]
+   TimeFreezer OK.
+
+✅ INV-REPLAY-STORE [CRITICAL]
+   ReplayStore round-trip OK.
+
+✅ INV-ADR-NET [CRITICAL]
+   ADR-Net: 229 nodes, 104 with files.
+
+✅ INV-NO-RETRO-SIM [CRITICAL]
+
+✅ INV-L1-APPEND-ONLY [CRITICAL]
+
+✅ INV-L3-EPHEMERAL [CRITICAL]
+
+✅ INV-DOMAIN-PURITY [CRITICAL]
+
+✅ INV-PLAYER-AUTHORSHIP [CRITICAL]
+   Ось контроля + гварды creation-time + детектор reducer + фильтр population на месте.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] resolved=2 actors=['merchant_goran', 'blacksmith_orm']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=42 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.71)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.71)']
+[SOCIAL_EMA] npc=guard_borko delta=-0.001 result=0.099
+[S198_PIPELINE_ENTER] is_player_turn=False count=4 ids=['merchant_goran', 'maid_lusya', 'blacksmith_orm', 'tavern_keeper_tornin']
+[ECO] merchant_goran: 3 mods, drives=['hunger(0.80)', 'income_urge(0.73)']
+[ECO] maid_lusya: 3 mods, drives=['hunger(0.95)', 'income_urge(0.73)']
+[ECO] blacksmith_orm: 2 mods, drives=['income_urge(0.73)']
+[ECO] tavern_keeper_tornin: 3 mods, drives=['hunger(0.95)', 'income_urge(0.73)']
+[SOCIAL_EMA] npc=guard_borko delta=-0.001 result=0.099
+
+✅ INV-SNAPSHOT-TOPOLOGY [CRITICAL]
+   Топология тела присутствует в idle-снапшоте (до действия игрока).
+
+✅ INV-LLM-EXILE [CRITICAL]
+
+✅ INV-POSITION-MUTATION [CRITICAL]
+
+✅ INV-SC-1 [CRITICAL]
+
+✅ INV-SPATIAL-SSOT [CRITICAL]
+
+✅ INV-FRONTEND-ISOLATION [CRITICAL]
+
+✅ INV-EPISTEMIC-BOUNDARY [CRITICAL]
+
+✅ INV-KERNEL-RNG [CRITICAL]
+
+✅ INV-WALL-CLOCK [CRITICAL]
+
+✅ INV-SILENT-FAILURE [CRITICAL]
+
+✅ INV-HP-SSOT [CRITICAL]
+
+✅ INV-PBT-ROUNDTRIP [CRITICAL]
+   PBT (200 examples) passed: NPCState round-trip preserves critical fields.
+
+✅ INV-PBT-SC1 [CRITICAL]
+   PBT (100 examples) passed: SC-1 rejects (0.0, 0.0).
+
+✅ INV-PBT-TRAV-FSM [CRITICAL]
+   PBT (100 examples) passed: ADR-TRAV-FSM detects zombies.
+
+✅ INV-TICK-CARDINALITY [CRITICAL]
+   SpatialRegistry не загружен (артефакт отсутствует, writer'а в дереве нет) — тест пропущен.
+[Z-DIAG] is_player=False interventions=[]
+[Z-DIAG] is_player=False interventions=[]
+[DIAG-MV] intents=1 actors=['merchant_goran']
+[DIAG-MV] resolved=1 actors=['merchant_goran']
+[DIAG-MV] engine_changes=2 targets=['merchant_goran', 'merchant_goran']
+[Z-DIAG] is_player=False interventions=[]
+[DIAG_D3] tick=43 INTENT reason=schedule:guarding_gate target=city_gate:guard_post domain=IntentDomain.ROUTINE
+[S198_PIPELINE_ENTER] is_player_turn=False count=2 ids=['guard_borko', 'thief_shadow']
+[ECO] guard_borko: 3 mods, drives=['hunger(0.95)', 'income_urge(0.72)']
+[ECO] thief_shadow: 3 mods, drives=['hunger(0.95)', 'income_urge(0.72)']
+[SOCIAL_EMA] npc=guard_borko delta=-0.001 result=0.097
+
+✅ INV-COMMIT-CARDINALITY [CRITICAL]
+   Ровно 1 коммит за тик.
+
+✅ INV-WORLD-OBJECT-TOPOLOGY [CRITICAL]
+   Топология валидна (live=24, smoke OK).
+
+✅ INV-EVENT-IDENTITY [CRITICAL]
+   Identity уникальна и replay-детерминирована
+
+✅ INV-N18-SOURCE [CRITICAL]
+   Гейт① читает актуальный intent (npc_intents-канон поверх кэша; writer single-point)
+
+============================================================
+[KILLER_SPIRIT] SPARE pid=19468 llama-server.exe: дерево текущего процесса
+[KILLER_SPIRIT] щажу всё: сирот нет (1 живых владельцев)
+ИТОГО: 49 passed / 0 failed (0 CRITICAL) | [KILLER_SPIRIT] убито=0, пощажено=1
+
+✅ ВСЕ ИНВАРИАНТЫ ПРОЙДЕНЫ — игра жива.
+[LLM_MANAGER] Остановка llama-server...
+[LLM_MANAGER] llama-server остановлен.

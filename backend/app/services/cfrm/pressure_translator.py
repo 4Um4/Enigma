@@ -73,7 +73,12 @@ def translate_kernel_to_context(
     # Если NPC куда-то идёт (активный транзит), он не может инициировать новые проактивные действия.
     # Оставляем только EMERGENCY (flee, attack).
     if has_active_commitment:
-        for action in ["AMBUSH", "BLOCK_PATH", "OFFER_JOB", "REQUEST_SERVICE", "SPREAD_RUMOR", "CALL_FOR_HELP", "WARN", "TALK", "TRADE", "APPROACH"]:
+        # S313-реализм (вердикт Мастера: «поведение как в реальной жизни»):
+        # транзит запрещает БЕСЦЕЛЬНУЮ инициацию, но не целевое действие
+        # по прибытии. TRADE к конкретному объекту/персоне легален в пути
+        # (человек может дойти и предложить сделку) — коллизия S189×ADR-O-412
+        # (f1_trade) разрешена в пользу экономической петли.
+        for action in ["AMBUSH", "BLOCK_PATH", "OFFER_JOB", "REQUEST_SERVICE", "SPREAD_RUMOR", "CALL_FOR_HELP", "WARN", "TALK", "APPROACH"]:
             constraints[action] = 0.0
 
     # GAP3 FIX & NPIC: Соматическое Вето. Физиология vetoирует решения мозга.

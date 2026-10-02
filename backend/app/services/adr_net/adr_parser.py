@@ -177,27 +177,6 @@ def _parse_files_value(raw: str) -> List[str]:
     return [f for f in files if f and f not in _FILES_NOT_APPLICABLE]
 
 
-def _parse_files_value(raw: str) -> List[str]:
-    """B1 (S315): экстракция файлов из значения Files.
-
-    Приоритет — backtick-сегменты (канон атласа): хвосты-проза
-    («(IMPACT: отсутствует...)», класс О-383) отсекаются.
-    Fallback — CSV с обрезкой по первому пробелу/бэктику.
-    """
-    raw = raw.strip().rstrip(".")
-    if raw in _FILES_NOT_APPLICABLE:
-        return []
-    if raw.count("`") >= 2:
-        files = [s.strip() for s in re.findall(r"`([^`]+)`", raw)]
-    else:
-        files = []
-        for seg in raw.split(","):
-            m = re.match(r"[`]*([^\s`,]+)", seg.strip())
-            if m:
-                files.append(m.group(1))
-    return [f for f in files if f and f not in _FILES_NOT_APPLICABLE]
-
-
 def _resolve_repo_path(path: str) -> str:
     """B1: дефолты run_parser относительны CWD — вызов из другого каталога
     (зонд №86) тихо давал 0/0. Резолвим от корня репо, если путь не найден."""

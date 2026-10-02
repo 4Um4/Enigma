@@ -1,0 +1,62 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-8.3.3, pluggy-1.6.0 -- C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\DDD\Codex\VSC_Enigma\Enigma\backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, hypothesis-6.165.0
+collecting ... collected 3 items
+
+tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_fear_axis_threat_bias_differential FAILED [ 33%]
+tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_trust_axis_distrust_disjunction FAILED [ 66%]
+tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_neutral_cache_no_bias_change PASSED [100%]
+
+================================== FAILURES ===================================
+______ TestGap1BiasDifferential.test_fear_axis_threat_bias_differential _______
+
+self = <test_gap1_bias_differential.TestGap1BiasDifferential object at 0x0000025ECAB33B10>
+
+    def test_fear_axis_threat_bias_differential(self):
+        """fear=5.0 vs fear=2.0 → threat_bias 0.75 vs 0.30. RED сейчас (0.0 vs 0.0)."""
+        engine = InterpretationEngine()
+        state_a = _make_npc_state("npc_a", trust=0.0, fear=_FEAR_HIGH)
+        state_b = _make_npc_state("npc_b", trust=0.0, fear=_FEAR_LOW)
+        event = _player_event()
+    
+        result_a = engine.compute(state=state_a, event=event)
+        result_b = engine.compute(state=state_b, event=event)
+    
+>       assert result_a.bias.threat_bias == pytest.approx(0.75)
+E       assert 0.0 == 0.75 ± 7.5e-07
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.75 ± 7.5e-07
+
+tests\micro\test_gap1_bias_differential.py:73: AssertionError
+________ TestGap1BiasDifferential.test_trust_axis_distrust_disjunction ________
+
+self = <test_gap1_bias_differential.TestGap1BiasDifferential object at 0x0000025ECAC5C050>
+
+    def test_trust_axis_distrust_disjunction(self):
+        """trust=-60 → trust_bias=-0.2; trust=+60 → 0.0. RED сейчас (0.0 vs 0.0)."""
+        engine = InterpretationEngine()
+        state_a = _make_npc_state("npc_a", trust=_TRUST_NEG, fear=0.0)
+        state_b = _make_npc_state("npc_b", trust=_TRUST_POS, fear=0.0)
+        event = _player_event()
+    
+        result_a = engine.compute(state=state_a, event=event)
+        result_b = engine.compute(state=state_b, event=event)
+    
+>       assert result_a.bias.trust_bias == pytest.approx(-0.2)
+E       assert 0.0 == -0.2 ± 2.0e-07
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: -0.2 ± 2.0e-07
+
+tests\micro\test_gap1_bias_differential.py:86: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_fear_axis_threat_bias_differential
+FAILED tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_trust_axis_distrust_disjunction
+========================= 2 failed, 1 passed in 0.30s =========================

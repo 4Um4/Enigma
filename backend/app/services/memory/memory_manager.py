@@ -9,7 +9,7 @@ R1.1 + R5.3 — MemoryManager.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, cast
 
 logger = logging.getLogger(__name__)
 
@@ -774,7 +774,9 @@ class MemoryManager:
         self._relationship_write_gate.apply(campaign_id, source, target, delta, cause="memory_manager:update_relationship")
 
     def get_relationships(self, campaign_id: str) -> Dict[str, Any]:
-        return self._relationships.get_all(campaign_id)
+        # S313: dual-backend holder объявлен Any (duck-typing M1b.4.2) —
+        # контракт обоих бэкендов Dict[str, Any]; cast фиксирует его для mypy.
+        return cast(Dict[str, Any], self._relationships.get_all(campaign_id))
 
     def update_beliefs(
         self,

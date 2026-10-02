@@ -1,0 +1,14 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-8.3.3, pluggy-1.6.0 -- C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\DDD\Codex\VSC_Enigma\Enigma\backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, hypothesis-6.165.0
+collecting ... collected 3 items
+
+tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_fear_axis_threat_bias_differential PASSED [ 33%]
+tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_trust_axis_distrust_disjunction PASSED [ 66%]
+tests/micro/test_gap1_bias_differential.py::TestGap1BiasDifferential::test_neutral_cache_no_bias_change PASSED [100%]
+
+============================== 3 passed in 0.22s ==============================

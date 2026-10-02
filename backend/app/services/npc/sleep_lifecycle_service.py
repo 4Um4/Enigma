@@ -70,6 +70,10 @@ class SleepLifecycleService:
             if eligibility is not None and eligibility.eligible:
                 _body["sleep_onset_tick"] = tick
                 _body["wake_duration"] = 0
+                # S313 (ADR-O-356 контракт): onset атомарен с coupling —
+                # eligible-решение Мастера валидирует режим сразу (тест S2B6
+                # ждёт SLEEP-семейство при onset даже при pressure=0).
+                self._update_coupling_profile(npc)
                 # SLEEP-SLICE (Y-проекция v2): лейбл рождается из ФАКТА onset.
                 # Канонический путь projection — SceneChange activity (тот же
                 # механизм, что у всех лейблов): routine.current (NPC-dict) +
