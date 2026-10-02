@@ -3,7 +3,7 @@
 > Детерминированный каузальный движок симуляции: агенты, состояние мира, восприятие,
 > память, убеждения, решения и нарратив, возникающий из их рассогласования.
 
-**Статус:** экспериментальный исследовательский прототип · **Версия:** `0.5.4.2.4` · Ветка `V.0.5.4.2.4_Растём_4`
+**Статус: движок в активной разработке — научный research-проект, НЕ готовая игра.** Ядро детерминировано и доказано тестами; геймплей существует как вертикальные срезы (одна локация, кампания-полигон), контент и прод-полировка не начаты. · **Версия:** `0.5.4.2.4` · Ветка `main`
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22831764.svg)](https://doi.org/10.5281/zenodo.22831764)
 
@@ -159,17 +159,17 @@ ENIGMA — это игра, в которой главный ресурс — **
 
 ---
 
-## 4. Что реально реализовано (по коду, V.0.5.3.9.5)
+## 4. Что реально реализовано (по коду, V.0.5.4.2.4 · S311)
 
 | Подсистема | Что делает | Доказательство |
 |---|---|---|
-| Tick-оркестрация | `tick_orchestrator` (13 фаз), `npc_tick_pipeline` — pure reducer, единственный execution kernel | 10/10 фаз тика живы (Фаза A AG1), IPT 45/45 |
+| Tick-оркестрация | `tick_orchestrator` (13 фаз), `npc_tick_pipeline` — pure reducer, Commitment Registry/Arbiter (единое поведенческое владение) | 10/10 фаз тика живы, IPT 49/49 |
 | Решения NPC | `decision_hub` — utility-скоринг интентов; Behavioral Closure в работе | Smoke: 6/6 NPC выдают решения |
 | Восприятие | Мембрана восприятия, topology-тесты | `SUPERBOX` perception-сценарии |
 | Отношения | Relationship Engine v2, RAM-authoritative runtime (writers+readers+bootstrap) | 202 теста, RelationshipWriteGate |
 | Память | `ExperienceTrace` (провенанс TESTIMONY), `WorkingMemory` (decay, floor=is_compressed), `MemoryCrystal` (EMRL E1) | 40 замков `backend/tests/test_phase_a_memory_fixes.py` |
 | Каузальный шлюз | `DeltaGate` + `StateDeltaProposal`: whitelist, клампы, идемпотентность, `EXPERIENCE_DELTA_COMMITTED` (EMRL E2.0-a/b) | 40/40 тестов, живой провод в `reaction_subscriber` |
-| Мир-субстрат | `architecture/world.yaml`, `WorldObjectStore`, топология объектов (W-TRACK, dormant-substrate) | 30 тестов + INV в IPT |
+| Мир-субстрат | `architecture/world.yaml`, `WorldObjectStore`, топология объектов; **G3: живая воля → объектное действие → мутация мира → событие** (`W3_G3_ENABLED` default OFF) | 30 тестов + INV в IPT; SUPERBOX G3 GREEN |
 | Идентичность | `L1Chronicle` — append-only SQLite; `BeliefCrystallizationEngine` (L2.5, травма ×6); `EffectiveDrives` (L3) | `lint_l1_append_only`, ADR-O-208/307 |
 | Тело | Потребности, сон (sleep-машина верифицирована), действие/Commitment, `ActionWindup`, смерть | S235/S236, IPT |
 | Экономика/бой | Модификаторы экономики, бой, вердикты VitalState | SUPERBOX-инварианты |
@@ -213,8 +213,14 @@ Belief → Decision → Action → World Event:
   сценарием, но как постоянный слой не построен);
 - Active Inference, контрфактическое рассуждение, полный self-model;
 - фракции, полноценная экономика/политика как системы;
-- полный Behavioral Closure (BC-1…BC-12) и Unified Appraisal (EM-1…EM-7) —
-  спроектированы в роадмапе, не замкнуты.
+- Behavioral Closure: BC-1 реализован (dormant), BC-2…BC-13 открыты — контур
+  «опыт → вывод → ожидание → решение» не замкнут;
+- Unified Appraisal (EM), Predictive Perception (PP), юмор (HUM), агентность
+  аватара (AV) — спроектированы в роадмапе §6, не начаты;
+- object-cognition (CAN_STEAL ≠ ACCEPT/WANT) и L3-гейт GC-08 для W-трека —
+  открыты;
+- мир — одна локация-полигон; фракции/экономика/политика как системы — не
+  построены; прод-полировка, аудио, контент — не начаты.
 
 Статусы документации: **IMPLEMENTED** (код + валидационный сценарий),
 **PARTIAL** (инфраструктура есть, контракт не доказан), **PROPOSED**
@@ -317,30 +323,32 @@ LLM-сервер для диалогов (менеджер: `scripts/llm_server_
 
 | Документ | Роль |
 |---|---|
-| `docs/ENIGMA_ROADMAP.md` | Актуальная дорожная карта (v3.0): текущая точка, фазы, реестр долгов |
+| `docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md` | Актуальная дорожная карта (v4.0): карта треков, сквозная очередь §0.2, реестр долгов §7 |
 | `docs/QUICKSTART.md` | Карта файлов и архитектурный гайд для разработчиков |
 | `docs/00_CAUSAL_CONTRACT_v3.0.md` | Высший закон: онтология и запреты |
 | `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md` | Иерархия слоёв, фазовая модель, законы |
 | `docs/ADR (Architecture Decision Records).md` | Реестр архитектурных решений |
-| `docs/MUTATIONS.md` | Журнал изменений сессий |
+| `docs/MUTATIONS.md` | Реестр сессий (one-liner протокол v5.0) + живые долги |
 | `reports/LAST_SESSION.md` | DNA-метрики и красные инварианты последней сессии |
 
 ## 13. Текущая точка и дорожная карта
 
-Актуальный план — `docs/ENIGMA_ROADMAP.md` (v3.0). Положение на 2026-09-03:
+Актуальный план — `docs/ENIGMA_ROADMAP_v3_4_AVATAR_AGENCY.md` (v4.0, сквозная
+очередь §0.2). Положение на S311 (2026-09):
 
-- **Фундамент памяти закрыт** (Фаза A: все P0 аудита V.0.5.3.9.3, 10/10 фаз
-  тика живы, речь NPC становится памятью).
-- **EMRL E1 (шина опыта) закрыта**, **E2.0-a/b (DeltaGate) закрыты**;
-  следующий шаг — **E2.0-c** (каузальный экзамен SUPERBOX), затем
-  Behavioral Closure **BC-1…BC-12**.
-- **RE-01 M1b**: V2 RAM-authoritative runtime жив; открыты M1b.3.3–3.7,
-  M1b.5, M2/D.
-- **W-TRACK**: субстрат WORLD-домена положен (dormant-substrate); дальше
-  W2 AffordanceResolver, W3 transition_object.
-- Дальше (по фазам): Unified Appraisal, Predictive Perception/Surprise,
-  Temporal Identity, Общество (Factions/Economy/Politics), Bounded
-  Rationality, контент и презентация.
+- **Эпистемический контур**: E2.0-c каузально доказан (B0-CLOSED), BC-1
+  Conclusion Layer реализован (dormant, `BC1_ENABLED` default OFF); следующий
+  шаг — **BC-2 Conclusion→Expectation**.
+- **RE-01**: физический cutover V2 RAM-authoritative закрыт до M1b.3.4;
+  открыты M1b.3.5–3.7 → GC-11 → M2/D (первый живой needs-writer).
+- **W-TRACK**: G3 EXECUTION закрыт (S307, воля→объектная цель→мутация→событие);
+  открыты object-cognition (CAN_STEAL≠ACCEPT/WANT) и L3-гейт GC-08.
+- **Body/Embodied**: ADR-O-383 V1 закрыл availability-тракт (RED-оракул
+  GC-09B → V1 → GREEN); хвосты — калибровка, доставка сна (DEBT-SLEEP-DELIVERY).
+- **Living World**: вертикали EAT/WORK/SOCIAL/INTERRUPT доказаны production-
+  контуром; TRADE β-Stage 1; детерминизм — кросс-процессный (IRON RIVER 3×MATCH).
+- Дальше (по фазам): BC-2…BC-7 → Unified Appraisal → Predictive Perception →
+  HUMOR; Р18 «Адаптация»; эпохи 7–10 (§6.B роадмапа).
 
 Принцип развития: **не строить следующую абстракцию, пока предыдущий
 эксперимент не докажет, что симуляция её требует**:
