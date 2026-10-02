@@ -615,7 +615,7 @@ player command → avatar appraisal → accept/modify/resist/refuse
 | AG1-D3 | Witness-ветка reaction_subscriber:301–316 не под Gate-контрактом | P2 | AG1 | обвязать Proposal/Gate по прецеденту E2.0-b | открыт |
 | AG1-D4 | `identity_traits` пусты после wait 12 — резонанс не доезжает | P2 | AG1 | диагностический круг: 3 команды | открыт |
 | AG1-D5 | Аватар жив с hp=0 (`[FATE]`-лог каждый тик) | P2 | body | — | ✅ закрыт 2026-09-04 (Шаг 6); производный AVID-1 закрыт Шагом 7 |
-| AG1-D6 | Q4/Q5-рассинхрон имени модели | P3 | LLM | `config`: одна строка | открыт |
+| AG1-D6 | ~~Q4/Q5-рассинхрон имени модели~~ | P3 | LLM | — | ✅ закрыт (STALE: S217-фикс qwen_7b_q4 жив, config/llm_sources.json синхронизирован — S311-серия) |
 | AG1-D7 | `actor → player:` пустой хвост при imp=0.8 | P2 | AG1 | трассировка producer-пути | открыт |
 | AG1-D8 | ADR-O-377 не в реестре атласа | P1 | AG1/cross | запись в атлас + IMPACT + production-план | в работе (первый) |
 | AG1-D9 | `affordance_facts_map`: гвард стоит, поле у W2-владельца не объявлено | P3 | W-track | уведомление владельцу | открыт |
@@ -649,7 +649,7 @@ player command → avatar appraisal → accept/modify/resist/refuse
 | AUD-D5 | Legacy `RelationshipStore` жив в прод-пути (state_applicator:62, memory_manager:28): (а) TTL 3600 c через `time.time()` — wall-clock ветка, кандидат replay-дрейфа; (б) `except → тихий {}` — сброс данных; (в) `_save` пишет legacy JSON | P2 | RE | решение судьбы в M1b.5/M1b.3.5; минимум TTL→tick-based, except→Fail Loud | открыт |
 | AUD-D6 | **DilemmaEngine — мёртвый контур в проде**: `check_triggers()` каждый тик, но `register_dilemma()` не вызывается никем → `_dilemmas` пуст | P2 | social/MVP | канон `dilemmas.json` + загрузчик в init_campaign, или исключить check_triggers | открыт |
 | AUD-D7 | `main.py` — 34 `print()` живы (строки 98–365, блок запуска). Долг «print→logger ✅» не соответствует билду | P3 | main | заменить на logger (единый фронт с LOG-GATE) | открыт |
-| AUD-D8 | `mypy.ini` повреждён: первая строка `ypy]` вместо `[mypy]` | P3 | CI | фикс заголовка + гейт валидности конфига в pre-commit | открыт |
+| AUD-D8 | ~~`mypy.ini` повреждён~~ | P3 | CI | — | ✅ закрыт (S311-серия: STALE — конфиг здоров, `mypy` первой строкой; вероятно, починен ранее чужой сессией без записи) |
 | AUD-D9 | `dm_phase.py:175–176` — `intent="dialogue"`, `tone=""` захардкожены: метаданные памяти обеднены | P3 | game_loop | LLM-классификация полей или mini-ADR об MVP-упрощении | открыт |
 | AUD-D10 | **Ambient-наблюдения не попадают в ObservationLog**: прод-писатели только action_consequence_compiler:108 и npc_confession_parser:95; `visual_cue`/`eavesdrop` без источника — журнал расследования слеп | P2 | player_cognition/T9 | мост perception → observation_log (T9) | открыт |
 | AUD-D11 | TODO/FIXME: 75 маркеров в 48 файлах (отслеживалось только 5 в domain/) | P3 | cross | классификация P4 | открыт |

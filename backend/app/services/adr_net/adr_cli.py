@@ -26,6 +26,10 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    # CLI-контекст: без basicConfig INFO-логи (результаты impact/conflicts) проглатываются
+    # корневым WARNING-уровнем — «пустой» вывод при валидном входе (DEBT-ADR-CLI-QUIET)
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     # Добавляем корень проекта в sys.path
     sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 

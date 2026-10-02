@@ -206,6 +206,7 @@
 - **S308** PLAYER_LINK: третий канал — доска связывает имя↔лицо · ✅ · ADR-O-409
 - **S309** S2B.7 Pain/Injury: вечный FLAT-гвард + зонная capability-деривация + тик раны · ✅
 - **S310** TRADE MATERIALIZATION β-Stage 1: Capability Projection (β-Stage 2 + ресток — живые швы) · ✅ · ADR-O-412
+- **S311** Doc-Restructure + ADR-Net гигиена: roadmap v4.0 (3389→1277) · MUTATIONS v5.0 (2383→249, one-liner протокол) · атлас v8.0 (814→712, единый Format-Б, 12 Format-А возвращены графу) · parser-fix точка в ID (+3 теста, граф 281→285) · 62 IMPACT-шапки нормализованы · +5 stub (O-368/383/393/396/413) · ренумбер Affection→O-413 (Устав 11.1.1) · долги: AUD-D8/T3-STALE ✅ без кода, T5-ложная тревога ✅, Н-55 BORKO-debug ✅ удалён (3 debug-ветки), T6-ордек ✅ 6 корневых скриптов удалены (~31 КБ), T2 CLI-QUIET ✅ (basicConfig + IMPACT-стаб) · коммит 83bf7cee (net −4123) + cleanup-коммит · следующая цель: DTO Registry
 
 ## 3. Живые хвосты (открытое; владелец обязателен)
 
@@ -219,7 +220,7 @@
 
 ### Открытые долги
 - **DEBT-D1** (S217): аудит publish_release.
-- **DEBT-ADR-CLI-QUIET**: adr_cli impact/conflicts печатает только logger.info без basicConfig — «пустой» вывод при валидном входе (найдено при smoke атласа v8.0); кандидат: basicConfig в main() или print() для CLI-контекста.
+- [x] ~~DEBT-ADR-CLI-QUIET~~ ✅ закрыт (S311: basicConfig в adr_cli.main; IMPACT-стаб ADR-NET-CLI-QUIET_FIX; smoke-прогон)
 - **DEBT-ADR-NET-PATH-MATCH**: adr_graph.get_impact сравнивает путь буквально с node.files (алиасы svc/, аннотации «(новый)», :N-хвосты) → ложный негатив «файл не привязан» при реальных привязках (tick_orchestrator: 12+ ADR; граф 281→285 узлов); кандидат: нормализация алиасов Path Alias Map перед сравнением.
 - **DEBT-DOC-DRIFT-ISPRAVLENIE**: ENIGMA_TZ_ISPRAVLENIE.md — 23 line-drift (файлы по 0–10 строк: устаревшие пути до v4.0-эры); validate_doc_refs зелёный по существованию, линии — pre-existing чужой зоны.
 - **DEBT-TS**: функциональность темпа будет переделана (M4).

@@ -159,8 +159,6 @@ class MovementEngine:
         _micro_intents: List[LocalSteeringGoal] = []
 
         for intent in intents:
-            if getattr(intent, "actor_id", "") == "guard_borko":  # noqa: ENIGMA002
-                logger.debug(f"[BORKO_TRACE] tick={tick} type={type(intent).__name__} reason={getattr(intent, 'reason', '')} target={getattr(intent, 'target_node_id', getattr(intent, 'local_target_xy', '?'))}")  # noqa: ENIGMA002
             if isinstance(intent, MacroMovementGoal):
                 _npc_id = intent.actor_id
                 _reason = getattr(intent, "reason", "")  # noqa: ENIGMA002
@@ -615,8 +613,6 @@ class MovementEngine:
                 _npc_data = npc_positions.get(_npc_id, {}) if npc_positions else {}
                 _current_pos = _npc_data.get("position", intent.from_node_id)
                 _current_xy = _npc_data.get("local_position", {})
-                if _npc_id == "guard_borko":
-                    logger.debug(f"[BORKO_RELOC] tick={tick} loc={location_id} target={intent.target_node_id} cur_pos={_current_pos} cur_xy={_current_xy}")
                 changes.extend(
                     self._resolve_macro_relocation(
                         intent, svc, location_id, tick, npc_positions, campaign_id, scene_state
@@ -973,10 +969,14 @@ class MovementEngine:
 
         source_node_obj = svc.get_node(current_pos)
         if not target_node_obj:
-            # [DIAG_D3] временный зонд (снять после Э-3): молчаливый дроп цели
-            print(f"[DIAG_D3] MOVEMENT_SILENT_DROP npc={intent.actor_id} reason=NO_TARGET "
-                  f"target={intent.target_node_id!r} short={_target_node_id_short!r} "
-                  f"cur_pos={current_pos!r}", flush=True)
+            # Н-55 (ТЗДНЯ): временный print-зонд снят (Э-3 завершена, S215).
+            # Диагностическая ценность сохранена через logger.warning (L4):
+            # молчаливый дроп цели остаётся наблюдаемым в CDS-логах.
+            logger.warning(
+                f"[MOVEMENT][DIAG] SILENT_DROP npc={intent.actor_id} reason=NO_TARGET "
+                f"target={intent.target_node_id!r} short={_target_node_id_short!r} "
+                f"cur_pos={current_pos!r}"
+            )
             return []
 
         # S131 FIX (советник): current_xy — авторитетная позиция тела, а не графового узла.
@@ -1017,9 +1017,6 @@ class MovementEngine:
 
         _trace.path_status = PathStatus.VALID_PATH
         _trace.path_nodes = path_nodes
-
-        if intent.actor_id == "guard_borko":
-            logger.debug(f"[BORKO_ASTAR] current_pos={current_pos} source_xy={source_xy} target={target_node_obj.node_id} path={[n.node_id for n in path_nodes]}")
 
         # Берём первый шаг маршрута (следующий waypoint)
         next_node = path_nodes[1]
