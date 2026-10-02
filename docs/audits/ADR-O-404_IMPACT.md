@@ -1,3 +1,4 @@
+﻿`ADR-O-404` [STANDARD] **IMPACT**
 # ADR-404 Impact Audit — Event Identity
 ## Changed Domains
 - events (identity seed), scene_state (новый корень event_ordinals),

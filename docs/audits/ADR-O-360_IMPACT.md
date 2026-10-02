@@ -1,3 +1,4 @@
+﻿`ADR-O-360` [STANDARD] **IMPACT**
 # ADR-O-360 Impact Audit: Source-Weighted Reliability & Observation Channel
 > Единый атлас: `docs/ADR (Architecture Decision Records).md` (L14.4). Сессия: S207.
 > Номер ADR-O-359 занят (LLM Few-Shot Intent Grounding, anti-race protocol).

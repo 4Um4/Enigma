@@ -1,3 +1,4 @@
+﻿`ADR-O-361` [STANDARD] **IMPACT**
 # ADR-O-361 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 > Статус: ACTIVE | Сессия: S213 (номер сверен по хвосту MUTATIONS.md)

@@ -1,3 +1,4 @@
+﻿`ADR-O-387` [STANDARD] **IMPACT**
 # ADR-O-387 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

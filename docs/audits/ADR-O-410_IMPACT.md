@@ -1,3 +1,4 @@
+﻿`ADR-O-410` [STANDARD] **IMPACT**
 # ADR-O-410 Impact Audit — G3 Object Action Executor (W-track, Этап 1)
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md (STANDALONE).
 > Статус: ACTIVE — Этап 1 (исполнительное ядро) GREEN; Этап 2 (живая воля) — отдельный коммит.

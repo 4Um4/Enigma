@@ -1,4 +1,5 @@
-﻿# ADR-O-389 Impact Audit
+﻿`ADR-O-389` [STANDARD] **IMPACT**
+# ADR-O-389 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains

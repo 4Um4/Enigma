@@ -1,3 +1,4 @@
+﻿`ADR-O-408` [STANDARD] **IMPACT**
 # ADR-O-408 Impact Audit — Canonical Attention→Action Integration
 > Единый атлас ADR: `docs/ADR (Architecture Decision Records).md`. Сессия: S304.
 

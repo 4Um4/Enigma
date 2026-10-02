@@ -1,3 +1,4 @@
+﻿`ADR-SSOT-ECONOMIC` [STANDARD] **IMPACT**
 # ADR-SSOT-ECONOMIC Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

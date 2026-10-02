@@ -1,3 +1,4 @@
+﻿`ADR-408` [STANDARD] **IMPACT**
 # ADR-408 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

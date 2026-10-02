@@ -1,3 +1,4 @@
+﻿`ADR-O-403` [STANDARD] **IMPACT**
 # ADR-O-403 Impact Audit — Campaign Lifecycle Ownership (Phase 3B)
 > Атлас: docs/ADR (Architecture Decision Records).md | Ветка: V.0.5.4.1.2_Чистка_истоков
 > Коммиты: 5e73199e (Seam1), [Seam2-6], 666106a9 (каркас), ebc6793f (шаг2), fb15b57d (шаг3-final)

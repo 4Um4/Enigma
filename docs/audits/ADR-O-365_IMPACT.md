@@ -1,3 +1,4 @@
+﻿`ADR-O-365` [STANDARD] **IMPACT**
 # ADR-O-365 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`.
 > Спринт-владелец: S203.4 (Stage 2A). Вердикты Мастера: D-1…D-9.

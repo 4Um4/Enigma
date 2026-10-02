@@ -1,3 +1,4 @@
+﻿`ADR-O-362` [STANDARD] **IMPACT**
 # ADR-O-362 Impact Audit: NPC Action Materialization — Steal
 > Атлас: L19.1. Сессия: S209 (Vertical Slice, звено 1). Номер сверить по атласу (anti-race).
 

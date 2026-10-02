@@ -1,3 +1,4 @@
+﻿`ADR-O-398` [STANDARD] **IMPACT**
 # ADR-O-398 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S269 | Дата: 2026-09-20

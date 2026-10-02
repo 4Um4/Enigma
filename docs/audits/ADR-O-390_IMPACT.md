@@ -1,3 +1,4 @@
+﻿`ADR-O-390` [STANDARD] **IMPACT**
 # ADR-O-390 Impact Audit — Epistemic Self-Relevance Channel (GC-RELEVANCE-01)
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S258 | Гейт: GC-RELEVANCE-01 | Лестница AGENCY: self-relevance

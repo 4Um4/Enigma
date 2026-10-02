@@ -1,3 +1,4 @@
+﻿`ADR-WRITE-GUARD` [STANDARD] **IMPACT**
 # ADR-WRITE-GUARD Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

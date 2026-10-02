@@ -1,3 +1,4 @@
+﻿`ADR-O-363` [STANDARD] **IMPACT**
 # ADR-O-363 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S215 | Спринт: Stage 2A / S203.1 (shadow)

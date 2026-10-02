@@ -1,3 +1,4 @@
+﻿`ADR-O-399` [STANDARD] **IMPACT**
 # ADR-O-399 Impact Audit
 > Сессия: S270 | Дата: 2026-09-20
 

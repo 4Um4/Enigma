@@ -1,3 +1,4 @@
+﻿`ADR-SSOT-EPISTEMIC` [STANDARD] **IMPACT**
 # ADR-SSOT-EPISTEMIC Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

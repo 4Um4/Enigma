@@ -1,3 +1,4 @@
+﻿`ADR-O-381` [STANDARD] **IMPACT**
 # ADR-O-381 Impact Audit — Conclusion Layer (BC-1, dormant)
 
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md (DOM-06&09, L14.6).

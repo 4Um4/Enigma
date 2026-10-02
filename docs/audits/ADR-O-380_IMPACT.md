@@ -1,3 +1,4 @@
+﻿`ADR-O-380` [STANDARD] **IMPACT**
 
 # ADR-O-380 Impact Audit — BeliefState Write Guard (L14.5)
 

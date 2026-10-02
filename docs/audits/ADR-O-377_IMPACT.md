@@ -1,3 +1,4 @@
+﻿`ADR-O-377` [STANDARD] **IMPACT**
 # ADR-O-377 Impact Audit — Non-Blocking Intelligence
 > Атлас: `docs/ADR (Architecture Decision Records).md`. Возник из инцидента: `wait 12` в кокпите занял 30+ минут (12 тиков × канонические LLM-диалоги × future.result(60) синхронно в стеке idle_tick — traceback при Ctrl+C зафиксировал шлагбаум). Формулировка закона — владелец проекта (вердикт «LLM не должен быть условием продолжения жизни мира»).
 

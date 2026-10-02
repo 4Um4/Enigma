@@ -1,3 +1,4 @@
+﻿`ADR-O-382` [STANDARD] **IMPACT**
 # ADR-O-382 Impact Audit — Intelligence Queue: Non-Blocking Dialogue Extraction
 > production-форма ADR-O-377 · закрытие DEBT-RE-D2A. Атлас: `docs/ADR (Architecture Decision Records).md` (ADR-O-382, вставка после O-377). Досье: `docs/audits/D8P_PRE_FLIGHT.md` (археология §2, Anti-Bond §3, вердикты владельца §13). Номер = max+1 по свежему чтению атласа на момент записи.
 

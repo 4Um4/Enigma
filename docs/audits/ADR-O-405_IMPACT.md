@@ -1,3 +1,4 @@
+﻿`ADR-O-405` [STANDARD] **IMPACT**
 # ADR-O-405 Impact Audit — Investigation Board (Presentation-Persistence)
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

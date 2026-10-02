@@ -1,3 +1,4 @@
+﻿`ADR-O-409` [STANDARD] **IMPACT**
 # ADR-O-409 Impact Audit — Name-Gate Closure (FACE/NAME/LINK)
 
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR:

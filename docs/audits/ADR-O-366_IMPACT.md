@@ -1,3 +1,4 @@
+﻿`ADR-O-366` [STANDARD] **IMPACT**
 # ADR-O-366 [ONTOLOGY] OpportunityProducer: Production Wiring
 
 > **Статус:** APPROVED (S216, Master v2)

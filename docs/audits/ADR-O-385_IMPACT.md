@@ -1,3 +1,4 @@
+﻿`ADR-O-385` [STANDARD] **IMPACT**
 # ADR-O-385 Speech-Tube Sanitation — Impact Audit
 > Детальный аудит одного ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 

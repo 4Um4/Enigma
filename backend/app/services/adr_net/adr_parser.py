@@ -40,7 +40,7 @@ class ADRNode:
 
 # Регулярка для парсинга строки вида: `ADR-148` [STD] **Title** — Desc.
 # H-20 FIX: Разрешаем любые буквы (A-Z), цифры (0-9) и дефисы в ID и типе.
-_ADR_LINE_REGEX = re.compile(r"`(ADR-[A-Za-z0-9\-]+)`\s*\[([A-Za-z0-9\-]+)\]\s*\*\*(.+?)\*\*")
+_ADR_LINE_REGEX = re.compile(r"`(ADR-[A-Za-z0-9.\-]+)`\s*\[([A-Za-z0-9\-]+)\]\s*\*\*(.+?)\*\*")
 _FILES_REGEX = re.compile(r"[-*]?\s*\*{0,2}Files:?\*{0,2}\s*(.+)")
 
 def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
