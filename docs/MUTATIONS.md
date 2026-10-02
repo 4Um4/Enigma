@@ -221,7 +221,7 @@
 ### Открытые долги
 - **DEBT-D1** (S217): аудит publish_release.
 - [x] ~~DEBT-ADR-CLI-QUIET~~ ✅ закрыт (S311: basicConfig в adr_cli.main; IMPACT-стаб ADR-NET-CLI-QUIET_FIX; smoke-прогон)
-- **DEBT-ADR-NET-PATH-MATCH**: adr_graph.get_impact сравнивает путь буквально с node.files (алиасы svc/, аннотации «(новый)», :N-хвосты) → ложный негатив «файл не привязан» при реальных привязках (tick_orchestrator: 12+ ADR; граф 281→285 узлов); кандидат: нормализация алиасов Path Alias Map перед сравнением.
+- **DEBT-ADR-NET-FILES-EXTRACTION** (уточнение PATH-MATCH): run_parser не вытягивает Files в узлы (зонд №86: 0/0 при вызове с явными путями; CLI-граф при этом 285 узлов — расхождение контракта возврата) → get_impact всегда «не привязан»; план мини-сессии: карта форм `Files:` в 160 аудитах (греп ^[-*]?\s*Files:) → один патч парсера + тесты на реальные формы → потом нормализация алиасов в get_impact.
 - **DEBT-DOC-DRIFT-ISPRAVLENIE**: ENIGMA_TZ_ISPRAVLENIE.md — 23 line-drift (файлы по 0–10 строк: устаревшие пути до v4.0-эры); validate_doc_refs зелёный по существованию, линии — pre-existing чужой зоны.
 - **DEBT-TS**: функциональность темпа будет переделана (M4).
 - **DEBT-SYSMSG**: системные ошибки невидимы до потребителя (bounded-буферы).

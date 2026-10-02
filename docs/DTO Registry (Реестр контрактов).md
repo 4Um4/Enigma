@@ -212,6 +212,13 @@
 - **`TracePayload`:** Soft Trace (`region`, `zone_id`, `trace_type`).
 - **`DynamicAffordanceField`:** State-object с Hard + Soft слоями.
 
+### 📦 DesiredChange / Causal Slices (S262–S303, ADR-O-394/395/397/413)
+- 📁 `dom/desired_change.py`, `svc/npc/causal_slice_*.py`
+- **Причинно определённое изменение ДО выбора способа** (не LLM, не победа интента): `who`, `reason` (REASON_THREAT/NEED/BELIEF/AFFECTION/EXPRESSION/GRIEVANCE), `state_type`, `target_of_change`, `addressee`, `method_weights` (сумма ≤1.0).
+- Срезы: threat (R5) → capability/hunger (R6) → grievance (R7) → affection (R8). Каскад причин: threat > hunger > grievance > affection.
+- `to_modifiers` → 8-й модификатор Modifier Contract; DecisionHub остаётся единственным решателем.
+- 🚫 **ЗАПРЕТ:** интент минуя DecisionHub; LLM как источник DesiredChange; capability-Manager/второй SSOT (capability = проекция SSOT); fallback на ближайшего при вакууме (честный None); npc_id-хардкоды; новые Intent-enum ради среза; Viability: все способы мертвы → None.
+
 ### 📦 Motion Semantic Classification (S127, ADR-O-328)
 - 📁 `dom/traversal_schema.py`
 - **`MovementPlanStatus`:** `MICRO_MOVEMENT` (<0.1) / `MACRO_TRAVERSAL` / `ACCEPTED`.
@@ -254,7 +261,8 @@
 
 ### 📦 `NPCState.body_state`
 - 📁 `mod/npc_state.py`
-- Dict: `current_hp` (SSOT), `pain` (0-100), `fatigue`, `blood_loss`, `consciousness`, `shock_impulse`, `injuries`, `life_status`, **`coupling_profile`** (S189).
+- Dict: `current_hp` (SSOT), `pain` (0-100), `fatigue`, `blood_loss`, `consciousness`, `shock_impulse`, `injuries`, `life_status`, **`coupling_profile`** (S189), **`sleep_onset_tick`** (int|None — ФАКТ сна, O-375: строго `is not None`, тик 0 валиден; единственный писатель — SleepLifecycleService Фазы 0.6), **`wake_duration`** (незажатый homeostatic аккумулятор).
+- Сон = цепочка фактов: intent → SleepOnsetEligibility (BED+settled+alive) → факт → coupling-сон-семейство (без факта потолок DROWSY). Deliverability тел к кроватям — DEBT-SLEEP-DELIVERY (roadmap §5.3).
 
 ### 📦 `attack_roll` / `ImpactEngine`
 - 📁 `svc/combat/combat_math.py` / `svc/combat/impact_engine.py`
@@ -305,6 +313,12 @@
 - **`CausalChain` (frozen):** 8-шаговая причинная цепочка. Возвращается `NPCState.trace_causal_chain()`.
 - 🚫 **ЗАПРЕТ:** `StateApplicator.apply` без `cause`; Прямая мутация `causal_ledger`.
 
+### 📦 StateDeltaProposal / DeltaGate (S238, AG1 E2.0; ADR-O-377-контур)
+- 📁 `svc/memory/delta_gate.py`, `dom/state_delta_proposal.py`
+- **Единственный мост интерпретация→состояние** (INV-LLM-NOT-SSOT): `WHITELIST: Dict[field → (lo, hi, consumer)]` → кламп → идемпотентность по trace_id (AG1-INV-TRACE-ONCE) → применение через StateApplicator; Python — SSOT дельт.
+- Событие `EXPERIENCE_DELTA_COMMITTED` (EventDTO) — трасса причинности для Chronicaler (observation-only).
+- 🚫 **ЗАПРЕТ:** прямое применение Proposal мимо Gate/Applicator; расширение WHITELIST без вердикта (междоменный мост — O-382-табу); LLM→DeltaGate для session-семантики (это домен MemoryManager); приглашение `experience_delta` как факта мира.
+
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Секция 6):**
 - ❌ Обход `AffectiveIntegrator` (§2.1, §3.9).
 - ❌ `TICK_CATCHUP` (Rule 16).
@@ -312,7 +326,7 @@
 
 ---
 
-## 7. 🔗 ЭПИСТЕМИЧЕСКИЙ СЛОЙ (Epistemic Core — S188-S201) ⭐ НОВОЕ
+## 7. 🔗 ЭПИСТЕМИЧЕСКИЙ СЛОЙ (Epistemic Core — S188-S311)
 
 **Поток:** `COMMUNICATION_CLAIM` → `ClaimEvent` → `EpistemicRecord` → `EpistemicContext` → `epistemic_modifiers` → `DecisionHub`
 
@@ -341,6 +355,11 @@
 - **Per-agent хранилище убеждений.** Методы: `record_claim`, `get_beliefs`, `to_dict` / `from_dict` (round-trip, S193).
 - 🚫 **ЗАПРЕТ:** Глобальный store (только per-agent); DELETE операции.
 
+### 📦 `ConclusionPredicate` / `ConclusionProposal` / `ConclusionRecord` (S247, ADR-O-381)
+- 📁 `dom/conclusions.py`, `svc/npc/conclusion_{engine,gate,store,runtime}.py`
+- **EXPERIENCE → CONCLUSION (semantic leap):** машино-пригодный триплет (subject, predicate, object) + confidence [0..1] + evidence[event_ids → L1] + source=DIRECT_EXPERIENCE. Predicate-реестр ЗАКРЫТ (старт: IS_DANGEROUS; расширение = мини-ADR). ConclusionGate — мембрана по образу DeltaGate (Gate = аудит, не писатель; идемпотентность (trace_id, subject, predicate)); ConclusionStore.apply — единственный write-path; per-agent RAM + round-trip `scene_state["conclusions"]` (своя SQLite запрещена). NO-VACUUM: без нового опыта нет вывода. `BC1_ENABLED` default OFF (INV-BC1-NOOP); событие `CONCLUSION_FORMED` (observation-only).
+- 🚫 **ЗАПРЕТ:** conclusion как флаг поведения (avoid_*); фразы/текст в триплете; write мимо ConclusionGate; confidence = truth; CONCLUSION→EXPECTATION до BC-2 (мост закрыт ADR-O-381 F3а).
+
 ### 📦 `BeliefModifierResolver` / `BeliefRevisionEngine`
 - 📁 `svc/npc/belief_revision_engine.py`
 - **Pure function ревизии.** Принимает `ClaimEvent` → обновляет `EpistemicRecord`.
@@ -357,15 +376,10 @@
 - 📁 `svc/events/event_types.py`
 - **EventType для передачи Proposition** через `EventBus`. Не содержит текста.
 
-🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Epistemic Core):**
-- ❌ `ClaimEvent` мутирует World State (ADR-O-354).
-- ❌ `EpistemicRecord` хранит факты — только субъективность.
-- ❌ Proposition мутирует `RelationshipStore` напрямую.
+🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Epistemic Core — только специфичные; общие глобальные — §0):**
 - ❌ `DecisionHub` читает `EpistemicStore` (только `Dict[str, float]`).
 - ❌ L1 Chronicle хранит субъективные убеждения.
-- ❌ Модификаторы с побочными эффектами / не коммутативные (ADR-O-355).
-- ❌ Мутация входного `scores` в `apply_modifiers`.
-- ❌ SUPERBOX инъецирует Belief/Relationship напрямую.
+- ❌ proposition/confidence мутирует `RelationshipStore`/World State напрямую (Belief ≠ Truth, №51–53).
 
 ---
 
@@ -442,7 +456,7 @@
 
 ---
 
-## 10. 🔗 СОЦИАЛЬНЫЙ СЛОЙ И END-SCREEN (Social & Fate) ⭐ НОВОЕ
+## 10. 🔗 СОЦИАЛЬНЫЙ СЛОЙ И END-SCREEN (Social & Fate)
 
 **Поток:** `NPC_SPOKE` → `SocialSubscriber` → `RelationshipStore` → `FateTracker` → `EndScreenData`
 
@@ -479,6 +493,7 @@
 - 📁 `dom/tick.py`
 - **Иммутабельный снимок.** Preloaded блоки: `memory_weights_map`, `narrative_cache_map`, `social_modifiers_map`, `reputation_modifiers_map`, `economic_profiles_map`, `crystallized_beliefs_map`, `identity_traits_map`.
 - Read-only сервисы: `relationship_store`, `spatial_service`, `spatial_query`.
+- Frozen preloaded-карты (поздние срезы): **`affordance_facts_map`** (S239, O-378: weapon_access-факты, пустая карта = байт-идентичный False), **`object_target_map`** (S307, O-410 Этап 2: compute_object_target_facts nearest+lex), `epistemic_records`-соседство снапшотов.
 
 ### 📦 `TickMutation`
 - 📁 `dom/tick.py`
@@ -523,6 +538,11 @@
 | `OFFER_JOB` / `REQUEST_SERVICE` / `SPREAD_RUMOR` | IntentEventAdapter | Коммуникативные интенты |
 | `CALL_FOR_HELP` / `CHANGE_ROLE` / `WARN` | IntentEventAdapter | Социальные интенты |
 | `TRADE` / `REPORT` | IntentEventAdapter | Экономические/инфо-интенты |
+| `THEFT` | IntentEventAdapter (STEAL→THEFT, S209) | source=вор, radius=ExposureLevel.from_semantic("whisper") |
+| `PLAYER_SPOKE` / `PLAYER_SUPPORTS` / `PLAYER_CONTRADICTS` | Player speech / Board (S255, O-405) | речь игрока = событие мира; доска = user-authored relation |
+| `EXPERIENCE_DELTA_COMMITTED` | DeltaGate (S238) | вход опыта; arrival-time легален (STATUS-MODEL O-399) |
+| `CONCLUSION_FORMED` | ConclusionGate (S247) | вывод из опыта; observation-only |
+| `ACTIVITY_OUTCOME` | ActivityLifecycleService (S252) | терминал Living Activity; наблюдаемая проекция |
 
 🚫 **ЗАПРЕТЫ:**
 - ❌ Использование сырых строк вместо `EventType` enum.
@@ -531,7 +551,7 @@
 
 ---
 
-## 13. 🔗 RELATIONSHIP ENGINE — Phase A Contract (ADR-O-369) ⭐ НОВАЯ СЕКЦИЯ
+## 13. 🔗 RELATIONSHIP ENGINE — Phase A Contract (ADR-O-369)
 
 **Поток (M0 — ТОЛЬКО контракт; рантайм не меняется):** `RELATIONSHIP_EVENTS` → `RelationshipEventSemantics` (фаза 8) → `RelationshipStateStore` (SSOT, писатель — StateApplicator, №5) → `RelationshipModifierResolver` (фаза 5) → `DecisionHub.apply_modifiers`. Медленный контур — раз в игровой день. Полный контракт: `architecture/relationship_engine.yaml` (45 узлов §5.0/§4.1, запреты №1–35, tombstones).
 
@@ -621,6 +641,5 @@
 
 ---
 
-*Версия: 8.0 (Unified & Expanded)*
-*Сессия: S201 | Epistemic Core (S188-S201) полностью интегрирован*
-*Файлов DTO: 80+ | Инвариантов в IPT: 39/39*
+*Версия: 9.0 (Drift-Sync S226–S311 + Compression: дубли запретов схлопнуты в §0, песочницы — канон в tests/)*
+*Сессия: S311 | Записей 📦: 71 | IPT 49/49 | Полный архив v8.0: git show b59dac3f*
