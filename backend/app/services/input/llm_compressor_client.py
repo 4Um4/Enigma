@@ -10,6 +10,7 @@ TODO: В будущем может потребоваться расширить
 
 import json
 import logging
+import os
 from typing import Any, Dict, Optional, Protocol, cast
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,21 @@ class LlamaCppCompressorClient:
             with opener.open(req, timeout=60.0) as response:
                 resp_data = json.loads(response.read().decode("utf-8"))
                 content = resp_data["choices"][0]["message"]["content"]
+
+                # [DET-TRACE] (вердикт Мастера, DEBT-INFERENCE-NONDET):
+                # наблюдаемость identity запроса/ответа за env-флагом.
+                # По умолчанию выключен — нулевой эффект на production.
+                # Хэш — сырой ответ ДО markdown-чистки и JSON-парсинга:
+                # расхождение det-замеров локализуется сервером, не парсером.
+                if os.environ.get("ENIGMA_DET_TRACE") == "1":
+                    import hashlib
+
+                    print(
+                        "[DET-TRACE] "
+                        f"prompt_md5={hashlib.md5(user_prompt.encode('utf-8')).hexdigest()} "
+                        f"seed={_seed} "
+                        f"resp_md5={hashlib.md5(content.encode('utf-8')).hexdigest()}"
+                    )
 
                 # Очистка от markdown разметки (Qwen любит оборачивать в ```json ... ```)
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -216,20 +232,7 @@ class LlamaCppCompressorClient:
                 dialogue_context_str += f"- Последняя реплика ({last_turn.speaker}): {last_turn.text}\n"
             dialogue_context_str += "Если игрок пишет 'продолжай', 'ну?', 'и?', 'а что?' — интерпретируй как CONTINUE относительно последней реплики NPC.\n"
 
-        # [DIAG-PROMPT] временный зонд (секция 2 директивы Мастера): состав дампа
-        # scene_context по ключам — измерение ДО F-B, чтобы резать по фактам.
-        _sect = {}
-        if isinstance(scene_context, dict):
-            for _k, _v in scene_context.items():
-                try:
-                    _sect[_k] = len(json.dumps(_v, ensure_ascii=False))
-                except Exception:
-                    _sect[_k] = -1
-            _top = sorted(_sect.items(), key=lambda x: -x[1])[:12]
-            print(f"[DIAG-PROMPT] keys={len(_sect)} chars_total={sum(v for v in _sect.values() if v > 0)} "
-                  f"top12={_top}")
-        else:
-            print(f"[DIAG-PROMPT] scene_context type={type(scene_context).__name__} len={len(str(scene_context))}")  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
+
 
 
         # F-B (директива Understanding Layer, п.1): компактный контекст семантического

@@ -5,6 +5,7 @@ path: /scripts/llm_server_manager.py
 Основные сущности: start_llama_server, kill_llama_server
 """
 
+import json
 import logging
 import os
 import subprocess
@@ -25,6 +26,58 @@ logger = logging.getLogger(__name__)
 
 _llama_proc: Optional[subprocess.Popen] = None
 
+
+def _port_owner_pid(port: int) -> str:
+    """PID владельца listening-порта (Windows): psutil → netstat → unknown.
+    Возврат строки: 'unknown' — честный ответ, не выдуманный ноль."""
+    try:
+        import psutil  # type: ignore[import-untyped]
+
+        for _c in psutil.net_connections(kind="tcp"):
+            if (
+                _c.laddr
+                and _c.laddr.port == port
+                and _c.status == psutil.CONN_LISTEN
+                and _c.pid
+            ):
+                return str(_c.pid)
+    except Exception:
+        pass
+    try:
+        _out = subprocess.run(
+            ["netstat", "-aon"], capture_output=True, text=True, timeout=5
+        ).stdout
+        for _line in _out.splitlines():
+            if f":{port}" in _line and "LISTENING" in _line.upper():
+                _parts = _line.split()
+                if _parts:
+                    return _parts[-1]
+    except Exception:
+        pass
+    return "unknown"
+
+
+def _llama_env_fingerprint(
+    reuse: bool, spawn_pid: Optional[int] = None, spawn_cmd: Optional[list] = None
+) -> None:
+    """[DET-ENV] отпечаток inference-окружения (вердикт Мастера,
+    DEBT-INFERENCE-NONDET): без него det-замеры не имеют проверяемой
+    идентичности среды. REUSE маркируется честно — менеджер не знает, кем
+    и с какими флагами поднят переиспользуемый инстанс; SPAWN — наш
+    ребёнок с известными PID/флагами."""
+    try:
+        _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with _opener.open(f"{settings.llama_cpp_server_url}/v1/models", timeout=2) as _r:
+            _models = json.loads(_r.read().decode("utf-8")).get("data", [])
+            _model_id = _models[0].get("id", "unknown") if _models else "unknown"
+    except Exception as e:
+        _model_id = f"unavailable({type(e).__name__})"
+    _pid = str(spawn_pid) if spawn_pid is not None else _port_owner_pid(settings.llama_cpp_port)
+    _mode = "REUSE — identity NOT verified" if reuse else "SPAWN"
+    _cmd = f" cmd={' '.join(spawn_cmd)}" if spawn_cmd else ""
+    print(f"[DET-ENV] mode={_mode} | model={_model_id} | port={settings.llama_cpp_port} | owner_pid={_pid}{_cmd}")
+
+
 def start_llama_server() -> bool:
     """Запускает llama-server и ждёт его готовности (health check)."""
     global _llama_proc
@@ -34,6 +87,7 @@ def start_llama_server() -> bool:
         _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         _opener.open(f"{settings.llama_cpp_server_url}/health", timeout=2)
         print("[LLM_MANAGER] llama-server уже запущен.")
+        _llama_env_fingerprint(reuse=True)
         return True
     except Exception:
         pass
@@ -94,6 +148,7 @@ def start_llama_server() -> bool:
             
     if _server_ready:
         print("[LLM_MANAGER] llama-server запущен успешно.")
+        _llama_env_fingerprint(reuse=False, spawn_pid=_proc.pid, spawn_cmd=server_cmd)
         global _llama_proc
         _llama_proc = _proc
         return True
