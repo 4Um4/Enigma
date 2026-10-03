@@ -3,6 +3,8 @@
 
 ## Changed Domains
 - observability/IPT (новый контур Слой 1); models — data-модуль Stage 2 (causality_manifest, вне пути тика). Runtime симуляции байт-идентичен.
+- Stage 2a: causality_manifest.py — semantic SSOT (198 деклараций; bidirectional-гейт census<->manifest; M-правила линтера; экзамен E2/E6/E7/E9/D1).
+- Stage 2b: debt-реестр Stage 1 поглощён манифестом (порядок Q-A: cross-check → подавление через FIELD_CAUSALITY → удаление consumer_gap_debts.py → verify-absence).
 
 ## Downstream Consumers
 - IPT 49→50 (INV-CONSUMER-GAP-ORPHAN, линтер-инвариант — лимит 15 симуляционных не расходуется).

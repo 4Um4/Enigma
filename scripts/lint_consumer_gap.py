@@ -25,7 +25,9 @@ from typing import Dict, List, Optional, Set, Tuple
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "backend" / "app"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from consumer_gap_debts import DEBT_FIELDS  # noqa: E402
+# (Stage 2b, Q-A) debt-реестр Stage 1 поглощён манифестом — отдельный semantic
+# SSOT удалён (двойной источник = DOUBLE TRUTH для semantics). Подавление
+# orphan-находок — только через FIELD_CAUSALITY (см. run_lint).
 
 # Layer 2 (ADR-O-414): causality_manifest — единственный semantic SSOT
 # (вердикт Q-A). Импорт data-only модуля из app.models: script→model
@@ -376,29 +378,19 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
             if not bucket["writers"]:
                 raw.append(("NO_WRITER", key, 0))
 
-    # §7 D2: реестр сам под надзором — authority без ссылки и stale-ключ = CRITICAL
     violations: List[str] = []
-    for key, auth in DEBT_FIELDS.items():
-        if not isinstance(auth, str) or not _AUTHORITY_RE.search(auth):
-            violations.append(
-                f"[CONSUMER-GAP-DEBT-FORMAT] scripts/consumer_gap_debts.py -> '{key}': "
-                f"authority '{auth}' без ссылки на вердикт/долг (молчаливые подавления запрещены)"
-            )
-        elif key not in census and not (
-            key.split(".", 1)[0] in cont
-            and key in cont[key.split(".", 1)[0]]
-        ):
-            violations.append(
-                f"[CONSUMER-GAP-STALE] scripts/consumer_gap_debts.py -> '{key}': "
-                f"ключ отсутствует в census (поле удалено/переименовано) — запись реестра мертва"
-            )
+    # (Stage 2b, Q-A) FORMAT/STALE-гейты реестра удалены вместе с реестром:
+    # класс покрывает двусторонний M-STALE манифеста (экзамен E9 поймал rename
+    # ДВУМЯ подсистемами независимо — теперь одна, каноническая).
 
     # Файл, который AST не взял, — слепая зона (PARSE-класс), не тихий пропуск
     for pe in parse_errors:
         violations.append(f"[CONSUMER-GAP-PARSE] {pe} -> файл не разобран, скан к нему слеп")
     for verdict, key, line in sorted(raw):
-        if key in DEBT_FIELDS and _AUTHORITY_RE.search(DEBT_FIELDS[key]):
-            continue  # санкционированный долг — подавлен записью реестра
+        _fc = FIELD_CAUSALITY.get(key)
+        if _fc is not None and _fc.mode in ("DEBT", "PROJECTION") \
+                and _fc.authority and _AUTHORITY_RE.search(_fc.authority):
+            continue  # жизненный цикл задекларирован манифестом (единственный SSOT)
         violations.append(
             f"[CONSUMER-GAP-{verdict}] {key} -> orphan "
             f"(decl_line={line or 'container-literal'})"
@@ -458,8 +450,7 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
              "census_typed": len(census),
              "census_container": sum(len(v) for v in cont.values()),
              "no_reader": sum(1 for v, _, _ in raw if v == "NO_READER"),
-             "no_writer": sum(1 for v, _, _ in raw if v == "NO_WRITER"),
-             "debts": len(DEBT_FIELDS)}
+             "no_writer": sum(1 for v, _, _ in raw if v == "NO_WRITER")}
     return violations, stats
 
 
@@ -468,7 +459,7 @@ if __name__ == "__main__":
     print(f"[CENSUS] typed={st['census_typed']} container={st['census_container']} "
           f"debts={st['debts']} manifest={st['manifest']} parse_errors={st['parse_errors']}")
     print(f"[RAW FINDINGS] NO_READER={st['no_reader']} NO_WRITER={st['no_writer']} "
-          f"(подавлено реестром: {st['no_reader'] + st['no_writer'] - len([v for v in viol if v.startswith('[CONSUMER-GAP-NO')])})")
+          f"(подавлено декларациями манифеста: {st['no_reader'] + st['no_writer'] - len([v for v in viol if v.startswith('[CONSUMER-GAP-NO')])})")
     if viol:
         print(f"❌ CONSUMER-GAP: {len(viol)} нарушений:")
         for v in viol:
