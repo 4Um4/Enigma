@@ -278,7 +278,8 @@ def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state:
         logger.warning(f"[M1b.4.2] bind отклонён: {e}")
         return
     # provider-источник: сцена этого тика (обновляется при каждой смене
-    # локации; vestigial после pre-scene-теста — кандидат на удаление M1b.5)
+    # локации; ЖИВОЙ sync-тракт — S322: НЕ vestigial, удаление = потеря
+    # проекции отношений при save; тест-enforced location_change)
     if _mm is not None and isinstance(getattr(_mm, "_v2_scene_ref", None), dict):
         _mm._v2_scene_ref["scene"] = scene_state
     # Однократный transform (идемпотентен; маркер — отдельно, после коммита)
