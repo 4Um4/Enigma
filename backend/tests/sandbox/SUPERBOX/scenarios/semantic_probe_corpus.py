@@ -163,7 +163,12 @@ async def _trace_one(compressor, cls, phrase, expected) -> dict:
     trace["action"] = getattr(getattr(field, "action", None), "value", str(getattr(field, "action", None)))
     trace["speech_act"] = str(getattr(getattr(field, "speech_act", None), "value", getattr(field, "speech_act", None)) or "")
     trace["semantic_acts"] = [
-        {k: v for k, v in a.items() if k != "source_fields"}
+        {
+            **{k: v for k, v in a.items() if k != "source_fields"},
+            # V.3: маркер provenance — canonical-vs-recovery различимы
+            # в отчёте (acceptance Мастера); печатается как '*'.
+            "recovered": "source_fields" in a,
+        }
         for a in (getattr(field, "semantic_acts", None) or [])
     ]
     trace["topic"] = [
@@ -201,6 +206,7 @@ async def main() -> None:
         traces.append(tr)
         _acts_str = "; ".join(
             f"{a['type']}({a.get('params', {}).get('topic', '')})"
+            + ("*" if a.get("recovered") else "")
             for a in tr.get("semantic_acts", [])
         )
         print(f"\n[{cls}] TEXT: {phrase!r}")

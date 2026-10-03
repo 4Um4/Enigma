@@ -607,7 +607,10 @@ class IntentCompressor:
                 _ro = str(llm.get("requested_outcome") or "").lower()
                 if _sa == "question":
                     _t = "CONFIRMATION_SEEKING" if "confirmation" in _ro else "QUESTION"
-                    _acts = [{"type": _t, "params": {"topic": _ro or "unspecified"}}]
+                    # V.3 (вердикт Мастера): topic-плейсхолдер маскировал
+                    # отсутствие данных модели (§ENIGMA-003). Честное
+                    # UNKNOWN = акт без topic; provenance — source_fields.
+                    _acts = [{"type": _t, "params": {"topic": _ro} if _ro else {}}]
                 elif _sa == "greeting":
                     _acts = [{"type": "GREETING", "params": {}}]
                 elif _sa == "assert" and not llm.get("proposition"):
@@ -685,7 +688,9 @@ class IntentCompressor:
             _t = ""
             if _sa == "question":
                 _t = "CONFIRMATION_SEEKING" if "confirmation" in _ro else "QUESTION"
-                _acts = [{"type": _t, "params": {"topic": _ro or "unspecified"}}]
+                # V.3: заглушка удалена — акт без topic = честное UNKNOWN
+                # (§ENIGMA-003); provenance синтеза несёт source_fields ниже.
+                _acts = [{"type": _t, "params": {"topic": _ro} if _ro else {}}]
             elif _sa == "greeting":
                 _acts = [{"type": "GREETING", "params": {}}]
             elif _sa == "assert" and not (llm or {}).get("proposition"):

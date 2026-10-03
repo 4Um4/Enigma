@@ -67,7 +67,9 @@ def test_no_self_intro_no_claim():
     mem = _SessionMemory()
     sub = PlayerSpeechActSubscriber(memory_manager=mem, campaign_id_provider=lambda: "T")
     sub.on_player_spoke(
-        _spoke_event([{"type": "QUESTION", "params": {"topic": "unspecified"}}])
+        # V.3: заглушка unspecified удалена из pipeline — fixture выровнен
+        # с контрактом (акт без topic = честное UNKNOWN)
+        _spoke_event([{"type": "QUESTION", "params": {}}])
     )
     session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
     assert len(session.claims) == 0
