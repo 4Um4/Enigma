@@ -1,4 +1,4 @@
-# RC8 Determinism RCA — S313→S314 (Understanding Track)
+# RC8 Determinism RCA — S313→S315 (Understanding Track)
 
 > Статус: CLOSED (расследование) — тёплый протокол принят; RC8 A/B проведён валидно; few-shot удалён; unspecified-дефект закрыт. Канонизация provenance — OPEN (следующий эксперимент, §8).
 > Формат: хроника + установленные факты. Причины не атрибутируются сверх доказанного.
@@ -9,7 +9,7 @@
 
 Контекст: для валидного A/B промптов требовался детерминированный sampling path; det-check (два прогона corpus, Compare-Object) ходил GREEN→RED на идентичном состоянии → semantic experiment STOP.
 
-## 2. Инструментализация (S314, вердикт Мастера III.1)
+## 2. Инструментализация (S315, вердикт Мастера III.1)
 
 - `[DET-ENV]` — отпечаток инстанса в каждом прогоне: SPAWN (pid+cmd+model) / REUSE (identity NOT verified, model id, owner_pid).
 - `[DET-TRACE]` (env ENIGMA_DET_TRACE=1, default OFF) — prompt_md5/seed/resp_md5 на каждый запрос; хэш сырого ответа ДО парсинга.
