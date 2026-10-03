@@ -635,6 +635,34 @@ class TestMemoryManagerGateParity:
 
 
 
+# ── 10b. M1b.5 / AUD-D5(б): corrupt legacy JSON → fail-loud ──
+
+
+class TestLegacyStoreCorruptFailLoud:
+    """M1b.5 (коммит ec67f730): повреждённый npc_relationships.json —
+    прежний except→{} материализовал Vacuum в нейтральные данные
+    (§ENIGMA-003) и молча терял историю. Теперь: ContractValidationError.
+    Missing file — легитимный Vacuum новой кампании, не тронут."""
+
+    def test_corrupt_file_raises(self, tmp_path):
+        from app.domain.relationship_contracts import ContractValidationError
+
+        d = tmp_path / "corrupt"
+        camp = d / "broken_campaign"
+        camp.mkdir(parents=True)
+        (camp / "npc_relationships.json").write_text(
+            "{not valid json", encoding="utf-8"
+        )
+        store = RelationshipStore(data_dir=str(d))
+        with pytest.raises(ContractValidationError, match="повреждён"):
+            store.get("broken_campaign", "player")
+
+    def test_missing_file_still_vacuum(self, tmp_path):
+        # §ENIGMA-003: отсутствующий файл = отсутствие проекции, не ошибка
+        store = RelationshipStore(data_dir=str(tmp_path))
+        assert store.get("fresh_campaign", "player") == {}
+
+
 # ── 11. M1b.2.4: Applicator SOCIAL-маршрут через гейт — сайт-паритет ──
 
 
