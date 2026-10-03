@@ -26,7 +26,7 @@
 - BOM×11 файлов (PEP 263-легально для импорта) — читается линтером через utf-8-sig; находка отчёта, чужие файлы не чинились.
 
 ## Смежные долги (не чинились, зона владельцев)
-- AUD-D4 (4 wildcard-писателя _ALLOWED_WRITERS), NL-D9 (State Consumer Gap выборка 3 — consumer-фронт), D-MOM (P3, Sleep/Decision).
+- AUD-D4 (4 wildcard-писателя _ALLOWED_WRITERS), NL-D9 (State Consumer Gap выборка 3 — consumer-фронт), D-MOM (P3, Sleep/Decision), RE-D9 (BehaviorMask-канал мёртв end-to-end — выборка 4; sub-поля вне census Слоя 1 → behavior_mask = приоритетная цель Слоя 3).
 
 ## Мандат Мастера (S317)
 - Направление: Causal Anatomy / Organ Integrity. Stage 2 = расширяемый semantic manifest (KNOWN_ORGANS: perception/memory/relationship/emotion/desire/body/experience/provenance/role/knowledge; KNOWN_TERMINALS: decision/belief/emotion/desire/relationship/diagnostic/projection/persistence + археология). Census последовательно расширяется на десятку (RELATIONSHIP/DESIRE/KNOWLEDGE — первые). Пайплайн органа: DISCOVER→CLASSIFY→MANIFEST→SCAN→PERTURBATION→VERDICT. Стрелки organ↔organ не утверждаются заранее — доказываются пертурбацией. Правила: находка ≠ фикс; state ≠ живой орган; metadata ≠ причинность.
