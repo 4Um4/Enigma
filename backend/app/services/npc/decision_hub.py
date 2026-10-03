@@ -162,30 +162,6 @@ class AgentAction:
     def deltas(self) -> List[StateDeltas]:
         return self.decision.deltas
 
-    @staticmethod
-    def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
-        """S135: Чтение из SSOT (RelationshipStore). Vacuum = None.
-        Шкала SSOT: -1.0..1.0 (0.5 = neutral).
-        """
-        _rel_store = getattr(state, "relationship_store", None)  # noqa: ENIGMA002
-        _campaign_id = getattr(state, "campaign_id", "")  # noqa: ENIGMA002
-
-        if _rel_store:
-            _rel_data = _rel_store.get_relationship(_campaign_id, state.npc_id, target_id)
-            if _rel_data:
-                _val = _rel_data.get(attr)
-                if _val is not None:
-                    return float(_val)
-
-        # M1b.3.1 (ADR-RE-M1b.3): fallback на relationship_cache УДАЛЁН —
-        # кэш есть projection, не источник истины (shadow-truth-дверь
-        # закрыта; ратифицированная лестница post-cutover). SSOT жив всегда
-        # (V2 RAM-authoritative, зонд S234) —Vacuum каноничен при отсутствии
-        # записи. См. M1b.2.7-инвариант: чтение пяти скаляров из кэша
-        # вне allowlist запрещено.
-        # Vacuum (Нет знания об отношении)
-        return None
-
     @property
     def intent_target(self) -> Optional[str]:
         return self.decision.intent_target
@@ -1781,85 +1757,6 @@ class DecisionHub:
             mods = _TRAIT_INTENT.get(trait, {})
             total += mods.get(intent, 0.0) * strength
         return round(total, 4)
-
-    # Таблица видимых маркеров угрозы — что NPC видит своими глазами
-    _THREAT_MARKER_VALUES: Dict[str, float] = {
-        "heavy_armor": 0.20,
-        "medium_armor": 0.10,
-        "weapon_melee": 0.15,
-        "weapon_ranged": 0.18,
-        "weapon_magic": 0.25,
-        "large_build": 0.08,
-        "battle_wounds": 0.05,  # следы боёв на теле
-    }
-
-    def _compute_risk(self, event: EventContext, state: NPCState) -> float:
-        """
-        Risk из контекста — решение №7.
-        Учитывает свидетелей, дистанцию и видимую силу актора.
-        """
-        # Социальные взаимодействия — минимальный risk (разговор не угроза)
-        _et_val = (
-            event.event_type.value
-            if hasattr(event.event_type, "value")
-            else str(event.event_type)
-        )
-        # ADR-091 override: "подойди" → event type "move", не "player_interacts"
-        # Оба должны считаться социальными (мирными) событиями
-        _social_events = {
-            "player_interacts",
-            "player_spoke",
-            "npc_spoke",
-            "help",
-            "move",
-            "player_moved",
-        }
-        base_risk = 0.1 if _et_val in _social_events else 0.3
-        # Свидетели и дистанция усиливают угрозу только для агрессивных событий
-        if _et_val not in _social_events:
-            base_risk += min(event.witness_count * 0.08, 0.4)
-            if event.distance <= 2.0:
-                base_risk += 0.2
-        if not event.success:
-            base_risk *= 0.5
-
-        # Видимая сила — NPC реагирует на броню и оружие, не на скрытые stats
-        power_risk = sum(
-            self._THREAT_MARKER_VALUES.get(m, 0.0) for m in event.visible_threat_markers
-        )
-        base_risk += min(power_risk, 0.5)
-
-        # Сцена: активный бой повышает воспринимаемую угрозу
-        # Входит в формулу как fear × risk — эффект зависит от характера NPC
-        _scene_flags = event.scene_flags if hasattr(event, "scene_flags") else set()
-        if "combat_started" in _scene_flags:
-            base_risk += 0.25
-
-        # Память: недавние важные события повышают риск
-        # "Я видел как ты избил Люсю" — lingering effect через decay
-        # Память и давление — только для агрессивных событий.
-        # Мирный разговор не становится опаснее от того, что игрок вчера кого-то ударил.
-        if _et_val not in _social_events:
-            _rel_data = state.relationship_cache.get("player", {})
-            _pressure = _rel_data.get("recent_pressure", 0.0)
-            if _pressure > 0.01:
-                base_risk += min(_pressure * 0.5, 0.3)
-
-            _memory_penalty = 0.0
-            for _m in state.narrative_cache:
-                if not hasattr(_m, "importance") or _m.importance < 0.1:
-                    continue
-                _type = getattr(_m, "event_type", "")  # noqa: ENIGMA002
-                _weight = (
-                    0.15
-                    if _type in ("player_attacks", "combat", "intimidation", "theft")
-                    else 0.05
-                )
-                _memory_penalty += _m.importance * _weight
-            if _memory_penalty > 0.01:
-                base_risk += min(_memory_penalty, 0.3)
-
-        return min(base_risk, 1.0)
 
     def _intent_inertia(self, state: NPCState) -> float:
         """

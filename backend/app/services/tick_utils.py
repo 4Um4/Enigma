@@ -83,7 +83,10 @@ def build_npc_snapshots(
         psyche = npc.get("psyche", {})
         ss = npc.get("social_stats", {})
 
-        # relationship_cache: вложенный формат {target: {trust, fear, ...}}
+        # M1b.3.6 (RE-D8): канон кэша — Graph {target: {attr}}, Graph > Vacuum.
+        # Плоских прод-писателей не существует (Scalar-ветка social_deltas
+        # удалена); плоский вход = повреждённый legacy → санитайзер сбрасывает
+        # в {} (поведение сохранено дословно; pinned: test_build_npc_snapshots).
         existing_rc = npc.get("relationship_cache", {})
         if isinstance(existing_rc, dict) and any(
             isinstance(v, dict) for v in existing_rc.values()

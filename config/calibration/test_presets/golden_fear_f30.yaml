@@ -1,0 +1,10 @@
+meta:
+  preset_id: golden_fear_f30
+  description: R002 fear-scale probe — fear 30 (moderate, V2 -100..100)
+npc_overrides:
+  merchant_goran:
+    psyche:
+      willpower: 60.0
+    social:
+      fear: 30.0
+      trust: -60.0

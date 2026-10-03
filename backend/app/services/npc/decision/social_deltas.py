@@ -66,15 +66,16 @@ def get_base_delta(event_type: str) -> Tuple[float, float, str]:
 
 
 def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
-    """Precedence Contract: Graph (SSOT) > Scalar (Legacy) > Vacuum (None).
-    Standalone-копия DecisionHub._get_rel_value — устраняет circular dependency.
+    """M1b.3.6 (RE-D8): кэш-проекция читается ТОЛЬКО графом {target: {attr}}
+    — формат всех прод-писателей (loader:205, S128-граф enrichment,
+    snapshot-merge, StateApplicator:133). Scalar-ветка удалена:
+    плоских писателей не существует (grep: 0 в app/, фикстуры тестов —
+    legacy), ветка недостижима в production. Контракт сжат: Graph > Vacuum.
+    Standalone-копия DecisionHub-аксессора — устраняет circular dependency.
     """
     _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
     if _graph_val is not None:
         return float(_graph_val)
-    _scalar_val = state.relationship_cache.get(attr)
-    if _scalar_val is not None:
-        return float(_scalar_val)
     return None
 
 
