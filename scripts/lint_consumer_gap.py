@@ -49,6 +49,13 @@ MODEL_FILES = [
     APP / "models" / "npc_state.py",
     APP / "models" / "state_delta.py",
     APP / "models" / "delta_payloads.py",
+    # Stage 2b-2: экспансия census на Relationship/Desire/Knowledge/Memory-crystal/
+    # Experience (мандат Мастера S317; ADR-O-370/394, S188, NL-D4)
+    APP / "domain" / "relationship_contracts.py",
+    APP / "domain" / "desired_change.py",
+    APP / "domain" / "epistemology.py",
+    APP / "models" / "npc" / "memory_crystal.py",
+    APP / "models" / "npc" / "experience_trace.py",
 ]
 # Typed readers/writers — ТЗ §5 Этап 1: services + api (runtime-контур).
 # domain/ добавлен верификацией Этапа 1 (functional_loss: единственный ридер
@@ -313,10 +320,13 @@ def scan_typed_usages(
     parse_errors: List[str],
 ) -> Dict[str, Dict[str, List[str]]]:
     result: Dict[str, Dict[str, List[str]]] = {n: {"readers": [], "writers": []} for n in field_names}
+    _schema_paths = {f.resolve() for f in MODEL_FILES}
     for d in SCAN_DIRS:
         if not d.exists():
             continue
         for f in d.rglob("*.py"):
+            if f.resolve() in _schema_paths:
+                continue  # схема не является своим consumer (self-валидация ≠ проводка)
             try:
                 tree = ast.parse(f.read_text(encoding="utf-8-sig"), filename=str(f))
             except Exception as _pe:
@@ -457,7 +467,9 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
 if __name__ == "__main__":
     viol, st = run_lint()
     print(f"[CENSUS] typed={st['census_typed']} container={st['census_container']} "
-          f"debts={st['debts']} manifest={st['manifest']} parse_errors={st['parse_errors']}")
+          f"manifest={st['manifest']} parse_errors={st['parse_errors']}")
+    # (эта строка не менялась содержательно — маркер серии fixed-CLI после
+    #  Key Error bdb6d2a5; сама причина была в удалённом ключе stats['debts'])
     print(f"[RAW FINDINGS] NO_READER={st['no_reader']} NO_WRITER={st['no_writer']} "
           f"(подавлено декларациями манифеста: {st['no_reader'] + st['no_writer'] - len([v for v in viol if v.startswith('[CONSUMER-GAP-NO')])})")
     if viol:

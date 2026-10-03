@@ -286,6 +286,11 @@ class SqliteMemoryStore:
 
         try:
             with self._lock:
+                # §1.1: смысл трейса сериализуется явной веткой (None = у
+                # трейса нет meaning — легальное состояние, не тихий отказ).
+                _meaning_json: str | None = None
+                if trace.meaning is not None:
+                    _meaning_json = _json.dumps(trace.meaning, ensure_ascii=False)
                 self._conn.execute(
                     """INSERT OR REPLACE INTO experience_traces
                        (campaign_id, owner_id, content_reference, source_id,
@@ -302,9 +307,7 @@ class SqliteMemoryStore:
                         trace.source_id,
                         trace.source_type.value,
                         trace.actor_id,
-                        _json.dumps(trace.meaning, ensure_ascii=False)
-                        if trace.meaning is not None
-                        else None,
+                        _meaning_json,
                         max(-1.0, min(1.0, trace.valence)),
                         max(0.0, min(1.0, trace.arousal)),
                         max(0.0, min(1.0, trace.novelty)),
@@ -338,7 +341,13 @@ class SqliteMemoryStore:
             result: List[Dict[str, Any]] = []
             for row in rows:
                 d = dict(row)
-                d["meaning"] = _json.loads(d.pop("meaning_json")) if d.get("meaning_json") else None
+                # §1.1: пустой/отсутствующий meaning_json — явная ветка None
+                # (ключ при пустом значении остаётся в dict — как и раньше).
+                _meaning_raw = d.get("meaning_json")
+                if _meaning_raw:
+                    d["meaning"] = _json.loads(d.pop("meaning_json"))
+                else:
+                    d["meaning"] = None
                 d["applied_consumers"] = tuple(_json.loads(d.pop("applied_consumers_json")))
                 d["diagnostic"] = bool(d["diagnostic"])
                 result.append(d)

@@ -1206,6 +1206,38 @@ def inv_wall_clock(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_re_cache_allowlist(world: TestWorld) -> InvariantResult:
+    """INV-RE-CACHE-ALLOWLIST: freeze-поверхность relationship_cache (ADR-O-415, M1b.3.7)."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+
+    try:
+        from lint_relationship_cache_allowlist import run_lint
+        violations = run_lint()
+
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-RE-CACHE-ALLOWLIST",
+                "CRITICAL",
+                False,
+                f"Найдено {len(violations)} нарушений заморозки relationship_cache. Нарушение ADR-O-415 (M1b.3.7). Первые: {_details}",
+                ["backend/app/models/", "backend/app/services/"]
+            )
+        return InvariantResult("INV-RE-CACHE-ALLOWLIST", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-RE-CACHE-ALLOWLIST",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_relationship_cache_allowlist.py"]
+        )
+
+
 def inv_silent_failure(world: TestWorld) -> InvariantResult:
     """INV-SILENT-FAILURE: Запрет тихих отказов (except: pass) (L4)."""
     import os
@@ -2194,7 +2226,7 @@ def inv_consumer_gap_orphan(world: TestWorld) -> InvariantResult:
                 "CRITICAL",
                 False,
                 f"CONSUMER-GAP: {len(violations)} несанкционированных orphan/parse-нарушений (ADR-O-414). Первые: {_details}",
-                ["scripts/lint_consumer_gap.py", "scripts/consumer_gap_debts.py"],
+                ["scripts/lint_consumer_gap.py", "backend/app/models/causality_manifest.py"],
             )
         return InvariantResult("INV-CONSUMER-GAP-ORPHAN", "CRITICAL", True, "", [])
     except Exception as e:
@@ -2208,6 +2240,7 @@ def inv_consumer_gap_orphan(world: TestWorld) -> InvariantResult:
 
 
 INVARIANTS: List[Callable] = [
+    inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
     inv_scene_entity_isolation,
     inv_replay_determinism,
     inv_save_load_integrity,

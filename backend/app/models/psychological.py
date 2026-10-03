@@ -104,6 +104,20 @@ class CausalEntry:
 
     def to_dict(self) -> Dict[str, Any]:
         """Сериализация для JSON persistence и API."""
+        # §1.1: провенанс опционален — None-состояние названо явной веткой,
+        # а не сжатым тернарником (граница persistence читает её вживую).
+        cause_dict: Optional[Dict[str, Any]] = None
+        if self.cause is not None:
+            source_event_id: Optional[str] = None
+            if self.cause.source_event_id:
+                source_event_id = str(self.cause.source_event_id)
+            source_action_id: Optional[str] = None
+            if self.cause.source_action_id:
+                source_action_id = str(self.cause.source_action_id)
+            cause_dict = {
+                "source_event_id": source_event_id,
+                "source_action_id": source_action_id,
+            }
         return {
             "npc_id": self.npc_id,
             "field": self.field,
@@ -112,10 +126,7 @@ class CausalEntry:
             "tick": self.tick,
             "persistence_time": self.persistence_time,
             "emotional_impact": self.emotional_impact,
-            "cause": {
-                "source_event_id": str(self.cause.source_event_id) if self.cause and self.cause.source_event_id else None,
-                "source_action_id": str(self.cause.source_action_id) if self.cause and self.cause.source_action_id else None,
-            } if self.cause else None,
+            "cause": cause_dict,
         }
 
     @classmethod
@@ -124,9 +135,19 @@ class CausalEntry:
         _cause_dict = d.get("cause")
         _cause = None
         if _cause_dict and isinstance(_cause_dict, dict):
+            # §1.1: опциональные UUID-поля — явные ветки (пустой ключ = None;
+            # невалидная строка по-прежнему громко падает UUID()-конструктором).
+            _event_raw = _cause_dict.get("source_event_id")
+            _action_raw = _cause_dict.get("source_action_id")
+            source_event_id: Optional[UUID] = None
+            if _event_raw:
+                source_event_id = UUID(_event_raw)
+            source_action_id: Optional[UUID] = None
+            if _action_raw:
+                source_action_id = UUID(_action_raw)
             _cause = Cause(
-                source_event_id=UUID(_cause_dict["source_event_id"]) if _cause_dict.get("source_event_id") else None,
-                source_action_id=UUID(_cause_dict["source_action_id"]) if _cause_dict.get("source_action_id") else None,
+                source_event_id=source_event_id,
+                source_action_id=source_action_id,
             )
         return cls(
             npc_id=d.get("npc_id", ""),

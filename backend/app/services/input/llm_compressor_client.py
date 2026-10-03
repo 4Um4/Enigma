@@ -42,6 +42,10 @@ class LlamaCppCompressorClient:
     def _sync_compress(self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """Синхронная реализация через urllib (обходит баги прокси и httpx)."""
         import re
+
+        # Явный импорт: urllib.request тянет urllib.error только сайд-эффектом —
+        # анализаторы типа не видят, isinstance(e, HTTPError) не сужал тип.
+        import urllib.error
         import urllib.request
 
         system_prompt, user_prompt = self._build_prompts(raw_text, scene_context, dialogue_session)
@@ -65,6 +69,9 @@ class LlamaCppCompressorClient:
             "response_format": {"type": "json_object"} # Принудительный JSON Mode
         }
 
+        # content связан до try: JSONDecodeError-обработчик читает его легально
+        # (присваивание внутри with гарантировано раньше любого json.loads).
+        content = ""
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
@@ -106,7 +113,9 @@ class LlamaCppCompressorClient:
                 return cast(Dict[str, Any], json.loads(content))
         except json.JSONDecodeError as e:
             # S203 FIX: Логируем сырой ответ LLM, чтобы понять, почему парсинг падает.
-            logger.error(f"[LLM_COMPRESSOR] JSONDecodeError: {e}. Raw content: {content if 'content' in locals() else 'N/A'}")
+            # §1.3: content связан ДО try (см. инициализацию выше) — locals()
+            # не нужен; пустая строка честно печатается как N/A.
+            logger.error(f"[LLM_COMPRESSOR] JSONDecodeError: {e}. Raw content: {content or 'N/A'}")
             return None
         except (urllib.error.URLError, KeyError, IndexError) as e:
             # L4: причина отказа видима на error-уровне (урок R7 — debug
@@ -117,9 +126,12 @@ class LlamaCppCompressorClient:
                     _body = e.read().decode("utf-8", errors="replace")[:600]
                 except Exception as read_error:
                     logger.debug(f"Failed to read HTTP error body: {read_error}")
+            # §1.2: код статуса читается только у HTTPError — пустой
+            # getattr-дефолт больше не маскирует отсутствие атрибута.
+            _code = e.code if isinstance(e, urllib.error.HTTPError) else ""
             logger.error(
                 f"[LLM_COMPRESSOR] request failed: {type(e).__name__} "
-                f"code={getattr(e, 'code', '')} | SERVER BODY: {_body}"
+                f"code={_code} | SERVER BODY: {_body}"
             )
             return None
         except Exception as e:
@@ -179,6 +191,39 @@ class LlamaCppCompressorClient:
                 "вопрос о том, КАК/ОТКУДА собеседник узнал = ASK_PROVENANCE. "
                 "Ответ на ASK_PROVENANCE раскрывает источник знания собеседника, а не факт мира."
             )
+        # B (вердикт Мастера): база A + ОДНА контрастная пара на чужом контенте
+        # в структурном блоке. Уроки серии: literal-suppression доказан дважды
+        # (RC8, X2); XCLEAN показал риск выхолащивания topic-канала — topic-
+        # насыщенность prov-групп обязательная метрика B. Пара обучает
+        # ОТНОШЕНИЮ (источник знания собеседника vs событие мира), не
+        # ключевым словам: один общий якорь («корабль»), различие чисто
+        # реляционное. ENIGMA_PROV_B=1 (default OFF = baseline байт-неизменен).
+        _prov_b_block = ""
+        # B2 (вердикт Мастера, GO после закрытого det-check): ВТОРАЯ независимая
+        # контрастная пара на другом реляционном паттерне provenance
+        # (откуда-знаешь vs когда-случается), контент чужой корпусу и паре B
+        # (гварды: «прилив», «расписание» вне корпуса; «корабль» вне B2-блока).
+        # Сборка = база A + ТОЛЬКО эта пара (ENIGMA_PROV_B2 независим от
+        # ENIGMA_PROV_B; пары никогда не сосуществуют в промпте) — одна
+        # переменная относительно A. Гипотеза: каждый реляционный паттерн
+        # требует своего контрастного якоря; ширина переноса = f(число паттернов).
+        _prov_b2_block = ""
+        if os.environ.get("ENIGMA_PROV_B2") == "1":
+            _prov_b2_block = (
+                "\n- Контрастная пара для границы классов: "
+                '"Откуда ты знаешь расписание приливов?" — вопрос об ИСТОЧНИКЕ ЗНАНИЯ '
+                'собеседника -> acts: [{"type": "ASK_PROVENANCE", "params": {"about": "расписании приливов"}}]; '
+                '"Когда приходит прилив?" — вопрос о факте мира -> acts: [{"type": "QUESTION", "params": {"topic": "когда приходит прилив"}}]. '
+                "Первый спрашивает, ОТКУДА собеседнику известно; второй — КОГДА происходит событие."
+            )
+        if os.environ.get("ENIGMA_PROV_B") == "1":
+            _prov_b_block = (
+                "\n- Контрастная пара для границы классов: "
+                '"Кто тебе доложил о прибытии корабля?" — вопрос об ИСТОЧНИКЕ ЗНАНИЯ '
+                'собеседника -> acts: [{"type": "ASK_PROVENANCE", "params": {"about": "прибытии корабля"}}]; '
+                '"Кто разгружает корабль?" — вопрос о событии мира -> acts: [{"type": "QUESTION", "params": {"topic": "кто разгружает корабль"}}]. '
+                "Первый спрашивает, ОТКУДА собеседнику известно; второй — КТО СОВЕРШАЕТ действие."
+            )
         if os.environ.get("ENIGMA_RC8_STATE") == "B":
             _rc8_fewshot = (
                 'Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'
@@ -191,7 +236,7 @@ class LlamaCppCompressorClient:
 Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
 Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
-- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL"{_prov_enum_tail}. Для одиночного действия — один акт или [].{_prov_class_block}
+- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL"{_prov_enum_tail}. Для одиночного действия — один акт или [].{_prov_class_block}{_prov_b_block}{_prov_b2_block}
 Допустимые social_intent и их жесткая связь с action и speech_act:
 - "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
 - "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).

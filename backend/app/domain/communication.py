@@ -137,6 +137,10 @@ class CommunicationIntent:
         """Э6 (Н-40): JSON-сериализация для scene_state-персистентности
         (_pending_intents → scene_state). Все поля — примитивы или
         сериализуемые доменные объекты (§12 WARA)."""
+        # §1.1: proposition опционален — явная ветка вместо тернарника.
+        proposition_dict: Optional[Dict[str, Any]] = None
+        if self.proposition is not None:
+            proposition_dict = self.proposition.to_dict()
         return {
             "speaker": self.speaker,
             "audience": self.audience,
@@ -148,9 +152,7 @@ class CommunicationIntent:
             "target_id": self.target_id,
             "thread_id": self.thread_id,
             "priority": self.priority,
-            "proposition": (
-                self.proposition.to_dict() if self.proposition else None
-            ),
+            "proposition": proposition_dict,
         }
 
     @staticmethod
@@ -158,7 +160,11 @@ class CommunicationIntent:
         from app.domain.epistemology import Proposition
 
         _exp = ExposureLevel.from_dict(d["exposure_level"])
-        _prop = Proposition.from_dict(d["proposition"]) if d.get("proposition") else None
+        # §1.1: отсутствующий/пустой proposition — явная ветка (None).
+        _prop_raw = d.get("proposition")
+        _prop: Optional[Proposition] = None
+        if _prop_raw:
+            _prop = Proposition.from_dict(_prop_raw)
         return CommunicationIntent(
             speaker=d["speaker"],
             audience=d["audience"],

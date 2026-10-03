@@ -1,0 +1,821 @@
+Запускаю LLM-сервер для probe corpus...
+[LLM_MANAGER] llama-server уже запущен.
+[DET-ENV] mode=REUSE — identity NOT verified | model=Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf | port=8181 | owner_pid=11232
+[DET-TRACE] prompt_md5=0afd57bb6f8f887212c1507ae5c921c4 seed=446010923 resp_md5=de1f3e90198c00e1e4bfb381ef45d633
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'despera"
+[RECOVERY] applied=['semantic_acts']
+
+=== SEMANTIC PROBE CORPUS v0 ===
+[DET-TRACE] prompt_md5=f5ab69793ca253ee3aa8fcba0785bf7e seed=368879603 resp_md5=5aa19f5147bf8790f332f3ea9e6b7b92
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 1.0, 'despera"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=f5ab69793ca253ee3aa8fcba0785bf7e seed=368879603 resp_md5=5aa19f5147bf8790f332f3ea9e6b7b92
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Быть добру! Привет! Здоровеньки булы!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 3.65s
+[DET-TRACE] prompt_md5=4223eba278d9cbe9dd9183148d185b85 seed=30196790 resp_md5=7597be886f564f9d8bce46a77b64044b
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Здавствуй и процветай!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 1.97s
+[DET-TRACE] prompt_md5=60360ede853dc0d4307a0a2019d83769 seed=268117083 resp_md5=5aa19f5147bf8790f332f3ea9e6b7b92
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 1.0, 'despera"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Рад встрече!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 1.86s
+[DET-TRACE] prompt_md5=c3e7170bd5c59605f944edf2f503d081 seed=2048635252 resp_md5=ce506bb25bf7767c98d5bc78786c10c3
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'repair_relationship', 'speech_act': 'apology', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.0, 'emotional_charge': 0.5, 'social_pressure': 0.3, 'semantic': {'aggression': 0.0, 'fear': 0.1, 'shame': 0.4, 'confidence': 0.7, 'despe"
+
+[H-GREET] TEXT: 'Извините, а ....'
+  ACTION: DIALOGUE | SPEECH_ACT: apology
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: NEUTRAL/обрыв | latency: 1.66s
+[DET-TRACE] prompt_md5=9989b83a67a0b0519a7503b8c5df6836 seed=1670754631 resp_md5=0bb6c39b28384a4c36d64be869266997
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.8, 'despera"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Утро доброе!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 1.82s
+[DET-TRACE] prompt_md5=7672c57e1bd4cf920ec7360bfe74d8e9 seed=1846964093 resp_md5=5472c037026f998dc5904006f0fe8654
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic'"
+
+[H-INTRO] TEXT: 'Разрешите представиться - я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.2s
+[DET-TRACE] prompt_md5=ab0539f3db4f80183dfa211150490b6f seed=586637400 resp_md5=8ee673f35259386bf120a6559da7f440
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': "
+
+[H-INTRO] TEXT: 'Имя моё Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 1.8s
+[DET-TRACE] prompt_md5=c720b9ef41fb8e3a7fe647ad3d76b6e8 seed=692147069 resp_md5=4c1791cf802b7ba9fc9247639723da6e
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'self_introduction', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0."
+
+[H-INTRO] TEXT: 'Слушай сюда, звать меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 1.95s
+[DET-TRACE] prompt_md5=8bf12506c34877d15e15ac7aa956f1cb seed=268462947 resp_md5=5a5f267221c2117176b5d0ba80fb6426
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame':"
+
+[H-INTRO] TEXT: 'Помни и запоминай, обращайся ко мне Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 1.95s
+[DET-TRACE] prompt_md5=458846ba0797afe97f319afd6cbcd712 seed=1276254624 resp_md5=83ae8d27c15efef625e33d958a026428
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'Мю ВАн', 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': 'Мю ВАн', 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, "
+
+[H-INTRO] TEXT: 'Мю ВАн - а вы?'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRO+ASK_IDENTITY | latency: 2.07s
+[RECOVERY] multi-sentence fast=MOVE → LLM comprehension
+[DET-TRACE] prompt_md5=b76fcfbbecefe9e0826e156cc0461c10 seed=789666005 resp_md5=6dd83528c0448b3b296b3cfc7642e151
+
+[H-AGGRO] TEXT: 'Эй! Гнида, сюда иди...'
+  ACTION: MOVE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT/INSULT | latency: 2.06s
+[DET-TRACE] prompt_md5=a5c4f40353c9a6ee358995456f51bfd1 seed=927775039 resp_md5=c1043c35ed21d629cdb068f0a7360bdc
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'repair_relationship', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'd"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=a5c4f40353c9a6ee358995456f51bfd1 seed=927775039 resp_md5=c1043c35ed21d629cdb068f0a7360bdc
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Это ты сказал? Или твоя мама?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-провокация | latency: 3.07s
+[DET-TRACE] prompt_md5=9b035a241fa70885b2d1ac1685e345a4 seed=1193627490 resp_md5=4482d1653ad2915be4913782ae59ea3e
+[DIAG-LLM] slow-path: "{'action': 'THREATEN', 'social_intent': 'intimidate', 'speech_act': 'insult', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.8, 'emotional_charge': 0.9, 'social_pressure': 0.7, 'semantic': {'aggression': 0.9, 'fear': 0.1, 'shame': 0.05, 'confidence': 0.05, 'desperation':"
+
+[H-AGGRO] TEXT: 'Ты идиот или притворяешься?'
+  ACTION: THREATEN | SPEECH_ACT: insult
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: INSULT/QUESTION | latency: 1.64s
+[DET-TRACE] prompt_md5=b884050825bb7ae19d53dd1d7ddc9944 seed=151498431 resp_md5=d459d98b2ee314042d917ccfd4c9e107
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Херню не неси! Что за чушь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: CHALLENGE-грубый | latency: 1.92s
+[DET-TRACE] prompt_md5=ad738e592cd35c44bdb4ffe8b67e6639 seed=892095477 resp_md5=f30661db49cc2c822179677e56263215
+[DIAG-LLM] slow-path: "{'action': 'THREATEN', 'social_intent': 'intimidate', 'speech_act': 'insult', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.8, 'emotional_charge': 0.6, 'social_pressure': 0.7, 'semantic': {'aggression': 0.9, 'fear': 0.1, 'shame': 0.0, 'confidence': 0.2, 'desperation': 0"
+[RECOVERY] multi-sentence fast=THREATEN → LLM comprehension
+[DET-TRACE] prompt_md5=ad738e592cd35c44bdb4ffe8b67e6639 seed=892095477 resp_md5=f30661db49cc2c822179677e56263215
+
+[H-AGGRO] TEXT: 'Слышь, дура! Слушайся меня, а не то...'
+  ACTION: THREATEN | SPEECH_ACT: insult
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT | latency: 3.82s
+[DET-TRACE] prompt_md5=53af19149e4a28c1bbf895c24f513386 seed=1441948092 resp_md5=57c2806931b7b993d9dc7f6e5593e783
+
+[H-PROV] TEXT: 'Кто рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who told something)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.85s
+[DET-TRACE] prompt_md5=d6ba3185e3d44d2d8fee4ee080a54fc1 seed=371189485 resp_md5=c1043c35ed21d629cdb068f0a7360bdc
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'repair_relationship', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'd"
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Это я говорил?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: META/QUESTION | latency: 1.55s
+[DET-TRACE] prompt_md5=66416ed268b4f641440cda5b511b5b8c seed=664861730 resp_md5=b14388cd21c7d10caafd5cc06c43edb0
+
+[H-PROV] TEXT: 'откуда знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about the source of knowledge)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.85s
+[DET-TRACE] prompt_md5=0cf21ff796b10c8afd9ae0a111f238d8 seed=1373471954 resp_md5=138371f7d104fc51e0da415f9b4aca07
+[RECONCILE] proposition raw-entity 'информации' снята/заменена (LLM)
+[RECONCILE] action overridden: fast=ATTACK → llm=DIALOGUE (phantom proposition)
+
+[H-PROV] TEXT: 'источник данной информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.81s
+[DET-TRACE] prompt_md5=1958ae432ca64907211a09320802f7ab seed=200456619 resp_md5=3711c962057317478a0e98c4d60bda09
+
+[H-PROV] TEXT: 'Кто подсказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who gave advice)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.82s
+[DET-TRACE] prompt_md5=265c62f49d0a11820f1d6ed3a96fdb8b seed=1623085612 resp_md5=b90b311f2f9c3aa8e6b02dcdb803907d
+
+[H-PROV] TEXT: 'Ты уверен, или просто краем уха услышал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation or information)*
+  PROP: None
+  EXPECTED: PROVENANCE/CHALLENGE | latency: 1.82s
+[DET-TRACE] prompt_md5=54af2734a45697f991a36184b731b22c seed=1286268041 resp_md5=0491e56aabe707baec5326756329e587
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'to know if it was a mistake', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0."
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=54af2734a45697f991a36184b731b22c seed=1286268041 resp_md5=0491e56aabe707baec5326756329e587
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Выдумываешь? может тебе показалось?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(to know if it was a mistake)*
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 3.7s
+[DET-TRACE] prompt_md5=5c6851c2ee36215dae49df3634ab7efb seed=2107544952 resp_md5=7b94433ef22e21b41b200e4220dd28a4
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'de"
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Откуда информация?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.56s
+[DET-TRACE] prompt_md5=5d2487b4b8b29e8811947c1a42b3f56d seed=2082570867 resp_md5=6e1eaf07be79e9a85f47a42377ce0b6e
+[DIAG-LLM] slow-path: "{'action': 'FLIRT', 'actor': 'player', 'target': 'her', 'speech_act': 'assert', 'social_intent': 'flirt', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.8, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, "
+
+[H-ACTION] TEXT: 'Поцеловать её'
+  ACTION: FLIRT | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION/INTERACT | latency: 2.03s
+[DET-TRACE] prompt_md5=0a2cab476ab22169b8f018b9213a068d seed=343718052 resp_md5=7b5b55556cbe4671be75a8cbd1d0777c
+
+[H-ACTION] TEXT: 'Спросить кто тут главный'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who is the main person here)*
+  PROP: None
+  EXPECTED: QUESTION-об мир | latency: 1.86s
+[DET-TRACE] prompt_md5=c2de4e92d1d8b48174716ecc90cc188a seed=1829427595 resp_md5=e5a71cc9601a19352d3c75c79e7160f3
+[DIAG-LLM] slow-path: "{'action': 'STEAL', 'tool_reference': None, 'physical_force': 0.8, 'target': 'him', 'speech_act': 'assert', 'social_intent': None, 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'addressee': None, 'target_zone': 'LEGS', 'emotional_charge': 0.0, 'social_pressure': 0.0, 'semantic': {'aggression': 0.7, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.9, 'despera"
+
+[H-ACTION] TEXT: 'Стянуть с него штаны'
+  ACTION: STEAL | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION | latency: 1.75s
+[DET-TRACE] prompt_md5=9af1015a5e10c1d6619d88102c41ebaf seed=564088390 resp_md5=a701568fc3fdba82f6e349a180354f75
+[RECONCILE] proposition raw-entity 'пояса' снята/заменена (LLM)
+[RECONCILE] CONFLICT target: fast='пояса' llm='его' (v0: fast)
+
+[H-ACTION] TEXT: 'Выхватить у него меч из-за пояса и ударить им его же'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: ATTACK+tool | latency: 2.08s
+[DET-TRACE] prompt_md5=220f451579e533522ee623116ce790ca seed=1382120251 resp_md5=15d164170beba3072bea4c20becd9098
+
+[H-ACTION] TEXT: 'Осмотреть его - как он выглядит? (что при нем из вещей?)'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, как он выглядит и что при нем из вещей)*
+  PROP: None
+  EXPECTED: OBSERVE+QUESTION | latency: 2.16s
+[DET-TRACE] prompt_md5=3e6a7eaa182d9283819ac21bc73b010f seed=1130603993 resp_md5=65e6d6bb03c262724d2192910dbf3f13
+[DIAG-LLM] slow-path: "{'action': 'STEAL', 'actor': 'player', 'target': None, 'speech_act': None, 'social_intent': None, 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence'"
+
+[H-ACTION] TEXT: 'Украсть'
+  ACTION: STEAL | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: STEAL | latency: 1.88s
+[RECOVERY] multi-sentence fast=PERSUADE → LLM comprehension
+[DET-TRACE] prompt_md5=d554657d755e89e722f541ddb08ba1f8 seed=2043929654 resp_md5=0f5ea3d1726d1c2295134398acac21e0
+
+[H-ACTION] TEXT: 'Сесть на стул. И попросить служанку обслужить меня'
+  ACTION: PERSUADE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: MULTI-действие | latency: 2.21s
+[DET-TRACE] prompt_md5=80a45e2f78765ae3e91290e93da0c4be seed=1517557816 resp_md5=7bb73e7ca8c1b8497e2fc82192a3ab6d
+[RECONCILE] proposition raw-entity 'денег' снята/заменена (LLM)
+[RECONCILE] action overridden: fast=ATTACK → llm=DIALOGUE (phantom proposition)
+
+[H-ACTION] TEXT: 'Эй! а денег дашь?'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION/GIVE-запрос | latency: 1.82s
+[DET-TRACE] prompt_md5=08bac60772a121427601235d2d3812e3 seed=653698968 resp_md5=7b6e72c5d98934fd7ae07bd34753f925
+
+[H-ACTION] TEXT: 'Что у вас можно купить?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about what can be bought)*
+  PROP: None
+  EXPECTED: TRADE-вопрос | latency: 1.88s
+[DET-TRACE] prompt_md5=7525d6397634779064c2ca1b383eeea0 seed=497091165 resp_md5=8bca8cff6e2eb9cf8ee63867b98ac427
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'information about whether the player can be bought', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, '"
+[RECOVERY] applied=['semantic_acts']
+
+[H-ACTION] TEXT: 'А тебя купить можно?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about whether the player can be bought)*
+  PROP: None
+  EXPECTED: TRADE/FLIRT-провокация | latency: 1.88s
+[DET-TRACE] prompt_md5=1caee491188b282ace816607a2634090 seed=984380526 resp_md5=75faebba28209d17b361b0daa312de50
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'information', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence':"
+[RECOVERY] applied=['semantic_acts']
+
+[H-ACTION] TEXT: 'Где мне найти информацию об...'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information)*
+  PROP: None
+  EXPECTED: QUESTION-обрыв | latency: 1.58s
+[DET-TRACE] prompt_md5=ac6b9a199064462a752c28a2ff423d50 seed=950670262 resp_md5=3bee843208651a5a70ae91cdc631ca75
+[RECONCILE] proposition raw-entity 'зад' снята/заменена (LLM)
+[RECONCILE] CONFLICT target: fast='зад' llm='UNDEFINED' (v0: fast)
+
+[H-ACTION] TEXT: 'Пнуть под зад'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: ATTACK | latency: 1.97s
+[DET-TRACE] prompt_md5=44c6f1b087900190bd0a3fb8733232e2 seed=1432227438 resp_md5=a91825348f7b0dab82c342786e5d790e
+
+[H-CHAT] TEXT: 'Ты куешь? А что куешь посуду или оружие?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about what the other person forges)*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 1.88s
+[DET-TRACE] prompt_md5=62af26b304c0d65a5003fb8ab5f7360f seed=894173452 resp_md5=29357da24536020547b3137d8ad1e44e
+
+[H-CHAT] TEXT: 'А что там за таверной есть? Или вы тут все и ночуете?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about the inn and where everyone sleeps)*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 1.9s
+[DET-TRACE] prompt_md5=fcb6876104700622aa82b883e8f89f10 seed=1422979713 resp_md5=138371f7d104fc51e0da415f9b4aca07
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'de"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[DET-TRACE] prompt_md5=fcb6876104700622aa82b883e8f89f10 seed=1422979713 resp_md5=138371f7d104fc51e0da415f9b4aca07
+[RECOVERY] applied=['semantic_acts']
+
+[H-CHAT] TEXT: 'Где вы спите? И часто вы едите?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 3.68s
+[DET-TRACE] prompt_md5=4758efc0bd01540a7d34d0f35ffe889a seed=1346934398 resp_md5=7721b19be66cd7fc1d3e76f727d6c469
+
+[H-CHAT] TEXT: 'Ну рассказывайте - кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about who has already had sex with lucie)*
+  PROP: None
+  EXPECTED: QUESTION-сплетни | latency: 1.94s
+[DET-TRACE] prompt_md5=218db70f2917841838db687788e1687d seed=375335297 resp_md5=29d442dbe85c1479ccfda1e6327e0afc
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': {'subject_id': 'player', 'predicate': 'is', 'object_id': 'Mü', 'polarity': True}, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 's"
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[SELF_INTRO] TEXT: 'Я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.16s
+[DET-TRACE] prompt_md5=ea3bdf8719232bfa86cb3f7345f2f62e seed=551017462 resp_md5=a830c81a5c471ac6eed3bda6056f85a6
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': {'subject_id': 'player', 'predicate': 'self_introduction', 'object_id': 'Mü', 'polarity': True}, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotio"
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[SELF_INTRO] TEXT: 'Меня зовут Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.28s
+[DET-TRACE] prompt_md5=bded8e56be07c293e90ffb8658e3ea58 seed=508457972 resp_md5=459efc213a2387a7c7b164b9ae41443e
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': {'subject_id': 'player', 'predicate': 'asserts', 'object_id': 'Мю', 'polarity': True}, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physi"
+[RECOVERY] applied=['proposition']
+
+[SELF_INTRO] TEXT: 'Это я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.11s
+[DET-TRACE] prompt_md5=4a1a7020f10fa15f5584da5daf43788b seed=1662446355 resp_md5=8ee673f35259386bf120a6559da7f440
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': "
+
+[SELF_INTRO] TEXT: 'Зови меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 1.9s
+[DET-TRACE] prompt_md5=7da3134a406e2aa20426e60d650bafa5 seed=1640209303 resp_md5=806ae16d1f44b94b1e7b1ef0b24b8540
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'neutral', 'proposition': {'subject_id': 'player', 'predicate': 'asserts', 'object_id': 'Ворг', 'polarity': True}, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, '"
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[CORRECTION] TEXT: 'Нет, я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION{name:Ворг} | latency: 2.14s
+[DET-TRACE] prompt_md5=db7bae53d33b56ea01ff97aa01db4ded seed=288150297 resp_md5=102c20447aac8ec74ce0594296c205f2
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'self_introduction', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0."
+
+[CORRECTION] TEXT: 'Поправка: я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 1.97s
+[DET-TRACE] prompt_md5=03de06dc1c8a4cc87c12377d19126ea2 seed=1687216480 resp_md5=6c16abee611793f9abc9595af5a53eee
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'Mü', 'speech_act': 'assert', 'social_intent': 'deceive', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.0, 'emotional_charge': 0.0, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'co"
+
+[CORRECTION] TEXT: 'Забудь Мю, я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION+отрицание | latency: 2.01s
+[DET-TRACE] prompt_md5=db447d507b882f69bc29c57ae715f4ff seed=1853986977 resp_md5=8cce2a6b89bf577123298737e8abada2
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'deceive', 'speech_act': 'assert', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.8, 'confidence': 0.0, 'desperation': 0"
+
+[CHALLENGE] TEXT: 'А если я соврал?'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 1.54s
+[DET-TRACE] prompt_md5=73078f68d6e5ef5922cf9406f663b288 seed=1069291570 resp_md5=8838bccfcd7b3c748f4abe2414cc46cf
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'de"
+[RECOVERY] applied=['semantic_acts']
+
+[CHALLENGE] TEXT: 'Ты уверен?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: CHALLENGE/QUESTION | latency: 1.84s
+[DET-TRACE] prompt_md5=5b36d4b0a267cb8b64979e2ae63ead08 seed=1300164358 resp_md5=e5bd1e0aa5d1c5538551c8cb741edf87
+[DIAG-LLM] slow-path: '{\'action\': \'DIALOGUE\', \'social_intent\': \'obtain_information\', \'speech_act\': \'question\', \'proposition\': None, \'requested_outcome\': "to know if it\'s true", \'offered_outcome\': None, \'condition\': None, \'tool_reference\': None, \'addressee\': None, \'target_zone\': None, \'physical_force\': None, \'emotional_charge\': None, \'social_pressure\': None, \'semantic\': {\'aggression\': 0.0, \'fear\': 0.3, \'shame\': 0.0, \'con'
+[RECOVERY] applied=['semantic_acts']
+
+[CHALLENGE] TEXT: 'А вдруг это неправда?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(to know if it's true)*
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 1.91s
+[DET-TRACE] prompt_md5=3d583e8c093623ec0719c2523a05d279 seed=1014005199 resp_md5=6e6473009d2725864406ba69b4f1cafd
+
+[PROVENANCE] TEXT: 'Кто тебе сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who told the speaker something)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.8s
+[DET-TRACE] prompt_md5=3fc3b6a4b903e9e8ff51348b4606586c seed=2122330991 resp_md5=ebd25e84c4f3621369dc7494a3daa78d
+
+[PROVENANCE] TEXT: 'Откуда ты это знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn the source of the information)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.85s
+[DET-TRACE] prompt_md5=32e2c9c904cccf5781866a67dbace384 seed=1764674890 resp_md5=2cbad18dcfff5082c5fd4f60325c1b8c
+
+[PROVENANCE] TEXT: 'Кто сообщил тебе, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who told the speaker their name)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 1.89s
+[DET-TRACE] prompt_md5=8d1b2fabf3b5d0f1d2cf25b8a6665daa seed=1789567808 resp_md5=d920f5cfaac0e27b2335d7f11949f581
+
+[META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(to know the name of the speaker)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.03s
+[DET-TRACE] prompt_md5=e5cadcfc262097a8e060c7812e31c2ff seed=1661566523 resp_md5=cdceac91b1aa7037d9372927514ddd1c
+[DIAG-LLM] slow-path: '{\'action\': \'DIALOGUE\', \'social_intent\': \'obtain_information\', \'speech_act\': \'question\', \'proposition\': None, \'requested_outcome\': "confirmation of remembering the player\'s name", \'offered_outcome\': None, \'condition\': None, \'tool_reference\': None, \'addressee\': None, \'target_zone\': None, \'physical_force\': None, \'emotional_charge\': None, \'social_pressure\': None, \'semantic\': {\'aggression\': 0.0, \'fear\''
+[RECOVERY] applied=['semantic_acts']
+
+[META] TEXT: 'Ты помнишь моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of remembering the player's name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 1.88s
+[DET-TRACE] prompt_md5=c9db6155655eebc670424a06f014c1e1 seed=745490507 resp_md5=14712060fd047e03776c3392121b3f17
+
+[META] TEXT: 'Ты уверен, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation about the name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 1.83s
+[DET-TRACE] prompt_md5=c11b1a14c8f37b1fa8ad10f6389e128c seed=2140708698 resp_md5=f9f235f0d91edab74d2bbcc7c97d711c
+
+[MULTI] TEXT: 'Привет, я Мю. А кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: GREETING(); SELF_INTRODUCTION(); QUESTION(identity)
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_IDENTITY | latency: 2.39s
+[DET-TRACE] prompt_md5=26b36d7908a516e5ee36a7ff7d6cb9f2 seed=91407717 resp_md5=9660a6ae756858447a77805a307dcd6d
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': {'subject_id': 'player', 'predicate': 'is', 'object_id': 'Ворг', 'polarity': True}, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, "
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[MULTI] TEXT: 'Я Мю, но вообще-то я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: SELF_INTRO x2 / коррекция | latency: 2.21s
+[DET-TRACE] prompt_md5=5314ff4eed860f05b16936d353e9fc6f seed=90182313 resp_md5=704ea02d2ad8296914a4d464baeab701
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'semantic_acts': [{'type': 'GREETING'}, {'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_press"
+
+[MULTI] TEXT: 'Привет! Меня зовут Мю. Где мы?'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING(); SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_LOCATION | latency: 2.14s
+[DET-TRACE] prompt_md5=4d42345285295196bd6b01c66439afb1 seed=684349631 resp_md5=1e603d923538f680207aa6b494ef0d96
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'confirmation about identity', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0."
+[RECOVERY] applied=['semantic_acts']
+
+[CONTRAST] TEXT: 'Ты Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation about identity)*
+  PROP: None
+  EXPECTED: QUESTION о собеседнике | latency: 1.92s
+[DET-TRACE] prompt_md5=1c12b962b64be1cd15d6091057fcfd9d seed=335190834 resp_md5=1e603d923538f680207aa6b494ef0d96
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'confirmation about identity', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0."
+[RECOVERY] applied=['semantic_acts']
+
+[CONTRAST] TEXT: 'Ты ведь Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation about identity)*
+  PROP: None
+  EXPECTED: CONFIRMATION_SEEKING | latency: 1.91s
+[DET-TRACE] prompt_md5=b977ee205ead54b604e405f57e778e1b seed=1940034720 resp_md5=f1d7fd934a1aa2457d270633e0adb92d
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'deceive', 'proposition': {'subject_id': 'player', 'predicate': 'is_not', 'object_id': 'Mü', 'polarity': True}, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.0, 'emotional_charge': 0.0, 'socia"
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[CONTRAST] TEXT: 'Я не Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: отрицание идентичности | latency: 2.27s
+[DET-TRACE] prompt_md5=22d3e3fd6e21c04b94c644ae109df957 seed=172691091 resp_md5=138371f7d104fc51e0da415f9b4aca07
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'de"
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-PROV] TEXT: 'Откуда у тебя сведения о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.88s
+[DET-TRACE] prompt_md5=a97c9b6e3927b10bb7156b6f784c35c8 seed=909954044 resp_md5=230fbd53ef840b451af0a411f3c829bd
+
+[GEN-PROV] TEXT: 'Кто тебя просветил насчёт моего имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn about the speaker's knowledge of the player's name)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.97s
+[DET-TRACE] prompt_md5=ef3ececac11f12a87b0abcb4210fe3d6 seed=893462390 resp_md5=a0f95ba56e3e0aecfc7d4c19ba1a9d36
+
+[GEN-PROV] TEXT: 'Ты сам это узнал или тебе кто-то сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn if the other person found out on their own or from someone else)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE/boundary | latency: 2.01s
+[DET-TRACE] prompt_md5=77f266415fec81cda559c939ee21bb00 seed=786391497 resp_md5=5ac29b991e2f47f3741a2f67aaa1d8d4
+
+[GEN-3RD] TEXT: 'Кто вчера был с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who was with lucia yesterday)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 1.86s
+[DET-TRACE] prompt_md5=d83164366fdb5fcb508fbe86da896549 seed=347605503 resp_md5=84182aa18e0b1d891b0bca874ce4f892
+
+[GEN-3RD] TEXT: 'Кто ей об этом рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: boundary — не назначать заранее | latency: 1.92s
+[DET-TRACE] prompt_md5=bec30d5b6f8596aa77385279eb098b53 seed=1422622312 resp_md5=79970c384c19ce49c983167df1b81e5c
+
+[GEN-3RD] TEXT: 'Кто с ней вообще разговаривал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who talked to her)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 1.91s
+[DET-TRACE] prompt_md5=d92cbb36543143c083c94c689ed022d9 seed=1853214014 resp_md5=53b224d6f68269b7ce8e264cb56cd3f8
+
+[GEN-3RD] TEXT: 'Кто что-то делал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who did something to lucia)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 1.51s
+[DET-TRACE] prompt_md5=151c473e5af8f59f1f9748e8870b57af seed=405836946 resp_md5=c7eba531255410aa6c885800ec740d33
+
+[AB-PROV] TEXT: 'Кто тебе сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who told the speaker their name)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.83s
+[DET-TRACE] prompt_md5=c34262124bac5eb1645bc1fdca2f206f seed=395540324 resp_md5=55c07d23200923d8ed63bf8dcbd3592f
+
+[AB-PROV] TEXT: 'Кто сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who told me that i am mue)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.87s
+[DET-TRACE] prompt_md5=3ec5a5823a9ab43f46722985738636e2 seed=1293598341 resp_md5=9175982491725ad71de8b233ac102f55
+
+[AB-PROV] TEXT: 'Кто сообщил тебе моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who told the name)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.81s
+[DET-TRACE] prompt_md5=70936e6f1a1bfe91402c3a5f75a4cb1e seed=1017784285 resp_md5=bd9c8de685ef8a1f47b989715fc71993
+
+[AB-PROV] TEXT: 'Откуда ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn about the source of the information)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.93s
+[DET-TRACE] prompt_md5=0f58f86159c714af76307efdd96ff27b seed=1906082025 resp_md5=c0c18541b6b47fb7751ebab0cce6f361
+
+[AB-3RD] TEXT: 'Кто уже разговаривал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who has spoken to lucie)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 1.92s
+[DET-TRACE] prompt_md5=33443bfe08c8db2b8b269b00a37c6eb5 seed=617444700 resp_md5=efd3ef4973af71355bdd06d828cbee81
+
+[AB-3RD] TEXT: 'Кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who has already had sex with lucie)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 1.97s
+[DET-TRACE] prompt_md5=a5c017a880c75695b82c97065b36c026 seed=1823824874 resp_md5=6164bbcdd510aa3aacfdff99701aad78
+
+[AB-EDGE] TEXT: 'Кто рассказал Люсе про меня?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: context-dependent | latency: 1.85s
+[DET-TRACE] prompt_md5=2454ada43dac08523040e7dde31f61e4 seed=1326363625 resp_md5=ebd25e84c4f3621369dc7494a3daa78d
+
+[AB-PROV] TEXT: 'Кто источник этой информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn the source of the information)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.92s
+[DET-TRACE] prompt_md5=8d1b2fabf3b5d0f1d2cf25b8a6665daa seed=1789567808 resp_md5=d920f5cfaac0e27b2335d7f11949f581
+
+[AB-META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(to know the name of the speaker)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 1.94s
+[DET-TRACE] prompt_md5=3fe00f6cc7cd89c81d610d5a6d74f83a seed=1897750750 resp_md5=8519efc7b23cef2104927aba68a3ec52
+
+[AB-META] TEXT: 'Кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn about the other person's identity)*
+  PROP: None
+  EXPECTED: ASK_IDENTITY | latency: 1.93s
+[DET-TRACE] prompt_md5=1aa8eb5cb4e7f310a84200b3e098ccdc seed=1485883816 resp_md5=138371f7d104fc51e0da415f9b4aca07
+
+[IND-PROV] TEXT: 'Кто тебе проинформировал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.86s
+[DET-TRACE] prompt_md5=01f9677695e20a21cb3119ecdae96aeb seed=1028451579 resp_md5=138371f7d104fc51e0da415f9b4aca07
+
+[IND-PROV] TEXT: 'Откуда вам известно моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.85s
+[DET-TRACE] prompt_md5=8b1e6667008ad1a513d8f29629c3a7d8 seed=951813845 resp_md5=a884dc4acb2ffc5851a3c5a9877f20d2
+
+[IND-PROV] TEXT: 'Вам кто-то рассказал, как меня зовут?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 2.34s
+[DET-TRACE] prompt_md5=4b6db888bd2e1c588006f94e565b67c3 seed=1140576229 resp_md5=138371f7d104fc51e0da415f9b4aca07
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'de"
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Источник твоих знаний о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.85s
+[DET-TRACE] prompt_md5=e113e871b126c7b6ae8e83ede0387a52 seed=1509734069 resp_md5=5aa818da6f29101ed4c755fee6e504e5
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'learn the name', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidenc"
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Тебе сказали, как я зовусь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn the name)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.92s
+[DET-TRACE] prompt_md5=ef2aab1bd72cd88b4975999e846b8c56 seed=211448842 resp_md5=d42b3fd05aec503f59e03b79e2347bd8
+
+[IND-PROV] TEXT: 'Кто-то тебе рассказал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn about who told the speaker their name)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.94s
+[DET-TRACE] prompt_md5=fc1f10ea9d31e5c56ab766db4f2bd877 seed=481271207 resp_md5=bd9c8de685ef8a1f47b989715fc71993
+
+[IND-PROV] TEXT: 'Откуда тебе стало известно, как меня зовут?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn about the source of the information)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 1.95s
+[DET-TRACE] prompt_md5=7c433f450534e73426ec46a3b474d73a seed=906231129 resp_md5=c2ba615dbb71f0269124ffb43d0892a2
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': 'to learn if the other person knew my name on their own', 'addressee': None, 'target': None, 'tool_reference': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0"
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Ты узнал моё имя сам?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(to learn if the other person knew my name on their own)*
+  PROP: None
+  EXPECTED: boundary/challenge | latency: 1.91s
+[DET-TRACE] prompt_md5=4023361fe9542023f0d71636fa4b1d76 seed=80814637 resp_md5=25d6e6d79a9779bad7ddc62af44d414f
+
+[IND-3RD] TEXT: 'Кто с Люсей разговаривал вчера вечером?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who talked to lucia yesterday evening)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 1.93s
+[DET-TRACE] prompt_md5=7a3af0d566b634967b15dd4f7dc6a4b1 seed=1365589149 resp_md5=04dab8fcc4124e6d9810a6cad25b6a08
+
+[IND-3RD] TEXT: 'Тебе говорили, кто ходил к Люсе?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(information about who visited lucia)*
+  PROP: None
+  EXPECTED: QUESTION/boundary | latency: 1.93s
+[DET-TRACE] prompt_md5=b26cf79e300fcf7098f4f2b9c0ad3c66 seed=1341226637 resp_md5=bc3e436e2f588b27973bc53d51adc974
+
+[IND-3RD] TEXT: 'Кто-нибудь говорил с служанкой?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn if anyone has spoken to the servant)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 1.9s
+[DET-TRACE] prompt_md5=32e171ea4c641f9ebc6dc5304f57c8e3 seed=1256726425 resp_md5=0b53c620e9ff17e5ea0264ed8e0647e2
+
+[IND-3RD] TEXT: 'Кто ходил к Торнину с новостями?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn who brought news to torin)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 1.89s
+
+=== СВОДКА ДЛЯ RCA-КАРТЫ ===
+[H-GREET] 'Быть добру! Привет! Здоровеньки булы!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-GREET] 'Здавствуй и процветай!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-GREET] 'Рад встрече!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-GREET] 'Извините, а ....' -> action=DIALOGUE acts=[] prov_topic=False
+[H-GREET] 'Утро доброе!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-INTRO] 'Разрешите представиться - я Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Имя моё Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Слушай сюда, звать меня Мю' -> action=DIALOGUE acts=[] prov_topic=False
+[H-INTRO] 'Помни и запоминай, обращайся ко мне Мю' -> action=DIALOGUE acts=[] prov_topic=False
+[H-INTRO] 'Мю ВАн - а вы?' -> action=DIALOGUE acts=[] prov_topic=False
+[H-AGGRO] 'Эй! Гнида, сюда иди...' -> action=MOVE acts=[] prov_topic=False
+[H-AGGRO] 'Это ты сказал? Или твоя мама?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Ты идиот или притворяешься?' -> action=THREATEN acts=[] prov_topic=False
+[H-AGGRO] 'Херню не неси! Что за чушь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Слышь, дура! Слушайся меня, а не то...' -> action=THREATEN acts=[] prov_topic=False
+[H-PROV] 'Кто рассказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[H-PROV] 'Это я говорил?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'откуда знаешь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'источник данной информации?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'Кто подсказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[H-PROV] 'Ты уверен, или просто краем уха услышал?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[H-PROV] 'Выдумываешь? может тебе показалось?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'Откуда информация?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Поцеловать её' -> action=FLIRT acts=[] prov_topic=False
+[H-ACTION] 'Спросить кто тут главный' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[H-ACTION] 'Стянуть с него штаны' -> action=STEAL acts=[] prov_topic=False
+[H-ACTION] 'Выхватить у него меч из-за пояса и ударить им его же' -> action=ATTACK acts=['ASSERT'] prov_topic=False
+[H-ACTION] 'Осмотреть его - как он выглядит? (что при нем из вещей?)' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Украсть' -> action=STEAL acts=[] prov_topic=False
+[H-ACTION] 'Сесть на стул. И попросить служанку обслужить меня' -> action=PERSUADE acts=[] prov_topic=False
+[H-ACTION] 'Эй! а денег дашь?' -> action=DIALOGUE acts=[] prov_topic=False
+[H-ACTION] 'Что у вас можно купить?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'А тебя купить можно?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Где мне найти информацию об...' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Пнуть под зад' -> action=ATTACK acts=['ASSERT'] prov_topic=False
+[H-CHAT] 'Ты куешь? А что куешь посуду или оружие?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'А что там за таверной есть? Или вы тут все и ночуете?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'Где вы спите? И часто вы едите?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'Ну рассказывайте - кто уже трахался с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[SELF_INTRO] 'Я Мю' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[SELF_INTRO] 'Меня зовут Мю' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[SELF_INTRO] 'Это я Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[SELF_INTRO] 'Зови меня Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[CORRECTION] 'Нет, я Ворг' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[CORRECTION] 'Поправка: я Ворг' -> action=DIALOGUE acts=[] prov_topic=False
+[CORRECTION] 'Забудь Мю, я Ворг' -> action=DIALOGUE acts=[] prov_topic=False
+[CHALLENGE] 'А если я соврал?' -> action=DIALOGUE acts=[] prov_topic=False
+[CHALLENGE] 'Ты уверен?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[CHALLENGE] 'А вдруг это неправда?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[PROVENANCE] 'Кто тебе сказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[PROVENANCE] 'Откуда ты это знаешь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[PROVENANCE] 'Кто сообщил тебе, что я Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[META] 'Ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[META] 'Ты помнишь моё имя?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[META] 'Ты уверен, что меня зовут Мю?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[MULTI] 'Привет, я Мю. А кто ты?' -> action=DIALOGUE acts=['GREETING', 'SELF_INTRODUCTION', 'QUESTION'] prov_topic=False
+[MULTI] 'Я Мю, но вообще-то я Ворг' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[MULTI] 'Привет! Меня зовут Мю. Где мы?' -> action=DIALOGUE acts=['GREETING', 'SELF_INTRODUCTION'] prov_topic=False
+[CONTRAST] 'Ты Мю?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[CONTRAST] 'Ты ведь Мю?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[CONTRAST] 'Я не Мю' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[GEN-PROV] 'Откуда у тебя сведения о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-PROV] 'Кто тебя просветил насчёт моего имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-PROV] 'Ты сам это узнал или тебе кто-то сказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто вчера был с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[GEN-3RD] 'Кто ей об этом рассказал?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[GEN-3RD] 'Кто с ней вообще разговаривал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[GEN-3RD] 'Кто что-то делал с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-PROV] 'Кто тебе сказал, что я Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-PROV] 'Кто сказал, что я Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-PROV] 'Кто сообщил тебе моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-PROV] 'Откуда ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-3RD] 'Кто уже разговаривал с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-3RD] 'Кто уже трахался с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-EDGE] 'Кто рассказал Люсе про меня?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[AB-PROV] 'Кто источник этой информации?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-META] 'Ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-META] 'Кто ты?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Кто тебе проинформировал о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Откуда вам известно моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Вам кто-то рассказал, как меня зовут?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[IND-PROV] 'Источник твоих знаний о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Тебе сказали, как я зовусь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Кто-то тебе рассказал о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[IND-PROV] 'Откуда тебе стало известно, как меня зовут?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Ты узнал моё имя сам?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Кто с Люсей разговаривал вчера вечером?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[IND-3RD] 'Тебе говорили, кто ходил к Люсе?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[IND-3RD] 'Кто-нибудь говорил с служанкой?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Кто ходил к Торнину с новостями?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+
+(RCA-разметка: FAILURE_BOUNDARY по каждому промаху — вручную по trace выше)

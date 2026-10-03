@@ -66,9 +66,12 @@ class V2RelationshipBackend:
         npc_provider: Optional[Callable[[], list]] = None,
     ) -> None:
         """RAM-GO: _directed_ram — runtime authority (см. класс-докстринг).
-        scene_state_provider — vestigial (удержан до доказательства
-        pre-scene-теста; после — кандидат на удаление M1b.5): сцена нужна
-        только как sync-цель проекции, доступная после bind.
+        scene_state_provider — ЖИВОЙ sync-тракт (M1b.5-верификация):
+        единственный источник цели sync_into_scene() (зовётся из
+        update/reset_campaign/bootstrap); через MemoryManager._v2_scene_ref
+        держит АКТУАЛЬНУЮ сцену при смене локации — bind() фиксирует только
+        кампанию и сцену не обновляет. Удаление = протухшая
+        persistence-проекция (потеря отношений при save). НЕ vestigial.
         late-bind: конструирование без кампании легально (GameLoop строится
         до известности campaign_id); первый осмысленный API-вызов
         привязывает (см. _ensure_lazy_bind)."""

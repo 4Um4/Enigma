@@ -288,4 +288,123 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     "body_state.disabled": FieldCausality("DEBT", organ="body", terminal="decision", authority="ADR-O-414"),
     "body_state.money": FieldCausality("DEBT", organ=None, terminal=None, authority="ADR-SSOT-ECONOMIC"),
     "body_state.life_status": FieldCausality("DEBT", organ="body", terminal=None, authority="ADR-123"),
+
+    # ═══ Stage 2b-2: экспансия Relationship/Desire/Knowledge/Memory/Experience ═══
+    # (дамп CENSUS_DUMP_S2B.txt; 93 ключа. Контексты: ADR-O-370 (RE-контракты,
+    # substrate dormant), ADR-O-394/395/397/413 (R5–R8 slices), O-354/355/357/358/
+    # 360 (эпистемика S188-эпохи), NL-D4 (memory_crystal/experience_trace — слой
+    # спит: модели+SQLite есть, писателей нет). Все DEBT — field-level proof не
+    # собран; контурные proof (S243/GC-вертикали) ≠ покрывают поля — честность Q-B.
+    # organ-разметка — первый живой coverage десятки.)
+
+    # ── need_slot (organ=relationship; ADR-O-370; NO_WRITER×9 — substrate dormant) ──
+    "need_slot.need_id": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_slot.target_pressure": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "need_slot.deficit_threshold": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "need_slot.importance": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "need_slot.rigidity": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "need_slot.substitutability": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_slot.adaptability": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_slot.satiation_capacity": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_slot.object_binding": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_slot.homeostatic": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_slot.change_rate": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+
+    # ── need_level (organ=relationship) ──
+    "need_level.need_id": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_level.current_intensity": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "need_level.satiation": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "need_level.frustration": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+
+    # ── preference_model / hard_constraint / exclusivity_requirement (RE-фазы) ──
+    "preference_model.pref_id": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "preference_model.strength": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "preference_model.flexibility": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "preference_model.confidence": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "preference_model.learning_rate": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "hard_constraint.constraint_id": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "hard_constraint.necessity": FieldCausality("DEBT", organ="relationship", terminal="decision", authority="ADR-O-370"),
+    "hard_constraint.violation_cost": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "hard_constraint.negotiability": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "hard_constraint.substitutability": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "exclusivity_requirement.scope": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "exclusivity_requirement.importance": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "exclusivity_requirement.rigidity": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "exclusivity_requirement.negotiability": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+    "exclusivity_requirement.violation_cost": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-370"),
+
+    # ── desired_change (organ=desire; R5–R8 production-proven контур) ──
+    "desired_change.who": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-394"),
+    "desired_change.reason": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-394"),
+    "desired_change.state_type": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-394"),
+    "desired_change.target_of_change": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-394"),
+    "desired_change.addressee": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-413"),
+    "desired_change.method_weights": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-394"),
+
+    # ── proposition (organ=knowledge) ──
+    "proposition.subject_id": FieldCausality("DEBT", organ="knowledge", terminal="belief", authority="ADR-O-354"),
+    "proposition.predicate": FieldCausality("DEBT", organ="knowledge", terminal="belief", authority="ADR-O-354"),
+    "proposition.object_id": FieldCausality("DEBT", organ="knowledge", terminal="belief", authority="ADR-O-354"),
+    "proposition.polarity": FieldCausality("DEBT", organ="knowledge", terminal="belief", authority="ADR-O-354"),
+
+    # ── claim_event (organ=knowledge; listener_id NO_READER — живая находка) ──
+    "claim_event.event_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-354"),
+    "claim_event.claim_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-354"),
+    "claim_event.speaker_id": FieldCausality("DEBT", organ="knowledge", terminal="belief", authority="ADR-O-357"),
+    "claim_event.listener_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-354"),  # NO_READER: маршрутизация, не потребление
+    "claim_event.proposition": FieldCausality("DEBT", organ="knowledge", terminal="belief", authority="ADR-O-354"),
+    "claim_event.speech_act": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-354"),
+    "claim_event.tick": FieldCausality("INPUT"),
+
+    # ── epistemic_record / epistemic_context (organ=knowledge) ──
+    "epistemic_record.agent_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-355"),
+    "epistemic_record.proposition": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
+    "epistemic_record.confidence": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-357"),
+    "epistemic_record.source_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-360"),
+    "epistemic_record.source_claim_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-355"),
+    "epistemic_record.first_observed_tick": FieldCausality("INPUT"),
+    "epistemic_record.last_updated_tick": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-355"),
+    "epistemic_context.agent_id": FieldCausality("DEBT", organ="knowledge", terminal=None, authority="ADR-O-355"),
+    "epistemic_context.perceived_threats": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
+    "epistemic_context.perceived_allies": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
+    "epistemic_context.perceived_violations": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
+    "epistemic_context.max_confidence": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
+    "epistemic_context.trigger_proposition": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-355"),
+    "epistemic_context.claims_about_self": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-390"),
+    "epistemic_context.max_self_confidence": FieldCausality("DEBT", organ="knowledge", terminal="decision", authority="ADR-O-390"),
+
+    # ── memory_crystal (organ=memory; NL-D4: слой спит) ──
+    "memory_crystal.subject": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.predicate": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.object": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.source": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.origin_reference": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.related_episodes": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.confidence": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.retrieval_strength": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.emotional_weight": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.last_reinforced": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.times_recalled": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.owner_id": FieldCausality("DEBT", organ="memory", terminal=None, authority="NL-D4"),
+    "memory_crystal.campaign_id": FieldCausality("INPUT"),
+
+    # ── experience_trace (organ=experience; NL-D4) ──
+    "experience_trace.actor_id": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.owner_id": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.source_id": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.source_type": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.content_reference": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.meaning": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.valence": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.arousal": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.novelty": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.personal_relevance": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.social_relevance": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.identity_relevance": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.belief_relevance": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.confidence": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.retrieval_strength": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.timestamp": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),  # NO_WRITER: слой спит; INPUT не легализует сиротство (самопоймал №2-прогон 2b-2)
+    "experience_trace.diagnostic": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
+    "experience_trace.applied_consumers": FieldCausality("DEBT", organ="experience", terminal=None, authority="NL-D4"),
 }

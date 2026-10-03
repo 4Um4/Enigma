@@ -29,7 +29,7 @@ path: backend/app/domain/temporal_specs.py
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, cast
 
 
 @dataclass(frozen=True)
@@ -59,12 +59,28 @@ class TemporalSpec:
 # Reactive events (player approach, attack received) are handled by
 # reactive preemption in Phase 4.5, NOT by validity rules.
 
+def _body_state(npc_state: Any) -> Dict[str, Any]:
+    """§1.2 Silent Failure Eradication: явное чтение body_state.
+
+    Отсутствующее/пустое тело = пустой dict (легальный дефолт: NPC без
+    телесного состояния не сознательен → commitment invalid). Раньше пять
+    правил дублировали `getattr(npc_state, "body_state", None) or {}` —
+    опечатка в имени поля маскировалась тихим дефолтом; ветка отсутствия
+    теперь в одном месте и проверяется тестами temporal-слоя.
+    """
+    if hasattr(npc_state, "body_state"):
+        body = cast(Dict[str, Any], npc_state.body_state)
+        if body:
+            return body
+    return {}
+
+
 def _steal_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     """STEAL commitment valid while NPC is conscious (can continue acting).
     Player approach = reactive preemption (Phase 4.5), NOT validity.
     Opportunity score = OpportunityProducer's job, NOT duplicated here."""
     from app.domain.vital_state import is_conscious
-    _body = getattr(npc_state, "body_state", None) or {}
+    _body = _body_state(npc_state)
     return is_conscious(_body)
 
 
@@ -81,14 +97,14 @@ def _eat_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     """EAT commitment valid while hungry AND conscious.
     hunger > 0.3 = still needs food (hasn't eaten yet)."""
     from app.domain.vital_state import is_conscious
-    _body = getattr(npc_state, "body_state", None) or {}
+    _body = _body_state(npc_state)
     _hunger = float(_body.get("hunger", 1.0))
     return _hunger > 0.3 and is_conscious(_body)
 
 
 def _eat_success(npc_state: Any, ctx: TemporalContext) -> bool:
     """EAT success = hunger dropped below threshold (goal achieved)."""
-    _body = getattr(npc_state, "body_state", None) or {}
+    _body = _body_state(npc_state)
     _hunger = float(_body.get("hunger", 1.0))
     return _hunger <= 0.3
 
@@ -98,7 +114,7 @@ def _approach_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     Destination reachability = existing TraversalState (Phase 7 checks).
     If traversal fails (blocked, target gone) → existing CANCELLED path."""
     from app.domain.vital_state import is_conscious
-    _body = getattr(npc_state, "body_state", None) or {}
+    _body = _body_state(npc_state)
     return is_conscious(_body)
 
 
@@ -114,7 +130,7 @@ def _attack_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     Target alive = Phase 7 Stale Intent Validation (existing).
     Temporal validity does NOT duplicate target-alive check."""
     from app.domain.vital_state import is_conscious
-    _body = getattr(npc_state, "body_state", None) or {}
+    _body = _body_state(npc_state)
     return is_conscious(_body)
 
 

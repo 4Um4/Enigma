@@ -129,7 +129,12 @@ def propagate_social_rumors(
     # S72-7: psyche слушателей — канонический сериализат NPCState
     # (all_npcs_raw_snapshot; формат чтения по образцу dm_agent: npc_id|id).
     _psyche_by_id: dict = {}
-    _anr = getattr(shared_context, "all_npcs_raw_snapshot", None) if shared_context else None
+    # §1.1/§1.2: сжатый тернарник с getattr-дефолтом разворачивается в
+    # явные ветки: None = снапшота NPC ещё не было (законное состояние),
+    # отсутствие атрибута — видимая ветка, а не тихий дефолт.
+    _anr: Any = None
+    if shared_context and hasattr(shared_context, "all_npcs_raw_snapshot"):
+        _anr = shared_context.all_npcs_raw_snapshot
     if _anr is None and isinstance(shared_context, dict):
         _anr = shared_context.get("all_npcs_raw_snapshot")
     if _anr:

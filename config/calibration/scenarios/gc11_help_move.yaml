@@ -1,0 +1,13 @@
+# GC11-B: HELP player→merchant_goran (тик 5) — production-мост компилятора
+# (P2 FIX M1b.2.2) → RelationshipWriteGate → V2-RAM: trust 0→20, fear кламп 0.
+# MOVE (тик 15) идентичен контролю. Seed — метаданные протокола (ADR-O-301).
+scenario_id: gc11_help_move
+description: "GC-11 лечение: HELP@5 + MOVE@15 — одна переменная vs gc11_move_only"
+seed: 7331
+events:
+  - tick: 5
+    action: HELP
+    target: merchant_goran
+  - tick: 15
+    action: MOVE
+    target: merchant_goran

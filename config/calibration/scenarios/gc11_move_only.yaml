@@ -1,0 +1,9 @@
+# GC11-A: контроль — только MOVE-директива (без HELP). Директива одинакова
+# в A и B: единственная переменная дифференциала — HELP-интервенция на тике 5.
+scenario_id: gc11_move_only
+description: "GC-11 контроль: MOVE→merchant_goran на тике 15, без HELP"
+seed: 7331
+events:
+  - tick: 15
+    action: MOVE
+    target: merchant_goran

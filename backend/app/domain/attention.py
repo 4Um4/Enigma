@@ -177,14 +177,21 @@ def create_attention_state(
     new_evidence = approach_evidence if approach_evidence is not None else 0.0
     if not (0.0 <= new_evidence <= 1.0):
         raise ValueError("create_attention_state: approach_evidence вне [0, 1]")
+    # §1.1: опциональное наблюдение разворачивается в явные ветки — None
+    # здесь валидное состояние (наблюдения ещё не было), а не тихий отказ.
+    last_distance: Optional[float] = None
+    last_bearing: Optional[float] = None
+    if observation is not None:
+        last_distance = observation.distance
+        last_bearing = observation.bearing
     return AttentionState(
         subject_id=subject_id,
         phase=phase,
         first_seen_tick=tick,
         last_update_tick=tick,
         observation_window=window,
-        last_distance=observation.distance if observation is not None else None,
-        last_bearing=observation.bearing if observation is not None else None,
+        last_distance=last_distance,
+        last_bearing=last_bearing,
         approach_evidence=new_evidence,
         observer_xy=observer_xy,
     )
@@ -233,6 +240,10 @@ def with_observation(
 
 def attention_to_dict(state: AttentionState) -> Dict[str, Any]:
     """§12.2 WARA: пишет КАЖДОЕ поле, которое читает attention_from_dict."""
+    # §1.1: None-ветка (наблюдателя нет) — явная, не сжатый тернарник.
+    observer_xy_out: Optional[list[Any]] = None
+    if state.observer_xy:
+        observer_xy_out = list(state.observer_xy)
     return {
         _K_SUBJECT_ID: state.subject_id,
         _K_PHASE: state.phase.value,
@@ -242,7 +253,7 @@ def attention_to_dict(state: AttentionState) -> Dict[str, Any]:
         _K_LAST_DISTANCE: state.last_distance,
         _K_LAST_BEARING: state.last_bearing,
         _K_EVIDENCE: state.approach_evidence,
-        _K_OBS_XY: list(state.observer_xy) if state.observer_xy else None,
+        _K_OBS_XY: observer_xy_out,
     }
 
 
@@ -317,22 +328,28 @@ def attention_from_dict(raw: Dict[str, Any]) -> AttentionState:
     window_raw = raw[_K_WINDOW]
     if not isinstance(window_raw, list):
         raise ValueError("attention_from_dict: observation_window должен быть list")
+    # §1.1: опциональные поля десериализации — явные ветки (None = поля не
+    # было в сохранении; обязательные ключи уже отработали KeyError'ем выше).
+    _distance_raw = raw[_K_LAST_DISTANCE]
+    last_distance: Optional[float] = None
+    if _distance_raw is not None:
+        last_distance = float(_distance_raw)
+    _bearing_raw = raw[_K_LAST_BEARING]
+    last_bearing: Optional[float] = None
+    if _bearing_raw is not None:
+        last_bearing = float(_bearing_raw)
+    _obs_xy_raw = raw[_K_OBS_XY]
+    observer_xy: Optional[Tuple[float, float]] = None
+    if _obs_xy_raw is not None:
+        observer_xy = (float(_obs_xy_raw[0]), float(_obs_xy_raw[1]))
     return AttentionState(
         subject_id=str(raw[_K_SUBJECT_ID]),
         phase=AttentionPhase(raw[_K_PHASE]),
         first_seen_tick=int(raw[_K_FIRST_SEEN]),
         last_update_tick=int(raw[_K_LAST_UPDATE]),
         observation_window=tuple(AttentionObservation.from_tuple(t) for t in window_raw),
-        last_distance=(
-            float(raw[_K_LAST_DISTANCE]) if raw[_K_LAST_DISTANCE] is not None else None
-        ),
-        last_bearing=(
-            float(raw[_K_LAST_BEARING]) if raw[_K_LAST_BEARING] is not None else None
-        ),
+        last_distance=last_distance,
+        last_bearing=last_bearing,
         approach_evidence=float(raw[_K_EVIDENCE]),
-        observer_xy=(
-            (float(raw[_K_OBS_XY][0]), float(raw[_K_OBS_XY][1]))
-            if raw[_K_OBS_XY] is not None
-            else None
-        ),
+        observer_xy=observer_xy,
     )
