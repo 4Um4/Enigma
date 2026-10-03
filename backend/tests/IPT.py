@@ -2172,6 +2172,41 @@ def inv_n18_source(world: TestWorld) -> InvariantResult:
         suspects,
     )
 
+
+def inv_consumer_gap_orphan(world: TestWorld) -> InvariantResult:
+    """INV-CONSUMER-GAP-ORPHAN: Слой 1 ADR-O-414 — несанкционированные
+    orphan-поля схем (NO_READER/NO_WRITER) и PARSE-слепые зоны, вне
+    debt-реестра consumer_gap_debts.py. Статика ≤ surface: proof — Слой 3."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+
+    try:
+        from lint_consumer_gap import run_lint
+        violations, _stats = run_lint()
+
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-CONSUMER-GAP-ORPHAN",
+                "CRITICAL",
+                False,
+                f"CONSUMER-GAP: {len(violations)} несанкционированных orphan/parse-нарушений (ADR-O-414). Первые: {_details}",
+                ["scripts/lint_consumer_gap.py", "scripts/consumer_gap_debts.py"],
+            )
+        return InvariantResult("INV-CONSUMER-GAP-ORPHAN", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-CONSUMER-GAP-ORPHAN",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_consumer_gap.py"],
+        )
+
+
 INVARIANTS: List[Callable] = [
     inv_scene_entity_isolation,
     inv_replay_determinism,
@@ -2222,6 +2257,7 @@ INVARIANTS: List[Callable] = [
     inv_world_object_topology,
     inv_event_identity,
     inv_n18_source,
+    inv_consumer_gap_orphan,
 ]
 
 
