@@ -31,13 +31,13 @@
 | **HUMOR / PLAY** | — (план §6) | только после Expectation + Appraisal + Prediction Error | — |
 | **NL-01 NPC как интерфейс** | **NL-01 APPROVED** (вердикт Мастера 2026-10-03: 8 развилок разрешены; аудит кода → находки §12.2/§7.7) | **NL-0** ADR → NL-1 → NL-3 → NL-4 → NL-8a (Фаза 1) → NL-2/NL-5/NL-6/NL-7 + NL-10/NL-11 (Фаза 2) → NL-8/NL-9 closure (Фаза 3) → NL-12 обман (Фаза 4) → GC-41…49 | — |
 
-Стабилизация ядра v0.5.3.7.x завершена (STABILIZATION_ROADMAP); история эпох — `docs/ENIGMA_EPOCHS_REPORT.md`.
+Стабилизация ядра v0.5.3.7.x завершена (отчёт удалён из корпуса ТЗ при аудите; история — git); эпохи — `docs/ENIGMA_EPOCHS_REPORT.md`.
 
 ### 0.2. Сквозная очередь работ (каноническая)
 
 > **§0.2 — единственная каноническая очередь.** Задача, не указанная здесь и не являющаяся prerequisite для её ступеней, требует от архитектора сначала доказать, почему её нужно менять. Полный реестр направлений — §8 (справочник, не очередь).
 >
-> Правила: (1) сверху вниз; (2) параллельные сессии — по трекам с Anti-Race Protocol (§11.1.1 Устава); (3) 🔴 инварианты живого IPT-прогона всегда раньше очереди (LAST_SESSION.md — только если последняя сессия завершалась запуском игры; headless-разработка его не обновляет); (4) ступень = контрактный гейт + линтеры + IPT + запись в MUTATIONS; (5) закрытие стадии с назначенным acceptance-обязательством — по §9 (реестр привязок §9.9).
+> Правила: (1) сверху вниз; (2) параллельные сессии — по трекам с Anti-Race Protocol (§11.1.1 Устава); (3) 🔴 инварианты живого IPT-прогона всегда раньше очереди (LAST_SESSION.md — только если последняя сессия завершалась запуском игры; headless-разработка его не обновляет); (4) ступень = контрактный гейт + линтеры + IPT + запись в MUTATIONS; (5) закрытие стадии с назначенным acceptance-обязательством — по §9 (реестр привязок §9.9); (6) самоочистка корпуса ТЗ обязательна — протокол §1.3 (исполненный ТЗ = удалённый файл; ступень не закрыта, пока её ТЗ лежат в корпусе).
 
 **Инструмент сессий (S314, 4041294e):** F5-лаборатория = microscope над production (ExperimentRunner → build_game_loop → idle_tick; temp-saves + MockProvider + ObservabilityTap; рычаг начальных состояний `npc_overrides.social` — canonical WriteGate; headless-прецедент `backend/tests/sandbox/lab_r001_clone_differential.py`). Назначение: GC-11, причинные верификации, калибровки. Отдельные ad-hoc probe не писать.
 
@@ -109,6 +109,8 @@
 - [ ] Открытые хвосты §7 с владельцем (FT-2, AI-D1, ST-1, PH-1, SC-1, AUD-D*)
 - [ ] G3-инфраструктура — при планировании Ступени 5
 
+📎 **Реестр ТЗ и триггеров — §1.3.** Перед стартом ступени открыть привязанные ТЗ ЦЕЛИКОМ и сверить с каноном; при расхождении приоритет у roadmap/ADR (Устав §13.5). ТЗ вне канонической очереди исполняется только по триггеру из §1.3/§6.C.
+
 ### 0.3. Истины и принципы
 
 **Пять архитектурных истин:**
@@ -145,23 +147,59 @@
 | `docs/Почти Актуальные TZ/ТЗ_RE-01_Relationship_Engine_v1.9.md` (1972 строки, аудит 40/40) | Канонический ТЗ RE v2: аксиомы §3, запреты §7, устав §12.2 |
 | `docs/Почти Актуальные TZ/ТЗ_RE-01_ПЕРЕДАЧА_преемнику_Р18.md` | Передаточный акт: режим работы, роадмап (а)→(г), развилки Р1–Р7 |
 | `docs/Почти Актуальные TZ/TZ_WORLD_EMBODIMENT FOUNDATION (W-TRACK).md` | Часть II Stage 2.5: WORLD→EMBODIED→PRESENTATION→RENDERING, этапы W0–W9 |
-| `docs/Почти Актуальные TZ/STABILIZATION_ROADMAP.md` | Вердикт по стабилизации (закрыта); остаток долга — god-файлы, mypy, print(), TODO |
+
 | `docs/ENIGMA_EPOCHS_REPORT.md` | Карта Эпох 1–10 (источник прогресса; отстаёт — на v0.5.3.7.8) |
-| `docs/Почти Актуальные TZ/RemontTZ/*.md` (6 файлов) | Мастер-ТЗ на ремонт доменов — историческое, большинство фиксов применено |
+
 | `docs/Почти Актуальные TZ/VZ/*.md` (7 файлов: §18, §19, MEMETIC 01–03, TZ-02, TEXTURES) | Будущие эпохи 7–10 |
 | `docs/Почти Актуальные TZ/TZ_Stage_2_5_Temporal_Causality_Predictive_Runtime_1.md` | Temporal causality / predictive runtime (Часть I; W-TRACK — его Часть II) |
-| `docs/Почти Актуальные TZ/1_TZ_Architect_Enigma_V0_5_3_8_2.md` (+ Parts 2–4, `1_TZ_Стадия_2.md`) | Архитектурные ТЗ волны 0.5.3.8.x |
+
 | `PSY-ARCH-01_Unified_Psychological_Dynamics.md`, `TZ_Laboratoria_Kalibrovki_ENIGMA.md`, `Plan_Razrabotki_Laboratorii.md` | Психологическая динамика и калибровочная лаборатория (M0-полигон ADR-O-367 жив) |
-| `ENIGMA_LLM_PIPELINE_TZ_v1.md`, `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md`, `ENIGMA_TZ2_v2_Narrative_Frame_Onboarding.md`, `ТЗ ENIGMA WORLD-CENTRIC SPATIAL ARCHITECTURE.md` | Периферийные ТЗ (по мере надобности) |
+| `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md`, `ENIGMA_TZ2_v2_Narrative_Frame_Onboarding.md`, `ТЗ ENIGMA WORLD-CENTRIC SPATIAL ARCHITECTURE.md`, `TZ-EKS…`, `ENIGMA_декомпозиция…`, `Living_Activity…` | Периферийные ТЗ — реестр и триггеры: §1.3 |
 | `docs/audits/ADR-*_IMPACT.md` (+ атлас `docs/ADR (Architecture Decision Records).md`) | Детальные аудиты решений; атлас — единый индекс (130+ файлов) |
 | `reports/SESSION_S62_DM_VISION.md`, `reports/LAST_SESSION.md` | Сессии |
+| `docs/audits/RUST_CANDIDATE_RATIFICATION_REPORT.md`, `docs/audits/RELEASE_DEFECT_AUDIT.md` | Исследовательские отчёты (ратификация NO-GO; релиз-гейты) |
 
 ### 1.2. Утрачены (ссылки из v1.0 роадмапа невалидны — не искать, не восстанавливать)
 
-- `upload/ENIGMA_TZ_V0.5.3.7.0.md` — папки `upload/` нет; defect-каталог отработан STABILIZATION_ROADMAP.
+- `upload/ENIGMA_TZ_V0.5.3.7.0.md` — папки `upload/` нет; defect-каталог отработан STABILIZATION_ROADMAP (удалён из корпуса при аудите S{max+1}; история в git).
 - `docs/Почти Актуальные TZ/ENIGMA_TZ_INFRASTRUCTURE.md` — нет в репо.
 - `docs/Почти Актуальные TZ/ENIGMA_SELF_HEALING_SYSTEM.md` — нет в репо.
 - `S1_INPUT_TRACE_IMPLEMENTATION.md`, `INPUT_OBSERVATORY_ROADMAP_S2_S6.md` — нет в репо.
+
+### 1.3. Реестр ТЗ корпуса «Почти Актуальные TZ» — привязки и триггеры запуска
+
+> **Правило:** ТЗ с якорем в §0.2 исполняется вместе со ступенью; ТЗ с триггером-условием — ТОЛЬКО при наступлении триггера. Перед выполнением открыть ТЗ ЦЕЛИКОМ (§3 РЕЖИМА) и сверить с каноном; при расхождении приоритет у roadmap/ADR (Устав §13.5).
+>
+> **ПРОТОКОЛ САМООЧИСТКИ КОРПУСА (обязателен каждой исполняющей сессии):**
+> 1. Взял ступень/пункт §0.2 (или пункт §6/§8) → открой §1.3, найди строки со своим якорем → открой каждое ТЗ ЦЕЛИКОМ до начала работы.
+> 2. Объём ТЗ исполнен и верифицирован (IPT §3.8 РЕЖИМА, гейты §9) → **файл УДАЛЯЕТСЯ**: `git rm -- "docs/Почти Актуальные TZ/<имя>"`, строка из §1.3 снимается. Roadmap — единственный живой документ (что/почему); ТЗ — расходный документ (как).
+> 3. Исполнено частично → файл остаётся; строка §1.3 обновляется (остаток + новый триггер).
+> 4. ТЗ противоречит канону → не исполнять слепо: пометка в строке §1.3, эскалация Мастеру.
+> 5. Удаление исполненных ТЗ — часть DoD ступени: без него нет записи в MUTATIONS.
+> 6. MUTATIONS-строка ступени фиксирует: что удалено, что осталось.
+> 7. Удалённый ТЗ не восстанавливать и не пересоздавать; знание — `git show`/MUTATIONS.
+
+| ТЗ | Якорь | Триггер запуска |
+|---|---|---|
+| `ТЗ_RE-01_Relationship_Engine_v1.9.md` | §0.2 Ступени 1–3; §2 | Активен — Ступень 2 (M2/D) |
+| `ТЗ_RE-01_ПЕРЕДАЧА_преемнику_Р18.md` | §2.2 | Ступень 3 (Р18; развилки — арбитру GPT) |
+| `TZ_WORLD_EMBODIMENT FOUNDATION (W-TRACK).md` | §0.2 Ступень 5; §4.1 | Ступень 5 |
+| `TZ_Stage_2_5_Temporal_Causality_Predictive_Runtime_1.md` | §6.B Эп.7; Ступени 6–7 | Ступень 6 (MATH-2/3); EPOCH-часть закрыта S266–S269 |
+| `VZ/TZ_§19_Predictive_Perception_Dynamics.md` | §6.A.3; Ступень 7 | Ступень 7 (PP-1) |
+| `PSY-ARCH-01_Unified_Psychological_Dynamics.md` | §8.C; §6.A.2 | Ступень 7 (EM-1) — научная основа |
+| `TZ_Laboratoria_Kalibrovki_ENIGMA.md` + `Plan_Razrabotki_Laboratorii.md` | §8.Q; ADR-O-361/367/368 | Потребность калибровки (Q1/Q7); план M2–M5 |
+| `ENIGMA_декомпозиция_трёх_бог-функций.md` | §8.P2; §7.5 | Следующий кодовый фронт god-file (P17 попутно) |
+| `ENIGMA_TZ_Arhitektoru_Visible_World_Living_Activity.md` | §8.E2–E4; ADR-O-384 | Ступень 2 (NEI-хвост) / §8.E |
+| `TZ-EKS_Mekhaniki_vne_korpusa_TZ_v1_0.md` | §8.T/§8.N (механики M1–M8) | Продуктовая очередь UI — решение Мастера; R-M2-6 ↔ ST-1 |
+| `mvp_secret_tavern_dev_tz_p1_p11.md` | §8.R5; GC-22/GC-28/GC-45 (§9.3); NL-7 | После NL-7 + BC-5/6 (R5-вертикаль секретов) |
+| `ENIGMA_MAP_EDITOR_SMART_VALIDATION.md` | §8.S1; §5.3 | S1; сон-раздел суперсиден ADR-O-374/375 |
+| `COUPLING_RATIFICATION_TZ_architect.md` | §7.1; §8.O | Ревизия C1–C8 при Ступени 4/O-работе (часть исполнена: CognitionContext S294–296, Контракт Барсука S304) |
+| `VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` | §6.B Эп.10; §8.J | После BC-контура (Ступень 4); ренумбер Устава §18 |
+| `VZ/TZ_MEMETIC_01..03` | §6.B Эп.9; §8.I1–I3 | Эпоха 9; сирота `TZ_CONTENT_POLICY_FUNDAMENT` — создать мини-ТЗ или снять зависимость вердиктом |
+| `VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0 — Каузальная петля и Иммунная система.md` | §6.B Эп.8; §8.G1–G7 | Эпоха 8 (WorldChronicle) |
+| `VZ/TEXTURES_AND_GEOMETRY_TZ.md` | §6.B Эп.8; §8.G6 | После lineage (G5) |
+| `ТЗ ENIGMA WORLD-CENTRIC SPATIAL ARCHITECTURE.md` | — | §ENIGMA-002: боль шивки в ≥2 доменах + вердикт Мастера |
+| Контент-трек → §6.C: `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf` (CT-01), `AWC_Process_World_Model_TZ.pdf` (CT-02), `ENIGMA_TZ2_v2_Narrative_Frame_Onboarding.md` (CT-03) | §6.C | Решение Мастера; изоляция от кодовых очередей |
 
 ---
 
@@ -255,6 +293,8 @@ E2.0 = state-delta integrity → E2.0-b = live propagation → BC-1 = semantic l
 
 ### 4.1. Чеклист
 
+📎 ТЗ-источник: `docs/Почти Актуальные TZ/TZ_WORLD_EMBODIMENT FOUNDATION (W-TRACK).md` — открыть целиком перед работой по пункту; факт исполнения сверять с настоящим чеклистом.
+
 - [x] **W-субстрат** (S230/ADR-O-371) — WORLD-домен: `architecture/world.yaml`, семантическая объектная топология, WorldObjectStore (персистенция внутри `scene_state`), WorldSnapshot +1 поле. 30 тестов + INV-WORLD-OBJECT-TOPOLOGY.
 - [x] **W2** (S232/ADR-O-372) — AffordanceResolver: pure `(WorldObject, BodyStateView, npc_position) → SemanticAction[]`; реестр 7 предикатов закрыт (расширение = мини-ADR); INSERT/REMOVE зарезервированы. 24 теста.
 - [x] **W3** (S237/ADR-O-376) — `transition_object`/`damage_object` (TransitionResult, не bool) + production-спавнер (SpawnMapping, wo_-identity, initialize_scene-only, live=18) + G1 discovery-shadow GREEN.
@@ -316,6 +356,8 @@ SLEEP = state-dependent recovery process.
 - [ ] Новые recovery variables — только после anti-Bond test: какую причинную работу выполняет переменная, которую уже не выполняют fatigue / sleep pressure / existing body state. Не создавать `cognitive_recovery = 0.8` / `emotional_recovery = 0.6` ради психологической правдоподобности.
 
 ### 5.3. DEBT-SLEEP-DELIVERY (доставка тел к кроватям)
+
+📎 Дизайн-вход: `docs/Почти Актуальные TZ/ENIGMA_MAP_EDITOR_SMART_VALIDATION.md` (кровати/валидация редактора; сон-раздел суперсиден ADR-O-374/375 — брать только редакторскую часть).
 
 Внешняя зона (spatial/behavioral; НЕ физиология — сон-машина верифицирована S235/S236). Симптом (DriftLab 200 тиков × 6 NPC): elig=True = 0/1200 — тела не доезжают до кроватей при живом графе. Следствие без доставки: `sleep_pressure→1.0`, `motor_output_mult→0` («мир недосыпа»). Это не Body bug — вертикальный разрыв `BODY → DECISION → WORLD → BODY`: физиология может быть корректна, но мир производит хронический недосып, если embodied actor не способен физически достичь recovery affordance. Решение — при spatial/affordance-контуре: intent → affordance search → reachable target → traversal → settled → физиологический переход (машина подхватит автоматически). Дизайн-вход Мастера: «Тень тайно спит в подвале» — первый кандидат контент-фикса (activity_map/MapEditor или W2 sleep-affordance-типы BED→HAMMOCK/GROUND/SHELTER). Канонически связано с GC-09/GC-10 (§9).
 
@@ -622,11 +664,19 @@ player command → avatar appraisal → accept/modify/resist/refuse
 
 ### 6.B. Будущие эпохи (пакеты реализации; ТЗ в `docs/Почти Актуальные TZ/`)
 
-- [ ] **Эпоха 7 — Predictive Perception & Prophecy:** `TZ_Stage_2_5_..._1.md` (Часть I) + `VZ/TZ_§19_...md` (surprise = −log P(x_t|z_{t-1})); ObservationLayer/BeliefProjector (P1-31); Prophecy System (ADR-O-330), Vertical Slice «Секреты Люси — секреты таверны». Детализировано в PP (§6.A.3).
+- [ ] **Эпоха 7 — Predictive Perception & Prophecy:** `TZ_Stage_2_5_..._1.md` (Часть I) + `VZ/TZ_§19_...md` (surprise = −log P(x_t|z_{t-1})); ObservationLayer/BeliefProjector (P1-31); Prophecy System (ADR-O-330), Vertical Slice «Секреты Люси — секреты таверны». Детализировано в PP (§6.A.3). Статус Части I: TEMPORAL EPOCH закрыт S266–S269 (seal 10k×2); активен Predictive Runtime/PP.
 - [ ] **Эпоха 8 — Temporal Identity, линии времени:** `VZ/ТЕХЗАДАНИЕ ПРЕЕМНИКУ TZ-02 V.2.0` (WorldChronicle, 3 уровня времени), ADR-TIFL-001..003; `VZ/TEXTURES_AND_GEOMETRY_TZ.md` — visual aging после lineage.
-- [ ] **Эпоха 9 — Общество + Memetic:** `VZ/TZ_MEMETIC_01..03`; Factions / Economy (`architecture/economy.yaml` есть, инженерного ТЗ нет) / Politics — ТЗ сформулировать.
-- [ ] **Эпоха 10 — Bounded Rationality:** `VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` (`U_M = I·R·U − C`) — **только после** Belief Layer.
-- [ ] **Эпоха 11+ — Контент и презентация** (когда угодно, изолированно): `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf`, Map Editor Smart Validation, `AWC_Process_World_Model_TZ.pdf`, Narrative Frame Onboarding, Laboratoria Kalibrovki (полигон).
+- [ ] **Эпоха 9 — Общество + Memetic:** `VZ/TZ_MEMETIC_01..03`; Factions / Economy (`architecture/economy.yaml` есть, инженерного ТЗ нет) / Politics — ТЗ сформулировать. ⚠️ Сирота-зависимость: `TZ_CONTENT_POLICY_FUNDAMENT.md` отсутствует в корпусе — при активации создать мини-ТЗ фундамента или снять зависимость вердиктом Мастера.
+- [ ] **Эпоха 10 — Bounded Rationality:** `VZ/TZ_§18_Resource_Bounded_Epistemic_Selection_Law.md` (`U_M = I·R·U − C`) — **только после** Belief Layer. ⚠️ Устав §18 занят (S211) — при активации ренумбер по прецеденту ADR-O-413 (Устав 11.1.1).
+- [ ] **Эпоха 11+ — Контент и презентация:** см. §6.C (CT-01–CT-03); Map Editor → §8.S1; Laboratoria → §8.Q.
+
+### 6.C. Контент-трек (Эпоха 11+; вне кодовых очередей, изоляция от ядра)
+
+> Самоочистка: завершённый CT-X удаляется по протоколу §1.3 (п.2); частичный — строка обновляется.
+
+- [ ] **CT-01 Female-Targeted Dark Fantasy Layer** — `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf` (стратегический план «Таверна Серебряный Волк»: женская аудитория, dark fantasy, романтика 18+, детектив). При активации: извлечь чеклист CT-01.x из ТЗ; сверить ссылки на PlayerBeliefModel с DEBT-E1 (§18 Устава — projection) и Inner Monologue с AV-треком (§6.A.5). Триггер: решение Мастера о продуктовом направлении (§8.R12).
+- [ ] **CT-02 AWC Process World Model** — `AWC_Process_World_Model_TZ.pdf` (процессы среды без исполнителя; «модернизация, не замена»). ⚠️ База V.0.5.3.4.6 — реверификация §13.2 обязательна; сверить с W1/W2 и ADR-O-322. Триггер: вердикт Мастера (§8.F).
+- [ ] **CT-03 Narrative Frame & Onboarding** — `ENIGMA_TZ2_v2_Narrative_Frame_Onboarding.md` (три петли, онбординг). ⚠️ Зависимость «ТЗ №1 Semantic Unification» утрачена; ADR-NF-001/ONBOARD-008 — фантомы (при активации — реальные номера по атласу). Триггер: R11 (§8).
 
 ---
 
@@ -700,7 +750,7 @@ player command → avatar appraisal → accept/modify/resist/refuse
 
 ### 7.5. Системный долг (не блокирует, брать паузами)
 
-- [ ] **God-файлы:** `game_loop/__init__.py`, `life_engine.py`, `tick_orchestrator.py`.
+- [ ] **God-файлы:** `game_loop/__init__.py`, `life_engine.py`, `tick_orchestrator.py`. 📎 ТЗ-декомпозиция трёх функций (`NpcTickPipeline.run` / `DmAgent._build_contract` / `GameScreen.run`; CC 337/208/196): `docs/Почти Актуальные TZ/ENIGMA_декомпозиция_трёх_бог-функций.md` — открыть целиком; P17 — попутно по его фазам.
 - [x] ~~mypy --strict spatial-слои~~ ✅ 0 ошибок (spatial_runtime, spatial_service, graph_compiler, spatial_query_service, npc_state; было 79 каскадных).
 - [x] ~~print() → logger~~ ✅ (36 вхождений main.py) — ⚠️ AUD-D7: статус частично откатился (34 `print()` живы).
 - [~] TODO/FIXME domain/ — 5 backlog-маркеров (не баги).
@@ -713,6 +763,8 @@ player command → avatar appraisal → accept/modify/resist/refuse
 ### 7.6. Прочие реестровые хвосты
 
 - [ ] Н-6 (HEARING_RADIUS), Н-9 (consciousness_state doc drift), Н-11 (стаб trace_causal_chain), Н-12 (wildcard-writers Task 0.9 = AUD-D4), Н-21 (soft-degradation снапшота), Н-31 (uuid4 в Фазе 6), Н-32 (H-37 FIX лжёт), Н-43 (FSM без владельца вызова), Н-45/Н-46 (sweep vanished / bypass-легализация — частично легализованы S203.3), Н-52 (мёртвая ветка), Н-53 (GROUND_TRUTH location_id=''), Н-56 (DLG_QUEUE OVERFLOW — единая первопричина churn), DEBT-R1 (radius 999.0 THEFT), DEBT-R3 (закрыт S209), DEBT-R10 (avatar psyche — vertical slice), DEBT-E1 (PlayerBeliefModel authority→projection, 6 шагов, §18 Устава), DEBT-EVBUS, DEBT-SOC, DEBT-L1-SQLITE, DEBT-MOCK, DEBT-CL1, CAL-1, pytest.ini-hygiene, world_tick.json вне saves/, фантом-каталог backend\backend\data, CONFIG-DEBT.
+- [ ] **A2-LIVE (наследие ТЗ-А2 кат. «А», срез V.0.5.3.8.2 — документ удалён, РЕВЕРИФИЦИРОВАТЬ §13.2 при касании):** 022 → superseded ADR-O-364; 023 инвариант Referential Closure (§ENIGMA-005); 026 SpeechScheduler-конкурентность (PACING=wall-clock — сверить §15.2); 027 drop/degrade-политики очереди; 028 приоритизация потребностей (RE NeedSlot.importance); 029 частота random-events; 030 STM-decay; 031 initiative-паралич; 032 social-target×relations; 033 ranged-дистанции; 036 bias×observer; 037 канонизация schedule-bypass'ов; 038 → §8.P7.
+
 - [x] ~~S301-дубль в MUTATIONS.md~~ ✅ разрешён (MUTATIONS v5.0): канон S301 = Replay Phantom (жив хвост R5), «Доска-детектив К1» = S302; пропуски номеров (S153/S171/S173/S197/S232/S275–S277) зафиксированы в шапке как артефакты ренумберов.
 
 ### 7.7. NL-D (реестр находок аудита NL-01, 2026-10-03; read-only, код не менялся)
