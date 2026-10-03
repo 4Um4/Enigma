@@ -44,8 +44,8 @@
 **Ступень 1 — RE-01: закрыть M1b (активный фронт)**
 - [x] M1b.3.5 — flat-readers-зонд закрыт S314 (SHA 4041294e): статика + runtime P1–P6 + лаборатория R001; GAP-1 = 1A Store→cache 🟢 prod / 1B cache→reader 🟢 unit (reader починен) / 1C activation 🔴 NOT BUILT (хвост §3); вход M1b.3.6 — вердикт-матрица
 - [x] M1b.3.6 — S128-разделение закрыто S318 (SHA 9c282746; ренумбер: S317 занят параллельной INV-CONSUMER-GAP-сессией): RE-D8 погашен — удалены S135-статик AgentAction, дубликат _compute_risk (прод = risk.py), Scalar-ветка social_deltas (Graph>Vacuum); читатель-карта rc = вход 3.7; F5 R001 behavior-neutral; R002 fear-probe → RE-D9 (BehaviorMask канал мёртв + fear-scale mismatch — отдельный фронт, §7.2)
-- [ ] M1b.3.7 — греп-страж allowlist (кэш-чтения только рендер-проекциям)
-- [ ] **GC-11 (L3-gate, обязателен до M2/D):** event → V2-RAM non-zero delta → следующий выбор NPC сдвинут (живой harness; ловит RE-D2-класс нулевой игровой реальности, недоказуемой юнит-сьютой)
+- [x] M1b.3.7 — греп-страж allowlist (кэш-чтения только рендер-проекциям) — закрыт S319 (ADR-O-415): freeze 19 файлов / 52 сайта, INV-RE-CACHE-ALLOWLIST
+- [x] **GC-11** (S320, ADR-O-416) — RED=находка (прецедент GC-09B): event→V2-RAM non-zero delta доказан живьём; следующий выбор не сдвинут — RE-D2-класс, выборка 5 (S1 raw-dict-канал слеп / S2 пороговая инертность / S3 тихий мир). Протокол: reports/lab_r003_gc11_results.json.
 - [ ] M1b.5 — удалить мёртвый `apply_npc_state_updates` (0 вызовов, греп-доказательство) + судьба legacy `RelationshipStore` (AUD-D5: wall-clock TTL, тихий `{}`, legacy JSON)
 
 **Ступень 2 — RE-01: M2/D → G/H → K → Полигон M**
@@ -182,8 +182,8 @@
 - [x] **M1b.3.3+3.4** (S246) — единый разрез: `build_npc_snapshots(+relationship_store, +campaign_id)` — кэш-слой снапшота = проекция V2; decay-хендлер не тронут (produce Δ). Сьюта 205, канар жив. Урок: юнит-зелёный ≠ интеграционная истина — гейт = живой зонд.
 - [x] **M1b.3.5** (S314, 4041294e) — зонд исполнен: статика + runtime P1–P6 + F5-лаборатория R001 (создан рычаг npc_overrides.social через canonical WriteGate); GAP-1: 1A 🟢 / 1B 🟢 (reader nested-read починен) / 1C 🔴 NOT BUILT; M1b.3.6 — по вердикт-матрице.
 - [x] **M1b.3.6** (S318) — S128-разделение по вердикт-матрице S314 (историческая формулировка S128 утрачена — Р4, не восстанавливалась): RE-D8 ✅ (S135-статик / дубликат _compute_risk / Scalar-ветка — grep-доказательства; микро-тест мигрирован на compute_objective_risk); читатель-карта relationship_cache = вход M1b.3.7; R002 fear-probe → **RE-D9** (§7.2): канал BehaviorMask мёртв (FAIL_STAGE=PROJECT) + fear-scale mismatch — активация = game-design, отдельный фронт.
-- [ ] **M1b.3.7** — греп-страж allowlist: кэш-чтения только рендер-проекциям.
-- [ ] **GC-11** (L3-gate, обязателен для закрытия M2/D) — event → V2-RAM non-zero delta → следующий выбор/поведение NPC сдвинут (живой harness-прогон; ловит RE-D2-класс нулевой игровой реальности, недоказуемой юнит-сьютой).
+- [x] **M1b.3.7** (S319, ADR-O-415) — греп-страж allowlist: freeze-поверхность relationship_cache заморожена (19 файлов / 52 сайта, точные счётчики; DECISION-READER преходяще легальны — сжатие = миграция на V2 после M2/D+GC-11).
+- [x] **GC-11** (S320, ADR-O-416) — RED=находка: event→V2-RAM доказан живьём (trust 0→20 через production-мост; B≡B2), поведенческий ноль = RE-D2 выборка 5 (S1 dual-reader: raw-dict-канал слеп при живом pipeline-канале; S2 пороги; S3 тихий мир) — цель передана M2/D
 - [ ] **M1b.5** — удалить мёртвый `apply_npc_state_updates` (0 вызовов доказано грепом) + судьба legacy `RelationshipStore`/vestigial provider (см. AUD-D5).
 - [ ] **M2/D** — `RelationshipEventSemantics`: первый живой писатель потребностей через `update_needs` + формат RE-событий в causal-машинерии.
 - [ ] **G/H** — динамика Satisfaction и фрустрации через стор.
@@ -756,8 +756,13 @@ player command → avatar appraisal → accept/modify/resist/refuse
 | CG-D-13 | role_change_entry.from/to_role — diagnostic-only | P4 | role | PROJECTION-декларация Stage 2 | открыт |
 | CG-D-14 | body_state.body_mass — never-write, 3 читателя дефолта 1.0 («placeholder до S2B.7»; S2B.7 закрыт S309, масса не подключена) | P3 | body | wire в BodyEngine или вердикт-удаление читателей | открыт |
 | CG-D-B1 | Граница Слоя 1 (6 полей: writers через dict-mutation/append/методы/**) — IMPACT ADR-O-414 | — | scanner | манифест Stage 2 | документировано |
+| CG-D-15 | energy probe_hint −90 razor-margin: baseline>99.9 ломает availability-гейт (10.0<0.1=False — гейт молча не сработает при доставленной инъекции; пертурбация S321) | P3 | body/ADR-O-383 | probe_hint −95 либо нестрогий порог — решение владельца | открыт |
+| CG-D-16 | decision_hub ФАЗА 1: constraint-ось вне scores молча теряется (`if _k not in scores: continue`) — класс кейс-миссматча S254 | P3 | decision | fail-loud/лог — зона хаба | открыт |
+| CG-D-17 | fatigue/energy асимметрия score-деформаций 57/11 осей: тракт 2 (sleep_pressure→CouplingProfile, ADR-O-375) предположительно подключён к fatigue, не к energy | P3 | body | верификация владельцем O-383/375 | открыт |
 
 Санкционированные записи реестра подавления: injury_dto.critical_effects/functional_loss → ADR-123 (info-only by design / carrier-gap); economic_payload.goods_delta → S310 (β-Stage 2 живые швы). body_state.energy/hydration — НЕ CG-D (readers есть; разрыв decision-уровня = NL-D9, территория Слоя 3/манифеста).
+
+**Stage 3 хвосты (S321, ADR-O-414 — PerturbationHarness построен и валидирован):** E4-экзамен (reader-для-лога: статика зелёная → пертурбация RED) · E8 + M-PROOF-LIVE (AST: proof-файл CAUSAL обязан содержать живой вызов прибора) · манифест-хирургия: beliefs proof→epistemic_decision_divergence_test.py (S194; S243-миссматч; вход event-level — вопрос канона) + кандидат threat_gradient DEBT→CAUSAL (proof=causal_state_test.py, группа C) + probe_hint beliefs (BeliefDelta-формат) + V2 directed-строки (цель GC-11 вне census) · досье-аддендум M2/D: Q2-проба опровергла S1 на +60 (52 оси, 1-й тик; Vacuum-baseline; порог ±20↔+60 не измерен — рекомендована контрольная проба +20) · F5-вкладка «Causal Anatomy» (после proof-фаз; мини-ADR к ADR-O-368; proof-значения залочены на probe_hint, ползунки — только EXPLORATION) · behavior_mask OBSERVED_GAP (RE-D9; проекционный канал — v1.1) · (none)-кластер 58 полец: decision-memo (endpoint → ontology; вердикт Мастера).
 
 
 
@@ -769,12 +774,12 @@ player command → avatar appraisal → accept/modify/resist/refuse
 
 ### A. СЕЙЧАС — блокирует качество причинной игры
 
-- [ ] **A0** Закрыть RE-01 **M1b.3.5–3.7** (активный фронт): 3.5 flat-readers-зонд (находки RE-D8) → 3.6 S128-разделение → 3.7 греп-страж. Затем A1.
+- [x] **A0** Закрыть RE-01 **M1b.3.5–3.7** (активный фронт): 3.5 ✅ S314 (RE-D8 + GAP-1 вердикт) → 3.6 ✅ S318 (RE-D8 закрыт) → 3.7 ✅ S319 (ADR-O-415, freeze 19/52). Затем A1.
 - [ ] **A1** RE-01 M1b.5: удалить мёртвый `apply_npc_state_updates` (0 вызовов, греп) + судьба legacy `RelationshipStore` и vestigial provider v2 (REMOVED/фасад по факту readers).
 - [ ] **A2** RE-01 M2/D: `RelationshipEventSemantics` + первый живой needs-writer через `update_needs` + формат RE-событий.
 - [ ] **A3** G/H: Satisfaction + frustration через стор.
 - [ ] **A4** K: removal-test; Полигон M: INV-1, О-2.
-- [ ] **A5** GC-11 (L3-gate до M2/D) + доказательство персистентности trust-дельт чтением стора (в журнале: «delta applied ≠ relationship state verified»).
+- [x] **A5** GC-11 ✅ S320 (ADR-O-416): L3-gate исполнен живым harness — event→V2-RAM доказан (trust 0→20 read-back стора = «delta applied» верифицирована чтением), поведенческий ноль = RED-находка RE-D2 выборка 5.
 - [ ] **A6** RE-D7: каноническая схема campaign-bootstrap JSON (отдельный ADR).
 - [ ] **A7** BC-2 → BC-3 (Эпистемический контур, §3.5): вывод меняет прогноз; прогноз меняет DecisionHub. Full-cell GC-04.
 - [ ] **A8** GC-08-инфраструктура: capability `spawn_world_object` для harness (§9.2) — prerequisite object-cognition W-трека.
@@ -965,7 +970,7 @@ Interrupted sleep ≠ uninterrupted equal nominal duration, если разли�
 ```
 
 Связь: DEBT-SLEEP-DELIVERY (§5.3).
-- [ ] **GC-11 — Relationship event → state → future social action.** Реальное социальное событие проходит RelationshipEventSemantics → canonical writer → snapshot → DecisionHub и меняет последующее социальное действие. **Назначенный L3-гейт RE (следующий фронт, §9.9); обязателен для закрытия M2/D.** Также: доказательство персистентности trust-дельт чтением стора.
+- [ ] **GC-11 — Relationship event → state → future social action.** Реальное социальное событие проходит RelationshipEventSemantics → canonical writer → snapshot → DecisionHub и меняет последующее социальное действие. **Назначенный L3-гейт RE (следующий фронт, §9.9); обязателен для закрытия M2/D.** Также: доказательство персистентности trust-дельт чтением стора. *(L3-гейт исполнен S320/ADR-O-416: event→V2-RAM доказан живьём, RED=находка RE-D2 выборка 5; остаток — после M2/D.)*
 - [ ] **GC-12 — Repeated evidence → generalization.** Одного эпизода недостаточно. Повторяемая evidence усиливает conclusion/expectation; противоположные наблюдения ослабляют/ревизуют.
 - [ ] **GC-13 — Contradiction → belief revision.** NPC ожидает X, получает наблюдаемое not-X, получает prediction error/surprise, пересматривает belief/expectation, демонстрирует новое поведение.
 - [ ] **GC-14 — Self-learning.** Действие → результат → изменение self-model/knowledge/skill → повторная ситуация даёт иной выбор.

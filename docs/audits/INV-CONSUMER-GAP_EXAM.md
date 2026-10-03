@@ -23,3 +23,22 @@
 | E7 | PROJECTION relationship_cache без authority | ровно M-AUTH | откат → exit 0 |
 | E9 | rename cache_timestamp→cache_ts (адаптация на typed) | M-STALE + M-UNDECLARED + NO_READER + NO_WRITER (двойной CRITICAL) | откат → exit 0 |
 | D1 | setattr(new_state, "pleasere", ...) литералом | ровно NO_READER — NO_WRITER гаснет (литеральный детектор ловит bypass) | откат → exit 0 |
+
+## Stage 2b (S317; внесено S321 — хвост реестра)
+
+Census 198→291 (+93: relationship_contracts [need_slot/need_level/preference_model/hard_constraint/exclusivity_requirement], desired_change, epistemology [claim_event/epistemic_record/epistemic_context/proposition], memory_crystal, experience_trace); schema-self-exclusion (схемы domain/ — не свои consumers). Свежая верификация (S321): typed=267 container=24 manifest=291 parse_errors=0; NO_READER=44 NO_WRITER=33; подавлено декларациями 77; exit=0. Bidirectional census↔manifest GREEN. Орган-отчёт: reports/ORGAN_REPORT_S2B.txt — 10/10 органов, 3 CAUSAL. Урожай экспансии ~45 orphan; именованные: need_slot NO_WRITER×9 (substrate dormant, ADR-O-370); experience_trace NO_WRITER×13 (NL-D4 независимо); claim_event.listener_id NO_READER; experience_trace.timestamp самопойман (INPUT не легализует сиротство).
+
+## Stage 3 (S321) — PerturbationHarness (proof-слой)
+
+Контракт Мастера: INVALID / INJECTION_FAILED / GAP / WIRED; INJECTION_FAILED ≠ GAP; scores_trace — параллельный канал; CAUSAL = семантика A (проводимость до вычисления; argmax_flip — annotation); GAP не чинится машиной; state-level only; WIRED без универсального окна. Прибор: tests/gameplay/perturbation_harness.py — адаптер над TavernGameplayHarness (§9.2; второго engine нет); production write-paths (PHYSIOLOGY=apply_deltas_only+Cause; RELATIONSHIP_V2=update_relationships→WriteGate→V2); uuid5; noise-off; тик-чётность.
+
+| # | Проба | Результат | Доказано |
+|---|---|---|---|
+| S | A/A smoke 2×4 тика | GREEN (rows 24/24 + scores ≡) | прибор детерминирован; не слеп |
+| B | fatigue +90 (bring-up) | GAP+utility (57 осей); дельта выживает до N | прибор валидирован end-to-end; BodyEngine добавляет, не перезаписывает |
+| Q2 | trust +60 V2 (санкция) | GAP+utility (52 оси, 1-й пост-инъекц. тик); 60.0 персистентен; baseline-Vacuum (read_trust=None) | S1 опровергнут для находки S320: store→utility проводит; ноль = S2/S3; домены body/relationship сопоставлены на уровне state→utility |
+| RF1 | re-proof fatigue (capped≈×0.3±0.30) | GREEN | CAUSAL-проводимость в полном тике; двухтрактовая анатомия: cap (O-383) + sleep_pressure→CouplingProfile (O-375) |
+| RF2 | re-proof energy (razor+паттерн) | GREEN (11 осей; 9.9<10.0) | availability-тракт; асимметрия 57/11 → CG-D-17 |
+| BL | beliefs — археология | S243-миссматч (proof доказывал threat_gradient) | вердикт: миграция proof→epistemic_decision_divergence_test.py (S194; event-level вход — вопрос канона). Исполнение — хвост |
+
+Находки (без фиксов): energy razor-margin → CG-D-15; hub ФАЗА-1 dead-continue → CG-D-16; асимметрия 57/11 → CG-D-17. Не исполнено → roadmap §7.8: E4, E8+M-PROOF-LIVE, манифест-хирургия, досье M2/D, F5-вкладка, behavior_mask, (none)-memo. Формулировки E-атак реконструированы (исходное ТЗ на диске не существует — три независимых поиска).
