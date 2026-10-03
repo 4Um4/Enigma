@@ -136,14 +136,15 @@ class LlamaCppCompressorClient:
 
         names_hint = ", ".join(npc_names) if npc_names else "нет"
 
-        # RC8 A/B (вердикт Мастера): env ENIGMA_RC8_STATE='A' убирает ТОЛЬКО
-        # три контрастные few-shot-строки ASK_PROVENANCE/QUESTION. Контракт
-        # типа (описание ASK_PROVENANCE в списке acts выше) остаётся в обоих
-        # состояниях — переменная эксперимента изолирована ровно до этих
-        # строк. Default (env не задан / 'B') = STATE-B, production-промпт
-        # байт-идентичен прежнему.
+        # RC8 вердикт (валидный тёплый A/B + контрбаланс): три few-shot-
+        # строки имели ДОКАЗАННЫЙ отрицательный эффект (STATE-B: 0/27
+        # ASK_PROVENANCE в 9 прогонах; STATE-A: 2-3/27 с воспроизводимой
+        # генерализацией) — удалены из production (вердикт Мастера, V.1).
+        # ENIGMA_RC8_STATE='B' восстанавливает легаси-состояние для
+        # воспроизведения эксперимента (reports/RC8_DETERMINISM_RCA.md).
+        # Новые примеры НЕ добавлять до закрытия unspecified-дефекта.
         _rc8_fewshot = ""
-        if os.environ.get("ENIGMA_RC8_STATE") != "A":
+        if os.environ.get("ENIGMA_RC8_STATE") == "B":
             _rc8_fewshot = (
                 'Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'
                 'Ввод: "Откуда ты знаешь, что я Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'

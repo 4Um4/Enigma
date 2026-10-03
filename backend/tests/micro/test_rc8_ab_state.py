@@ -1,10 +1,11 @@
 """path: /project/backend/tests/micro/test_rc8_ab_state.py
 
-Назначение: замок RC8 A/B-переключателя (вердикт Мастера): env ENIGMA_RC8_STATE
-    управляет ТОЛЬКО тремя few-shot-строками ASK_PROVENANCE в системном промпте
-    компрессора. STATE-A ('A') — строки удалены; default/STATE-B — присутствуют.
-    Всё остальное содержимое промпта байт-идентично (запрет «не менять
-    одновременно ничего другого»), контракт типа ASK_PROVENANCE живёт в обоих.
+Назначение: замок RC8-вердикта: три few-shot-строки ASK_PROVENANCE удалены
+    из production-baseline (доказанный отрицательный эффект: STATE-B 0/27
+    ASK_PROVENANCE в 9 прогонах против 2-3/27 в STATE-A, контрбаланс).
+    Легаси-состояние B восстанавливается ТОЛЬКО env ENIGMA_RC8_STATE='B'
+    (воспроизведение эксперимента); дифф промпта — ровно 3 строки, ничего
+    другого; контракт типа ASK_PROVENANCE живёт в обоих состояниях.
 Зависимости: app.services.input.llm_compressor_client
 Основные сущности: LlamaCppCompressorClient._build_prompts
 
@@ -20,24 +21,30 @@ _MARKERS = (
 )
 
 
-def test_rc8_state_a_removes_only_fewshot_lines(monkeypatch):
-    """STATE-A: удалены РОВНО 3 few-shot-строки, ничего не добавлено, контракт жив."""
-    monkeypatch.setenv("ENIGMA_RC8_STATE", "A")
-    client = LlamaCppCompressorClient()
-    sys_a, _ = client._build_prompts("тест", {})
-
+def test_rc8_baseline_removed_fewshot_lines(monkeypatch):
+    """Production baseline (default): few-shot-строки отсутствуют, контракт типа жив."""
     monkeypatch.delenv("ENIGMA_RC8_STATE", raising=False)
+    client = LlamaCppCompressorClient()
+    sys_base, _ = client._build_prompts("тест", {})
+    for m in _MARKERS:
+        assert m not in sys_base, f"RC8 few-shot-строка пережила удаление: {m}"
+    # Контракт типа (не few-shot) обязан жить в baseline
+    assert "ASK_PROVENANCE" in sys_base
+
+
+def test_rc8_legacy_state_b_restores_exactly_three_lines(monkeypatch):
+    """Легаси STATE-B: ровно 3 строки возвращаются, ничего другого не меняется."""
+    monkeypatch.setenv("ENIGMA_RC8_STATE", "B")
+    client = LlamaCppCompressorClient()
     sys_b, _ = client._build_prompts("тест", {})
 
+    monkeypatch.delenv("ENIGMA_RC8_STATE", raising=False)
+    sys_base, _ = client._build_prompts("тест", {})
+
     for m in _MARKERS:
-        assert m in sys_b, f"few-shot-строка отсутствует в STATE-B: {m}"
-        assert m not in sys_a, f"few-shot-строка пережила STATE-A: {m}"
+        assert m in sys_b, f"легаси-строка отсутствует в STATE-B: {m}"
 
-    # Контракт типа (не few-shot) обязан жить в обоих состояниях
-    assert "ASK_PROVENANCE" in sys_a and "ASK_PROVENANCE" in sys_b
-
-    # Ровно 3 строки удалено, ноль добавлено — переменная эксперимента изолирована
-    removed = set(sys_b.splitlines()) - set(sys_a.splitlines())
-    added = set(sys_a.splitlines()) - set(sys_b.splitlines())
-    assert len(removed) == 3, f"ожидалось 3 удалённые строки, удалено: {len(removed)}"
-    assert not added, f"STATE-A добавил строки (запрещено): {added}"
+    removed = set(sys_b.splitlines()) - set(sys_base.splitlines())
+    added = set(sys_base.splitlines()) - set(sys_b.splitlines())
+    assert len(removed) == 3, f"ожидалось 3 легаси-строки, diff: {len(removed)}"
+    assert not added, f"STATE-B изменил что-то кроме 3 строк: {added}"
