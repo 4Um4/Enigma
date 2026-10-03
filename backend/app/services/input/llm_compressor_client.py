@@ -144,6 +144,41 @@ class LlamaCppCompressorClient:
         # воспроизведения эксперимента (reports/RC8_DETERMINISM_RCA.md).
         # Новые примеры НЕ добавлять до закрытия unspecified-дефекта.
         _rc8_fewshot = ""
+
+        # X2 (вердикт Мастера): инлайн-примеры в границе ASK_PROVENANCE/QUESTION
+        # — дословные фразы probe-корпуса (AB-PROV[0] байт-в-байт; почти
+        # GEN-3RD) — контаминация измерения; literal-suppression доказан RC8
+        # и воспроизведён provclass_x2a/a2x (фраза-пример: A 0/2, X2 2/2).
+        # ENIGMA_PROV_X2=1 → состояние X2: примеры убраны, граница не меняется.
+        # X-clean (вердикт Мастера, второй GO): ASK_PROVENANCE извлекается из
+        # строки-перечисления в собственную структурную строку контракта.
+        # Гипотеза: семантика provenance доступна модели (QUESTION.topic =
+        # source of knowledge), барьер — потеря типа в списке из 11 типов.
+        # ENIGMA_PROV_XCLEAN=1 (приоритет над X2). Default = baseline (A).
+        _prov_boundary_text = (
+            "ASK_PROVENANCE = вопрос о ПРОИСХОЖДЕНИИ знания/информации: кто сказал, "
+            "откуда известно, кто сообщил, источник сведения и эквивалентные естественные формулировки. "
+            "НЕ использовать для вопросов о том, кто что-то сделал с третьим лицом"
+        )
+        _prov_enum_tail = (
+            ', "ASK_PROVENANCE" (params: {"about": "о чём спрашивают происхождение"}). '
+            + _prov_boundary_text
+            + ' ("кто с ней разговаривал" — это QUESTION). '
+            'Пример: "Кто тебе сказал, что я Мю?" -> acts: [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}]'
+        )
+        _prov_class_block = ""
+        if os.environ.get("ENIGMA_PROV_X2") == "1":
+            _prov_enum_tail = ', "ASK_PROVENANCE" (params: {"about": "о чём спрашивают происхождение"}). ' + _prov_boundary_text
+        if os.environ.get("ENIGMA_PROV_XCLEAN") == "1":
+            _prov_enum_tail = ""
+            _prov_class_block = (
+                '\n- Допустимый type "ASK_PROVENANCE": вопрос об ИСТОЧНИКЕ ЗНАНИЯ СОБЕСЕДНИКА — '
+                "кто ему это сообщил, откуда он узнал, каким источником располагает "
+                '(params: {"about": "о чём спрашивают происхождение"}). '
+                "ГРАНИЦА с QUESTION: вопрос о событиях, фактах или действиях третьих лиц в мире = QUESTION; "
+                "вопрос о том, КАК/ОТКУДА собеседник узнал = ASK_PROVENANCE. "
+                "Ответ на ASK_PROVENANCE раскрывает источник знания собеседника, а не факт мира."
+            )
         if os.environ.get("ENIGMA_RC8_STATE") == "B":
             _rc8_fewshot = (
                 'Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'
@@ -156,7 +191,7 @@ class LlamaCppCompressorClient:
 Если игрок говорит или спрашивает что-то (не угрожает и не флиртует), используй action = "DIALOGUE".
 Если игрок угрожает (но не бьёт) — "THREATEN". Если бьёт или применяет силу — "ATTACK".
 Допустимые speech_act: ["assert", "question", "request", "order", "offer", "promise", "threat", "apology", "compliment", "insult", "accusation", "greeting", "farewell", "continue", "clarify", "reject", "accept"].
-- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL", "ASK_PROVENANCE" (params: {{"about": "о чём спрашивают происхождение"}}). ASK_PROVENANCE = вопрос о ПРОИСХОЖДЕНИИ знания/информации: кто сказал, откуда известно, кто сообщил, источник сведения и эквивалентные естественные формулировки. НЕ использовать для вопросов о том, кто что-то сделал с третьим лицом ("кто с ней разговаривал" — это QUESTION). Пример: "Кто тебе сказал, что я Мю?" -> acts: [{{"type": "ASK_PROVENANCE", "params": {{"about": "имя игрока"}}}}]. Для одиночного действия — один акт или [].
+- semantic_acts: массив ВСЕХ актов фразы по порядку. Допустимые type: "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION", "SELF_INTRODUCTION" (params: {{"name": "..."}}), "QUESTION" (params: {{"topic": "..."}}), "ASSERT" (params: {{"claim": "..."}}), "ORDER", "THREAT", "COMPLIMENT", "FAREWELL"{_prov_enum_tail}. Для одиночного действия — один акт или [].{_prov_class_block}
 Допустимые social_intent и их жесткая связь с action и speech_act:
 - "obtain_information": action="DIALOGUE", speech_act="QUESTION" или "ORDER". (Узнать секрет, правду, факт. Примеры: "что ты скрываешь", "в чем секрет", "расскажи мне правду").
 - "obtain_cooperation": action="PERSUADE", speech_act="REQUEST" или "OFFER". (Договориться о помощи, сделке).

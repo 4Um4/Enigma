@@ -1,0 +1,22 @@
+ORGAN REPORT — Causal Anatomy (ADR-O-414, Stage 2b-2, S317)
+============================================================
+census=291 manifest=291 target_organs=10
+
+(none)         fields= 58  {'DEBT': 28, 'INPUT': 30}  <- вне десятки (вопрос Мастеру)
+body           fields= 43  {'DEBT': 41, 'CAUSAL': 2}
+             CAUSAL: body_state.fatigue
+             CAUSAL: body_state.energy
+desire         fields= 14  {'DEBT': 14}
+emotion        fields= 19  {'DEBT': 19}
+experience     fields= 33  {'DEBT': 33}
+knowledge      fields= 25  {'CAUSAL': 1, 'DEBT': 24}
+             CAUSAL: npc_state.beliefs
+memory         fields= 39  {'DEBT': 39}
+perception     fields= 11  {'DEBT': 11}
+provenance     fields=  1  {'DEBT': 1}
+relationship   fields= 43  {'DEBT': 42, 'PROJECTION': 1}
+role           fields=  5  {'DEBT': 2, 'PROJECTION': 3}
+
+живой CAUSAL: 3 (beliefs S243; fatigue/energy ADR-O-383)
+подсистемы-сироты по находкам: need_slot NO_WRITER (substrate dormant, ADR-O-370);
+experience_trace NO_WRITER x13 (слой спит, NL-D4); claim_event.listener_id NO_READER
