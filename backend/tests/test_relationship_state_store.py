@@ -600,42 +600,11 @@ class TestSocialSubscriberGateParity:
 
 
 
-# ── 10. M1b.2.3: MemoryManager-фасад через гейт — сайт-паритет ──
-
-
-class TestMemoryManagerGateParity:
-    """Обёртка memory_manager.update_relationship делегирует гейту (D2).
-    ФАСАД строится КАК В ПРОДЕ (game_loop_builder: SqliteMemoryStore +
-    LayeredMemory из app.services.memory + data_dir) — §12.3: никаких
-    объектов мечты (v1 падала TypeError на обязательном positional
-    layered_memory и неверных путях импорта)."""
-
-    @staticmethod
-    def _make_mm(tmp_path):
-        from app.services.memory import LayeredMemory
-        from app.services.memory.memory_manager import MemoryManager
-        from app.services.memory.sqlite_store import SqliteMemoryStore
-
-        store = SqliteMemoryStore(tmp_path / "mm.db")
-        return MemoryManager(LayeredMemory(store), data_dir=str(tmp_path / "G"))
-
-    def test_facade_parity_with_legacy_update(self, tmp_path):
-        mm = self._make_mm(tmp_path)
-        mm.update_relationship("mm_parity", "player", "maid_lusya", {"trust": 5.0})
-        store_l = RelationshipStore(data_dir=str(tmp_path / "L"))
-        store_l.update("mm_parity", "player", "maid_lusya", {"trust": 5.0})
-        got_g = mm._relationships.get_pair("mm_parity", "player", "maid_lusya")
-        want_l = store_l.get_pair("mm_parity", "player", "maid_lusya")
-        assert got_g == want_l, f"PARITY BREAK facade: L={want_l} G={got_g}"
-
-    def test_facade_rejects_foreign_keys(self, tmp_path):
-        mm = self._make_mm(tmp_path)
-        with pytest.raises(ValueError, match="whitelist"):
-            mm.update_relationship("mm_parity", "player", "x", {"love_score": 1.0})
 
 
 
-# ── 10b. M1b.5 / AUD-D5(б): corrupt legacy JSON → fail-loud ──
+
+# ── 10. M1b.5 / AUD-D5(б): corrupt legacy JSON → fail-loud ──
 
 
 class TestLegacyStoreCorruptFailLoud:
@@ -829,8 +798,8 @@ class TestSingleWriterInvariant:
     применение — через Applicator → гейт."""
 
     # Легальные точки: сам гейт (делегирование), легаси-стор (ОПРЕДЕЛЕНИЕ
-    # update, не вызов). Мёртвый npc_state_helpers (M1b.5-кандидат) внутри
-    # memory_manager-обёртки — уже на гейте.
+    # update, не вызов). npc_state_helpers удалён целиком (M1b.5, S322);
+    # фасад MemoryManager.update_relationship удалён (0 prod-вызовов).
     _ALLOWED = {
         "relationship_write_gate.py",
         "relationship_store.py",

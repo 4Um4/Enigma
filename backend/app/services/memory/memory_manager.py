@@ -49,11 +49,6 @@ class MemoryManager:
         # До switch: runtime на легаси (M1b.2-гейт); после: единственный
         # носитель — scene_state.directed (легаси-инстанс теряет владельца).
         self._v2_scene_ref: Dict[str, Any] = {"scene": None}
-        # M1b.2.3 (ADR-O-371): write-фасад стора — единый write-маршрут (D2):
-        # все обёрточные записи отношений идут через RelationshipWriteGate;
-        # на cutover (M1b.4) гейт централизованно получит v2-backend.
-        from app.services.social.relationship_write_gate import RelationshipWriteGate
-        self._relationship_write_gate = RelationshipWriteGate(self._relationships)
         self._tick_counters: Dict[str, int] = {}
         self._resonance = ResonanceEngine()
         # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
@@ -81,12 +76,10 @@ class MemoryManager:
         V2RelationshipBackend (RAM-authoritative, late-bind; lazy-bootstrap
         через npc_provider закрывает второй прод-путь входа при живой
         сцене). Вызывается ИЗ GameLoop.__init__ до захвата подписчиками."""
-        from app.services.social.relationship_write_gate import RelationshipWriteGate
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
 
         _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731
         self._relationships = V2RelationshipBackend(_provider, npc_provider=npc_provider)
-        self._relationship_write_gate = RelationshipWriteGate(self._relationships)
         logger.info("[M1b.4.2] V2 cutover: late-bind + npc_provider (M1b.3.2)")
 
     @property
@@ -760,18 +753,6 @@ class MemoryManager:
     # ──────────────────────────────────────────────────────────────────────
     # Основные методы записи (используются game_loop.py) — ЛЕГАСИ, мигрируют на apply()
     # ──────────────────────────────────────────────────────────────────────
-
-    def update_relationship(
-        self,
-        campaign_id: str,
-        source: str,
-        target: str,
-        delta: Dict[str, float],
-    ) -> None:
-        # M1b.2.3: делегация гейту (D2). Поведение идентично — гейт валидирует
-        # вход (whitelist/NaN) и зовёт тот же backend update(); сатурация
-        # выполняется стором (D3-паритет доказан сеткой M1b.2.0).
-        self._relationship_write_gate.apply(campaign_id, source, target, delta, cause="memory_manager:update_relationship")
 
     def get_relationships(self, campaign_id: str) -> Dict[str, Any]:
         # S313: dual-backend holder объявлен Any (duck-typing M1b.4.2) —
