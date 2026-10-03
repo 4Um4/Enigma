@@ -14,6 +14,8 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict
 
+from app.domain.relationship_contracts import ContractValidationError
+
 logger = logging.getLogger(__name__)
 
 RELATIONSHIP_KEYS = ("trust", "fear", "debt", "respect", "attraction")
@@ -66,12 +68,9 @@ class RelationshipStore:
             self._evict_if_needed()
             return data
         except Exception as e:
-            logger.error(f"[RELATIONSHIPS] Ошибка чтения {path}: {e}")
-            self._cache[campaign_id] = {}
-            self._cache.move_to_end(campaign_id)
-            self._timestamps[campaign_id] = time.time()
-            self._evict_if_needed()
-            return self._cache[campaign_id]
+            raise ContractValidationError(
+                f"RelationshipStore._load: повреждённый {path}: {e}"
+            ) from e
 
     def _evict_if_needed(self) -> None:
         while len(self._cache) > self.MAX_CACHE_SIZE:
