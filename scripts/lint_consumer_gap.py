@@ -27,6 +27,22 @@ APP = ROOT / "backend" / "app"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from consumer_gap_debts import DEBT_FIELDS  # noqa: E402
 
+# Layer 2 (ADR-O-414): causality_manifest — единственный semantic SSOT
+# (вердикт Q-A). Импорт data-only модуля из app.models: script→model
+# граница легальна (models не знает о скрипте, цикла нет).
+sys.path.insert(0, str(ROOT / "backend"))  # корень пакета: import app.models...
+try:
+    from app.models.causality_manifest import (  # noqa: E402
+        FIELD_CAUSALITY, KNOWN_ORGANS, KNOWN_TERMINALS,
+    )
+    _MANIFEST_OK = True
+    _MANIFEST_ORGANS = KNOWN_ORGANS
+    _MANIFEST_TERMINALS = KNOWN_TERMINALS
+except Exception as _me:  # манифест отсутствует/сломан = вердикт, не тихий skip
+    _MANIFEST_OK = False
+    _MANIFEST_ERR = str(_me)
+    FIELD_CAUSALITY = {}  # unbound-гвард для stats/M-блока (Pylance PossiblyUnbound)
+
 MODEL_FILES = [
     APP / "models" / "npc_state.py",
     APP / "models" / "state_delta.py",
@@ -388,7 +404,57 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
             f"(decl_line={line or 'container-literal'})"
         )
 
-    stats = {"parse_errors": len(parse_errors),
+    # ── Layer 2: causality_manifest (ADR-O-414, Stage 2a) ──────────────────
+    if not _MANIFEST_OK:
+        violations.append(
+            f"[MANIFEST-BROKEN] backend/app/models/causality_manifest.py -> импорт упал: {_MANIFEST_ERR}"
+        )
+    else:
+        census_keys = set(census) | {k for d in cont.values() for k in d}
+        # M-UNDECLARED / M-STALE: двусторонний гейт census<->manifest
+        for k in sorted(census_keys - set(FIELD_CAUSALITY)):
+            violations.append(f"[M-UNDECLARED] {k} -> нет декларации жизненного цикла в манифесте")
+        for k in sorted(set(FIELD_CAUSALITY) - census_keys):
+            violations.append(f"[M-STALE] {k} -> манифест-запись без поля в census (удалено/переименовано)")
+        for k, fc in FIELD_CAUSALITY.items():
+            # M-ORGAN / M-TERM: значения ∈ закрытым реестрам
+            if fc.organ is not None and fc.organ not in _MANIFEST_ORGANS:
+                violations.append(f"[M-ORGAN] {k} -> organ '{fc.organ}' вне KNOWN_ORGANS")
+            if fc.terminal is not None and fc.terminal not in _MANIFEST_TERMINALS:
+                violations.append(f"[M-TERM] {k} -> terminal '{fc.terminal}' вне KNOWN_TERMINALS")
+            if fc.mode == "CAUSAL":
+                # M-PROOF: proof-файл обязан существовать на диске
+                if not fc.proof or not (ROOT / fc.proof).exists():
+                    violations.append(
+                        f"[M-PROOF] {k} -> CAUSAL без живого proof-файла ({fc.proof!r}; reader ≠ consequence)"
+                    )
+                # M-XREAD/M-XWRITE: CAUSAL обязан иметь проводку по Слою 1.
+                # Bucket выбирается по природе ключа (урок №10bis: container-
+                # ключ body_state.fatigue имеет проводку в cont, не в typed —
+                # ложный вердикт «born-dead» для доказанного ADR-O-383 edge):
+                if k in census:
+                    _bucket = typed.get(k.rsplit(".", 1)[1], {"readers": [], "writers": []})
+                else:
+                    _dom = k.split(".", 1)[0]
+                    _bucket = cont.get(_dom, {}).get(k, {"readers": [], "writers": []})
+                if not _bucket["readers"]:
+                    violations.append(f"[M-XREAD] {k} -> CAUSAL без reader'а (Слой 1 не видит проводку)")
+                if not _bucket["writers"]:
+                    violations.append(f"[M-XWRITE] {k} -> CAUSAL без writer'а (born-dead под видом каузальности)")
+            elif fc.mode in ("PROJECTION", "DEBT"):
+                # M-AUTH: authority обязателен («проекция чего, SSOT — кто»)
+                if not fc.authority or not _AUTHORITY_RE.search(fc.authority):
+                    violations.append(f"[M-AUTH] {k} -> {fc.mode} без authority-ссылки (лазейка «помечу и отвяжусь»)")
+                # M-XREAD-CAUSAL-ONLY: PROJECTION без читателя легален (diagnostic-archive),
+                # если terminal=diagnostic — иначе «проекция» без проекции
+                if fc.mode == "PROJECTION" and not fc.terminal == "diagnostic" and fc.terminal != "projection":
+                    _tn = k.rsplit(".", 1)[1]
+                    if not typed.get(_tn, {"readers": []})["readers"] and fc.terminal not in (None, "persistence"):
+                        violations.append(f"[M-PROJ] {k} -> PROJECTION без читателя и не diagnostic/persistence")
+
+    _manifest = FIELD_CAUSALITY if _MANIFEST_OK else {}
+    stats = {"manifest": len(_manifest),
+             "parse_errors": len(parse_errors),
              "census_typed": len(census),
              "census_container": sum(len(v) for v in cont.values()),
              "no_reader": sum(1 for v, _, _ in raw if v == "NO_READER"),
@@ -400,7 +466,7 @@ def run_lint() -> Tuple[List[str], Dict[str, int]]:
 if __name__ == "__main__":
     viol, st = run_lint()
     print(f"[CENSUS] typed={st['census_typed']} container={st['census_container']} "
-          f"debts={st['debts']} parse_errors={st['parse_errors']}")
+          f"debts={st['debts']} manifest={st['manifest']} parse_errors={st['parse_errors']}")
     print(f"[RAW FINDINGS] NO_READER={st['no_reader']} NO_WRITER={st['no_writer']} "
           f"(подавлено реестром: {st['no_reader'] + st['no_writer'] - len([v for v in viol if v.startswith('[CONSUMER-GAP-NO')])})")
     if viol:
