@@ -46,7 +46,7 @@
 - [x] M1b.3.6 — S128-разделение закрыто S318 (SHA 9c282746; ренумбер: S317 занят параллельной INV-CONSUMER-GAP-сессией): RE-D8 погашен — удалены S135-статик AgentAction, дубликат _compute_risk (прод = risk.py), Scalar-ветка social_deltas (Graph>Vacuum); читатель-карта rc = вход 3.7; F5 R001 behavior-neutral; R002 fear-probe → RE-D9 (BehaviorMask канал мёртв + fear-scale mismatch — отдельный фронт, §7.2)
 - [x] M1b.3.7 — греп-страж allowlist (кэш-чтения только рендер-проекциям) — закрыт S319 (ADR-O-415): freeze 19 файлов / 52 сайта, INV-RE-CACHE-ALLOWLIST
 - [x] **GC-11** (S320, ADR-O-416) — RED=находка (прецедент GC-09B): event→V2-RAM non-zero delta доказан живьём; следующий выбор не сдвинут — RE-D2-класс, выборка 5 (S1 raw-dict-канал слеп / S2 пороговая инертность / S3 тихий мир). Протокол: reports/lab_r003_gc11_results.json.
-- [ ] M1b.5 — удалить мёртвый `apply_npc_state_updates` (0 вызовов, греп-доказательство) + судьба legacy `RelationshipStore` (AUD-D5: wall-clock TTL, тихий `{}`, legacy JSON)
+- [x] M1b.5 — закрыт S322: npc_state_helpers удалён ЦЕЛИКОМ (обе функции; 0 импортов/0 вызовов — греп; 71384bba) + AUD-D5(б) fail-loud ContractValidationError (ec67f730 + регресс-тест f97208b9); судьба legacy store по факту readers: НЕ прод-SSOT после M1b.4.2 cutover (M1b.1-фолбэк + тест-фикстура; полный removal = фаза K); vestigial provider v2 — НЕ vestigial: несущий sync-тракт (тест-enforced)
 
 **Ступень 2 — RE-01: M2/D → G/H → K → Полигон M**
 - [ ] M2/D — `RelationshipEventSemantics`: первый живой needs-writer через `update_needs` + формат RE-событий (попутно закрывает хвост Фазы 0.6/NEI)
@@ -184,7 +184,7 @@
 - [x] **M1b.3.6** (S318) — S128-разделение по вердикт-матрице S314 (историческая формулировка S128 утрачена — Р4, не восстанавливалась): RE-D8 ✅ (S135-статик / дубликат _compute_risk / Scalar-ветка — grep-доказательства; микро-тест мигрирован на compute_objective_risk); читатель-карта relationship_cache = вход M1b.3.7; R002 fear-probe → **RE-D9** (§7.2): канал BehaviorMask мёртв (FAIL_STAGE=PROJECT) + fear-scale mismatch — активация = game-design, отдельный фронт.
 - [x] **M1b.3.7** (S319, ADR-O-415) — греп-страж allowlist: freeze-поверхность relationship_cache заморожена (19 файлов / 52 сайта, точные счётчики; DECISION-READER преходяще легальны — сжатие = миграция на V2 после M2/D+GC-11).
 - [x] **GC-11** (S320, ADR-O-416) — RED=находка: event→V2-RAM доказан живьём (trust 0→20 через production-мост; B≡B2), поведенческий ноль = RE-D2 выборка 5 (S1 dual-reader: raw-dict-канал слеп при живом pipeline-канале; S2 пороги; S3 тихий мир) — цель передана M2/D
-- [ ] **M1b.5** — удалить мёртвый `apply_npc_state_updates` (0 вызовов доказано грепом) + судьба legacy `RelationshipStore`/vestigial provider (см. AUD-D5).
+- [x] **M1b.5** — закрыт S322: helper удалён целиком (71384bba); legacy store — не прод-SSOT (фаза K); vestigial provider v2 — опровергнут (несущий sync-тракт); AUD-D5(б) fail-loud + тест (ec67f730/f97208b9).
 - [ ] **M2/D** — `RelationshipEventSemantics`: первый живой писатель потребностей через `update_needs` + формат RE-событий в causal-машинерии.
 - [ ] **G/H** — динамика Satisfaction и фрустрации через стор.
 - [ ] **K** — полный removal-test.
@@ -674,7 +674,7 @@ player command → avatar appraisal → accept/modify/resist/refuse
 | AUD-D1 | **mypy: 726 ошибок в backend/app**. Hotspots: game_loop/__init__.py (63), tick_orchestrator.py (49), api/routes.py (37), llm/router.py (20), dm_agent.py (20), combat_math.py (17). Runtime-класс (union-attr/arg-type/attr-defined/call-arg ≈209) — латентные краши | P1 | cross | триаж P17; CI-храповик «новых ошибок нет» | открыт |
 | AUD-D2 | social_subscriber None-инвариант (`RelationshipWriteGate\|None.apply` ×5) | P1 | events | — | ✅ закрыт (Шаг 5: провод стора + skip-путь; P97-верификатор зелёный) |
 | AUD-D4 | `npc_state.py:613–621` `_ALLOWED_WRITERS`: 4 wildcard-писателя (`"*"`: npc_loader, phases.decision, phases.memory, life_engine) — контракт «StateApplicator = единственный L2 writer» обойдён санкционированно | P1 | npc | зарегистрировать как A11; мигрировать 4 модуля; сузить `"*"` (прецедент avatar_state_applicator) | открыт |
-| AUD-D5 | Legacy `RelationshipStore` жив в прод-пути (state_applicator:62, memory_manager:28): (а) TTL 3600 c через `time.time()` — wall-clock ветка, кандидат replay-дрейфа; (б) `except → тихий {}` — сброс данных; (в) `_save` пишет legacy JSON | P2 | RE | решение судьбы в M1b.5/M1b.3.5; минимум TTL→tick-based, except→Fail Loud | открыт |
+| AUD-D5 | Legacy `RelationshipStore` жив в прод-пути (state_applicator:62, memory_manager:28): (а) TTL 3600 c через `time.time()` — wall-clock ветка, кандидат replay-дрейфа; (б) `except → тихий {}` — сброс данных; (в) `_save` пишет legacy JSON | P2 | RE | закрыт S322: (б) except→{} → fail-loud ContractValidationError (ec67f730+тест); (а) TTL — §15.2-легальный cache-TTL вне прод-пути (cutover M1b.4.2); (в) вне прод-пути; полный removal legacy = фаза K | закрыт (остаток — фаза K) |
 | AUD-D6 | **DilemmaEngine — мёртвый контур в проде**: `check_triggers()` каждый тик, но `register_dilemma()` не вызывается никем → `_dilemmas` пуст | P2 | social/MVP | канон `dilemmas.json` + загрузчик в init_campaign, или исключить check_triggers | открыт |
 | AUD-D7 | `main.py` — 34 `print()` живы (строки 98–365, блок запуска). Долг «print→logger ✅» не соответствует билду | P3 | main | заменить на logger (единый фронт с LOG-GATE) | открыт |
 | AUD-D8 | ~~`mypy.ini` повреждён~~ | P3 | CI | — | ✅ закрыт (S311-серия: STALE — конфиг здоров, `mypy` первой строкой; вероятно, починен ранее чужой сессией без записи) |
@@ -775,7 +775,7 @@ player command → avatar appraisal → accept/modify/resist/refuse
 ### A. СЕЙЧАС — блокирует качество причинной игры
 
 - [x] **A0** Закрыть RE-01 **M1b.3.5–3.7** (активный фронт): 3.5 ✅ S314 (RE-D8 + GAP-1 вердикт) → 3.6 ✅ S318 (RE-D8 закрыт) → 3.7 ✅ S319 (ADR-O-415, freeze 19/52). Затем A1.
-- [ ] **A1** RE-01 M1b.5: удалить мёртвый `apply_npc_state_updates` (0 вызовов, греп) + судьба legacy `RelationshipStore` и vestigial provider v2 (REMOVED/фасад по факту readers).
+- [x] **A1** RE-01 M1b.5 закрыт S322: helper удалён целиком (71384bba); legacy store — судьба по факту readers (не прод-SSOT после cutover; фаза K); vestigial provider v2 — опровергнут: несущий sync-тракт; AUD-D5(б) fail-loud + регресс-тест (ec67f730/f97208b9).
 - [ ] **A2** RE-01 M2/D: `RelationshipEventSemantics` + первый живой needs-writer через `update_needs` + формат RE-событий.
 - [ ] **A3** G/H: Satisfaction + frustration через стор.
 - [ ] **A4** K: removal-test; Полигон M: INV-1, О-2.
@@ -1229,7 +1229,7 @@ Feature считается **CLOSED** только если:
 | AUD-D1 | latent type/interface crashes могут оборвать реальный путь | GC-00/01/24 + NEG-01 |
 | AUD-D2 | социальная реакция падает в production None-ветке | GC-11 + NEG-01 |
 | AUD-D4 | competing writers перетирают canonical NPC state | GC-17 + NEG-04 |
-| AUD-D5 | отношения зависят от wall-clock / тихо обнуляются | GC-18/20/21 + NEG-05 |
+| AUD-D5 | отношения зависели от wall-clock / тихо обнулялись (S322: fail-loud закрыт; TTL — фаза K) | GC-18/20/21 + NEG-05 |
 | AUD-D6 | feature существует, но игрок никогда не может вызвать | GC-23 + REACH-03 |
 | AUD-D7 | startup observability debt; kernel напрямую не ломает | startup smoke + NEG-09 |
 | AUD-D8 | CI даёт ложную уверенность в strict typing gate | CI config test + AUD audit |
