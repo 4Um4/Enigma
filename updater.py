@@ -5,16 +5,16 @@ path: /updater.py
 Основные сущности: get_local_version, get_latest_release, download_file, main
 """
 
-import os
-import sys
 import json
-import urllib.request
+import os
 import subprocess
+import sys
 import tempfile
-import traceback
 import tkinter as tk
-from tkinter import messagebox, ttk
+import traceback
+import urllib.request
 from tkinter import font as tkfont
+from tkinter import messagebox, ttk
 
 # --- КОНФИГУРАЦИЯ ---
 GITHUB_OWNER = "4Um4"
@@ -42,7 +42,7 @@ def get_latest_release():
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode('utf-8'))
             return data
-    except Exception as e:
+    except Exception:
         return None
 
 def download_file_with_progress(url, dest, progress_cb=None):
@@ -92,7 +92,7 @@ def main():
 
     local_ver = get_local_version()
     release = get_latest_release()
-    
+
     if release:
         latest_ver = release.get('tag_name', '').lower().replace("v", "")
         if latest_ver and latest_ver != local_ver:
@@ -104,26 +104,25 @@ def main():
                 f"Текущая версия: {local_ver}\nНовая версия: {latest_ver}\n\n{release_notes}\n\nСкачать и установить обновление сейчас?"
             )
             root.destroy()
-            
+
             if answer:
                 temp_dir = tempfile.gettempdir()
                 assets = release.get('assets', [])
-                
+
                 main_setup_url = None
-                
+
                 for asset in assets:
                     # Фильтр: основной установщик = .exe (не models-ассет — их больше нет).
                     # .rar (легаси-сжатие >2ГБ релизов) обновлятор ставить не умеет —
                     # такие релизы считаются несовместимыми с автообновлением.
                     if asset['name'].endswith('.exe') and not asset['name'].startswith('Bloodloom_models'):
                         main_setup_url = asset['browser_download_url']
-                
+
                 # Раньше здесь была минута молчания: 1.4 ГБ качались в память без
                 # единого окна (наблюдено Мастером: «нажал Да — ничего»). Теперь —
                 # живое окно прогресса с байтами, скоростью, ETA и отменой.
                 import threading
-                import time as _time
-                
+
                 if not main_setup_url:
                     # Апдейтер не имеет права запирать игрока: нет .exe в релизе —
                     # предупредили и играем на текущей версии (наблюдено: релиз
@@ -136,9 +135,9 @@ def main():
                         "Игра будет запущена на текущей версии.\n"
                         "Обновление можно скачать вручную со страницы релизов GitHub.")
                     _warn.destroy()
-                
+
                 main_path = os.path.join(temp_dir, "bloodloom_main_update.exe")
-                
+
                 win = tk.Tk()
                 win.title("Обновление Bloodloom")
                 win.geometry("480x220")
@@ -151,22 +150,22 @@ def main():
                 _cx = (win.winfo_screenwidth() // 2) - 240
                 _cy = (win.winfo_screenheight() // 2) - 110
                 win.geometry(f"480x220+{_cx}+{_cy}")
-                
+
                 _title_font = tkfont.Font(family="Segoe UI", size=14, weight="bold")
                 _status_font = tkfont.Font(family="Segoe UI", size=11)
                 tk.Label(win, text="Загрузка обновления Bloodloom", font=_title_font,
                          bg="#0F1419", fg="#00A887").pack(pady=(24, 8))
-                
+
                 _info = tk.Label(win, text="Подключение...", font=_status_font,
                                  bg="#0F1419", fg="#FFFFFF")
                 _info.pack(pady=4)
-                
+
                 _bar = ttk.Progressbar(win, length=420, mode='determinate', maximum=100)
                 _bar.pack(pady=12)
-                
+
                 _speed = tk.Label(win, text="", font=_status_font, bg="#0F1419", fg="#8FA3B0")
                 _speed.pack()
-                
+
                 class _CB:
                     def __init__(self):
                         self.cancelled = False
@@ -181,32 +180,32 @@ def main():
                             _info.configure(text=_info_text),
                             _speed.configure(text=_speed_text),
                         ))
-                
+
                 _cb = _CB()
-                
+
                 _btn = tk.Button(win, text="Отменить", command=lambda: setattr(_cb, 'cancelled', True),
                                  bg="#252530", fg="#FF6B6B", activebackground="#3a3a3a",
                                  relief="flat", padx=16, pady=4)
                 _btn.pack(pady=10)
-                
+
                 _result = {}
-                
+
                 def _worker():
                     _result['ok'] = download_file_with_progress(main_setup_url, main_path, _cb)
                     win.after(0, win.quit)
-                
+
                 threading.Thread(target=_worker, daemon=True).start()
                 win.mainloop()
-                
+
                 if _cb.cancelled or _result.get('ok') is None:
                     win.destroy()
                     _c = tk.Tk(); _c.withdraw()
                     messagebox.showinfo("Обновление отменено", "Загрузка отменена. Недокачанный файл удалён.\nЗапустите игру позже, чтобы повторить.")
                     _c.destroy()
                     os._exit(0)  # Отмена = не запускаем игру со старой версией молча
-                
+
                 win.destroy()
-                
+
                 if _result.get('ok') is True:
                     try:
                         # Установщик напрямую (без 'cmd /c start'): не всплывает чёрное
@@ -229,7 +228,7 @@ def main():
                         messagebox.showerror("Ошибка запуска установщика", f"Установщик скачан, но не запустился:\n{_e}\n\nФайл: {main_path}")
                         _err.destroy()
                         os._exit(1)
-                
+
                 # Скачивание упало (сеть и т.п.) — предупреждаем и играем на старой
                 _err = tk.Tk(); _err.withdraw()
                 messagebox.showwarning(
@@ -238,7 +237,7 @@ def main():
                     "Игра будет запущена на текущей версии.\n"
                     "Попробуйте обновиться при следующем запуске.")
                 _err.destroy()
-                
+
                 # Блок доставки моделей удалён: недостижим (os._exit выше) и устарел —
                 # models_setup-ассеты больше не публикуются, модель доставляет
                 # внутриигровой загрузчик (Настройки -> LLM Модели, докачка/отмена).
@@ -252,28 +251,28 @@ def main():
         portable_python = os.path.join(app_dir, "_internal", "python", "python.exe")
         # Фолбэк на .venv для разработки
         venv_python = os.path.join(app_dir, ".venv", "Scripts", "python.exe")
-        
+
         if os.path.exists(portable_python):
             python_exe = portable_python
         elif os.path.exists(venv_python):
             python_exe = venv_python
         else:
             python_exe = "python" # Системный Python (последняя попытка)
-        
+
         _creation_flags = 0
         if sys.platform == 'win32':
             _creation_flags = 0x08000000 # CREATE_NO_WINDOW
-            
+
         try:
             _env = os.environ.copy()
             _env["PYTHONIOENCODING"] = "utf-8"
             _env["PYTHONUTF8"] = "1"
-            
+
             # Запускаем Splash Screen в фоне (если он существует)
             splash_exe = os.path.join(app_dir, "Bloodloom_splash.exe")
             if os.path.exists(splash_exe):
                 subprocess.Popen([splash_exe])
-                
+
             subprocess.Popen([python_exe, launcher_path], creationflags=_creation_flags, env=_env)
         except Exception as e:
             with open(os.path.join(app_dir, "launch_error.log"), "w", encoding="utf-8") as f:
@@ -287,7 +286,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
+    except Exception:
         # Ловим любые другие ошибки, чтобы они не остались незамеченными
         app_dir = get_app_dir()
         with open(os.path.join(app_dir, "updater_crash.log"), "w", encoding="utf-8") as f:

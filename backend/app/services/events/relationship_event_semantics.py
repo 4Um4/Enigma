@@ -66,6 +66,10 @@ RELATIONSHIP_EVENT_PROFILES: Dict[str, Tuple[Tuple[str, str, str, float], ...]] 
     EventType.INTIMATE_ENCOUNTER.value: (
         ("both", "sexual", "pressure", -1.0),  # relief, Ф4
         ("both", "sexual", "satiation", +1.0),  # рост по качеству, Сат4
+        # Фр2 (раунд 9), ADR-O-419: релаксационная волна по снятию давления —
+        # ДЕЛЬТА (< 0), НЕ присваивание и НЕ обнуление накопленного (Фр2/№23);
+        # после снижения новая динамика (время/стимул) полностью разрешена.
+        ("both", "sexual", "frustration", -1.0),  # релаксационная волна, Фр2
     ),
     EventType.INTIMATE_REJECTION.value: (
         ("source", "sexual", "frustration", +1.0),  # путь 2, Фр1=C

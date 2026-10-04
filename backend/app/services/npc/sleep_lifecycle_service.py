@@ -258,6 +258,22 @@ class SleepLifecycleService:
         _body = npc.setdefault("body_state", {})
         _body.pop("sleep_onset_tick", None)
         _body["wake_duration"] = 0
+        # ADR-O-419 (RE G/H, механизм 3): WAKE = граница личного цикла —
+        # обновление циклических состояний потребностей. Формы «что сохраняется
+        # через сон» НЕ утверждены раундами (Сат4/ставки — плейсхолдеры) →
+        # хук = no-op-точка + маркер проводки для F5. Дельты (если появятся)
+        # пойдут единственным write-path через delta_buffer.
+        from app.services.social.relationship_dynamics import (
+            relationship_dynamics_enabled,
+            wake_transition_deltas,
+        )
+
+        if relationship_dynamics_enabled():
+            _wake = wake_transition_deltas(npc, tick)
+            if _wake:
+                logger.info(f"[RE_WAKE_HOOK] {npc.get('id', '?')}: {_wake}")
+            else:
+                logger.debug(f"[RE_WAKE_HOOK] {npc.get('id', '?')}: no-op (формы не утверждены)")
 
         _residue = npc.pop("dream_residue", None)
         if _residue and _residue.get("salience", 0.0) > 0.3:

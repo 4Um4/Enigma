@@ -233,11 +233,22 @@ class LlamaCppCompressorClient:
         # единственный владелец региона. Router отсутствует by design (Э0-Э2):
         # шов будущего router'а — выбор модуля между list_modules/load_module.
         if os.environ.get("ENIGMA_SEM_LIB") == "1":
-            from app.services.input.semantic_library import load_module
-            _sem_mod = load_module("dialogue_provenance")
-            _prov_enum_tail = _sem_mod.enum_tail
+            from app.services.input.semantic_library import load_modules
+            # Срез = CSV имён (порядок CSV = порядок блоков, детерминирован).
+            # Default = provenance (Э0-байт-эквивалентность сохраняется).
+            _sem_mods = load_modules(
+                os.environ.get("ENIGMA_SEM_LIB_MODULES", "dialogue_provenance")
+            )
+            _sem_tails = [m.enum_tail for m in _sem_mods if m.enum_tail is not None]
+            if len(_sem_tails) > 1:
+                from app.services.input.semantic_library import SemanticLibraryError
+                raise SemanticLibraryError(
+                    f"конфликт среза: {len(_sem_tails)} модулей заменяют enum-tail"
+                )
+            if _sem_tails:
+                _prov_enum_tail = _sem_tails[0]
             _prov_class_block = ""
-            _prov_b_block = _sem_mod.contrast_block
+            _prov_b_block = "".join(m.contrast_block for m in _sem_mods)
             _prov_b2_block = ""
         if os.environ.get("ENIGMA_RC8_STATE") == "B":
             _rc8_fewshot = (

@@ -2,12 +2,11 @@
 Назначение: окно загрузки при ожидании загрузки backend
 """
 
-import os
-import sys
 import time
-import urllib.request
 import tkinter as tk
+import urllib.request
 from tkinter import font as tkfont
+
 
 class SplashScreen(tk.Tk):
     def __init__(self):
@@ -16,7 +15,7 @@ class SplashScreen(tk.Tk):
         self.geometry("720x400")
         self.configure(bg="#0F1419")
         self.overrideredirect(True)  # Убираем рамки окна
-        
+
         # Центрирование
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -45,7 +44,7 @@ class SplashScreen(tk.Tk):
         self.canvas = tk.Canvas(self, width=400, height=12, bg=bg_card, highlightthickness=0)
         self.canvas.pack(pady=20)
         self.progress_rect = self.canvas.create_rectangle(0, 0, 0, 12, fill=accent_color, outline="")
-        
+
         # Анимация пульсации
         self._progress = 0
         self._direction = 1
@@ -53,7 +52,7 @@ class SplashScreen(tk.Tk):
         # Таймаут: если бэкенд не ответит за 60 секунд, закрываемся
         self._start_time = time.time()
         self._timeout = 60
-        
+
         # Запуск проверки бэкенда
         self.after(100, self.update_progress)
         self.after(500, self.check_backend)
@@ -67,7 +66,7 @@ class SplashScreen(tk.Tk):
         elif self._progress < 0:
             self._progress = 0
             self._direction = 1
-            
+
         self.canvas.coords(self.progress_rect, 0, 0, self._progress, 12)
         self.after(50, self.update_progress)
 
@@ -87,14 +86,14 @@ class SplashScreen(tk.Tk):
                 self.status_var.set("Загрузка AI-модели в видеопамять...")
             else:
                 self.status_var.set("Запуск игрового сервера...")
-            
+
             # Проверка таймаута для защиты от зомби-процесса
             if time.time() - self._start_time > self._timeout:
                 self.status_var.set("Ошибка: сервер не отвечает. Проверьте launch_error.log.")
                 self.update()
                 self.after(3000, self.destroy)
                 return
-                
+
         self.after(1000, self.check_backend)
 
 if __name__ == "__main__":

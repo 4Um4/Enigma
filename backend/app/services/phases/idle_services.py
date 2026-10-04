@@ -77,6 +77,36 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
             # Инвариант 3: Аффективный decay — критический процесс, не debug
             logger.warning(f"[AFFECT_DECAY] Failed for {npc_dict.get('npc_id')}: {e}")
 
+    # ADR-O-419 (RE G/H): time-driven динамика потребностей — ДО idle_handlers,
+    # для всех NPC независимо от сна (вердикт Мастера: сон не останавливает
+    # физиологию). Флаг OFF = полный no-op. Один носитель scene_state —
+    # отметка кванта и дельты атомарны с Фазой 10.
+    from app.services.social.relationship_dynamics import (
+        compute_time_driven_deltas,
+        relationship_dynamics_enabled,
+    )
+
+    if relationship_dynamics_enabled():
+        # Канон commit_phase (урок I.2 / ADR-O-418 IMPACT): носитель =
+        # player-сцена на player-пути, иначе idle-сцена. Отметка кванта и
+        # чтение needs обязаны жить в ТОМ ЖЕ носителе, куда Фаза 9/10
+        # применит дельты — иначе рассинхрон книги контура.
+        _dyn_scene = (
+            ctx.shared_context.scene_state
+            if getattr(ctx, "is_player_turn", False) and ctx.shared_context is not None
+            else ctx.scene_state
+        )
+        _dyn_ids = tuple(
+            str(n.get("npc_id", "")) for n in ctx.all_npcs_raw if n.get("npc_id")
+        )
+        # Время — канон _advance_idle_time: ctx.scene_state (обновляются оба источника).
+        _dyn_seconds = float(ctx.scene_state.get("game_time_seconds", 0) or 0)
+        _dyn_deltas = compute_time_driven_deltas(
+            _dyn_scene, _dyn_ids, _dyn_seconds, ctx.tick_number
+        )
+        if _dyn_deltas:
+            ctx.delta_buffer.extend(_dyn_deltas)
+
     if not deps.idle_handlers:
         return
 

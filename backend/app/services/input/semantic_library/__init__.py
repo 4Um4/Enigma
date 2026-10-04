@@ -17,15 +17,17 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 _LIBRARY_DIR = Path(__file__).resolve().parent
 _MODULE_DECL_PREFIX = "# semantic-module: "
 _SECTION_PREFIX = "## "
-# Закрытый реестр секций (схема Э0). Расширение = правка схемы + лоадера +
-# вердикт Мастера — неизвестная секция громко падает, не игнорируется.
-_REQUIRED_SECTIONS = ("enum-tail", "contrast-block")
-_ALLOWED_SECTIONS = frozenset(_REQUIRED_SECTIONS + ("notes",))
+# Закрытый реестр секций (схема v1, Э2-вердикт). Расширение = правка схемы +
+# лоадера + вердикт Мастера — неизвестная секция громко падает, не игнорируется.
+# enum-tail опционален: модуль без него — add-only (не заменяет перечисление).
+_REQUIRED_SECTIONS = ("contrast-block",)
+_OPTIONAL_SECTIONS = ("enum-tail", "notes")
+_ALLOWED_SECTIONS = frozenset(_REQUIRED_SECTIONS + _OPTIONAL_SECTIONS)
 
 
 class SemanticLibraryError(Exception):
@@ -37,7 +39,7 @@ class SemanticModule:
     """Иммутабельный модуль семантического знания (детерминированный парс)."""
 
     name: str
-    enum_tail: str
+    enum_tail: Optional[str]  # None = add-only модуль (перечисление не заменяет)
     contrast_block: str
     meta: Dict[str, str]
 
@@ -59,7 +61,7 @@ def _parse_module(text: str, source: Path) -> SemanticModule:
     meta: Dict[str, str] = {}
     sections: Dict[str, str] = {}
     current: Optional[str] = None
-    buf = []
+    buf: List[str] = []
 
     def _flush() -> None:
         if current is None:
@@ -96,7 +98,7 @@ def _parse_module(text: str, source: Path) -> SemanticModule:
         )
     return SemanticModule(
         name=declared_name,
-        enum_tail=sections["enum-tail"],
+        enum_tail=sections.get("enum-tail"),
         contrast_block=sections["contrast-block"],
         meta=meta,
     )
@@ -114,6 +116,23 @@ def load_module(name: str, base_path: Optional[Union[str, Path]] = None) -> Sema
             f"{path}: декларация '{module.name}' != имени файла '{name}'"
         )
     return module
+
+
+def load_modules(names_csv: str) -> Tuple[SemanticModule, ...]:
+    """Детерминированная загрузка среза по CSV имён (порядок = порядок блоков).
+
+    Отказ — громкий: неизвестное имя, дубликат (SemanticLibraryError).
+    Конфликт двух enum-tail-модулей в одном срезе ловит вызывающий (сборка).
+    """
+    names = [n.strip() for n in names_csv.split(",") if n.strip()]
+    if not names:
+        raise SemanticLibraryError("пустой срез модулей")
+    seen = set()
+    for n in names:
+        if n in seen:
+            raise SemanticLibraryError(f"дубликат модуля в срезе: {n}")
+        seen.add(n)
+    return tuple(load_module(n) for n in names)
 
 
 def list_modules() -> Tuple[str, ...]:

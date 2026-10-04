@@ -138,6 +138,9 @@ class NeedSlot:
     object_binding: str = "any"  # Н4: any | class | specific (А2: пер-объектные экземпляры)
     homeostatic: bool = False  # Н3: True только для телесных гомеостатических (обе RE-потребности — дефицитные)
     change_rate: float = 0.01  # 1/день Н6: медленное обучение (НЕ [0,1] — проверяется отдельно)
+    gen_rate: float = 0.1  # 1/день §6.1 п.4 (Ф-структура, раунд 8): ставка пассивного накопления давления;
+    # индивидуальный параметр КОНКРЕТНОГО слота (вердикт Мастера G/H: не универсальная константа RE);
+    # значение — PLACEHOLDER / CALIBRATION_CANDIDATE (вердикт GPT №2), не научная величина
 
     def __post_init__(self) -> None:
         if self.need_id not in RE_NEED_SLOTS:
@@ -168,6 +171,12 @@ class NeedSlot:
             raise ContractValidationError(f"NeedSlot {self.need_id}: change_rate не число") from e
         if cr != cr or cr < 0.0:
             raise ContractValidationError(f"NeedSlot {self.need_id}: change_rate ≥ 0 (NaN/отрицательный запрещён)")
+        try:
+            gr = float(self.gen_rate)
+        except (TypeError, ValueError) as e:
+            raise ContractValidationError(f"NeedSlot {self.need_id}: gen_rate не число") from e
+        if gr != gr or gr < 0.0:
+            raise ContractValidationError(f"NeedSlot {self.need_id}: gen_rate ≥ 0 (NaN/отрицательный запрещён)")
 
 
 @dataclass(frozen=True)
