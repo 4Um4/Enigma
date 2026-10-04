@@ -245,6 +245,7 @@
 
 ### Открытые долги
 - **DEBT-D1** (S217): аудит publish_release.
+- [x] ~~DEBT-ADR-CLI-QUIET~~ ✅ закрыт (S311: basicConfig в adr_cli.main; IMPACT-стаб ADR-NET-CLI-QUIET_FIX; smoke-прогон)
 - [x] ~~DEBT-ADR-NET-N/A-FILL~~ ✅ закрыт S325: атлас-источники исчерпаны (Files: 1→78 filled, 12 шапок канонизированы, no_header 0). Остаток → новый хвост: 94 empty = пер-файловая археология тел аудитов (атлас-источника нет) — reports/d1_disposition.txt; отдельная сессия по санкции.
 - [x] ~~DEBT-DOC-DRIFT-ISPRAVLENIE~~ ✅ закрыт (S323): RemontTZ-пакет (вкл. ENIGMA_TZ_ISPRAVLENIE.md) удалён как суперсиденный — находки поглощены §7.3 AUD-D / §7.7 NL-D / RE-D9; line-drift исчезли вместе с файлами; история в git.
 - **DEBT-TS**: функциональность темпа будет переделана (M4).
