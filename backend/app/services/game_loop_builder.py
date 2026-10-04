@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from app.agents.dm_agent import DmAgent
-from app.agents.rules_agent import RulesAgent
+
 from app.agents.world_sim_agent import WorldSimulationAgent
 from app.core.config import settings
 from app.services.action.dm_orchestrator import DMOrchestrator
@@ -93,7 +93,6 @@ def build_game_loop(data_dir: Path) -> GameLoop:
         character_service=char_service,
         avatar_service=avatar_service,
         dm_agent=DmAgent(),
-        rules_agent=RulesAgent(),
         load_npcs_func=load_npcs,
         # AdventureLoader удалён (ADR-O-146) — vestigial, нет файлов world_lore/npc/locations
         system_requirements=SystemRequirements(

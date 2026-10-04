@@ -105,7 +105,6 @@ class GameLoop:
         character_service: CharacterService,
         avatar_service: Any,
         dm_agent: Any,
-        rules_agent: Any,
         load_npcs_func: Any,
         # adventure_loader удалён (ADR-O-146)
         system_requirements: SystemRequirements,
@@ -164,7 +163,6 @@ class GameLoop:
         self.avatar_service = avatar_service
         # self.model_router удалён
         self.dm_agent = dm_agent
-        self.rules_agent = rules_agent
         self._load_npcs = load_npcs_func  # static только (для движков)
         # self._data_dir удалён — runtime через self._saves_dir, config через self.data_dir
         # ADR-O-146: AdventureLoader удалён — vestigial слой (нет файлов world_lore.txt/npc.json/locations.json).

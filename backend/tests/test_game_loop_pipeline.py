@@ -33,7 +33,6 @@ def mock_deps(tmp_path):
         "character_service": MagicMock(),
         "avatar_service": MagicMock(),
         "dm_agent": AsyncMock(),
-        "rules_agent": AsyncMock(),
         "load_npcs_func": MagicMock(return_value=[]),
         "system_requirements": MagicMock(),
         "saves_dir": tmp_path / "saves",
