@@ -1436,7 +1436,13 @@ class GameLoop:
             "status": result.status,
             "changes": result.changes_count,
             "npc_positions": _npc_pos_dict,  # DEPRECATED: читать из world_snapshot
-            "events": result.significant_events,
+            # DEBT-FE-DELTAS закрыт (Rule 11, Устав §6.3/§10.3-18): сырые
+            # StateDeltas (stress/trust/fear — ментальные поля NPC) не покидают
+            # ядро. Фронт-потребитель (телеграф event-driven, game_screen:1338)
+            # мёртв с момента смены контракта канала — срез behavior-neutral.
+            # Возрождение = честная наблюдаемая проекция {cause,target,value},
+            # решение гейм-дизайна (эскалация, не этот фикс).
+            "events": [],
             "world_snapshot": _ws,
             # ADR-075: Idle-тики не содержат Волевых конфликтов (нет действия игрока).
             "will_conflict_data": None,

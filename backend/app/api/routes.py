@@ -532,8 +532,11 @@ def idle_tick(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict
                 }
 
         _status = _result.get("status") if isinstance(_result, dict) else _result.status
+        # DEBT-FE-DELTAS: ключ выровнен с return game_loop.idle_tick ("events").
+        # Легаси-чтение "significant_events" у dict всегда давало None (мёртвый
+        # канал). Объектная ветка — defensive для прямого TickResultDTO.
         _events = (
-            _result.get("significant_events")
+            _result.get("events")
             if isinstance(_result, dict)
             else _result.significant_events
         )
