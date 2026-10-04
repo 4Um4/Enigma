@@ -1,4 +1,5 @@
 ﻿`ADR-O-404` [STANDARD] **IMPACT**
+Files: backend/app/services/events/event_identity.py, backend/app/services/events/event_bus.py, backend/tests/micro/test_event_identity.py
 # ADR-404 Impact Audit — Event Identity
 ## Changed Domains
 - events (identity seed), scene_state (новый корень event_ordinals),

@@ -1,4 +1,5 @@
 ﻿`ADR-O-410` [STANDARD] **IMPACT**
+Files: backend/app/services/world/g3_executor.py, backend/app/services/world/object_target_facts.py, backend/app/services/phases/post_decision.py
 # ADR-O-410 Impact Audit — G3 Object Action Executor (W-track, Этап 1)
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md (STANDALONE).
 > Статус: ACTIVE — Этап 1 (исполнительное ядро) GREEN; Этап 2 (живая воля) — отдельный коммит.

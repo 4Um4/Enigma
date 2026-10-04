@@ -1,4 +1,5 @@
 ﻿`ADR-O-363` [STANDARD] **IMPACT**
+Files: backend/app/domain/action_commitment.py, backend/app/services/action/commitment_registry.py, backend/app/services/action/commitment_arbiter.py
 # ADR-O-363 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S215 | Спринт: Stage 2A / S203.1 (shadow)

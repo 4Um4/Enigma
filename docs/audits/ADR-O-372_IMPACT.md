@@ -1,4 +1,5 @@
 ﻿`ADR-O-372` [STANDARD] **IMPACT**
+Files: backend/app/domain/semantic_action.py, backend/app/services/world/affordance_resolver.py, backend/app/domain/body_state_view.py
 # ADR-O-372 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 

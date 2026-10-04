@@ -1,4 +1,5 @@
 ﻿`ADR-O-405` [STANDARD] **IMPACT**
+Files: backend/app/services/player_board_service.py, backend/app/api/routes_board.py, frontend/ui_workbench/windows/board_window.py
 # ADR-O-405 Impact Audit — Investigation Board (Presentation-Persistence)
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

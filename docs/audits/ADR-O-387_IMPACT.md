@@ -1,4 +1,5 @@
 ﻿`ADR-O-387` [STANDARD] **IMPACT**
+Files: backend/app/services/game_loop/task_scheduler.py, backend/app/services/execution/dialogue_materializer.py, backend/tests/micro/test_dialogue_liveness_gate.py
 # ADR-O-387 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

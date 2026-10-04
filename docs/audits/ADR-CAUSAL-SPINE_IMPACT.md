@@ -1,4 +1,5 @@
 ﻿`ADR-CAUSAL-SPINE` [STANDARD] **IMPACT**
+Files: backend/app/services/tick_orchestrator.py, backend/app/services/npc/state_applicator.py, backend/app/models/npc_state.py, backend/app/models/psychological.py
 # ADR-CAUSAL-SPINE Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

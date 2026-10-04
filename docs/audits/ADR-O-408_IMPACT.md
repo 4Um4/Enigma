@@ -1,4 +1,5 @@
 ﻿`ADR-O-408` [STANDARD] **IMPACT**
+Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/simulation.py, backend/tests/IPT.py
 # ADR-O-408 Impact Audit — Canonical Attention→Action Integration
 > Единый атлас ADR: `docs/ADR (Architecture Decision Records).md`. Сессия: S304.
 

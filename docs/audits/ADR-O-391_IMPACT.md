@@ -1,4 +1,5 @@
 ﻿`ADR-O-391` [STANDARD] **IMPACT**
+Files: backend/app/services/economy/work_orders.py, backend/app/services/npc/activity_lifecycle_service.py, backend/app/services/phases/post_decision.py
 # ADR-O-391 Impact Audit
 
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`.

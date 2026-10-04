@@ -1,4 +1,5 @@
 ﻿`ADR-O-384` [STANDARD] **IMPACT**
+Files: backend/app/domain/desire.py, backend/app/domain/activity.py, backend/app/services/npc/activity_lifecycle_service.py
 # ADR-O-384 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

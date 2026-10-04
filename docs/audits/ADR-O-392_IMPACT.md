@@ -1,4 +1,5 @@
 ﻿`ADR-O-392` [STANDARD] **IMPACT**
+Files: backend/app/services/execution/dialogue_executor.py, backend/app/services/events/npc_dialogue_subscriber.py
 # ADR-O-392 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 

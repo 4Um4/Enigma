@@ -1,4 +1,5 @@
 ﻿`ADR-O-374` [STANDARD] **IMPACT**
+Files: backend/app/domain/body.py, backend/app/services/body/body_engine.py
 # ADR-O-374 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

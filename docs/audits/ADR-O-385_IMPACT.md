@@ -1,4 +1,5 @@
 ﻿`ADR-O-385` [STANDARD] **IMPACT**
+Files: backend/app/domain/communication.py, backend/app/services/events/npc_dialogue_subscriber.py
 # ADR-O-385 Speech-Tube Sanitation — Impact Audit
 > Детальный аудит одного ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 

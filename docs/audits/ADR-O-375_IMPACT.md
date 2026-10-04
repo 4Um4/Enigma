@@ -1,4 +1,5 @@
 ﻿`ADR-O-375` [STANDARD] **IMPACT**
+Files: backend/app/domain/body.py, backend/app/services/npc/sleep_onset_resolver.py, backend/app/services/npc/sleep_lifecycle_service.py
 # ADR-O-375 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

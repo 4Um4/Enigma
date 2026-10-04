@@ -1,4 +1,5 @@
 ﻿`ADR-O-412` [STANDARD] **IMPACT**
+Files: backend/app/services/game_loop/service_factories.py, backend/tests/sandbox/f1a_trade_gate_probe.py
 # ADR-O-412 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

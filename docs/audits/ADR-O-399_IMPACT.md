@@ -1,4 +1,5 @@
 ﻿`ADR-O-399` [STANDARD] **IMPACT**
+Files: backend/app/services/game_loop/task_scheduler.py, backend/app/services/execution/dialogue_queue.py, backend/tests/test_worker_outbox_determinism.py
 # ADR-O-399 Impact Audit
 > Сессия: S270 | Дата: 2026-09-20
 

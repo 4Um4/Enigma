@@ -1,4 +1,5 @@
 ﻿`ADR-O-367` [STANDARD] **IMPACT**
+Files: backend/app/services/tick_orchestrator.py, backend/app/services/calibration/experiment_runner.py, backend/app/contracts/interventions.py
 # ADR-O-367 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 

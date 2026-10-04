@@ -1,4 +1,5 @@
 ﻿`ADR-O-409` [STANDARD] **IMPACT**
+Files: backend/app/services/player_avatar_service.py, backend/app/services/events/npc_dialogue_subscriber.py, frontend/ui_workbench/workbench_screen.py
 # ADR-O-409 Impact Audit — Name-Gate Closure (FACE/NAME/LINK)
 
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR:

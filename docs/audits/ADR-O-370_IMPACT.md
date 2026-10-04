@@ -1,4 +1,5 @@
 ﻿`ADR-O-370` [STANDARD] **IMPACT**
+Files: backend/app/domain/relationship_contracts.py, backend/app/services/social/relationship_state_store.py, backend/app/services/npc/state_applicator.py, backend/tests/test_relationship_state_store.py
 # ADR-O-370 Impact Audit
 > Детальный аудит одного ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

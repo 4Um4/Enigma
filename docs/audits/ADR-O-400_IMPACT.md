@@ -1,4 +1,5 @@
 ﻿`ADR-O-400` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/pattern_detector.py, backend/app/services/phases/integration.py
 # ADR-O-400 Impact Audit: Incremental PatternDetector State (Watermark)
 
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md

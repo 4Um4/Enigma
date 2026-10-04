@@ -1,4 +1,5 @@
 ﻿`ADR-408` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/epistemic_context_resolver.py, backend/app/services/npc/epistemic_store.py, backend/tests/micro/test_self_relevance_gate.py, docs/audits/ADR-408_IMPACT.md
 # ADR-408 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

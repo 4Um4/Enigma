@@ -1,4 +1,5 @@
 ﻿`ADR-O-402` [STANDARD] **IMPACT**
+Files: backend/app/services/game_loop/turn_pipeline.py, backend/app/services/game_loop/dm_phase.py, backend/app/services/game_loop/npc_orchestration.py
 # ADR-O-402 Impact Audit — Turn Pipeline Ownership (Phase 3A)
 > Атлас: docs/ADR (Architecture Decision Records).md | Ветка: V.0.5.4.1.2_Чистка_истоков
 > Коммиты: f35a9d72 (SeamA), 56fcecfe (B1), d301b87b (SeamB+B2), 73e1f528/ac433c33 (каркас), 5026d02d (final)

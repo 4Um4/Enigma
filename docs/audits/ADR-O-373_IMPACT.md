@@ -1,4 +1,5 @@
 ﻿`ADR-O-373` [STANDARD] **IMPACT**
+Files: backend/app/models/state_delta.py, backend/app/services/body/body_engine.py, backend/app/services/tick_utils.py
 # ADR-O-373 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

@@ -1,4 +1,5 @@
 ﻿`ADR-O-359` [STANDARD] **IMPACT**
+Files: backend/app/services/input/llm_compressor_client.py, backend/app/services/player_cognition/legacy_bridge.py, backend/tests/sandbox/SUPERBOX/scenarios/semantic_torture_test.py
 # ADR-O-359 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

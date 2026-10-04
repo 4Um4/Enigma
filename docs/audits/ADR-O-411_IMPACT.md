@@ -1,4 +1,5 @@
 ﻿`ADR-O-411` [STANDARD] **IMPACT**
+Files: backend/app/services/combat/injury_processor.py, backend/app/services/body/body_engine.py, backend/tests/test_s2b7_injury_chain.py
 # ADR-O-411 Impact Audit — S2B.7 Pain/Injury
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

@@ -1,4 +1,5 @@
 ﻿`ADR-O-368` [STANDARD] **IMPACT**
+Files: scripts/lint_frontend_isolation.py, frontend/map_editor/ui/lab_screen.py, backend/tests/IPT.py
 # Impact Audit — ADR-O-368 [ONTO] Calibration Lab Frontend Isolation Exception (Dev Enclave)
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 ## Changed Domains

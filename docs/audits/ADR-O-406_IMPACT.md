@@ -1,4 +1,5 @@
 ﻿`ADR-O-406` [STANDARD] **IMPACT**
+Files: backend/app/domain/control_source.py, backend/app/services/npc/decision_hub.py, backend/app/services/tick_orchestrator.py, backend/tests/IPT.py
 # ADR-O-406 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

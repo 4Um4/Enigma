@@ -1,4 +1,5 @@
 ﻿`ADR-O-398` [STANDARD] **IMPACT**
+Files: backend/app/domain/world_epoch.py, backend/app/services/game_loop/__init__.py, backend/app/services/scene_state_manager.py
 # ADR-O-398 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > Сессия: S269 | Дата: 2026-09-20

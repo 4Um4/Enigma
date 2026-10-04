@@ -1,4 +1,5 @@
 ﻿`ADR-O-378` [STANDARD] **IMPACT**
+Files: backend/app/services/world/affordance_facts.py, backend/app/services/tick_orchestrator.py, scripts/w3_g2_simple.py
 # ADR-O-378 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

@@ -1,4 +1,5 @@
 ﻿`ADR-O-395` [STANDARD] **IMPACT**
+Files: backend/app/domain/desired_change.py, backend/app/services/npc/causal_slice_hunger.py, backend/tests/gameplay/test_r6_causal_slice_hunger.py
 # ADR-O-395 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

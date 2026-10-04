@@ -1,4 +1,5 @@
 ﻿`ADR-SSOT-ECONOMIC` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/state_applicator.py, backend/app/services/game_loop/__init__.py
 # ADR-SSOT-ECONOMIC Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

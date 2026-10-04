@@ -1,4 +1,5 @@
 ﻿`ADR-O-371` [STANDARD] **IMPACT**
+Files: backend/app/domain/world_object.py, backend/app/services/world/world_object_store.py, architecture/world.yaml
 # ADR-O-371 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 

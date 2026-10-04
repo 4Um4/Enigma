@@ -1,4 +1,5 @@
 ﻿`ADR-WRITE-GUARD` [STANDARD] **IMPACT**
+Files: backend/app/models/npc_state.py, backend/app/services/npc/state_applicator.py, backend/app/errors.py
 # ADR-WRITE-GUARD Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

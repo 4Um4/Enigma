@@ -1,4 +1,5 @@
 ﻿`ADR-O-401` [STANDARD] **IMPACT**
+Files: backend/app/services/scene_state_manager.py, backend/app/services/scene_state/__init__.py, backend/app/services/scene_state/change_validator.py, backend/app/services/scene_state/dm_presentation.py, backend/app/services/scene_state/editor_locator.py, backend/app/services/scene_state/environment_modifiers.py, backend/app/services/scene_state/npc_display_name.py, backend/app/services/scene_state/scene_factory.py, docs/audits/DEGOD_PHASE0_MAP_SSM.md
 # ADR-O-401 Impact Audit — De-godification SSM: extraction в пакет scene_state/
 > Единый атлас: docs/ADR (Architecture Decision Records).md | Серия: DEGOD ITER1–4c, 2026-09-22
 > Ветка: V.0.5.4.1.2_Чистка_истоков | Коммиты: 95bf50a8, 0eff3fc1, 87aa1e8b, ff0a751a, 75dbb62f (+ITER4c)

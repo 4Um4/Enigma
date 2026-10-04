@@ -1,4 +1,5 @@
 ﻿`ADR-O-365` [STANDARD] **IMPACT**
+Files: backend/app/domain/action_priority.py, backend/app/services/action/commitment_arbiter.py, backend/app/services/game_loop/task_scheduler.py
 # ADR-O-365 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`.
 > Спринт-владелец: S203.4 (Stage 2A). Вердикты Мастера: D-1…D-9.

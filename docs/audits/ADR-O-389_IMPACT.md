@@ -1,4 +1,5 @@
 ﻿`ADR-O-389` [STANDARD] **IMPACT**
+Files: backend/app/models/npc_state.py, backend/app/services/npc/state_applicator.py, backend/app/services/game_loop/task_scheduler.py
 # ADR-O-389 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

@@ -1,4 +1,5 @@
 ﻿`ADR-EVENT-VISIBILITY` [STANDARD] **IMPACT**
+Files: backend/app/models/npc_state.py, backend/app/services/events/claim_event_subscriber.py
 # ADR-EVENT-VISIBILITY Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

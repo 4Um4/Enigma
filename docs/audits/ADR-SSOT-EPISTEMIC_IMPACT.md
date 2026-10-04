@@ -1,4 +1,5 @@
 ﻿`ADR-SSOT-EPISTEMIC` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/belief_transition_engine.py, backend/app/services/npc/state_applicator.py, backend/app/models/npc/beliefs.py, backend/app/models/psychological.py
 # ADR-SSOT-EPISTEMIC Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

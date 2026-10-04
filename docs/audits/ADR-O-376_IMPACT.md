@@ -1,4 +1,5 @@
 ﻿`ADR-O-376` [STANDARD] **IMPACT**
+Files: backend/app/domain/object_fsms.py, backend/app/services/world/world_object_store.py, backend/app/services/world/world_object_spawner.py
 # ADR-O-376 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

@@ -1,4 +1,5 @@
 ﻿`ADR-O-369` [STANDARD] **IMPACT**
+Files: architecture/relationship_engine.yaml, scripts/lint_relationship_engine.py, docs/audits/ADR-O-369_IMPACT.md
 # ADR-O-369 Impact Audit
 > Детальный аудит одного ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

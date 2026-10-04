@@ -1,4 +1,5 @@
 ﻿`ADR-O-397` [STANDARD] **IMPACT**
+Files: backend/app/domain/desired_change.py, backend/app/services/npc/causal_slice_grievance.py, backend/tests/gameplay/test_r7_causal_slice_grievance.py
 # ADR-O-397 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

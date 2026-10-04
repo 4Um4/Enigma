@@ -1,4 +1,5 @@
 ﻿`ADR-O-388` [STANDARD] **IMPACT**
+Files: backend/app/services/events/claim_event_subscriber.py, backend/tests/micro/test_player_speech_claim.py
 # ADR-O-388 Impact Audit
 > Детальный аудит одного ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 

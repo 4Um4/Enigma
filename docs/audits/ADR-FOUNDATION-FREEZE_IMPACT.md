@@ -1,4 +1,5 @@
 ﻿`ADR-FOUNDATION-FREEZE` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/npc_loader.py, backend/app/services/scene_state_manager.py, backend/app/services/game_loop/phase_2_world_tick.py, backend/app/services/npc/state_applicator.py
 # ADR-FOUNDATION-FREEZE Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: docs/ADR (Architecture Decision Records).md
 

@@ -1,4 +1,5 @@
 ﻿`ADR-O-403` [STANDARD] **IMPACT**
+Files: backend/app/services/game_loop/campaign_lifecycle.py, backend/app/services/game_loop/game_loop.py, backend/app/services/memory/relationship_store.py
 # ADR-O-403 Impact Audit — Campaign Lifecycle Ownership (Phase 3B)
 > Атлас: docs/ADR (Architecture Decision Records).md | Ветка: V.0.5.4.1.2_Чистка_истоков
 > Коммиты: 5e73199e (Seam1), [Seam2-6], 666106a9 (каркас), ebc6793f (шаг2), fb15b57d (шаг3-final)

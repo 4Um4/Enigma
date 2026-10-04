@@ -1,4 +1,5 @@
 ﻿`ADR-O-394` [STANDARD] **IMPACT**
+Files: backend/app/domain/desired_change.py, backend/app/services/npc/causal_slice_threat.py, backend/app/services/npc/decision_hub.py
 # ADR-O-394 Impact Audit
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
