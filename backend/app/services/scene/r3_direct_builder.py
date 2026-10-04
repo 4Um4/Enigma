@@ -1,4 +1,4 @@
-# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
+﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
 """
 R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 
@@ -64,7 +64,7 @@ def build_r3_dm_frame(
     # только локальную физическую видимость.
     _tiers: Dict[str, Any] = {}
 
-    # R5: Определяем успех физического действия из rules_agent
+    # R5: Успех физического действия из rules-контура (RulesSubscriber checks)
     _player_success = True  # VERBAL действия всегда "успешны" (нет броска)
     if rules_result and isinstance(rules_result, dict):
         _checks = rules_result.get("checks", [])

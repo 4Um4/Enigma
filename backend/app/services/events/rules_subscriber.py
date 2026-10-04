@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: backend/app/services/events/rules_subscriber.py
 Назначение: Rules agent as PURE REDUCER. function(event, snapshot) → delta.
 Зависимости: стандартная библиотека Python.
@@ -10,14 +10,15 @@ Rules = pure function (event, snapshot) → delta.
 """
 from __future__ import annotations
 
-import hashlib
 import logging
+
+from app.services.npc.kernel_rng import KernelRNG
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# ─── Таблицы D&D 5e (Перенесены из rules_agent.py) ─────────────────────────
+# ─── Таблицы D&D 5e (источник миграции: rules_agent.py, удалён 14a29013) ────
 _DC_BY_ACTION_TYPE: Dict[str, int] = {
     "COMBAT": 12,
     "SANDBOX_PHYSICAL": 12,
@@ -142,15 +143,19 @@ class RulesSubscriber:
             action_type = "COMBAT"  # Базовый тип для боевых событий
             dc = _DC_BY_ACTION_TYPE.get(action_type, 12)
 
-            # Детерминированный бросок d20 (seed from event id + tick)
+            # П-13/вердикт-2 Мастера: дегенеративная соль f(tick) устранена —
+            # roll детерминирован и привязан к субъекту/контексту действия
+            # (KernelRNG ADR-O-301: tick + actor + salt[action,target]).
+            # Характеристики в бросок НЕ входят (будущий resolver — отдельно,
+            # см. вердикт: боевая мини-игра = отдельная система, не проектировать здесь).
             _event_id = getattr(event, "id", "") or str(event.get("id", ""))  # noqa: ENIGMA002
             _tick = snapshot.get("tick_number", 0)
-            _seed = (
-                int(hashlib.sha256(f"{_event_id}:{_tick}".encode()).hexdigest(), 16)
-                % 20
-                + 1
-            )
-            roll = _seed
+            _actor_id = getattr(event, "source", "") or "unknown"
+            roll = KernelRNG(
+                tick=int(_tick or 0),
+                npc_id=_actor_id,
+                salt=f"rules:{event_type}:{target_id}",
+            ).randint(1, 20)
 
             success = roll >= dc
             damage = self._compute_damage(roll, dc) if success else 0.0
@@ -260,11 +265,13 @@ class RulesSubscriber:
                     cause=f"rules:compliment:{_semantic_action}",
                 )
 
+        # П-13/вердикт-3 Мастера: фальшивая d20-метадата удалена — социальный
+        # успех = результат детерминированного разрешения (semantic gate выше),
+        # без подмены броском. Случайность в социальные действия не вводится.
         return RulesDelta(
             target_id=target_id,
             action_type="SANDBOX_SOCIAL",
             success=True,
-            checks=[{"type": "persuasion", "dc": 14, "roll": 15, "success": True}],
             money_delta=money_delta,
         )
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/action/dm_router.py
 """
@@ -169,7 +169,7 @@ class DMRouter:
         ),
     }
 
-    # R5: Физические действия требуют броска кубиков через rules_agent
+    # R5: Физические действия проходят через RulesSubscriber (pure reducer; RulesAgent удалён 14a29013)
     _PHYSICAL_ACTIONS: frozenset[str] = frozenset(
         {
             "player_attacks",
