@@ -59,12 +59,16 @@ class LabScreen:
         from app.services.calibration.experiment_runner import ExperimentConfig, ExperimentRunner
         self.runner = ExperimentRunner()
         
-        # В будущем: брать пресет из настроек UI
-        preset_path = "config/calibration/test_presets/enigma_golden.yaml"
+        # S314-хвост: CWD-относительные пути работали только при запуске из
+        # корня. Резолв от корня репозитория (__file__ → parents[3]: ui →
+        # map_editor → frontend → ROOT) — прецедент S319 (root от __file__).
+        # В будущем: брать пресет из настроек UI.
+        from pathlib import Path
+        _root = Path(__file__).resolve().parents[3]
         config = ExperimentConfig(
-            preset_path=preset_path,
+            preset_path=str(_root / "config" / "calibration" / "test_presets" / "enigma_golden.yaml"),
             duration_ticks=300,
-            scenario_path="config/calibration/scenarios/trust_probe_v1.yaml",
+            scenario_path=str(_root / "config" / "calibration" / "scenarios" / "trust_probe_v1.yaml"),
         )
         
         try:
