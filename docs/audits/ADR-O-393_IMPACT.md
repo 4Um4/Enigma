@@ -1,6 +1,6 @@
 # Impact Audit — ADR-O-393 [ONTO] Determinism Foundation — кросс-процессный детерминизм (IRON RIVER)
 `ADR-O-393` [ONTO] **Determinism Foundation — кросс-процессный детерминизм причинного контура**
-Files: backend/app/services/game_loop/task_scheduler.py, backend/app/services/npc/life_engine.py
+Files: backend/app/services/game_loop/task_scheduler.py, backend/app/services/npc/life_engine.py, backend/tests/sandbox/iron_river_ab.py, backend/tests/sandbox/iron_river_diff.py, backend/tests/sandbox/iron_river_eatlog.py, backend/tests/sandbox/iron_river_lusya.py, backend/tests/sandbox/iron_river_trace.py
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains

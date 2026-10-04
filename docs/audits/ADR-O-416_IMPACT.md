@@ -1,6 +1,6 @@
 # ADR-O-416 Impact Audit (S320, RE-01 GC-11)
 `ADR-O-416` [ONTO] **GC-11 L3-gate — RED=находка: event→V2 доказан живьём, поведенческий ноль = RE-D2 выборка 5**
-Files: backend/tests/sandbox/lab_r003_gc11_causal_delta.py, backend/tests/sandbox/lab_r003_diff_analysis.py, docs/audits/ADR-O-416_IMPACT.md
+Files: backend/tests/sandbox/lab_r003_gc11_causal_delta.py, backend/tests/sandbox/lab_r003_diff_analysis.py, docs/audits/ADR-O-416_IMPACT.md, config/calibration/scenarios/gc11_help_move.yaml, config/calibration/scenarios/gc11_move_only.yaml
 > L3-gate «event → V2-RAM non-zero delta → следующий выбор NPC сдвинут» — исполнен живым harness; RED = находка (прецедент GC-09B). Атлас: docs/ADR (Architecture Decision Records).md.
 
 ## Что доказано (живой протокол reports/lab_r003_gc11_results.json)
