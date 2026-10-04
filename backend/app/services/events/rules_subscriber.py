@@ -11,10 +11,10 @@ Rules = pure function (event, snapshot) → delta.
 from __future__ import annotations
 
 import logging
-
-from app.services.npc.kernel_rng import KernelRNG
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+
+from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 
