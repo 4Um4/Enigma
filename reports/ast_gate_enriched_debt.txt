@@ -1,0 +1,242 @@
+﻿backend/app\api\routes.py:673|_svc = getattr(_game_loop, "avatar_service", None)
+backend/app\api\routes.py:750|_mm = getattr(game_loop, "memory_manager", None)
+backend/app\api\routes.py:1079|) else getattr(_player_ws, "location_id", None)
+backend/app\core\schema_validator.py:50|subs = getattr(_bus, "_subscribers", {}).get(EventType.TICK_COMPLETED, [])
+backend/app\services\event_compiler.py:198|_xy = getattr(change, "target_local_xy", None) or (0.0, 0.0)
+backend/app\services\event_compiler.py:338|"npc_positions": getattr(snapshot, "npc_positions", {}) or {},
+backend/app\services\event_compiler.py:339|"world_objects": getattr(snapshot, "world_objects", {}) or {},
+backend/app\services\event_compiler.py:206|target_local_xy=getattr(change, "target_local_xy", None),
+backend/app\services\event_compiler.py:138|f"cause={getattr(change, 'cause', '')} "
+backend/app\services\event_compiler.py:139|f"target_loc={getattr(change, 'target_location_id', '')} type={change.type.value}"
+backend/app\services\pipeline_runner.py:135|_cog_mm = getattr(ctx, "memory_manager", None)
+backend/app\services\pipeline_runner.py:178|d for d in (mutation.npc_deltas or []) if getattr(d, "intent", None) is not None
+backend/app\services\projection_engine.py:163|cause=(getattr(thick, "cause", "") or "").__str__(),
+backend/app\services\scene_state_manager.py:1281|_cached = getattr(self, "_last_committed_npcs", None)
+backend/app\services\scene_state_manager.py:1285|_copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))
+backend/app\services\scene_state_manager.py:1676|_saves = getattr(self, "_saves_dir", None)
+backend/app\services\scene_state_manager.py:827|and not getattr(change, "cause", "").startswith(
+backend/app\services\scene_state_manager.py:834|f"cause='{getattr(change, 'cause', '')}' — отклонено (torn-write)"
+backend/app\services\scene_state_manager.py:952|cause=getattr(change, "cause", ""),
+backend/app\services\tick_orchestrator.py:1552|_mvp_ctrl = getattr(ctx, "mvp_controller", None)
+backend/app\services\tick_orchestrator.py:1553|_compiler = getattr(_mvp_ctrl, "action_compiler", None)
+backend/app\services\tick_orchestrator.py:2348|for _d in (getattr(ctx.tick_mutation, "npc_deltas", None) or []):
+backend/app\services\tick_orchestrator.py:2349|_d_intent = getattr(_d, "intent", None)
+backend/app\services\tick_orchestrator.py:2350|_d_npc = getattr(_d, "npc_id", None)
+backend/app\services\tick_orchestrator.py:767|getattr(self, "_conclusion_store", None) is not None
+backend/app\services\tick_orchestrator.py:774|if getattr(ctx, "scene_overlay", None) is not None:
+backend/app\services\tick_orchestrator.py:856|_ep_store = getattr(self, "_epistemic_store", None)
+backend/app\services\tick_orchestrator.py:1598|if getattr(getattr(ctx, "shared_context", None), "action_rejected", False):
+backend/app\services\tick_orchestrator.py:1147|_ep_store = getattr(self, "_epistemic_store", None)
+backend/app\services\tick_orchestrator.py:923|and getattr(ctx, "active_location_id", None)
+backend/app\services\tick_orchestrator.py:1602|f"{getattr(ctx.shared_context, 'rejection_reason', '')})"
+backend/app\services\tick_orchestrator.py:1697|_rdd = getattr(_pl, "recent_directive_data", None)
+backend/app\services\tick_orchestrator.py:1453|_rdd = getattr(_pl, "recent_directive_data", None)
+backend/app\services\tick_utils.py:444|_sq = getattr(shared_context, "spatial_query", None)
+backend/app\services\tick_utils.py:516|_pending = getattr(shared_context, "pending_movement_intents", None)
+backend/app\services\tick_utils.py:108|and getattr(relationship_store, "_campaign_id", None) == campaign_id
+backend/app\services\tick_utils.py:524|print(f"[Z-DIAG] is_player=False interventions={[(getattr(i,'source','?'), getattr(i,'payload',{}).get('semantic_action','?')) for i in interventions][:3]}")
+backend/app\services\action\commitment_arbiter.py:274|getattr(intent, "actor_id", ""),
+backend/app\services\action\commitment_arbiter.py:275|getattr(intent, "target_node_id", None),
+backend/app\services\action\commitment_arbiter.py:276|getattr(intent, "reason", ""),
+backend/app\services\action\commitment_arbiter.py:291|getattr(intent, "actor_id", ""),
+backend/app\services\action\commitment_arbiter.py:280|intent_domain=getattr(intent, "domain", None),
+backend/app\services\action\commitment_arbiter.py:279|intent_type=getattr(intent, "intent_type", "") or "",
+backend/app\services\calibration\config_overlay.py:86|current = getattr(module, attr_name, None)
+backend/app\services\calibration\config_overlay.py:103|current = getattr(module, attr_name, None)
+backend/app\services\calibration\experiment_runner.py:408|_mvp_ctrl = getattr(self._active_game_loop, "mvp_controller", None)
+backend/app\services\calibration\experiment_runner.py:451|rel_store = getattr(game_loop, "_rel_store", None)
+backend/app\services\calibration\experiment_runner.py:647|tasks = getattr(game_loop, "_background_tasks", None)
+backend/app\services\calibration\experiment_runner.py:189|_orig_provider = getattr(_model_cfg, "provider_type", None) if _model_cfg else None
+backend/app\services\calibration\experiment_runner.py:386|self._orig_provider = getattr(self._model_cfg, "provider_type", None) if self._model_cfg else None
+backend/app\services\calibration\experiment_runner.py:674|tasks = getattr(game_loop, "_background_tasks", None)
+backend/app\services\calibration\experiment_runner.py:445|relationship_store=getattr(game_loop, "_rel_store", None)
+backend/app\services\calibration\experiment_runner.py:501|if self._ticks_executed == 0 and not getattr(
+backend/app\services\calibration\observability_tap.py:74|payload = getattr(event, "payload", None)
+backend/app\services\combat\combat_subscriber.py:284|actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")
+backend/app\services\economy\work_orders.py:85|_svc = getattr(ctx, "npc_services", None)
+backend/app\services\economy\work_orders.py:86|_getter = getattr(_svc, "get_or_create_economic_profiles", None)
+backend/app\services\economy\work_orders.py:391|_tracker = getattr(getattr(ctx, "npc_services", None), "economy_tracker", None)
+backend/app\services\economy\work_orders.py:88|_getter = getattr(orchestrator, "_economic_profiles_getter", None)
+backend/app\services\economy\work_orders.py:241|_sm = getattr(orchestrator, "_scene_manager", None)
+backend/app\services\economy\work_orders.py:391|_tracker = getattr(getattr(ctx, "npc_services", None), "economy_tracker", None)
+backend/app\services\economy\work_orders.py:393|_tracker = getattr(orchestrator, "_economy_tracker", None)
+backend/app\services\economy\work_orders.py:145|_s = getattr(_p, "stock_for_sale", None) if _p is not None else None
+backend/app\services\economy\work_orders.py:242|_all = getattr(_sm, "_tick_scenes", None) or {}
+backend/app\services\economy\work_orders.py:354|getattr(seller_p, "stock_for_sale", {}).get(_g, 0.0) or 0.0
+backend/app\services\events\dialogue_memory_subscriber.py:46|speaker = payload.get("npc_id") or getattr(event, "source", "")
+backend/app\services\events\observation_subscriber.py:74|event_type = getattr(event, "type", None)
+backend/app\services\events\observation_subscriber.py:85|actor_id = getattr(event, "source", None)
+backend/app\services\events\observation_subscriber.py:138|positions = getattr(sq, "_npc_positions", {})
+backend/app\services\events\observation_subscriber.py:84|payload = getattr(event, "payload", None) or {}
+backend/app\services\events\observation_subscriber.py:108|event_id=str(getattr(event, "id", "")),
+backend/app\services\events\observation_subscriber.py:109|claim_id=f"observation-{getattr(event, 'id', '')}-{witness_id}",
+backend/app\services\events\player_speech_act_subscriber.py:48|event_id = str(getattr(event, "id", "") or "")
+backend/app\services\events\player_speech_act_subscriber.py:75|for c in getattr(session, "claims", [])
+backend/app\services\events\reaction_subscriber.py:220|getattr(ctx.shared_context, "spatial_query", None)
+backend/app\services\events\reaction_subscriber.py:239|getattr(ctx.shared_context, "scene_state", None)
+backend/app\services\events\reaction_subscriber.py:240|or getattr(getattr(ctx, "tick_ctx", None), "scene_state", None)
+backend/app\services\events\reaction_subscriber.py:240|or getattr(getattr(ctx, "tick_ctx", None), "scene_state", None)
+backend/app\services\events\social_input_projector.py:78|or getattr(event, "source", None)
+backend/app\services\events\social_subscriber.py:139|_tick_ctx = getattr(ctx, "tick_ctx", None)
+backend/app\services\events\social_subscriber.py:140|_npc_services = getattr(_tick_ctx, "npc_services", None)
+backend/app\services\events\social_subscriber.py:145|_gate = getattr(ctx.shared_context, "relationship_write_gate", None)
+backend/app\services\events\social_subscriber.py:130|_campaign_id = ctx.campaign_id or getattr(ctx.shared_context, "campaign_id", None)
+backend/app\services\events\social_subscriber.py:142|getattr(_npc_services, "relationship_store", None)
+backend/app\services\events\social_subscriber.py:143|or getattr(ctx.shared_context, "relationship_store", None)
+backend/app\services\game_loop\campaign_lifecycle.py:223|_belief_store = getattr(self._tick_orch, "crystallized_belief_store", None)
+backend/app\services\game_loop\e1_wiring.py:37|_store = getattr(memory_manager, "_relationships", None) if memory_manager is not None else None
+backend/app\services\game_loop\game_loop.py:1382|if getattr(self, "_npc_dialogue_subscriber", None):
+backend/app\services\game_loop\game_loop.py:1391|if getattr(self, "_npc_dialogue_subscriber", None):
+backend/app\services\game_loop\game_loop.py:324|if getattr(self._tick_orch, "_epistemic_store", None) is None:
+backend/app\services\game_loop\game_loop.py:651|_mvp = getattr(self, "mvp_controller", None)
+backend/app\services\game_loop\game_loop.py:1177|_sm_persistence = getattr(self.scene_manager, "_persistence", None)
+backend/app\services\game_loop\game_loop.py:1646|_verbal = getattr(state.shared_context, "action_type", "") in (
+backend/app\services\game_loop\game_loop.py:1697|if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:
+backend/app\services\game_loop\game_loop.py:2114|_sched = getattr(self, "_task_scheduler", None)
+backend/app\services\game_loop\game_loop.py:2115|_pool = getattr(_sched, "_executor_pool", None)
+backend/app\services\game_loop\game_loop.py:652|_compiler = getattr(_mvp, "action_compiler", None) if _mvp else None
+backend/app\services\game_loop\game_loop.py:757|crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),
+backend/app\services\game_loop\game_loop.py:1267|spatial_query=getattr(self, "_current_spatial_query", None),
+backend/app\services\game_loop\game_loop.py:1268|relationship_store=getattr(self, "_rel_store", None),
+backend/app\services\game_loop\game_loop.py:1284|spatial_query=getattr(self, "_current_spatial_query", None),
+backend/app\services\game_loop\game_loop.py:1285|crystallized_belief_store=getattr(
+backend/app\services\game_loop\game_loop.py:1785|_epi_final = getattr(self._tick_orch, "_epistemic_store", None)
+backend/app\services\game_loop\game_loop.py:968|spatial_query=getattr(self, "_current_spatial_query", None),
+backend/app\services\game_loop\game_loop.py:969|crystallized_belief_store=getattr(
+backend/app\services\game_loop\game_loop.py:1286|getattr(self, "_tick_orch", None),
+backend/app\services\game_loop\game_loop.py:1650|print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "
+backend/app\services\game_loop\game_loop.py:227|lambda: getattr(
+backend/app\services\game_loop\game_loop.py:492|discovery_bridge_provider=lambda: getattr(
+backend/app\services\game_loop\game_loop.py:531|claim_subscriber_provider=lambda: getattr(
+backend/app\services\game_loop\game_loop.py:970|getattr(self, "_tick_orch", None),
+backend/app\services\game_loop\game_loop.py:1182|for _ploc in list(getattr(self._tick_orch, "_pending_transfers", {}).keys()):
+backend/app\services\game_loop\game_loop.py:228|getattr(self, "mvp_controller", None),
+backend/app\services\game_loop\game_loop.py:493|getattr(self, "mvp_controller", None), "discovery_bridge", None
+backend/app\services\game_loop\npc_orchestration.py:349|npc_contexts=getattr(_tick_result, "npc_contexts", []) or [],
+backend/app\services\game_loop\scene_init.py:269|_mm = getattr(loop, "memory_manager", None)
+backend/app\services\game_loop\scene_init.py:270|_rel = getattr(_mm, "_relationships", None) if _mm else None
+backend/app\services\game_loop\scene_init.py:286|_saves_dir = str(getattr(loop, "_saves_dir", ""))
+backend/app\services\game_loop\scene_init.py:283|if _mm is not None and isinstance(getattr(_mm, "_v2_scene_ref", None), dict):
+backend/app\services\input\intent_compressor.py:680|_sa_raw = getattr(field, "speech_act", None)
+backend/app\services\input\intent_compressor.py:651|and field.raw_text != getattr(self, "_last_recovery_raw", None)
+backend/app\services\input\intent_compressor.py:508|and getattr(fast, "speech_act", None) is not None
+backend/app\services\input\intent_compressor.py:682|_ro = str(getattr(field, "requested_outcome", None) or "").lower()
+backend/app\services\input\intent_compressor.py:509|and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"
+backend/app\services\integration\journal_presentation.py:75|"text": getattr(c, "text", ""),
+backend/app\services\integration\journal_presentation.py:76|"speaker": getattr(c, "speaker", ""),
+backend/app\services\integration\journal_presentation.py:79|"event_id": getattr(c, "event_id", ""),
+backend/app\services\integration\journal_presentation.py:82|"provenance_complete": bool(getattr(c, "event_id", "")),
+backend/app\services\memory\conclusion_engine.py:75|payload: Dict[str, Any] = getattr(event, "payload", None) or {}
+backend/app\services\memory\conclusion_runtime.py:49|if getattr(orchestrator, "_conclusion_store", None) is None:
+backend/app\services\memory\conclusion_runtime.py:51|if getattr(orchestrator, "_conclusion_gate", None) is None:
+backend/app\services\memory\conclusion_runtime.py:78|collector = getattr(orchestrator, "_conclusion_collector", None) or []
+backend/app\services\memory\conclusion_runtime.py:81|store = getattr(orchestrator, "_conclusion_store", None)
+backend/app\services\memory\conclusion_runtime.py:82|gate = getattr(orchestrator, "_conclusion_gate", None)
+backend/app\services\memory\conclusion_runtime.py:61|if getattr(event, "type", None) == EventType.EXPERIENCE_DELTA_COMMITTED.value:
+backend/app\services\memory\intelligence_queue.py:322|if getattr(update, "topic", None):
+backend/app\services\memory\intelligence_queue.py:306|getattr(update, "topic", None)
+backend/app\services\memory\intelligence_queue.py:307|or getattr(update, "new_claims", None)
+backend/app\services\memory\intelligence_queue.py:308|or getattr(update, "raised_questions", None)
+backend/app\services\memory\intelligence_queue.py:309|or getattr(update, "answered_questions", None)
+backend/app\services\memory\intelligence_queue.py:275|for t in getattr(session, "buffer", [])
+backend/app\services\memory\intelligence_queue.py:272|getattr(t, "speaker", None) == task.speaker
+backend/app\services\memory\intelligence_queue.py:273|and getattr(t, "text", None) == task.text
+backend/app\services\npc\activity_lifecycle_service.py:642|_sm = getattr(orchestrator, "_scene_manager", None)
+backend/app\services\npc\activity_lifecycle_service.py:486|_canon = getattr(ctx, "_canon_npcs", None) or {}
+backend/app\services\npc\activity_lifecycle_service.py:329|or getattr(_target_obj, "state", "") == "DESTROYED"
+backend/app\services\npc\activity_lifecycle_service.py:331|getattr(_target_obj, "holder", None) not in (None, "", _owner)
+backend/app\services\npc\activity_lifecycle_service.py:500|if _need_name == "hunger" and _bs_hunger_tick > 1e-9 and getattr(ctx, "delta_buffer", None) is not None:
+backend/app\services\npc\act_consumer.py:83|getattr(r.proposition, "object_id", "") for r in _records
+backend/app\services\npc\act_consumer.py:45|if getattr(getattr(r, "proposition", None), "predicate", None) is not None
+backend/app\services\npc\act_consumer.py:119|provenance_hint=getattr(_latest, "source_id", "") if _latest else "",
+backend/app\services\npc\act_consumer.py:122|getattr(_latest.proposition, "object_id", "") if _latest else ""
+backend/app\services\npc\act_consumer.py:138|provenance_hint=getattr(_latest, "source_id", ""),
+backend/app\services\npc\act_consumer.py:140|challenged_claim_object=getattr(
+backend/app\services\npc\act_consumer.py:45|if getattr(getattr(r, "proposition", None), "predicate", None) is not None
+backend/app\services\npc\act_consumer.py:98|if getattr(r.proposition, "object_id", "") == name),
+backend/app\services\npc\causal_slice_grievance.py:48|kernel = getattr(state, "perceptual_kernel", None)
+backend/app\services\npc\causal_slice_grievance.py:66|drives: Dict[str, float] = getattr(state, "drives", {}) or {}
+backend/app\services\npc\causal_slice_grievance.py:73|_ehp = getattr(state, "effective_hp", None)
+backend/app\services\npc\causal_slice_grievance.py:74|_max = getattr(state, "effective_max_hp", None)
+backend/app\services\npc\causal_slice_hunger.py:68|and callable(getattr(own_profile, "has_good", None))
+backend/app\services\npc\causal_slice_hunger.py:78|and callable(getattr(prof, "has_good", None))
+backend/app\services\npc\causal_slice_threat.py:51|kernel = getattr(state, "perceptual_kernel", None)
+backend/app\services\npc\causal_slice_threat.py:79|drives: Dict[str, float] = getattr(state, "drives", {}) or {}
+backend/app\services\npc\causal_slice_threat.py:86|_ehp = getattr(state, "effective_hp", None)
+backend/app\services\npc\causal_slice_threat.py:87|_max = getattr(state, "effective_max_hp", None)
+backend/app\services\npc\causal_slice_threat.py:73|target_id = getattr(belief_source, "subject_id", None)
+backend/app\services\npc\causal_slice_threat.py:122|return stop_hostile(who=getattr(state, "npc_id", ""), target=target_id,
+backend/app\services\npc\cognition_context.py:41|c for c in getattr(session, "claims", []) if getattr(c, "status", "") == "open"
+backend/app\services\npc\cognition_context.py:48|q for q in getattr(session, "open_questions", []) if not getattr(q, "answered", True)
+backend/app\services\npc\cognition_context.py:41|c for c in getattr(session, "claims", []) if getattr(c, "status", "") == "open"
+backend/app\services\npc\decision_hub.py:1978|_causal_addr = getattr(self, "_causal_addressee", None)
+backend/app\services\npc\decision_hub.py:861|_obj_target = getattr(opportunity_ctx, "steal_target", None)
+backend/app\services\npc\decision_hub.py:944|_archetype = getattr(personality, "archetype", "") or ""
+backend/app\services\npc\decision_hub.py:947|(getattr(personality, "drives_base", None) or {}).get("desire", 0.25)
+backend/app\services\npc\exploration_target_resolver.py:54|prop = getattr(rec, "proposition", None)
+backend/app\services\npc\exploration_target_resolver.py:38|getattr(spatial_service, "boundary_map", {}) or {}
+backend/app\services\npc\exploration_target_resolver.py:60|subject = getattr(prop, "subject_id", "") or ""
+backend/app\services\npc\life_engine.py:717|if _cur_loc and getattr(_loc_svc, "_location_id", "") != _cur_loc:
+backend/app\services\npc\life_engine.py:764|_ep_recon = getattr(self, "_epistemic_store", None)
+backend/app\services\npc\life_engine.py:768|_p = getattr(_r, "proposition", None)
+backend/app\services\npc\life_engine.py:771|if str(getattr(_p.predicate, "value", "")) != "exits_to":
+backend/app\services\npc\life_engine.py:773|_subj = str(getattr(_p, "subject_id", "") or "")
+backend/app\services\npc\life_engine.py:775|and str(getattr(_p, "object_id", "")) == _unknown_sig.get("to")):
+backend/app\services\npc\life_engine.py:792|"+relocation" in getattr(_i, "reason", "")
+backend/app\services\npc\life_engine.py:793|and getattr(_i, "location_id", "") == _unknown_sig.get("to")
+backend/app\services\npc\npc_loader.py:582|_known = {getattr(_m, "secret_id", None) for _m in cache}
+backend/app\services\npc\npc_loader.py:620|_nid = getattr(_st, "npc_id", "") or ""
+backend/app\services\npc\npc_loader.py:635|_sid = getattr(_m, "secret_id", None)
+backend/app\services\npc\npc_loader.py:622|if getattr(_m, "secret_id", None) == secret_id:
+backend/app\services\npc\npc_loader.py:632|if (getattr(_st, "npc_id", "") or "") != npc_id:
+backend/app\services\npc\npc_tick_pipeline.py:1777|_claims: list = getattr(_goal, "causal_claims", [])
+backend/app\services\npc\npc_tick_pipeline.py:974|_opp_will_state = getattr(state, "will_state", None)
+backend/app\services\npc\npc_tick_pipeline.py:1247|getattr(_ci, "speaker", "")
+backend/app\services\npc\npc_tick_pipeline.py:631|_belief_src = getattr(_epistemic_ctx, "trigger_proposition", None) if _epistemic_ctx else None
+backend/app\services\npc\npc_tick_pipeline.py:962|_steal_target_fact = getattr(state, "object_target_map", {}).get(
+backend/app\services\npc\npc_tick_pipeline.py:696|_opp_will = getattr(state, "will_state", None)
+backend/app\services\npc\npc_tick_pipeline.py:810|_eco_map = getattr(state, "economic_profiles_map", {}) or {}
+backend/app\services\npc\npc_tick_pipeline.py:957|getattr(state, "affordance_facts_map", {}).get(npc_id, False)
+backend/app\services\npc\npc_tick_pipeline.py:1249|if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION
+backend/app\services\npc\npc_tick_pipeline.py:703|_eco_map = getattr(state, "economic_profiles_map", {}) or {}
+backend/app\services\npc\npc_tick_pipeline.py:915|drives=dict(getattr(_effective_drives, "values", {}) or {}),
+backend/app\services\npc\npc_tick_pipeline.py:930|drives=dict(getattr(_effective_drives, "values", {}) or {}),
+backend/app\services\npc\personal_route_resolver.py:50|prop = getattr(rec, "proposition", None)
+backend/app\services\npc\personal_route_resolver.py:56|subject = getattr(prop, "subject_id", "") or ""
+backend/app\services\npc\personal_route_resolver.py:57|obj = getattr(prop, "object_id", "") or ""
+backend/app\services\npc\state_applicator.py:164|getattr(cause, "source_event_id", None),
+backend/app\services\npc\state_applicator.py:165|getattr(cause, "source_action_id", None),
+backend/app\services\phases\idle_services.py:87|_rel_store = getattr(ctx, "relationship_store", None)
+backend/app\services\phases\idle_services.py:89|_rel_store = getattr(deps, "relationship_store", None)
+backend/app\services\phases\movement_bridge.py:144|me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
+backend/app\services\phases\movement_bridge.py:124|_macro_target = getattr(intent, "target_node_id", None)
+backend/app\services\phases\movement_bridge.py:129|f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"
+backend/app\services\phases\post_decision.py:72|if getattr(intent, "intent_type", "") == "trade":
+backend/app\services\phases\post_decision.py:76|getattr(intent, "target_id", "")
+backend/app\services\phases\post_decision.py:77|or getattr(intent, "audience", "")
+backend/app\services\phases\post_decision.py:82|speaker=str(getattr(intent, "speaker", "") or ""),
+backend/app\services\phases\post_decision.py:54|_by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),
+backend/app\services\phases\simulation.py:38|engine.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
+backend/app\services\phases\simulation.py:115|if getattr(_di, "actor_id", "") == "guard_borko":
+backend/app\services\phases\simulation.py:172|_aid = getattr(_i, "actor_id", "")
+backend/app\services\phases\simulation.py:202|me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
+backend/app\services\phases\simulation.py:173|_reason = str(getattr(_i, "reason", "") or "")
+backend/app\services\phases\simulation.py:107|if getattr(_i, "actor_id", "") not in _activity_actors
+backend/app\services\phases\simulation.py:102|g.actor_id: str(getattr(g, "location_id", "") or "").split(":")[0]
+backend/app\services\phases\simulation.py:109|!= _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")
+backend/app\services\phases\simulation.py:108|or str(getattr(_i, "location_id", "") or "").split(":")[0]
+backend/app\services\phases\traversal.py:220|_snapshot = getattr(ctx, "tick_snapshot", None)
+backend/app\services\phases\traversal.py:123|_scene_ref = getattr(ctx, "scene_state", None)
+backend/app\services\player_cognition\legacy_bridge.py:43|participants = getattr(secret, "participants", [])
+backend/app\services\player_cognition\legacy_bridge.py:47|canon = getattr(secret, "canonical_truth", "").lower()
+backend/app\services\spatial\movement_engine.py:221|and "interrupt" not in getattr(_it, "reason", "")
+backend/app\services\spatial\movement_engine.py:222|and "+relocation" not in getattr(_it, "reason", "")
+backend/app\services\spatial\movement_engine.py:242|and "+relocation" in getattr(_it, "reason", "")
+backend/app\services\spatial\movement_engine.py:227|f"'{getattr(_it, 'reason', '')}' отклонён (no-interrupt)"
+backend/app\services\spatial\movement_engine.py:486|_fin_loc = getattr(intent, "final_location_id", "") or ""
+backend/app\services\spatial\movement_engine.py:487|_fin_node = getattr(intent, "final_node_id", "") or ""
+backend/app\services\spatial\movement_engine.py:572|not getattr(intent, "final_location_id", "")
+backend/app\services\verbalization\scene_outcome_builder.py:460|if getattr(npc, "cognition", ""):
+backend/app\services\world\affordance_facts.py:88|if snapshot is None or not getattr(snapshot, "world_objects", None):
+backend/app\services\world\affordance_shadow.py:76|if snapshot is None or not getattr(snapshot, "world_objects", None):
+backend/app\services\world\object_target_facts.py:45|if snapshot is None or not getattr(snapshot, "world_objects", None):

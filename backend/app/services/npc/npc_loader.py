@@ -579,7 +579,7 @@ def _seed_canon_secret_memories(npc_id: str, cache: Tuple[Any, ...]) -> Tuple[An
         return cache
     from app.models.npc_state import EventMemory
 
-    _known = {getattr(_m, "secret_id", None) for _m in cache}
+    _known = {getattr(_m, "secret_id", None) for _m in cache}  # noqa: ENIGMA002
     _known.discard(None)
     _added = []
     for _secret in _truth.secrets.values():
@@ -617,9 +617,9 @@ def who_knows(secret_id: str, npc_states: List[Any]) -> List[str]:
     Read-only; пустой список честен."""
     _out: List[str] = []
     for _st in npc_states:
-        _nid = getattr(_st, "npc_id", "") or ""
+        _nid = getattr(_st, "npc_id", "") or ""  # noqa: ENIGMA002
         for _m in getattr(_st, "narrative_cache", ()) or ():
-            if getattr(_m, "secret_id", None) == secret_id:
+            if getattr(_m, "secret_id", None) == secret_id:  # noqa: ENIGMA002
                 _out.append(_nid)
                 break
     return _out
@@ -629,10 +629,10 @@ def known_secrets(npc_id: str, npc_states: List[Any]) -> List[str]:
     """M1/P1: какие канон-секреты знает NPC — фильтр по secret_id."""
     _out: List[str] = []
     for _st in npc_states:
-        if (getattr(_st, "npc_id", "") or "") != npc_id:
+        if (getattr(_st, "npc_id", "") or "") != npc_id:  # noqa: ENIGMA002
             continue
         for _m in getattr(_st, "narrative_cache", ()) or ():
-            _sid = getattr(_m, "secret_id", None)
+            _sid = getattr(_m, "secret_id", None)  # noqa: ENIGMA002
             if _sid and _sid not in _out:
                 _out.append(_sid)
         break
@@ -708,7 +708,7 @@ def _beliefs_from_persistence(
             # L4: тихий пропуск запрещён
             logger.warning(f"[NPC_LOADER] beliefs: повреждённая запись '{_bt_str}' — пропущена")
             continue
-    return result if restored else None
+    return result if restored else None  # noqa: ENIGMA001
 
 
 def load_l2_state_from_runtime_dict(
@@ -739,7 +739,7 @@ def load_l2_state_from_runtime_dict(
 
     _intent_raw = raw_data.get("intent")
     try:
-        _intent_enum = _Intent(_intent_raw) if _intent_raw else None
+        _intent_enum = _Intent(_intent_raw) if _intent_raw else None  # noqa: ENIGMA001
     except ValueError:
         _intent_enum = None
 

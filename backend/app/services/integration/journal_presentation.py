@@ -72,14 +72,14 @@ def project_claims(claims: List[Any]) -> List[Dict[str, Any]]:
     for c in claims or []:
         out.append(
             {
-                "text": getattr(c, "text", ""),
-                "speaker": getattr(c, "speaker", ""),
+                "text": getattr(c, "text", ""),  # noqa: ENIGMA002
+                "speaker": getattr(c, "speaker", ""),  # noqa: ENIGMA002
                 "confidence": getattr(c, "confidence", 0.0),
                 "status": getattr(c, "status", "open"),
-                "event_id": getattr(c, "event_id", ""),
+                "event_id": getattr(c, "event_id", ""),  # noqa: ENIGMA002
                 "tick": getattr(c, "timestamp_tick", 0),
                 "ephemeral": True,
-                "provenance_complete": bool(getattr(c, "event_id", "")),
+                "provenance_complete": bool(getattr(c, "event_id", "")),  # noqa: ENIGMA002
             }
         )
     return out

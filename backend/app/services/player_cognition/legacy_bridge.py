@@ -40,11 +40,11 @@ class PropositionMatcher:
         threshold = 0.2  # Порог семантической близости
 
         for secret_id, secret in self._truth.secrets.items():
-            participants = getattr(secret, "participants", [])
+            participants = getattr(secret, "participants", [])  # noqa: ENIGMA002
             if target_id not in participants:
                 continue
 
-            canon = getattr(secret, "canonical_truth", "").lower()
+            canon = getattr(secret, "canonical_truth", "").lower()  # noqa: ENIGMA002
             template = self._predicate_templates.get(prop.predicate, "")
 
             # Вычисляем семантическую близость между канонической правдой и шаблоном предиката

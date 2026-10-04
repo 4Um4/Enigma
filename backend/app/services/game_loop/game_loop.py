@@ -224,8 +224,8 @@ class GameLoop:
         _scheduler = self._get_task_scheduler()
         _scheduler.set_epistemic_wiring(
             discovery_bridge=(
-                lambda: getattr(
-                    getattr(self, "mvp_controller", None),
+                lambda: getattr(  # noqa: ENIGMA002
+                    getattr(self, "mvp_controller", None),  # noqa: ENIGMA002
                     "discovery_bridge",
                     None,
                 )
@@ -321,7 +321,7 @@ class GameLoop:
         # SPATIAL-KNOWLEDGE-01: ранняя регистрация — store обязан быть на
         # orchestrator ДО первых relocation-тиков (borko уходит в тиках ~26;
         # ленивые вызовы после первого player-хода оставляли P4 с None).
-        if getattr(self._tick_orch, "_epistemic_store", None) is None:
+        if getattr(self._tick_orch, "_epistemic_store", None) is None:  # noqa: ENIGMA002
             logger.info("[GAME_LOOP] SPATIAL-KNOWLEDGE: ранний проброс store — ленивая регистрация не успевала")
             self._register_epistemic_core(_rel_store)
 
@@ -352,7 +352,7 @@ class GameLoop:
 
         self._campaign_lifecycle = CampaignLifecycle(
             scene_manager=scene_manager,
-            rel_store=memory_manager._relationships if memory_manager else None,
+            rel_store=memory_manager._relationships if memory_manager else None,  # noqa: ENIGMA001
             memory_manager=memory_manager,
             tick_orch=self._tick_orch,
             avatar_service=self.avatar_service,
@@ -489,8 +489,8 @@ class GameLoop:
                 dialogue_update_extractor=_extractor,
                 # E2 (S256): late-binding моста (прецедент :552-556);
                 # инстанс = инстанс E1 — единый PlayerEpistemicState.
-                discovery_bridge_provider=lambda: getattr(
-                    getattr(self, "mvp_controller", None), "discovery_bridge", None
+                discovery_bridge_provider=lambda: getattr(  # noqa: ENIGMA002
+                    getattr(self, "mvp_controller", None), "discovery_bridge", None  # noqa: ENIGMA002
                 ),
                 # P7-B: провенанс-метка EAVESDROP — резолвер темы в SubjectRef
                 # (тот же P3-резолвер, что у E1; отсутствие = observation only).
@@ -528,7 +528,7 @@ class GameLoop:
                 # Шаг 4 (1α): ленивый провайдер — epistemic-регистрация идёт
                 # ПОЗЖЕ dialogue-регистрации (game_loop:286 vs :314), прямая
                 # ссылка взяла бы None. Разрешение — в момент использования.
-                claim_subscriber_provider=lambda: getattr(
+                claim_subscriber_provider=lambda: getattr(  # noqa: ENIGMA002
                     self, "_claim_event_subscriber", None
                 ),
             )
@@ -648,8 +648,8 @@ class GameLoop:
 
             # S211 (§18): инъекция резолвера в ACCUSE-гейт компилятора
             # последствий (late binding: контроллер собирается раньше ядра).
-            _mvp = getattr(self, "mvp_controller", None)
-            _compiler = getattr(_mvp, "action_compiler", None) if _mvp else None
+            _mvp = getattr(self, "mvp_controller", None)  # noqa: ENIGMA002
+            _compiler = getattr(_mvp, "action_compiler", None) if _mvp else None  # noqa: ENIGMA001, ENIGMA002
             if _compiler is not None and hasattr(_compiler, "set_epistemic_resolver"):
                 _compiler.set_epistemic_resolver(_resolver)
                 logger.info("[GAME_LOOP] EpistemicResolver injected into ActionConsequenceCompiler (ACCUSE gate)")
@@ -754,7 +754,7 @@ class GameLoop:
             load_npcs_with_runtime=self._load_npcs_with_runtime,
             task_scheduler_getter=self._get_task_scheduler,
             get_or_create_continuity=lambda cid: self._scene_continuities.setdefault(cid, __import__("app.services.verbalization.scene_continuity", fromlist=["SceneContinuity"]).SceneContinuity()),
-            crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),
+            crystallized_belief_store=getattr(self._tick_orch, "crystallized_belief_store", None),  # noqa: ENIGMA002
         )
 
     def _spawn_world_tick_task(self, world_id: str) -> dict:
@@ -965,9 +965,9 @@ class GameLoop:
                 economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
                 event_bus=get_event_bus(),
                 spatial_service=_spatial_svc,
-                spatial_query=getattr(self, "_current_spatial_query", None),
-                crystallized_belief_store=getattr(
-                    getattr(self, "_tick_orch", None),
+                spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+                crystallized_belief_store=getattr(  # noqa: ENIGMA002
+                    getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
                     "crystallized_belief_store",
                     None,
                 ),
@@ -1075,7 +1075,7 @@ class GameLoop:
             return
         _loc_id = scene_state.get("location_id", "")
         _npc_pos = scene_state.get("npc_positions")
-        _player_entry = _npc_pos.get("player") if isinstance(_npc_pos, dict) else None
+        _player_entry = _npc_pos.get("player") if isinstance(_npc_pos, dict) else None  # noqa: ENIGMA001
         if not isinstance(_player_entry, dict) or not _player_entry:
             return
         _current = self.scene_manager.get_scene_state(campaign_id, _loc_id)
@@ -1131,7 +1131,7 @@ class GameLoop:
                 from app.services.campaign_state_service import get_campaign_state_service
 
                 _cs: Any = get_campaign_state_service().get_campaign_state(campaign_id)  # S313: Optional по контракту сервиса; :1227 тот же запрос в другом контуре
-                _player_loc = _cs.metadata.get("current_location") if _cs else None
+                _player_loc = _cs.metadata.get("current_location") if _cs else None  # noqa: ENIGMA001
                 if _player_loc and _player_loc != _active_loc:
                     logger.info(
                         f"[IDLE_TICK] Player location authority: {_active_loc} → {_player_loc}"
@@ -1174,12 +1174,12 @@ class GameLoop:
         #    tick/game_time активной сцены (паттерн _load_or_create_scene,
         #    не сырой initialize_scene с tick=0).
         try:
-            _sm_persistence = getattr(self.scene_manager, "_persistence", None)
+            _sm_persistence = getattr(self.scene_manager, "_persistence", None)  # noqa: ENIGMA002
             if _sm_persistence is not None:
                 for _loc_key in _sm_persistence.load_all_scenes(campaign_id):
                     if _loc_key not in _location_ids:
                         _location_ids.append(_loc_key)
-            for _ploc in list(getattr(self._tick_orch, "_pending_transfers", {}).keys()):
+            for _ploc in list(getattr(self._tick_orch, "_pending_transfers", {}).keys()):  # noqa: ENIGMA002
                 if not _ploc:
                     continue
                 if self.scene_manager.get_scene_state(campaign_id, _ploc) is None:
@@ -1264,8 +1264,8 @@ class GameLoop:
 
         _idle_ctx = _SNS(
             scene_state=_scene,
-            spatial_query=getattr(self, "_current_spatial_query", None),
-            relationship_store=getattr(self, "_rel_store", None),
+            spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+            relationship_store=getattr(self, "_rel_store", None),  # noqa: ENIGMA002
             campaign_id=campaign_id,
         )
 
@@ -1281,9 +1281,9 @@ class GameLoop:
             economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
             event_bus=get_event_bus(),
             spatial_service=_spatial_svc,
-            spatial_query=getattr(self, "_current_spatial_query", None),
-            crystallized_belief_store=getattr(
-                getattr(self, "_tick_orch", None),
+            spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+            crystallized_belief_store=getattr(  # noqa: ENIGMA002
+                getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
                 "crystallized_belief_store",
                 None,
             ),
@@ -1379,7 +1379,7 @@ class GameLoop:
         if _auth_scene:
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
         # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
-        if getattr(self, "_npc_dialogue_subscriber", None):
+        if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
             self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
         # ADR-O-399 (точка (б)): безусловный deterministic commit артефактов
         # воркера — тихие тики не создают backlog (симметрия F23);
@@ -1388,7 +1388,7 @@ class GameLoop:
             self._get_task_scheduler().drain_task_worker_outbox(_auth_scene)
         # M17: pending наполняется публикациями NPC_SPOKE (выше) — применяем
         # СРАЗУ после них, иначе tentative/confirmed доезжают на цикл позже.
-        if getattr(self, "_npc_dialogue_subscriber", None):
+        if getattr(self, "_npc_dialogue_subscriber", None):  # noqa: ENIGMA002
             self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
@@ -1470,7 +1470,7 @@ class GameLoop:
         # frozen и создан ДО WillpowerGate — чтение здесь = снимок «до».
         from app.services.game_loop.phase_1_input import build_intent_projection
         _intent_projection = (
-            build_intent_projection(state.shared_context.intent_resolution)
+            build_intent_projection(state.shared_context.intent_resolution)  # noqa: ENIGMA001
             if state.shared_context
             else None
         )
@@ -1643,11 +1643,11 @@ class GameLoop:
         # M17 (вердикт Мастера): имя раскрывается ТОЛЬКО фактическим
         # вербальным обращением. Целеполагание (клик «подойти к X», движение)
         # ставит player_target_id, но имя не подтверждает.
-        _verbal = getattr(state.shared_context, "action_type", "") in (
+        _verbal = getattr(state.shared_context, "action_type", "") in (  # noqa: ENIGMA002
             "dialogue", "blackmail", "bribe", "accuse"
         )
         # DIAG-M17 (Часть VIII.5, ВРЕМЕННЫЙ): почему confirmed не рождается.
-        print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "
+        print(f"[DIAG-M17] action_type={getattr(state.shared_context, 'action_type', None)!r} "  # noqa: ENIGMA002
               f"target_id={_target_id!r} verbal={_verbal}")
         if (
             _target_id and _verbal
@@ -1694,7 +1694,7 @@ class GameLoop:
             # терминалы прошлого цикла применяются даже при пустой очереди.
             self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
         # M17 этап 2: tentative-распознавания адресатов подслушанных обращений
-        if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:
+        if getattr(self, "_npc_dialogue_subscriber", None) and _auth_scene is not None:  # noqa: ENIGMA002
             self._npc_dialogue_subscriber.drain_pending_recognition(_auth_scene)
 
         # BUG-FB-030 FIX: Используем world_snapshot, собранный ядром в Phase 9, вместо Force Merge
@@ -1782,7 +1782,7 @@ class GameLoop:
             # G3-B: beliefs-канал — пересборка из ФИНАЛЬНОГО store на границе
             # run_turn (snapshot ядра строился до publication'ов тика)
             try:
-                _epi_final = getattr(self._tick_orch, "_epistemic_store", None)
+                _epi_final = getattr(self._tick_orch, "_epistemic_store", None)  # noqa: ENIGMA002
                 if _epi_final is not None:
                     _all = _epi_final.to_dict()
                     _ws_dict["player_beliefs"] = [r for r in _all if r.get("agent_id") == "player"]
@@ -2111,8 +2111,8 @@ class GameLoop:
         # shutdown(wait=True) ждёт текущую задачу; повторный вызов = no-op
         # (idempotent teardown). Диагностика вместо бесконечного ожидания.
         if hasattr(self, "_task_scheduler"):
-            _sched = getattr(self, "_task_scheduler", None)
-            _pool = getattr(_sched, "_executor_pool", None)
+            _sched = getattr(self, "_task_scheduler", None)  # noqa: ENIGMA002
+            _pool = getattr(_sched, "_executor_pool", None)  # noqa: ENIGMA002
             if _pool is not None:
                 try:
                     _pool.shutdown(wait=True, cancel_futures=True)

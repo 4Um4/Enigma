@@ -83,7 +83,7 @@ def _verify_applied(patch_log: List[_PatchEntry]) -> None:
     """Верификация: каждый патч реально виден потребителю. Громкий FAIL."""
     problems: List[str] = []
     for module, attr_name, _original, expected in patch_log:
-        current = getattr(module, attr_name, None)
+        current = getattr(module, attr_name, None)  # noqa: ENIGMA002
         if current != expected:
             problems.append(
                 f"{module.__name__}.{attr_name}: ожидалось {expected!r}, "
@@ -100,7 +100,7 @@ def _verify_restored(patch_log: List[_PatchEntry]) -> None:
     """Верификация отката: каждый биндинг указывает на оригинал (identity)."""
     problems: List[str] = []
     for module, attr_name, original, _new_value in patch_log:
-        current = getattr(module, attr_name, None)
+        current = getattr(module, attr_name, None)  # noqa: ENIGMA002
         if current is not original:
             problems.append(
                 f"{module.__name__}.{attr_name}: ожидался оригинал "

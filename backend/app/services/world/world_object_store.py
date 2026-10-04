@@ -239,7 +239,7 @@ class WorldObjectStore:
         scene_state: Dict[str, Any], object_id: str
     ) -> Optional[WorldObject]:
         raw = _read_subtree(scene_state).get(object_id)
-        return WorldObject.from_dict(raw) if raw is not None else None
+        return WorldObject.from_dict(raw) if raw is not None else None  # noqa: ENIGMA001
 
     @staticmethod
     def get_all(

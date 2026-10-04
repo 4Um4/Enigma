@@ -84,9 +84,9 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
     from app.services.tick_utils import build_npc_snapshots
 
     # M1b.3.3: V2-гидратация снапшотов (decay = produce Δ над каноном)
-    _rel_store = getattr(ctx, "relationship_store", None)
+    _rel_store = getattr(ctx, "relationship_store", None)  # noqa: ENIGMA002
     if _rel_store is None and deps.life_engine is not None:
-        _rel_store = getattr(deps, "relationship_store", None)
+        _rel_store = getattr(deps, "relationship_store", None)  # noqa: ENIGMA002
     snapshots = build_npc_snapshots(
         ctx.all_npcs_raw,
         relationship_store=_rel_store,

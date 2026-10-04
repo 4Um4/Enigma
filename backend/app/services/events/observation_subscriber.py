@@ -71,7 +71,7 @@ class ObservationSubscriber:
 
     def on_world_event(self, event: Any) -> None:
         """Точка входа EventBus. THEFT → убеждение свидетелей (player, STOLE, target)."""
-        event_type = getattr(event, "type", None)
+        event_type = getattr(event, "type", None)  # noqa: ENIGMA002
         # [OBS_DIAG] временный зонд (санитарно, удаляется после G3-B закрытия)
         print(f"[OBS_DIAG] on_world_event: type={event_type!r}")
         if event_type is None:
@@ -81,8 +81,8 @@ class ObservationSubscriber:
         if predicate is None:
             return
 
-        payload = getattr(event, "payload", None) or {}
-        actor_id = getattr(event, "source", None)
+        payload = getattr(event, "payload", None) or {}  # noqa: ENIGMA002
+        actor_id = getattr(event, "source", None)  # noqa: ENIGMA002
         target_id = payload.get("target_id")
         if not actor_id or not target_id:
             logger.warning(
@@ -105,8 +105,8 @@ class ObservationSubscriber:
         tick = self._get_tick()
         for witness_id in witnesses:
             claim = ClaimEvent(
-                event_id=str(getattr(event, "id", "")),
-                claim_id=f"observation-{getattr(event, 'id', '')}-{witness_id}",
+                event_id=str(getattr(event, "id", "")),  # noqa: ENIGMA002
+                claim_id=f"observation-{getattr(event, 'id', '')}-{witness_id}",  # noqa: ENIGMA002
                 speaker_id=witness_id,
                 listener_id=witness_id,
                 proposition=proposition,
@@ -126,7 +126,7 @@ class ObservationSubscriber:
     def _get_witnesses(self, actor_id: str) -> list[str]:
         """LOS-мембрана. Актёр не свидетель себе (self-exclusion), player включён
         как агент (ADR-O-358, S200). Радиус события игнорируется (DEBT-R1)."""
-        sq = self._get_spatial_query() if self._get_spatial_query else None
+        sq = self._get_spatial_query() if self._get_spatial_query else None  # noqa: ENIGMA001
         if sq is None:
             logger.warning(
                 "[OBSERVATION_SUB] SpatialQueryService недоступен — "
@@ -135,7 +135,7 @@ class ObservationSubscriber:
             return []
 
         witnesses: list[str] = []
-        positions = getattr(sq, "_npc_positions", {})
+        positions = getattr(sq, "_npc_positions", {})  # noqa: ENIGMA002
         for entity_id in sorted(positions):  # детерминизм итерации
             if entity_id == actor_id:
                 continue

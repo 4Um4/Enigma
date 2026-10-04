@@ -281,7 +281,7 @@ class CombatSubscriber:
         # Определяем участников
         # WOUNDS-TZ FIX: getattr(source) мог вернуть None → actor_id гарантированно str
         # (контракт ImpactIntentDTO требует str, не Optional).
-        actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")
+        actor_id = str(payload.get("actor_id") or getattr(event, "source", "") or "player")  # noqa: ENIGMA002
         target_id = payload.get("target_id")
 
         # ADR-035 FIX: Если Слой 2 не дал ID, пробуем найти по target_reference (имени)

@@ -326,9 +326,9 @@ def _advance(
         _owner = _npc_id(npc)
         if (
             _target_obj is None
-            or getattr(_target_obj, "state", "") == "DESTROYED"
+            or getattr(_target_obj, "state", "") == "DESTROYED"  # noqa: ENIGMA002
             or (
-                getattr(_target_obj, "holder", None) not in (None, "", _owner)
+                getattr(_target_obj, "holder", None) not in (None, "", _owner)  # noqa: ENIGMA002
             )
         ):
             _reason = (
@@ -483,7 +483,7 @@ def _advance_body_action(
         # с копией, насыщение не накапливается (E7 hunger=1.00). Гасим
         # КАНОНИЧЕСКИЙ экземпляр (life-кэш — владелец обеих истин, §13.3)
         # через _canon_npcs (ссылки на оригиналы, run_activity_lifecycle).
-        _canon = getattr(ctx, "_canon_npcs", None) or {}
+        _canon = getattr(ctx, "_canon_npcs", None) or {}  # noqa: ENIGMA002
         _orig = _canon.get(_npc_id(npc))
         if _orig is not None and _orig is not npc and isinstance(_orig, dict):
             _o_needs = _orig.get("needs")
@@ -497,7 +497,7 @@ def _advance_body_action(
         # S268: третья истина — nutrition (S2B.4, 0-100, SSOT body_state) —
         # растёт легальной дельтой (съедено = сытость; StateApplicator:1090).
         # payload СТРОГО типизированный (LOCKED v1 — dict-произвол запрещён).
-        if _need_name == "hunger" and _bs_hunger_tick > 1e-9 and getattr(ctx, "delta_buffer", None) is not None:
+        if _need_name == "hunger" and _bs_hunger_tick > 1e-9 and getattr(ctx, "delta_buffer", None) is not None:  # noqa: ENIGMA002
             from app.models.delta_payloads import PhysiologyPayload
             from app.models.state_delta import DeltaDomain, StateDeltas
             ctx.delta_buffer.append(StateDeltas(
@@ -639,7 +639,7 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
     # SSOT — SSM _tick_scenes (факт foodfate: SSM жив, ctx пуст).
     _ss = ctx.scene_state
     if isinstance(_ss, dict) and not _ss.get("world_objects"):
-        _sm = getattr(orchestrator, "_scene_manager", None)
+        _sm = getattr(orchestrator, "_scene_manager", None)  # noqa: ENIGMA002
         if _sm is not None:
             _loc = _ss.get("location_id", "")
             _live = (_sm._tick_scenes or {}).get(_loc)

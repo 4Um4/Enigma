@@ -38,14 +38,14 @@ class CognitionContextResolver:
             return ""
         lines: list = []
         open_claims = [
-            c for c in getattr(session, "claims", []) if getattr(c, "status", "") == "open"
+            c for c in getattr(session, "claims", []) if getattr(c, "status", "") == "open"  # noqa: ENIGMA002
         ]
         if open_claims:
             lines.append("Что NPC слышал в разговоре (утверждения собеседника):")
             for c in open_claims[-5:]:
                 lines.append(f"- {c.speaker} {c.text}")
         open_q = [
-            q for q in getattr(session, "open_questions", []) if not getattr(q, "answered", True)
+            q for q in getattr(session, "open_questions", []) if not getattr(q, "answered", True)  # noqa: ENIGMA002
         ]
         if open_q:
             lines.append("Открытые вопросы без ответа:")

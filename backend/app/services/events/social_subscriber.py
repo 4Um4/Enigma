@@ -127,7 +127,7 @@ class SocialSubscriber:
         # объект, отрезая trust-fallback на всех idle-тиках при живых событиях
         # (runtime-evidence: S116 на каждом тике, deltas=0). shared_context
         # остаётся источником relationship_store; гейт над стором не меняется.
-        _campaign_id = ctx.campaign_id or getattr(ctx.shared_context, "campaign_id", None)
+        _campaign_id = ctx.campaign_id or getattr(ctx.shared_context, "campaign_id", None)  # noqa: ENIGMA002
         # S259 (redesign, вердикт Мастера): fresh-context не создаётся —
         # носителем уже является per-tick _TickContext.npc_services
         # (idle-путь: NpcTickServices carries relationship_store,
@@ -136,13 +136,13 @@ class SocialSubscriber:
         # 1) tick_ctx.npc_services (production idle);
         # 2) shared_context (player-путь, если задан);
         # 3) None — честный skip (fallback ниже).
-        _tick_ctx = getattr(ctx, "tick_ctx", None)
-        _npc_services = getattr(_tick_ctx, "npc_services", None)
+        _tick_ctx = getattr(ctx, "tick_ctx", None)  # noqa: ENIGMA002
+        _npc_services = getattr(_tick_ctx, "npc_services", None)  # noqa: ENIGMA002
         _store = (
-            getattr(_npc_services, "relationship_store", None)
-            or getattr(ctx.shared_context, "relationship_store", None)
+            getattr(_npc_services, "relationship_store", None)  # noqa: ENIGMA002
+            or getattr(ctx.shared_context, "relationship_store", None)  # noqa: ENIGMA002
         )
-        _gate = getattr(ctx.shared_context, "relationship_write_gate", None)
+        _gate = getattr(ctx.shared_context, "relationship_write_gate", None)  # noqa: ENIGMA002
         if _store is None and _gate is None:
             # M1b.2.1-fix: стор ещё не собран (lazy-сборка game_loop) —
             # детерминированный skip с наблюдаемым логом (§1.2).

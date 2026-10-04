@@ -269,10 +269,10 @@ class IntelligenceQueue:
             task.campaign_id, task.listener, partner_id=task.speaker
         )
         placeholder_alive = any(
-            getattr(t, "speaker", None) == task.speaker
-            and getattr(t, "text", None) == task.text
+            getattr(t, "speaker", None) == task.speaker  # noqa: ENIGMA002
+            and getattr(t, "text", None) == task.text  # noqa: ENIGMA002
             and getattr(t, "tick", -1) == task.parent_tick
-            for t in getattr(session, "buffer", [])
+            for t in getattr(session, "buffer", [])  # noqa: ENIGMA002
         )
         if not placeholder_alive:
             # Мир забыл сырой текст (вытеснение буфера/clear/new_game) —
@@ -303,10 +303,10 @@ class IntelligenceQueue:
             task.campaign_id, task.listener, partner_id=task.speaker
         )
         has_content = bool(
-            getattr(update, "topic", None)
-            or getattr(update, "new_claims", None)
-            or getattr(update, "raised_questions", None)
-            or getattr(update, "answered_questions", None)
+            getattr(update, "topic", None)  # noqa: ENIGMA002
+            or getattr(update, "new_claims", None)  # noqa: ENIGMA002
+            or getattr(update, "raised_questions", None)  # noqa: ENIGMA002
+            or getattr(update, "answered_questions", None)  # noqa: ENIGMA002
         )
         if not has_content:
             # Существующая семантика деградации (S198-fallback extractor'а):
@@ -319,7 +319,7 @@ class IntelligenceQueue:
                 task.listener,
             )
             return
-        if getattr(update, "topic", None):
+        if getattr(update, "topic", None):  # noqa: ENIGMA002
             session.topic = update.topic
             session.topic_confidence = getattr(update, "topic_confidence", 0.0)
         for claim in update.new_claims or []:

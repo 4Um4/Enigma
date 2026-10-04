@@ -42,7 +42,7 @@ def _name_records(store: Any, listener_id: str) -> List[Any]:
     try:
         return [
             r for r in (store.get_all_for_agent(listener_id) or [])
-            if getattr(getattr(r, "proposition", None), "predicate", None) is not None
+            if getattr(getattr(r, "proposition", None), "predicate", None) is not None  # noqa: ENIGMA002
             and getattr(r.proposition, "predicate").value == "name"
         ]
     except Exception as e:  # noqa: BLE001 — sandbox/тесты без Store
@@ -80,7 +80,7 @@ def consume_npc_acts(
             # name-записей), а не новизна имени: переповтор одного из
             # конкурирующих имён — тоже конфликтное состояние (выбор стороны).
             _distinct = {
-                getattr(r.proposition, "object_id", "") for r in _records
+                getattr(r.proposition, "object_id", "") for r in _records  # noqa: ENIGMA002
             }
             _is_conflicting = len(_distinct) > 1 or (
                 _records and name not in _distinct
@@ -95,7 +95,7 @@ def consume_npc_acts(
                 )
             _existing = next(
                 (r for r in _records
-                 if getattr(r.proposition, "object_id", "") == name),
+                 if getattr(r.proposition, "object_id", "") == name),  # noqa: ENIGMA002
                 None,
             )
             return ResponsePlan(
@@ -113,13 +113,13 @@ def consume_npc_acts(
         # Semantic classification ≠ epistemic relevance: отсутствие записи
         # НЕ превращает intent обратно в обычный вопрос (boundaries раздельны).
         if act_type == "ASK_PROVENANCE":
-            _latest = max(_records, key=lambda r: getattr(r, "last_updated_tick", 0)) if _records else None
+            _latest = max(_records, key=lambda r: getattr(r, "last_updated_tick", 0)) if _records else None  # noqa: ENIGMA001
             return ResponsePlan(
                 attitude=ActAttitude.PROVENANCE_QUERY,
-                provenance_hint=getattr(_latest, "source_id", "") if _latest else "",
+                provenance_hint=getattr(_latest, "source_id", "") if _latest else "",  # noqa: ENIGMA002
                 belief_confidence=getattr(_latest, "confidence", 0.0) if _latest else 0.0,
                 challenged_claim_object=(
-                    getattr(_latest.proposition, "object_id", "") if _latest else ""
+                    getattr(_latest.proposition, "object_id", "") if _latest else ""  # noqa: ENIGMA002
                 ),
             )
         # challenge: пока остаётся keyword-веткой ВРЕМЕННО (RC3 — отдельный
@@ -135,9 +135,9 @@ def consume_npc_acts(
                 _latest = max(_records, key=lambda r: getattr(r, "last_updated_tick", 0))
                 return ResponsePlan(
                     attitude=ActAttitude.DOUBT_REGISTERED,
-                    provenance_hint=getattr(_latest, "source_id", ""),
+                    provenance_hint=getattr(_latest, "source_id", ""),  # noqa: ENIGMA002
                     belief_confidence=getattr(_latest, "confidence", 0.0),
-                    challenged_claim_object=getattr(
+                    challenged_claim_object=getattr(  # noqa: ENIGMA002
                         _latest.proposition, "object_id", ""
                     ),
                 )

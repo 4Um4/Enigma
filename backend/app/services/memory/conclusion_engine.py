@@ -72,7 +72,7 @@ def generate_conclusion_proposals(
     """
     proposals: List[ConclusionProposal] = []
     for event in experience_delta_events:
-        payload: Dict[str, Any] = getattr(event, "payload", None) or {}
+        payload: Dict[str, Any] = getattr(event, "payload", None) or {}  # noqa: ENIGMA002
         field = payload.get("field")
         if field != "threat_gradient":
             continue

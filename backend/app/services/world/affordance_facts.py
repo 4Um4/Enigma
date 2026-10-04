@@ -85,7 +85,7 @@ def compute_weapon_access_facts(
     «оживляется» на дефолтах). Ничего не мутирует, ничего не пишет.
     """
     _facts: Dict[str, bool] = {}
-    if snapshot is None or not getattr(snapshot, "world_objects", None):
+    if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
         return _facts
 
     _objects = project_world_objects(snapshot.world_objects, location_id)

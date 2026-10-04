@@ -65,7 +65,7 @@ class HungerDesiredChangeProducer:
         # живое поле; «B can sell» ≠ «B has» — будущая проекция.
         if (
             own_profile is not None
-            and callable(getattr(own_profile, "has_good", None))
+            and callable(getattr(own_profile, "has_good", None))  # noqa: ENIGMA002
             and own_profile.has_good(GOOD_ID)
         ):
             return None
@@ -75,7 +75,7 @@ class HungerDesiredChangeProducer:
             nid
             for nid, prof in (profiles or {}).items()
             if nid != who
-            and callable(getattr(prof, "has_good", None))
+            and callable(getattr(prof, "has_good", None))  # noqa: ENIGMA002
             and prof.has_good(GOOD_ID)
             and float((distances or {}).get(nid, float("inf"))) <= REACH_RADIUS
         ]

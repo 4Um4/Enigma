@@ -120,7 +120,7 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                     )
                 )
                 from app.core.constants import BOUNDARY_DWELL_TICKS
-                _scene_ref = getattr(ctx, "scene_state", None)
+                _scene_ref = getattr(ctx, "scene_state", None)  # noqa: ENIGMA002
                 if _scene_ref is not None:
                     _bd = _scene_ref.setdefault("boundary_dwell", {})
                     _bd[npc_id] = {
@@ -217,7 +217,7 @@ def apply_with_shadow_observation(
     if _spatial_changes and orchestrator._spatial_service:
         try:
             # Stage 1 Task 1.3: Используем снапшот из TickOrchestrator (единственный producer)
-            _snapshot = getattr(ctx, "tick_snapshot", None)
+            _snapshot = getattr(ctx, "tick_snapshot", None)  # noqa: ENIGMA002
             if not _snapshot:
                 # Fallback для обратной совместимости (если ctx.tick_snapshot не задан)
                 _snapshot = build_snapshot(

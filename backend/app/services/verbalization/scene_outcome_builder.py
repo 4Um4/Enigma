@@ -457,7 +457,7 @@ class SceneOutcomeBuilder:
                     line += f" [тема: {npc.topic}]"
                 # Step 5: cognition — что NPC слышал (граница знания;
                 # DM рендерит решение NPC на этом знании, не на raw-речи)
-                if getattr(npc, "cognition", ""):
+                if getattr(npc, "cognition", ""):  # noqa: ENIGMA002
                     line += f" [NPC слышал: {npc.cognition}]"
                 # emotion с гендерным окончанием через pymorphy3
                 if npc.emotion:

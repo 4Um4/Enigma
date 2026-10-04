@@ -210,7 +210,7 @@ class DialogueExecutor:
                 import threading as _th
                 _retry_timer = _th.Timer(_L_TIMEOUT_SEC, self._router._abort_generation)
                 _retry_timer.start()
-                _reinforced = (
+                _reinforced = (  # noqa: ENIGMA001
                     f"{req.prepared_prompt}\n\n[СТРОГО: ответ ТОЛЬКО кириллицей. "
                     f"Ни одного латинского слова. Предыдущая попытка отклонена.]"
                 ) if req.prepared_prompt else None

@@ -105,7 +105,7 @@ def build_npc_snapshots(
             relationship_store is not None
             and npc_id
             and campaign_id
-            and getattr(relationship_store, "_campaign_id", None) == campaign_id
+            and getattr(relationship_store, "_campaign_id", None) == campaign_id  # noqa: ENIGMA002
         ):
             try:
                 _v2_cache = relationship_store.get_all_for_source(campaign_id, npc_id)
@@ -441,7 +441,7 @@ def create_tick_context(
     # (INV-DIALOGUE-STM). Алиас на живой вложенный dict тика: shadow-read
     # отдаёт epoch-объект, фазы мутируют его на месте — алиас всегда
     # актуален в течение тика.
-    _sq = getattr(shared_context, "spatial_query", None)
+    _sq = getattr(shared_context, "spatial_query", None)  # noqa: ENIGMA002
     if _sq is not None and hasattr(_sq, "_npc_positions"):
         _sq._npc_positions = input_snapshot.setdefault("npc_positions", {})
 
@@ -513,7 +513,7 @@ def create_tick_context(
     # Критерий _is_player отсекает time-контекст (interventions=[] → False),
     # иначе сидирование съело бы интент на пустом _time_ctx.
     if _is_player and shared_context is not None:
-        _pending = getattr(shared_context, "pending_movement_intents", None)
+        _pending = getattr(shared_context, "pending_movement_intents", None)  # noqa: ENIGMA002
         print(f"[Z-DIAG] is_player=True pending={len(_pending or [])} "
               f"shared={type(shared_context).__name__} id={id(shared_context)}")
         if _pending:
@@ -521,5 +521,5 @@ def create_tick_context(
             shared_context.pending_movement_intents = []
             print(f"[Z-FIX] factory seeded {len(ctx.movement_intents)} player movement intents")  # print: logger.info невидим в sandbox (S216)
     elif shared_context is not None:
-        print(f"[Z-DIAG] is_player=False interventions={[(getattr(i,'source','?'), getattr(i,'payload',{}).get('semantic_action','?')) for i in interventions][:3]}")
+        print(f"[Z-DIAG] is_player=False interventions={[(getattr(i,'source','?'), getattr(i,'payload',{}).get('semantic_action','?')) for i in interventions][:3]}")  # noqa: ENIGMA002
     return ctx

@@ -132,9 +132,9 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # turn_pipeline; mvp_controller memory_manager не владеет — проверено
     # чтением конструктора). None → пустые cognition-блоки (sandbox-ctx).
     from app.services.npc.cognition_context import CognitionContextResolver
-    _cog_mm = getattr(ctx, "memory_manager", None)
+    _cog_mm = getattr(ctx, "memory_manager", None)  # noqa: ENIGMA002
     _cog_resolver: CognitionContextResolver | None = (
-        CognitionContextResolver(_cog_mm) if _cog_mm else None
+        CognitionContextResolver(_cog_mm) if _cog_mm else None  # noqa: ENIGMA001
     )
     ctx.communication_intents = mutation.communication_intents or []
     # SLEEP_FIX: Объединяем интенты от Фазы 0 (LifeEngine) и Фазы 5 (DecisionHub),
@@ -175,7 +175,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # событийных дельтах). Вариант (y) (все decision-дельты) — отдельное решение
     # Мастера с собственным гейтом.
     ctx.delta_buffer.extend(
-        d for d in (mutation.npc_deltas or []) if getattr(d, "intent", None) is not None
+        d for d in (mutation.npc_deltas or []) if getattr(d, "intent", None) is not None  # noqa: ENIGMA002
     )
 
     # Применение L1 Drift Events (Append-only Chronicle)

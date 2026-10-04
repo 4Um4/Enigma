@@ -1022,7 +1022,7 @@ class NPCState:
         # частичная проекция (intent без formed_at/duration) создаёт ложную
         # семантику «вечно только что сменился» — инерция DecisionHub живёт на
         # счётчиках (StateApplicator._apply_intent).
-        npc_dict["intent"] = state.intent.value if state.intent else None
+        npc_dict["intent"] = state.intent.value if state.intent else None  # noqa: ENIGMA001
         npc_dict["intent_target"] = state.intent_target
         npc_dict["intent_formed_at"] = state.intent_formed_at
         npc_dict["intent_duration"] = state.intent_duration
@@ -1301,7 +1301,7 @@ class NPCStateAdapter:
             # Safe-map по прецеденту load_l2_state_from_runtime_dict:
             # мусор/отсутствие -> None/дефолты (pre-fix сейвы — тот же путь).
             intent=(
-                Intent(npc_dict["intent"])
+                Intent(npc_dict["intent"])  # noqa: ENIGMA001
                 if npc_dict.get("intent")
                 else None
             ),

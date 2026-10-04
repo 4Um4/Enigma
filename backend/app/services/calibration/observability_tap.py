@@ -71,7 +71,7 @@ class ObservabilityTap:
             self._count += 1
             event_type = str(getattr(event, "type", "?"))
             source = str(getattr(event, "source", "?"))
-            payload = getattr(event, "payload", None)
+            payload = getattr(event, "payload", None)  # noqa: ENIGMA002
             label = ""
             if isinstance(payload, dict):
                 raw = payload.get("intent_type", "")

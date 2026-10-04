@@ -531,7 +531,7 @@ class SceneStateManager:
             return
         for _nid in list(_positions.keys()):
             _entry = _positions.get(_nid)
-            _entry_loc = _entry.get("location_id") if isinstance(_entry, dict) else None
+            _entry_loc = _entry.get("location_id") if isinstance(_entry, dict) else None  # noqa: ENIGMA001
             if _entry_loc and _entry_loc != _loc:
                 del _positions[_nid]
 
@@ -824,14 +824,14 @@ class SceneStateManager:
                 # entry напрямую). Остальное — громкий отказ, NPC не трогаем.
                 if (
                     change.target not in pos
-                    and not getattr(change, "cause", "").startswith(
+                    and not getattr(change, "cause", "").startswith(  # noqa: ENIGMA002
                         ("cross_loc_materialize", "boundary_arrival")
                     )
                 ):
                     logger.error(
                         f"[ATOMIC_GUARD] npc={change.target} отсутствует в сцене "
                         f"'{scene_state.get('location_id', '?')}'; field={change.field} "
-                        f"cause='{getattr(change, 'cause', '')}' — отклонено (torn-write)"
+                        f"cause='{getattr(change, 'cause', '')}' — отклонено (torn-write)"  # noqa: ENIGMA002
                     )
                     return True
                 entry = pos.setdefault(change.target, {})
@@ -949,7 +949,7 @@ class SceneStateManager:
                                                     scene_state=scene_state,
                                                     tick=change.tick,
                                                     npc_id=change.target,
-                                                    cause=getattr(change, "cause", ""),
+                                                    cause=getattr(change, "cause", ""),  # noqa: ENIGMA002
                                                     target_node=_traversal_dict.get("target_node"),
                                                 )
                                     elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
@@ -1278,11 +1278,11 @@ class SceneStateManager:
 
         S269-C2: ленивая deepcopy — копия создаётся при первом чтении,
         не на каждом коммите (потребитель выключен AUDIT #10)."""
-        _cached = getattr(self, "_last_committed_npcs", None)
+        _cached = getattr(self, "_last_committed_npcs", None)  # noqa: ENIGMA002
         if _cached is not None:
             return cast("list[dict]", _cached)
         import copy as _copy
-        _copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))
+        _copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))  # noqa: ENIGMA002
         object.__setattr__(self, "_last_committed_npcs", _copy_list) if hasattr(self, "__slots__") else setattr(self, "_last_committed_npcs", _copy_list)
         self._last_committed_npcs = _copy_list
         return _copy_list
@@ -1648,11 +1648,11 @@ class SceneStateManager:
         порядком dict, самосогласован внутри тика)."""
 
         def _get_directed(scene: Dict[str, Any]) -> Any:
-            _rs = scene.get("relationship_state") if isinstance(scene, dict) else None
+            _rs = scene.get("relationship_state") if isinstance(scene, dict) else None  # noqa: ENIGMA001
             if not isinstance(_rs, dict):
                 return None
             _d = _rs.get("directed")
-            return _d if isinstance(_d, dict) and _d else None
+            return _d if isinstance(_d, dict) and _d else None  # noqa: ENIGMA001
 
         _source = next((_get_directed(s) for s in scenes.values() if _get_directed(s)), None)
         if _source is None:
@@ -1673,7 +1673,7 @@ class SceneStateManager:
                 RelationshipStateStore,
             )
 
-            _saves = getattr(self, "_saves_dir", None)
+            _saves = getattr(self, "_saves_dir", None)  # noqa: ENIGMA002
             if _saves:
                 RelationshipStateStore.confirm_migration(campaign_id, str(_saves))
         except Exception as e:

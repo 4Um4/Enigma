@@ -34,7 +34,7 @@ def e1_relationship_reader(
     пустой dict (decide_disclosure даст DENY-лестницу по нулям —
     честное «не знаю отношений», не крах диалога)."""
     try:
-        _store = getattr(memory_manager, "_relationships", None) if memory_manager is not None else None
+        _store = getattr(memory_manager, "_relationships", None) if memory_manager is not None else None  # noqa: ENIGMA001, ENIGMA002
         if _store is not None:
             _rels = _store.get(campaign_id, knower_id) or {}
             _pair = _rels.get(f"{knower_id}→{recipient_id}") or {}

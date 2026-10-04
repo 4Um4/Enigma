@@ -187,13 +187,13 @@ def resolve_player_intent(
         tool_reference=semantic_field.tool_reference,
         # UNDEFINED = «зоны нет» (дефолт enum) → None: конвенция
         # «нет информации → None» едина с проекцией B-блока (§ENIGMA-003).
-        target_zone=(semantic_field.target_zone.value if semantic_field.target_zone != TargetZone.UNDEFINED else None),
+        target_zone=(semantic_field.target_zone.value if semantic_field.target_zone != TargetZone.UNDEFINED else None),  # noqa: ENIGMA001
         zone_raw=semantic_field.zone_raw,
         semantic_acts=[dict(a) for a in (semantic_field.semantic_acts or [])],  # копии — не живые ссылки
-        proposition_subject=(semantic_field.proposition.subject_id if semantic_field.proposition else None),
-        proposition_predicate=(semantic_field.proposition.predicate.value if semantic_field.proposition else None),
-        proposition_object_id=(semantic_field.proposition.object_id if semantic_field.proposition else None),
-        proposition_polarity=(semantic_field.proposition.polarity if semantic_field.proposition else None),
+        proposition_subject=(semantic_field.proposition.subject_id if semantic_field.proposition else None),  # noqa: ENIGMA001
+        proposition_predicate=(semantic_field.proposition.predicate.value if semantic_field.proposition else None),  # noqa: ENIGMA001
+        proposition_object_id=(semantic_field.proposition.object_id if semantic_field.proposition else None),  # noqa: ENIGMA001
+        proposition_polarity=(semantic_field.proposition.polarity if semantic_field.proposition else None),  # noqa: ENIGMA001
     )
 
     intent = IntentDTO(

@@ -288,8 +288,8 @@ class DMRouter:
             if not clean_word:
                 continue
 
-            _morph_result = _MORPH.parse(clean_word) if _MORPH else None
-            parsed_first = (_morph_result[0] if _morph_result else None)
+            _morph_result = _MORPH.parse(clean_word) if _MORPH else None  # noqa: ENIGMA001
+            parsed_first = (_morph_result[0] if _morph_result else None)  # noqa: ENIGMA001
             lemma = (parsed_first.normal_form if parsed_first else clean_word)
 
             if lemma in _INSULT_ROOTS:

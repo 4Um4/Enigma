@@ -46,7 +46,7 @@ def update_avatar_from_npc_intents(
 
             if _intent_val.value == "attack":
                 _new_emotion = (
-                    emotion_tag_cls.FEARFUL
+                    emotion_tag_cls.FEARFUL  # noqa: ENIGMA001
                     if _avatar_state.emotion in (emotion_tag_cls.NEUTRAL, emotion_tag_cls.HAPPY)
                     else None
                 )
@@ -58,7 +58,7 @@ def update_avatar_from_npc_intents(
                 # Прямая мутация HP аватара здесь запрещена.
             elif _intent_val.value == "intimidate":
                 _new_emotion = (
-                    emotion_tag_cls.SUSPICIOUS
+                    emotion_tag_cls.SUSPICIOUS  # noqa: ENIGMA001
                     if _avatar_state.emotion == emotion_tag_cls.NEUTRAL
                     else None
                 )
@@ -66,7 +66,7 @@ def update_avatar_from_npc_intents(
                 _avatar_changed = True
             elif _intent_val.value == "help":
                 _new_emotion = (
-                    emotion_tag_cls.NEUTRAL
+                    emotion_tag_cls.NEUTRAL  # noqa: ENIGMA001
                     if _avatar_state.emotion in (emotion_tag_cls.FEARFUL, emotion_tag_cls.SAD)
                     else None
                 )

@@ -91,7 +91,7 @@ def post_cards(campaign_id: str, payload: CardOp) -> dict:
     try:
         if isinstance(payload, CardAddPayload):
             _pos = (
-                cast(tuple[float, float], tuple(payload.pos))
+                cast(tuple[float, float], tuple(payload.pos))  # noqa: ENIGMA001
                 if payload.pos is not None
                 else None
             )

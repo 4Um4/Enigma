@@ -45,7 +45,7 @@ class GrievanceDesiredChangeProducer:
     ) -> Optional[DesiredChange]:
         try:
             # CS15: горячая фаза — территория R5, обида молчит
-            kernel = getattr(state, "perceptual_kernel", None)
+            kernel = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
             threat = getattr(kernel, "threat_gradient", 0.0) if kernel else 0.0
             if threat >= HOT_THREAT_GATE:
                 return None
@@ -63,15 +63,15 @@ class GrievanceDesiredChangeProducer:
                 return None  # T1: нет вреда — нет обиды (CS14)
 
             # ── Ограничения агента (CS4: существующие машины) ──
-            drives: Dict[str, float] = getattr(state, "drives", {}) or {}
+            drives: Dict[str, float] = getattr(state, "drives", {}) or {}  # noqa: ENIGMA002
             fear_d = _clamp01(float(drives.get("fear", 0.3)))
             control_d = _clamp01(float(drives.get("control", 0.3)))
             signif_d = _clamp01(float(drives.get("significance", 0.3)))
 
             hp = 1.0
             try:
-                _ehp = getattr(state, "effective_hp", None)
-                _max = getattr(state, "effective_max_hp", None)
+                _ehp = getattr(state, "effective_hp", None)  # noqa: ENIGMA002
+                _max = getattr(state, "effective_max_hp", None)  # noqa: ENIGMA002
                 if _ehp is not None and _max:
                     hp = max(0.05, min(1.0, float(_ehp) / float(_max)))
             except Exception:

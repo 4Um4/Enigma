@@ -47,14 +47,14 @@ def resolve_personal_route(
         except Exception:
             records = []
         for rec in records:
-            prop = getattr(rec, "proposition", None)
+            prop = getattr(rec, "proposition", None)  # noqa: ENIGMA002
             if prop is None:
                 continue
             pred = getattr(prop.predicate, "value", prop.predicate)
             if str(pred) != "exits_to":
                 continue
-            subject = getattr(prop, "subject_id", "") or ""
-            obj = getattr(prop, "object_id", "") or ""
+            subject = getattr(prop, "subject_id", "") or ""  # noqa: ENIGMA002
+            obj = getattr(prop, "object_id", "") or ""  # noqa: ENIGMA002
             frm = subject.split(":", 1)[0] if ":" in subject else subject
             if frm and obj:
                 edges.setdefault(frm, []).append(

@@ -186,7 +186,7 @@ class ExperimentRunner:
         _orig_env = settings.environment
         _orig_data_dir = Path(settings.data_dir)
         _model_cfg = settings.available_models.get("qwen_7b")
-        _orig_provider = getattr(_model_cfg, "provider_type", None) if _model_cfg else None
+        _orig_provider = getattr(_model_cfg, "provider_type", None) if _model_cfg else None  # noqa: ENIGMA001, ENIGMA002
 
         # ПУСТОЙ temp-saves = чистый старт: runtime_path не существует →
         # load_npcs_merged возвращает static (штатный путь «новая игра»).
@@ -371,7 +371,7 @@ class ExperimentRunner:
         # битый таймлайн = громкий отказ без побочных эффектов
         # (house-style preset_io).
         self._scenario_player = (
-            ScenarioPlayer(load_scenario(config.scenario_path))
+            ScenarioPlayer(load_scenario(config.scenario_path))  # noqa: ENIGMA001
             if config.scenario_path
             else None
         )
@@ -383,7 +383,7 @@ class ExperimentRunner:
         self._orig_env = settings.environment
         self._orig_data_dir = Path(settings.data_dir)
         self._model_cfg = settings.available_models.get("qwen_7b")
-        self._orig_provider = getattr(self._model_cfg, "provider_type", None) if self._model_cfg else None
+        self._orig_provider = getattr(self._model_cfg, "provider_type", None) if self._model_cfg else None  # noqa: ENIGMA001, ENIGMA002
 
         self._temp_root = Path(tempfile.mkdtemp(prefix="calib_exp_"))
         self._experiment_id = f"calib_{uuid.uuid4().hex[:12]}"
@@ -405,7 +405,7 @@ class ExperimentRunner:
         # action_compiler отсутствует _campaign_id — P2-мост в
         # RelationshipStore (SSOT) мёртв: дельты trust исчезают молча
         # в guard `if self._relationship_store and self._campaign_id`.
-        _mvp_ctrl = getattr(self._active_game_loop, "mvp_controller", None)
+        _mvp_ctrl = getattr(self._active_game_loop, "mvp_controller", None)  # noqa: ENIGMA002
         if _mvp_ctrl is not None:
             _mvp_ctrl.init_campaign(config.campaign_id)
         self._active_tap = ObservabilityTap()
@@ -442,13 +442,13 @@ class ExperimentRunner:
             return {}
         engine = game_loop._get_life_engine()  # noqa: ENIGMA002 — домен-сосед (прецедент step)
         app = game_loop._svc.get_state_applicator(  # noqa: ENIGMA002
-            relationship_store=getattr(game_loop, "_rel_store", None)
+            relationship_store=getattr(game_loop, "_rel_store", None)  # noqa: ENIGMA002
         )
         if app is None:
             raise ExperimentError(
                 "initial social: StateApplicator недоступен (rel_store не забинден)"
             )
-        rel_store = getattr(game_loop, "_rel_store", None)
+        rel_store = getattr(game_loop, "_rel_store", None)  # noqa: ENIGMA002
         applied: Dict[str, Dict[str, Any]] = {}
         for npc_dict in engine.get_npc_states(campaign_id):
             if not isinstance(npc_dict, dict):
@@ -498,7 +498,7 @@ class ExperimentRunner:
                 else []
             )
             tick_result = game_loop.idle_tick(config.campaign_id, interventions=interventions)
-            if self._ticks_executed == 0 and not getattr(
+            if self._ticks_executed == 0 and not getattr(  # noqa: ENIGMA002
                 self, "_initial_social_applied", None
             ):
                 self._initial_social_applied = self._apply_initial_social(
@@ -589,7 +589,7 @@ class ExperimentRunner:
             config=config,
             preset_id=self._active_preset.preset_id,
             scenario_id=(
-                self._scenario_player.scenario.scenario_id
+                self._scenario_player.scenario.scenario_id  # noqa: ENIGMA001
                 if self._scenario_player is not None
                 else None
             ),
@@ -644,7 +644,7 @@ class ExperimentRunner:
         # (диаг-улика: R4A/MOCK-потоки переживали тесты). Полный join
         # требует event-loop; если барьер недостаточен — следующий шаг
         # перенос capture в async-контур.
-        tasks = getattr(game_loop, "_background_tasks", None)
+        tasks = getattr(game_loop, "_background_tasks", None)  # noqa: ENIGMA002
         if tasks:
             for t in list(tasks):
                 try:
@@ -671,7 +671,7 @@ class ExperimentRunner:
         waited = 0.0
         while waited < 2.0:
             prev_count = tap.count
-            tasks = getattr(game_loop, "_background_tasks", None)
+            tasks = getattr(game_loop, "_background_tasks", None)  # noqa: ENIGMA002
             n_tasks = len(tasks) if tasks else 0
             _time.sleep(0.05)
             waited += 0.05

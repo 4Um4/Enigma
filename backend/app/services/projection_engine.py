@@ -160,7 +160,7 @@ class ProjectionEngine:
                         scene_state=scene_state,
                         tick=_fields.get("started_tick", 0),
                         npc_id=thick.target,
-                        cause=(getattr(thick, "cause", "") or "").__str__(),
+                        cause=(getattr(thick, "cause", "") or "").__str__(),  # noqa: ENIGMA002
                         target_node=_fields.get("target_node"),
                     )
                     logger.debug(

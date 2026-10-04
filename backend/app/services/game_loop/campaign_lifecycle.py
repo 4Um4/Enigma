@@ -220,7 +220,7 @@ class CampaignLifecycle:
         # enigma_memory.db не чистился NEW_GAME: убеждения прошлых сессий
         # переживали рестарт и душили драйвы нового мира.
         try:
-            _belief_store = getattr(self._tick_orch, "crystallized_belief_store", None)
+            _belief_store = getattr(self._tick_orch, "crystallized_belief_store", None)  # noqa: ENIGMA002
             if _belief_store is not None:
                 _belief_store.reset_campaign(campaign_id)
                 removed.append("sqlite:crystallized_beliefs")

@@ -226,7 +226,7 @@ class WorldObject:
             _K_CONTAINER_ID: self.container_id,
             _K_SUPPORTED_BY: self.supported_by,
             _K_ATTACHMENT: (
-                [self.attachment[0], self.attachment[1]]
+                [self.attachment[0], self.attachment[1]]  # noqa: ENIGMA001
                 if self.attachment is not None else None
             ),
             _K_OCCUPANCY: self.occupancy,
@@ -253,7 +253,7 @@ class WorldObject:
             container_id=d.get(_K_CONTAINER_ID),
             supported_by=d.get(_K_SUPPORTED_BY),
             attachment=(
-                (_att_raw[0], _att_raw[1])
+                (_att_raw[0], _att_raw[1])  # noqa: ENIGMA001
                 if _att_raw is not None else None
             ),
             occupancy=d.get(_K_OCCUPANCY),

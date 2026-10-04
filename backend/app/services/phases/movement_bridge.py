@@ -121,12 +121,12 @@ def process_movement_intents(
             else:
                 # Гейт ②b: сквозные интенты без target_intent — гейт только
                 # макро-подобные (с target_node_id); микро проходит свободно.
-                _macro_target = getattr(intent, "target_node_id", None)
+                _macro_target = getattr(intent, "target_node_id", None)  # noqa: ENIGMA002
                 if _macro_target and not CommitmentArbiter.enforce_for_intent(
                     ctx.scene_state, intent, ctx.tick_number
                 ):
                     logger.debug(
-                        f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"
+                        f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"  # noqa: ENIGMA002
                     )
                     continue
                 _resolved_intents.append(intent)
@@ -141,7 +141,7 @@ def process_movement_intents(
         me = MovementEngine()
         me.set_spatial_service(_spatial_svc)
         # Phase C: персональные знания для PERSONAL_ROUTE GATE
-        me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
+        me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))  # noqa: ENIGMA002
         spatial_changes = me.process_intents(
             _merged_intents,
             tick=ctx.tick_number,

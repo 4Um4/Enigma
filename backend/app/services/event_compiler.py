@@ -135,8 +135,8 @@ class EventCompiler:
             logger.warning(
                 f"[SHADOW_COMPILER] FAILED: target={change.target} "
                 f"field={change.field} value={change.value} "
-                f"cause={getattr(change, 'cause', '')} "
-                f"target_loc={getattr(change, 'target_location_id', '')} type={change.type.value}"
+                f"cause={getattr(change, 'cause', '')} "  # noqa: ENIGMA002
+                f"target_loc={getattr(change, 'target_location_id', '')} type={change.type.value}"  # noqa: ENIGMA002
             )
 
         return result
@@ -195,7 +195,7 @@ class EventCompiler:
                 f"[SHADOW_COMPILER] traversal_complete cross-chunk: node {target_node_id!r} "
                 f"не в графе svc (loc={snapshot.location_id}) — фиксация факта без геометрии"
             )
-            _xy = getattr(change, "target_local_xy", None) or (0.0, 0.0)
+            _xy = getattr(change, "target_local_xy", None) or (0.0, 0.0)  # noqa: ENIGMA002
             return ThickSceneChange(
                 change_type=change.type.value,
                 target=change.target,
@@ -203,7 +203,7 @@ class EventCompiler:
                 value=change.value,
                 cause=change.cause,
                 tick=change.tick,
-                target_local_xy=getattr(change, "target_local_xy", None),
+                target_local_xy=getattr(change, "target_local_xy", None),  # noqa: ENIGMA002
                 spatial=SpatialResolution(
                     source_location=target_loc,
                     target_location=target_loc,
@@ -335,8 +335,8 @@ class EventCompiler:
         # подмножеств) — собираем минимальную сцену для overlay из
         # легальных полей снапшота (BUG-SPATIAL-029: динамические узлы)
         _ov_scene = {
-            "npc_positions": getattr(snapshot, "npc_positions", {}) or {},
-            "world_objects": getattr(snapshot, "world_objects", {}) or {},
+            "npc_positions": getattr(snapshot, "npc_positions", {}) or {},  # noqa: ENIGMA002
+            "world_objects": getattr(snapshot, "world_objects", {}) or {},  # noqa: ENIGMA002
         }
         svc = SpatialFactory.build_for_campaign(
             campaign_id=snapshot.campaign_id,
@@ -1035,7 +1035,7 @@ class EventCompiler:
         npc_data = snapshot.npc_positions.get(change.target)
         if npc_data:
             _pos = npc_data.get("position", "")
-            return _pos if isinstance(_pos, str) else None
+            return _pos if isinstance(_pos, str) else None  # noqa: ENIGMA001
         return None
 
     @staticmethod

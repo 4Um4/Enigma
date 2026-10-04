@@ -35,7 +35,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
         engine.set_spatial_service(_spatial_svc)
     # Phase D Э-3: персональное знание для frontier-выбора exploration
     # (зеркало set_epistemic_store movement_engine:133 — один store на контур)
-    engine.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
+    engine.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))  # noqa: ENIGMA002
 
     # DRF: Инъекция единой причинной шины в LifeEngine
     engine.set_claim_bus(ctx.drf_bus)
@@ -99,20 +99,20 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
         # (forensic RCB: intent рождён LifeEngine и умирал здесь).
         _activity_actors = {g.actor_id for g in _activity_goals}
         _activity_loc_by_actor = {
-            g.actor_id: str(getattr(g, "location_id", "") or "").split(":")[0]
+            g.actor_id: str(getattr(g, "location_id", "") or "").split(":")[0]  # noqa: ENIGMA002
             for g in _activity_goals
         }
         life_intents = list(_activity_goals) + [
             _i for _i in (life_intents or [])
-            if getattr(_i, "actor_id", "") not in _activity_actors
-            or str(getattr(_i, "location_id", "") or "").split(":")[0]
-            != _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")
+            if getattr(_i, "actor_id", "") not in _activity_actors  # noqa: ENIGMA002
+            or str(getattr(_i, "location_id", "") or "").split(":")[0]  # noqa: ENIGMA002
+            != _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")  # noqa: ENIGMA002
         ]
 
     # [DIAG_D3] временный print-зонд (Часть VIII.5, снять после Э-3):
     # судьба каждого интента borko на входе движка — где молчит потеря
     for _di in life_intents:
-        if getattr(_di, "actor_id", "") == "guard_borko":
+        if getattr(_di, "actor_id", "") == "guard_borko":  # noqa: ENIGMA002
             print(f"[DIAG_D3] tick={ctx.tick_number} INTENT reason={getattr(_di, 'reason', '?')} "
                   f"target={getattr(_di, 'target_node_id', '?')} domain={getattr(_di, 'domain', '?')}",
                   flush=True)
@@ -169,8 +169,8 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             _dropped = 0
             _kept = []
             for _i in life_intents:
-                _aid = getattr(_i, "actor_id", "")
-                _reason = str(getattr(_i, "reason", "") or "")
+                _aid = getattr(_i, "actor_id", "")  # noqa: ENIGMA002
+                _reason = str(getattr(_i, "reason", "") or "")  # noqa: ENIGMA002
                 if (
                     _reason.startswith("schedule")
                     and _intents_by_id.get(_aid) == "observe"
@@ -199,7 +199,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             me = MovementEngine()
             me.set_spatial_service(_spatial_svc)
             # Phase C: персональные знания для PERSONAL_ROUTE GATE
-            me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))
+            me.set_epistemic_store(getattr(orchestrator, "_epistemic_store", None))  # noqa: ENIGMA002
             spatial_changes = me.process_intents(
                 life_intents,
                 tick=ctx.tick_number,

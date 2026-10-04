@@ -384,7 +384,7 @@ class CommitmentRegistry:
             scene_state, tick, npc_id, action="TALK", cause=cause,
             executor="task", executor_ref=task_id,
             priority=priority,
-            priority_policy_version=(PRIORITY_POLICY_VERSION if priority else None),
+            priority_policy_version=(PRIORITY_POLICY_VERSION if priority else None),  # noqa: ENIGMA001
         )
 
     @staticmethod

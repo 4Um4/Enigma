@@ -48,7 +48,7 @@ class ThreatDesiredChangeProducer:
         belief_source: Proposition-подобный объект (predicate.value
         в {ATTACKED, ...}, subject_id = источник угрозы)."""
         try:
-            kernel = getattr(state, "perceptual_kernel", None)
+            kernel = getattr(state, "perceptual_kernel", None)  # noqa: ENIGMA002
             threat = getattr(kernel, "threat_gradient", 0.0) if kernel else 0.0
             if threat < THREAT_GATE:
                 return None  # T1: без причины нет цели (CS1)
@@ -70,21 +70,21 @@ class ThreatDesiredChangeProducer:
                 _pred = getattr(belief_source.predicate, "value",
                                 str(belief_source.predicate))
                 if str(_pred).upper() in ("ATTACKED", "OPPOSES"):
-                    target_id = getattr(belief_source, "subject_id", None)
+                    target_id = getattr(belief_source, "subject_id", None)  # noqa: ENIGMA002
 
             if not target_id:
                 return None  # T2: причина без «кого менять» не цель
 
             # ── Оценка способов из существующих машин (CS4) ──
-            drives: Dict[str, float] = getattr(state, "drives", {}) or {}
+            drives: Dict[str, float] = getattr(state, "drives", {}) or {}  # noqa: ENIGMA002
             fear_d = float(drives.get("fear", 0.25))
             control_d = float(drives.get("control", 0.25))
             signif_d = float(drives.get("significance", 0.25))
 
             hp = 1.0
             try:
-                _ehp = getattr(state, "effective_hp", None)
-                _max = getattr(state, "effective_max_hp", None)
+                _ehp = getattr(state, "effective_hp", None)  # noqa: ENIGMA002
+                _max = getattr(state, "effective_max_hp", None)  # noqa: ENIGMA002
                 if _ehp is not None and _max:
                     hp = max(0.05, min(1.0, float(_ehp) / float(_max)))
             except Exception:
@@ -119,7 +119,7 @@ class ThreatDesiredChangeProducer:
                 fear_d * (1.0 - 0.6 * body_factor) * (1.0 - 0.7 * allies_factor), 4
             )
 
-            return stop_hostile(who=getattr(state, "npc_id", ""), target=target_id,
+            return stop_hostile(who=getattr(state, "npc_id", ""), target=target_id,  # noqa: ENIGMA002
                                 method_weights=w)
         except Exception as _e:
             logger.warning(f"[CAUSAL_SLICE_THREAT] resolve failed: {_e}")

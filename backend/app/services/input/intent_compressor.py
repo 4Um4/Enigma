@@ -333,7 +333,7 @@ def _extract_np_after_preposition(text: str) -> str | None:
             tail = lowered[idx + len(prep):].strip()
             tail = tail.rstrip("?!.,;:").strip()
             tokens = tail.split()[:3]
-            return " ".join(tokens) if tokens else None
+            return " ".join(tokens) if tokens else None  # noqa: ENIGMA001
     return None
 
 
@@ -505,8 +505,8 @@ class IntentCompressor:
             if (
                 fast.action is ActionType.DIALOGUE
                 and not fast.semantic_acts
-                and getattr(fast, "speech_act", None) is not None
-                and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"
+                and getattr(fast, "speech_act", None) is not None  # noqa: ENIGMA002
+                and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"  # noqa: ENIGMA002
             ):
                 return True
             return False
@@ -648,7 +648,7 @@ class IntentCompressor:
             not field.semantic_acts
             and _sentences > 1
             and llm is None
-            and field.raw_text != getattr(self, "_last_recovery_raw", None)
+            and field.raw_text != getattr(self, "_last_recovery_raw", None)  # noqa: ENIGMA002
         ):
             # Одноразовый повтор: recovery запросил LLM-разбор для фразы,
             # которую fast закрыл единственным якорем (случай C вердикта).
@@ -677,9 +677,9 @@ class IntentCompressor:
         # fallback для fast-incomplete пути. Без гейта на llm: в slow-only
         # пути llm=None, а данные уже в field (прогон «Ты слуга?»).
         if not _u.get("semantic_acts") and not field.semantic_acts:
-            _sa_raw = getattr(field, "speech_act", None)
+            _sa_raw = getattr(field, "speech_act", None)  # noqa: ENIGMA002
             _sa = str(getattr(_sa_raw, "value", _sa_raw) or "").lower()  # enum → value
-            _ro = str(getattr(field, "requested_outcome", None) or "").lower()
+            _ro = str(getattr(field, "requested_outcome", None) or "").lower()  # noqa: ENIGMA002
             if not _sa and llm:
                 _sa = str(llm.get("speech_act") or "").lower()
             if not _ro and llm:
@@ -960,10 +960,10 @@ class IntentCompressor:
                 )
 
             _speech_act_val = llm_response.get("speech_act")
-            _speech_act = _safe_enum(SpeechAct, _speech_act_val) if _speech_act_val else None
+            _speech_act = _safe_enum(SpeechAct, _speech_act_val) if _speech_act_val else None  # noqa: ENIGMA001
 
             _social_intent_val = llm_response.get("social_intent")
-            _social_intent = _safe_enum(SocialIntent, _social_intent_val, SocialIntent.NEUTRAL) if _social_intent_val else None
+            _social_intent = _safe_enum(SocialIntent, _social_intent_val, SocialIntent.NEUTRAL) if _social_intent_val else None  # noqa: ENIGMA001
 
             _action_val = llm_response.get("action", llm_response.get("action_type", ActionType.UNCERTAIN))
             _action = _safe_enum(ActionType, _action_val, ActionType.UNCERTAIN)
@@ -972,7 +972,7 @@ class IntentCompressor:
             _target_zone = _safe_enum(TargetZone, _tz_val, TargetZone.UNDEFINED)
             # zone_raw: сырая зона ДО нормализации — латеральность не гибнет
             # Доктрина §7: UNDEFINED = «зоны нет» → None (≠ сырая латеральность)
-            _zone_raw = str(_tz_val).upper() if _tz_val and str(_tz_val).upper() != "UNDEFINED" else None
+            _zone_raw = str(_tz_val).upper() if _tz_val and str(_tz_val).upper() != "UNDEFINED" else None  # noqa: ENIGMA001
 
             return IntentSemanticField(
                 action=_action or ActionType.UNCERTAIN,
@@ -987,7 +987,7 @@ class IntentCompressor:
                 offered_outcome=llm_response.get("offered_outcome"),
                 condition=llm_response.get("condition"),
                 conversation_continuation=llm_response.get("conversation_continuation"),
-                dialogue_thread=dialogue_session.thread_id if dialogue_session else None,
+                dialogue_thread=dialogue_session.thread_id if dialogue_session else None,  # noqa: ENIGMA001
                 target_zone=_target_zone or TargetZone.UNDEFINED,
                 zone_raw=_zone_raw,
                 physical_force=float(llm_response.get("physical_force") or 0.5),

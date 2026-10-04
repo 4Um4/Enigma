@@ -47,7 +47,7 @@ def validate_all_schemas(game_loop: Any = None) -> None:
                 from app.services.events.event_bus import get_event_bus
                 from app.services.events.event_types import EventType
                 _bus = get_event_bus()
-                subs = getattr(_bus, "_subscribers", {}).get(EventType.TICK_COMPLETED, [])
+                subs = getattr(_bus, "_subscribers", {}).get(EventType.TICK_COMPLETED, [])  # noqa: ENIGMA002
                 if len(subs) == 0:
                     errors.append("No subscribers for TICK_COMPLETED — M-03/N2 regression")
             except Exception as e:

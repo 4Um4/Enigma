@@ -670,7 +670,7 @@ async def get_known_names(campaign_id: str, request: Request) -> dict:
     if not campaign_id or "/" in campaign_id or "\\" in campaign_id or ".." in campaign_id:
         raise HTTPException(status_code=400, detail="Invalid campaign_id")
     _game_loop = get_game_loop(request)
-    _svc = getattr(_game_loop, "avatar_service", None)
+    _svc = getattr(_game_loop, "avatar_service", None)  # noqa: ENIGMA002
     if _svc is None:
         raise HTTPException(status_code=503, detail="avatar_service недоступен")
     return {"names": _svc._name_knowledge.get(campaign_id, {})}
@@ -747,7 +747,7 @@ def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any
     identity traits, отношения к игроку, JSON-ветка (beliefs/affect/кэш),
     статус персистентности (расхождение веток).
     """
-    _mm = getattr(game_loop, "memory_manager", None)
+    _mm = getattr(game_loop, "memory_manager", None)  # noqa: ENIGMA002
     if _mm is None:
         return {"xray_error": "memory_manager недоступен"}
 
@@ -790,7 +790,7 @@ def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any
 
     # — Отношения к игроку (Vacuum: нет записи = пустой dict) —
     _rel = _mm._relationships.get_pair(campaign_id, npc_id, "player")
-    xray["relationship_to_player"] = _rel if _rel else None
+    xray["relationship_to_player"] = _rel if _rel else None  # noqa: ENIGMA001
 
     # — JSON-ветка (npc_runtime.json — канонический путь tick_utils) —
     _json_state: Dict[str, Any] = {}
@@ -1076,7 +1076,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
             _player_ws = (_npc_pos_dict or {}).get("player") or {}
             _fact_loc = _player_ws.get("location_id") if isinstance(
                 _player_ws, dict
-            ) else getattr(_player_ws, "location_id", None)
+            ) else getattr(_player_ws, "location_id", None)  # noqa: ENIGMA002
             if _fact_loc:
                 _cs_action = campaign_service.get_campaign_state(campaign_id)
                 if _cs_action is not None:
@@ -1261,7 +1261,7 @@ def add_interface_fact(campaign_id: str, request: dict) -> dict:
         category=request.get("category", "lore"),
         tags=request.get("tags", []),
     )
-    return {"status": "ok", "fact": fact.model_dump() if fact else None}
+    return {"status": "ok", "fact": fact.model_dump() if fact else None}  # noqa: ENIGMA001
 
 
 @router.get("/interface/sessions/{campaign_id}")

@@ -45,7 +45,7 @@ class PlayerSpeechActSubscriber:
             acts = payload.get("semantic_acts") or []
             if not acts:
                 return
-            event_id = str(getattr(event, "id", "") or "")
+            event_id = str(getattr(event, "id", "") or "")  # noqa: ENIGMA002
             campaign_id = self._get_campaign_id()
             tick = int(self._get_tick())
 
@@ -72,7 +72,7 @@ class PlayerSpeechActSubscriber:
                 # Идемпотентность: дубль event_id → 1 claim (Q5-прецедент).
                 if event_id and any(
                     c.event_id == event_id
-                    for c in getattr(session, "claims", [])
+                    for c in getattr(session, "claims", [])  # noqa: ENIGMA002
                 ):
                     logger.debug(f"[SPEECH_ACT] дубль event_id={event_id[:8]} — skip")
                     continue

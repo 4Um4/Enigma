@@ -218,13 +218,13 @@ class MovementEngine:
                     if (
                         isinstance(_trav, dict)
                         and _trav.get("status") == "MOVING"
-                        and "interrupt" not in getattr(_it, "reason", "")
-                        and "+relocation" not in getattr(_it, "reason", "")
+                        and "interrupt" not in getattr(_it, "reason", "")  # noqa: ENIGMA002
+                        and "+relocation" not in getattr(_it, "reason", "")  # noqa: ENIGMA002
                     ):
                         logger.debug(
                             f"[GATE_B1_5] npc={_it.actor_id} traversal MOVING "
                             f"(target={_trav.get('target_node')}) — intent "
-                            f"'{getattr(_it, 'reason', '')}' отклонён (no-interrupt)"
+                            f"'{getattr(_it, 'reason', '')}' отклонён (no-interrupt)"  # noqa: ENIGMA002
                         )
                         continue
                     # S273 (Phase-C-DEBT, relocation-supersede): relocation при
@@ -239,7 +239,7 @@ class MovementEngine:
                     if (
                         isinstance(_trav, dict)
                         and _trav.get("status") == "MOVING"
-                        and "+relocation" in getattr(_it, "reason", "")
+                        and "+relocation" in getattr(_it, "reason", "")  # noqa: ENIGMA002
                     ):
                         if TRAVERSAL_OWNERSHIP_ENFORCEMENT:
                             from app.domain.action_commitment import (
@@ -483,8 +483,8 @@ class MovementEngine:
 
                                 # MOVEMENT-V2 (I-MV2): semantic destination — из
                                 # final_*; fallback на legacy original_target.
-                                _fin_loc = getattr(intent, "final_location_id", "") or ""
-                                _fin_node = getattr(intent, "final_node_id", "") or ""
+                                _fin_loc = getattr(intent, "final_location_id", "") or ""  # noqa: ENIGMA002
+                                _fin_node = getattr(intent, "final_node_id", "") or ""  # noqa: ENIGMA002
                                 if _fin_loc and _fin_node:
                                     _original_target = f"{_fin_loc}:{_fin_node}"
                                 else:
@@ -569,7 +569,7 @@ class MovementEngine:
                             # резолвился cross-loc). Waypoint-перезаписи далее
                             # не трогают final_*.
                             if (
-                                not getattr(intent, "final_location_id", "")
+                                not getattr(intent, "final_location_id", "")  # noqa: ENIGMA002
                                 and hasattr(intent, "original_target_node_id")
                             ):
                                 _orig = intent.original_target_node_id

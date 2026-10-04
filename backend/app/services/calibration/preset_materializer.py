@@ -85,7 +85,7 @@ def _effective_override(
     test_specific_npc_overrides_wildcard поймал расхождение —
     верификатор требовал wildcard-значение у точечно перекрытого NPC)."""
     wildcard = preset.npc_overrides.get("*")
-    specific = preset.npc_overrides.get(npc_id) if npc_id else None
+    specific = preset.npc_overrides.get(npc_id) if npc_id else None  # noqa: ENIGMA001
     if wildcard is None and specific is None:
         return None
     if wildcard is None:

@@ -46,9 +46,9 @@ def ensure_conclusion_layer(orchestrator: Any) -> None:
 
     # Стор, восстановленный из персистенции (build_game_loop), НЕ
     # перезаписываем — до-создаются только гейт и подписка.
-    if getattr(orchestrator, "_conclusion_store", None) is None:
+    if getattr(orchestrator, "_conclusion_store", None) is None:  # noqa: ENIGMA002
         orchestrator._conclusion_store = ConclusionStore()
-    if getattr(orchestrator, "_conclusion_gate", None) is None:
+    if getattr(orchestrator, "_conclusion_gate", None) is None:  # noqa: ENIGMA002
         orchestrator._conclusion_gate = ConclusionGate()
     # Подписка однократна: повторные ensure (init + каждый тик) не
     # плодят подписчиков (флаг-гвард).
@@ -58,7 +58,7 @@ def ensure_conclusion_layer(orchestrator: Any) -> None:
     bus = orchestrator._get_event_bus()
 
     def _on_experience_delta(event: Any) -> None:
-        if getattr(event, "type", None) == EventType.EXPERIENCE_DELTA_COMMITTED.value:
+        if getattr(event, "type", None) == EventType.EXPERIENCE_DELTA_COMMITTED.value:  # noqa: ENIGMA002
             orchestrator._conclusion_collector.append(event)
 
     bus.subscribe(EventType.EXPERIENCE_DELTA_COMMITTED, _on_experience_delta)
@@ -75,11 +75,11 @@ def run_conclusion_formation_guarded(ctx: Any, orchestrator: Any) -> None:
     """
     if not bc1_enabled():
         return
-    collector = getattr(orchestrator, "_conclusion_collector", None) or []
+    collector = getattr(orchestrator, "_conclusion_collector", None) or []  # noqa: ENIGMA002
     try:
         ensure_conclusion_layer(orchestrator)
-        store = getattr(orchestrator, "_conclusion_store", None)
-        gate = getattr(orchestrator, "_conclusion_gate", None)
+        store = getattr(orchestrator, "_conclusion_store", None)  # noqa: ENIGMA002
+        gate = getattr(orchestrator, "_conclusion_gate", None)  # noqa: ENIGMA002
         if store is None or gate is None:
             return
         if not collector:

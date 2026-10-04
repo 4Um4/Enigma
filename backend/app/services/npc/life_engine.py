@@ -693,7 +693,7 @@ class LifeEngine:
             # exploration). S139.3-дуэль иначе съедает exploration каждый тик:
             # relocation-победитель заведомо умирает в UNKNOWN-гейте.
             _unknown_sig = (
-                _ss_entry.get("_unknown_route", None)
+                _ss_entry.get("_unknown_route", None)  # noqa: ENIGMA001
                 if isinstance(_ss_entry, dict) else None
             )
             _exploration_intent = None
@@ -705,7 +705,7 @@ class LifeEngine:
                     (_ss_entry.get("location_id") if isinstance(_ss_entry, dict) else "")
                     or scene_state.get("location_id", "")
                 )
-                _lp = _ss_entry.get("local_position") if isinstance(_ss_entry, dict) else None
+                _lp = _ss_entry.get("local_position") if isinstance(_ss_entry, dict) else None  # noqa: ENIGMA001
                 _nx = float(_lp.get("x", 0.0)) if isinstance(_lp, dict) else 0.0
                 _ny = float(_lp.get("y", 0.0)) if isinstance(_lp, dict) else 0.0
                 # D-2 (вердикт): сервис по ФАКТИЧЕСКОЙ локации записи, не
@@ -714,7 +714,7 @@ class LifeEngine:
                 # резолва — movement_engine:617-621. Пересборка только при
                 # живом сигнале — редкий путь, кэш не заводим (стейл-риск).
                 _loc_svc = self._spatial_service
-                if _cur_loc and getattr(_loc_svc, "_location_id", "") != _cur_loc:
+                if _cur_loc and getattr(_loc_svc, "_location_id", "") != _cur_loc:  # noqa: ENIGMA002
                     from app.services.spatial.spatial_factory import SpatialFactory
                     _loc_svc = SpatialFactory.build_for_campaign(
                         campaign_id, _cur_loc, scene_state
@@ -761,18 +761,18 @@ class LifeEngine:
                         # БЕЗ WorldGraph. KNOWN → stale: не подавлять + clear
                         # (гейт сам пройдёт KNOWN-путь). UNKNOWN → как было.
                         _recon_known = False
-                        _ep_recon = getattr(self, "_epistemic_store", None)
+                        _ep_recon = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
                         if _ep_recon is not None:
                             try:
                                 for _r in (_ep_recon.get_all_for_agent(npc_id) or []):
-                                    _p = getattr(_r, "proposition", None)
+                                    _p = getattr(_r, "proposition", None)  # noqa: ENIGMA002
                                     if _p is None:
                                         continue
-                                    if str(getattr(_p.predicate, "value", "")) != "exits_to":
+                                    if str(getattr(_p.predicate, "value", "")) != "exits_to":  # noqa: ENIGMA002
                                         continue
-                                    _subj = str(getattr(_p, "subject_id", "") or "")
+                                    _subj = str(getattr(_p, "subject_id", "") or "")  # noqa: ENIGMA002
                                     if (_subj.split(":", 1)[0] == _unknown_sig.get("from", "")
-                                            and str(getattr(_p, "object_id", "")) == _unknown_sig.get("to")):
+                                            and str(getattr(_p, "object_id", "")) == _unknown_sig.get("to")):  # noqa: ENIGMA002
                                         _recon_known = True
                                         break
                             except Exception:
@@ -789,8 +789,8 @@ class LifeEngine:
                             _kept = [
                                 _i for _i in intents
                                 if not (
-                                    "+relocation" in getattr(_i, "reason", "")
-                                    and getattr(_i, "location_id", "") == _unknown_sig.get("to")
+                                    "+relocation" in getattr(_i, "reason", "")  # noqa: ENIGMA002
+                                    and getattr(_i, "location_id", "") == _unknown_sig.get("to")  # noqa: ENIGMA002
                                 )
                             ]
                             _sup = len(intents) - len(_kept)
@@ -2216,7 +2216,7 @@ class LifeEngine:
         # spatial-путь — с префиксом; см. нормализацию need-driven) —
         # сравнение по каноническому хвосту корректно для обоих.
         _bed_ref = (
-            self._spatial_service.resolve_affordance(
+            self._spatial_service.resolve_affordance(  # noqa: ENIGMA001
                 affordance_type="sleep",
                 origin_xy=(
                     npc.get("local_position", {}).get("x", 0.0),

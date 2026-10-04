@@ -271,13 +271,13 @@ class CommitmentArbiter:
 
         _result = CommitmentArbiter.arbitrate(
             scene_state,
-            getattr(intent, "actor_id", ""),
-            getattr(intent, "target_node_id", None),
-            getattr(intent, "reason", ""),
+            getattr(intent, "actor_id", ""),  # noqa: ENIGMA002
+            getattr(intent, "target_node_id", None),  # noqa: ENIGMA002
+            getattr(intent, "reason", ""),  # noqa: ENIGMA002
             tick,
             candidate_priority=resolve_candidate_priority(
-                intent_type=getattr(intent, "intent_type", "") or "",
-                intent_domain=getattr(intent, "domain", None),
+                intent_type=getattr(intent, "intent_type", "") or "",  # noqa: ENIGMA002
+                intent_domain=getattr(intent, "domain", None),  # noqa: ENIGMA002
             ),
         )
         if _result.verdict == VERDICT_INTERRUPT:
@@ -288,7 +288,7 @@ class CommitmentArbiter:
             # этим тиком — инкумбент уйдёт sweep'ом/суперсессией.
             return interrupt_traversal(
                 scene_state,
-                getattr(intent, "actor_id", ""),
+                getattr(intent, "actor_id", ""),  # noqa: ENIGMA002
                 INTERRUPT_PRIORITY_SUPERSEDE,
                 tick,
             )

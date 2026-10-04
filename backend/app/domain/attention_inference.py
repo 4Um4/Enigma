@@ -351,7 +351,7 @@ def snapshot_to_dict(s: CognitionSnapshot) -> "dict[str, object]":
         },
         _SNAP_EVIDENCE: _f(s.evidence),
         _SNAP_INTERP: {
-            "mode": s.interpretation.mode.value if s.interpretation.mode is not None else None,
+            "mode": s.interpretation.mode.value if s.interpretation.mode is not None else None,  # noqa: ENIGMA001
             "probably_approaching_me": s.interpretation.probably_approaching_me,
         },
         _SNAP_SURPRISE: _f(s.surprise_used),

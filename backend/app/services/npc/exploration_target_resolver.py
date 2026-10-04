@@ -35,7 +35,7 @@ def resolve_exploration_target(
         return None
     try:
         bmap: Dict[str, Dict[str, Any]] = dict(
-            getattr(spatial_service, "boundary_map", {}) or {}
+            getattr(spatial_service, "boundary_map", {}) or {}  # noqa: ENIGMA002
         )
     except Exception:
         bmap = {}
@@ -51,13 +51,13 @@ def resolve_exploration_target(
         except Exception:
             records = []
         for rec in records:
-            prop = getattr(rec, "proposition", None)
+            prop = getattr(rec, "proposition", None)  # noqa: ENIGMA002
             if prop is None:
                 continue
             pred = getattr(prop.predicate, "value", prop.predicate)
             if str(pred) != "exits_to":
                 continue
-            subject = getattr(prop, "subject_id", "") or ""
+            subject = getattr(prop, "subject_id", "") or ""  # noqa: ENIGMA002
             if subject.split(":", 1)[0] == current_loc:
                 traversed.add(subject)
 

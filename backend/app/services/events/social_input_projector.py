@@ -75,7 +75,7 @@ class SocialInputProjector:
                 # S259: фактический контракт NPC_SPOKE — спикер в EventDTO.source,
                 # payload его не несёт (runtime-факт S2-PAYLOAD). Fallback не меняет
                 # поведение там, где payload-ключи есть (multiple representations).
-                or getattr(event, "source", None)
+                or getattr(event, "source", None)  # noqa: ENIGMA002
             )
             _tgt = payload.get("target_id")
 

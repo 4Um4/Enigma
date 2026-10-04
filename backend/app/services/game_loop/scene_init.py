@@ -266,8 +266,8 @@ def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state:
     Порядок ратифицирован: load scene → migrate → atomic persist → mount."""
     from app.services.social.relationship_state_store import RelationshipStateStore
 
-    _mm = getattr(loop, "memory_manager", None)
-    _rel = getattr(_mm, "_relationships", None) if _mm else None
+    _mm = getattr(loop, "memory_manager", None)  # noqa: ENIGMA002
+    _rel = getattr(_mm, "_relationships", None) if _mm else None  # noqa: ENIGMA001, ENIGMA002
     if _rel is None or not hasattr(_rel, "bind"):
         return  # легаси-инстанс (не v2) — миграция не применима, M1b.1-режим
     try:
@@ -280,10 +280,10 @@ def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state:
     # provider-источник: сцена этого тика (обновляется при каждой смене
     # локации; ЖИВОЙ sync-тракт — S322: НЕ vestigial, удаление = потеря
     # проекции отношений при save; тест-enforced location_change)
-    if _mm is not None and isinstance(getattr(_mm, "_v2_scene_ref", None), dict):
+    if _mm is not None and isinstance(getattr(_mm, "_v2_scene_ref", None), dict):  # noqa: ENIGMA002
         _mm._v2_scene_ref["scene"] = scene_state
     # Однократный transform (идемпотентен; маркер — отдельно, после коммита)
-    _saves_dir = str(getattr(loop, "_saves_dir", ""))
+    _saves_dir = str(getattr(loop, "_saves_dir", ""))  # noqa: ENIGMA002
     if _saves_dir:
         try:
             _report = RelationshipStateStore.migrate_legacy_relationships(
@@ -377,7 +377,7 @@ def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
 
     try:
         _cs = get_campaign_state_service().get_campaign_state(campaign_id)
-        _player_loc = _cs.metadata.get("current_location") if _cs else None
+        _player_loc = _cs.metadata.get("current_location") if _cs else None  # noqa: ENIGMA001
         if _player_loc:
             return str(_player_loc)
     except Exception as e:

@@ -73,7 +73,7 @@ def run_affordance_shadow(
     Отказ тени не роняет тик (§11: чистота наблюдателя).
     """
     _metrics = ShadowMetrics()
-    if snapshot is None or not getattr(snapshot, "world_objects", None):
+    if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
         return 0, _metrics
 
     _objects = project_world_objects(

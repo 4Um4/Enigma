@@ -43,7 +43,7 @@ class DialogueMemorySubscriber:
             # Приоритет: payload.npc_id → source; финальный фолбэк — имя
             # (резолвится звеном 2 ниже). Иначе реплики NPC не становились
             # ничьей памятью (0 строк npc_spoke в живой БД).
-            speaker = payload.get("npc_id") or getattr(event, "source", "")
+            speaker = payload.get("npc_id") or getattr(event, "source", "")  # noqa: ENIGMA002
             listener = payload.get("target_id", "player")
 
             affected_npcs = {speaker, listener}

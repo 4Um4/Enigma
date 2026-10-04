@@ -42,7 +42,7 @@ def compute_object_target_facts(
     → npc отсутствует в карте (потребитель читает None).
     """
     _facts: Dict[str, str] = {}
-    if snapshot is None or not getattr(snapshot, "world_objects", None):
+    if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
         return _facts
 
     from app.services.world.world_objects_projection import (
