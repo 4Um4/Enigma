@@ -12,6 +12,8 @@ import logging
 from collections import defaultdict
 from typing import Any
 
+from app.models.state_delta import DeltaDomain
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,7 +53,26 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
     if ctx.delta_buffer:
         from app.services.tick_utils import aggregate_deltas
 
-        _aggregated = aggregate_deltas(ctx.delta_buffer)
+        # ADR-O-418 (RE M2/D): сплит ДО DRSL-агрегации. RELATIONSHIP-дельты
+        # живут в scene_state (RelationshipStateStore, ADR-O-370), а не в
+        # all_npcs_raw; aggregate_deltas их алгебру не знает — молчаливое
+        # игнорирование неизвестного домена = L4-опасность. Носитель
+        # scene_state: player-path → shared_context.scene_state (None-gate
+        # выше по функции), idle-path → ctx.scene_state.
+        _re_deltas = [
+            d for d in ctx.delta_buffer if d.domain == DeltaDomain.RELATIONSHIP
+        ]
+        if _re_deltas and orchestrator._state_applicator:
+            _re_scene = (
+                ctx.shared_context.scene_state if is_player_turn else ctx.scene_state
+            )
+            orchestrator._state_applicator.apply_relationship_deltas(
+                _re_deltas, _re_scene
+            )
+        _rest = [
+            d for d in ctx.delta_buffer if d.domain != DeltaDomain.RELATIONSHIP
+        ]
+        _aggregated = aggregate_deltas(_rest)
         if _aggregated and orchestrator._state_applicator:
             orchestrator._state_applicator.apply_batch(
                 _aggregated, ctx.all_npcs_raw, ctx.campaign_id

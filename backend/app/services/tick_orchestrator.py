@@ -133,6 +133,17 @@ class TickOrchestrator:
         )
         self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
         self._combat_sub: CombatSubscriber = CombatSubscriber(self._get_event_bus())
+        # ADR-O-418 (RE M2/D, dormant): Phase8Handler событийной семантики RE.
+        # Флаг OFF (default) → подписки нет, drain пуст, тик байтово идентичен
+        # (паттерн INV-BC1-NOOP). Инстанцирование в __init__ — подписка обязана
+        # существовать ДО первых событий тика (урок ensure_conclusion_layer).
+        from app.services.events.relationship_event_semantics import (
+            RelationshipEventSemantics,
+        )
+
+        self._relationship_events_sub: RelationshipEventSemantics = (
+            RelationshipEventSemantics(self._get_event_bus())
+        )
         # BC-1/ADR-O-381 (dormant): коллектор нового опыта тика — события
         # EXPERIENCE_DELTA_COMMITTED (эмиттеры: reaction S115-точки).
         # Читается+очищается wrapper'ом Фазы 9; флаг OFF = пустой список
@@ -764,14 +775,14 @@ class TickOrchestrator:
             # сосед epistemic_records). Стор/гейт/коллектор НЕ созданы при
             # OFF → hasattr-guard держит тишину (INV-BC1-NOOP).
             if (
-                getattr(self, "_conclusion_store", None) is not None
+                getattr(self, "_conclusion_store", None) is not None  # noqa: ENIGMA002
             ):
                 ctx.scene_state["conclusions"] = self._conclusion_store.to_dict()
 
             # PR-6b (S268): терминальная материализация overlay → dict.
             # Один акт (атомарность транспорта): после этой строки все
             # читатели (:752+) и Фаза 10 (SSM deepcopy) видят плоский dict.
-            if getattr(ctx, "scene_overlay", None) is not None:
+            if getattr(ctx, "scene_overlay", None) is not None:  # noqa: ENIGMA002
                 ctx.scene_state = ctx.scene_overlay.commit()
             final_snapshot = ctx.scene_state
 
@@ -853,7 +864,7 @@ class TickOrchestrator:
                 # SPATIAL-KNOWLEDGE-01 P4: DIRECT_EXPERIENCE — вошедший NPC
                 # сам узнал, через какой выход пришёл. Self-authored запись:
                 # не телепатия, не мировой факт — личный опыт с provenance.
-                _ep_store = getattr(self, "_epistemic_store", None)
+                _ep_store = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
 
                 if _ep_store is not None:
                     from app.domain.epistemology import (
@@ -920,7 +931,7 @@ class TickOrchestrator:
             and not (
                 (n.get("npc_id") or n.get("id")) == "player"
                 and _current_loc != ctx.active_location_id
-                and getattr(ctx, "active_location_id", None)
+                and getattr(ctx, "active_location_id", None)  # noqa: ENIGMA002
             )
         ]
         if hasattr(ctx, "npc_states") and ctx.npc_states:
@@ -1144,7 +1155,7 @@ class TickOrchestrator:
                         # INJECT-точка ненадёжна: два конкурирующих канала
                         # материализации (relocation-intent / dwell) — via
                         # теряется в гонке (зонд DIAG_SK1, сессия 20:13).
-                        _ep_store = getattr(self, "_epistemic_store", None)
+                        _ep_store = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
 
                         if _ep_store is not None:
                             from app.domain.epistemology import (
@@ -1450,7 +1461,7 @@ class TickOrchestrator:
                                 if not _npc_state:
                                     continue
                                 _pl = delta.payload
-                                _rdd = getattr(_pl, "recent_directive_data", None)
+                                _rdd = getattr(_pl, "recent_directive_data", None)  # noqa: ENIGMA002
                                 if _rdd:
                                     _npc_state.setdefault("perceptual_kernel", {})[
                                         "recent_directive"
@@ -1549,8 +1560,8 @@ class TickOrchestrator:
         # InterventionEvent.payload; ядро текст не парсит (L4.1).
         # action_id детерминирован (идемпотентность компилятора, replay).
         if _sem_action.upper() in ("HELP", "BLACKMAIL", "ACCUSE"):
-            _mvp_ctrl = getattr(ctx, "mvp_controller", None)
-            _compiler = getattr(_mvp_ctrl, "action_compiler", None)
+            _mvp_ctrl = getattr(ctx, "mvp_controller", None)  # noqa: ENIGMA002
+            _compiler = getattr(_mvp_ctrl, "action_compiler", None)  # noqa: ENIGMA002
             if _compiler is not None:
                 from app.models.player_action import ActionType, PlayerAction
 
@@ -1595,11 +1606,11 @@ class TickOrchestrator:
             # WV/вердикт: попытка ≠ событие. Отклонённая действием проверка мира
             # (action_rejected) не издаёт PLAYER_ATTACKED — свидетели не получают
             # вер о несостоявшемся ударе; DM сообщает отказ (physics_validation).
-            if getattr(getattr(ctx, "shared_context", None), "action_rejected", False):
+            if getattr(getattr(ctx, "shared_context", None), "action_rejected", False):  # noqa: ENIGMA002
                 # WV/вердикт: попытка ≠ событие. Публикация подавлена целиком.
                 logger.info(
                     f"[WV] PLAYER_ATTACKED suppressed (action_rejected: "
-                    f"{getattr(ctx.shared_context, 'rejection_reason', '')})"
+                    f"{getattr(ctx.shared_context, 'rejection_reason', '')})"  # noqa: ENIGMA002
                 )
             else:
                 # Локальные импорты восстановлены (рефакторинг-регресс: при
@@ -1694,7 +1705,7 @@ class TickOrchestrator:
                                         + _cb,
                                     ),
                                 )
-                            _rdd = getattr(_pl, "recent_directive_data", None)
+                            _rdd = getattr(_pl, "recent_directive_data", None)  # noqa: ENIGMA002
                             if _rdd:
                                 _npc_state.setdefault("perceptual_kernel", {})[
                                     "recent_directive"
@@ -2345,9 +2356,9 @@ class TickOrchestrator:
         # §12.1. Порог/предикат/защищённый список — у читателя, не изменены.
         _KEY_NPC_INTENTS = "npc_intents"
         _intent_map = ctx.scene_state.setdefault(_KEY_NPC_INTENTS, {})
-        for _d in (getattr(ctx.tick_mutation, "npc_deltas", None) or []):
-            _d_intent = getattr(_d, "intent", None)
-            _d_npc = getattr(_d, "npc_id", None)
+        for _d in (getattr(ctx.tick_mutation, "npc_deltas", None) or []):  # noqa: ENIGMA002
+            _d_intent = getattr(_d, "intent", None)  # noqa: ENIGMA002
+            _d_npc = getattr(_d, "npc_id", None)  # noqa: ENIGMA002
             if _d_intent is None or not _d_npc:
                 continue
             _intent_map[_d_npc] = str(getattr(_d_intent, "value", _d_intent)).lower()
@@ -2473,6 +2484,7 @@ class TickOrchestrator:
             combat_sub=self._combat_sub,
             reaction_sub=self._reaction_sub,
             social_sub=self._social_sub,
+            relationship_sub=self._relationship_events_sub,
             homeostasis_sub=cast("Phase8Handler", self._homeostasis_sub),
             social_input_proj=self._social_input_proj,
             dynamic_field=self._dynamic_field,

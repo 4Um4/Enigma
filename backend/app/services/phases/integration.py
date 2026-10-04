@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.dto import _TickContext
 
 logger = logging.getLogger(__name__)
@@ -42,9 +43,36 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     if ctx.interpretation_snapshot is None:
         ctx.interpretation_snapshot = copy.deepcopy(ctx.all_npcs_raw)
         if ctx.delta_buffer and deps.state_applicator:
+            # ADR-O-418 (RE M2/D): сплит ДО DRSL-агрегации. RELATIONSHIP-дельты
+            # живут в scene_state (RelationshipStateStore, ADR-O-370), а не в
+            # all_npcs_raw; aggregate_deltas их payload не переносит при merge
+            # (суммирует только v1-скаляры) — молчаливая потеря. Носитель
+            # scene_state: player-path → shared_context.scene_state, idle →
+            # ctx.scene_state (симметрично commit_phase-сплиту — defense-in-depth
+            # для LOD-пути, где flush уходит в Фазу 10 мимо Фазы 9).
+            _re_deltas = [
+                d for d in ctx.delta_buffer if d.domain == DeltaDomain.RELATIONSHIP
+            ]
+            if _re_deltas:
+                # Носитель = по правилу коммита (commit_phase): player-path →
+                # shared_context.scene_state, idle → ctx.scene_state. Приоритет
+                # shared_context без is_player_turn писал в регидрированную
+                # копию, которую Фаза 10 не коммитит (SPY 147: written id ≠
+                # tick_scenes id, needs не доехали до persistence). getattr-
+                # семантика повторяет вызов Фазы 10 (tick_orchestrator:2584).
+                _re_scene = (
+                    ctx.shared_context.scene_state
+                    if getattr(ctx, "is_player_turn", False)
+                    and ctx.shared_context is not None
+                    else ctx.scene_state
+                )
+                deps.state_applicator.apply_relationship_deltas(_re_deltas, _re_scene)
+            _rest = [
+                d for d in ctx.delta_buffer if d.domain != DeltaDomain.RELATIONSHIP
+            ]
             from app.services.tick_utils import aggregate_deltas
 
-            _aggregated = aggregate_deltas(ctx.delta_buffer)
+            _aggregated = aggregate_deltas(_rest)
             if _aggregated:
                 deps.state_applicator.apply_batch(
                     _aggregated, ctx.interpretation_snapshot, ctx.campaign_id
@@ -102,7 +130,6 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                 # PhenomenologicalState.threat_level уже 0-1 — передаём как есть.
                 from app.models.cfrm import PsychologicalPressure
                 from app.models.delta_payloads import PerceptionPayload
-                from app.models.state_delta import DeltaDomain, StateDeltas
 
                 pressure = PsychologicalPressure(
                     fear=p_state.threat_level,
@@ -378,8 +405,6 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                         logger.debug(
                             f"[AFFECTIVE] npc={entity_id} load={new_load:.3f} prev={current_load:.3f} tag={emotion_payload.emotion_tag}"
                         )
-
-                        from app.models.state_delta import DeltaDomain, StateDeltas
 
                         emotion_delta = StateDeltas(
                             npc_id=entity_id,

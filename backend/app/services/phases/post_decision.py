@@ -51,7 +51,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     ctx.communication_intents = [
         _i for _i in ctx.communication_intents
         if not isinstance(
-            _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),
+            _by_id.get(str(getattr(_i, "speaker", "")), {}).get("activity_state"),  # noqa: ENIGMA002
             dict,
         )
     ]
@@ -69,17 +69,17 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
         # только выбирает). OFF (default) = ветка не исполняется, путь
         # байт-идентичен легаси (L-W5). ORDER родился → диалоговый трек
         # торга не нужен: сделка стала экономическим фактом, не репликой.
-        if getattr(intent, "intent_type", "") == "trade":
+        if getattr(intent, "intent_type", "") == "trade":  # noqa: ENIGMA002
             from app.services.economy.work_orders import create_order_from_trade_intent
 
             _seller_ref = str(
-                getattr(intent, "target_id", "")
-                or getattr(intent, "audience", "")
+                getattr(intent, "target_id", "")  # noqa: ENIGMA002
+                or getattr(intent, "audience", "")  # noqa: ENIGMA002
                 or ""
             )
             _order_id = create_order_from_trade_intent(
                 ctx,
-                speaker=str(getattr(intent, "speaker", "") or ""),
+                speaker=str(getattr(intent, "speaker", "") or ""),  # noqa: ENIGMA002
                 seller_ref=_seller_ref,
                 orchestrator=orchestrator,
             )

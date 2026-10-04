@@ -252,6 +252,22 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     "state_delta.will_conflict_payload.resistance": FieldCausality("DEBT", organ=None, terminal="projection", authority="ADR-O-414"),
     "state_delta.will_conflict_payload.embodied_vector": FieldCausality("DEBT", organ=None, terminal="projection", authority="ADR-O-414"),
     "state_delta.will_conflict_payload.identity_damage": FieldCausality("DEBT", organ=None, terminal="projection", authority="ADR-O-414"),
+    # ═══ ADR-O-418 (RE M2/D): need_delta_payload — RE-события → NeedLevel ═══
+    # writer: relationship_event_semantics (pure reducer); reader:
+    # state_applicator.apply_relationship_deltas → update_needs →
+    # RelationshipStateStore (scene_state-backed, ADR-O-370). DEBT по
+    # прецеденту payload-полей (статика ≠ consequence); миграция DEBT→CAUSAL
+    # после SUPERBOX-proof — мини-запись (канон шапки манифеста).
+    # ADR-O-418 (RE M2/D): миграция DEBT→CAUSAL после живого proof —
+    # re_m2d_needs_test (SUPERBOX Treatment: INTIMATE_REJECTION → полный тик →
+    # read-back frustration из персистентной сцены). source_event_id — DEBT:
+    # ридер = [RE_NEEDS]-лог (E4-класс), пертурбация не собрана; terminal=None
+    # несовместим с CAUSAL.
+    "state_delta.need_delta_payload.need_id": FieldCausality("CAUSAL", organ="relationship", terminal="relationship", proof="backend/tests/sandbox/SUPERBOX/scenarios/re_m2d_needs_test.py"),
+    "state_delta.need_delta_payload.pressure_delta": FieldCausality("CAUSAL", organ="relationship", terminal="relationship", proof="backend/tests/sandbox/SUPERBOX/scenarios/re_m2d_needs_test.py"),
+    "state_delta.need_delta_payload.satiation_delta": FieldCausality("CAUSAL", organ="relationship", terminal="relationship", proof="backend/tests/sandbox/SUPERBOX/scenarios/re_m2d_needs_test.py"),
+    "state_delta.need_delta_payload.frustration_delta": FieldCausality("CAUSAL", organ="relationship", terminal="relationship", proof="backend/tests/sandbox/SUPERBOX/scenarios/re_m2d_needs_test.py"),
+    "state_delta.need_delta_payload.source_event_id": FieldCausality("DEBT", organ="provenance", terminal=None, authority="ADR-O-418"),
 
     # ═══ temporary_drive (organ=desire) ═══
     "temporary_drive.drive_type": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-414"),

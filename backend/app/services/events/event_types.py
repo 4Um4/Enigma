@@ -115,3 +115,11 @@ class EventType(str, Enum):
     # observation-only; эмиттер activity_lifecycle_service._publish_outcome.
     # Проводка в память NPC (подписка MemoryManager) — открытый пункт среза.
     ACTIVITY_OUTCOME = "activity_outcome"
+
+    # ── ADR-O-418 (RE M2/D): событийная семантика Relationship Engine ──
+    # Только needs-touching подмножество §5.5 (вердикт Мастера F2: без мёртвых
+    # enum-значений). Полный реестр 21 — RELATIONSHIP_EVENT_REGISTRY в domain.
+    FLIRT_ACCEPTED = "flirt_accepted"
+    FLIRT_REJECTED = "flirt_rejected"
+    INTIMATE_ENCOUNTER = "intimate_encounter"
+    INTIMATE_REJECTION = "intimate_rejection"

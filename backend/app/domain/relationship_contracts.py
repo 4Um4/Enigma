@@ -388,3 +388,36 @@ def exclusivity_requirement_from_dict(data: Dict[str, Any]) -> ExclusivityRequir
         negotiability=data.get(_KEY_NEGOTIABILITY, 0.0),
         violation_cost=data.get(_KEY_VIOLATION_COST, 0.8),
     )
+
+
+# ═══ ADR-O-418 (RE M2/D): канонический реестр RE-событий — ТЗ-RE-01 §5.5 ═══
+# Вердикт Мастера F2: статусная карта, НЕ enum-скелет. 21 имя (yaml пишет «20» —
+# doc-drift, канон §5.5). Статусы — целевая фаза внедрения по §10/§8.1.
+RELATIONSHIP_EVENT_REGISTRY: Dict[str, str] = {
+    "flirt_attempt": "C/E (attraction; belief DESIRES)",
+    "flirt_accepted": "M2/D ACTIVE (needs: intimacy.pressure −)",
+    "flirt_rejected": "M2/D ACTIVE (needs: intimacy.frustration +, путь 2 Фр1=C)",
+    "compliment": "C/E (attraction; beliefs)",
+    "personal_disclosure": "F/J (TrustDeep; Intimacy A→B — состояние, не need)",
+    "gift_given": "J (attachment; shared_history)",
+    "shared_activity": "J (attachment; shared_history)",
+    "intimate_encounter": "M2/D ACTIVE (needs: sexual.pressure −, satiation +; source и target)",
+    "intimate_rejection": "M2/D ACTIVE (needs: sexual.frustration +, путь 2)",
+    "promise_made": "F (TrustDeep evidence)",
+    "promise_kept": "F (TrustDeep evidence)",
+    "promise_broken": "F (TrustDeep evidence, отрицательный)",
+    "boundary_set": "B (HardConstraint-учёт)",
+    "boundary_respected": "F (TrustDeep evidence)",
+    "boundary_violated": "F (TrustDeep evidence, отрицательный)",
+    "negotiation_opened": "M2-семантика/переговоры (ExclusivityRequirement, negotiated_agreements)",
+    "negotiation_agreed": "M2-семантика/переговоры (negotiated_agreements — факт)",
+    "negotiation_failed": "M2-семантика/переговоры",
+    "repair_attempt": "J (attachment)",
+    "repair_success": "J (attachment ↑)",
+    "infidelity_observed": "E→L (belief FAITHFUL=false; ревность — только из Belief №10)",
+}
+
+# Needs-touching подмножество M2/D — единственные события с профилями редукции.
+RELATIONSHIP_NEEDS_TOUCHING_EVENTS = frozenset(
+    {"flirt_accepted", "flirt_rejected", "intimate_encounter", "intimate_rejection"}
+)

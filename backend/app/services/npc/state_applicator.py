@@ -132,6 +132,71 @@ class StateApplicator:
         fresh = self._rel_store.get_pair(campaign_id, state.npc_id, target_id)
         state.relationship_cache.setdefault(target_id, {}).update(fresh)
 
+    def apply_relationship_deltas(
+        self,
+        deltas: List[StateDeltas],
+        scene_state: Dict[str, Any],
+    ) -> int:
+        """ADR-O-418 (RE M2/D): единственный путь RELATIONSHIP-дельт в NeedLevel.
+
+        Геометрия (вердикт Мастера R2): домен RELATIONSHIP живёт в scene_state
+        (RelationshipStateStore, ADR-O-370), НЕ в all_npcs_raw/NPCState —
+        отдельная точка применения рядом с apply_batch, не ветка в нём.
+        StateApplicator остаётся единственным мутатором; write-path:
+        apply_relationship_deltas → update_needs → Store.apply_need_deltas
+        (caller-guard стора пропускает только этот модуль).
+
+        Provenance (§4.3 ТЗ-RE-01: дельта несёт source): per-delta Cause
+        строится из payload.source_event_id (UUID от EventDTO.id — ставит
+        reducer). Дельта без source_event_id = MissingProvenanceError
+        (ADR-CAUSAL-SPINE: M2-писатель обязан нести cause).
+
+        Возвращает число применённых дельт (наблюдаемость/тесты).
+        """
+        from uuid import UUID
+
+        from app.errors import ArchitecturalViolationError, MissingProvenanceError
+        from app.models.delta_payloads import NeedDeltaPayload
+
+        applied = 0
+        for delta in deltas:
+            if not delta.npc_id:
+                raise ArchitecturalViolationError(
+                    "apply_relationship_deltas: дельта без npc_id — "
+                    "маршрутизация невозможна (ADR-O-418)",
+                    __name__,  # writer_module: StateApplicator — write-маршрут
+                )
+            if not isinstance(delta.payload, NeedDeltaPayload):
+                raise ArchitecturalViolationError(
+                    f"apply_relationship_deltas: payload не NeedDeltaPayload "
+                    f"(npc_id={delta.npc_id}) — нарушение _DOMAIN_PAYLOAD_MAP",
+                    __name__,
+                )
+            if not delta.payload.source_event_id:
+                raise MissingProvenanceError(
+                    f"apply_relationship_deltas: {delta.payload.need_id}/"
+                    f"{delta.npc_id} без source_event_id — M2-писатель обязан "
+                    "нести cause (ADR-CAUSAL-SPINE)"
+                )
+            try:
+                event_uuid = UUID(delta.payload.source_event_id)
+            except ValueError as e:
+                raise MissingProvenanceError(
+                    f"apply_relationship_deltas: source_event_id="
+                    f"'{delta.payload.source_event_id}' не UUID"
+                ) from e
+            self.update_needs(
+                scene_state,
+                delta.npc_id,
+                delta.payload.need_id,
+                pressure_delta=delta.payload.pressure_delta,
+                satiation_delta=delta.payload.satiation_delta,
+                frustration_delta=delta.payload.frustration_delta,
+                cause=Cause(source_event_id=event_uuid),
+            )
+            applied += 1
+        return applied
+
     def update_needs(
         self,
         scene_state: Dict[str, Any],
@@ -161,8 +226,8 @@ class StateApplicator:
                 "d_pressure=%.4f d_satiation=%.4f d_frustration=%.4f",
                 npc_id,
                 need_id,
-                getattr(cause, "source_event_id", None),
-                getattr(cause, "source_action_id", None),
+                getattr(cause, "source_event_id", None),  # noqa: ENIGMA002
+                getattr(cause, "source_action_id", None),  # noqa: ENIGMA002
                 pressure_delta,
                 satiation_delta,
                 frustration_delta,

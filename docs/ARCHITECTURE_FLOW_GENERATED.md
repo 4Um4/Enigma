@@ -97,7 +97,7 @@ flowchart TD
         ConclusionGate("Conclusion Gate (Experience → Conclusion Membrane)"):::application
         ConclusionStore("Conclusion Store (Per-Agent L2.5+)"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
-        RelationshipEvents("Реестр событий §5.5 — 20 типов"):::application
+        RelationshipEvents("Реестр событий §5.5 — 21 тип (S324: греп §5.5)"):::application
         RelationshipStateStore("Relationship State Store — SSOT"):::application
         RelationshipEventSemantics("Relationship Event Semantics"):::application
         RelationshipModifierResolver("Relationship Modifier Resolver"):::application

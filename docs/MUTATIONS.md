@@ -5,7 +5,7 @@
 > **Протокол ведения (вперёд):** завершая сессию — (1) добавить строку в реестр ниже (ID + суть + вердикт + ADR); (2) живые хвосты → раздел «Живые хвосты» (или roadmap §7, если затрагивает активные треки); (3) ничего многострочного в этот файл. MЕТА содержит только счётчик записей — проверяемый.
 
 ## МЕТА
-Записей: 206 (канон-греп правила 5 по живому файлу; S324-фиксап: дрейф −2 устранён — S323×2 без бампа; греп учитывает и §3-хвосты с S-префиксом; дубли S-меток: 0 — проверено грепом; двойная коллизия S314/S317 разрешена ренумберами — Understanding→S316, RE-M1b.3.6→S318; пропуски номеров — артефакты ренумберов; сверка с архивом b59dac3f — отдельный хвост) | Доменов: 10 | Базлайн: IPT 51/51
+Записей: 208 (канон-греп правила 5 по живому файлу; S326-фиксап: дубль S324 — долговая ветка ea655cdb vs M2/D → M2/D ренумбер S326, греп 208; греп учитывает и §3-хвосты с S-префиксом; дубли S-меток: 0 — проверено грепом; коллизии S314/S317 и S324 разрешены ренумберами — Understanding→S316, RE-M1b.3.6→S318, M2/D→S326; пропуски номеров — артефакты ренумберов; сверка с архивом b59dac3f — отдельный хвост) | Доменов: 10 | Базлайн: IPT 51/51
 
 **Примечания целостности номеров:**
 - Пропуски S153/S171/S173/S197/S232/S275–S277 — артефакты параллельных серий и ренумберов (прецедент: S243, ренумбер S241→S243; S242, перенумерация при коллизии). Не восстанавливать.
@@ -232,6 +232,8 @@
 - **S324** Долговая зачистка AST-гейта §1 (lint_enigma_ast; санкция Мастера, ветка долгов): гейт 299→45 — все 45 = hot-zone M2/D (tick_orchestrator 14 / npc_tick_pipeline 13 / post_decision 5 / reaction_subscriber 5 / decision_hub 4 / state_applicator 2 / v2_relationship_backend 2), parked → reports/ast_gate_hotzone_parked.txt, добьёт владелец ветки (вердикт Мастера: а); 245 сайтов / 59 файлов: однострочные noqa-хвосты ENIGMA001/002 по прецеденту дерева (415 канон-сайтов); триаж: E001 57 построчно — все легитимные Optional-контракты (round-trip ADR-O-371/O-208, defensive-ридеры, optional-wiring), E002 242 — паттерн + спот-чеки, T1-кандидат work_orders:85-88 опровергнут чтением (уже fail-loud), 0 поведенческих фиксов; инциденты: EOF-артефакт скрипта (+\n×59) пойман спот-чеком, устранён до коммита (дифф 245/245), первый commit упал (pathspec-синтаксис) — повтор, hook ADR-WARNING разрешён ЧАСТЬ XIV (все NO); гейты: compileall 0, mypy 0/550, ruff 0, IPT 51/51 ×2 · ✅ · ea655cdb
 - **S325** D1 DEBT-ADR-NET-N/A-FILL исполнен (ветка долгов, продолжение S324): ценз-методология 4 стадии (regex → SSOM-парсер → xref → волны); батч1: 50 FILLABLE из атласа (Test-Path от ROOT; алиасы svc/dom/mod; wildcard scene_state/* развёрнут); батч2: 12 NO_HEADER канонизированы (бэктик-шапки по _ADR_LINE_REGEX; TYPE/Title из атласа как SSOT; O-417 in-place) + волна 1b: 8×Files/29 путей; 2b: iron_river×5/O-414/O-416 (идемпотентный повтор +0); волна3: 19 из law-📁 атласа (семантика law→members = парсерная); гигиена: .pyc вычищен (мой недосмотр: bounded_search не исключил __pycache__, O-414). Итог: filled 1→78, no_header 12→0, empty=94 — атлас исчерпан, остаток = пер-файловая археология тел (reports/d1_disposition.txt). Находки: F1 конвенция S311 «шапки без бэктиков» vs парсер/тест (12 аудитов были невидимы графу), F2 📁-строки невидимы law-ветке (ищет литерал Files), stale-атлас O-367/O-414/S199(prose-comma в 📁). IPT-гейт: сессия закрывается при неразрешимом состоянии — SyntaxError state_applicator.py:185 = незакоммиченный WIP M2/D параллельной ветки (не мой контур); валидные прогоны: 51/51 pre-WIP, 50/1 = их WIP; мои коммиты doc-only, дельта-метод ×3. Коммиты: bd00aa93, c7da6443, 519cb602, b01b444b · ✅ · артефакты reports/d1_*
 
+- **S326** RE-01 M2/D: RelationshipEventSemantics (ADR-O-418) — первый живой needs-writer: 4 needs-touching EventType + канон-реестр 21 (domain), `DeltaDomain.RELATIONSHIP` + `NeedDeltaPayload` (ADDITIVE), pure-reducer Phase8Handler (dormant, `RELATIONSHIP_EVENTS_ENABLED` default OFF), сплит до DRSL в Фазе 9 (primary) + Фазе 10 (LOD defense-in-depth), `apply_relationship_deltas` (per-delta Cause, MissingProvenance fail-loud) + гвард apply_batch; вердикты Мастера F1–F4/R2/флаг/Scope-guard (фикс. универсальные дельты — NO; точка расширения `_resolve_need_magnitude`) · манифест O-414: 4 поля DEBT→CAUSAL (proof=re_m2d_needs_test), lint_consumer_gap GREEN (manifest 296) · приёмка: SUPERBOX re_m2d_needs_test Control/Treatment 2/2 (frustration 0.2 read-back), micro 12/12, IPT 51/51 · уроки: flush-топология Ф9≠Ф10 (aggregate_deltas payload при merge теряет — silent loss), носитель scene_state строго по правилу commit_phase (SPY id-доказательство), неуникальный/сфабрикованный БЫЛО-якорь ×2 инцидента (протокол: якорь = полная строка фактического файла) · ADR-O-418 + IMPACT · парк AST-гейта исполнен (45 сайтов noqa-хвосты, lint_enigma_ast 0) · ✅
+
 ## 3. Живые хвосты (открытое; владелец обязателен)
 
 ### Эскалации Мастеру (решения вне компетенции преемника)
@@ -245,6 +247,8 @@
 
 ### Открытые долги
 - **DEBT-D1** (S217): аудит publish_release.
+- **S326 TECH_DEBT_NOTE**: `backend/app/services/input/semantic_library/__init__.py` — ruff (:140) + mypy (:64 buf-annotation); чужая зона параллельной сессии (Anti-Race), AFFECTS_CURRENT_BUG: NO, владелец — активная input-сессия.
+
 - [x] ~~DEBT-ADR-CLI-QUIET~~ ✅ закрыт (S311: basicConfig в adr_cli.main; IMPACT-стаб ADR-NET-CLI-QUIET_FIX; smoke-прогон)
 - [x] ~~DEBT-ADR-NET-N/A-FILL~~ ✅ закрыт S325: атлас-источники исчерпаны (Files: 1→78 filled, 12 шапок канонизированы, no_header 0). Остаток → новый хвост: 94 empty = пер-файловая археология тел аудитов (атлас-источника нет) — reports/d1_disposition.txt; отдельная сессия по санкции.
 - [x] ~~DEBT-DOC-DRIFT-ISPRAVLENIE~~ ✅ закрыт (S323): RemontTZ-пакет (вкл. ENIGMA_TZ_ISPRAVLENIE.md) удалён как суперсиденный — находки поглощены §7.3 AUD-D / §7.7 NL-D / RE-D9; line-drift исчезли вместе с файлами; история в git.
@@ -253,7 +257,7 @@
 - **DEBT-FOCUS-OBJECTS** (S285): клик по объекту = переключение фокуса.
 - **DEBT-NG-HEALTHCHECK** (S285).
 - **DEBT-FE-DELTAS** (S286-класс): game_loop:1385 проецирует внутренние StateDeltas (stress/trust/fear) во фронт-канал — Rule 11 утечка.
-- **AST-гейт 45 hot-zone noqa** (S324; владелец M2/D): reports/ast_gate_hotzone_parked.txt — однострочные noqa при первом касании файлов (behavior-neutral); до добивки гейт lint_enigma_ast = 45 (advisory, в IPT не гейтится).
+- [x] ~~AST-гейт 45 hot-zone noqa~~ ✅ S326 исполнен (владелец M2/D; 45 сайтов → noqa-хвосты по живому линтер-выводу; lint_enigma_ast 0; триаж: 0 поведенческих фиксов — прецедент S324-debt) — однострочные noqa при первом касании файлов (behavior-neutral); до добивки гейт lint_enigma_ast = 45 (advisory, в IPT не гейтится).
 
 ### Открытые фронтовые хвосты
 - **S284 Дефект №3**: relocation-intent «домой» переживает смену реальности (transfer/dwell/S186) — proposal из реальности тика N, валидация против другой; **строгая вертикаль НЕ собрана** (точки на разных HEAD).

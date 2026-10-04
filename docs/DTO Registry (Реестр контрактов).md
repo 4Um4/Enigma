@@ -296,7 +296,7 @@
 
 ### 📦 `DeltaDomain`
 - 📁 `mod/state_delta.py`
-- Enum: `PHYSIOLOGY`, `EMOTION`, `SOCIAL`, `PERCEPTION`, `IDENTITY`, `SPATIAL`.
+- Enum (SSOT — код): `SOCIAL`, `EMOTION`, `REPUTATION`, `IDENTITY`, `PHYSIOLOGY`, `SPATIAL`, `PERCEPTION`, `WILL`, `DOPAMINE`, `ECONOMY`, `RELATIONSHIP` (S324/ADR-O-418).
 
 ### 📦 Payload DTOs
 - 📁 `mod/delta_payloads.py`
@@ -304,6 +304,11 @@
 - **`EmotionPayload`:** Порождается ТОЛЬКО после фазового перехода (Фаза 9).
 - **`IdentityPayload`:** `compliance_bias_delta`, `initiative_suppression_delta`.
 - **`ReputationPayload`:** Дельта репутации (VillageMemoryField).
+
+### 📦 `NeedDeltaPayload` / `DeltaDomain.RELATIONSHIP` (S326, ADR-O-418)
+- 📁 `mod/delta_payloads.py`, `mod/state_delta.py`
+- **RE M2/D — первый живой needs-writer:** need_id ∈ {sexual, intimacy} (закрытый реестр M1a), три аккумулятора + `source_event_id` (UUID). Политика ADDITIVE; кламп [0,1] — на apply-стороне `RelationshipStateStore.apply_need_deltas`. Путь: `RelationshipEventSemantics` (Фаза 8, dormant за `RELATIONSHIP_EVENTS_ENABLED`, pure reducer) → delta_buffer → сплит ДО DRSL (Фаза 9 integration — primary; Фаза 10 commit_phase — LOD-защита) → `StateApplicator.apply_relationship_deltas` (per-delta `Cause`; `MissingProvenanceError`) → `update_needs` → Store.
+- 🚫 **ЗАПРЕТ:** RE-дельты мимо delta_buffer/StateApplicator (гвард apply_batch); запись в shared_context-копию сцены — носитель по правилу commit_phase (`is_player_turn`); формулы §6 в этом слое (№15); `RE_NEEDS_EVENT_MAGNITUDE` — CALIBRATION_CANDIDATE.
 
 ### 📦 `Cause` / `CausalEntry` / `CausalChain`
 - 📁 `mod/psychological.py`
@@ -543,6 +548,9 @@
 | `EXPERIENCE_DELTA_COMMITTED` | DeltaGate (S238) | вход опыта; arrival-time легален (STATUS-MODEL O-399) |
 | `CONCLUSION_FORMED` | ConclusionGate (S247) | вывод из опыта; observation-only |
 | `ACTIVITY_OUTCOME` | ActivityLifecycleService (S252) | терминал Living Activity; наблюдаемая проекция |
+| `FLIRT_ACCEPTED` / `FLIRT_REJECTED` | SUPERBOX-приёмка (M2/D); живые продюсеры — фазы C/K | intimacy: pressure− / frustration+ (Фр1=C) |
+| `INTIMATE_ENCOUNTER` | SUPERBOX-приёмка (M2/D); живые продюсеры — фазы C/K | sexual: pressure−, satiation+ (source+target) |
+| `INTIMATE_REJECTION` | SUPERBOX-приёмка (M2/D); живые продюсеры — фазы C/K | sexual: frustration+ (путь 2) |
 
 🚫 **ЗАПРЕТЫ:**
 - ❌ Использование сырых строк вместо `EventType` enum.
@@ -628,6 +636,9 @@
 - `test_belief_decay_model` (ADR-O-305.1)
 - `test_belief_engine_no_direct_l1_read` (ADR-O-305)
 
+### Relationship Engine
+- `test_re_m2d_needs_chain` (ADR-O-418: EventBus → Фаза 8 drain → delta_buffer → сплит Фазы 9 → apply_relationship_deltas → Store; Control/Treatment; флаг-полярность)
+
 ### Infrastructure
 - `test_drf_bus_instance_level_not_default_factory` (Rule 73, ADR-134)
 - `test_drf_pipeline_receives_execution_context_not_bare_bus` (Rule 76, ADR-136)
@@ -641,5 +652,5 @@
 
 ---
 
-*Версия: 9.0 (Drift-Sync S226–S311: +3 блока контрактов; дубли запретов §7 схлопнуты в §0)*
-*Сессия: S311 | Записей 📦: 71 | Список песочниц — канон (запрет → тест) | IPT 49/49 | Архив v8.0: git show b59dac3f*
+*Версия: 9.1 (M2/D: +NeedDeltaPayload/RELATIONSHIP; реестр EventType +4 needs-touching)*
+*Сессия: S326 | Записей 📦: 72 | Список песочниц — канон (запрет → тест) | IPT 51/51 | Архив v8.0: git show b59dac3f*

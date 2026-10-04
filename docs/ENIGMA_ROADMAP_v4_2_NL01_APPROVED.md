@@ -22,7 +22,7 @@
 
 | Трек | Закрыто (канон) | Следующий шаг | Канон-ADR |
 |---|---|---|---|
-| **RE-01 Relationship Engine v2** | M0 → M1a → M1b.0–4 (физический cutover RAM-authoritative) → M1b.3.1–3.4 (S246) | M1b.3.5–3.7 → **GC-11** → M1b.5 → M2/D | O-369/370/371 |
+| **RE-01 Relationship Engine v2** | M0 → M1a → M1b.0–4 → M1b.3.1–3.4 (S246) → M1b.3.5–3.7 (S314/S318/S319) → GC-11 (S320) → M1b.5 (S322) → **M2/D (S326, ADR-O-418)** | M2/D остальное (G/H) → K → Полигон M | O-369/370/371/418 |
 | **W-TRACK World Embodiment** | W1 → W2 → W3+G1 (S237) → G2 (S239) → **G3** (S307, W3_G3_ENABLED default OFF) | object-cognition **CAN_STEAL≠ACCEPT/WANT** + capability `spawn_world_object` → **GC-08**; reusable-паттерн TAKE/USE/MOVE/GIVE/FOLLOW | O-371/372/376/378/410 |
 | **AG1: Understanding & Epistemics** | Фаза A → E1 (шина опыта) → E2.0-a/b (DeltaGate) → E2.0-c B0-CLOSED (S243) → **BC-1** (S247, dormant default OFF) | **BC-2** (Conclusion→Expectation) | O-377/379/380/381 |
 | **Understanding / Name-Gate** (вне классических треков) | R8 affection (S303/O-413) · Attention→Action (S304) · Understanding Pipeline (S305) · Name-Gate FACE/NAME/LINK (S306, S308/O-409) · S2B.7 Pain/Injury (S309) | интеграция в контуры §3/§5; далее по потребности | O-409/413 |
@@ -49,7 +49,7 @@
 - [x] M1b.5 — закрыт S322: npc_state_helpers удалён ЦЕЛИКОМ (обе функции; 0 импортов/0 вызовов — греп; 71384bba) + AUD-D5(б) fail-loud ContractValidationError (ec67f730 + регресс-тест f97208b9); судьба legacy store по факту readers: НЕ прод-SSOT после M1b.4.2 cutover (M1b.1-фолбэк + тест-фикстура; полный removal = фаза K); vestigial provider v2 — НЕ vestigial: несущий sync-тракт (тест-enforced)
 
 **Ступень 2 — RE-01: M2/D → G/H → K → Полигон M**
-- [ ] M2/D — `RelationshipEventSemantics`: первый живой needs-writer через `update_needs` + формат RE-событий (попутно закрывает хвост Фазы 0.6/NEI)
+- [x] M2/D — ✅ S326 (ADR-O-418): `RelationshipEventSemantics` (dormant) + первый живой needs-writer через `update_needs` + формат RE-событий (4 needs-touching + канон-реестр 21; SUPERBOX 2/2). NEI — не расшифровано, вердикт Мастера: не блокер. Далее G/H.
 - [ ] G/H — динамика Satisfaction и фрустрации через стор
 - [ ] K — полный removal-test
 - [ ] Полигон M — пресеты, INV-1, диф-тест раннего внимания О-2 (последний хвост Р17)
@@ -828,7 +828,7 @@ player command → avatar appraisal → accept/modify/resist/refuse
 
 - [x] **A0** Закрыть RE-01 **M1b.3.5–3.7** (активный фронт): 3.5 ✅ S314 (RE-D8 + GAP-1 вердикт) → 3.6 ✅ S318 (RE-D8 закрыт) → 3.7 ✅ S319 (ADR-O-415, freeze 19/52). Затем A1.
 - [x] **A1** RE-01 M1b.5 закрыт S322: helper удалён целиком (71384bba); legacy store — судьба по факту readers (не прод-SSOT после cutover; фаза K); vestigial provider v2 — опровергнут: несущий sync-тракт; AUD-D5(б) fail-loud + регресс-тест (ec67f730/f97208b9).
-- [ ] **A2** RE-01 M2/D: `RelationshipEventSemantics` + первый живой needs-writer через `update_needs` + формат RE-событий.
+- [x] **A2** RE-01 M2/D: ✅ S326 (ADR-O-418) — `RelationshipEventSemantics` + needs-writer + формат RE-событий; E1-потребность закрыта этим же writer'ом.
 - [ ] **A3** G/H: Satisfaction + frustration через стор.
 - [ ] **A4** K: removal-test; Полигон M: INV-1, О-2.
 - [x] **A5** GC-11 ✅ S320 (ADR-O-416): L3-gate исполнен живым harness — event→V2-RAM доказан (trust 0→20 read-back стора = «delta applied» верифицирована чтением), поведенческий ноль = RED-находка RE-D2 выборка 5.

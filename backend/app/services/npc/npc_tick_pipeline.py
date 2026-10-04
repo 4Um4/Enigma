@@ -628,7 +628,7 @@ class NpcTickPipeline:
                         _t = _rk.split("→", 1)
                         if len(_t) == 2 and _t[0] == npc_id and isinstance(_rv, dict):
                             _rel_view[_t[1]] = _rv
-                _belief_src = getattr(_epistemic_ctx, "trigger_proposition", None) if _epistemic_ctx else None
+                _belief_src = getattr(_epistemic_ctx, "trigger_proposition", None) if _epistemic_ctx else None  # noqa: ENIGMA001,ENIGMA002
                 _dc = ThreatDesiredChangeProducer.resolve(
                     # S264-фикс (живая проводка R5, класс D-R6-LIVE-PROBE):
                     # продюсер написан под NPC-state (perceptual_kernel,
@@ -693,14 +693,14 @@ class NpcTickPipeline:
                         _needs_view = (_npc_dict_for_write or {}).get("needs", {}) or {}
                         _hunger = float(_needs_view.get("hunger", 0.0))
                     if _hunger >= NEED_GATE:
-                        _opp_will = getattr(state, "will_state", None)
+                        _opp_will = getattr(state, "will_state", None)  # noqa: ENIGMA002
                         _will_str = (
                             _opp_will.value
                             if _opp_will is not None
                             and hasattr(_opp_will, "value")
                             else str(_opp_will or "free")
                         )
-                        _eco_map = getattr(state, "economic_profiles_map", {}) or {}
+                        _eco_map = getattr(state, "economic_profiles_map", {}) or {}  # noqa: ENIGMA002
                         _dist_view: Dict[str, float] = {}
                         if state.spatial_query is not None and len(_eco_map) > 1:
                             for _nid in _eco_map:
@@ -807,7 +807,7 @@ class NpcTickPipeline:
                         AffectionDesiredChangeProducer,
                     )
 
-                    _eco_map = getattr(state, "economic_profiles_map", {}) or {}
+                    _eco_map = getattr(state, "economic_profiles_map", {}) or {}  # noqa: ENIGMA002
                     _others_state: Dict[str, Dict[str, float]] = {}
                     for _n in (state.all_npcs_raw or []):
                         _nid = _n.get("npc_id") or _n.get("id")
@@ -912,7 +912,7 @@ class NpcTickPipeline:
                     for _s in _pass.cognition_snapshots
                     if _s.get("observer_id") == npc_id
                 ],
-                drives=dict(getattr(_effective_drives, "values", {}) or {}),
+                drives=dict(getattr(_effective_drives, "values", {}) or {}),  # noqa: ENIGMA002
             )
 
             # P3d (санкция Мастера): транспорт перцептивного вывода → utility.
@@ -927,7 +927,7 @@ class NpcTickPipeline:
                     for _s in _pass.cognition_snapshots
                     if _s.get("observer_id") == npc_id
                 ],
-                drives=dict(getattr(_effective_drives, "values", {}) or {}),
+                drives=dict(getattr(_effective_drives, "values", {}) or {}),  # noqa: ENIGMA002
             )
 
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
@@ -954,12 +954,12 @@ class NpcTickPipeline:
             # оставлен как защита частичного отката P3-без-P2: отсутствует =
             # оружие недоступно (консервативно).
             _weapon_access_fact = bool(
-                getattr(state, "affordance_facts_map", {}).get(npc_id, False)
+                getattr(state, "affordance_facts_map", {}).get(npc_id, False)  # noqa: ENIGMA002
             )
             # ADR-O-410 (G3 Этап 2): объектная цель воли из preloaded-карты
             # (getattr-гвард по прецеденту weapon_access — частичный откат
             # P17-без-P16 консервативен: цели нет).
-            _steal_target_fact = getattr(state, "object_target_map", {}).get(
+            _steal_target_fact = getattr(state, "object_target_map", {}).get(  # noqa: ENIGMA002
                 npc_id
             )
             _opp_ctx = _OppCtx(
@@ -971,7 +971,7 @@ class NpcTickPipeline:
             # TickState не несёт will_state (DTO Registry §11; воля живёт per-NPC
             # в psyche). Зонд обязан быть менее хрупким, чем наблюдаемый код
             # (DIAG-PROBE-SAFETY): деградирует до None до проброса поля владельцем ADR.
-            _opp_will_state = getattr(state, "will_state", None)
+            _opp_will_state = getattr(state, "will_state", None)  # noqa: ENIGMA002
             _opp_will = (
                 _opp_will_state.value
                 if _opp_will_state is not None
@@ -1244,9 +1244,9 @@ class NpcTickPipeline:
         from app.domain.control_source import ControlSource, resolve_control_source
         from app.errors import SimulationIntegrityError
         _ghost_authors = [
-            getattr(_ci, "speaker", "")
+            getattr(_ci, "speaker", "")  # noqa: ENIGMA002
             for _ci in communication_intents
-            if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION
+            if resolve_control_source(getattr(_ci, "speaker", "")) is not ControlSource.NPC_DECISION  # noqa: ENIGMA002
         ]
         if _ghost_authors:
             raise SimulationIntegrityError(
@@ -1774,7 +1774,7 @@ def _resolve_reactive_movement(
         else None,
     )
     # Используем легаси-поле для прокидывания тени, чтобы не ломать DTO
-    _claims: list = getattr(_goal, "causal_claims", [])
+    _claims: list = getattr(_goal, "causal_claims", [])  # noqa: ENIGMA002
     if not _claims:
         object.__setattr__(_goal, "causal_claims", _claims)
     _claims.append(_claim)

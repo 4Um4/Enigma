@@ -476,7 +476,7 @@ nodes:
   RelationshipEvents:
     type: service
     layer: Application
-    label: "Реестр событий §5.5 — 20 типов"
+    label: "Реестр событий §5.5 — 21 тип (S324: греп §5.5)"
     kind: component
     role: "flirt_attempt...infidelity_observed — расширение реестра социальных событий"
     implementation_phase: "M2"

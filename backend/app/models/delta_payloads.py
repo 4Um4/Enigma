@@ -136,3 +136,19 @@ class WillConflictPayload:
     resistance: float  # Сила сопротивления (0.0 - 1.0)
     embodied_vector: Optional[str]  # Моторный импульс (AVOIDANCE, FREEZE, etc.)
     identity_damage: float  # Нанесенный урон идентичности
+
+
+@dataclass(frozen=True)
+class NeedDeltaPayload:
+    """ADR-O-418 (RE M2/D): дельты NeedLevel — RelationshipStateStore (scene_state-backed).
+
+    Три раздельных аккумулятора (№20/21/23 ТЗ-RE-01), кламп [0,1] — на apply-стороне
+    стора (apply_need_deltas), потому политика домена ADDITIVE (yaml §update_phases).
+    source_event_id — O1-provenance: id события-источника (ТЗ §4.3: дельта несёт source).
+    """
+
+    need_id: str  # закрытый реестр M1a: {sexual, intimacy} — валидирует стор
+    pressure_delta: float = 0.0
+    satiation_delta: float = 0.0
+    frustration_delta: float = 0.0
+    source_event_id: Optional[str] = None

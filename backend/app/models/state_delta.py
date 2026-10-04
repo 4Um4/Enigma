@@ -20,6 +20,7 @@ from app.models.delta_payloads import (
     EconomicPayload,
     EmotionPayload,
     IdentityPayload,
+    NeedDeltaPayload,
     PerceptionPayload,
     PhysiologyPayload,
     ReputationPayload,
@@ -40,6 +41,7 @@ class DeltaDomain(Enum):
     WILL = "WILL"  # Каузальный след конфликта воли (ADR-039)
     DOPAMINE = "dopamine"  # S-93: Reward Prediction Error (FEP). Эфемерный сигнал ошибки предсказания.
     ECONOMY = "economy"  # S150: Экономика (деньги, товары)
+    RELATIONSHIP = "relationship"  # ADR-O-418 (RE M2/D): NeedLevel-дельты (scene_state-backed, ADR-O-370)
 
 
 class ReductionPolicy(Enum):
@@ -72,6 +74,7 @@ DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
     DeltaDomain.PERCEPTION: ReductionPolicy.ADDITIVE,  # Угрозы/аномалии накапливаются
     DeltaDomain.WILL: ReductionPolicy.OVERWRITE,  # Конфликт воли = факт текущего тика
     DeltaDomain.DOPAMINE: ReductionPolicy.ADDITIVE,  # Ошибки предсказания накапливаются
+    DeltaDomain.RELATIONSHIP: ReductionPolicy.ADDITIVE,  # ADR-O-418: yaml §update_phases (SOCIAL|RELATIONSHIP, ADDITIVE); кламп [0,1] — в сторе
 }
 
 
@@ -85,6 +88,7 @@ DeltaPayload = Union[
     EconomicPayload,
     PerceptionPayload,
     WillConflictPayload,
+    NeedDeltaPayload,
 ]
 
 
@@ -156,6 +160,7 @@ class StateDeltas:
             DeltaDomain.IDENTITY: IdentityPayload,
             DeltaDomain.PHYSIOLOGY: PhysiologyPayload,
             DeltaDomain.ECONOMY: EconomicPayload,
+            DeltaDomain.RELATIONSHIP: NeedDeltaPayload,  # ADR-O-418
         }
 
         # v2 валидация: если указан domain, payload должен соответствовать

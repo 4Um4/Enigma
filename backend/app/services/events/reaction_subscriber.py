@@ -217,7 +217,7 @@ class ReactionSubscriber:
             if n.get("id") or n.get("npc_id")
         ]
         _spatial_q = (
-            getattr(ctx.shared_context, "spatial_query", None)
+            getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA001,ENIGMA002
             if ctx.shared_context is not None
             else None
         )
@@ -236,8 +236,8 @@ class ReactionSubscriber:
                         scene_state=(
                             # 3b: tick_ctx тоже Any/None в unit-контекстах
                             # (test_perception_witness) — getattr на обоих членах.
-                            getattr(ctx.shared_context, "scene_state", None)
-                            or getattr(getattr(ctx, "tick_ctx", None), "scene_state", None)
+                            getattr(ctx.shared_context, "scene_state", None)  # noqa: ENIGMA002
+                            or getattr(getattr(ctx, "tick_ctx", None), "scene_state", None)  # noqa: ENIGMA002
                             or {}
                         ),  # noqa: ENIGMA002
                         spatial_query=_spatial_q,

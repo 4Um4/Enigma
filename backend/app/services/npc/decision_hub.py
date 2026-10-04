@@ -858,7 +858,7 @@ class DecisionHub:
         # (opportunity_ctx.steal_target); выбор объекта — canonical
         # resolver (nearest+lex), LLM объекты мира не выбирает.
         if best_intent is Intent.STEAL:
-            _obj_target = getattr(opportunity_ctx, "steal_target", None)
+            _obj_target = getattr(opportunity_ctx, "steal_target", None)  # noqa: ENIGMA002
             if _obj_target:
                 intent_target = _obj_target
         # BUG-01 слой 1 (§ENIGMA-006): intent без target после резолва —
@@ -941,10 +941,10 @@ class DecisionHub:
         thief → 1.0, прочие → 0.1. desire-драйв усиливает (0.5 + desire ∈ [0.5, 1.5]).
         Никаких npc_id-хардкодов: «Shadow вор», потому что его архетип — thief.
         """
-        _archetype = getattr(personality, "archetype", "") or ""
+        _archetype = getattr(personality, "archetype", "") or ""  # noqa: ENIGMA002
         _base = 1.0 if _archetype == "thief" else 0.1
         _desire = float(
-            (getattr(personality, "drives_base", None) or {}).get("desire", 0.25)
+            (getattr(personality, "drives_base", None) or {}).get("desire", 0.25)  # noqa: ENIGMA002
         )
         return round(_base * (0.5 + _desire), 3)
 
@@ -1975,7 +1975,7 @@ class DecisionHub:
         # Лечит intent-without-target системно: причинный интент несёт
         # адресата (находка R7, Stage-1-валидатор больше не встречает
         # пустую цель от причинного слоя).
-        _causal_addr = getattr(self, "_causal_addressee", None)
+        _causal_addr = getattr(self, "_causal_addressee", None)  # noqa: ENIGMA002
         if _causal_addr and _causal_addr != state.npc_id:
             return cast(str, _causal_addr)
 

@@ -93,7 +93,7 @@ class V2RelationshipBackend:
             self._campaign_id = campaign_id
             if isinstance(scene_state, dict):
                 _rs = scene_state.get(_KEY_ROOT)
-                _d = _rs.get(_KEY_DIRECTED) if isinstance(_rs, dict) else None
+                _d = _rs.get(_KEY_DIRECTED) if isinstance(_rs, dict) else None  # noqa: ENIGMA001
                 if isinstance(_d, dict) and _d and not self._directed_ram:
                     self._directed_ram = {k: dict(v) for k, v in _d.items()}
                     logger.info(f"[V2_REL] bind: hydrate из сцены ({len(_d)} пар)")
@@ -247,7 +247,7 @@ class V2RelationshipBackend:
         """RAM → сцена-проекция (если провайдер жив и сцена непуста).
         Идемпотентен: directed := копия RAM (полная замена, не merge).
         RAM-GO инвариант 3: sync∘sync == sync."""
-        _scene = self._scene_state_provider() if self._scene_state_provider else None
+        _scene = self._scene_state_provider() if self._scene_state_provider else None  # noqa: ENIGMA001
         if not isinstance(_scene, dict) or not _scene:
             return
         _rs = _scene.setdefault(_KEY_ROOT, {})

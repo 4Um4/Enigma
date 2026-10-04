@@ -27,6 +27,7 @@ def execute_reduction_phase(
     social_sub: Phase8Handler,
     homeostasis_sub: Optional[Phase8Handler] = None,
     social_input_proj: Optional[Phase8Handler] = None,
+    relationship_sub: Optional[Phase8Handler] = None,  # ADR-O-418 (RE M2/D)
     dynamic_field: Any = None,
     l1_chronicle: Any = None,
     resolve_spatial_fn: Optional[Callable] = None,
@@ -40,6 +41,8 @@ def execute_reduction_phase(
         social_sub: SocialSubscriber (Social Layer).
         homeostasis_sub: HomeostasisProjector (Field Layer, Phase 0.5 only).
         social_input_proj: SocialInputProjector (Sensor Layer).
+        relationship_sub: RelationshipEventSemantics — RE-события (ADR-O-418;
+            dormant при флаге OFF: без подписки drain пуст, ранний выход).
         dynamic_field: DynamicAffordanceField для стигмергических следов.
         l1_chronicle: L1Chronicle (опционально, для записи событий дрейфа).
         resolve_spatial_fn: Callable возвращающий SpatialService.
@@ -138,7 +141,7 @@ def execute_reduction_phase(
     # 3-5. Cognitive → Social → Sensor — единый проход
     # Combat остаётся отдельным: генерирует physical_deltas для последующих слоёв
     # HomeostasisProjector не вызывается здесь (он чистый Field Layer для Фазы 0.5)
-    for _handler in (reaction_sub, social_sub, social_input_proj):
+    for _handler in (reaction_sub, social_sub, relationship_sub, social_input_proj):
         if _handler is not None:
             _execute_handler(
                 ctx, _handler, physical_deltas_materialized=physical_deltas_tuple
