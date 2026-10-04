@@ -224,6 +224,21 @@ class LlamaCppCompressorClient:
                 '"Кто разгружает корабль?" — вопрос о событии мира -> acts: [{"type": "QUESTION", "params": {"topic": "кто разгружает корабль"}}]. '
                 "Первый спрашивает, ОТКУДА собеседнику известно; второй — КТО СОВЕРШАЕТ действие."
             )
+        # Э0 semantic library (вердикт Мастера): семантическое знание модульно
+        # на диске, активный промпт получает ограниченный срез. Production
+        # source of truth остаётся inline (миграция — отдельный вердикт):
+        # OFF (default) путь мёртв (import внутри ветки, замок test_semlib_off),
+        # ON — модуль заменяет provenance-регион байт-в-байт состоянию B
+        # (приёмка test_semlib_on). Prov-флаги при ON игнорируются: библиотека
+        # единственный владелец региона. Router отсутствует by design (Э0-Э2):
+        # шов будущего router'а — выбор модуля между list_modules/load_module.
+        if os.environ.get("ENIGMA_SEM_LIB") == "1":
+            from app.services.input.semantic_library import load_module
+            _sem_mod = load_module("dialogue_provenance")
+            _prov_enum_tail = _sem_mod.enum_tail
+            _prov_class_block = ""
+            _prov_b_block = _sem_mod.contrast_block
+            _prov_b2_block = ""
         if os.environ.get("ENIGMA_RC8_STATE") == "B":
             _rc8_fewshot = (
                 'Ввод: "Кто тебе сказал, что меня зовут Мю?" -> {"action": "DIALOGUE", "semantic_acts": [{"type": "ASK_PROVENANCE", "params": {"about": "имя игрока"}}], "speech_act": "question"}\n'

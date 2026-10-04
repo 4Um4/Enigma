@@ -1,0 +1,892 @@
+[LLM_COMPRESSOR] Unexpected error: [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] Unexpected error: [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+[LLM_COMPRESSOR] Unexpected error: [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+[LLM_COMPRESSOR] request failed: HTTPError code=503 | SERVER BODY: {"error":{"message":"Loading model","type":"unavailable_error","code":503}}
+[LLM_COMPRESSOR] request failed: HTTPError code=503 | SERVER BODY: {"error":{"message":"Loading model","type":"unavailable_error","code":503}}
+[LLM_COMPRESSOR] request failed: HTTPError code=503 | SERVER BODY: {"error":{"message":"Loading model","type":"unavailable_error","code":503}}
+[LLM_COMPRESSOR] Unexpected error: [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+Запускаю LLM-сервер для probe corpus...
+[LLM_MANAGER] llama-server уже запущен.
+[DET-ENV] mode=REUSE — identity NOT verified | model=Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf | port=8181 | owner_pid=13004
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+=== SEMANTIC PROBE CORPUS v0 ===
+[DIAG-LLM] slow-path: None (LLM мертва)
+[RECOVERY] multi-sentence fast=UNCERTAIN → LLM comprehension
+
+[H-GREET] TEXT: 'Быть добру! Привет! Здоровеньки булы!'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: GREETING | latency: 8.15s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-GREET] TEXT: 'Здавствуй и процветай!'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: GREETING | latency: 1.03s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-GREET] TEXT: 'Рад встрече!'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: GREETING | latency: 0.03s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-GREET] TEXT: 'Извините, а ....'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: NEUTRAL/обрыв | latency: 0.03s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-GREET] TEXT: 'Утро доброе!'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: GREETING | latency: 0.02s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-INTRO] TEXT: 'Разрешите представиться - я Мю'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 0.03s
+[DET-TRACE] prompt_md5=ab0539f3db4f80183dfa211150490b6f seed=586637400 resp_md5=c49fa03324a74307167917f9fb8aad5d
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'assert', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': "
+
+[H-INTRO] TEXT: 'Имя моё Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.66s
+[DET-TRACE] prompt_md5=c720b9ef41fb8e3a7fe647ad3d76b6e8 seed=692147069 resp_md5=b0e77bc805e3fb06e03b262d544f5979
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'self_introduction', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю'}}], 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, '"
+
+[H-INTRO] TEXT: 'Слушай сюда, звать меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.27s
+[DET-TRACE] prompt_md5=8bf12506c34877d15e15ac7aa956f1cb seed=268462947 resp_md5=249ae21520465ccde8c4db48ecd51a01
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.0, 'emotional_charge': 0.0, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0."
+
+[H-INTRO] TEXT: 'Помни и запоминай, обращайся ко мне Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.56s
+[DET-TRACE] prompt_md5=458846ba0797afe97f319afd6cbcd712 seed=1276254624 resp_md5=42f27f4f7ed5e8ea2202c4cb3af341fa
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'build_rapport', 'speech_act': 'greeting', 'semantic_acts': [{'type': 'SELF_INTRODUCTION', 'params': {'name': 'Мю Ван'}}, {'type': 'ASK_IDENTITY'}], 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'soci"
+
+[H-INTRO] TEXT: 'Мю ВАн - а вы?'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: SELF_INTRODUCTION(); ASK_IDENTITY()
+  PROP: None
+  EXPECTED: SELF_INTRO+ASK_IDENTITY | latency: 2.41s
+[RECOVERY] multi-sentence fast=MOVE → LLM comprehension
+[DET-TRACE] prompt_md5=b76fcfbbecefe9e0826e156cc0461c10 seed=789666005 resp_md5=209669da73be93aa51a6a1bdc086efde
+
+[H-AGGRO] TEXT: 'Эй! Гнида, сюда иди...'
+  ACTION: MOVE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT/INSULT | latency: 2.13s
+[DET-TRACE] prompt_md5=a5c4f40353c9a6ee358995456f51bfd1 seed=927775039 resp_md5=138371f7d104fc51e0da415f9b4aca07
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'social_intent': 'obtain_information', 'speech_act': 'question', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': None, 'emotional_charge': None, 'social_pressure': None, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'de"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Это ты сказал? Или твоя мама?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-провокация | latency: 3.01s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-AGGRO] TEXT: 'Ты идиот или притворяешься?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: INSULT/QUESTION | latency: 4.05s
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Херню не неси! Что за чушь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: CHALLENGE-грубый | latency: 8.18s
+[DIAG-LLM] slow-path: None (LLM мертва)
+[RECOVERY] multi-sentence fast=UNCERTAIN → LLM comprehension
+
+[H-AGGRO] TEXT: 'Слышь, дура! Слушайся меня, а не то...'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT | latency: 8.22s
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Кто рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.05s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-PROV] TEXT: 'Это я говорил?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: META/QUESTION | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'откуда знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.07s
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[H-PROV] TEXT: 'источник данной информации?'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Кто подсказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Ты уверен, или просто краем уха услышал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE/CHALLENGE | latency: 4.12s
+[DIAG-LLM] slow-path: None (LLM мертва)
+[RECOVERY] multi-sentence fast=UNCERTAIN → LLM comprehension
+
+[H-PROV] TEXT: 'Выдумываешь? может тебе показалось?'[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 8.2s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-PROV] TEXT: 'Откуда информация?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.09s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-ACTION] TEXT: 'Поцеловать её'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION/INTERACT | latency: 4.08s
+[RECOVERY] applied=['semantic_acts']
+
+[H-ACTION] TEXT: 'Спросить кто тут главный'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-об мир | latency: 4.11s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-ACTION] TEXT: 'Стянуть с него штаны'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION | latency: 4.06s
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[H-ACTION] TEXT: 'Выхватить у него меч из-за пояса и ударить им его же'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: ATTACK+tool | latency: 4.08s
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-ACTION] TEXT: 'Осмотреть его - как он выглядит? (что при нем из вещей?)'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: OBSERVE+QUESTION | latency: 8.17s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-ACTION] TEXT: 'Украсть'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: STEAL | latency: 4.1s
+[RECOVERY] multi-sentence fast=PERSUADE → LLM comprehension
+
+[H-ACTION] TEXT: 'Сесть на стул. И попросить служанку обслужить меня'
+  ACTION: PERSUADE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: MULTI-действие | latency: 4.09s
+[RECOVERY] multi-sentence fast=ATTACK → LLM comprehension
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[H-ACTION] TEXT: 'Эй! а денег дашь?'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: QUESTION/GIVE-запрос | latency: 8.12s
+[RECOVERY] applied=['semantic_acts']
+
+[H-ACTION] TEXT: 'Что у вас можно купить?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: TRADE-вопрос | latency: 4.06s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-ACTION] TEXT: 'А тебя купить можно?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: TRADE/FLIRT-провокация | latency: 4.05s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-ACTION] TEXT: 'Где мне найти информацию об...'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION-обрыв | latency: 4.04s
+[RECOVERY] applied=['proposition', 'semantic_acts']
+
+[H-ACTION] TEXT: 'Пнуть под зад'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: ASSERT()
+  PROP: None
+  EXPECTED: ATTACK | latency: 4.07s
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-CHAT] TEXT: 'Ты куешь? А что куешь посуду или оружие?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 8.16s
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-CHAT] TEXT: 'А что там за таверной есть? Или вы тут все и ночуете?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 8.12s
+[DIAG-LLM] slow-path: None (LLM мертва)
+[RECOVERY] multi-sentence fast=UNCERTAIN → LLM comprehension
+
+[H-CHAT] TEXT: 'Где вы спите? И часто вы едите?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 8.14s
+[RECOVERY] applied=['semantic_acts']
+
+[H-CHAT] TEXT: 'Ну рассказывайте - кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION-сплетни | latency: 4.09s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[SELF_INTRO] TEXT: 'Я Мю'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[SELF_INTRO] TEXT: 'Меня зовут Мю'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.08s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[SELF_INTRO] TEXT: 'Это я Мю'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.05s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[SELF_INTRO] TEXT: 'Зови меня Мю'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CORRECTION] TEXT: 'Нет, я Ворг'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION{name:Ворг} | latency: 4.1s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CORRECTION] TEXT: 'Поправка: я Ворг'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CORRECTION] TEXT: 'Забудь Мю, я Ворг'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION+отрицание | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CHALLENGE] TEXT: 'А если я соврал?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 4.05s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CHALLENGE] TEXT: 'Ты уверен?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: CHALLENGE/QUESTION | latency: 4.06s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CHALLENGE] TEXT: 'А вдруг это неправда?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[PROVENANCE] TEXT: 'Кто тебе сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[PROVENANCE] TEXT: 'Откуда ты это знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[PROVENANCE] TEXT: 'Кто сообщил тебе, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.04s
+[RECOVERY] applied=['semantic_acts']
+
+[META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.02s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[META] TEXT: 'Ты помнишь моё имя?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.04s
+[RECOVERY] applied=['semantic_acts']
+
+[META] TEXT: 'Ты уверен, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.02s
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts'][LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] request failed: URLError code= | SERVER BODY: 
+[RECONCILE] llm None: fast остаётся
+
+
+[MULTI] TEXT: 'Привет, я Мю. А кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_IDENTITY | latency: 8.16s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[MULTI] TEXT: 'Я Мю, но вообще-то я Ворг'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRO x2 / коррекция | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+[RECOVERY] multi-sentence fast=UNCERTAIN → LLM comprehension
+
+[MULTI] TEXT: 'Привет! Меня зовут Мю. Где мы?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_LOCATION | latency: 8.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CONTRAST] TEXT: 'Ты Мю?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION о собеседнике | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CONTRAST] TEXT: 'Ты ведь Мю?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: CONFIRMATION_SEEKING | latency: 4.04s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[CONTRAST] TEXT: 'Я не Мю'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: отрицание идентичности | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[GEN-PROV] TEXT: 'Откуда у тебя сведения о моём имени?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-PROV] TEXT: 'Кто тебя просветил насчёт моего имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-PROV] TEXT: 'Ты сам это узнал или тебе кто-то сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE/boundary | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто вчера был с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто ей об этом рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: boundary — не назначать заранее | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто с ней вообще разговаривал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто что-то делал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.04s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-PROV] TEXT: 'Кто тебе сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.09s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-PROV] TEXT: 'Кто сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-PROV] TEXT: 'Кто сообщил тебе моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.09s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-PROV] TEXT: 'Откуда ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-3RD] TEXT: 'Кто уже разговаривал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-3RD] TEXT: 'Кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-EDGE] TEXT: 'Кто рассказал Люсе про меня?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: context-dependent | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-PROV] TEXT: 'Кто источник этой информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.04s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[AB-META] TEXT: 'Кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_IDENTITY | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Кто тебе проинформировал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Откуда вам известно моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Вам кто-то рассказал, как меня зовут?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.09s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[IND-PROV] TEXT: 'Источник твоих знаний о моём имени?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.07s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[IND-PROV] TEXT: 'Тебе сказали, как я зовусь?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.05s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Кто-то тебе рассказал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Откуда тебе стало известно, как меня зовут?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.09s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[IND-PROV] TEXT: 'Ты узнал моё имя сам?'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: boundary/challenge | latency: 4.06s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-3RD] TEXT: 'Кто с Люсей разговаривал вчера вечером?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-3RD] TEXT: 'Тебе говорили, кто ходил к Люсе?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION/boundary | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-3RD] TEXT: 'Кто-нибудь говорил с служанкой?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION | latency: 4.07s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-3RD] TEXT: 'Кто ходил к Торнину с новостями?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION | latency: 4.07s
+
+=== СВОДКА ДЛЯ RCA-КАРТЫ ===
+[H-GREET] 'Быть добру! Привет! Здоровеньки булы!' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-GREET] 'Здавствуй и процветай!' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-GREET] 'Рад встрече!' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-GREET] 'Извините, а ....' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-GREET] 'Утро доброе!' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-INTRO] 'Разрешите представиться - я Мю' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-INTRO] 'Имя моё Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Слушай сюда, звать меня Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Помни и запоминай, обращайся ко мне Мю' -> action=DIALOGUE acts=[] prov_topic=False
+[H-INTRO] 'Мю ВАн - а вы?' -> action=DIALOGUE acts=['SELF_INTRODUCTION', 'ASK_IDENTITY'] prov_topic=False
+[H-AGGRO] 'Эй! Гнида, сюда иди...' -> action=MOVE acts=[] prov_topic=False
+[H-AGGRO] 'Это ты сказал? Или твоя мама?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Ты идиот или притворяешься?' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-AGGRO] 'Херню не неси! Что за чушь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Слышь, дура! Слушайся меня, а не то...' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-PROV] 'Кто рассказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'Это я говорил?' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-PROV] 'откуда знаешь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'источник данной информации?' -> action=ATTACK acts=['ASSERT'] prov_topic=False
+[H-PROV] 'Кто подсказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'Ты уверен, или просто краем уха услышал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'Выдумываешь? может тебе показалось?' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-PROV] 'Откуда информация?' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-ACTION] 'Поцеловать её' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-ACTION] 'Спросить кто тут главный' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Стянуть с него штаны' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-ACTION] 'Выхватить у него меч из-за пояса и ударить им его же' -> action=ATTACK acts=['ASSERT'] prov_topic=False
+[H-ACTION] 'Осмотреть его - как он выглядит? (что при нем из вещей?)' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Украсть' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-ACTION] 'Сесть на стул. И попросить служанку обслужить меня' -> action=PERSUADE acts=[] prov_topic=False
+[H-ACTION] 'Эй! а денег дашь?' -> action=ATTACK acts=['ASSERT'] prov_topic=False
+[H-ACTION] 'Что у вас можно купить?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'А тебя купить можно?' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-ACTION] 'Где мне найти информацию об...' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-ACTION] 'Пнуть под зад' -> action=ATTACK acts=['ASSERT'] prov_topic=False
+[H-CHAT] 'Ты куешь? А что куешь посуду или оружие?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'А что там за таверной есть? Или вы тут все и ночуете?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'Где вы спите? И часто вы едите?' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-CHAT] 'Ну рассказывайте - кто уже трахался с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[SELF_INTRO] 'Я Мю' -> action=UNCERTAIN acts=[] prov_topic=False
+[SELF_INTRO] 'Меня зовут Мю' -> action=UNCERTAIN acts=[] prov_topic=False
+[SELF_INTRO] 'Это я Мю' -> action=UNCERTAIN acts=[] prov_topic=False
+[SELF_INTRO] 'Зови меня Мю' -> action=UNCERTAIN acts=[] prov_topic=False
+[CORRECTION] 'Нет, я Ворг' -> action=UNCERTAIN acts=[] prov_topic=False
+[CORRECTION] 'Поправка: я Ворг' -> action=UNCERTAIN acts=[] prov_topic=False
+[CORRECTION] 'Забудь Мю, я Ворг' -> action=UNCERTAIN acts=[] prov_topic=False
+[CHALLENGE] 'А если я соврал?' -> action=UNCERTAIN acts=[] prov_topic=False
+[CHALLENGE] 'Ты уверен?' -> action=UNCERTAIN acts=[] prov_topic=False
+[CHALLENGE] 'А вдруг это неправда?' -> action=UNCERTAIN acts=[] prov_topic=False
+[PROVENANCE] 'Кто тебе сказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[PROVENANCE] 'Откуда ты это знаешь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[PROVENANCE] 'Кто сообщил тебе, что я Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[META] 'Ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[META] 'Ты помнишь моё имя?' -> action=UNCERTAIN acts=[] prov_topic=False
+[META] 'Ты уверен, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[MULTI] 'Привет, я Мю. А кто ты?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[MULTI] 'Я Мю, но вообще-то я Ворг' -> action=UNCERTAIN acts=[] prov_topic=False
+[MULTI] 'Привет! Меня зовут Мю. Где мы?' -> action=UNCERTAIN acts=[] prov_topic=False
+[CONTRAST] 'Ты Мю?' -> action=UNCERTAIN acts=[] prov_topic=False
+[CONTRAST] 'Ты ведь Мю?' -> action=UNCERTAIN acts=[] prov_topic=False
+[CONTRAST] 'Я не Мю' -> action=UNCERTAIN acts=[] prov_topic=False
+[GEN-PROV] 'Откуда у тебя сведения о моём имени?' -> action=UNCERTAIN acts=[] prov_topic=False
+[GEN-PROV] 'Кто тебя просветил насчёт моего имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-PROV] 'Ты сам это узнал или тебе кто-то сказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто вчера был с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто ей об этом рассказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто с ней вообще разговаривал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто что-то делал с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Кто тебе сказал, что я Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Кто сказал, что я Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Кто сообщил тебе моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Откуда ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-3RD] 'Кто уже разговаривал с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-3RD] 'Кто уже трахался с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-EDGE] 'Кто рассказал Люсе про меня?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Кто источник этой информации?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-META] 'Ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-META] 'Кто ты?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Кто тебе проинформировал о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Откуда вам известно моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Вам кто-то рассказал, как меня зовут?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Источник твоих знаний о моём имени?' -> action=UNCERTAIN acts=[] prov_topic=False
+[IND-PROV] 'Тебе сказали, как я зовусь?' -> action=UNCERTAIN acts=[] prov_topic=False
+[IND-PROV] 'Кто-то тебе рассказал о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Откуда тебе стало известно, как меня зовут?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Ты узнал моё имя сам?' -> action=UNCERTAIN acts=[] prov_topic=False
+[IND-3RD] 'Кто с Люсей разговаривал вчера вечером?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Тебе говорили, кто ходил к Люсе?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Кто-нибудь говорил с служанкой?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Кто ходил к Торнину с новостями?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+
+(RCA-разметка: FAILURE_BOUNDARY по каждому промаху — вручную по trace выше)
