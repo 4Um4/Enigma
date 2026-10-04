@@ -1,0 +1,82 @@
+EMPTY=113 law_mapped=24 WAVE3_FILLABLE=19 no_law_entry=89 total_drop_paths=24
+== WAVE3 SAMPLE (30)
+  ADR-31: 2 paths
+  ADR-47: 2 paths
+  ADR-149: 2 paths
+  ADR-311: 2 paths
+  ADR-INV-DEF: 1 paths
+  ADR-O-146: 2 paths
+  ADR-O-305: 2 paths
+  ADR-O-324: 1 paths
+  ADR-O-325: 2 paths
+  ADR-O-330: 2 paths
+  ADR-O-353: 1 paths
+  ADR-O-354: 3 paths
+  ADR-O-355: 3 paths
+  ADR-O-360: 2 paths
+  ADR-O-379: 1 paths
+  ADR-O-380: 4 paths
+  ADR-O-381: 1 paths
+  ADR-O-R2: 2 paths
+  ADR-S83.1: 2 paths
+== NO-LAW (89)
+  ADR-17
+  ADR-30
+  ADR-32
+  ADR-35
+  ADR-42
+  ADR-43
+  ADR-44
+  ADR-48
+  ADR-49
+  ADR-50
+  ADR-51
+  ADR-52
+  ADR-53
+  ADR-54
+  ADR-55
+  ADR-56
+  ADR-57
+  ADR-58
+  ADR-59
+  ADR-64
+  ADR-73
+  ADR-75
+  ADR-82
+  ADR-90
+  ADR-102
+  ADR-115
+  ADR-116
+  ADR-130
+  ADR-131
+  ADR-140
+  ADR-147
+  ADR-150
+  ADR-151
+  ADR-157
+  ADR-158
+  ADR-301
+  ADR-302
+  ADR-310.1
+  ADR-310.2
+  ADR-314
+  ADR-CI-MYPY
+  ADR-CNSRL
+  ADR-DEBUG-001
+  ADR-DET-02
+  ADR-DM-001
+  ADR-GENDER
+  ADR-GL-202
+  ADR-GL-203
+  ADR-GUARD
+  ADR-INFRA-MVI
+  ADR-L1-PERSIST
+  ADR-MANIFEST
+  ADR-NET-CLI-QUIET
+  ADR-NET-PARSER-V2
+  ADR-O-112
+  ADR-O-137
+  ADR-O-142A
+  ADR-O-142
+  ADR-O-148
+  ADR-O-207
