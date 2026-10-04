@@ -1,4 +1,5 @@
 ﻿`ADR-O-380` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/belief_transition_engine.py, backend/app/services/npc/state_applicator.py, backend/app/services/memory/belief_aggregator.py, backend/app/services/npc/npc_loader.py
 
 # ADR-O-380 Impact Audit — BeliefState Write Guard (L14.5)
 

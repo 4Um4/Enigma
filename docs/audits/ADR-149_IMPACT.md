@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-149` [STANDARD] **IMPACT**
+Files: backend/app/services/will.py, backend/app/services/npc/decision_hub.py
 # ADR-149 Impact Audit: Schedule Freeze — Need Override & Two-Layer Dispatch
 
 ## Changed Domains

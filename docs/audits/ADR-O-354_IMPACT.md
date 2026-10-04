@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-O-354` [STANDARD] **IMPACT**
+Files: backend/app/domain/epistemology.py, backend/app/services/npc/epistemic_store.py, backend/app/services/npc/belief_revision_engine.py
 # ADR-O-354 Impact Audit: Epistemic Core Foundation
 
 > Этот файл — детальный аудит ADR-O-354. Единый атлас: `docs/ADR (Architecture Decision Records).md`

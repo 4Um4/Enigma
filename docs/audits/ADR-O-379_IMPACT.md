@@ -1,4 +1,5 @@
 ﻿`ADR-O-379` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/state_applicator.py
 # ADR-O-379 Impact Audit — PerceptualKernel Write Guard (L8.2)
 
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md (DOM-03, L8.2).

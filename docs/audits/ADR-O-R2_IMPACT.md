@@ -1,5 +1,6 @@
 # ADR-O-R2 Impact Audit
 `ADR-O-R2` [STANDARD] **Feasibility Enforcement Law**
+Files: backend/app/services/cfrm/pressure_translator.py, backend/tests/gameplay/test_gc09_body_causality.py
 > Единый атлас: docs/ADR (Architecture Decision Records).md (L5.3)
 
 ## Changed Domains

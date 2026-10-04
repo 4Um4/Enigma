@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-O-353` [STANDARD] **IMPACT**
+Files: backend/app/services/npc/sleep_lifecycle_service.py
 # ADR-O-353 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

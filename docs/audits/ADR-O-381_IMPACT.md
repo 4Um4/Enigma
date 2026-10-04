@@ -1,4 +1,5 @@
 ﻿`ADR-O-381` [STANDARD] **IMPACT**
+Files: backend/tests/sandbox/SUPERBOX/scenarios/bc1_conclusion_test.py
 # ADR-O-381 Impact Audit — Conclusion Layer (BC-1, dormant)
 
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md (DOM-06&09, L14.6).

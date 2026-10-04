@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-O-355` [STANDARD] **IMPACT**
+Files: backend/app/domain/epistemology.py, backend/app/services/npc/epistemic_store.py, backend/app/services/npc/belief_revision_engine.py
 # ADR-O-355 Impact Audit: Modifier Contract v1
 
 > Этот файл — детальный аудит ADR-O-355. Единый атлас: `docs/ADR (Architecture Decision Records).md`

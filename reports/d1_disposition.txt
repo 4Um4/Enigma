@@ -1,0 +1,105 @@
+D1 DISPOSITION — итог волн 1/1b/2/2b/3 (долговая ветка)
+filled=78 empty=94 no_header=0 (старт: filled=1, no_header=12)
+== REMAINING EMPTY (94) — нет атласного источника; пер-файловая археология тел аудитов (отдельная работа)
+  ADR-17
+  ADR-30
+  ADR-32
+  ADR-35
+  ADR-42
+  ADR-43
+  ADR-44
+  ADR-48
+  ADR-49
+  ADR-50
+  ADR-51
+  ADR-52
+  ADR-53
+  ADR-54
+  ADR-55
+  ADR-56
+  ADR-57
+  ADR-58
+  ADR-59
+  ADR-64
+  ADR-73
+  ADR-75
+  ADR-82
+  ADR-90
+  ADR-102
+  ADR-115
+  ADR-116
+  ADR-130
+  ADR-131
+  ADR-140
+  ADR-147
+  ADR-150
+  ADR-151
+  ADR-156
+  ADR-157
+  ADR-158
+  ADR-159
+  ADR-301
+  ADR-302
+  ADR-310.1
+  ADR-310.2
+  ADR-314
+  ADR-CI-MYPY
+  ADR-CNSRL
+  ADR-DEBUG-001
+  ADR-DET-02
+  ADR-DM-001
+  ADR-GENDER
+  ADR-GL-202
+  ADR-GL-203
+  ADR-GUARD
+  ADR-INFRA-MVI
+  ADR-L1-PERSIST
+  ADR-MANIFEST
+  ADR-NET-CLI-QUIET
+  ADR-NET-PARSER-V2
+  ADR-O-112
+  ADR-O-137
+  ADR-O-142A
+  ADR-O-142
+  ADR-O-148
+  ADR-O-207
+  ADR-O-212
+  ADR-O-301
+  ADR-O-305A
+  ADR-O-310
+  ADR-O-311
+  ADR-O-318
+  ADR-O-320
+  ADR-O-321
+  ADR-O-322
+  ADR-O-323
+  ADR-O-327
+  ADR-O-328
+  ADR-O-343
+  ADR-O-344
+  ADR-O-356
+  ADR-O-357
+  ADR-O-361
+  ADR-O-362
+  ADR-O-366
+  ADR-RE-M1B.3.6
+  ADR-S199
+  ADR-S200
+  ADR-S202
+  ADR-S203
+  ADR-S82.0
+  ADR-S91
+  ADR-S96.1
+  ADR-TIFL-002
+  ADR-TIFL-003
+  ADR-TZ04
+  ADR-TZ05-2
+  ADR-TZ08-8
+== STALE ATLAS PATHS (владелец: Мастер/владелец атласа)
+  O-367: backend/tests/calibration_lab/test_m1_trust_intervention.py — жив только в ветке V.0.5.4.2.3 (S320 doc-drift)
+  O-414: scripts/consumer_gap_debts.py — удалён (S321: реестр поглощён causality_manifest); .pyc-мусор вычищен гигиеной
+== STRUCTURAL FINDINGS (владелец: Мастер)
+  F1: конвенция S311 'IMPACT-шапки без бэктиков' противоречит _ADR_LINE_REGEX/тесту — 12 аудитов были невидимы графу целиком (канонизированы батчем 2, §13.5: прав код)
+  F2: 📁-строки законов атласа невидимы парсеру (law-ветка ищет литерал Files) — Wave 3 переносит их в IMPACT; семантика наследования law->members сохранена
+== IPT GATE (честный статус)
+  На закрытие IPT не завершается: SyntaxError backend/app/services/npc/state_applicator.py:185 — незакоммиченный WIP параллельной ветки M2/D (не мой контур, Anti-Race). Последний валидный прогон: 50/1 (INV-CONSUMER-GAP-ORPHAN = их WIP). Дока-батчи верифицированы цензом парсера ADR-Net; код не менялся.

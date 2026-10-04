@@ -1,0 +1,47 @@
+HYGIENE ADR-O-414_IMPACT.md: -1 garbage
+hygiene_files=1
+W3 ADR-149: 2 paths
+W3 ADR-31: 2 paths
+W3 ADR-311: 2 paths
+W3 ADR-47: 2 paths
+W3 ADR-INV-DEF: 1 paths
+W3 ADR-O-146: 2 paths
+W3 ADR-O-305: 2 paths
+W3 ADR-O-324: 1 paths
+W3 ADR-O-325: 2 paths
+W3 ADR-O-330: 2 paths
+W3 ADR-O-353: 1 paths
+W3 ADR-O-354: 3 paths
+W3 ADR-O-355: 3 paths
+W3 ADR-O-360: 2 paths
+W3 ADR-O-379: 1 paths
+W3 ADR-O-380: 4 paths
+W3 ADR-O-381: 1 paths
+W3 ADR-O-R2: 2 paths
+W3 ADR-S83.1: 2 paths
+wave3_inserted=19 drop_paths=24
+  DROP ADR-156: fe/api_client.py
+  DROP ADR-156: fe/game_screen.py
+  DROP ADR-159: svc/game_loop/input/intent_compressor.py
+  DROP ADR-INV-DEF: diagnostics/invariant_health.py
+  DROP ADR-O-324: svc/spatial/motion_pipeline.py
+  DROP ADR-O-353: svc/game_loop/time_skip_executor.py
+  DROP ADR-O-357: svc/npc/trust_based_reliability_provider.py` (единственная реализация; инлайн в подписчике удалён
+  DROP ADR-O-362: svc/npc/decision_hub (_steal_affinity
+  DROP ADR-O-362: svc/phases/post_decision (маршрутизатор
+  DROP ADR-O-362: svc/events/intent_event_adapter
+  DROP ADR-O-362: models/npc_state (Intent.STEAL)
+  DROP ADR-O-362: dom/intent_profiles
+  DROP ADR-O-379: mod/npc_state.py` (PerceptualKernel: `_PK_ALLOWED_WRITERS
+  DROP ADR-O-380: mod/npc/beliefs.py` (`_UPDATE_ALLOWED_WRITERS
+  DROP ADR-O-381: (план BC-1-сессии) `dom/conclusions.py` (триплет + proposal + predicate)
+  DROP ADR-O-381: svc/memory/conclusion_engine.py` (pure)
+  DROP ADR-O-381: svc/memory/conclusion_gate.py` (мембрана)
+  DROP ADR-O-381: svc/npc/conclusion_store.py` (SSOT)
+  DROP ADR-O-381: svc/phases/integration.py` (Фаза 9
+  DROP ADR-O-381: svc/tick_orchestrator.py` (store + pre-commit проекция)
+  DROP ADR-O-381: svc/events/event_types.py` (CONCLUSION_FORMED)
+  DROP ADR-O-R2: svc/npc/decision_hub.py` (ФАЗА 1)
+  DROP ADR-S199: svc/npc/trust_based_reliability_provider.py` (единственная реализация; инлайн в подписчике удалён
+  DROP ADR-S83.1: svc/kernel_rng.py
+CENSUS filled=78 empty=94 no_header=0

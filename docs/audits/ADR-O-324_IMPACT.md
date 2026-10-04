@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-O-324` [STANDARD] **IMPACT**
+Files: backend/app/services/spatial/world_topology_provider.py
 # ADR-O-324 Impact Audit: ObservationRelation Contract
 > Этот файл — детальный аудит онтологического сдвига.
 

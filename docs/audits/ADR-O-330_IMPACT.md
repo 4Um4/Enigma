@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-O-330` [STANDARD] **IMPACT**
+Files: backend/app/domain/spatial_target.py, backend/app/services/spatial/spatial_target_resolver.py
 **ADR-O-330: Spatial Agency Law (Закон Пространственной Агентности)**
 *   **Статус:** Accepted.
 *   **Контекст:** Жёсткая привязка целей NPC к заранее заданным навигационным узлам (`target_node_id`) превращает NPC в машинистов на рельсах и делает невозможной эмерджентную пространственную агентность (поиск укрытия, свободное блуждание, социальное дистанцирование).

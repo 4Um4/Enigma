@@ -2,6 +2,7 @@
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 `ADR-O-146` [STANDARD] **IMPACT**
+Files: backend/app/services/will.py, backend/app/services/npc/decision_hub.py
 # ADR-O-146 Impact Audit: Personality Math Layer (Causal Geometry of Character)
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 

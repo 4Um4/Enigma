@@ -1,4 +1,5 @@
 ﻿`ADR-S83.1` [STANDARD] **IMPACT**
+Files: backend/app/services/tick_orchestrator.py, backend/app/services/npc/npc_tick_pipeline.py
 # ADR-S83.1 Impact Audit
 > Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
