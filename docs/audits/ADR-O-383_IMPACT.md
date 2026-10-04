@@ -1,4 +1,6 @@
 # Impact Audit — ADR-O-383 [ONTO] Embodied Constraint — Chronic Body Axes → Feasibility (V1)
+`ADR-O-383` [ONTO] **Embodied Constraint — Chronic Body Axes → Feasibility (V1)**
+Files: backend/app/services/cfrm/pressure_translator.py, backend/tests/gameplay/test_gc09_body_causality.py
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains

@@ -1,4 +1,5 @@
-ADR-O-417 [STANDARD] **IMPACT**
+`ADR-O-417` [ONTO] **RE-M1b Relationship Cycle — Write Gate, V2 RAM-authoritative Cutover, M1b.5 Sanitation**
+Files: backend/app/services/social/relationship_write_gate.py, backend/app/services/social/v2_relationship_backend.py, backend/app/services/social/relationship_state_store.py, backend/app/services/memory/relationship_store.py, backend/app/services/memory/memory_manager.py, backend/app/services/npc/state_applicator.py, backend/tests/test_relationship_state_store.py
 # ADR-O-417 Impact Audit
 > Детальный аудит ОДНОГО ADR (ретро-регистрация RE-M1b-цикла + M1b.5 санация S322). Единый атлас: docs/ADR (Architecture Decision Records).md
 > **Ретро-регистрация:** работы S231–S246 в коммитах ссылались на «ADR-O-371 (M1b-контекст)» — документационный дрейф-алиас; канон O-371 = W1 Spatial Topology (S230). Исторические ссылки не переписываются (прецедент O-400/O-413, Устав 11.1.1).

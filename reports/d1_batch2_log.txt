@@ -1,0 +1,25 @@
+INSERT ADR-NET-CLI-QUIET: `ADR-NET-CLI-QUIET` [FIX] **IMPACT** (type-src=fallback)
+INSERT ADR-NET-PARSER-V2: `ADR-NET-PARSER-V2` [FIX] **IMPACT** (type-src=fallback)
+INSERT ADR-O-383: `ADR-O-383` [ONTO] **Embodied Constraint — Chronic Body Axes → Feasibility (V1)** (type-src=atlas)
+INSERT ADR-O-393: `ADR-O-393` [ONTO] **Determinism Foundation — кросс-процессный детерминизм причинного контура** (type-src=atlas)
+INSERT ADR-O-396: `ADR-O-396` [ONTO] **SOCIAL Vertical Slice — «потребность в другом → изменившиеся отношения»** (type-src=atlas)
+INSERT ADR-O-413: `ADR-O-413` [ONTO] **Causal Slice 4 — Affection: забота о состоянии другого** (type-src=atlas)
+INSERT ADR-O-414: `ADR-O-414` [ONTO] **INV-CONSUMER-GAP / Causal Anatomy — машина детекции «state exists ≠ state has consequence»** (type-src=atlas)
+INSERT ADR-O-415: `ADR-O-415` [ONTO] **RE Freeze-Guard — allowlist-заморозка поверхности relationship_cache** (type-src=atlas)
+INSERT ADR-O-416: `ADR-O-416` [ONTO] **GC-11 L3-gate — RED=находка: event→V2 доказан живьём, поведенческий ноль = RE-D2 выборка 5** (type-src=atlas)
+INPLACE ADR-O-417: `ADR-O-417` [ONTO] **RE-M1b Relationship Cycle — Write Gate, V2 RAM-authoritative Cutover, M1b.5 Sanitation** (type-src=atlas)
+INSERT ADR-O-R2: `ADR-O-R2` [STANDARD] **Feasibility Enforcement Law** (type-src=fallback)
+INSERT ADR-RE-M1b.3.6: `ADR-RE-M1b.3.6` [STANDARD] **RE-01 M1b.3.6 S128** (type-src=fallback)
+1b-INSERT ADR-O-383: 2 paths
+1b-INSERT ADR-O-393: 2 paths
+1b-INSERT ADR-O-396: 3 paths
+1b-INSERT ADR-O-413: 4 paths
+1b-INSERT ADR-O-414: 4 paths
+1b-INSERT ADR-O-415: 4 paths
+1b-INSERT ADR-O-416: 3 paths
+1b-INSERT ADR-O-417: 7 paths
+== 1b DROPS
+  ADR-O-393: missing-on-disk:backend/tests/sandbox/iron_river_*.py
+  ADR-O-414: missing-on-disk:scripts/consumer_gap_debts.py
+  ADR-O-416: unresolved-prefix:config/calibration/scenarios/gc11_move_only.yaml
+  ADR-O-416: unresolved-prefix:config/calibration/scenarios/gc11_help_move.yaml

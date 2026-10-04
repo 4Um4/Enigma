@@ -1,4 +1,6 @@
 # ADR-O-414 Impact Audit — INV-CONSUMER-GAP / Causal Anatomy (Stage 1)
+`ADR-O-414` [ONTO] **INV-CONSUMER-GAP / Causal Anatomy — машина детекции «state exists ≠ state has consequence»**
+Files: scripts/lint_consumer_gap.py, backend/tests/IPT.py, docs/audits/INV-CONSUMER-GAP_EXAM.md, docs/audits/ADR-O-414_IMPACT.md
 > Детальный аудит ОДНОГО ADR. Единый атлас: docs/ADR (Architecture Decision Records).md
 
 ## Changed Domains

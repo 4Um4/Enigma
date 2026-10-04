@@ -1,4 +1,6 @@
 # Impact Audit — ADR-O-413 [ONTO] Causal Slice 4 — Affection: забота о состоянии другого (R8)
+`ADR-O-413` [ONTO] **Causal Slice 4 — Affection: забота о состоянии другого**
+Files: backend/app/domain/desired_change.py, backend/app/services/npc/causal_slice_affection.py, backend/app/services/npc/npc_tick_pipeline.py, backend/tests/gameplay/test_r8_causal_slice_affection.py
 > Примечание: изначально анонсирован как ADR-O-400 (конфликт с Watermark S274) — ренумбер по Уставу 11.1.1. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains

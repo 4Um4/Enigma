@@ -1,4 +1,5 @@
 # ADR-NET-CLI-QUIET [FIX] Impact Audit
+`ADR-NET-CLI-QUIET` [FIX] **IMPACT**
 > Инфраструктурный фикс CLI (без нового ADR, прецедент ADR-408 [FIX]). Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains

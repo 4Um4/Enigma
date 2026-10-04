@@ -1,4 +1,5 @@
 # ADR-RE-M1b.3.6 Impact Audit (S318)
+`ADR-RE-M1b.3.6` [STANDARD] **RE-01 M1b.3.6 S128**
 > Stub-аудит долговой зачистки (прецедент S315 ADR-NET-PARSER-V2). Единый атлас: docs/ADR (Architecture Decision Records).md.
 ## Changed Domains
 - RE-01 decision-readers: удалены мёртвые пути чтения отношений (S135-статик AgentAction._get_rel_value; дубликат DecisionHub._compute_risk + _THREAT_MARKER_VALUES; Scalar-ветка social_deltas._get_rel_value). Контракт Precedence сжат: Graph > Vacuum (плоских прод-писателей не существует — grep-доказательство).

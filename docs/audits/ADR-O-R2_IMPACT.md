@@ -1,4 +1,5 @@
 # ADR-O-R2 Impact Audit
+`ADR-O-R2` [STANDARD] **Feasibility Enforcement Law**
 > Единый атлас: docs/ADR (Architecture Decision Records).md (L5.3)
 
 ## Changed Domains

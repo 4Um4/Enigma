@@ -1,4 +1,6 @@
 # ADR-O-415 Impact Audit (S319, RE-01 M1b.3.7)
+`ADR-O-415` [ONTO] **RE Freeze-Guard — allowlist-заморозка поверхности relationship_cache**
+Files: scripts/lint_relationship_cache_allowlist.py, backend/tests/IPT.py, backend/tests/micro/test_re_cache_allowlist.py, docs/audits/ADR-O-415_IMPACT.md
 > Греп-страж freeze-поверхности relationship_cache. Единый атлас: docs/ADR (Architecture Decision Records).md. Вход: читатель-карта S318 (коммит 9c282746); сжатая версия — docs/audits/ADR-RE-M1B3_6_IMPACT.md.
 
 ## Changed Domains

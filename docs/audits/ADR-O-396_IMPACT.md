@@ -1,4 +1,6 @@
 # Impact Audit — ADR-O-396 [ONTO] SOCIAL Vertical Slice — «потребность в другом → изменившиеся отношения»
+`ADR-O-396` [ONTO] **SOCIAL Vertical Slice — «потребность в другом → изменившиеся отношения»**
+Files: backend/app/services/game_loop/__init__.py, backend/app/services/game_loop/task_scheduler.py, backend/tests/sandbox/superbox_social_deterministic.py
 > Детальный аудит ОДНОГО ADR. Единый атлас: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
