@@ -101,7 +101,8 @@ def main():
             release_notes = release.get('body', 'Ежедневное обновление раннего доступа.')
             answer = messagebox.askyesno(
                 "Доступно обновление Bloodloom",
-                f"Текущая версия: {local_ver}\nНовая версия: {latest_ver}\n\n{release_notes}\n\nСкачать и установить обновление сейчас?"
+                f"Текущая версия: {local_ver}\nНовая версия: {latest_ver}\n\n{release_notes}\n\n"
+                "Скачать и установить обновление сейчас?"
             )
             root.destroy()
 
@@ -128,7 +129,8 @@ def main():
                     # предупредили и играем на текущей версии (наблюдено: релиз
                     # с .rar-ассетом полностью блокировал запуск через старый
                     # Bloodloom.exe — «Игра будет закрыана»).
-                    _warn = tk.Tk(); _warn.withdraw()
+                    _warn = tk.Tk()
+                    _warn.withdraw()
                     messagebox.showwarning(
                         "Обновление недоступно",
                         "В последнем релизе нет файла установки (.exe — только архив).\n"
@@ -199,8 +201,12 @@ def main():
 
                 if _cb.cancelled or _result.get('ok') is None:
                     win.destroy()
-                    _c = tk.Tk(); _c.withdraw()
-                    messagebox.showinfo("Обновление отменено", "Загрузка отменена. Недокачанный файл удалён.\nЗапустите игру позже, чтобы повторить.")
+                    _c = tk.Tk()
+                    _c.withdraw()
+                    messagebox.showinfo(
+                        "Обновление отменено",
+                        "Загрузка отменена. Недокачанный файл удалён.\nЗапустите игру позже, чтобы повторить.",
+                    )
                     _c.destroy()
                     os._exit(0)  # Отмена = не запускаем игру со старой версией молча
 
@@ -216,7 +222,8 @@ def main():
                              '/NOCANCEL', '/NORESTART', '/CLOSEAPPLICATIONS'],
                             creationflags=_flags,
                         )
-                        _s = tk.Tk(); _s.withdraw()
+                        _s = tk.Tk()
+                        _s.withdraw()
                         messagebox.showinfo(
                             "Обновление загружено",
                             "Установщик запущен. Игра обновится автоматически\n"
@@ -224,13 +231,18 @@ def main():
                         _s.destroy()
                         os._exit(0)
                     except Exception as _e:
-                        _err = tk.Tk(); _err.withdraw()
-                        messagebox.showerror("Ошибка запуска установщика", f"Установщик скачан, но не запустился:\n{_e}\n\nФайл: {main_path}")
+                        _err = tk.Tk()
+                        _err.withdraw()
+                        messagebox.showerror(
+                            "Ошибка запуска установщика",
+                            f"Установщик скачан, но не запустился:\n{_e}\n\nФайл: {main_path}",
+                        )
                         _err.destroy()
                         os._exit(1)
 
                 # Скачивание упало (сеть и т.п.) — предупреждаем и играем на старой
-                _err = tk.Tk(); _err.withdraw()
+                _err = tk.Tk()
+                _err.withdraw()
                 messagebox.showwarning(
                     "Ошибка загрузки",
                     "Не удалось скачать обновление (проблема сети или GitHub).\n"

@@ -425,10 +425,10 @@ class DNAComputer:
         # Инвариант 3: PFI delta
         _pfi_curr = current.prebus_failures / max(current.total_ticks, 1) * 100
         _pfi_prev = previous.prebus_failures / max(previous.total_ticks, 1) * 100
-        
+
         _dri_curr = getattr(current, "DRI", 100.0) or 100.0
         _dri_prev = getattr(previous, "DRI", 100.0) or 100.0
-        
+
         _dpi_curr = getattr(current, "DPI", 100.0) or 100.0
         _dpi_prev = getattr(previous, "DPI", 100.0) or 100.0
 
@@ -532,17 +532,17 @@ class DNAComputer:
         lines.append(
             f"| **Tracebacks** | {snapshot.total_tracebacks} (AttrErr={snapshot.attribute_errors}, TypeErr={snapshot.type_errors}) | → | {_tb_interpret} |"
         )
-        
+
         _bci_interpret = "✅ Убеждения формируются" if snapshot.BCI > 0 else "⚠️ Память не кристаллизуется (BCI=0)"
         lines.append(
             f"| **BCI** (Belief Crystallization) | {snapshot.beliefs_crystallized} (idx={snapshot.BCI:.2f}) | → | {_bci_interpret} |"
         )
-        
+
         _bpi_interpret = "✅ Давление доходит" if snapshot.BPI > 0 else "⚠️ NPC не ломаются (BPI=0)"
         lines.append(
             f"| **BPI** (Break Progress) | {snapshot.break_progress_events} (broken={snapshot.will_broken_transitions}) | → | {_bpi_interpret} |"
         )
-        
+
         _nei_interpret = "✅ NPC нуждаются" if snapshot.NEI > 0 else "⚠️ NPC слишком комфортны (NEI=0)"
         lines.append(
             f"| **NEI** (Need Urgency) | {snapshot.need_urgent_events} (critical={snapshot.need_critical_events}) | → | {_nei_interpret} |"

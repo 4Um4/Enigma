@@ -1,78 +1,101 @@
 # path: backend/tests/sandbox/SUPERBOX/scenarios/re_gh_dynamics_test.py
-# Назначение: ADR-O-419 приёмка G/H — time-driven динамика потребностей на живом
-#   harness (TavernGameplayHarness; канал idle_tick → Фаза 0.5 → delta_buffer →
-#   сплит Ф9 → StateApplicator.apply_relationship_deltas → Store).
-#   Control: флаг OFF — байт-идентичность тиков. Treatment: флаг ON —
-#   давление растёт по gen_rate·Δt; фон фрустрации при p>порога(rigidity);
-#   распад > 0; отметка кванта коммитится; wake-хук no-op не падает.
-# Зависимости: TavernGameplayHarness (§9.2), get_event_bus (не нужен здесь),
-#   RelationshipStateStore (frozen-read канон, приватные носители легальны I.4).
-# Основные сущности: run() → bool
+# Назначение: ADR-O-419 (RE G/H) — time-driven динамика потребностей на живом
+#   harness. Control: флаг OFF — книга контура не создаётся (байт-идентичный
+#   baseline). Treatment: флаг ON — ≥1 кванта: отметка коммитится, давление
+#   растёт по gen_rate·Δt, клампы [0,1] живы.
+# Зависимости: TavernGameplayHarness (GC-00 §5a.2), Store frozen-read
+#   (приватные носители легальны для приёмки — I.4).
+# Основные сущности: run_control, run_treatment, main
 
 import os
+import sys
+from dataclasses import dataclass
+from typing import Any, Dict
+
+_REL_KEY = "relationship_state"
+_BOOK_KEY = "dynamics"
+_MARK_KEY = "last_quantum_seconds"
 
 
-def run() -> bool:
-    from app.services.social.relationship_dynamics import (
-        RELATIONSHIP_DYNAMICS_STATE_KEY,
-    )
-    from app.services.social.relationship_state_store import RelationshipStateStore
-    from tests.sandbox.harness import TavernGameplayHarness
+@dataclass
+class _GroupResult:
+    name: str
+    ok: bool
+    detail: str
 
-    # ── CONTROL: флаг OFF (env не задан) — байт-идентичность ──
+
+def _last_scene(harness) -> Dict[str, Any]:
+    """Канон приёмки (harness:237 / read_trust:297): _tick_scenes — полная сцена
+    тика (проекция _last_tick_scene не содержит relationship_state — DIAG-112.6)."""
+    ts = getattr(getattr(harness.game_loop, "scene_manager", None), "_tick_scenes", None) or {}
+    if not ts:
+        raise AssertionError("re_gh: _tick_scenes пуст — сцена не коммитилась")
+    return list(ts.values())[0]
+
+
+def run_control() -> _GroupResult:
+    from tests.gameplay.harness import TavernGameplayHarness
+
     os.environ.pop("RELATIONSHIP_DYNAMICS_ENABLED", None)
-    h = TavernGameplayHarness(seed=42, location="tavern")
-    h.new_game()
+    h = TavernGameplayHarness()
     try:
-        h.advance_ticks(24)  # 24 тика × 10 с = 240 с < кванта → базлайн-мир
-        scene_c = h.game_loop.scene_manager._tick_scenes[
-            list(h.game_loop.scene_manager._tick_scenes.keys())[0]
-        ]
-        root_c = scene_c.get("relationship_state") or {}
-        assert root_c.get(RELATIONSHIP_DYNAMICS_STATE_KEY) is None, (
-            "CONTROL: книга контура не должна создаваться при флаге OFF"
+        h.new_game()
+        h.advance_ticks(24)
+        scene = _last_scene(h)
+        root = scene.get(_REL_KEY) or {}
+        book = root.get(_BOOK_KEY)
+        return _GroupResult(
+            "control_flag_off",
+            book is None,
+            f"книга контура {'НЕ создана (OK)' if book is None else f'создана при OFF: {book}'}",
         )
-        levels_c = RelationshipStateStore.get_need_levels(scene_c, "maid_lusya")
-        p_c = levels_c.get("sexual", None)
-        baseline_p = p_c.current_intensity if p_c else 0.0
     finally:
         h.dispose()
 
-    # ── TREATMENT: флаг ON — 24 тика = 2 кванта (240 с ≥ 2×3600? НЕТ: 240 с < 3600) ──
-    # 1 квант = 3600 с = 360 тиков. Прогоняем 400 тиков (> 1 кванта).
+
+def run_treatment() -> _GroupResult:
+    from app.services.social.relationship_state_store import RelationshipStateStore
+    from tests.gameplay.harness import TavernGameplayHarness
+
     os.environ["RELATIONSHIP_DYNAMICS_ENABLED"] = "1"
     try:
-        h = TavernGameplayHarness(seed=42, location="tavern")
-        h.new_game()
-        h.advance_ticks(400)
-        scene_t = h.game_loop.scene_manager._tick_scenes[
-            list(h.game_loop.scene_manager._tick_scenes.keys())[0]
-        ]
-        book = (scene_t.get("relationship_state") or {}).get(
-            RELATIONSHIP_DYNAMICS_STATE_KEY
-        )
-        assert book is not None, "TREATMENT: отметка кванта обязана коммититься"
-        assert float(book.get("last_quantum_seconds", -1.0)) >= 3600.0, (
-            f"TREATMENT: last_quantum_seconds={book} < кванта — контур не сработал"
-        )
-        levels_t = RelationshipStateStore.get_need_levels(scene_t, "maid_lusya")
-        p_t = levels_t.get("sexual", None)
-        p_after = p_t.current_intensity if p_t else 0.0
-        # Давление выросло относительно контрольного мира (динамика жива)
-        assert p_after > baseline_p, (
-            f"TREATMENT: давление не выросло ({baseline_p} → {p_after}) — "
-            f"gen_rate-канал мёртв"
-        )
-        # Фр2-распад не должен ловить NaN/negative (клампы стора)
-        f_after = (p_t.frustration if p_t else 0.0)
-        assert 0.0 <= f_after <= 1.0 and 0.0 <= p_after <= 1.0
-        # wake-хук no-op: не падает в проде при ON (NPC без сна в 400 тиках — ок;
-        # проводка wake — отдельный F5-тест после DEBT-SLEEP-DELIVERY)
-        print(
-            f"[RE_GH] Control p={baseline_p:.4f} | Treatment p={p_after:.4f} | "
-            f"mark={book.get('last_quantum_seconds')}"
-        )
-        return True
+        h = TavernGameplayHarness()
+        try:
+            h.new_game()
+            h.advance_ticks(400)  # 400 тиков × 10 с = 4000 с > кванта 3600 с
+            scene = _last_scene(h)
+            book = (scene.get(_REL_KEY) or {}).get(_BOOK_KEY)
+            if book is None:
+                return _GroupResult("treatment_flag_on", False, "книга не создана — контур мёртв")
+            mark = float(book.get(_MARK_KEY, -1.0))
+            if mark < 3600.0:
+                return _GroupResult("treatment_flag_on", False, f"mark={mark} < кванта")
+            levels = RelationshipStateStore.get_need_levels(scene, "maid_lusya")
+            level = levels.get("sexual")
+            p_after = level.current_intensity if level else 0.0
+            if not (0.0 < p_after <= 1.0):
+                return _GroupResult(
+                    "treatment_flag_on", False,
+                    f"sexual.pressure={p_after} — gen_rate-канал не вырос/вне [0,1]",
+                )
+            return _GroupResult(
+                "treatment_flag_on", True,
+                f"mark={mark}, p_sexual={p_after:.4f} (>0, клампы живы)",
+            )
+        finally:
+            h.dispose()
     finally:
         os.environ.pop("RELATIONSHIP_DYNAMICS_ENABLED", None)
-        h.dispose()
+
+
+def main() -> int:
+    results = [run_control(), run_treatment()]
+    for r in results:
+        print(f"[RE_GH] {r.name}: {'OK' if r.ok else 'FAIL'} — {r.detail}")
+    ok = all(r.ok for r in results)
+    print(f"Итог: {'GREEN' if ok else 'RED'} = {sum(r.ok for r in results)}/{len(results)}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

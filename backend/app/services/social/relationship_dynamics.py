@@ -93,11 +93,24 @@ def compute_time_driven_deltas(
         return []
     # Peek БЕЗ мутации: no-op-квант не имеет права создавать книгу
     # (байт-чистота сцены при OFF-поведении и на коротких elapsed).
+    # Однородная цепочка .get + isinstance-guard: сканер ADR-O-414 строит
+    # путь по one-hop-алиасам (прецедент — ленивая инициализация стора).
+    last = 0.0
     _root = scene_state.get("relationship_state")
-    _book = (
-        _root.get(RELATIONSHIP_DYNAMICS_STATE_KEY) if isinstance(_root, dict) else None
-    )
-    last = float(_book.get("last_quantum_seconds", 0.0)) if isinstance(_book, dict) else 0.0
+    if _root is not None:
+        if not isinstance(_root, dict):
+            raise ContractValidationError(
+                f"relationship_dynamics: scene_state['relationship_state'] "
+                f"не dict ({type(_root).__name__})"
+            )
+        _book = _root.get(RELATIONSHIP_DYNAMICS_STATE_KEY)
+        if _book is not None:
+            if not isinstance(_book, dict):
+                raise ContractValidationError(
+                    f"relationship_dynamics: relationship_state['{RELATIONSHIP_DYNAMICS_STATE_KEY}'] "
+                    f"не dict ({type(_book).__name__})"
+                )
+            last = float(_book.get("last_quantum_seconds", 0.0))
     elapsed = current_seconds - last
     if elapsed < RE_DYNAMICS_QUANTUM_SECONDS:
         return []

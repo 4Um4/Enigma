@@ -269,6 +269,18 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     "state_delta.need_delta_payload.frustration_delta": FieldCausality("CAUSAL", organ="relationship", terminal="relationship", proof="backend/tests/sandbox/SUPERBOX/scenarios/re_m2d_needs_test.py"),
     "state_delta.need_delta_payload.source_event_id": FieldCausality("DEBT", organ="provenance", terminal=None, authority="ADR-O-418"),
 
+    # ═══ ADR-O-419 (RE G/H): time-driven контур ═══
+    # need_slot.gen_rate — read-only конфиг-поле слота (writer by design нет;
+    # читатель — relationship_dynamics, контур Фазы 0.5 за флагом). DEBT по
+    # прецеденту NO_WRITER×9 группы need_slot.
+    # NOTE: служебная книга кванта (relationship_state.dynamics.last_quantum_seconds)
+    # НЕ декларируется: census Слоя 1 не собирает relationship_state-*dict-ключи
+    # (CONTAINER_DOMAINS = body_state/needs, линтер ADR-O-414) — манифест = транскрипция
+    # census (шапка), запись вне census = ложный STALE. Покрытие книги — микротесты
+    # test_re_gh_dynamics (noop-чистота/mark-коммит) + SUPERBOX re_gh_dynamics_test;
+    # расширение CONTAINER_DOMAINS — отдельное решение по санкции Мастера.
+    "need_slot.gen_rate": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-419"),
+
     # ═══ temporary_drive (organ=desire) ═══
     "temporary_drive.drive_type": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-414"),
     "temporary_drive.urgency": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-414"),

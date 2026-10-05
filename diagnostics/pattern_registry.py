@@ -81,20 +81,20 @@ PATTERNS: Dict[str, str] = {
     "llm_nothing": r"dm_resp='Ничего не произошло\.'",
     "llm_pool_fail": r"\[R4A_WORKER\] exception: Все модели пула недоступны для capability=\w+",
     "task_sched_fail": r"\[TASK_SCHED\] Task failed: .*",
-    
+
     # --- Tracebacks & Generic Errors (Fix 1.5) ---
     "python_traceback": r"Traceback \(most recent call last\):",
     "python_attribute_error": r"AttributeError: (.+)",
     "python_type_error": r"TypeError: (.+)",
     "finalize_error": r"\[GAME_LOOP\] Finalize error: (.+)",
-    
+
     # --- L2.5 Belief Crystallization (Fix 1.7) ---
     "belief_crystallized": r"\[L2\.5\] Crystallized.*npc=(\w+).*trait=(\w+).*weight=([\d.]+)",
-    
+
     # --- Break Progress (Fix 1.8) ---
     "break_progress": r"\[BREAK\] npc=(\w+) stage=(\w+) integrity=([\d.]+)",
     "will_broken": r"\[BREAK\] npc=(\w+) stage=deformation.*will_override=BROKEN",
-    
+
     # --- Need Engine (Fix 1.9) ---
     "need_urgent": r"\[NEED\] npc=(\w+) type=(\w+) urgency=([\d.]+) critical=(True|False)",
     # 3+ подряд идущих CJK-символа = галлюцинация на китайском

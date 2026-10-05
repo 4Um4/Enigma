@@ -221,37 +221,37 @@ class CausalObserver:
 
             if COMPILED["llm_nothing"].search(line):
                 self._tick_checker.on_llm_nothing()
-            
+
             if COMPILED["llm_pool_fail"].search(line):
                 self._tick_checker.on_llm_pool_fail()
                 return
-                
+
             if COMPILED["task_sched_fail"].search(line):
                 self._tick_checker.on_task_fail()
-                
+
             # --- Fix 1.5: Tracebacks ---
             if COMPILED["finalize_error"].search(line):
                 self._tick_checker.on_finalize_error()
-            
+
             if COMPILED["python_traceback"].search(line):
                 self._tick_checker.on_python_traceback()
-            
+
             if COMPILED["python_attribute_error"].search(line):
                 self._tick_checker.on_attribute_error()
-                
+
             if COMPILED["python_type_error"].search(line):
                 self._tick_checker.on_type_error()
-                
+
             # --- Fix 1.7: Beliefs ---
             if COMPILED["belief_crystallized"].search(line):
                 self._tick_checker.on_belief_crystallized()
-                
+
             # --- Fix 1.8: Break Progress ---
             if COMPILED["break_progress"].search(line):
                 self._tick_checker.on_break_progress()
             if COMPILED["will_broken"].search(line):
                 self._tick_checker.on_will_broken()
-                
+
             # --- Fix 1.9: Needs ---
             m_need = COMPILED["need_urgent"].search(line)
             if m_need:

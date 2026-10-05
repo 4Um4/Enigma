@@ -63,7 +63,10 @@ _BACKEND_STARTUP_TIMEOUT = 120  # секунд ожидания (LLM грузи�
 _LLM_DIAG = {"reason": "", "detail": "", "log_offset": 0}
 
 _LLM_REASONS = {
-    "exe_missing": "Не найден llama-server.exe — движок AI отсутствует. Переустановите игру (компонент «Движок llama.cpp»).",
+    "exe_missing": (
+        "Не найден llama-server.exe — движок AI отсутствует. "
+        "Переустановите игру (компонент «Движок llama.cpp»)."
+    ),
     "model_missing": "Файл AI-модели не найден. Скачайте модель: Настройки → LLM Модели.",
     "cuda": "Видеокарта или её драйвер не поддерживают CUDA. Нужна видеокарта NVIDIA и свежий драйвер.",
     "vram": "Недостаточно видеопамяти (VRAM) для этой модели. Выберите модель поменьше: Настройки → LLM Модели.",
@@ -96,7 +99,10 @@ def _llm_classify(text: str):
             "ggml_backend_cuda", "cudamalloc", "cublas", "cudart", "cudnn",
         )),
         ("model_missing", ("no such file", "does not exist", "file not found", "unable to open")),
-        ("model_bad", ("unable to load model", "failed to load model", "error loading model", "invalid magic", "corrupt")),
+        ("model_bad", (
+            "unable to load model", "failed to load model", "error loading model",
+            "invalid magic", "corrupt",
+        )),
         ("blocked", ("winerror 5", "access is denied", "permission denied", "0x80070005")),
         ("port", ("address already in use", "error while binding", "failed to bind", "only one usage of each socket")),
     ]
@@ -244,7 +250,11 @@ def _ensure_llm_running() -> Optional[subprocess.Popen]:
             return None
 
     # Берем путь к модели из настроек бэкенда
-    _model_path = getattr(_enigma_settings, "llama_cpp_model_path", os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"))
+    _model_path = getattr(
+        _enigma_settings,
+        "llama_cpp_model_path",
+        os.path.join(_ROOT, "Models LLM", "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"),
+    )
     _file_exists = os.path.exists(_model_path)
     _file_size = os.path.getsize(_model_path) if _file_exists else 0
     print(f"  [DIAG_LAUNCH] Проверка модели: {_model_path} (exists={_file_exists}, size={_file_size} bytes)")
@@ -407,9 +417,6 @@ def _ensure_servers_running() -> tuple:
         screen = pygame.display.set_mode((800, 600))
         pygame.display.set_caption("Загрузка Bloodloom...")
 
-    font = pygame.font.SysFont("Arial", 24)
-    clock = pygame.time.Clock()
-
     _backend_ok = False
     _llm_ok = (llm_proc is None)  # Если LLM не запущен нами (уже шел или ошибка), не ждем его
 
@@ -423,8 +430,10 @@ def _ensure_servers_running() -> tuple:
         _attempt += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                if backend_proc: backend_proc.terminate()
-                if llm_proc: llm_proc.terminate()
+                if backend_proc:
+                    backend_proc.terminate()
+                if llm_proc:
+                    llm_proc.terminate()
                 pygame.quit()
                 sys.exit(0)
 

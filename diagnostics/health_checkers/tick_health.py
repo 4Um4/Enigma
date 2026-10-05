@@ -34,24 +34,24 @@ class TickHealthReport:
     phase8_crash_count: int = 0  # [PHASE8_CRASH] — краш обработчика Phase 8
     tick_orch_error_count: int = 0  # [TICK_ORCH] — фатальный краш тика
     affect_decay_fail_count: int = 0  # [AFFECT_DECAY] — потеря аффективных следов
-    
+
     # Fix 1.5: Tracebacks
     total_tracebacks: int = 0
     attribute_errors: int = 0
     type_errors: int = 0
     finalize_errors: int = 0
-    
+
     # Fix 1.7: Beliefs
     beliefs_crystallized: int = 0
-    
+
     # Fix 1.8: Break Progress
     break_progress_events: int = 0
     will_broken_transitions: int = 0
-    
+
     # Fix 1.9: Needs
     need_urgent_events: int = 0
     need_critical_events: int = 0
-    
+
     warnings: List[str] = field(default_factory=list)
 
     def is_simulation_dead(self) -> bool:
@@ -156,36 +156,6 @@ class TickHealthChecker:
     def on_task_fail(self) -> None:
         """Вызывается при падении задачи в TaskScheduler."""
         self._report.failed_dialogues += 1
-
-    # --- Fix 1.5: Tracebacks ---
-    def on_python_traceback(self) -> None:
-        self._report.total_tracebacks += 1
-
-    def on_attribute_error(self) -> None:
-        self._report.attribute_errors += 1
-
-    def on_type_error(self) -> None:
-        self._report.type_errors += 1
-
-    def on_finalize_error(self) -> None:
-        self._report.finalize_errors += 1
-
-    # --- Fix 1.7: Beliefs ---
-    def on_belief_crystallized(self) -> None:
-        self._report.beliefs_crystallized += 1
-
-    # --- Fix 1.8: Break Progress ---
-    def on_break_progress(self) -> None:
-        self._report.break_progress_events += 1
-
-    def on_will_broken(self) -> None:
-        self._report.will_broken_transitions += 1
-
-    # --- Fix 1.9: Needs ---
-    def on_need_urgent(self, critical: bool) -> None:
-        self._report.need_urgent_events += 1
-        if critical:
-            self._report.need_critical_events += 1
 
     def on_llm_cjk(self) -> None:
         self._report.llm_cjk_lines += 1

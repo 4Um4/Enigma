@@ -101,6 +101,7 @@ class LlamaCppCompressorClient:
                     print(
                         "[DET-TRACE] "
                         f"prompt_md5={hashlib.md5(user_prompt.encode('utf-8')).hexdigest()} "
+                        f"sys_md5={hashlib.md5(system_prompt.encode('utf-8')).hexdigest()} "
                         f"seed={_seed} "
                         f"resp_md5={hashlib.md5(content.encode('utf-8')).hexdigest()}"
                     )
@@ -233,11 +234,19 @@ class LlamaCppCompressorClient:
         # единственный владелец региона. Router отсутствует by design (Э0-Э2):
         # шов будущего router'а — выбор модуля между list_modules/load_module.
         if os.environ.get("ENIGMA_SEM_LIB") == "1":
-            from app.services.input.semantic_library import load_modules
             # Срез = CSV имён (порядок CSV = порядок блоков, детерминирован).
             # Default = provenance (Э0-байт-эквивалентность сохраняется).
-            _sem_mods = load_modules(
-                os.environ.get("ENIGMA_SEM_LIB_MODULES", "dialogue_provenance")
+            # Router seam (SR-1 Phase 1, GO Мастера A): выбор 0..1 модулей до
+            # load_modules; сигнатуры loader'а не меняются. ENIGMA_SEM_ROUTER
+            # (default off) — dormant: off -> CSV-путь байт-в-байт; oracle ->
+            # 0..1 модуль по gold-меткам, пустой срез (ноль модулей) =
+            # байт-состояние A (замок test_semlib_router: ON+NONE == golden A).
+            from app.services.input import semantic_router
+            _sem_mods = semantic_router.select_modules(
+                raw_text,
+                csv_names=os.environ.get(
+                    "ENIGMA_SEM_LIB_MODULES", "dialogue_provenance"
+                ),
             )
             _sem_tails = [m.enum_tail for m in _sem_mods if m.enum_tail is not None]
             if len(_sem_tails) > 1:
