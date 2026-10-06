@@ -90,6 +90,6 @@ def test_projection_flag_off_is_noop(monkeypatch: pytest.MonkeyPatch) -> None:
     Control дополнительно доказывается SUPERBOX lc_gc01_world_speaks_test)."""
     from app.services.game_loop import idle_event_projection as iep
 
-    monkeypatch.delenv("IDLE_EVENTS_PROJECTION_ENABLED", raising=False)
+    monkeypatch.setenv("IDLE_EVENTS_PROJECTION_ENABLED", "0")
     assert iep.idle_events_projection_enabled() is False
     assert iep.project_idle_events([], {}) == []

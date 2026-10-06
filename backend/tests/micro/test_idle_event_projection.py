@@ -79,13 +79,15 @@ def test_dictionary_is_exactly_v1_scope() -> None:
 #        обновляет первое утверждение этим же коммитом) ──────────────────
 
 
-def test_flag_default_off_and_responsive(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_flag_default_on_and_overridable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default ON с коммита D (вердикт В4): delenv = включён; OFF — только
+    явным env. Вечный мёртвый выключатель не оставляется."""
     monkeypatch.delenv("IDLE_EVENTS_PROJECTION_ENABLED", raising=False)
-    assert iep.idle_events_projection_enabled() is False
-    monkeypatch.setenv("IDLE_EVENTS_PROJECTION_ENABLED", "1")
     assert iep.idle_events_projection_enabled() is True
     monkeypatch.setenv("IDLE_EVENTS_PROJECTION_ENABLED", "0")
     assert iep.idle_events_projection_enabled() is False
+    monkeypatch.setenv("IDLE_EVENTS_PROJECTION_ENABLED", "1")
+    assert iep.idle_events_projection_enabled() is True
 
 
 # ── 3. value-экстракторы: контракты продюсеров ──────────────────────────

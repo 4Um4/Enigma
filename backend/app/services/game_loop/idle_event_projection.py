@@ -41,15 +41,16 @@ from app.services.events.observation_subscriber import (
 # Идентификатор аватара игрока (SSOT позиций: npc_positions["player"]).
 _PLAYER_ID = "player"
 
-# Lifecycle-флаг (вердикт Мастера В4): OFF на время разработки/доказательства;
-# после зелёного LC-GC-01-ядра флипается в ON default отдельным коммитом
+# Lifecycle-флаг (вердикт Мастера В4): ON default с коммита D — после
+# зелёного LC-GC-01-ядра (SUPERBOX 3/3, read-only/детерминизм доказаны);
+# флип исполнен этим коммитом; OFF — только явным env (=0). Вечный мёртвый
 # (вечный мёртвый выключатель не оставляется). Чтение call-time, не кэш
 # на импорте (прецедент micro/conftest D8P-иммунитета).
-_DEFAULT_ENABLED = "0"
+_DEFAULT_ENABLED = "1"
 
 
 def idle_events_projection_enabled() -> bool:
-    """Env-флаг IDLE_EVENTS_PROJECTION_ENABLED (default OFF = no-op)."""
+    """Env-флаг IDLE_EVENTS_PROJECTION_ENABLED (ON default — вердикт В4, коммит D; OFF только явным env)."""
     return os.environ.get(
         "IDLE_EVENTS_PROJECTION_ENABLED", _DEFAULT_ENABLED
     ).strip().lower() in ("1", "true", "yes")

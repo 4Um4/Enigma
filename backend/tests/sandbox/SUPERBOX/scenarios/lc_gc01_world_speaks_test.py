@@ -210,7 +210,10 @@ def _needs_something(world: Any) -> bool:
 
 def run_control() -> _GroupResult:
     global _CONTROL_TICKS
-    os.environ.pop(PROJ_FLAG, None)
+    # default ON с коммита D (вердикт В4): Control гасит флаг ЯВНО —
+    # pop при default ON = тихое включение канала (no-op-чистота
+    # Control обязана управлять env явно, не снятием переменной).
+    os.environ[PROJ_FLAG] = ""
     try:
         _quiet()
         world = _new_world("ctrl")
