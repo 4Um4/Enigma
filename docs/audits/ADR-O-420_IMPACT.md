@@ -45,3 +45,14 @@ ADR-O-420 [STANDARD] **IMPACT** (S331; Ступень 0 CCH-0 — doc-only, ко
 - `NPCProfileL0` + `birth_epoch/age_at_game_start` (None=Vacuum) + проводка `npc_loader`.
 - Гейт T-CCH-01 GREEN: Люся 5/5 EventMemory эквивалентны через живой `_convert_origin_events`; 16 micro-тестов `tests/micro/test_chronicle_cch1.py`; ruff 0; IPT 51/51.
 - Оговорка: блокер аудита #9 — age дан; полный разблок LinguisticIntegrityCalculator — Эпоха 8 (ещё нужны voice_archetype_id + identity_attachment-источник).
+
+## Реализация CCH-2 (S335)
+- `decomposition_normalizer.py` — fail-loud без silent-fallback (DecompositionError ×6 веток); мембрана vague-relation: закрытый реестр маркеров неточной связи (_VAGUE_RELATION_MARKERS) при model-confidence=1.0 → conf ≤0.4 + инъекция канонического вопроса (4 опции, П3). Расширение реестра — через корпус CCH-6, не руками.
+- `chronicle_decompose_system.txt` — реестр kind с payload-схемами; EVENT/EFFECT-граница с антипримером («смерть родителей» = EVENT); обязательные вопросы (неточная связь/пол-возраст/неясное событие) с conf ≤0.5.
+- `biography_decomposer.py` — Fast-препарсинг якорей ([N лет]/в N/с N) + router.request(FACT_EXTRACTION, temp=0, response_format) + ровно один retry; DecomposeResult (ok/error/age_anchors) — честные отказы.
+- `routes_chronicle.py` — decompose/draft-чтение-запись (прецедент routes_board); подключён в main.py (вне тик-контура).
+- `tests/sandbox/scenarios/chronicle_decompose_probe.py` — живой гейт T-CCH-02: самоподъём сервера менеджером проекта (паттерн IPT; SPAWN-ребёнок живёт в процессе пробы) + initialize_router (прод-прецедент main.py:120) + Итог-строка §3.12; LLM_UNAVAILABLE — честный RED.
+- Гейт T-CCH-02 GREEN 6/0 (Q4_K_M): EVENT-граница удержана, мембрана инъектирует вопрос (conf 1.0→0.4), детерминизм = структурная сигнатура (канон S316 — canonical output = структура, не дословность summary).
+- Канон модели: Q4_K_M (вердикт Мастера S335); user_settings.yaml синхронизирован; Qwen3.5-9B — план миграции. Находка-хвост владельцу settings_dm/npc/rules/world: stale Q5_K_M-дефолты + factory-инстанцирование на import — выстрелит при миграции.
+- Находка-хвост владельцу tests/conftest.py:143 — патч model_qwen_7b_path на несуществующий Q5_K_M печатает [CONFIG]-шум во все pytest-прогоны.
+- DEBT-CHRONICLE-REPLAY: replay-кэш промптов декомпозитора не подключён (рекордер привязан к тик-сессии) — владелец: контур replay.

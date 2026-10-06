@@ -695,7 +695,7 @@
 - Вопрос автору: `question_id`, `target_span`, `options: Tuple[ClarificationOption, ...]` + свободный ввод; опции {SELECT_EXISTING_NPC, CREATE_NEW_NPC, UNKNOWN_PERSON, LEAVE_WHITE_SPOT}; вариант «оставить белым пятном» обязателен всегда (П3).
 - 🚫 **ЗАПРЕТ:** канонизация фрагмента при открытом вопросе без выбора «белое пятно» (блок с fix_hint, «Save = Contract»).
 
-**Статус: CCH-1 реализован (S332): домен + store + WhiteSpot-registry + origin-проекция живут; BiographyDecomposition/ClarificationQuestion потребляются с CCH-2.** Вспомогательные `EntityRef` (resolved/new_npc/white_spot/unknown_person) и `CauseRef` (cause_kind ∈ {EVENT, RELATIONSHIP, TRAIT, NEED, OBSERVATION, UNKNOWN}; UNKNOWN легален) — внутри домена. Изменение схемы — ревизия ADR-O-420.
+**Статус: CCH-1/CCH-2 реализованы (S332/S335): домен + store + WhiteSpot-registry + origin-проекция + BiographyDecomposition/ClarificationQuestion (нормализатор с мембраной vague-relation, INV-LLM-NOT-SSOT) живут; потребители UI — CCH-3.** Вспомогательные `EntityRef` (resolved/new_npc/white_spot/unknown_person) и `CauseRef` (cause_kind ∈ {EVENT, RELATIONSHIP, TRAIT, NEED, OBSERVATION, UNKNOWN}; UNKNOWN легален) — внутри домена. Изменение схемы — ревизия ADR-O-420.
 
 ---
 

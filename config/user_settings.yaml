@@ -1,6 +1,6 @@
 ai_model:
   model: qwen_7b
-  path: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf
+  path: Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf
 audio:
   volume: 80
 content:
