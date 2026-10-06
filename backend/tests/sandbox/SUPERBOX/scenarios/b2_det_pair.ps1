@@ -8,7 +8,14 @@ param(
   [Parameter(Mandatory=$true)][string]$ArtifactB,
   [string]$LegBSet = '',   # 'NAME=VAL[;...]' — env ТОЛЬКО плеча B (контрбаланс)
   [string]$LegBClear = '', # 'NAME[;...]' — снять в плече B
-  [switch]$SkipIPTGate
+  [switch]$SkipIPTGate,
+  # STAGE 2 Candidate Validation: второй backend (IQ3_M, выбор владельца).
+  # Non-thinking = изолированная compatibility-правка (ТЗ §3/§4):
+  # argv-элемент {"enable_thinking": false}; экранирование по правилам
+  # CommandLineToArgvW задано ЗДЕСЬ (один место — не через границу командной
+  # строки оркестратора). Think-тег-остаток в content задокументирован
+  # STAGE 0b; production-регекс справляется (json 6/6).
+  [switch]$Candidate
 )
  $ErrorActionPreference = 'Stop'
  $traceFile = Join-Path (Split-Path $ArtifactA -Parent) 'b2_health_trace.txt'
@@ -47,13 +54,18 @@ try {
 
   $exe   = 'C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama\llama-server.exe'
   $model = 'C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf'
+  $serverExtra = ''
+  if ($Candidate) {
+    $model = 'C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf'
+    $serverExtra = '--chat-template-kwargs "{\"enable_thinking\": false}"'
+  }
   # PS 5.1 Start-Process НЕ квотит аргументы с пробелами: 'Models LLM' рвался
   # на два токена -> сервер умирал на старте молча (smoke exit 3, lesson).
   # ProcessStartInfo + UseShellExecute=$false: явное квотирование, прямой
   # child (PPID-инвариант by construction), stderr-захват (L4, громкий отказ).
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $exe
-  $psi.Arguments = "-m `"$model`" --port 8181 --host localhost -ngl 99 -c 8192 -t 8"
+  $psi.Arguments = "-m `"$model`" --port 8181 --host localhost -ngl 99 -c 8192 -t 8 $serverExtra"
   $psi.UseShellExecute = $false
   $psi.CreateNoWindow = $true
   $psi.RedirectStandardOutput = $true
