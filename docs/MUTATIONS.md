@@ -245,45 +245,15 @@
 - **S332** CCH-1 закрыт (первый кодовый этап CCH; реализация ADR-O-420): `dom/chronicle.py` — 6 DTO frozen + EntityRef/CauseRef-инварианты fail-loud + KP_*-ключи payload-схемы + make_entry_id (md5, replay-safe) · `services/chronicle/age_math.py` — единственная конверсия age⇄total_seconds⇄day<0 (DAYS_PER_YEAR=365 = 360+5 интеркалярных — дрейф ТЗ §12.2 закрыт по коду, §13.5; SENTINEL_DAY=−1000) · `chronicle_store.py` — WARA document_to/from_dict (ключи-константы §12.1), валидатор fail-loud (дубликаты id, dangling ws/causes/event_ref, инвариант двух времён, запрет 1: LLM_DRAFT в канон = ValueError, «Save = Contract»: открытый вопрос без резолюции блокирует канонизацию), атомарная запись tmp+replace, utf-8-sig (урок S317) · `white_spot_registry.py` — writer-guard по прецеденту ADR-O-370 (sys._getframe(1) + цензус frozenset; D-атака → ArchitecturalViolationError; текст ошибки NPCState-ориентирован — переиспользование маркера класса, как в прецеденте), резолюция = replace-новый документ + перелинковка subject/object/payload.knower (as_npc→RESOLVED_AS_NPC, None→UNKNOWN_PERSON, вердикт §12.5) · `origin_projection.py` — origin_events↔хроника (opaque deepcopy-payload, AUTHOR_AUTHORED, kind-семантика — CCH-2) · NPCProfileL0 + birth_epoch/age_at_game_start (None=Vacuum §ENIGMA-003) + проводка npc_loader (мусор → fail-loud через внешний except) · ГЕЙТ T-CCH-01 GREEN на живой Люсе: 5/5 EventMemory эквивалентны через живой `_convert_origin_events` (археология: конвертер вход не мутирует, все поля через .get) · тесты: micro/test_chronicle_cch1.py 16/16 (запреты 1–4 закреплены), ruff 0, AST-линтеры PASS, IPT 51/51 · уроки: реструктура функции = замена ЦЕЛИКОМ одним БЫЛО/СТАЛО (двухфрагментная вставка дала SyntaxError в аргументах вызова), IPT-хвост без строки ИТОГО = INVALID-прогон (§3.12), qwen-модель-warning в stderr pytest = pre-existing шум LLM-каталога · оговорка: блокер #9 — age дан, полный разблок LinguisticIntegrityCalculator — Эпоха 8 (нужны ещё voice_archetype_id + identity_attachment-источник) · далее CCH-2 (декомпозитор) · ✅ · ADR-O-420
 
 - **S333** Understanding Track: SR-1 oracle-isolation GREEN (B 1→BI 0→ORC 1≡B; provTOPIC∩PROV+ 1→2=числители handoff; P3/P4 PROV+ resp 0/22 = oracle routing ≡ blanket-B в байтах; one-module-per-request = правильная изоляция, доказано на 2 моделях) + Phase 0 (R-c control-only 20/22, R-b closed no-separation anchors-0.863, R-a 22/22 FAIL F2=6 HOLD R-a.1) + Model Candidate Validation IQ3_M (artifact-claims): fitness GREEN (VRAM 6987/8192, lat 3.12s, json 6/6, thinking-off compat), determinism ≡ baseline (W acts 4/4, C 4/4, interleave OK), P0-replay STRONG (prov 1→8A/15B, id 0→2/3 нативно, FP3 0, recovery 28→23), paraphrase RESULT B (PVB 1-2/12 vs BASE 0, гэп 9-18<25 preregistered: anchor-gravity + boundary-erosion = контентные флаги), E2-regression (a) 15→11(BI)→15(ORC) + id 3/3 в BI (identity-модуль жив в композиции на IQ3_M) + resp ORC≡REF-B 0/22 кросс-инстанс; вердикт Мастера: IQ3_M = ENDORSED DEVELOPMENT CANDIDATE №1 (production HOLD, Qwen2.5 = control, качественный скачок НЕ заявляем); инструменты: semantic_router dormant, harness -Candidate, analyzers v2 (BOM PS UTF-16), oracle labels, fitness/det/suite; уроки: PS > = UTF-16LE BOM FF FE (cp1251-декод без ошибки при мёртвых регексах — Select-String ловит), CommandLineToArgvW (внешние кавычки прямые, внутренние \"), v2-рерайт потерял acts_by_text (дифф API при рерайте прибора), гвард прогрева при портировании, Anti-Race-греп обязателен (6 параллельных записей за окно — S327 занят, предсказание max по памяти = ошибка) · ✅
-- **S333 Understanding Track**: SR-1 Phase 0/1 + Model Candidate Validation (IQ3_M) —
-финальный контур понимания: Phase 0 (routing candidates): R-c lexical baseline
-20/22/FP0/cross2 (control only), R-b embedding CLOSED (no separation, anchors
-0.863-collinear, no-threshold-exists), R-a LLM 22/22/cross0/FAIL F2=6 (HOLD,
-R-a.1 deferred); Phase 1 Oracle Isolation GREEN: prov BI 0→ORC 1≡B 1,
-provTOPIC 1→2(=B), topicNZ 16→27.5, P3/P4 resp 0/22 byte-equivalence (oracle
-routing of PROV+ ≡ blanket-B), PR1-PR6 passed (P2-column non-canon:
-recovered from provTOPIC+acts, provTOPIC∩PROV+ = числители handoff 4→1);
-Model cycle (IQ3_M = Qwen3.5-9B-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M,
-artifact-claims only): Stage 0/0b fitness GREEN (VRAM 6987/8192, lat 3.12s,
-json 6/6, det3 IDENTICAL, thinking-off = isolated compat via
---chat-template-kwargs, think-тег-остаток documented); Stage 1 determinism
-GREEN ≡ baseline (W acts 4/4, bytes 3/4 — serving-layer flake same-phrase,
-I interleave OK, C 4/4; byte/semantic split per Master); Stage 2 STRONG
-(prov 1→8A/15B, id 0→2/3 нативно, FP3 1→0, recovery 28→23, sys 96×A/B
-locks); Stage 3 RESULT B (PVB 1-2/12 vs BASE 0, гэп 9-18<25 preregistered,
-PVA 3-4/11, IDP 1/7, anchor-gravity caught: P0-increment = anchor-adjacent,
-boundary-erosion PVX 1→3 + 1 FP — красные флаги контентного цикла, не
-модельного); Stage 4 (a) interference reproduces (prov 15→11(BI)→15(ORC),
-topicNZ не деградирует, id 3/3 в BI — identity-модуль жив в композиции на
-IQ3_M, resp ORC≡REF-B 0/22 кросс-инстанс байт-идентичность; I:2/I:3
-byte-parity = «Кто ты?» timeout 60s, [SLICE] без sys — замки не нарушены,
-P:22 точен); финальный вердикт Мастера: IQ3_M = ENDORSED DEVELOPMENT
-CANDIDATE №1 (Qwen2.5 = control; qualitative jump НЕ заявляем; production
-HOLD; R-a.1 HOLD; моделей не ищем); архитектурный факт (закрыт, 2 модели):
-one-module-per-request = правильная изоляция (интерференция модель-робастна
-по направлению, модель-зависна по силе; oracle восстанавливает полностью);
-инструменты: semantic_router.py (dormant ENIGMA_SEM_ROUTER), oracle labels,
-harness -Candidate switch, analyzers v2 (BOM-фикс PS UTF-16), fitness/det/
-suite/analyze; уроки: PS > = UTF-16LE (BOM FF FE, cp1251-декод без ошибки,
-Select-String ловит при мёртвом Python-парсере), CommandLineToArgvW
-(внешние кавычки прямые, внутренние \",  снаружи = литеральная без
-квотинга), v2-рерайт потерял acts_by_text (дифф API при рерайте), гвард
-прогрева при портировании, opечатка-гвард; IPT 51/51 зелёный на закрытии.
+
 
 
 
 
 ## 3. Живые хвосты (открытое; владелец обязателен)
+
+- **S333 контентный цикл (HOLD до вердикта, не лечить промптами)**: boundary-erosion QUESTION↔ASK_PROVENANCE (PVX 1→3, 1 FP на EMPTY в B на IQ3_M); anchor-gravity (P0-прирост = anchor-adjacent, PVB-перенос 9-18 п.п. при пороге 25); identity-transfer на IQ3_M (id 2/3 нативно в A — модуль identity стоит пересмотреть). Один цикл, три хвоста; ТЗ приёмнику передано.
+- **S333 поглощение параллельным коммитом**: серия SR-1 (client, semantic_library, замки, e2/e2r) ушла в чужой коммит (паттерн ed47809c, второй случай); контент цел, ownership перемешан; остаток закоммичен ffdd8c8e (pathspec).
 
 ### Эскалации Мастеру (решения вне компетенции преемника)
 - **ADR-Net структурные находки** (S325 → Мастеру): F1 — конвенция S311 «IMPACT-шапки без бэктиков» противоречит _ADR_LINE_REGEX + micro-тесту (12 аудитов S316–S322 были невидимы графу ЦЕЛИКОМ; канонизированы; §13.5: прав код) — ратифицировать бэктик-канон в атласе или parser-fallback; F2 — 📁-строки законов невидимы law-ветке парсера (ищет литерал "Files") — Wave3 перенесла в IMPACT, генерация из 📁 так и не парсится; stale-атлас: O-367 test_m1 (ветка-only, S320), O-414 consumer_gap_debts.py (удалён S321), S83.1: svc/kernel_rng.py — stale-путь атласа (факт: файл = svc/npc/kernel_rng.py); S199 — проза-с-запятой внутри 📁-строки L14.2 рвёт CSV-токен. Артефакт: reports/d1_disposition.txt.
