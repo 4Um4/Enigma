@@ -89,6 +89,14 @@ class NPCProfileL0:
     Пока не используется (None = default). Memetic ТЗ заполнит."""
     identity_attachment: float = 1.0
     """Насколько NPC дорожит своей речью (0..1). Влияет на linguistic_integrity."""
+    # CCH-1 / ADR-O-420: возраст в модели (Слой 0 AUTHORING). None = возраст
+    # неизвестен — Vacuum (§ENIGMA-003), а не ноль: 0 означал бы «новорождённый».
+    birth_epoch: Optional[int] = None
+    """Момент рождения на абсолютной оси Calendar.total_seconds.
+    None = не задан хроникой. Единственная конверсия — services/chronicle/age_math."""
+    age_at_game_start: Optional[int] = None
+    """Возраст NPC (полных лет) на первый тик кампании. None = не задан.
+    Задаётся только из канонической хроники (ADR-O-420)."""
 
 
 # --- СЛОЙ L1: ИДЕНТИЧНОСТЬ (MEDIAN DYNAMICS) ---

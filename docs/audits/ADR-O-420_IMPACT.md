@@ -35,3 +35,13 @@ ADR-O-420 [STANDARD] **IMPACT** (S331; Ступень 0 CCH-0 — doc-only, ко
 4. Human-формулировки убеждений: только в хронике; типизированная проекция в ядро; BeliefFragment.label НЕ вводится.
 5. unknown_person: лёгкая сущность хроники без NPC-конфига и L0-профиля.
 6. LLM-авто-дополнение хроники: анти-цель ADR (вне скоупа).
+
+## Реализация CCH-1 (S332)
+- `backend/app/domain/chronicle.py` — 6 DTO (frozen) + EntityRef/CauseRef-инварианты + KP_*-ключи payload-схемы + make_entry_id (md5, replay-safe).
+- `backend/app/services/chronicle/age_math.py` — единственная конверсия age⇄total_seconds⇄day<0; SENTINEL_DAY=−1000; дрейф 360/365 закрыт кодом (DAYS_PER_YEAR=365 = 360 регулярных + 5 межсезонья, constants.py).
+- `chronicle_store.py` — WARA-пара, валидатор fail-loud (запреты 1/3/4 + «Save = Contract»), атомарная запись.
+- `white_spot_registry.py` — writer-guard (запрет 2, D-атака → ArchitecturalViolationError); цензус писателей: registry (CCH-1), UI/API-канал — CCH-3.
+- `origin_projection.py` — origin_events↔хроника (opaque deepcopy-payload; kind-семантика — CCH-2).
+- `NPCProfileL0` + `birth_epoch/age_at_game_start` (None=Vacuum) + проводка `npc_loader`.
+- Гейт T-CCH-01 GREEN: Люся 5/5 EventMemory эквивалентны через живой `_convert_origin_events`; 16 micro-тестов `tests/micro/test_chronicle_cch1.py`; ruff 0; IPT 51/51.
+- Оговорка: блокер аудита #9 — age дан; полный разблок LinguisticIntegrityCalculator — Эпоха 8 (ещё нужны voice_archetype_id + identity_attachment-источник).

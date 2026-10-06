@@ -471,6 +471,16 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             if _archetype_data and _archetype_data.voice_profile:
                 _voice_profile = _archetype_data.voice_profile
 
+        # CCH-1 / ADR-O-420: возраст (Слой 0 AUTHORING). Отсутствие в legacy
+        # JSON = None (Vacuum §ENIGMA-003, а не 0). int() на мусоре → TypeError,
+        # ловится внешним except → fail-loud (L4).
+        _birth_epoch = raw_data.get("birth_epoch")
+        _age_at_start = raw_data.get("age_at_game_start")
+        if _birth_epoch is not None:
+            _birth_epoch = int(_birth_epoch)
+        if _age_at_start is not None:
+            _age_at_start = int(_age_at_start)
+
         profile = NPCProfileL0(
             id=raw_data["id"],
             name=raw_data.get("name", "Unknown"),
@@ -485,6 +495,8 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             author_notes=raw_data.get("author_notes", ""),
             core_orientation=raw_data.get("core_orientation", "survival"),
             voice_archetype_id=_archetype_id,
+            birth_epoch=_birth_epoch,
+            age_at_game_start=_age_at_start,
         )
 
         return profile
