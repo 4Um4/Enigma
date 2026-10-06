@@ -7,10 +7,10 @@ path: /project/scripts/test_sleep_routing.py
 Запуск: python scripts/test_sleep_routing.py
 """
 
-import sys
-import os
 import logging
+import os
 import shutil
+import sys
 from pathlib import Path
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -95,7 +95,7 @@ def run_sleep_test():
 
     logger.info("--- Проверка позиций NPC ---")
     
-    # S-143 FIX: Проверяем глобальное состояние NPC через LifeEngine, 
+    # S-143 FIX: Проверяем глобальное состояние NPC через LifeEngine,
     # так как NPC могут покинуть сцену tavern и перейти в city_gate.
     engine = loop._get_life_engine()
     all_npcs = engine.get_npc_states(campaign_id)

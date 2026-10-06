@@ -3,7 +3,7 @@ path: scripts/lint_hp_ssot.py
 Назначение: AST-анализатор для запрета прямого присваивания state.hp / npc.hp (ADR-HP-UNIFICATION).
 Зависимости: ast, os
 
-Запуск: 
+Запуск:
 """
 import ast
 import os
@@ -58,8 +58,8 @@ if __name__ == "__main__":
     viol = run_lint()
     if viol:
         print("❌ Найдены нарушения ADR-HP-UNIFICATION:")
-        for f, l, m in viol:
-            print(f"  {f}:{l} - {m}")
+        for f, ln, m in viol:
+            print(f"  {f}:{ln} - {m}")
         exit(1)
     else:
         print("✅ ADR-HP-UNIFICATION: Прямых записей в state.hp не найдено.")

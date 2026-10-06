@@ -1,12 +1,15 @@
-﻿import os, sys
+import os
+import sys
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "backend"))
-from app.services.adr_net.adr_parser import parse_master_index, parse_impact_audit, _ADR_LINE_REGEX, _FILES_REGEX
+from app.services.adr_net.adr_parser import _ADR_LINE_REGEX, parse_impact_audit, parse_master_index  # noqa: E402
 
 atlas = {n.adr_id: n for n in parse_master_index(os.path.join(ROOT, "docs", "ADR (Architecture Decision Records).md"))}
 
-# (файл, ID, TYPE-fallback, Title-fallback) — источники: H1-строки файлов (прочитаны), TYPE/Title при наличии берутся из атласа
+# (файл, ID, TYPE-fallback, Title-fallback) — источники: H1-строки файлов (прочитаны),
+# TYPE/Title при наличии берутся из атласа
 ENTRIES = [
     ("ADR-NET-CLI-QUIET_FIX_IMPACT.md", "ADR-NET-CLI-QUIET", "FIX", "IMPACT"),
     ("ADR-NET-PARSER-V2_IMPACT.md", "ADR-NET-PARSER-V2", "FIX", "IMPACT"),
@@ -48,15 +51,20 @@ for fname, aid, fb_type, fb_title in ENTRIES:
     log.append("%s %s: %s (type-src=%s)" % (action, aid, canon, src))
 
 # === Волна 1b: rerun fill — добор atlas-Files у ставших видимыми ===
-import glob
+import glob  # noqa: E402
+
 amap = {}
 for n in atlas.values():
     if n.files:
         amap.setdefault(n.adr_id, []).extend(n.files)
 for k in list(amap):
-    seen = set(); amap[k] = [x for x in amap[k] if not (x in seen or seen.add(x))]
+    seen = set()
+    amap[k] = [x for x in amap[k] if not (x in seen or seen.add(x))]
 PREFIX = ("backend/", "frontend/", "scripts/", "architecture/", "docs/", "reports/")
-ALIAS = [("svc/", "backend/app/services/"), ("dom/", "backend/app/domain/"), ("mod/", "backend/app/models/"), ("app/", "backend/app/")]
+ALIAS = [
+    ("svc/", "backend/app/services/"), ("dom/", "backend/app/domain/"),
+    ("mod/", "backend/app/models/"), ("app/", "backend/app/"),
+]
 def resolve_one(p):
     p = p.strip().strip(chr(96))
     while p.endswith("."):
@@ -72,7 +80,10 @@ def resolve_one(p):
     if cand.endswith("/*"):
         base = os.path.join(ROOT, cand[:-2])
         if os.path.isdir(base):
-            return sorted(os.path.relpath(g, ROOT).replace(os.sep, "/") for g in glob.glob(os.path.join(base, "*.py"))), None
+            return sorted(
+                os.path.relpath(g, ROOT).replace(os.sep, "/")
+                for g in glob.glob(os.path.join(base, "*.py"))
+            ), None
         return [], "wildcard-dir-missing:" + cand
     if os.path.isfile(os.path.join(ROOT, cand)):
         return [cand], None
@@ -104,6 +115,7 @@ for fp in sorted(glob.glob(os.path.join(ROOT, "docs", "audits", "*_IMPACT.md")))
     open(fp, "w", encoding=("utf-8-sig" if bom else "utf-8"), newline="").write(nl.join(lines))
     log.append("1b-INSERT %s: %d paths" % (node.adr_id, len(final)))
 if drops:
-    log.append("== 1b DROPS"); log += ["  " + d for d in drops]
+    log.append("== 1b DROPS")
+    log += ["  " + d for d in drops]
 open(os.path.join(ROOT, "reports", "d1_batch2_log.txt"), "w", encoding="utf-8").write("\n".join(log))
 print("\n".join(log))

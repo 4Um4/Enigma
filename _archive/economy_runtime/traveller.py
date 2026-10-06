@@ -101,7 +101,10 @@ class TravellerVisit:
     def __repr__(self) -> str:
         buys = "+".join(f"{k}×{v:.0f}" for k, v in self.wants_to_buy.items())
         sells = "+".join(f"{k}×{v:.0f}" for k, v in self.brings_to_sell.items())
-        return f"Traveller(t={self.tick}, {self.visit_type.value}, {self.gold_budget:.1f}G, buy=[{buys}], sell=[{sells}])"
+        return (
+            f"Traveller(t={self.tick}, {self.visit_type.value}, {self.gold_budget:.1f}G, "
+            f"buy=[{buys}], sell=[{sells}])"
+        )
 
 
 class TravellerGenerator:

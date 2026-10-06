@@ -1,7 +1,8 @@
-﻿import io, sys
 fp = r"backend/app/services/events/rules_subscriber.py"
-raw = open(fp, "rb").read(); bom = raw[:3] == b"\xef\xbb\xbf"
-text = raw.decode("utf-8-sig"); nl = "\r\n" if "\r\n" in text else "\n"
+raw = open(fp, "rb").read()
+bom = raw[:3] == b"\xef\xbb\xbf"
+text = raw.decode("utf-8-sig")
+nl = "\r\n" if "\r\n" in text else "\n"
 
 def sub_once(t, old, new, tag):
     if t.count(old) != 1:
@@ -9,8 +10,12 @@ def sub_once(t, old, new, tag):
     return t.replace(old, new, 1)
 
 text = sub_once(text, "import hashlib\nimport logging", "import logging", "hashlib-import")
-text = sub_once(text, "from __future__ import annotations\n\nimport logging",
-    "from __future__ import annotations\n\nimport logging\n\nfrom app.services.npc.kernel_rng import KernelRNG", "krng-import")
+text = sub_once(
+    text,
+    "from __future__ import annotations\n\nimport logging",
+    "from __future__ import annotations\n\nimport logging\n\nfrom app.services.npc.kernel_rng import KernelRNG",
+    "krng-import",
+)
 old_roll = """            # Детерминированный бросок d20 (seed from event id + tick)
             _event_id = getattr(event, \"id\", \"\") or str(event.get(\"id\", \"\"))  # noqa: ENIGMA002
             _tick = snapshot.get(\"tick_number\", 0)

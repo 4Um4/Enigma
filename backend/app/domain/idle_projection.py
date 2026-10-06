@@ -9,7 +9,7 @@ path: /project/backend/app/domain/idle_projection.py
 Основные сущности: IdleEventProjection, ProjectionValue
 """
 from dataclasses import dataclass
-from typing import Union
+from typing import Dict, Union
 
 # Наблюдаемый скаляр: категория-строка, счётчик или мера. Не текст реплик
 # (переговорный канал — perceived_narratives, S158), не внутренние дельты.
@@ -31,7 +31,7 @@ class IdleEventProjection:
     target: str
     value: ProjectionValue
 
-    def to_front(self) -> dict:
+    def to_front(self) -> Dict[str, ProjectionValue]:
         """Граница game_loop → routes: dict-контракт канала 'events'.
 
         FE-потребитель (game_screen) читает ключи cause/target — конвертация

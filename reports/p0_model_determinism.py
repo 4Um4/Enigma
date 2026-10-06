@@ -196,7 +196,8 @@ def main() -> None:
         for idx in _INTERLEAVE:
             p = _PHRASES[idx]
             inter[p].append(_call(_user_prompt(p), system_prompt))
-        print(f"  W+I: {(_WARM_N + 1) * len(_PHRASES) + len(_INTERLEAVE) - 4} вызовов за {time.perf_counter() - t0:.0f}s")
+        print(f"  W+I: {(_WARM_N + 1) * len(_PHRASES) + len(_INTERLEAVE) - 4} вызовов "
+              f"за {time.perf_counter() - t0:.0f}s")
 
     with _Server(model_path, thinking_off, log_path):
         _call(_user_prompt("привет"), system_prompt)

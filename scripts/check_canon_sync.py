@@ -1,4 +1,4 @@
-﻿# path: /project/scripts/check_canon_sync.py
+# path: /project/scripts/check_canon_sync.py
 # Назначение: M1/P2 (ТЗ «Таверна тайн») — статическая половина canon-sync
 #   чека: конфиги NPC <-> канон. Семантика: secret_id = идентичность ФАКТА
 #   (вердикт Мастера); known_by конфигов = legacy-метадата, НЕ проверяется

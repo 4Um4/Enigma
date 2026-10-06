@@ -49,7 +49,8 @@ def main() -> None:
     print("=== P0-3b: R-b ENVIRONMENT FREEZE (модель запинена, без shopping) ===")
     print(f"model: {_REPO_ID}")
     print(f"sentence-transformers=={sentence_transformers.__version__}")
-    print(f"torch=={torch.__version__} (cuda_available={torch.cuda.is_available()}; CPU = целевой режим, VRAM занят llama-server)")
+    print(f"torch=={torch.__version__} (cuda_available={torch.cuda.is_available()}; "
+          "CPU = целевой режим, VRAM занят llama-server)")
     print(f"transformers=={transformers.__version__}")
     print(f"numpy=={numpy.__version__}")
 

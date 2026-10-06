@@ -5,9 +5,10 @@ path: /project/scripts/ci_adr_check.py
 Выход: code 0 (успех), code 1 (конфликт найден — коммит заблокирован).
 Зависимости: app.services.adr_net
 """
-import sys
 import os
+import sys
 from pathlib import Path
+
 
 def main():
     # Добавляем корень проекта в path
@@ -16,8 +17,8 @@ def main():
     sys.path.insert(0, str(_backend))
     os.chdir(_root)
 
-    from app.services.adr_net.adr_graph import ADRGraphBuilder
     from app.services.adr_net.adr_conflict_detector import ADRConflictDetector
+    from app.services.adr_net.adr_graph import ADRGraphBuilder
 
     print("[CI_ADR_CHECK] Building ADR graph...")
     builder = ADRGraphBuilder()

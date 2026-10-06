@@ -35,7 +35,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(ROOT / "backend"))  # корень пакета: import app.models...
 try:
     from app.models.causality_manifest import (  # noqa: E402
-        FIELD_CAUSALITY, KNOWN_ORGANS, KNOWN_TERMINALS,
+        FIELD_CAUSALITY,
+        KNOWN_ORGANS,
+        KNOWN_TERMINALS,
     )
     _MANIFEST_OK = True
     _MANIFEST_ORGANS = KNOWN_ORGANS

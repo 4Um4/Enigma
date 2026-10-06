@@ -33,7 +33,7 @@ def find_violations(filepath: str) -> List[Tuple[int, str]]:
                 line_content = source_lines[node.lineno - 1]
                 if not NOQA_PATTERN.search(line_content):
                     violations.append((
-                        node.lineno, 
+                        node.lineno,
                         "ENIGMA001: Silent failure `X if cond else None`. Use explicit raise or logging_tools.fail_loud() (§1.1)"
                     ))
         
@@ -57,7 +57,7 @@ def find_violations(filepath: str) -> List[Tuple[int, str]]:
                         line_content = source_lines[node.lineno - 1]
                         if not NOQA_PATTERN.search(line_content):
                             violations.append((
-                                node.lineno, 
+                                node.lineno,
                                 "ENIGMA002: Silent getattr default. If default is valid state, log first occurrence (§1.2)"
                             ))
         
@@ -70,7 +70,7 @@ def find_violations(filepath: str) -> List[Tuple[int, str]]:
                             line_content = source_lines[node.lineno - 1]
                             if not NOQA_PATTERN.search(line_content):
                                 violations.append((
-                                    node.lineno, 
+                                    node.lineno,
                                     "ENIGMA003: Forbidden `in locals()` or `in globals()`. Use explicit state or DTO (§1.3)"
                                 ))
     return violations
@@ -93,8 +93,8 @@ if __name__ == "__main__":
     viol = run_lint()
     if viol:
         print(f"❌ Найдено {len(viol)} нарушений (L0 violation):")
-        for f, l, m in viol:
-            print(f"  {f}:{l} - {m}")
+        for f, ln, m in viol:
+            print(f"  {f}:{ln} - {m}")
         exit(1)
     else:
         print("[PASS] Нарушений §1.1-§1.3 не найдено.")

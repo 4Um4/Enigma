@@ -1,4 +1,4 @@
-"""path: /project/scripts/det_holder.py
+r"""path: /project/scripts/det_holder.py
 
 Назначение: держатель тёплого llama-server для M2-замеров DEBT-INFERENCE-NONDET
     (матрица M1/M2/M3, вердикт Мастера). Спавнит сервер через llm_server_manager

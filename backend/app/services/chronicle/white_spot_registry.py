@@ -110,7 +110,8 @@ class WhiteSpotRegistry:
             return EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint=ref.name_hint or target.label)
 
         def _relink_entry(e: ChronicleEntry) -> ChronicleEntry:
-            new_subject = _relink_ref(e.subject_id)
+            # None невозможен (вход non-Optional) — `or` только ради типа (mypy arg-type).
+            new_subject = _relink_ref(e.subject_id) or e.subject_id
             new_object = _relink_ref(e.object_id)
             new_payload: Dict[str, Any] = e.payload
             if e.kind is EntryKind.KNOWLEDGE_LINK:

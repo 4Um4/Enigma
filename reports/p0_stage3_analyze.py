@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from p0_stage3_paraphrase import _SUITE
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from p0_phase1_metrics import _parse, _build_prompt_map
+from p0_phase1_metrics import _build_prompt_map, _parse
 
 _ENTRY_RE = re.compile(r"^\[(\S+)\] TEXT: '(.*)'\s*$")
 _ACTS_RE = re.compile(r"^\s+ACTS: (.*)$")

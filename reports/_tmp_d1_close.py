@@ -1,9 +1,13 @@
-﻿import os, re, sys
+import os
+import re
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 mp = os.path.join(ROOT, "docs", "MUTATIONS.md")
-raw = open(mp, "rb").read(); bom = raw[:3] == b"\xef\xbb\xbf"
-text = raw.decode("utf-8-sig"); nl = "\r\n" if "\r\n" in text else "\n"
+raw = open(mp, "rb").read()
+bom = raw[:3] == b"\xef\xbb\xbf"
+text = raw.decode("utf-8-sig")
+nl = "\r\n" if "\r\n" in text else "\n"
 
 if re.search(r"^- \*\*S325\b", text, re.M):
     raise SystemExit("STOP: S325 занят — Anti-Race, перенумеровать (Устав 11.1.1)")
@@ -19,10 +23,12 @@ else:
 print("kernel_rng факт:", s831)
 
 old_meta = "Записей: 205 (канон-греп правила 5 по живому файлу;"
-if text.count(old_meta) != 1: raise SystemExit("STOP: МЕТА-якорь не уникален (%d)" % text.count(old_meta))
+if text.count(old_meta) != 1:
+    raise SystemExit("STOP: МЕТА-якорь не уникален (%d)" % text.count(old_meta))
 
 anchor1 = "· ✅ · ea655cdb"
-if text.count(anchor1) != 1: raise SystemExit("STOP: якорь S324-хвоста не уникален (%d)" % text.count(anchor1))
+if text.count(anchor1) != 1:
+    raise SystemExit("STOP: якорь S324-хвоста не уникален (%d)" % text.count(anchor1))
 
 # --- ТОЧНЫЙ якорь долга: строка, НАЧИНАЮЩАЯСЯ с записи долга ---
 lines_probe = text.split(nl)
@@ -36,7 +42,8 @@ if len(debt_idx) != 1:
 print("DEBT-якорь: line %d OK" % (debt_idx[0] + 1))
 
 orac_idx = [k for k, L in enumerate(lines_probe) if L.startswith("- **DEBT-IDLE-ORACLE**")]
-if len(orac_idx) != 1: raise SystemExit("STOP: якорь эскалации не уникален (%d)" % len(orac_idx))
+if len(orac_idx) != 1:
+    raise SystemExit("STOP: якорь эскалации не уникален (%d)" % len(orac_idx))
 
 # --- Все проверки зелёные: мутируем ---
 text = text.replace(old_meta, "Записей: 206 (канон-греп правила 5 по живому файлу;")
@@ -49,10 +56,13 @@ s325 = ("- **S325** D1 DEBT-ADR-NET-N/A-FILL исполнен (ветка дол
         " empty=94 — атлас исчерпан, остаток = пер-файловая археология тел (reports/d1_disposition.txt). Находки:"
         " F1 конвенция S311 «шапки без бэктиков» vs парсер/тест (12 аудитов были невидимы графу), F2 📁-строки невидимы"
         " law-ветке (ищет литерал Files), stale-атлас O-367/O-414/S199(prose-comma в 📁). IPT-гейт: сессия закрывается"
-        " при неразрешимом состоянии — SyntaxError state_applicator.py:185 = незакоммиченный WIP M2/D параллельной ветки"
-        " (не мой контур); валидные прогоны: 51/51 pre-WIP, 50/1 = их WIP; мои коммиты doc-only, дельта-метод ×3."
+        " при неразрешимом состоянии — SyntaxError state_applicator.py:185 = незакоммиченный WIP"
+        " M2/D параллельной ветки"
+        " (не мой контур); валидные прогоны: 51/51 pre-WIP, 50/1 = их WIP; мои коммиты doc-only,"
+        " дельта-метод ×3."
         " Коммиты: bd00aa93, c7da6443, 519cb602, b01b444b · ✅ · артефакты reports/d1_*")
-i = text.index(anchor1); j = text.index(nl, i)
+i = text.index(anchor1)
+j = text.index(nl, i)
 text = text[:j] + nl + s325 + text[j:]
 
 lines = text.split(nl)
@@ -65,7 +75,8 @@ esc = ("- **ADR-Net структурные находки** (S325 → Масте
        " канонизированы; §13.5: прав код) — ратифицировать бэктик-канон в атласе или parser-fallback;"
        " F2 — 📁-строки законов невидимы law-ветке парсера (ищет литерал \"Files\") — Wave3 перенесла в IMPACT,"
        " генерация из 📁 так и не парсится; stale-атлас: O-367 test_m1 (ветка-only, S320), O-414"
-       " consumer_gap_debts.py (удалён S321), " + s831 + " S199 — проза-с-запятой внутри 📁-строки L14.2 рвёт CSV-токен."
+       " consumer_gap_debts.py (удалён S321), " + s831
+       + " S199 — проза-с-запятой внутри 📁-строки L14.2 рвёт CSV-токен."
        " Артефакт: reports/d1_disposition.txt.")
 lines.insert(orac_idx[0], esc)
 text = nl.join(lines)
@@ -73,4 +84,5 @@ text = nl.join(lines)
 open(mp, "w", encoding=("utf-8-sig" if bom else "utf-8"), newline="").write(text)
 g = len(re.findall(r"^- \*\*S[0-9]", text, re.M))
 print("греп после записи: %d (ожидание 206 == МЕТА)" % g)
-if g != 206: raise SystemExit("STOP: греп != МЕТА после записи — правило 5 нарушено, откатить вручную")
+if g != 206:
+    raise SystemExit("STOP: греп != МЕТА после записи — правило 5 нарушено, откатить вручную")

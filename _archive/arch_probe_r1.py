@@ -95,7 +95,7 @@ grep("CrystallizedBeliefModifierResolver вызовы", r"CrystallizedBeliefModi
 show("F3-a idle_tick у оркестратора", "backend/app/services/game_loop/__init__.py", 900, 945)
 show("F3-b второй путь (skip_time/promote)", "backend/app/services/game_loop/__init__.py", 1095, 1140)
 grep("конструкции NpcTickServices(", r"NpcTickServices\s*\(", ["backend/app"], limit=80)
-grep("execute\(.*npc_services|npc_services=", r"npc_services", ["backend/app/services"],
+grep(r"execute\(.*npc_services|npc_services=", r"npc_services", ["backend/app/services"],
      limit=120)
 grep("TimeSkipExecutor", r"class\s+TimeSkipExecutor|def\s+skip\s*\(", ["backend/app"])
 

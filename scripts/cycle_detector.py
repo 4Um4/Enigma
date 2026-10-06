@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+
 def tarjan_scc(graph):
     index_counter = [0]
     stack = []

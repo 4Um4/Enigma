@@ -7,7 +7,6 @@ path: /scripts/llm_server_manager.py
 
 import json
 import logging
-import os
 import subprocess
 import time
 import urllib.request

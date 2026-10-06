@@ -109,7 +109,7 @@ class PerceptionArchitectureLinter:
         desc = obs_node.get("description", "").lower()
 
         forbidden_keywords = ["npc id", "faction", "mood", "emotion", "memory"]
-        found_forbidden = [
+        _found_forbidden = [
             kw
             for kw in forbidden_keywords
             if kw in desc and "запрещено" not in desc.split(kw)[0][-20:]

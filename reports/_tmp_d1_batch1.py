@@ -1,8 +1,16 @@
-﻿import glob, os, sys
+import glob
+import os
+import sys
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "backend"))
-from app.services.adr_net.adr_parser import parse_master_index, parse_impact_audit, _ADR_LINE_REGEX, _FILES_REGEX
+from app.services.adr_net.adr_parser import (  # noqa: E402
+    _ADR_LINE_REGEX,
+    _FILES_REGEX,
+    parse_impact_audit,
+    parse_master_index,
+)
 
 atlas_nodes = parse_master_index(os.path.join(ROOT, "docs", "ADR (Architecture Decision Records).md"))
 amap = {}
@@ -10,10 +18,14 @@ for n in atlas_nodes:
     if n.files:
         amap.setdefault(n.adr_id, []).extend(n.files)
 for k in list(amap):
-    seen = set(); amap[k] = [x for x in amap[k] if not (x in seen or seen.add(x))]
+    seen = set()
+    amap[k] = [x for x in amap[k] if not (x in seen or seen.add(x))]
 
 PREFIX = ("backend/", "frontend/", "scripts/", "architecture/", "docs/", "reports/")
-ALIAS = [("svc/", "backend/app/services/"), ("dom/", "backend/app/domain/"), ("mod/", "backend/app/models/"), ("app/", "backend/app/")]
+ALIAS = [
+    ("svc/", "backend/app/services/"), ("dom/", "backend/app/domain/"),
+    ("mod/", "backend/app/models/"), ("app/", "backend/app/"),
+]
 
 def resolve_one(p):
     p = p.strip().strip(chr(96))

@@ -29,10 +29,9 @@ _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT / "backend"))
 
 # ЕДИНЫЙ источник ground truth (никакой второй истины — вердикт Мастера):
-from p0_rc_baseline import _assert_invariants, _gold, _load_corpus
-
-from app.services.input.semantic_library import load_module
-from sentence_transformers import SentenceTransformer
+from app.services.input.semantic_library import load_module  # noqa: E402
+from p0_rc_baseline import _assert_invariants, _gold, _load_corpus  # noqa: E402
+from sentence_transformers import SentenceTransformer  # noqa: E402
 
 _MODEL_ID = "paraphrase-multilingual-MiniLM-L12-v2"
 _BOUNDARY = "BOUNDARY"

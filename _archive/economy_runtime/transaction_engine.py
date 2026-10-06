@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 # backend/app/services/economy/transaction_engine.py
 """
 TransactionEngine — движок сделок.
@@ -16,6 +14,7 @@ TransactionEngine — движок сделок.
 - Запись в CausalLedger: через causal_note в Transaction
 """
 
+from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
@@ -157,7 +156,7 @@ class TransactionEngine:
         from app.models.economy import Contract
 
         # Проверяем: работодатель может платить?
-        daily_cost = wage * 24 / max(1, duration_ticks) if duration_ticks > 0 else wage
+        _daily_cost = wage * 24 / max(1, duration_ticks) if duration_ticks > 0 else wage
 
         contract = Contract(
             contract_type="employment",

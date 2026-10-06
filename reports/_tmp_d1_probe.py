@@ -1,8 +1,12 @@
-﻿import glob, os, re, sys
+import glob
+import os
+import re
+import sys
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "backend"))
-from app.services.adr_net.adr_parser import parse_impact_audit, normalize_adr_id
+from app.services.adr_net.adr_parser import normalize_adr_id, parse_impact_audit  # noqa: E402
 
 FOLDER = chr(128193)
 atlas_path = os.path.join(ROOT, "docs", "ADR (Architecture Decision Records).md")
@@ -39,7 +43,11 @@ while i < len(lines):
     i += 1
 
 PREFIX = ("backend/", "frontend/", "scripts/", "architecture/", "docs/", "reports/", "diagnostics/", "config/")
-ALIAS = [("svc/", "backend/app/services/"), ("dom/", "backend/app/domain/"), ("mod/", "backend/app/models/"), ("app/", "backend/app/"), ("tests/", "backend/tests/")]
+ALIAS = [
+    ("svc/", "backend/app/services/"), ("dom/", "backend/app/domain/"),
+    ("mod/", "backend/app/models/"), ("app/", "backend/app/"),
+    ("tests/", "backend/tests/"),
+]
 def resolve(p):
     cand = p if p.startswith(PREFIX) else None
     if cand is None:
@@ -59,15 +67,18 @@ def resolve(p):
 audits = os.path.join(ROOT, "docs", "audits")
 empty_ids = []
 for fp in glob.glob(os.path.join(audits, "*_IMPACT.md")):
-    try: n = parse_impact_audit(fp)
-    except Exception: continue
+    try:
+        n = parse_impact_audit(fp)
+    except Exception:
+        continue
     if n is not None and not n.files:
         empty_ids.append(n.adr_id)
 
 res, dropped, no_law = {}, 0, []
 for aid in empty_ids:
     if aid not in law_map:
-        no_law.append(aid); continue
+        no_law.append(aid)
+        continue
     got_all = []
     for p in law_map[aid]:
         g = resolve(p)
@@ -79,7 +90,8 @@ for aid in empty_ids:
         res[aid] = got_all
 
 out = []
-out.append("EMPTY=%d law_mapped=%d WAVE3_FILLABLE=%d no_law_entry=%d total_drop_paths=%d" % (len(empty_ids), len(empty_ids) - len(no_law), len(res), len(no_law), dropped))
+out.append("EMPTY=%d law_mapped=%d WAVE3_FILLABLE=%d no_law_entry=%d total_drop_paths=%d"
+           % (len(empty_ids), len(empty_ids) - len(no_law), len(res), len(no_law), dropped))
 out.append("== WAVE3 SAMPLE (30)")
 for k in list(res)[:30]:
     out.append("  %s: %d paths" % (k, len(res[k])))

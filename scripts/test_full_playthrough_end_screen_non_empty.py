@@ -17,8 +17,8 @@ sys.path.insert(0, str(_BACKEND))
 _ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
 
-from app.services.game_loop_builder import build_game_loop
 from app.core.config import settings
+from app.services.game_loop_builder import build_game_loop
 
 # 8.1 FIX: Канарейка использует production EndScreenNarrator, чтобы проверить живой текст.
 from app.services.social.end_screen_narrator import EndScreenNarrator
@@ -73,7 +73,7 @@ def run_canary():
             print("❌ [CANARY] TruthState пуст или не загружен.")
             return 1
 
-        # 8.1 FIX: Инъекции отношений удалены. 
+        # 8.1 FIX: Инъекции отношений удалены.
         # SocialSubscriber теперь имеет детерминированный fallback для NPC_SPOKE.
         rel_store = getattr(game_loop.memory_manager, "_relationships", None)
           
@@ -158,13 +158,13 @@ def run_canary():
                 
                 print("  [Отношения с Игроком]:")
                 if player_rels:
-                    for l in player_rels: print(f"    - {l}")
+                    for ln in player_rels: print(f"    - {ln}")
                 else:
                     print("    Никто не запомнил Игрока.")
                     
                 print("  [Связи между NPC]:")
                 if npc_rels:
-                    for l in npc_rels: print(f"    - {l}")
+                    for ln in npc_rels: print(f"    - {ln}")
                 else:
                     print("    Между NPC не возникло значимых связей.")
         else:

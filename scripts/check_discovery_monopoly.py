@@ -1,4 +1,4 @@
-﻿# path: /project/scripts/check_discovery_monopoly.py
+# path: /project/scripts/check_discovery_monopoly.py
 """
 Файл: scripts/check_discovery_monopoly.py
 Назначение: P6/T5 — статический CI-гейт R1-монополии (санкция S255

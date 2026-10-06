@@ -18,8 +18,6 @@ from app.models.economy import EconomicProfile, NeedType
 from app.services.economy.transaction_engine import TransactionEngine
 
 
-
-
 @dataclass
 class TradeResult:
     """Результат попытки торговли."""
@@ -148,12 +146,12 @@ class TradeResolver:
             if not seller_id:
                 continue
             seller = profiles[seller_id]
-            
+
             # P8: Корректируем объём закупки, если у продавца меньше, чем нужно
             available_stock = seller.stock_for_sale.get(needed_good, 0.0)
             if available_stock < needed_amount:
                 needed_amount = max(1.0, available_stock)
-                
+
             price = self._calculate_price(needed_good, needed_amount, seller)
             if not profile.can_afford(price):
                 continue

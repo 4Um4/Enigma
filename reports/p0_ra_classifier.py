@@ -32,22 +32,19 @@ _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))              # scripts.llm_server_manager
 sys.path.insert(0, str(_ROOT / "backend"))  # app.* — read-only
 
-from p0_rc_baseline import (  # единый источник ground truth
-    _ID_CONTROL_TEXTS,
+# Выравнивание с production call-surface (урок INVALID RUN: хардкод 127.0.0.1
+# отвергался — llama-server слушает на settings.llama_cpp_server_url; менеджер
+# health-ждёт именно его, харнесс-проба ходит на localhost; прецедент импорта
+# settings внутри клиента — llm_compressor_client.__init__):
+from app.core.config import settings  # noqa: E402
+from app.services.input.semantic_library import load_module  # noqa: E402
+from app.services.npc.kernel_rng import KernelRNG  # noqa: E402
+from p0_rc_baseline import (  # noqa: E402 — единый источник ground truth
     _PROV_CONTROL_TEXTS,
     _assert_invariants,
     _gold,
     _load_corpus,
 )
-
-from app.services.input.semantic_library import load_module
-from app.services.npc.kernel_rng import KernelRNG
-
-# Выравнивание с production call-surface (урок INVALID RUN: хардкод 127.0.0.1
-# отвергался — llama-server слушает на settings.llama_cpp_server_url; менеджер
-# health-ждёт именно его, харнесс-проба ходит на localhost; прецедент импорта
-# settings внутри клиента — llm_compressor_client.__init__):
-from app.core.config import settings
 
 _BASE_URL = settings.llama_cpp_server_url
 _BOUNDARY = "BOUNDARY"

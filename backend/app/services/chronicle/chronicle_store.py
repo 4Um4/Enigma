@@ -92,10 +92,14 @@ _KEY_CHANNEL = KP_CHANNEL
 _KEY_CERTAINTY = KP_CERTAINTY
 
 
-def _enum(enum_cls, value: Any, ctx: str):
-    if value not in enum_cls.__members__ and getattr(value, "value", None) not in [m.value for m in enum_cls]:
-        raise ValueError(f"{ctx}: неизвестное значение '{value}' для {enum_cls.__name__}")
-    return enum_cls(value)
+def _enum(enum_cls: type, value: Any, ctx: str) -> Any:
+    # Явная диспетчеризация без getattr-дефолта (§1.2): мусор → fail-loud с контекстом.
+    if isinstance(value, enum_cls):
+        return value
+    try:
+        return enum_cls(value)
+    except ValueError:
+        raise ValueError(f"{ctx}: неизвестное значение '{value}' для {enum_cls.__name__}") from None
 
 
 def _entity_ref_from(data: Optional[Dict[str, Any]]) -> Optional[EntityRef]:
@@ -107,6 +111,14 @@ def _entity_ref_from(data: Optional[Dict[str, Any]]) -> Optional[EntityRef]:
         white_spot_id=data.get(_KEY_WS_ID),
         name_hint=data.get(_KEY_NAME_HINT, ""),
     )
+
+
+def _entity_ref_required(data: Optional[Dict[str, Any]], ctx: str) -> EntityRef:
+    """Обязательная ссылка: None в данных → fail-loud (§12.1, как _enum)."""
+    ref = _entity_ref_from(data)
+    if ref is None:
+        raise ValueError(f"{ctx}: обязательная ссылка EntityRef отсутствует")
+    return ref
 
 
 def _entity_ref_to(ref: Optional[EntityRef]) -> Optional[Dict[str, Any]]:
@@ -148,11 +160,16 @@ def _question_from(data: Dict[str, Any]) -> ClarificationQuestion:
 
 
 def _question_to(q: ClarificationQuestion) -> Dict[str, Any]:
+    # Явный if вместо тернарника (§1.1)
+    if q.selected_option is not None:
+        _sel_value = q.selected_option.value
+    else:
+        _sel_value = None
     return {
         _KEY_QUESTION_ID: q.question_id,
         _KEY_TARGET_SPAN: q.target_span,
         _KEY_OPTIONS: [o.value for o in q.options],
-        _KEY_SELECTED: q.selected_option.value if q.selected_option is not None else None,
+        _KEY_SELECTED: _sel_value,
         _KEY_SELECTED_VALUE: q.selected_value,
     }
 
@@ -183,7 +200,7 @@ def _entry_from(data: Dict[str, Any]) -> ChronicleEntry:
     return ChronicleEntry(
         entry_id=data[_KEY_ENTRY_ID],
         kind=_enum(EntryKind, data[_KEY_KIND], _KEY_KIND),
-        subject_id=_entity_ref_from(data[_KEY_SUBJECT]),
+        subject_id=_entity_ref_required(data[_KEY_SUBJECT], _KEY_SUBJECT),
         historical_age=data.get(_KEY_HIST_AGE),
         historical_year=data.get(_KEY_HIST_YEAR),
         object_id=_entity_ref_from(data.get(_KEY_OBJECT)),
@@ -277,7 +294,7 @@ def _validate_knowledge_entry(doc: ChronicleDocument, entry: ChronicleEntry, ent
         raise ValueError(f"KNOWLEDGE_LINK '{entry.entry_id}': dangling event_ref '{p[_KEY_EVENT_REF]}'")
     link = KnowledgeLink(
         event_ref=p[_KEY_EVENT_REF],
-        knower_id=_entity_ref_from(p[_KEY_KNOWER]),
+        knower_id=_entity_ref_required(p[_KEY_KNOWER], _KEY_KNOWER),
         learned_age=p.get(_KEY_LEARNED_AGE),
         learned_year=p.get(_KEY_LEARNED_YEAR),
         channel=_enum(KnowledgeChannel, p[_KEY_CHANNEL], _KEY_CHANNEL),

@@ -53,8 +53,8 @@ if __name__ == "__main__":
     viol = run_lint()
     if viol:
         print(f"❌ Найдено {len(viol)} Silent Failures (L4 violation):")
-        for f, l, m in viol:
-            print(f"  {f}:{l} - {m}")
+        for f, ln, m in viol:
+            print(f"  {f}:{ln} - {m}")
         exit(1)
     else:
         print("✅ L4: Silent Failures не найдены.")
