@@ -1,6 +1,6 @@
 """
 path: /project/backend/tests/micro/test_idle_event_projection.py
-Назначение: микро-замки ADR-O-420 (LC-IMPL-1): полнота словаря проекции
+Назначение: микро-замки ADR-O-421 (LC-IMPL-1): полнота словаря проекции
     (enum == словарь ∪ EXCLUDED — молчаливых дыр нет), полярность флага,
     value-экстракторы (fail-loud), read-only чистота, гейт восприятия
     (private/whisper-адресат/мембрана близко-далеко-LOS/Vacuum),
@@ -60,7 +60,7 @@ def test_dictionary_completeness_no_silent_holes() -> None:
     covered = set(iep.PROJECTION_EVENT_TYPES) | set(iep.EXCLUDED_EVENT_TYPES)
     enum_members = set(EventType)
     assert covered == enum_members, (
-        "ADR-O-420: EventType без вердикта проекции: "
+        "ADR-O-421: EventType без вердикта проекции: "
         f"{sorted(e.value for e in enum_members - covered)}; "
         f"лишние в реестрах: {sorted(e.value for e in covered - enum_members)}"
     )

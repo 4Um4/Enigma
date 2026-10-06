@@ -1,6 +1,6 @@
 """
 path: /project/backend/app/services/game_loop/idle_event_projection.py
-Назначение: Наблюдаемая проекция idle-событий (ADR-O-420, LC-IMPL-1).
+Назначение: Наблюдаемая проекция idle-событий (ADR-O-421, LC-IMPL-1).
     Источник — EventDTO-поток тика (вердикт Мастера В1): наблюдательное
     окно-подписчик вокруг TickOrchestrator.execute в game_loop.idle_tick.
     v1-словарь УЗКИЙ (вердикт В2): {ACTIVITY_OUTCOME, THEFT} — значимое

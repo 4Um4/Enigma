@@ -4,12 +4,12 @@
 List[StateDeltas]) → TickResultDTO → game_loop.idle_tick return "events" →
 HTTP idle_tick → FE телеграф.
 
-Контракт после ADR-O-420 (LC-IMPL-1; эволюция замка — канон сменился
+Контракт после ADR-O-421 (LC-IMPL-1; эволюция замка — канон сменился
 по каталогу LC 2026-10-05, тихая эволюция замков запрещена):
 - game_loop.idle_tick по-прежнему НЕ проектирует significant_events
   (сырые StateDeltas / ментальные поля — Rule 11, бессрочно);
 - "events" = наблюдаемая проекция {cause,target,value} только уже
-  произошедшего (ADR-O-420), сборка за флагом IDLE_EVENTS_PROJECTION_ENABLED;
+  произошедшего (ADR-O-421), сборка за флагом IDLE_EVENTS_PROJECTION_ENABLED;
   OFF = [] (no-op);
 - routes.idle_tick читает ключ "events" (выровнен с return game_loop);
   легаси-чтение "significant_events" у dict всегда давало None.
@@ -44,18 +44,18 @@ def _idle_tick_body() -> str:
 
 def test_idle_tick_does_not_project_state_deltas() -> None:
     """Греп-страж: StateDeltas не во фронт-канале (бессрочно); проекция —
-    за флагом ADR-O-420 (эволюция замка K2, канон сменился)."""
+    за флагом ADR-O-421 (эволюция замка K2, канон сменился)."""
     body = _idle_tick_body()
     assert "significant_events" not in body, (
         "DEBT-FE-DELTAS регрессия: idle_tick снова проектирует "
         "significant_events (сырые StateDeltas) во фронт-канал (Rule 11)"
     )
     assert '"events": _idle_events' in body, (
-        "ADR-O-420: ожидается наблюдаемая проекция "
+        "ADR-O-421: ожидается наблюдаемая проекция "
         '"events": _idle_events в return idle_tick'
     )
     assert "idle_event_projection" in body, (
-        "ADR-O-420: wiring проекции исчез из idle_tick (тихая регрессия)"
+        "ADR-O-421: wiring проекции исчез из idle_tick (тихая регрессия)"
     )
 
 
@@ -86,7 +86,7 @@ def test_routes_idle_tick_passthrough_events() -> None:
 
 
 def test_projection_flag_off_is_noop(monkeypatch: pytest.MonkeyPatch) -> None:
-    """ADR-O-420 runtime-замок: OFF = канал пуст (полная байт-чистота
+    """ADR-O-421 runtime-замок: OFF = канал пуст (полная байт-чистота
     Control дополнительно доказывается SUPERBOX lc_gc01_world_speaks_test)."""
     from app.services.game_loop import idle_event_projection as iep
 
