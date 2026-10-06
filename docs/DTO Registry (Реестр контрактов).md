@@ -509,6 +509,13 @@
 - **Ядро:** `status`, `world_snapshot`, `npc_contexts`, `final_scene_state`.
 - **GameLoop:** `dm_response`, `world_snapshot`, `will_conflict_data`. Возвращается как `dict` (ADR-161).
 
+### 📦 `IdleEventProjection` (S334, ADR-O-421)
+- 📁 `dom/idle_projection.py`
+- **Наблюдаемая проекция idle-события мира (LC-IMPL-1, формат вербатим LC-01).** Frozen: `cause` (EventType продюсера), `target` (event.source), `value` (ProjectionValue: только наблюдаемое содержимое — Rule 11).
+- **Транспорт:** game_loop.idle_tick → `return['events']` через `to_front()` (dict-контракт канала; FE не знает backend-классов).
+- **Гейт восприятия:** мембрана ADR-O-360 (LOS+дистанция) + whisper-адресат; v1-словарь {ACTIVITY_OUTCOME, THEFT} + EXCLUDED-реестр (замок полноты).
+- 🚫 **ЗАПРЕТ:** ментальные поля/StateDeltas в value; мутация мира; расширение словаря без вердикта Мастера.
+
 ### 📦 `WorldSnapshot`
 - 📁 `mod/world_snapshot.py`
 - **Stage 1 Task 1.3:** Замороженный срез реальности (deep copy).
