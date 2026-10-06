@@ -1286,27 +1286,46 @@ class GameLoop:
                 None,
             ),
         )
-        result = self._tick_orch.execute(
-            campaign_id=campaign_id,
-            scene_state=_scene,
-            tick_number=_scene.get("tick", 0) + 1,  # ADR-O-344: Оркестратор владеет инкрементом
-            spatial_service=_spatial_svc,
-            shared_context=_idle_ctx,  # noqa: ENIGMA002
-            active_location_id=_active_loc,
-            location_ids=_location_ids,
-            eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
-            # AVID-1 FIX: S113-контракт «явная передача NPC (включая аватара)»
-            # выполнялся только в REST-пути (:1422); idle-путь не передавал
-            # список → оркестратор (синхронизация позиций :327, S198-pipeline)
-            # работал без аватара → idle-мир (CFL/восприятие NPC/соцполе)
-            # был слеп к игроку между ходами. Источник = тот же production-метод
-            # инъекции ADR-030, что и REST: _load_npcs_with_runtime (:822,
-            # кэш→фильтр→сессия→sheet→player_dict; транзит, не персист).
-            all_npcs_raw=self._load_npcs_with_runtime(campaign_id),
-            mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
-            interventions=interventions,  # M1: Внедрение событий игрока
-            npc_services=_npc_svc,  # AUDIT-003 §3.3
+        # ADR-O-420 (LC-IMPL-1): наблюдательное окно проекции idle-событий.
+        # Подписка ТОЛЬКО на v1-словарь; handler только захватывает (§11 —
+        # наблюдение не создаёт причинность); демонтаж в finally — окно не
+        # переживает execute, синглтон шины не течёт. Флаг OFF = окно не
+        # открывается вовсе (no-op; Control-чистота — SUPERBOX LC-GC-01).
+        from app.services.game_loop.idle_event_projection import (
+            IdleEventTap,
+            idle_events_projection_enabled,
+            project_idle_events,
         )
+
+        _idle_tap: Optional[IdleEventTap] = None
+        if idle_events_projection_enabled():
+            _idle_tap = IdleEventTap()
+            _idle_tap.subscribe(get_event_bus())
+        try:
+            result = self._tick_orch.execute(
+                campaign_id=campaign_id,
+                scene_state=_scene,
+                tick_number=_scene.get("tick", 0) + 1,  # ADR-O-344: Оркестратор владеет инкрементом
+                spatial_service=_spatial_svc,
+                shared_context=_idle_ctx,  # noqa: ENIGMA002
+                active_location_id=_active_loc,
+                location_ids=_location_ids,
+                eco_profile=_player_eco_profile,  # S151: Профиль игрока для EmbodiedStatusDTO
+                # AVID-1 FIX: S113-контракт «явная передача NPC (включая аватара)»
+                # выполнялся только в REST-пути (:1422); idle-путь не передавал
+                # список → оркестратор (синхронизация позиций :327, S198-pipeline)
+                # работал без аватара → idle-мир (CFL/восприятие NPC/соцполе)
+                # был слеп к игроку между ходами. Источник = тот же production-метод
+                # инъекции ADR-030, что и REST: _load_npcs_with_runtime (:822,
+                # кэш→фильтр→сессия→sheet→player_dict; транзит, не персист).
+                all_npcs_raw=self._load_npcs_with_runtime(campaign_id),
+                mvp_controller=self.mvp_controller,  # ENIGMA SELF-HEALING: For probes
+                interventions=interventions,  # M1: Внедрение событий игрока
+                npc_services=_npc_svc,  # AUDIT-003 §3.3
+            )
+        finally:
+            if _idle_tap is not None:
+                _idle_tap.unsubscribe()
 
         # S313: idle-путь возвращает только TickResultDTO (TickPlayerResultDTO —
         # REST/turn-контур); cast фиксирует инвариант пути для mypy.
@@ -1432,17 +1451,32 @@ class GameLoop:
         # unlock_tick сохраняет его на диск.
         self.scene_manager.unlock_tick(campaign_id)
 
+        # ADR-O-420 (LC-IMPL-1): наблюдаемая проекция захваченных idle-событий.
+        # Read-only (§15.4-8): EventDTO уже произошедшего → {cause,target,value};
+        # носитель позиций — авторитетная пост-тиковая сцена (_auth_scene,
+        # прецедент harness:237), запасной — входная сцена тика. Отказ
+        # наблюдателя = деградация канала, не тика (§11.2).
+        _idle_events: list = []
+        if _idle_tap is not None and _idle_tap.captured:
+            _idle_events = [
+                _p.to_front()
+                for _p in project_idle_events(
+                    _idle_tap.captured, _auth_scene or _scene
+                )
+            ]
+
         return {
             "status": result.status,
             "changes": result.changes_count,
             "npc_positions": _npc_pos_dict,  # DEPRECATED: читать из world_snapshot
             # DEBT-FE-DELTAS закрыт (Rule 11, Устав §6.3/§10.3-18): сырые
             # StateDeltas (stress/trust/fear — ментальные поля NPC) не покидают
-            # ядро. Фронт-потребитель (телеграф event-driven, game_screen:1338)
-            # мёртв с момента смены контракта канала — срез behavior-neutral.
-            # Возрождение = честная наблюдаемая проекция {cause,target,value},
-            # решение гейм-дизайна (эскалация, не этот фикс).
-            "events": [],
+            # ядро — бессрочно. Возрождение канона состоялось (ADR-O-420,
+            # каталог LC 2026-10-05): 'events' = честная наблюдаемая проекция
+            # {cause,target,value} уже произошедшего, строго read-only, сборка
+            # за флагом IDLE_EVENTS_PROJECTION_ENABLED (OFF = [], замок
+            # test_fe_events_channel_no_deltas).
+            "events": _idle_events,
             "world_snapshot": _ws,
             # ADR-075: Idle-тики не содержат Волевых конфликтов (нет действия игрока).
             "will_conflict_data": None,
