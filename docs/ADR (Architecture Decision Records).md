@@ -272,6 +272,12 @@ L0 (`CoreOrientation`) неизменен. L2.7 (`life_project`) — FSM, упр
 
 ADR-O-366 [ONTOLOGY] OpportunityProducer: Production Wiring — _build_opportunity_context inline in npc_tick_pipeline; Phase 1 (proximity proxy + real distance + perceived_allies); weapon=False; invariant: producer=DATA only
 
+ADR-O-420 [ONTO] **Character Chronicle — Authoring Compiler** (S331)
+Суть: Слой 0 канонического порядка: авторский текст → декомпозиция → машинная хроника → валидированный seed стартового состояния ДО первого тика; трек вне тик-пайплайна (авторский текст не становится runtime-истиной напрямую — компилятор авторства, не загрузчик биографии). Хранилище: канон config/npc/chronicles/<npc_id>.json (schema_version=1) + черновики saves/<campaign>/chronicle_drafts/; правило приоритета — есть хроника → ChronicleSeeder, нет → legacy _convert_origin_events (нетронут). Два времени: historical_age/year ≠ KnowledgeLink.learned_age (инвариант learned ≥ historical); day<0 через единственную конверсию age_math (авторитет Calendar.total_seconds), −1000 = sentinel «без точной даты». WhiteSpot — первоклассная сущность; единственный писатель resolution_state — действие автора в UI (writer-guard), авто-резолюция запрещена. LLM — декомпозитор (INV-LLM-NOT-SSOT): LLM_DRAFT не пишется в канон/seed/проекции; единственный путь к канону — «Принять как канон» (атомарно по фрагменту, canonical_version++). Character Debugger — окно Workbench layer 4, read-only, реестровый хоткей (кандидат K_c), вне WorldSnapshotDTO. 6 DTO — DTO Registry §14 (dom/chronicle.py, CCH-1/2). Вердикты ТЗ §12 6/6 (IMPACT): PdfDropImporter вне скоупа (паттерн да, код нет); human-формулировки убеждений — только в хронике (BeliefFragment.label НЕ вводится); unknown_person — без NPC-конфига/L0; LLM-соавторство — анти-цель.
+❌ Taboo: LLM_DRAFT в канон/seed/экспорт; авто-резолюция WhiteSpot вне UI; seed-скаляры без origin_ref; вычисление одной оси времени из другой; знание там, где хроника говорит unknown; EventBus.publish seed-фактов; каузальный слой в WorldSnapshotDTO/player_perception; прямые импорты backend в окнах FE; wall-clock/random в сеялке и декомпозиторе; мутация NPCState из редактора.
+Status: ACTIVE (контракт утверждён Мастером S331; реализация CCH-1…6 по гейтам T-CCH-01…10)
+Files (план: full — docs/audits/ADR-O-420_IMPACT.md): `backend/app/domain/chronicle.py`, `backend/app/services/chronicle/`, `backend/app/api/routes_chronicle.py`, `backend/prompts/chronicle_decompose_system.txt`, `frontend/chronicle_editor/`, `config/npc/chronicles/
+
 ---
 
 ## DOM-08: OBSERVABILITY & ENFORCEMENT

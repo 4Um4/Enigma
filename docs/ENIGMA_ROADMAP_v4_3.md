@@ -104,7 +104,7 @@
 
 
 **Ступень 0 — AUTHORING → COMPILER: трек CCH (v4.3; Слой 0 канонического порядка — см. шапку)** (может идти параллельно Ступеням 1–2 и 8 по Anti-Race Protocol; отдельные сессии; трек не трогает RE/AG1/W/NL-код — пишет только в стартовое состояние до первого тика. Смысл позиции: сначала материализуем человека, затем даём ему жить — это prerequisite качества всех верхних слоёв, а не контентная задача)
-- [ ] **CCH-0** — ADR «Character Chronicle» (ТЗ CCH-01 §12): хранилище канона, хоткей Debugger, формат `day<0`, судьба `PdfDropImporter`; регистрация 6 DTO (ChronicleDocument/Entry, WhiteSpot, KnowledgeLink, BiographyDecomposition, ClarificationQuestion). **Результат:** ADR + DTO Registry + гейт-чеклист.
+- [x] **CCH-0** — ADR «Character Chronicle» (ТЗ CCH-01 §12): хранилище канона, хоткей Debugger, формат `day<0`, судьба `PdfDropImporter`; регистрация 6 DTO (ChronicleDocument/Entry, WhiteSpot, KnowledgeLink, BiographyDecomposition, ClarificationQuestion). **Результат:** ADR + DTO Registry + гейт-чеклист. ✅ S331 (ADR-O-420 в атласе DOM-10 + IMPACT; DTO Registry §14; вердикты §12 6/6 утверждены Мастером).
 - [ ] **CCH-1** — модель данных и хранилище: хранилище хроник (`schema_version=1`; канон `config/npc/chronicles/` + черновики кампании), реестр белых пятен с writer-guard, `age_math` + `birth_epoch/age_at_game_start` в профиле L0 (снимает блокер аудита #9 — age отсутствует в модели NPC). Гейт: round-trip «Люся: origin_events → хроника → обратно» без потерь (T-CCH-01).
 - [ ] **CCH-2** — декомпозитор и режимы «История/Разбор»: двухконтурная схема по прецеденту intent-компрессора (детерминированный препарсинг якорей + LLM через capability `FACT_EXTRACTION`, JSON Mode, temperature=0, KernelRNG-seed, replay-кэш промптов); нормализатор декомпозиции без silent-fallback; промпт `chronicle_decompose_system.txt`; API-роутер хроники (decompose/clarify). Гейт: эталонный фрагмент №1 Люси → ожидаемый набор записей + 1 вопрос (T-CCH-02).
 - [ ] **CCH-3** — редактор UI: автономное приложение из главного меню (новый пункт меню по прецеденту Map Editor) + `MODE_CHRONICLE` внутри Map Editor; 5 областей / 7 режимов; канонизация «Принять как канон» (единственный путь LLM_DRAFT → AUTHOR_CONFIRMED); валидация «Save = Contract». Гейты: T-CCH-03 (4 опции белого пятна), T-CCH-04 (канонизация блокируется при открытом вопросе).
@@ -282,7 +282,7 @@
 | `VZ/TEXTURES_AND_GEOMETRY_TZ.md` | §6.B Эп.8; §8.G6 | После lineage (G5) |
 | `ТЗ ENIGMA WORLD-CENTRIC SPATIAL ARCHITECTURE.md` | — | §ENIGMA-002: боль шивки в ≥2 доменах + вердикт Мастера |
 | Контент-трек → §6.C: `ENIGMA_TZ_Female_Targeted_Dark_Fantasy_Layer.pdf` (CT-01), `AWC_Process_World_Model_TZ.pdf` (CT-02), `ENIGMA_TZ2_v2_Narrative_Frame_Onboarding.md` (CT-03) | §6.C | Решение Мастера; изоляция от кодовых очередей |
-| `TZ_CCH-01_Character_Chronicle.md` | §0.2 Ступень 0; §13 | Активен — CCH-0 (ADR). Исполненный документ подлежит самоочистке (§1.3) |
+| `TZ_CCH-01_Character_Chronicle.md` | §0.2 Ступень 0; §13 | CCH-0 закрыт S331 (ADR-O-420); активен CCH-1. Файл остаётся до CCH-6 (частичное исполнение → не удалять, §1.3 п.3) |
 | `TZ_CCH-02_Biography_State_Audit.md` | §0.2 Ступень 0 (линия CCH-02); §14 | После CCH-0; извлечение (CCH-02-2) — при ≥3 авторских биографиях (RD-02-11) |
 | `«Замыкание игровой петли» (Loop Closure).md` (LC-1 addendum, решения владельца) | §0.2 Ступень LC; §15 | LC-IMPL-1 — немедленно; LC-IMPL-2/3 — после GC-01→02→27; гейты LC-GC — §9.3c |
 

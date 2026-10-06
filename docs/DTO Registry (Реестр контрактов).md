@@ -652,5 +652,45 @@
 
 ---
 
-*Версия: 9.1 (M2/D: +NeedDeltaPayload/RELATIONSHIP; реестр EventType +4 needs-touching)*
-*Сессия: S326 | Записей 📦: 72 | Список песочниц — канон (запрет → тест) | IPT 51/51 | Архив v8.0: git show b59dac3f*
+---
+
+## 14. 🔗 CHARACTER CHRONICLE — AUTHORING CONTRACT (ADR-O-420, S311)
+
+**Поток (Слой 0 AUTHORING → COMPILER):** авторский текст → `BiographyDecomposer` (детерминированный препарсинг якорей + LLM `FACT_EXTRACTION`) → `BiographyDecomposition` (transient) → вопросы `ClarificationQuestion` → «Принять как канон» → `ChronicleDocument/ChronicleEntry` (канон `config/npc/chronicles/`) → `ChronicleSeeder` → стартовое состояние ДО первого тика (EventMemory day<0 / RelationshipStore / TruthState / BeliefState / AffectiveImprint). Трек вне тик-пайплайна; тик-контур и каузальное ядро не расширяются.
+
+### 📦 `ChronicleDocument`
+- 📁 `dom/chronicle.py` (CCH-1)
+- Документ хроники NPC: `chronicle_id`, `npc_ref`, `author_text` (append-only по абзацам), `entries`, `white_spots`, `canonical`/`canonical_version`, `schema_version=1`. Хранилище: канон `config/npc/chronicles/<npc_id>.json` + черновики `saves/<campaign>/chronicle_drafts/`.
+- 🚫 **ЗАПРЕТ:** запись `LLM_DRAFT` в канон (INV-LLM-NOT-SSOT); мутация `author_text` задним числом.
+
+### 📦 `ChronicleEntry`
+- 📁 `dom/chronicle.py` (CCH-1)
+- Единица машинной хроники: `entry_id = md5(chronicle_id:fragment_ord:ordinal)` (replay-safe), `historical_age/year`, `kind ∈ {EVENT, RELATIONSHIP, LOCATION, EFFECT, BELIEF_SEED, OBSERVATION, KNOWLEDGE_LINK, TRAIT_SEED}`, `subject_id/object_id` (EntityRef/WhiteSpotRef), `payload` (frozen dict по схеме kind), `causes: Tuple[CauseRef, ...]`, `provenance ∈ {LLM_DRAFT, AUTHOR_CONFIRMED, AUTHOR_AUTHORED}`, `open_questions`.
+- 🚫 **ЗАПРЕТ:** seed-скаляры без `origin_ref` (антипример «Любовь = 0.8»); uuid для entry_id.
+
+### 📦 `WhiteSpot`
+- 📁 `dom/chronicle.py` + `services/chronicle/white_spot_registry.py` (CCH-1)
+- Намеренно неопределённая сущность: `label`, `context_hint`, `resolution_state ∈ {OPEN, RESOLVED_AS_NPC, RESOLVED_AS_UNKNOWN, RESERVED}`, `resolution_ref`. Не тик-агент; участвует в событиях/отношениях хроники.
+- 🚫 **ЗАПРЕТ:** авто-резолюция любым сервисом; писатель `resolution_state` — только действие автора в UI (writer-guard).
+
+### 📦 `KnowledgeLink`
+- 📁 `dom/chronicle.py` (CCH-1)
+- Время знания: `event_ref` (ChronicleEntry), `knower_id` (EntityRef), `learned_age/year`, `channel ∈ {WITNESSED, TOLD, OVERHEARD, DEDUCED, UNKNOWN}`, `certainty`. Инвариант `learned_age ≥ historical_age`. Seed: `EventMemory.known_by/hidden_from` + `EpistemicRecord.first_observed_tick`; `unknown ⇒ ноль записей` (Vacuum-семантика).
+- 🚫 **ЗАПРЕТ:** вычисление одной оси времени из другой; знание там, где хроника фиксирует `unknown`.
+
+### 📦 `BiographyDecomposition`
+- 📁 `dom/chronicle.py` (CCH-2, transient)
+- Результат декомпозиции фрагмента: `items: Tuple[DecompositionItem(kind, draft_payload, confidence, needs_confirmation, question), ...]`. Не канон, не персистится как истина; после «Принять как канон» → `ChronicleEntry(provenance=AUTHOR_CONFIRMED)`.
+- 🚫 **ЗАПРЕТ:** интерпретация как World Truth; молчаливый fallback при невалидном ответе LLM (retry → «не разобрано»).
+
+### 📦 `ClarificationQuestion`
+- 📁 `dom/chronicle.py` (CCH-2)
+- Вопрос автору: `question_id`, `target_span`, `options: Tuple[ClarificationOption, ...]` + свободный ввод; опции {SELECT_EXISTING_NPC, CREATE_NEW_NPC, UNKNOWN_PERSON, LEAVE_WHITE_SPOT}; вариант «оставить белым пятном» обязателен всегда (П3).
+- 🚫 **ЗАПРЕТ:** канонизация фрагмента при открытом вопросе без выбора «белое пятно» (блок с fix_hint, «Save = Contract»).
+
+**Статус: planned (реализация CCH-1/CCH-2).** Вспомогательные `EntityRef` (resolved/new_npc/white_spot/unknown_person) и `CauseRef` (cause_kind ∈ {EVENT, RELATIONSHIP, TRAIT, NEED, OBSERVATION, UNKNOWN}; UNKNOWN легален) — внутри домена. Изменение схемы — ревизия ADR-O-420.
+
+---
+
+*Версия: 9.2 (CCH-0: +§14 Character Chronicle — 6 DTO planned, ADR-O-420)*
+*Сессия: S331 | Записей 📦: 78 | Список песочниц — канон (запрет → тест) | IPT 51/51 | Архив v8.0: git show b59dac3f*
