@@ -94,6 +94,30 @@ def test_vague_relation_membrane_injects_question():
     assert it.confidence <= 0.4 and it.needs_confirmation is True
 
 
+def test_degrade_bad_question_options_drops_option_not_item():
+    """Мусорная опция LLM ('guardianship') выбрасывается поимённо; вопрос жив
+    (реестровые опции + обязательное LEAVE_WHITE_SPOT), item не умирает."""
+    raw = (
+        '{"items": [{"kind": "RELATIONSHIP", "draft_payload": {}, "confidence": 0.4, '
+        '"question": {"question_id": "q1", "target_span": "стражник", '
+        '"options": ["guardianship", "SELECT_EXISTING_NPC"]}}]}'
+    )
+    items = ChronicleDecompositionNormalizer.normalize(raw, chronicle_id="c", fragment_ord=0)
+    q = items[0].question
+    assert q is not None
+    opts = {o.value for o in q.options}
+    assert "guardianship" not in opts and "SELECT_EXISTING_NPC" in opts and "LEAVE_WHITE_SPOT" in opts
+
+
+def test_degrade_missing_confidence_forces_confirmation():
+    """confidence None → 0.5 + needs_confirmation (честная деградация, не смерть item)."""
+    raw = (
+        '{"items": [{"kind": "EVENT", "draft_payload": {"summary": "s"}}]}'
+    )
+    items = ChronicleDecompositionNormalizer.normalize(raw, chronicle_id="c", fragment_ord=0)
+    assert items[0].confidence == 0.5 and items[0].needs_confirmation is True
+
+
 def test_vague_relation_membrane_not_triggered_on_precise():
     """Точная формулировка («отец», «дядя») мембрану не запускает."""
     raw = (

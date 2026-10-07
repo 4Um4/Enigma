@@ -66,6 +66,8 @@ _KEY_PROVENANCE = "provenance"
 _KEY_CONFIDENCE = "confidence"
 _KEY_OPEN_QUESTIONS = "open_questions"
 _KEY_ORDINAL = "ordinal"
+_KEY_GAME_START_AGE = "game_start_age"
+_KEY_EVENT_GROUPS = "event_groups"
 _KEY_REF_KIND = "ref_kind"
 _KEY_NPC_ID = "npc_id"
 _KEY_WS_ID = "white_spot_id"
@@ -242,6 +244,8 @@ def document_to_dict(doc: ChronicleDocument) -> Dict[str, Any]:
         _KEY_CANONICAL: doc.canonical,
         _KEY_CANONICAL_VERSION: doc.canonical_version,
         _KEY_CREATED_BY: doc.created_by_tick_source,
+        _KEY_GAME_START_AGE: doc.game_start_age,
+        _KEY_EVENT_GROUPS: [list(g) for g in doc.event_groups],
     }
 
 
@@ -258,6 +262,9 @@ def document_from_dict(data: Dict[str, Any]) -> ChronicleDocument:
         canonical=data.get(_KEY_CANONICAL, False),
         canonical_version=data.get(_KEY_CANONICAL_VERSION, 0),
         created_by_tick_source=data.get(_KEY_CREATED_BY),
+        # ADR-O-422: optional-поля; старые файлы без них читаются (Vacuum/пусто)
+        game_start_age=data.get(_KEY_GAME_START_AGE),
+        event_groups=tuple(tuple(g) for g in data.get(_KEY_EVENT_GROUPS, ()) if isinstance(g, (list, tuple))),
     )
 
 

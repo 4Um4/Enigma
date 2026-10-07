@@ -293,7 +293,7 @@ class ChronicleDocument:
     """
 
     chronicle_id: str
-    npc_ref: str  # npc_id или якорь white-spot
+    npc_ref: str  # npc_id или якорь white-spotp/services/chronicle/chronicle_store.py
     author_text: str = ""
     entries: Tuple[ChronicleEntry, ...] = ()
     white_spots: Tuple[WhiteSpot, ...] = ()
@@ -301,3 +301,9 @@ class ChronicleDocument:
     canonical_version: int = 0
     schema_version: int = SCHEMA_VERSION
     created_by_tick_source: Optional[str] = None  # прологепистический якорь
+    # ADR-O-422: возраст персонажа на момент игры (для меж-NPC возрастной
+    # математики сверщика). None = не задан (Vacuum, §ENIGMA-003).
+    game_start_age: Optional[int] = None
+    # ADR-O-422: группы склеенных событий — кортежи entry_id, подтверждённые
+    # автором карточкой «это одно событие». Пусто = склеек нет.
+    event_groups: Tuple[Tuple[str, ...], ...] = ()

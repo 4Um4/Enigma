@@ -88,7 +88,14 @@ class ChronicleDecompositionNormalizer:
             if not isinstance(payload, dict):
                 raise DecompositionError(f"items[{idx}]: draft_payload не dict")
             conf = it.get("confidence")
-            if not isinstance(conf, (int, float)) or isinstance(conf, bool) or not (0.0 <= conf <= 1.0):
+            if conf is None:
+                # LLM забыл поле → честная деградация: 0.5 + подтверждение
+                # автора (needs_confirmation форсирует вопрос). Не silent:
+                # автор увидит флаг.
+                conf = 0.5
+                it["needs_confirmation"] = True
+            elif not isinstance(conf, (int, float)) or isinstance(conf, bool) or not (0.0 <= conf <= 1.0):
+                # Число вне диапазона = нарушение схемы → fail-loud (иначе)
                 raise DecompositionError(f"items[{idx}]: confidence {conf!r} вне [0,1]")
             question_raw = it.get("question")
             # Явный if вместо тернарника (§1.1)
@@ -139,17 +146,17 @@ class ChronicleDecompositionNormalizer:
         opts_raw = question_raw.get("options")
         if not isinstance(opts_raw, list) or not opts_raw:
             raise DecompositionError(f"items[{idx}].question: options пусты")
+        # Деградация вместо смерти item (калибровка S336): мусорная опция LLM
+        # ('guardianship', 'tavern') выбрасывается ПОИМЕННО; реестровые опции +
+        # обязательное LEAVE_WHITE_SPOT (П3) сохраняют вопрос живым. Полная
+        # потеря опций → DecompositionError (fail-loud сохранён).
         options = []
         for o in opts_raw:
             try:
                 opt = ClarificationOption(o)
             except ValueError:
-                raise DecompositionError(
-                    f"items[{idx}].question: опция '{o}' вне реестра "
-                    f"{sorted(o.value for o in ClarificationOption)}"
-                ) from None
+                continue
             options.append(opt)
-        # П3 (обязательная опция «белое пятно»)
         if ClarificationOption.LEAVE_WHITE_SPOT not in options:
             options.append(ClarificationOption.LEAVE_WHITE_SPOT)
         return ClarificationQuestion(
