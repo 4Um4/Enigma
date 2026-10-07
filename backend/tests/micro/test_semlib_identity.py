@@ -10,6 +10,8 @@
 Запуск: cd backend; python -m pytest tests/micro/test_semlib_identity.py -v; cd ..
 """
 
+from pathlib import Path
+
 import pytest
 
 from app.services.input.llm_compressor_client import LlamaCppCompressorClient
@@ -77,3 +79,15 @@ def test_two_enum_tails_fail_at_build(monkeypatch):
     # enum-tail-модулей ловит fail-loud сборки, не счётчик маркера.
     assert sys_bi.count(', "ASK_PROVENANCE" (params: {"about"') == 1, "tail удвоился или потерян"
     assert sys_bi.count('"ASK_IDENTITY"') >= 1
+
+
+def test_identity_state_equals_golden_i_bytewise(monkeypatch):
+    """Фаза 0.2 (В-3): identity add-only — отдельная observable state;
+    байтовый эталон golden I (эталон клаузы identity в byte_ok анализатора).
+    Двойная привязка по образцу test_semlib_on: эталон ловит дрейф файла,
+    живая сборка — дрейф модуля/inline."""
+    sys_i = _build(monkeypatch, modules="dialogue_identity")
+    golden_i = Path(__file__).parent / "golden_production_system_prompt_I.txt"
+    assert sys_i == golden_i.read_text(encoding="utf-8"), (
+        "identity-состояние != golden I: дрейф эталона или модуля (В-3)"
+    )

@@ -4,9 +4,12 @@
     (1) Канонический topic-канал Э2 = prov_topic (СВОДКА-строки; калибровка
         на старых ногах: OLD-B=4, OLD-BI=1 — числители handoff «4/25 -> 1/26»);
     (2) финальные акты (ACTS): prov/P2/id/FP3/SI/AskID/topicNZ/bnd;
-    (3) byte: построчные [SLICE] vs sys_md5 (byte_ok; v1-баг dict-подсчёта
-        исправлен; 96 вызовов = 90+1 warm-up+5 double-call = паритет старых
-        ног); CTRL-руки — проверка sys-однородности (CTRL-B: все = golden B);
+    (3) byte: byte_ok по СПАРЕННЫМ вызовам [SLICE]+[DET-TRACE] (Фаза 0.1/0.2,
+        TZ-CC-01/В-4: непарные [SLICE] — transport unpaired_slices; клауза
+        identity сверяется с golden I (В-3); modules-токен устойчив к
+        merged stdout/stderr склейкам — Фаза 0.3; прежняя семантика
+        «построчные [SLICE] vs sys_md5, 96=90+1+5» заменена); CTRL-руки —
+        проверка sys-однородности (CTRL-B: все = golden B);
     (4) resp: resp_md5 по prompt_md5; карта prompt_md5->фраза строится из
         ORC-ног ([SLICE] предшествует своему DET-TRACE; user-prompt не
         зависит от состояния — доказано диагностикой). Сравнения ТОЛЬКО
@@ -34,6 +37,11 @@ _MD5_A = hashlib.md5(
 ).hexdigest()
 _MD5_B = hashlib.md5(
     (_MICRO / "golden_production_system_prompt_B.txt").read_text(encoding="utf-8").encode("utf-8")
+).hexdigest()
+# Фаза 0.2 (В-3): golden-эталон identity add-only состояния — отдельная
+# observable state; отсутствие файла = громкий отказ (L4), не тихий None
+_MD5_I = hashlib.md5(
+    (_MICRO / "golden_production_system_prompt_I.txt").read_text(encoding="utf-8").encode("utf-8")
 ).hexdigest()
 
 _THIRD = ("AB-3RD", "IND-3RD", "GEN-3RD")
@@ -69,7 +77,9 @@ _ORC_FILES = [
     "sr1_p4_orcb_a.txt", "sr1_p5_orci_a.txt", "sr1_p5_orci_b.txt",
 ]
 
-_SLICE_RE = re.compile(r"\[SLICE\] router=oracle text='(.*)' family=(None|'[^']*') modules=(\S+)")
+# Фаза 0.3 (В-4): modules-токен — строгий паттерн; merged stdout/stderr
+# склейки (напр. 'dialogue_identity[LLM_COMPRESSOR]') не захватываются
+_SLICE_RE = re.compile(r"\[SLICE\] router=oracle text='(.*)' family=(None|'[^']*') modules=(dialogue_\w+|NONE)")
 _TRACE_RE = re.compile(
     r"\[DET-TRACE\] prompt_md5=([0-9a-f]{32})(?: sys_md5=([0-9a-f]{32}))? seed=\d+ resp_md5=([0-9a-f]{32})"
 )
@@ -126,18 +136,31 @@ def _parse(path: Path, prompt_map: Dict[str, str]) -> Dict[str, object]:
     entries: List[Tuple[str, str, List[Tuple[str, str]]]] = []
     slice_modules: List[str] = []
     sys_md5s: List[str] = []
+    # Фаза 0.1 (В-4): спаренные вызовы ([SLICE] + следующий [DET-TRACE]
+    # с sys_md5); непарные [SLICE] — transport
+    slice_sys_pairs: List[Tuple[str, str]] = []
+    unpaired_slices = 0
     resp_by_text: Dict[str, str] = {}
     prov_topic: Dict[str, bool] = {}
     cur: Optional[Tuple[str, str]] = None
+    _pending_slice: Optional[str] = None
     for line in _read(path).splitlines():
         m = _SLICE_RE.search(line)
         if m:
+            if _pending_slice is not None:
+                # [SLICE] без [DET-TRACE] до следующего [SLICE] — HTTP-фолбэк
+                # прогрева: transport, из byte_ok исключён (Фаза 0.1)
+                unpaired_slices += 1
+            _pending_slice = m.group(3)
             slice_modules.append(m.group(3))
             continue
         m = _TRACE_RE.search(line)
         if m:
             if m.group(2):
                 sys_md5s.append(m.group(2))
+                if _pending_slice is not None:
+                    slice_sys_pairs.append((_pending_slice, m.group(2)))
+                    _pending_slice = None
             text = prompt_map.get(m.group(1))
             if text is not None:
                 resp_by_text[text] = m.group(3)
@@ -154,8 +177,12 @@ def _parse(path: Path, prompt_map: Dict[str, str]) -> Dict[str, object]:
         if m and cur is not None:
             entries.append((cur[0], cur[1], _ACT_RE.findall(m.group(1))))
             cur = None
+    if _pending_slice is not None:
+        # хвостовой [SLICE] без [DET-TRACE] — transport
+        unpaired_slices += 1
     return {
         "entries": entries, "slices": slice_modules, "sys": sys_md5s,
+        "pairs": slice_sys_pairs, "unpaired_slices": unpaired_slices,
         "resp": resp_by_text, "prov_topic": prov_topic,
     }
 
@@ -164,6 +191,8 @@ def _metrics(parsed: Dict[str, object]) -> Dict[str, object]:
     entries: List[Tuple[str, str, List[Tuple[str, str]]]] = parsed["entries"]
     slices: List[str] = parsed["slices"]
     sys_md5s: List[str] = parsed["sys"]
+    pairs: List[Tuple[str, str]] = parsed["pairs"]
+    unpaired_slices: int = parsed["unpaired_slices"]
     prov_topic: Dict[str, bool] = parsed["prov_topic"]
 
     def _acts(text: str) -> List[Tuple[str, str]]:
@@ -191,18 +220,25 @@ def _metrics(parsed: Dict[str, object]) -> Dict[str, object]:
     pt_true = [t for t, v in prov_topic.items() if v]
     slice_counts = Counter(slices)
     sys_counts = Counter(sys_md5s)
+    # Фаза 0.1/0.2 (В-4/В-3): byte_ok — ТОЛЬКО по спаренным вызовам
+    # ([SLICE]+[DET-TRACE]); непарные [SLICE] — transport (unpaired_slices).
+    # Клауза identity: add-only срез сверен с golden I.
+    pair_mod = Counter(mod for mod, _ in pairs)
+    pair_sys = Counter(md5 for _, md5 in pairs)
     byte_ok = None
-    if slices:
+    if pairs:
         byte_ok = (
-            slice_counts.get("NONE", 0) == sys_counts.get(_MD5_A, 0)
-            and slice_counts.get("dialogue_provenance", 0) == sys_counts.get(_MD5_B, 0)
-            and len(slices) == len(sys_md5s)
+            pair_mod.get("NONE", 0) == pair_sys.get(_MD5_A, 0)
+            and pair_mod.get("dialogue_provenance", 0) == pair_sys.get(_MD5_B, 0)
+            and pair_mod.get("dialogue_identity", 0) == pair_sys.get(_MD5_I, 0)
+            and all(md5 in (_MD5_A, _MD5_B, _MD5_I) for _, md5 in pairs)
         )
     return {
         "n": len(entries), "prov_rec": prov_rec, "p2": p2, "id_rec": id_rec,
         "fp3": fp3, "si": si, "ask_id": ask_id, "topic_nz": topic_nz,
         "pt": len(pt_true), "pt_list": pt_true,
         "slice": dict(slice_counts), "sys_uniq": len(sys_counts),
+        "pairs": len(pairs), "unpaired_slices": unpaired_slices,
         "sys_all_B": bool(sys_md5s) and set(sys_counts) == {_MD5_B},
         "byte_ok": byte_ok, "resp": parsed["resp"],
         # v1-поле, потерянное в v2-рерайте (урок: при рерайте прибора — дифф
@@ -234,8 +270,7 @@ def main() -> None:
         sl = m["slice"]
         slice_str = (
             f"slice(NONE:{sl.get('NONE', 0)}/P:{sl.get('dialogue_provenance', 0)}"
-            f"/I:{sl.get('dialogue_identity', 0)})" if sl else "slice(-)"
-        )
+            f"/I:{sl.get('dialogue_identity', 0)})") if sl else "slice(-)"
         byte_str = "" if m["byte_ok"] is None else f" byte_ok={'OK' if m['byte_ok'] else 'VIOLATION'}"
         sysb = " sysALLB" if m["sys_all_B"] else ""
         print(
@@ -243,7 +278,7 @@ def main() -> None:
             f"P2={'alive' if m['p2'] else 'dead(non-canon)'} id={m['id_rec']}/3 "
             f"FP3={m['fp3']} SI={m['si']} AskID={m['ask_id']} "
             f"topicNZ={m['topic_nz']} provTOPIC={m['pt']} {slice_str} "
-            f"sysU={m['sys_uniq']}{sysb}{byte_str}"
+            f"sysU={m['sys_uniq']} unpr={m['unpaired_slices']}{sysb}{byte_str}"
         )
         for t in m["pt_list"]:
             print(f"    provTOPIC+: {t!r}")
