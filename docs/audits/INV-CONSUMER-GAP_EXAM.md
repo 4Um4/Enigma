@@ -42,3 +42,15 @@ Census 198→291 (+93: relationship_contracts [need_slot/need_level/preference_m
 | BL | beliefs — археология | S243-миссматч (proof доказывал threat_gradient) | вердикт: миграция proof→epistemic_decision_divergence_test.py (S194; event-level вход — вопрос канона). Исполнение — хвост |
 
 Находки (без фиксов): energy razor-margin → CG-D-15; hub ФАЗА-1 dead-continue → CG-D-16; асимметрия 57/11 → CG-D-17. Не исполнено → roadmap §7.8: E4, E8+M-PROOF-LIVE, манифест-хирургия, досье M2/D, F5-вкладка, behavior_mask, (none)-memo. Формулировки E-атак реконструированы (исходное ТЗ на диске не существует — три независимых поиска).
+
+## Stage 4 (S334): const-резолв + relationship_state-домен (мини-ADR ADR-O-414-контура)
+
+Вердикт Мастера C/GO: сканер перестаёт быть слепым к каноническому AST-паттерну Устава §12.1 (ключи-константы), не превращаясь в evaluator. Границы: ТОЛЬКО top-level статические строковые константы текущего файла (`NAME = "str"` / `NAME: Final[str] = "str"`); цепочки (`A = B`), вызовы, env, import, межфайловый inference — вне резолва. Плюс `CONTAINER_DOMAINS += {"relationship_state"}` (RE-домен, писатель-маршрут O-370/O-419). Порядок: резолв → EXAM → фактический урожай → триаж → декларации → GREEN (жизненный цикл данных ≠ работа анализатора; directed writers=0 → DEBT без искусственных writers).
+
+| # | Манипуляция/проба | RED/факт | GREEN/факт |
+|---|---|---|---|
+| E-C1 | живой урожай (сканер+домен, деклараций нет) | exit=1; census container 24→26; ровно 4 нарушения: NO_WRITER×2 (directed, dynamics) + M-UNDECLARED×2 | декларации DEBT (dynamics: вербатим NOTE S329, authority ADR-O-419; directed: authority ADR-O-370) → exit=0; manifest 297→299; подавлено 73→75 |
+| E-C2 | NEG-граница: цепочка констант (`CHAIN = KEY`) | `_key` → None (не резолвится) — слепота к не-литеральным значениям сохранена | — |
+| E-C3 | NEG-граница: вызов (`FUNC = get_key()`) | `_key` → None — evaluator-семантика не введена | — |
+
+Финал: IPT ИТОГО 51 passed / 0 failed (0 CRITICAL); линтер GREEN (container=26, manifest=299, parse_errors=0). M-STALE-хвост S329 (книга кванта вне census) закрыт: `relationship_state.dynamics` легально декларирован по NOTE-вербатиму ADR-O-419.

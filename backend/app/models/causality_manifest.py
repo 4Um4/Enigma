@@ -280,6 +280,22 @@ FIELD_CAUSALITY: Dict[str, FieldCausality] = {
     # test_re_gh_dynamics (noop-чистота/mark-коммит) + SUPERBOX re_gh_dynamics_test;
     # расширение CONTAINER_DOMAINS — отдельное решение по санкции Мастера.
     "need_slot.gen_rate": FieldCausality("DEBT", organ="relationship", terminal=None, authority="ADR-O-419"),
+    # ═══ ADR-O-419 NOTE→декларация (S334, задача 2): census собирает
+    # relationship_state-домен (CONTAINER_DOMAINS + top-level const-резолв,
+    # мини-ADR сканера O-414) — книга кванта легализована в манифесте.
+    # Писатель (need_dynamics_mark через _ensure_dict-обёртку) невидим
+    # тупому слою — честный NO_WRITER подавлен DEBT; leaf
+    # last_quantum_seconds живёт внутри dynamics-дикта (вложенная ступень
+    # вне верхнего уровня census Слоя 1; покрывается записью домена).
+    # Вербатим NOTE S329: FieldCausality("DEBT", organ="relationship",
+    # terminal="persistence", authority="ADR-O-419")
+    "relationship_state.dynamics": FieldCausality("DEBT", organ="relationship", terminal="persistence", authority="ADR-O-419"),
+    # directed — v2-поддерево 5 скаляров (M1b, ADR-O-371): runtime-писатель —
+    # RAM-стор (sync_into_scene/бутстрап; слепота слоя к методам класса =
+    # честный NO_WRITER); reader — scene_init:297 (бутстрап RAM-носителя).
+    # DEBT по вердикту Мастера S334: искусственных writers не ищем;
+    # жизненный цикл — фаза K removal-test.
+    "relationship_state.directed": FieldCausality("DEBT", organ="relationship", terminal="persistence", authority="ADR-O-370"),
 
     # ═══ temporary_drive (organ=desire) ═══
     "temporary_drive.drive_type": FieldCausality("DEBT", organ="desire", terminal="decision", authority="ADR-O-414"),

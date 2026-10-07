@@ -68,7 +68,10 @@ SCAN_DIRS = [APP / "services", APP / "api", APP / "domain"]
 # Контейнерные дикт-домены — литеральные ключи по всему app (включая модели:
 # их чтения в адаптерах легализуют ключ, что консервативно и безопасно).
 CONTAINER_SCAN_ROOT = APP
-CONTAINER_DOMAINS = {"body_state", "needs"}
+# relationship_state (S334, задача 2, вердикт Мастера C/GO): RE-домен
+# scene_state-носителя; писатель-маршрут — RelationshipStateStore
+# (caller-guard O-370) + relationship_dynamics (книга кванта O-419).
+CONTAINER_DOMAINS = {"body_state", "needs", "relationship_state"}
 
 _MARKER_RE = re.compile(r"CONSUMER-GAP-DEBT:\s*([A-Za-z0-9][A-Za-z0-9/_-]*)")
 # authority обязан выглядеть как ссылка: NL-D9, AUD-D4, GC-11, S248, O-383...
@@ -149,6 +152,43 @@ def _alias_bindings(tree: ast.AST) -> Dict[str, str]:
     return out
 
 
+def _const_literals(tree: ast.AST) -> Dict[str, str]:
+    """Top-level строковые константы файла (вердикт Мастера, C/GO):
+    NAME = "str" / NAME: Final[str] = "str". Границы жёсткие: только
+    литеральная строка в значении; цепочки (A = B), вызовы, env, import,
+    межфайловый inference — НЕ резолвятся (тупость слоя сохранена,
+    слепота к каноническому AST-паттерну Устава §12.1 устранена)."""
+    out: Dict[str, str] = {}
+    module = tree if isinstance(tree, ast.Module) else None
+    if module is None:
+        return out  # не-модуль (недостижимо для parse()) — тупо пусто
+    for stmt in module.body:  # только верхний уровень модуля
+        value: Optional[ast.expr] = None
+        target_name: Optional[str] = None
+        if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 \
+                and isinstance(stmt.targets[0], ast.Name):
+            value = stmt.value
+            target_name = stmt.targets[0].id
+        elif isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+            value = stmt.value
+            target_name = stmt.target.id
+        if target_name is not None and isinstance(value, ast.Constant) \
+                and isinstance(value.value, str):
+            out[target_name] = value.value
+    return out
+
+
+def _key(node: ast.expr, consts: Dict[str, str]) -> Optional[str]:
+    """Ключ-литерал ИЛИ резолв Name через таблицу top-level констант
+    текущего файла. Возвращает None для всего остального (не строковый
+    Literal, не константа, константа-не-строка)."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name) and node.id in consts:
+        return consts[node.id]
+    return None
+
+
 def _container_access(node: ast.expr) -> Optional[Tuple[str, List[str]]]:
     """Тупой резолвер пути к контейнерному домену. Три паттерна:
     x.body_state[...] / x['npc']['body_state'][...] / body_state[...] (Name-параметр
@@ -226,33 +266,36 @@ def scan_container_usages(parse_errors: List[str]) -> Dict[str, Dict[str, Dict[s
             continue
         rel = f.as_posix()
         aliases = _alias_bindings(tree)
+        consts = _const_literals(tree)
         for node in ast.walk(tree):
             # индексный доступ: ключ = slice, но только на верхнем уровне домена
-            if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant) \
-                    and isinstance(node.slice.value, str):
+            _k = _key(node.slice, consts) if isinstance(node, ast.Subscript) else None
+            if isinstance(node, ast.Subscript) and _k is not None:
                 acc = _container_access(node.value)
                 if acc:
                     domain, rest = acc
                     if not rest:
                         kind = "writers" if isinstance(node.ctx, ast.Store) else "readers"
-                        _reg(domain, node.slice.value, kind, f"{rel}:{node.lineno}")
+                        _reg(domain, _k, kind, f"{rel}:{node.lineno}")
             # .get('k') — чтение (только верхний уровень + one-hop алиасы)
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
-                    and node.func.attr == "get" and node.args \
-                    and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-                acc = _container_access(node.func.value)
-                if acc and not acc[1]:
-                    _reg(acc[0], node.args[0].value, "readers", f"{rel}:{node.lineno}")
-                elif not acc and isinstance(node.func.value, ast.Name) \
-                        and node.func.value.id in aliases:
-                    _reg(aliases[node.func.value.id], node.args[0].value,
-                         "readers", f"{rel}:{node.lineno}")
+                    and node.func.attr == "get" and node.args:
+                _g = _key(node.args[0], consts)
+                if _g is not None:
+                    acc = _container_access(node.func.value)
+                    if acc and not acc[1]:
+                        _reg(acc[0], _g, "readers", f"{rel}:{node.lineno}")
+                    elif not acc and isinstance(node.func.value, ast.Name) \
+                            and node.func.value.id in aliases:
+                        _reg(aliases[node.func.value.id], _g,
+                             "readers", f"{rel}:{node.lineno}")
             # индексный доступ через алиас: _body['sleep_onset_tick'] = tick
             if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name) \
-                    and node.value.id in aliases and isinstance(node.slice, ast.Constant) \
-                    and isinstance(node.slice.value, str):
-                kind = "writers" if isinstance(node.ctx, ast.Store) else "readers"
-                _reg(aliases[node.value.id], node.slice.value, kind, f"{rel}:{node.lineno}")
+                    and node.value.id in aliases:
+                _ak = _key(node.slice, consts)
+                if _ak is not None:
+                    kind = "writers" if isinstance(node.ctx, ast.Store) else "readers"
+                    _reg(aliases[node.value.id], _ak, kind, f"{rel}:{node.lineno}")
             # .update({'k': ...}) — writer-литералы (та же тупость, что Dict-литерал)
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
                     and node.func.attr == "update" and node.args \
@@ -276,9 +319,9 @@ def scan_container_usages(parse_errors: List[str]) -> Dict[str, Dict[str, Dict[s
                         dom = t.attr
                     elif isinstance(t, ast.Subscript):
                         acc = _container_access(t.value)
-                        if acc and not acc[1] and isinstance(t.slice, ast.Constant) \
-                                and isinstance(t.slice.value, str) and t.slice.value in CONTAINER_DOMAINS:
-                            dom = t.slice.value
+                        _tk = _key(t.slice, consts) if acc and not acc[1] else None
+                        if _tk is not None and _tk in CONTAINER_DOMAINS:
+                            dom = _tk
                     if dom:
                         for k in node.value.keys:
                             if isinstance(k, ast.Constant) and isinstance(k.value, str):

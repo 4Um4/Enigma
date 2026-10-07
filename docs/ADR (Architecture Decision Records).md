@@ -282,7 +282,13 @@ ADR-O-421 [ONTO] **Idle Event Projection — наблюдаемая проекц
 Суть: LC-IMPL-1 (roadmap §15.2, каталог LC-01, вердикты Мастера В1–В7): idle_tick возвращает честную наблюдаемую проекцию {cause,target,value} только уже произошедшего в симуляции. Источник — EventDTO-поток тика через наблюдательное tap-окно в game_loop.idle_tick (подписка только на v1-словарь, демонтаж в finally; ядро/Фазы 0–10 не тронуты). v1-словарь УЗКИЙ (вердикт В2): {ACTIVITY_OUTCOME, THEFT} — значимое наблюдаемое, не представленное анимацией/речевым каналом; EXCLUDED-реестр с причиной на каждый член EventType (микро-замок полноты: enum == словарь ∪ EXCLUDED, молчаливых дыр нет — поймал NPC_INTERACTS_NPC в первом прогоне). Гейт восприятия = наблюдательная мембрана ADR-O-360 (LOS+дистанция до source, SSOT _OBSERVATION_SIGHT_RADIUS — симметрия игрок↔NPC-свидетель; DEBT-R1: event.radius контрактом наблюдения не является) + whisper-адресат EventDTO + private-запрет §17.3. Строго read-only (§15.4-8; SUPERBOX read-only A/B замок: fingerprint миров Control≡Treatment при 90/90 тиках). Флаг IDLE_EVENTS_PROJECTION_ENABLED ON default с commit D (вердикт В4: после зелёного LC-GC-01-ядра; OFF — только явным env; вечный мёртвый выключатель не оставляется). NPC_SPOKE вне v1 (В3: обращение NPC к игроку — будущий режим разговора TES-класса «вступить/уклониться», не телеметрия). Формат — frozen IdleEventProjection (DTO Registry §11); value — только наблюдаемое содержимое (Rule 11). Границы: «фронт отображает» LC-GC-01 — IMPL-3 (гейт остаётся открытым); асинхронные воркеры вне окна — вне v1. Ренумбер O-420→O-421: O-420 занят параллельной S331 в окне A→B.
 ❌ Taboo: StateDeltas/значимые_events мимо словаря (Rule 11, замок K2 бессрочно); мутация мира/EventDTO из проекции; самодельные радиусы наблюдения (только мембрана O-360/whisper-адресат); расширение словаря без вердикта Мастера + мини-ADR (прецедент _INTENT_EVENT_MAP); таймеры/кулдауны частоты (§15.4-1/5); knowledge-канал в обход диалога/следа (LC-09); UUID wall-clock в проекции.
 Status: ACTIVE (LC-GC-01-ядро GREEN 3/3 SUPERBOX; фронт-гейт — LC-IMPL-3)
-Files: `backend/app/domain/idle_projection.py`, `backend/app/services/game_loop/idle_event_projection.py`, `backend/app/services/game_loop/game_loop.py` (wiring idle_tick), `backend/tests/micro/test_idle_event_projection.py`, `backend/tests/micro/test_fe_events_channel_no_deltas.py` (эволюция замка K2), `backend/tests/sandbox/SUPERBOX/scenarios/lc_gc01_world_speaks_test.py
+Files: `backend/app/domain/idle_projection.py`, `backend/app/services/game_loop/idle_event_projection.py`, `backend/app/services/game_loop/game_loop.py` (wiring idle_tick), `backend/tests/micro/test_idle_event_projection.py`, `backend/tests/micro/test_fe_events_channel_no_deltas.py` (эволюция замка K2), `backend/tests/sandbox/SUPERBOX/scenarios/lc_gc01_world_speaks_test.py`
+
+ADR-O-421a [STANDARD] **Мини-ADR: Consumer-Gap Const-Resolve + relationship_state-домен** (S334; расширение контура ADR-O-414)
+Суть: lint_consumer_gap — третий контейнерный домен `relationship_state` (RE; писатель-маршрут RelationshipStateStore O-370 + книга кванта O-419) + резолв top-level статических строковых констант файла (`NAME = "str"` / `Final[str]`) в четырёх точках census (Subscript-slice, .get-arg, алиас-Subscript, dict-literal-ключи). Границы (вердикт Мастера C/GO): ТОЛЬКО литеральная строка в значении; цепочки/вызовы/env/import/межфайловый inference — НЕ резолвятся; тупость слоя сохранена, слепота к каноническому паттерну Устава §12.1 устранена. Sentinel-механика не тронута («не дальше необходимого»). Урожай: directed (reader scene_init:297) + dynamics (книга кванта, писатель за `_ensure_dict`-обёрткой — честный NO_WRITER→DEBT); декларации манифеста: dynamics — вербатим NOTE S329 (ADR-O-419), directed — ADR-O-370; M-STALE S329 закрыт.
+❌ Taboo: import-resolution/eval/env/функции в const-резолве; автоматическое превращение урожая в CONTAINER_DOMAINS (обнаружение ≠ допустимость; каждый домен/ключ — триаж + вердикт); искусственные writers ради зелёного census.
+Status: ACTIVE (EXAM Stage 4: E-C1 live RED→GREEN, E-C2/E-C3 NEG-границы; IPT 51/51)
+Files: `scripts/lint_consumer_gap.py`, `backend/app/models/causality_manifest.py`, `docs/audits/INV-CONSUMER-GAP_EXAM.md` (Stage 4)
 
 ---
 
@@ -728,7 +734,30 @@ Files: backend/app/models/delta_payloads.py, backend/app/models/state_delta.py, 
 Status: ACTIVE (G/H; K — removal-тесты; Полигон M — калибровка CALIBRATION_CANDIDATE)
 Files: backend/app/services/social/relationship_dynamics.py, backend/app/services/phases/idle_services.py, backend/app/services/npc/sleep_lifecycle_service.py, backend/app/services/events/relationship_event_semantics.py, backend/app/domain/relationship_contracts.py, backend/app/models/causality_manifest.py, backend/tests/sandbox/SUPERBOX/scenarios/re_gh_dynamics_test.py, backend/tests/test_re_gh_contracts.py, backend/tests/test_re_gh_dynamics.py
 
-
+ADR-O-422 [ONTO] **Chronicle Consistency — сверка авторского плетения** (S336)
+Суть: трёхуровневый сверщик хроник (вне тик-контура): (1) внутри биографии —
+два времени, dangling-ссылки; (2) между биографиями — возрастная математика через
+age_at_game_start/birth_epoch, склейка событий по месту+времени+ролям
+(именованный↔неизвестный совместим: архетип/возрастная полоса/пол; склейка
+заполняет зеркальные пробелы имён); (3) с каноном игры — резолв имён через
+name_forms, сверка известности с truth_state (known_by/hidden_from).
+Выход: ConsistencyReport — карточки {CONTRADICTION, MERGE_CANDIDATE, GAP,
+QUESTION, CANON_SYNC, INFO}; финал склейки и конфликтов — всегда автор.
+Вытеснение: канонический файл хранилища = актуальный снимок; подтверждение
+новой версии факта удаляет старую запись из канона (история — git и
+author_text в черновике, append-only); запущенная кампания не обновляется
+(канон отливается в seed один раз, ADR-O-420). Временные окна: система
+предлагает окно между датированными якорями и проверяет меж-NPC-согласованность.
+Убеждение без источника — легальная запись (confidence без provenance).
+❌ Taboo: авто-склейка без карточки автору; авто-резолюция конфликтов; запись
+в truth_state/NPC-конфиги из сверщика (только предложения); обновление
+запущенных кампаний; перечёркивание (superseded-маркеры в игровом канале);
+второй календарный модуль (только age_math).
+Status: ACTIVE (после реализации)
+Files: backend/app/services/chronicle/consistency_service.py,
+backend/app/domain/chronicle.py (аддитивно: game_start_age у документа,
+event_groups), backend/app/api/routes_chronicle.py (+check-эндпоинт),
+tests/micro/test_chronicle_consistency.py
 
 
 
