@@ -2,9 +2,12 @@
 
 Назначение: STAGE 4 — E2-regression на кандидате: воспроизводится ли
     интерференция? Главный канал кандидата — prov-акты (topic-прокси пуст).
-    Метрики: prov/topicNZ/SI/AskID/id/FP3; [SLICE]+byte_ok (ORC-ноги);
-    A/A внутри рук; resp-дифф ORC vs REF-B на PROV+ (тот же промпт+seed —
-    кросс-инстанс детерминизм кандидата ожидает идентичность).
+    Метрики: prov/topicNZ/SI/AskID/id/FP3; [SLICE]+byte_ok (ORC-ноги;
+    Фаза 0.1/0.2: byte_ok — только спаренные вызовы, клауза identity);
+    A/A внутри рук (Фаза 0.4: semantic mismatches — среди ВАЛИДНЫХ ответов,
+    transport-фолбэки — отдельной метрикой); resp-дифф ORC vs REF-B на PROV+
+    (тот же промпт+seed — кросс-инстанс детерминизм кандидата ожидает
+    идентичность).
     Сигнатура Qwen2.5 для сравнения: BI: prov 1->0, topicNZ 25->17.
 Зависимости: p0_phase1_metrics, p0_rc_baseline.
 Запуск: python reports/p0_stage4_analyze.py
@@ -47,17 +50,29 @@ def main() -> None:
         print(f"[{arm:11} {fname}] prov={m['prov_rec']}/22 P2={'alive' if m['p2'] else 'dead'} "
               f"id={m['id_rec']}/3 FP3={m['fp3']} SI={m['si']} AskID={m['ask_id']} "
               f"topicNZ={m['topic_nz']} provTOPIC={m['pt']} {slice_str} "
-              f"sysU={m['sys_uniq']}{byte_str}")
+              f"sysU={m['sys_uniq']} unpr={m['unpaired_slices']}{byte_str}")
 
     for arm in ("CAND-BI", "CAND-ORC"):
         files = [f for a, f in _ARMS if a == arm and f in results]
         if len(files) == 2:
             a1 = results[files[0]][1]["acts_by_text"]
             a2 = results[files[1]][1]["acts_by_text"]
-            mism = [t for t in a1 if t in a2 and a1[t] != a2[t]]
-            print(f"A/A {arm}: acts-mismatches={len(mism)}")
+            # Фаза 0.4 (В-8): A/A = 0 semantic mismatches СРЕДИ ВАЛИДНЫХ
+            # ответов; валидность = resp_md5 получен ([DET-TRACE]);
+            # фолбэки/таймауты — transport, в семантику не попадают
+            r1 = results[files[0]][1]["resp"]
+            r2 = results[files[1]][1]["resp"]
+            valid = [t for t in a1 if t in a2 and t in r1 and t in r2]
+            mism = [t for t in valid if a1[t] != a2[t]]
+            inv = [t for t in a1 if t not in r1] + [t for t in a2 if t not in r2]
+            print(
+                f"A/A {arm}: semantic-mismatches={len(mism)}/{len(valid)} (valid) | "
+                f"invalid-calls={len(inv)} (transport)"
+            )
             for t in mism[:3]:
-                print(f"    {t!r}: {a1[t]} vs {a2[t]}")
+                print(f"    SEMANTIC {t!r}: {a1[t]} vs {a2[t]}")
+            for t in inv[:3]:
+                print(f"    TRANSPORT {t!r}")
 
     if "m4_orc_b.txt" in results and "m2_cand_b.txt" in results:
         ro = results["m4_orc_b.txt"][1]["resp"]
