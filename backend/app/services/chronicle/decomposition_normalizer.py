@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any, Final, List, Mapping
 
@@ -21,6 +22,8 @@ from app.domain.chronicle import (
     DecompositionItem,
     EntryKind,
 )
+
+logger = logging.getLogger(__name__)
 
 _MD_JSON: Final[re.Pattern] = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 _BARE_JSON: Final[re.Pattern] = re.compile(r"\{.*\}", re.DOTALL)
@@ -155,6 +158,11 @@ class ChronicleDecompositionNormalizer:
             try:
                 opt = ClarificationOption(o)
             except ValueError:
+                # L4: деградация видима — мусорная опция LLM не глотается молча
+                logger.warning(
+                    "normalize[%s]: мусорная опция вопроса отброшена: %r",
+                    idx, o,
+                )
                 continue
             options.append(opt)
         if ClarificationOption.LEAVE_WHITE_SPOT not in options:
