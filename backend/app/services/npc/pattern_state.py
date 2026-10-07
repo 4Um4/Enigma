@@ -6,12 +6,17 @@ update(state(H1), H2) при математически доказанной э�
 Exactness contract: Σx/Σx² — Fraction (statistics.variance эталон);
 cumulative — последовательный float в порядке потока (байт-идентичность
 с оригиналом). Никакого I/O — чистая математика (Домен, §1).
+Эквивалентность cumulative — против встроенного sum() ТЕКУЩЕГО интерпретатора:
+CPython 3.12+ суммирует float'ы Ноймайером, CPython 3.11 (матрица CI) — обычным
+последовательным сложением; жёсткая привязка к одному алгоритму даёт
+ULP-расхождение с эталоном на другой версии (поймано oracle-кейсом 3.11).
 Зависимости: app.domain.identity_events (TraitDriftEvent, EvidenceOfPersistence)
 Основные сущности: SourceStats, WatermarkState
 Запуск: тесты — backend/tests/test_pattern_watermark_oracle.py
 """
 
 import math
+import sys
 from fractions import Fraction
 from typing import Dict, Iterable, List
 
@@ -21,6 +26,12 @@ from app.domain.identity_events import EvidenceOfPersistence, TraitDriftEvent
 from app.services.npc.pattern_detector import MIN_EVENTS_FOR_PERSISTENCE
 
 _INVALID_SOURCES = {"unknown", "", None}
+
+# ADR-O-400 equivalence: встроенный sum() (эталон pattern_detector) с CPython 3.12
+# использует компенсацию Ноймайера, до 3.12 — простое последовательное сложение.
+# Кандидат обязан побитово повторять sum() версии, на которой он запущен, иначе
+# oracle (только ==, approx запрещён) падает на ULP-расхождении в CI-матрице 3.11.
+_SUM_USES_NEUMAIER = sys.version_info >= (3, 12)
 
 
 class SourceStats:
@@ -42,15 +53,19 @@ class SourceStats:
         self.first_seen: int = first_seen
 
     def update(self, effect_value: float, observation_weight: float) -> None:
-        # Эквивалентность с оригиналом: встроенный sum() (CPython 3.12+) суммирует
-        # float'ы алгоритмом Ноймайера — воспроизводим его состояние (total + comp).
+        # Эквивалентность с оригиналом: воспроизводим состояние встроенного sum()
+        # (total + comp для Ноймайера 3.12+, чистый total для 3.11).
         weighted = effect_value * observation_weight
-        t = self.cumulative + weighted
-        if abs(self.cumulative) >= abs(weighted):
-            self._comp += (self.cumulative - t) + weighted
+        if _SUM_USES_NEUMAIER:
+            t = self.cumulative + weighted
+            if abs(self.cumulative) >= abs(weighted):
+                self._comp += (self.cumulative - t) + weighted
+            else:
+                self._comp += (weighted - t) + self.cumulative
+            self.cumulative = t
         else:
-            self._comp += (weighted - t) + self.cumulative
-        self.cumulative = t
+            # CPython <= 3.11: sum() — последовательное сложение (0.0 + w0 = w0)
+            self.cumulative = self.cumulative + weighted
         x = Fraction(effect_value)
         self._sum_x += x
         self._sum_x2 += x * x
@@ -143,7 +158,11 @@ class WatermarkState:
                 continue
             out.append(EvidenceOfPersistence(
                 source_id=sid,
-                cumulative_effect=st.cumulative + st._comp,  # финал Ноймайера
+                # финал Ноймайера — только когда он накапливался (3.12+);
+                # на 3.11 comp всегда 0.0, а x + 0.0 изменил бы знак -0.0
+                cumulative_effect=(
+                    st.cumulative + st._comp if _SUM_USES_NEUMAIER else st.cumulative
+                ),
                 behavior_variance=st.behavior_variance() * st.temporal_instability(),
             ))
         return out

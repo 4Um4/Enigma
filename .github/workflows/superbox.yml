@@ -26,4 +26,7 @@ jobs:
       run: |
         cd backend
         python -m tests.sandbox.SUPERBOX.run drift replay_determinism
-      timeout-minutes: 5
+      # S268: полный режим 2 × 10 000 тиков; замер скорости 2026-10-07 — 12.8 тиков/сек
+      # (локально и на runner одинаково) → ~26 мин на оба прогона. Старый лимит 5 мин
+      # был структурно невыполним: workflow падал по timeout на всех 10 последних пушах.
+      timeout-minutes: 60
