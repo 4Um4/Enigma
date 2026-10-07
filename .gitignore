@@ -31,6 +31,7 @@ ROAD_MAP_MUSOR/
 # Python virtual env
 .venv/
 venv/
+.venv311/
 # OS
 .DS_Store
 Thumbs.db

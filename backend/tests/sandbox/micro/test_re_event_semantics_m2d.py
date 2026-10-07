@@ -75,18 +75,23 @@ class TestPureReduction:
         h = _handler()
         d = h._reduce_event(_evt("intimate_encounter", "borko", {"target_id": "lusya"}))
         # Профиль: строка = один эффект = одна дельта (один ненулевой аккумулятор).
-        # "both" × 2 эффекта (relief Ф4 + satiation Сат4) = 4 дельты; Store
-        # агрегирует по полям (clamp per-field, порядок не влияет — DEBT-DET-01).
-        assert len(d) == 4
+        # "both" × 3 эффекта (relief Ф4 + satiation Сат4 + релаксационная волна Фр2,
+        # ADR-O-419 — добавлена в профиль после первой редакции этого теста) = 6 дельт;
+        # Store агрегирует по полям (clamp per-field, порядок не влияет — DEBT-DET-01).
+        assert len(d) == 6
         assert {x.npc_id for x in d} == {"borko", "lusya"}
         press = [x for x in d if x.payload.pressure_delta != 0.0]
         sat = [x for x in d if x.payload.satiation_delta != 0.0]
-        assert len(press) == 2 and len(sat) == 2
+        relax = [x for x in d if x.payload.frustration_delta != 0.0]
+        assert len(press) == 2 and len(sat) == 2 and len(relax) == 2
         assert {x.npc_id for x in press} == {"borko", "lusya"}
         assert {x.npc_id for x in sat} == {"borko", "lusya"}
+        assert {x.npc_id for x in relax} == {"borko", "lusya"}
         assert all(x.payload.pressure_delta == -RE_NEEDS_EVENT_MAGNITUDE for x in press)
         assert all(x.payload.satiation_delta == RE_NEEDS_EVENT_MAGNITUDE for x in sat)
-        assert all(x.payload.need_id == "sexual" and x.payload.frustration_delta == 0.0 for x in d)
+        # Фр2: релаксационная волна — ДЕЛЬТА < 0 (не обнуление накопленного)
+        assert all(x.payload.frustration_delta == -RE_NEEDS_EVENT_MAGNITUDE for x in relax)
+        assert all(x.payload.need_id == "sexual" for x in d)
 
     def test_intimate_rejection_frustration(self):
         h = _handler()
