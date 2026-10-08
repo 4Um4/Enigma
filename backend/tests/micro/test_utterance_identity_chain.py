@@ -71,6 +71,18 @@ class _CapturingAvatar:
              "event_id": event_id, "tick": tick, **kwargs}
         )
 
+    # ADR-O-409 NAME-ось (ROLLOUT-ON): контракт аватара полон — без этих
+    # методов on_npc_spoke падает AttributeError и запись не долетает до журнала.
+    def note_name_intro(self, *a, **k):
+        pass
+
+    def note_name_heard(self, *a, **k):
+        pass
+
+    def get_name_display(self, campaign_id, npc_id, true_name,
+                         recognition_confirmed):
+        return true_name
+
 
 def _make_subscriber(avatar):
     sub = NpcDialogueSubscriber(

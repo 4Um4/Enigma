@@ -18,6 +18,12 @@ def test_eavesdrop_into_journal():
 
     # Моки
     mock_avatar = MagicMock()
+    # ADR-O-409 (ROLLOUT-ON): display имени идёт через NAME-ось. Здесь важен
+    # резолв INV-NPC-NAME из npc_positions, а не NAME-прогрессия — стаб эхоит
+    # true_name, поэтому ассерт speaker == "Люся" остаётся эквивалентным.
+    mock_avatar.get_name_display.side_effect = (
+        lambda campaign_id, npc_id, true_name, recognition_confirmed: true_name
+    )
     mock_spatial = MagicMock()
     mock_spatial.player_distances.return_value = {"maid_lusya": 5.0}  # Игрок в 5 метрах
     # F2-гейт (:174-182): резолв актора идёт через _npc_positions. БЕЗ

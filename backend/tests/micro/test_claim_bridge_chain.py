@@ -85,8 +85,23 @@ class _StubGate:
 
 
 class _NoopAvatar:
+    """ADR-O-409 NAME-ось (ROLLOUT-ON): заглушка обязана покрывать полный
+    контракт аватара — иначе on_npc_spoke падает AttributeError и claim-цепочка
+    уходит в DLQ (0 claims)."""
+
     def append_journal(self, *a, **k):
         pass
+
+    def note_name_intro(self, *a, **k):
+        pass
+
+    def note_name_heard(self, *a, **k):
+        pass
+
+    def get_name_display(self, campaign_id, npc_id, true_name,
+                         recognition_confirmed):
+        # Эхо SSOT-имени: этот тест проверяет мост claims, не NAME-прогрессию.
+        return true_name
 
 
 def _run_spoke_with_claims(scene_tick=150):

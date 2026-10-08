@@ -264,6 +264,12 @@ class NpcDialogueSubscriber:
                     # Источник — тот же _spatial_query, что и для дистанции (прецедент
                     # P1-07 выше). Fail-open: без позиций — speaker как есть (parity).
                     _speaker_name = speaker
+                    # ADR-O-409 (ROLLOUT-ON): _resolved объявляется ЗДЕСЬ, а не
+                    # только внутри `speaker in _npc_positions` — иначе NAME_GATE-ветка
+                    # (note_name_intro/get_name_display ниже) падала UnboundLocalError,
+                    # когда спикера нет в npc_positions. Fail-open паритет: None →
+                    # имя остаётся speaker ( INV-NPC-NAME drift логируется ниже ).
+                    _resolved = None
                     _npc_positions = getattr(_spatial_query, "_npc_positions", None) or {}
                     if speaker in _npc_positions:
                         _sp_data = _npc_positions[speaker]
