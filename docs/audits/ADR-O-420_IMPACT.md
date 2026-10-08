@@ -56,3 +56,10 @@ ADR-O-420 [STANDARD] **IMPACT** (S331; Ступень 0 CCH-0 — doc-only, ко
 - Канон модели: Q4_K_M (вердикт Мастера S335); user_settings.yaml синхронизирован; Qwen3.5-9B — план миграции. Находка-хвост владельцу settings_dm/npc/rules/world: stale Q5_K_M-дефолты + factory-инстанцирование на import — выстрелит при миграции.
 - Находка-хвост владельцу tests/conftest.py:143 — патч model_qwen_7b_path на несуществующий Q5_K_M печатает [CONFIG]-шум во все pytest-прогоны.
 - DEBT-CHRONICLE-REPLAY: replay-кэш промптов декомпозитора не подключён (рекордер привязан к тик-сессии) — владелец: контур replay.
+
+## Реализация CCH-3 (S337/S340; MVP по вердикту Мастера)
+- Backend: POST /api/chronicle/{campaign}/{npc}/canonize — draft→canonical (canonical_version++, replace-стиль), валидатор store = единственная инстанция «Save = Contract» (LLM_DRAFT/открытые вопросы/dangling → 422-класс ValueError с русским сообщением).
+- Frontend: frontend/chronicle_editor/ (chronicle_app: 3 панели, F1/F2=decompose Ord-навигация, C+1..4=карточка вопросов 4-опций → resolve_question → draft PUT, F9=канонизация) + frontend/map_editor/chronicle/editor_screen.py (F7 MODE_CHRONICLE, паттерн MODE_LAB: enter/handle_event/update/draw) + MenuAction.CHRONICLE_EDITOR.
+- Инфра: HttpClient.put (по прецеденту _execute); двойной sys.path-корень фронта решён явно (map_editor-файлы поднимают frontend-путь от __file__); rename editor_core→chronicle_app (дизамбигуация с map_editor/editor_core).
+- Коммиты: d85ef720 (step B) / 37d30584 (fixup rename — урок: git mv НОВЫЙ путь обязателен в pathspec) / d6c11b3f (C-backend) / b9f147e8 (C-frontend, частично) / 0b4249a0 (D).
+- Отложено решением Мастера: E (MERGE_CANDIDATE-карточки склеек → event_groups) и F (глубина F7-экрана) — до доказанной потребности использования.
