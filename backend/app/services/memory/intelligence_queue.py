@@ -11,7 +11,9 @@ path: /project/backend/app/services/memory/intelligence_queue.py
     создаётся); результат DialogueUpdate проходит STALE-гейт (Q2б) и
     применяется ТОЛЬКО через MemoryManager session API (Q3б: time
     bridge, НЕ state authority; DeltaGate не расширяется). Env-флаг
-    D8P_ENABLED default OFF = байт-идентичное поведение (INV-D8P-NOOP).
+    D8P_ENABLED: модульный default OFF (no-op, INV-D8P-NOOP), НО main.py
+    поднимает до ON при каждом прод-старте (setdefault) — фактический
+    прод-режим ON, вердикт Мастера KEEP-ON (COV-0 флаг-санация).
 Зависимости: провайдеры (memory_manager / extractor / tick / npc_states /
     pool) инъектируются проводкой (game_loop, Шаг 3.2) — модуль не знает
     GameLoop/TaskScheduler напрямую.
@@ -35,7 +37,8 @@ logger = logging.getLogger(__name__)
 
 
 def d8p_enabled() -> bool:
-    """Env-флаг D8P_ENABLED (default OFF = полный no-op; дословное зеркало
+    """Env-флаг D8P_ENABLED (модульный default OFF; в проде поднимается
+    main.py setdefault -> ON, вердикт Мастера KEEP-ON; дословное зеркало
     bc1_enabled / W3_G2_ENABLED — прецеденты dormant-слоёв)."""
     return os.environ.get("D8P_ENABLED", "").strip().lower() in (
         "1",

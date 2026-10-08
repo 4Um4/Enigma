@@ -1,6 +1,6 @@
 # semantic-module: dialogue_provenance_v2
 > version: 2
-> status: experimental (H-BE, TZ-CC-01; канон v1 неприкосновенен до вердикта)
+> status: rejected (H-BE RED, вердикт Мастера: prov 15→10 при floor 14/22, обе руки; содержание не правится; H-AG наследует v1)
 > origin: H-BE boundary erosion — PVX 1→3 + FP=1 (IQ3_M, B-state, m3_cand_b)
 > family: provenance
 

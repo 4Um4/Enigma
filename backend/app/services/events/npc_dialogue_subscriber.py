@@ -22,12 +22,14 @@ from app.services.memory.intelligence_queue import (
 
 logger = logging.getLogger(__name__)
 
-# ADR-O-409: writer-gate имён журнала (default OFF — OFF = байтовый
+# ADR-O-409: writer-gate имён журнала (default ON — вердикт Мастера:
+# ROLLOUT-ON, контур S306/S308 закрыт, включаем и смотрим живое поведение;
+# import-time чтение — смена требует перезапуска процесса). OFF = байтовый
 # паритет прежнего резолва speaker из npc_positions). Прецедент env-
 # флагов: d8p_enabled выше; ARBITER_ENFORCEMENT/COGNITION_V0.
 import os as _os
 
-_NAME_GATE_ENABLED = _os.environ.get("NAME_GATE_ENABLED", "0") == "1"
+_NAME_GATE_ENABLED = _os.environ.get("NAME_GATE_ENABLED", "1") == "1"
 
 
 class NpcDialogueSubscriber:

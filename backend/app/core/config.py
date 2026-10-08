@@ -53,9 +53,17 @@ class Settings(BaseSettings):
     orchestrator_workers: int = 2
 
     # Подсистема 2: Replay System
-    replay_mode: str = "passive"  # "off", "passive", "active"
-    replay_playback: bool = False  # True для чтения из кэша
-    replay_record: bool = False  # True для записи в кэшdialogue_update_extractor
+    # SSOT replay-контура (вердикт Мастера, COV-0): "off" | "passive" | "active".
+    # "active" проводкой сейчас не отличается от passive (известное ограничение,
+    # регистрируется в flags.yaml). record/playback — runtime-производные ниже.
+    replay_mode: str = "passive"
+    # Runtime-производная: включается только программно (ReplayPlayer).
+    # Ручной env без записанной сессии => каждый LLM-вызов падает
+    # RuntimeError cache-miss (by design — детерминизм не деградирует молча).
+    replay_playback: bool = False
+    # Runtime-производная, НЕ ручной env: game_loop форсирует True при
+    # replay_mode != "off". Запись LLM-вызовов в replay-кэш.
+    replay_record: bool = False
     # R3 (Phantom fix): единый writer/reader путь replay-хранилища.
     # Вне data_dir: DriftLab изолирует и УНИЧТОЖАЕТ temp data_dir —
     # сессии обязаны переживать прогон. Parent-каталог создаёт ReplayStore.
