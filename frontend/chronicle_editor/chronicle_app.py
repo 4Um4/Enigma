@@ -1,5 +1,5 @@
 """
-Файл: frontend/chronicle_editor/editor_core.py
+Файл: frontend/chronicle_editor/chronicle_app.py
 Назначение: MVP-контур редактора (Слой MVP ТЗ §5): список NPC | лента draft | Разбор.
             Стиль/шрифты — прецедент game_menu (самодостаточность); 7 режимов — итерации C/D/E.
 Зависимости: pygame, frontend.chronicle_editor.api
@@ -33,6 +33,7 @@ class ChronicleEditorApp:
         self._doc: dict | None = None
         self._items: list = []
         self._frag_ord: int = 0
+        self._current_q: dict | None = None
         self._status = "Готов. F1 — разобрать первый фрагмент черновика (MVP:Ord-0)."
         self._running = True
         self._reload()
@@ -72,6 +73,24 @@ class ChronicleEditorApp:
             self._decompose_ordinal(self._frag_ord + 1)
         elif key == pygame.K_F9:
             self._canonize()
+        elif key == pygame.K_c:
+            self._current_q = self._next_open_question()
+            self._status = (
+                f"Вопрос в карточке: {self._current_q.get('question_id')}"
+                if self._current_q
+                else "Открытых вопросов нет"
+            )
+        elif key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4):
+            if self._current_q is None:
+                self._status = "Сначала C — взять открытый вопрос"
+                return
+            option = {
+                pygame.K_1: "SELECT_EXISTING_NPC",
+                pygame.K_2: "CREATE_NEW_NPC",
+                pygame.K_3: "UNKNOWN_PERSON",
+                pygame.K_4: "LEAVE_WHITE_SPOT",
+            }[key]
+            self._resolve_current_question(option)
 
     def _on_click(self, pos) -> None:
         x, y = pos
@@ -109,6 +128,30 @@ class ChronicleEditorApp:
             self._status = f"Разбор #{ord_}: {len(self._items)} items"
         else:
             self._status = f"НЕ разобрано: {res.get('error', '')[:80]}"
+
+    def _resolve_current_question(self, option: str) -> None:
+        """FR-3.1: карточка 4-опций. LEAVE_WHITE_SPOT — всегда доступен (П3);
+        SELECT_EXISTING_NPC берёт значение из списка NPC (слева), CREATE_NEW_NPC
+        и UNKNOWN_PERSON — имя-хинт из вопроса; полный ввод — позже (Шаг E)."""
+        q = self._current_q
+        if q is None:
+            self._status = "Нет открытого вопроса"
+            return
+        value = None
+        if option == "SELECT_EXISTING_NPC":
+            value = self._npcs[self._npc_idx]
+        elif option == "CREATE_NEW_NPC":
+            value = f"npc_{q.get('question_id', 'new')}"
+        elif option == "UNKNOWN_PERSON":
+            value = q.get("target_span", "") or "unknown_person"
+        ok = self._api.resolve_question(
+            CAMPAIGN, self._npcs[self._npc_idx], q.get("question_id", ""), option, value
+        )
+        self._status = (
+            f"Резолюция [{option}{': ' + value if value else ''}] — {'OK' if ok else 'ОШИБКА PUT'}"
+        )
+        self._current_q = None
+        self._reload()
 
     def _canonize(self) -> None:
         """FR-10.x (T-CCH-04): канонизация; 422 → русский блок с fix_hint."""
@@ -155,9 +198,14 @@ class ChronicleEditorApp:
         self.screen.blit(self._font.render(f"F1: Разобрать #{self._frag_ord}", True, _ACCENT), (310, 706))
         pygame.draw.rect(self.screen, _PANEL, (900, 700, 220, 30))
         self.screen.blit(self._font.render("F9: Принять как канон", True, _ACCENT), (910, 706))
-        q = self._next_open_question()
-        qline = f"? {q.get('question_id','')}: {q.get('target_span','')[:60]}" if q else ""
-        self.screen.blit(self._font.render(qline, True, _ACCENT), (910, 735))
+        q = self._current_q or self._next_open_question()
+        if q:
+            qline = f"? {q.get('question_id','')}: {q.get('target_span','')[:44]}"
+            hint = "1:NPC 2:Новый 3:Массовка 4:Пятно (C — взять)"
+            self.screen.blit(self._font.render(qline, True, _ACCENT), (910, 735))
+            self.screen.blit(self._font.render(hint, True, _TEXT), (910, 752))
+        else:
+            self.screen.blit(self._font.render("Открытых вопросов нет", True, _TEXT), (910, 735))
         self.screen.blit(self._font.render(self._status[:120], True, _TEXT), (20, 770))
         pygame.display.flip()
 

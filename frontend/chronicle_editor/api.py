@@ -39,6 +39,30 @@ class ChronicleApi:
         except BackendError:
             return False
 
+    def resolve_question(
+        self,
+        campaign: str,
+        npc_id: str,
+        question_id: str,
+        selected_option: str,
+        selected_value: Optional[str] = None,
+    ) -> bool:
+        """FR-3.1 (T-CCH-03): резолюция вопроса в draft (4-опции + свободный ввод
+        через selected_value). Писатель — автор в UI (запрет 2)."""
+        doc = self.get_draft(campaign, npc_id)
+        if not doc:
+            return False
+        changed = False
+        for e in doc.get("entries") or []:
+            for q in e.get("open_questions") or []:
+                if q.get("question_id") == question_id:
+                    q["selected_option"] = selected_option
+                    q["selected_value"] = selected_value
+                    changed = True
+        if not changed:
+            return False
+        return self.save_draft(campaign, npc_id, doc)
+
     def canonize(self, campaign: str, npc_id: str) -> Dict[str, Any]:
         """FR-10.1: «Принять как канон». 422 = блок «Save = Contract» (T-CCH-04)."""
         try:
