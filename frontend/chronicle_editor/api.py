@@ -39,6 +39,13 @@ class ChronicleApi:
         except BackendError:
             return False
 
+    def canonize(self, campaign: str, npc_id: str) -> Dict[str, Any]:
+        """FR-10.1: «Принять как канон». 422 = блок «Save = Contract» (T-CCH-04)."""
+        try:
+            return self._http.post(f"/api/chronicle/{campaign}/{npc_id}/canonize", {"campaign_id": campaign})
+        except BackendError as e:
+            return {"status": "BLOCKED", "detail": str(e)}
+
     def decompose(self, campaign: str, npc_id: str, fragment_ord: int, fragment: str) -> Dict[str, Any]:
         try:
             return self._http.post(
