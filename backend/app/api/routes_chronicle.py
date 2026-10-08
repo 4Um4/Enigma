@@ -11,6 +11,7 @@ API Character Chronicle (ADR-O-420, CCH-2).
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Dict, Optional
 
 from app.core.config import BASE_DIR
@@ -114,3 +115,32 @@ async def put_draft(campaign_id: str, npc_id: str, body: Dict[str, Any]) -> Dict
         raise HTTPException(status_code=400, detail="npc_ref не совпадает с {npc_id}")
     path = _get_store().save_draft(doc, campaign_id)
     return {"status": "OK", "path": str(path)}
+
+
+class CanonizeRequest(BaseModel):
+    campaign_id: str = Field(..., min_length=1)
+
+
+@chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/canonize")
+async def canonize_chronicle(campaign_id: str, npc_id: str, req: CanonizeRequest) -> Dict[str, Any]:
+    """FR-10.1/10.2 (CCH-3): перевод draft → канон. Единственный путь
+    LLM_DRAFT → AUTHOR_CONFIRMED реализован фронтендом ДО вызова (UI обязан
+    выставить provenance-флаги по каждому item); здесь — валидация store
+    (запрет 1: LLM_DRAFT в каноне; «Save = Contract»: открытые вопросы)
+    + canonical_version++. Вытеснение старого канона — тихое (вердикт S336)."""
+    store = _get_store()
+    draft = store.load_draft(campaign_id, npc_id)
+    if draft is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Черновик {npc_id} не найден в {campaign_id}")
+    canonical = replace(
+        draft,
+        canonical=True,
+        canonical_version=draft.canonical_version + 1,
+    )
+    try:
+        path = store.save_canonical(canonical)
+    except ValueError as e:
+        # «Save = Contract»: LLM_DRAFT / открытые вопросы / dangling — блок с fix_hint
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return {"status": "OK", "path": str(path), "canonical_version": canonical.canonical_version}

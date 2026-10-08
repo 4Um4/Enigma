@@ -12,7 +12,18 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.routes_chronicle import DecomposeRequest, chronicle_router
-from app.domain.chronicle import ClarificationOption, DecompositionItem, EntryKind
+from app.domain.chronicle import (
+    ChronicleDocument,
+    ChronicleEntry,
+    ClarificationOption,
+    ClarificationQuestion,
+    EntityRef,
+    EntityRefKind,
+    EntryKind,
+    EntryProvenance,
+)
+from app.services.chronicle.chronicle_store import ChronicleStore
+from app.domain.chronicle import DecompositionItem
 from app.services.chronicle.biography_decomposer import (
     BiographyDecomposer,
     DecomposeResult,
@@ -203,6 +214,39 @@ def test_chronicle_router_paths_registered():
     paths = {getattr(r, "path", "") for r in chronicle_router.routes}
     assert any("decompose" in p for p in paths)
     assert any("draft" in p for p in paths)
+
+
+def test_canonize_flow_locked_by_open_question(tmp_path):
+    """T-CCH-04 (бэкенд-уровень): canonize при открытом вопросе = 422-класс
+    отказ store (require_canonical_clean) — блок с русским сообщением."""
+    from fastapi.testclient import TestClient  # noqa: F401 — контракт ниже через store напрямую
+
+    # Прямая проверка контракта store, который инвариантен эндпоинту:
+    # draft с открытым вопросом не может пройти save_canonical.
+    store = ChronicleStore(canonical_dir=tmp_path / "chronicles", drafts_root=tmp_path)
+    q = ClarificationQuestion(
+        question_id="q1", target_span="стражник", options=(ClarificationOption.LEAVE_WHITE_SPOT,)
+    )
+    doc = ChronicleDocument(
+        chronicle_id="cc",
+        npc_ref="a",
+        canonical=False,
+        entries=(
+            ChronicleEntry(
+                entry_id="e",
+                kind=EntryKind.EVENT,
+                subject_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="a"),
+                provenance=EntryProvenance.AUTHOR_CONFIRMED,
+                open_questions=(q,),
+            ),
+        ),
+    )
+    store.save_draft(doc, "c")
+    from dataclasses import replace as _replace
+
+    canon = _replace(doc, canonical=True, canonical_version=1)
+    with pytest.raises(ValueError, match="без резолюции"):
+        store.save_canonical(canon)
 
 
 def test_decompose_request_rejects_empty_fragment():
