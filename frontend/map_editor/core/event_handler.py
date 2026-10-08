@@ -4,7 +4,7 @@ map_editor/core/event_handler.py
 """
 
 import pygame
-from tools.constants import MODE_LAB, MODE_UIWORKBENCH, MODE_WORLD
+from tools.constants import MODE_CHRONICLE, MODE_LAB, MODE_UIWORKBENCH, MODE_WORLD
 
 from core.commands import (
     MirrorObjectCommand,
@@ -28,6 +28,11 @@ class EventHandler:
         # Перехват событий для полноэкранной Лаборатории
         if core.mode == MODE_LAB:
             core.lab_screen.handle_event(event)
+            return
+
+        # CCH-3: полноэкранный редактор хроник (паттерн MODE_LAB)
+        if core.mode == MODE_CHRONICLE:
+            core.chronicle_screen.handle_event(event)
             return
 
         # UI Workbench (F12): оверлей поверх редактора (не mode-switch —
@@ -66,6 +71,13 @@ class EventHandler:
                 core.mode = MODE_LAB
                 core.lab_screen.enter()
                 return
+            elif event.key == pygame.K_F7:
+                # F7 = редактор хроник (CCH-3/ADR-O-420; занято: F2=rename,
+                # F5=Lab, F6=свитч XY, F12=Workbench)
+                core.mode = MODE_CHRONICLE
+                core.chronicle_screen.enter()
+                return
+
             elif event.key == pygame.K_F12:
                 # F12 = mode-switch (паттерн F5/MODE_LAB): свой draw,
                 # панели редактора не рисуются — не оверлей поверх них.

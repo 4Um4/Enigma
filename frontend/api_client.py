@@ -173,6 +173,14 @@ class HttpClient:
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
         return self._execute(req)
 
+    def put(self, path: str, payload: dict | None = None) -> dict:
+        """PUT запрос → распарсенный JSON (CCH-3: chronicle draft)."""
+        url = self.base_url + path
+        data = json.dumps(payload or {}).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        req = urllib.request.Request(url, data=data, headers=headers, method="PUT")
+        return self._execute(req)
+
     def get(self, path: str) -> dict:
         """GET запрос → распарсенный JSON."""
         url = self.base_url + path

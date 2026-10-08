@@ -45,6 +45,7 @@ ZOOM_STEP = 1.2
 
 # Инструменты
 from tools.constants import (
+    MODE_CHRONICLE,
     MODE_LAB,
     MODE_LOCAL,
     MODE_UIWORKBENCH,
@@ -184,6 +185,9 @@ class EditorCore:
         self.lab_screen = LabScreen(self)
         from ui_workbench.workbench_screen import WorkbenchScreen
         self.workbench_screen = WorkbenchScreen(self)
+        # CCH-3: редактор хроник (ленивый импорт, паттерн lab_screen)
+        from chronicle.editor_screen import ChronicleScreen
+        self.chronicle_screen = ChronicleScreen(self)
 
         self.selected_npc_id: str = ""  # id реального NPC из config
         self._npc_list: List[Dict[str, str]] = load_npc_individuals()
@@ -1742,6 +1746,8 @@ class EditorCore:
         # Обновляем панель свойств
         if self.mode == MODE_LAB:
             self.lab_screen.update()
+        if self.mode == MODE_CHRONICLE:
+            self.chronicle_screen.update()
         else:
             self._update_property_panel()
 
@@ -1760,6 +1766,11 @@ class EditorCore:
         if self.mode == MODE_LAB:
             self.lab_screen.draw()
             return  # Выходим, чтобы не рисовать тулбар и меню редактора
+
+        # CCH-3: полноэкранный редактор хроник (паттерн MODE_LAB)
+        if self.mode == MODE_CHRONICLE:
+            self.chronicle_screen.draw(self.screen)
+            return
 
         # F12-режим интерфейса: полноэкранный (паттерн MODE_LAB) —
         # панели/тулбар редактора не рисуются. Задник = текущая карта

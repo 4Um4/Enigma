@@ -71,6 +71,7 @@ L = {
     "ui:menu_new_game": "Новая игра",
     "ui:menu_continue": "Продолжить",
     "ui:menu_editor": "Редактор карт",
+    "ui:menu_chronicle": "Редактор хроник",
     "ui:menu_settings": "Настройки",
     "ui:menu_exit": "Выход",
     "ui:toggle_continuity_off": "Мир: Чистый (C)",

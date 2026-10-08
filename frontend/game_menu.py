@@ -22,6 +22,7 @@ class MenuAction(Enum):
     NEW_GAME = auto()
     CONTINUE = auto()
     EDITOR = auto()
+    CHRONICLE_EDITOR = auto()
     SETTINGS = auto()
     EXIT = auto()
 
@@ -190,6 +191,16 @@ class GameMenu:
                 start_y + 3 * (btn_h + gap),
                 btn_w,
                 btn_h,
+                t("ui:menu_chronicle"),
+                C["btn_secondary"],
+                C["btn_secondary_hover"],
+                lambda: self._set_action(MenuAction.CHRONICLE_EDITOR),
+            ),
+            _MenuButton(
+                x,
+                start_y + 4 * (btn_h + gap),
+                btn_w,
+                btn_h,
                 t("ui:menu_settings"),
                 C["btn_secondary"],
                 C["btn_secondary_hover"],
@@ -197,7 +208,7 @@ class GameMenu:
             ),
             _MenuButton(
                 x,
-                start_y + 4 * (btn_h + gap),
+                start_y + 5 * (btn_h + gap),
                 btn_w,
                 btn_h,
                 t("ui:menu_exit"),
