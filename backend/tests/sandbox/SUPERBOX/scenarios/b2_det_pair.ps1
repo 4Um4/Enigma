@@ -1,8 +1,9 @@
-﻿# v3.1: (a) PPID-инвариант — реальное родительство llama->harness проверяется
-#   в каждой пробе (MID/PRE-B/POST: живой родитель = харнесс жив);
-#   (b) cleanup-path: любой ABORT/INVALID гасит owned-PID и верифицирует
-#   отсутствие listener (не рожаем новый orphan).
-# Exit: 0 OK | 2 занято | 3 spawn/PPID FAIL | 4 IPT-гейт | 5 плечо умерло
+﻿# v3.2 (вердикты Мастера 1/2, TZ-CC-01): -Threads (default 8 — байт-
+#   неизменность исторических ног). ПРОТОКОЛЬНЫЙ ИНВАРИАНТ: все ноги после
+#   H-BE ОБЯЗАНЫ идти с -t 1 (measurement configuration новых экспериментов;
+#   исторические baseline-артефакты заморожены как есть, -t8 c известным
+#   noise profile). Смена thread count после GO-2 — только новым
+#   measurement-validation GO.
 param(
   [Parameter(Mandatory=$true)][string]$ArtifactA,
   [Parameter(Mandatory=$true)][string]$ArtifactB,
@@ -15,7 +16,12 @@ param(
   # CommandLineToArgvW задано ЗДЕСЬ (один место — не через границу командной
   # строки оркестратора). Think-тег-остаток в content задокументирован
   # STAGE 0b; production-регекс справляется (json 6/6).
-  [switch]$Candidate
+  [switch]$Candidate,
+  # Вердикт Мастера (i), TZ-CC-01: диагностика детерминизма IQ3_M — число
+  # CPU-потоков сервера. Default 8 = историческое поведение (без флага
+  # байт-неизменно); -Threads 1 = диагностическая нога локализации
+  # A/A-шума. НЕ перекалибровка В-8: измерительный прибор, не контент.
+  [int]$Threads = 8
 )
  $ErrorActionPreference = 'Stop'
  $traceFile = Join-Path (Split-Path $ArtifactA -Parent) 'b2_health_trace.txt'
@@ -65,7 +71,7 @@ try {
   # child (PPID-инвариант by construction), stderr-захват (L4, громкий отказ).
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $exe
-  $psi.Arguments = "-m `"$model`" --port 8181 --host localhost -ngl 99 -c 8192 -t 8 $serverExtra"
+  $psi.Arguments = "-m `"$model`" --port 8181 --host localhost -ngl 99 -c 8192 -t $Threads $serverExtra"
   $psi.UseShellExecute = $false
   $psi.CreateNoWindow = $true
   $psi.RedirectStandardOutput = $true
@@ -91,7 +97,7 @@ try {
     Write-Output "ABORT: spawn/PPID FAIL (listener=$($h.pid) ppid=$($h.ppid) harness=$PID exited=$($proc.HasExited) code=$ec stderr=$_err)"
     _cleanup; exit 3
   }
-  Write-Output "HARNESS OWN: llama_pid=$($proc.Id) ppid=$PID verified"
+  Write-Output "HARNESS OWN: llama_pid=$($proc.Id) ppid=$PID t=$Threads verified"
 
   if (-not $SkipIPTGate) {
     $_ipt = cmd /c "python backend\tests\IPT.py 2>&1" | Out-String
