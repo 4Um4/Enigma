@@ -89,6 +89,8 @@ class ChronicleEditorApp:
             self._decompose_ordinal(self._frag_ord + 1)
         elif key == pygame.K_F9:
             self._canonize()
+        elif key == pygame.K_s and pygame.key.get_pressed()[pygame.K_LCTRL]:
+            self._export_beliefs()
         elif key == pygame.K_c:
             self._current_q = self._next_open_question()
             self._status = (
@@ -107,6 +109,42 @@ class ChronicleEditorApp:
                 pygame.K_4: "LEAVE_WHITE_SPOT",
             }[key]
             self._resolve_current_question(option)
+
+    def _export_beliefs(self) -> None:
+        """C2: Ctrl+S → «Сохранить как…» (tkinter: имя+папка+формат md/json
+        на выбор автора) → содержимое от сервера → запись. Решений о
+        содержимом фронт не принимает (Закон 1.1/16.1 — только транспорт)."""
+        from tkinter import filedialog
+
+        fmt = "json" if self._ask_format() else "md"
+        data = self._api.export_beliefs(CAMPAIGN, fmt)
+        if not data or data.get("status") != "OK":
+            self._status = "Экспорт недоступен (сервер?)"
+            return
+        path = filedialog.asksaveasfilename(
+            title="Сохранить сводку убеждений",
+            defaultextension=f".{fmt}",
+            filetypes=[(fmt.upper(), f"*.{fmt}"), ("Все файлы", "*.*")],
+            initialfile=f"belief_summary_{CAMPAIGN}.{fmt}",
+        )
+        if not path:
+            self._status = "Экспорт отменён"
+            return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(data.get("text", ""))
+        self._status = f"Сводка сохранена: {path} ({data.get('count', 0)} записей)"
+
+    def _ask_format(self) -> bool:
+        import tkinter as tk
+        from tkinter import messagebox
+
+        root = tk.Tk()
+        root.withdraw()
+        answer = messagebox.askyesno(
+            "Формат файла", "Сохранить в JSON? («Нет» = Markdown)", parent=root
+        )
+        root.destroy()
+        return answer
 
     def _on_click(self, pos) -> None:
         x, y = pos

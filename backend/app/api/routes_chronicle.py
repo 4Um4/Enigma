@@ -11,6 +11,7 @@ API Character Chronicle (ADR-O-420, CCH-2).
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from typing import Any, Dict, Optional
 
@@ -26,6 +27,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 chronicle_router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 _store: Optional[ChronicleStore] = None
 _decomposer: Optional[BiographyDecomposer] = None
@@ -73,10 +76,10 @@ async def list_chronicles() -> Dict[str, Any]:
 
 
 @chronicle_router.get("/chronicle/roster/{campaign_id}")
-async def get_roster(campaign_id: str) -> dict[str, any]:
-    """c0.5: полный ростер npc со статусом хроники. устранение второго
-    источника истины (вердикт владельца): редактор берёт список только
-    отсюда. источник имён — list_individual_ids (единый читатель
+async def get_roster(campaign_id: str) -> Dict[str, Any]:
+    """C0.5: полный ростер NPC со статусом хроники. Устранение второго
+    источника истины (вердикт владельца): редактор берёт список ТОЛЬКО
+    отсюда. Источник имён — list_individual_ids (единый читатель
     individuals); статус — по файлам store: canon > draft > none."""
     from app.services.npc.npc_loader import list_individual_ids
 
@@ -91,6 +94,44 @@ async def get_roster(campaign_id: str) -> dict[str, any]:
             status = "none"
         roster.append({"npc_id": npc_id, "chronicle": status})
     return {"roster": roster}
+
+
+@chronicle_router.get("/chronicle/{campaign_id}/beliefs-export")
+async def beliefs_export(campaign_id: str, format: str = "md") -> Dict[str, Any]:
+    """C2: сводка убеждений для «Сохранить как…». Каноны + черновики кампании
+    → belief_export.collect (детерминированный); md|json — текст файла.
+    Запись в выбранное место — фронт (сервер место не знает). Невалидный
+    draft одного NPC — warning + пропуск (прецедент ростера), весь экспорт
+    не роняется."""
+
+    from fastapi import HTTPException
+
+    from app.services.chronicle import belief_export
+    from app.services.npc.npc_loader import list_individual_ids
+
+    if format not in ("md", "json"):
+        raise HTTPException(status_code=422, detail="format: только md|json")
+    store = _get_store()
+    docs: Dict[str, Any] = {}
+    for npc_id in list_individual_ids():
+        canon = store.load_canonical(npc_id)
+        if canon is not None:
+            docs[npc_id] = canon
+            continue
+        try:
+            draft = store.load_draft(campaign_id, npc_id)
+        except ValueError as e:
+            logger.warning(f"[CCH_EXPORT] {npc_id}: draft невалиден — пропущен: {e}")
+            continue
+        if draft is not None:
+            docs[npc_id] = draft
+    records = belief_export.collect_belief_seeds(docs)
+    text = (
+        belief_export.render_json(records, campaign_id)
+        if format == "json"
+        else belief_export.render_markdown(records, campaign_id)
+    )
+    return {"status": "OK", "format": format, "count": len(records), "text": text}
 
 
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")

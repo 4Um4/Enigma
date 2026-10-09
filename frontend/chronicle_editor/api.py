@@ -36,6 +36,15 @@ class ChronicleApi:
         except BackendError:
             return []
 
+    def export_beliefs(self, campaign: str, format: str) -> Optional[Dict[str, Any]]:
+        """C2: содержимое сводки убеждений (md|json) — пишет фронт в
+        выбранное место (tkinter.asksaveasfilename). None при недоступном
+        сервере (прецедент list_roster)."""
+        try:
+            return self._http.get(f"/api/chronicle/{campaign}/beliefs-export?format={format}")
+        except BackendError:
+            return None
+
     def get_draft(self, campaign: str, npc_id: str) -> Optional[Dict[str, Any]]:
         try:
             data = self._http.get(f"/api/chronicle/{campaign}/{npc_id}/draft")
