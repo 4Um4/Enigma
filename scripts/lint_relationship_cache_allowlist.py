@@ -21,7 +21,7 @@ path: scripts/lint_relationship_cache_allowlist.py
   вне корня репо);
 - UNREADABLE = violation (молчаливый пропуск файла = дыра в заморозке, L4).
 
-Baseline (19 файлов / 52 сайта) — НЕ таблица архитектора, а независимый
+Baseline (20 файлов / 57 сайтов) — НЕ таблица архитектора, а независимый
 пересчёт этим скриптом на HEAD; роли сайтов — docs/audits/ADR-O-415_IMPACT.md.
 Регистрация: IPT INV-RE-CACHE-ALLOWLIST (линтер-инвариант, лимит 15
 симуляционных не расходует). Рантайм не трогается (behavior-neutral).
@@ -45,12 +45,13 @@ ALLOWLIST: dict[str, int] = {
     "models/causality_manifest.py": 1,   # DECL-MANIFEST (S317, authority ADR-O-370)
     "models/idle_tick.py": 1,            # DECL-MODEL (idle TypedDict)
     "models/npc_state.py": 7,            # OWNER-MODEL + PROJECTION-SERIALIZE + фабрика
+    "services/chronicle/chronicle_seeder.py": 1,  # DOC-SEED-CONTRACT (CCH-4/ADR-O-423: сеялка — транслятор, кэш не читает; упоминание формата в доке)
     "services/combat/combat_subscriber.py": 2,    # SNAPSHOT-COPY-THROUGH + INIT-EMPTY
     "services/npc/decision/risk.py": 1,           # DECISION-READER (карта S318)
     "services/npc/decision/social_deltas.py": 1,  # DECISION-READER (карта S318)
     "services/npc/decision_hub.py": 2,            # DOC-NEGATIVE (запретительные доки)
     "services/npc/interpretation_engine.py": 2,   # DECISION-READER (карта S318)
-    "services/npc/npc_loader.py": 8,              # LOADER-BOOTSTRAP (GAP-4-контекст)
+    "services/npc/npc_loader.py": 12,             # LOADER-BOOTSTRAP (GAP-4) + CHRONICLE-SEED-WRITER (CCH-4/ADR-O-423: посев связей канона при new-game-гейте)
     "services/npc/npc_tick_pipeline.py": 2,       # WRITER-TICK-HYDRATE (TZ-10)
     "services/npc/social_target_resolver.py": 1,  # DECISION-READER (карта S318)
     "services/npc/state_applicator.py": 2,        # WRITER-SYNC (update_relationships)

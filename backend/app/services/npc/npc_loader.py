@@ -340,6 +340,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
     # 2. Если нет runtime — обогащаем и возвращаем static
     if not runtime_path or not runtime_path.exists():
         _enrich_with_social_relations(static_npcs, social_base)
+        _enrich_with_chronicle_relations(static_npcs)
 
         # ENTITY BIRTH CONTRACT (дублируется для обоих путей выхода из функции)
         from app.models.npc_state import BODY_STATE_HEALTHY
@@ -391,6 +392,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
             logger.debug(f"[NPC_LOADER] {npc_id}: static only (no runtime data)")
 
     _enrich_with_social_relations(result, social_base)
+    _enrich_with_chronicle_relations(result)
 
     # ENTITY BIRTH CONTRACT: NPC входит в систему как полностью валидная сущность.
     # Без этого idle path (LifeEngine.tick → load_npcs_merged) получает NPC без body_state
@@ -623,6 +625,80 @@ def _seed_canon_secret_memories(npc_id: str, cache: Tuple[Any, ...]) -> Tuple[An
     return cache + tuple(_added)
 
 
+# ── CCH-4 (ADR-O-423): сеялка хроники. Сеялка — чистый транслятор;
+#    единственный применяющий — этот файл (легален во всех цензусах:
+#    ADR-O-380 npc_loader + NPCState._ALLOWED_WRITERS:687 {"*"}).
+#    Расширений цензусов НЕ требуется — сильнее плана O-420.
+
+
+def _chronicle_seed_memories_for(npc_id: str) -> Optional[Tuple[Any, ...]]:
+    """Память+знание из канона. None = канона нет (→ legacy-путь).
+    Кортеж (в т.ч. пустой) = канон есть → приоритет канона (FR-11.2,
+    «вместо», не «поверх»; вердикт S336: канон = актуальный снимок)."""
+    from app.services.chronicle import chronicle_seeder as _cseed
+
+    _docs = _cseed.canonical_chronicles()
+    _doc = _docs.get(npc_id)
+    if _doc is None:
+        return None
+    return _cseed.build_seed_memories(npc_id, _doc) + _cseed.build_seed_knowledge(npc_id, _docs)
+
+
+def _apply_chronicle_seed_to_dict(raw_data: Dict[str, Any], psyche: Dict[str, Any]) -> None:
+    """Beliefs → psyche['beliefs'], imprints → raw_data['affective_imprints']
+    (дикт-носитель — единственный, которым рантайм реально затухает;
+    восстановление state-носителя = известный долг CG-D-05, не трогается).
+    Вызывается ТОЛЬКО при открытом new-game-гейте (L2 пуста везде).
+    Мутация in-place — прецедент _enrich_with_social_relations
+    («вызывается только при загрузке»); raw_data — deepcopy пайплайна."""
+    from app.services.chronicle import chronicle_seeder as _cseed
+
+    _npc_id = raw_data.get("id", "unknown")
+    _doc = _cseed.canonical_chronicle(_npc_id)
+    if _doc is None:
+        return
+    _beliefs = _cseed.build_seed_beliefs(_doc)
+    if _beliefs:
+        if psyche.get("beliefs"):
+            logger.warning(f"[CCH_SEED] {_npc_id}: psyche.beliefs вытеснен каноном (снимок)")
+        psyche["beliefs"] = _beliefs
+    _imprints = _cseed.build_seed_imprints(_doc)
+    if _imprints:
+        if raw_data.get("affective_imprints"):
+            logger.warning(f"[CCH_SEED] {_npc_id}: affective_imprints вытеснен каноном (снимок)")
+        raw_data["affective_imprints"] = _imprints
+
+
+def _enrich_with_chronicle_relations(npcs: List[Dict[str, Any]]) -> None:
+    """Связи канона → relationship_cache поверх village-статика (канон =
+    снимок; рантайм защищён V2 existing-RAM-wins + sanitizer sync —
+    кэш в дикте эфемерен, P1 ARCH FIX npc_state:1264)."""
+    from app.services.chronicle import chronicle_seeder as _cseed
+
+    _docs = _cseed.canonical_chronicles()
+    if not _docs:
+        return
+    for _npc in npcs:
+        if not isinstance(_npc, dict):
+            continue
+        _src = _npc.get("npc_id") or _npc.get("id")
+        if not _src:
+            continue
+        _doc = _docs.get(_src)
+        if _doc is None:
+            continue
+        _rel = _cseed.build_seed_relationships(_src, _doc)
+        if not _rel:
+            continue
+        if "relationship_cache" not in _npc or not isinstance(_npc["relationship_cache"], dict):
+            _npc["relationship_cache"] = {}
+        _rc = _npc["relationship_cache"]
+        for _tgt, _vals in _rel.items():
+            if _tgt in _rc:
+                logger.info(f"[CCH_SEED] {_src}→{_tgt}: village-статик вытеснен каноном (снимок)")
+            _rc[_tgt] = dict(_vals)
+
+
 def who_knows(secret_id: str, npc_states: List[Any]) -> List[str]:
     """M1/P1: кто из данных NPCState знает секрет — фильтр по полю
     secret_id поверх narrative_cache (ТЗ: НЕ новая система знаний).
@@ -802,6 +878,14 @@ def load_l2_state_from_runtime_dict(
     state.intent_progress_ticks = int(raw_data.get("intent_progress_ticks", 0) or 0)
     state.last_intent_change = int(raw_data.get("last_intent_change", 0) or 0)
 
+    # CCH-4 (ADR-O-423): new-game-гейт сеялки — L2-память пуста ВЕЗДЕ
+    # (ни JSON narrative_cache, ни SQLite override). При резюме override
+    # не None → гейт закрыт: запущенная кампания не обновляется
+    # (вердикт S336, FR-11.2). Крайний случай «весь кэш забыт» при
+    # новой игре невозможен (забывание живёт в кампании) — гейт честен.
+    if not raw_data.get("narrative_cache") and narrative_cache_override is None:
+        _apply_chronicle_seed_to_dict(raw_data, psyche)
+
     # Фаза A Шаг 8: beliefs переживают границу тика (аудит P0 №3).
     # Единственный адаптер — _beliefs_from_persistence (§12: без мутации
     # входа, повреждённые записи логируются и не роняют загрузку).
@@ -818,7 +902,12 @@ def load_l2_state_from_runtime_dict(
         _cache = narrative_cache_override
     if not _cache:
         _npc_id = raw_data.get("id", "unknown")
-        _cache = _convert_origin_events(raw_data.get("origin_events", []), _npc_id)
+        _ch = _chronicle_seed_memories_for(_npc_id)
+        if _ch is not None:
+            # ADR-O-423: канон есть → seed вместо legacy (FR-11.2).
+            _cache = _ch
+        else:
+            _cache = _convert_origin_events(raw_data.get("origin_events", []), _npc_id)
     # M1/P1 (ТЗ «Таверна тайн»): канон-сеялка поверх любой ветки — секрет
     # становится EventMemory у каждого initial_holder; дедуп по secret_id
     # делает повторные гидратации идемпотентными (per-tick вызовы).
