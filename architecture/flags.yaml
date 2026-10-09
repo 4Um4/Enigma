@@ -250,6 +250,7 @@ flags:
     verdict: KEEP-LOG
     adr: P0-audit
     owner: B
+    note: "S344/D34: решение inline-промпт -> библиотека передано владельцу Understanding (живой фронт S342, dialogue_provenance_v3); реестр фиксирует только флаг-семантику"
   ENIGMA_SEM_LIB_MODULES:
     type: env
     read_mode: call
@@ -343,35 +344,39 @@ flags:
     owner: B
     note: "DEPRECATED: заменено ContentPolicy (читается только как fallback миграции)"
 
-  # ── AUDIT-NEEDED (блокирует закрытие COV-GC-04, пока не исследованы) ────
+  # ── Вердикты аудита S344 (бывшие AUDIT-NEEDED; COV-GC-04 закрыт) ────────
   EPOCH_OWNERSHIP_ENFORCEMENT:
     type: env
     read_mode: call
     default: "0"
-    verdict: AUDIT-NEEDED
-    adr: DEGOD/TEMPORAL
+    verdict: KEEP-LOG
+    adr: ADR-TEMPORAL-EPOCH (S266-S269)
     owner: master
+    note: "S344: A/B решён в пользу copy+seal (S269/1f43a409, 10k×2 MATCH; PERF 132.4->66.0 мс/тик). ON отложен до Epoch-финализации: контрпример — вложенный alias живой ссылки epoch (test_epoch_view alias-контракт), аудит post-commit-мутаций _tick_scenes не проводился, ON-тестов ноль. Условия включения: глубокая запечатка вложений на commit-границе + аудит мутаций + A/B move-моды с 10k×2-гейтами."
   EPOCH_INPUT_TRANSPORT:
     type: env
     read_mode: call
     default: "copy"
-    verdict: AUDIT-NEEDED
-    adr: TEMPORAL
+    verdict: KEEP-LOG
+    adr: ADR-TEMPORAL-EPOCH (S268-7b/S269)
     owner: master
+    note: "S344: приказ 7b ИСПОЛНЕН (S269/1f43a409): copy+seal лучше — copy-путь сохранён, move за флагом до Epoch-финала. Повторное рассмотрение move — только при новых технических основаниях и через новый A/B. Легальная A/B-мода измерений DriftLab."
   CROSS_LOC_MATERIALIZE_ENABLED:
     type: module-const
     read_mode: import
     default: "false"
-    verdict: AUDIT-NEEDED
-    adr: ADR-O-328/341
+    verdict: BURY
+    adr: FIX-6c; живой путь — boundary_dwell (S186/S273)
     owner: B
+    note: "S344 (вердикт Мастера): мгновенный кросс-лок перенос похоронен — включение = телепорт против канона движения. Физическое удаление ветки (movement_engine ~:475-530) — отдельная задача с собственным acceptance и проверкой отсутствия обязательных потребителей; якорь задачи — AA7/COV-6 в roadmap."
   enforce_system_requirements:
     type: pydantic
     read_mode: pydantic
     default: "false"
-    verdict: AUDIT-NEEDED
+    verdict: ROLLOUT-PENDING
     adr: "-"
-    owner: B
+    owner: COV-9
+    note: "S344: цепь живая (config.py:52 -> game_loop.py:2080, отказ при report.meets=False). Релизный гейт дистрибутива; включение — перед выпуском пользовательского дистрибутива (требования к целевому железу + поведение установщика/запуска)."
 
   # ── CALIBRATION (числовые ручки) ────────────────────────────────────────
   D8P_MAX_AGE_TICKS:
