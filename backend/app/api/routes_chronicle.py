@@ -104,10 +104,9 @@ async def beliefs_export(campaign_id: str, format: str = "md") -> Dict[str, Any]
     draft одного NPC — warning + пропуск (прецедент ростера), весь экспорт
     не роняется."""
 
-    from fastapi import HTTPException
-
     from app.services.chronicle import belief_export
     from app.services.npc.npc_loader import list_individual_ids
+    from fastapi import HTTPException
 
     if format not in ("md", "json"):
         raise HTTPException(status_code=422, detail="format: только md|json")

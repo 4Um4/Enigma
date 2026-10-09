@@ -1,8 +1,13 @@
 """
-Файл: frontend/chronicle_editor/chronicle_app.py
-Назначение: MVP-контур редактора (Слой MVP ТЗ §5): список NPC | лента draft | Разбор.
-            Стиль/шрифты — прецедент game_menu (самодостаточность); 7 режимов — итерации C/D/E.
-Зависимости: pygame, frontend.chronicle_editor.api
+path: /frontend/chronicle_editor/chronicle_app.py
+Назначение: ЕДИНОЕ ядро редактора хроник (вердикт владельца «один редактор —
+            два входа»): 3 панели + мышь + клавиши + строка подсказок.
+            Входы: (1) F7 в Map Editor — тонкая обёртка editor_screen.py;
+            (2) Shift+F7 из меню (Шаг 4); (3) автономный запуск
+            ChronicleEditorApp. Встраиваемое ядро берёт surface и API извне;
+            выход — флаг exit_requested (каждый вход решает сам, куда выйти).
+Зависимости: pygame, api_client.HttpClient, chronicle_editor.api.ChronicleApi
+Основные сущности: ChronicleEditorCore (embeddable), ChronicleEditorApp
 """
 from __future__ import annotations
 
@@ -11,38 +16,46 @@ from api_client import HttpClient
 
 from chronicle_editor.api import ChronicleApi
 
-CAMPAIGN = "silver_wolf"
 _BG = (18, 18, 23)
 _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
+_HINT = "↑↓/мышь: список · клик ленты: фрагмент · F1/F2: разбор · C: вопрос · 1-4: ответ · F9: канон · Ctrl+S: сводка · ESC: выход"
+
+_OPTION_BY_KEY = {
+    pygame.K_1: "SELECT_EXISTING_NPC",
+    pygame.K_2: "CREATE_NEW_NPC",
+    pygame.K_3: "UNKNOWN_PERSON",
+    pygame.K_4: "LEAVE_WHITE_SPOT",
+}
 
 
-class ChronicleEditorApp:
-    """Автономное приложение. MVP: 3 области, один режим, decompose-кнопка."""
+class ChronicleEditorCore:
+    """Embeddable ядро редактора. Экран (surface) и API приходят извне:
+    один и тот же код живёт в F7-режиме карт и в автономном окне.
+    Выход — флаг exit_requested; владелец цикла решает, куда выйти."""
 
-    def __init__(self, base_url: str = "http://127.0.0.1:8000") -> None:
-        pygame.init()
-        self.screen = pygame.display.set_mode((1280, 800), pygame.RESIZABLE)
-        pygame.display.set_caption("ENIGMA — Редактор хроник")
+    def __init__(self, api: ChronicleApi, campaign: str) -> None:
+        self._api = api
+        self._campaign = campaign
         self._font = pygame.font.SysFont("consolas", 16)
         self._font_big = pygame.font.SysFont("consolas", 22, bold=True)
-        self._api = ChronicleApi(HttpClient(base_url))
-        # C0.5: список NPC — ТОЛЬКО с сервера (устранение второго источника
-        # истины). self._roster несёт статусы хроник для панели.
         self._roster: list = []
         self._npcs: list[str] = []
         self._npc_idx = 0
         self._doc: dict | None = None
         self._items: list = []
-        self._frag_ord: int = 0
+        self._frag_ord = 0
         self._current_q: dict | None = None
-        self._status = "Готов. F1 — разобрать первый фрагмент черновика (MVP:Ord-0)."
-        self._running = True
+        self._status = "Готов."
+        self.exit_requested = False
         self._load_roster()
 
+    # ── Данные ────────────────────────────────────────────────────────────
+
     def _load_roster(self) -> None:
-        self._roster = self._api.list_roster(CAMPAIGN)
+        # C0.5: список NPC — ТОЛЬКО с сервера (второй источник истины устранён).
+        self._roster = self._api.list_roster(self._campaign)
         self._npcs = [r["npc_id"] for r in self._roster]
         self._npc_idx = 0
         if not self._npcs:
@@ -56,27 +69,21 @@ class ChronicleEditorApp:
         if not self._npcs:
             return
         npc = self._npcs[self._npc_idx]
-        self._doc = self._api.get_draft(CAMPAIGN, npc)
+        self._doc = self._api.get_draft(self._campaign, npc)
         self._items = []
         self._status = f"{npc}: {'draft загружен' if self._doc else 'черновика нет'}"
 
-    def run(self) -> None:
-        clock = pygame.time.Clock()
-        while self._running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self._running = False
-                elif event.type == pygame.KEYDOWN:
-                    self._on_key(event.key)
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    self._on_click(event.pos)
-            self._draw()
-            clock.tick(30)
-        pygame.quit()
+    # ── Ввод (клавиатура + мышь; UX-вердикт: редактор обязан понимать мышь) ─
+
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.KEYDOWN:
+            self._on_key(event.key)
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._on_click(event.pos)
 
     def _on_key(self, key: int) -> None:
         if key == pygame.K_ESCAPE:
-            self._running = False
+            self.exit_requested = True
         elif key == pygame.K_DOWN:
             self._npc_idx = (self._npc_idx + 1) % len(self._npcs)
             self._reload()
@@ -98,17 +105,26 @@ class ChronicleEditorApp:
                 if self._current_q
                 else "Открытых вопросов нет"
             )
-        elif key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4):
+        elif key in _OPTION_BY_KEY:
             if self._current_q is None:
                 self._status = "Сначала C — взять открытый вопрос"
                 return
-            option = {
-                pygame.K_1: "SELECT_EXISTING_NPC",
-                pygame.K_2: "CREATE_NEW_NPC",
-                pygame.K_3: "UNKNOWN_PERSON",
-                pygame.K_4: "LEAVE_WHITE_SPOT",
-            }[key]
-            self._resolve_current_question(option)
+            self._resolve_current_question(_OPTION_BY_KEY[key])
+
+    def _on_click(self, pos) -> None:
+        x, y = pos
+        if 20 <= x <= 260 and 100 <= y <= 100 + len(self._npcs) * 26:
+            self._npc_idx = (y - 100) // 26
+            self._reload()
+        elif 300 <= x <= 520 and 100 <= y <= 100 + 24 * 22:
+            self._frag_ord = (y - 100) // 22
+            self._status = f"Выбран фрагмент #{self._frag_ord} (F1 — разобрать)"
+        elif 300 <= x <= 520 and 700 <= y <= 730:
+            self._decompose_ordinal(self._frag_ord)
+        elif 900 <= x <= 1120 and 700 <= y <= 730:
+            self._canonize()
+
+    # ── Действия ──────────────────────────────────────────────────────────
 
     def _export_beliefs(self) -> None:
         """C2: Ctrl+S → «Сохранить как…» (tkinter: имя+папка+формат md/json
@@ -117,7 +133,7 @@ class ChronicleEditorApp:
         from tkinter import filedialog
 
         fmt = "json" if self._ask_format() else "md"
-        data = self._api.export_beliefs(CAMPAIGN, fmt)
+        data = self._api.export_beliefs(self._campaign, fmt)
         if not data or data.get("status") != "OK":
             self._status = "Экспорт недоступен (сервер?)"
             return
@@ -125,7 +141,7 @@ class ChronicleEditorApp:
             title="Сохранить сводку убеждений",
             defaultextension=f".{fmt}",
             filetypes=[(fmt.upper(), f"*.{fmt}"), ("Все файлы", "*.*")],
-            initialfile=f"belief_summary_{CAMPAIGN}.{fmt}",
+            initialfile=f"belief_summary_{self._campaign}.{fmt}",
         )
         if not path:
             self._status = "Экспорт отменён"
@@ -146,25 +162,8 @@ class ChronicleEditorApp:
         root.destroy()
         return answer
 
-    def _on_click(self, pos) -> None:
-        x, y = pos
-        if 20 <= x <= 260 and 100 <= y <= 100 + len(self._npcs) * 26:
-            self._npc_idx = (y - 100) // 26
-            self._reload()
-        elif 300 <= x <= 520 and 100 <= y <= 100 + 24 * 22:
-            # Клик по ленте = выбор фрагмента-порядка для разбора (Шаг C)
-            self._frag_ord = (y - 100) // 22
-            self._status = f"Выбран фрагмент #{self._frag_ord} (F1 — разобрать)"
-        elif 300 <= x <= 520 and 700 <= y <= 730:
-            self._decompose_ordinal(self._frag_ord)
-        elif 900 <= x <= 1120 and 700 <= y <= 730:
-            self._canonize()
-
-    def _decompose_first_fragment(self) -> None:
-        self._decompose_ordinal(self._frag_ord)
-
     def _decompose_ordinal(self, ord_: int) -> None:
-        """FR-2.x для произвольного фрагмента (Шаг C: клик по ленте/клавиши)."""
+        """FR-2.x для произвольного фрагмента (клик по ленте / F1/F2)."""
         npc = self._npcs[self._npc_idx]
         frags = [f for f in (self._doc or {}).get("author_text", "").split("\n\n") if f.strip()]
         if not frags:
@@ -175,8 +174,9 @@ class ChronicleEditorApp:
             return
         self._frag_ord = ord_
         self._status = f"Разбор #{ord_}... (LLM, до 60 с)"
-        self._draw()
-        res = self._api.decompose(CAMPAIGN, npc, ord_, frags[ord_])
+        self.draw(pygame.display.get_surface())
+        pygame.display.flip()
+        res = self._api.decompose(self._campaign, npc, ord_, frags[ord_])
         if res.get("status") == "OK":
             self._items = list(res.get("items", []))
             self._status = f"Разбор #{ord_}: {len(self._items)} items"
@@ -199,7 +199,7 @@ class ChronicleEditorApp:
         elif option == "UNKNOWN_PERSON":
             value = q.get("target_span", "") or "unknown_person"
         ok = self._api.resolve_question(
-            CAMPAIGN, self._npcs[self._npc_idx], q.get("question_id", ""), option, value
+            self._campaign, self._npcs[self._npc_idx], q.get("question_id", ""), option, value
         )
         self._status = (
             f"Резолюция [{option}{': ' + value if value else ''}] — {'OK' if ok else 'ОШИБКА PUT'}"
@@ -210,7 +210,7 @@ class ChronicleEditorApp:
     def _canonize(self) -> None:
         """FR-10.x (T-CCH-04): канонизация; 422 → русский блок с fix_hint."""
         npc = self._npcs[self._npc_idx]
-        res = self._api.canonize(CAMPAIGN, npc)
+        res = self._api.canonize(self._campaign, npc)
         if res.get("status") == "OK":
             self._status = f"КАНОНИЗИРОВАНО (v{res.get('canonical_version')})"
         else:
@@ -223,45 +223,77 @@ class ChronicleEditorApp:
                 return q
         return None
 
-    def _draw(self) -> None:
-        self.screen.fill(_BG)
-        # Левая панель: список NPC
-        pygame.draw.rect(self.screen, _PANEL, (10, 90, 250, len(self._npcs) * 26 + 20))
-        self.screen.blit(self._font_big.render("ХРОНИКИ", True, _ACCENT), (20, 55))
+    # ── Отрисовка ─────────────────────────────────────────────────────────
+
+    def draw(self, surface) -> None:
+        """Рисует в ЧУЖОЙ surface (F7 рисует в экран карт; автономный вход —
+        в свой). pygame.display.flip() — забота владельца цикла, не ядра."""
+        surface.fill(_BG)
+        # Левая панель: список NPC (со статусом хроники)
+        pygame.draw.rect(surface, _PANEL, (10, 90, 250, len(self._npcs) * 26 + 20))
+        surface.blit(self._font_big.render("ХРОНИКИ", True, _ACCENT), (20, 55))
         for i, npc in enumerate(self._npcs):
             color = _ACCENT if i == self._npc_idx else _TEXT
-            self.screen.blit(self._font.render(npc, True, color), (20, 100 + i * 26))
+            surface.blit(self._font.render(npc, True, color), (20, 100 + i * 26))
         # Центр: лента entries
-        pygame.draw.rect(self.screen, _PANEL, (270, 90, 620, 560))
-        self.screen.blit(self._font_big.render("ЛЕНТА (draft)", True, _ACCENT), (280, 55))
+        pygame.draw.rect(surface, _PANEL, (270, 90, 620, 560))
+        surface.blit(self._font_big.render("ЛЕНТА (draft)", True, _ACCENT), (280, 55))
         if self._doc:
             for i, e in enumerate((self._doc.get("entries") or [])[:24]):
                 age = e.get("historical_age")
                 marker = f"[{age}]" if age is not None else "[?]"
                 line = f"{marker} {e.get('kind','')}: {str(e.get('payload', {}).get('summary', ''))[:70]}"
-                self.screen.blit(self._font.render(line, True, _TEXT), (280, 100 + i * 22))
+                surface.blit(self._font.render(line, True, _TEXT), (280, 100 + i * 22))
         # Правая панель: Разбор
-        pygame.draw.rect(self.screen, _PANEL, (900, 90, 370, 560))
-        self.screen.blit(self._font_big.render("РАЗБОР ENIGMA", True, _ACCENT), (910, 55))
+        pygame.draw.rect(surface, _PANEL, (900, 90, 370, 560))
+        surface.blit(self._font_big.render("РАЗБОР ENIGMA", True, _ACCENT), (910, 55))
         for i, item in enumerate(self._items[:22]):
             q = " ?" if item.get("needs_confirmation") else ""
             line = f"{item.get('kind','')}{q} {item.get('confidence', 0):.2f}"
-            self.screen.blit(self._font.render(line, True, _TEXT), (910, 100 + i * 22))
-        # Статусная строка + кнопки (Шаг C: разбор Ord + канонизация)
-        pygame.draw.rect(self.screen, _PANEL, (300, 700, 220, 30))
-        self.screen.blit(self._font.render(f"F1: Разобрать #{self._frag_ord}", True, _ACCENT), (310, 706))
-        pygame.draw.rect(self.screen, _PANEL, (900, 700, 220, 30))
-        self.screen.blit(self._font.render("F9: Принять как канон", True, _ACCENT), (910, 706))
+            surface.blit(self._font.render(line, True, _TEXT), (910, 100 + i * 22))
+        # Кнопки
+        pygame.draw.rect(surface, _PANEL, (300, 700, 220, 30))
+        surface.blit(self._font.render(f"F1: Разобрать #{self._frag_ord}", True, _ACCENT), (310, 706))
+        pygame.draw.rect(surface, _PANEL, (900, 700, 220, 30))
+        surface.blit(self._font.render("F9: Принять как канон", True, _ACCENT), (910, 706))
         q = self._current_q or self._next_open_question()
         if q:
             qline = f"? {q.get('question_id','')}: {q.get('target_span','')[:44]}"
             hint = "1:NPC 2:Новый 3:Массовка 4:Пятно (C — взять)"
-            self.screen.blit(self._font.render(qline, True, _ACCENT), (910, 735))
-            self.screen.blit(self._font.render(hint, True, _TEXT), (910, 752))
+            surface.blit(self._font.render(qline, True, _ACCENT), (910, 735))
+            surface.blit(self._font.render(hint, True, _TEXT), (910, 752))
         else:
-            self.screen.blit(self._font.render("Открытых вопросов нет", True, _TEXT), (910, 735))
-        self.screen.blit(self._font.render(self._status[:120], True, _TEXT), (20, 770))
-        pygame.display.flip()
+            surface.blit(self._font.render("Открытых вопросов нет", True, _TEXT), (910, 735))
+        # Подсказка клавиш (UX-дефект «я не знал про стрелочки» закрыт)
+        surface.blit(self._font.render(_HINT[:150], True, (150, 150, 150)), (20, 752))
+        surface.blit(self._font.render(self._status[:120], True, _TEXT), (20, 770))
+
+
+class ChronicleEditorApp:
+    """Автономный вход: своё окно + цикл поверх ядра."""
+
+    def __init__(self, base_url: str = "http://127.0.0.1:8000") -> None:
+        pygame.init()
+        self.screen = pygame.display.set_mode((1280, 800), pygame.RESIZABLE)
+        pygame.display.set_caption("ENIGMA — Редактор хроник")
+        # Кампания: селектор — Шаг 2; пока дефолт silver_wolf.
+        self._core = ChronicleEditorCore(ChronicleApi(HttpClient(base_url)), "silver_wolf")
+
+    def run(self) -> None:
+        clock = pygame.time.Clock()
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                else:
+                    self._core.handle_event(event)
+            if self._core.exit_requested:
+                running = False
+            self._core.draw(self.screen)
+            pygame.display.flip()
+            clock.tick(30)
+        pygame.quit()
 
 
 def main() -> None:

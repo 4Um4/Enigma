@@ -1,0 +1,59 @@
+{
+  "started": "00:34:52",
+  "env": "http://127.0.0.1:9",
+  "p5_health": {
+    "status": "offline",
+    "details": "Connection refused"
+  },
+  "router_init": "ok",
+  "p1_refusal": [
+    {
+      "i": 0,
+      "ok": false,
+      "exc": "RuntimeError",
+      "msg": "Все модели пула недоступны для capability=Capability.NARRATIVE",
+      "ms": 9106.7,
+      "in_progress": false
+    },
+    {
+      "i": 1,
+      "ok": false,
+      "exc": "RuntimeError",
+      "msg": "Все модели пула недоступны для capability=Capability.NARRATIVE",
+      "ms": 0.6,
+      "in_progress": false
+    },
+    {
+      "i": 2,
+      "ok": false,
+      "exc": "RuntimeError",
+      "msg": "Все модели пула недоступны для capability=Capability.NARRATIVE",
+      "ms": 0.4,
+      "in_progress": false
+    }
+  ],
+  "p2": {
+    "ticks": 25,
+    "ok": 25,
+    "err": 0,
+    "errors": [],
+    "ms_p50": 171.0,
+    "ms_max": 456.9,
+    "sched_failed": 0,
+    "sched_completed": null
+  },
+  "p3_to_thread_cancel": {
+    "outcome": "cancelled",
+    "ms": 1004.3
+  },
+  "p4a_sync_freeze": {
+    "outcome": "timeout_after_freeze",
+    "ms": 3018.9,
+    "hb_max_gap_s": 0.0
+  },
+  "p4b_real_router": {
+    "outcome": "exc:RuntimeError",
+    "ms": 0.1,
+    "hb_max_gap_s": 0.0
+  }
+}

@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from app.core.config import BASE_DIR
 from app.domain.chronicle import (
@@ -104,7 +104,7 @@ def canonical_chronicles() -> Dict[str, ChronicleDocument]:
         _cache["docs"] = docs
         _cache["dir_mtime"] = mtime
         logger.info(f"[CCH_SEED] канон перечитан: {len(docs)} хроник")
-    return _cache["docs"]
+    return cast(Dict[str, ChronicleDocument], _cache["docs"])
 
 
 def canonical_chronicle(npc_id: str) -> Optional[ChronicleDocument]:
@@ -143,13 +143,14 @@ def _day_from_age(
 
 def _resolved_npc_id(ref: Any) -> Optional[str]:
     if ref is not None and ref.ref_kind is EntityRefKind.RESOLVED:
-        return ref.npc_id
+        npc_id: Optional[str] = ref.npc_id
+        return npc_id
     return None
 
 
-def _trauma_linked_event_ids(doc: ChronicleDocument) -> set:
+def _trauma_linked_event_ids(doc: ChronicleDocument) -> Set[str]:
     """EVENT, на которые ссылается trauma-EFFECT → важность ≥0.9 (ТЗ §7.4)."""
-    out = set()
+    out: Set[str] = set()
     for e in _author_entries(doc):
         if e.kind is EntryKind.EFFECT and e.payload.get(_PL_EFFECT_KIND) == "trauma":
             out.update(c.origin_ref for c in e.causes if c.origin_ref)
@@ -223,14 +224,14 @@ def build_seed_knowledge(
                 continue  # массовка/пятно знание не сеют
             if knower.get("npc_id") != npc_id:
                 continue
-            ev = by_id.get(e.payload.get(KP_EVENT_REF))
+            ev = by_id.get(cast(str, e.payload.get(KP_EVENT_REF)))
             if ev is None or ev.provenance not in _AUTHOR_OK:
                 logger.warning(f"[CCH_SEED] knowledge {e.entry_id}: источник не канон — пропущен")
                 continue
             # Возраст узнавания — возраст ЗНАЮЩЕГО: конверсия относительно
             # ЕГО game_start_age (его хроника), НЕ владельца события.
             # Смешение чужих возрастов = порча оси времени (запрет 4).
-            _k_doc = docs_by_npc.get(knower.get("npc_id"))
+            _k_doc = docs_by_npc.get(cast(str, knower.get("npc_id")))
             _k_start = None
             if _k_doc is not None:
                 _k_start = _k_doc.game_start_age
@@ -341,14 +342,14 @@ def build_seed_imprints(doc: ChronicleDocument) -> List[Dict[str, Any]]:
     return result
 
 
-def build_seed_beliefs(doc: ChronicleDocument) -> Dict[str, List[float]]:
+def build_seed_beliefs(doc: ChronicleDocument) -> Dict[str, List[Any]]:
     """BELIEF_SEED → формат psyche['beliefs'] {type: [value, conf, src, tick]}.
     Только типы закрытого реестра BeliefType; без типа — остаётся в каноне
     (расширение — через сводку убеждений → вердикт владельца, не автоматически)."""
     from app.models.npc.beliefs import BeliefType
 
     registry = {t.value for t in BeliefType}
-    result: Dict[str, List[float]] = {}
+    result: Dict[str, List[Any]] = {}
     for e in _author_entries(doc):
         if e.kind is not EntryKind.BELIEF_SEED:
             continue

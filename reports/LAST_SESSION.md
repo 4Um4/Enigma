@@ -1,4 +1,4 @@
-# ENIGMA Session State — 2026-09-30 02:42
+# ENIGMA Session State — 2026-10-10 00:11
 
 Кампания: `?` | Игрок: `?`
 
@@ -16,25 +16,28 @@
 
 ## DNA — МЕТРИКИ ЗДОРОВЬЯ СИСТЕМЫ
 
-_Сессия: 0.4 мин | Тиков: 2 | LLM-вызовов: 2_
+_Сессия: 1.8 мин | Тиков: 0 | LLM-вызовов: 0_
 
 | Метрика | Значение | Δ от прошлой | Интерпретация для LLM |
 |---------|----------|--------------|----------------------|
-| **SHI** (Simulation Health) | 100% | → +0.0% | ✅ норма: NPC активно принимают решения |
-| **NPI** (NPC Pipeline) | 100% | → +0.0% | ✅ 6/6 NPC с реальными координатами |
+| **SHI** (Simulation Health) | 0% | ↓ -100.0% | ⛔ МЕРТВА: решений нет. Проверь DecisionHub.compute() |
+| **NPI** (NPC Pipeline) | 0% | ↓ -85.7% | нет данных о NPC |
 | **OBI** (Obedience) | 0% | → +0.0% | нет директив в сессии — OBI не применим |
 | **SCF** (Spatial Coherence) | 1.0 | → +0.0 | ✅ пространство целостно: граф загружен корректно |
 | **ADR** (Debt Ratio) | 0.00 | → +0.0 | нет ADR-записей — невозможно оценить |
-| **CVS** (Causal Velocity) | 5.51/мин | ↓ -2.3 | ✅ 5.51/мин: активная сессия |
+| **CVS** (Causal Velocity) | 0.00/мин | ↓ -1.0 | LLM не вызывалась: сессия без действий игрока |
 | **PFI** (Pre-Bus Failure) | 0% | → +0.0% | ✅ норма: пред-шинных отказов нет — CDS видит всё |
 | **Tracebacks** | 0 (AttrErr=0, TypeErr=0) | → | ✅ норма |
-| **BCI** (Belief Crystallization) | 22 (idx=11.00) | → | ✅ Убеждения формируются |
-| **BPI** (Break Progress) | 13 (broken=0) | → | ✅ Давление доходит |
+| **BCI** (Belief Crystallization) | 0 (idx=0.00) | → | ⚠️ Память не кристаллизуется (BCI=0) |
+| **BPI** (Break Progress) | 0 (broken=0) | → | ⚠️ NPC не ломаются (BPI=0) |
 | **NEI** (Need Urgency) | 0 (critical=0) | → | ⚠️ NPC слишком комфортны (NEI=0) |
 | **DRI** (Response Integrity) | 100% | → +0.0% | ✅ LLM отвечает на все запросы |
 | **DPI** (Dialogue Pipeline) | 100% | → +0.0% | ✅ Конвейер диалогов стабилен |
 
-_История: `reports/dna_history.jsonl` — 1279 записей_
+**Системные сигналы (требуют внимания):**
+- NPI упал на -86%: spatial pipeline деградировал между сессиями
+
+_История: `reports/dna_history.jsonl` — 1282 записей_
 
 ## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ
 
@@ -54,11 +57,11 @@ _Не обнаружено — игра жива._
 _(баги не обнаружены в этой сессии)_
 
 ### Последние изменения (git log -5):
-  - 0aa6611c chore: untrack replay.db (60MB рантайм-БД реплея) + combat_log
-  - 045a4b65 chore: untrack dna_history.jsonl (runtime CDS-история; LAST_SESSION.md — канон истории сессий)
-  - af8aa4b6 chore: хвост гигиены — ignore session_memory, диск-очистка одноразовых дампов
-  - b9b4af6a chore: gitignore — dna_history.jsonl (пропущенная строка из a5fab11e)
-  - 33c51773 chore: cds-ротатор (дополнение a5fab11e, упомянутый в его message)
+  - d1ef8a50 S345: CCH-4 закрытие — реестр-строка (C0.5+C2, уроки гонки S341/двухверсионного патча/регистро-вставок; прецедент S307 для рабочего имени в коммитах) + МЕТА 227→228; roadmap-чекбокс CCH-4 остаётся [ ] до Character Debugger (честность: частичное закрытие)
+  - f6fab53b S342-pre: prereg H-ID Stage A v2.1 -> git (GO-3 cond-1: commit BEFORE phase D; sidecar-interpretation of L45 ratified)
+  - 599a2f32 S344-docs: COV-D73 закрыт (S343+S344 — реестр+линтер+вердикты); SHA-backfill строки S344
+  - 61b2fb69 S341: CCH-4 C2 — belief summary export (belief_export collector: canon+drafts, honest statuses runtime-compatible/unknown-type/needs-confirmation per INV-LLM-NOT-SSOT; md/json; GET /chronicle/{campaign}/beliefs-export; FE Ctrl+S -> tkinter save-as with format choice per Master verdict); export endpoint status contract OK (FE gate); Dict/Any + HTTPException import hygiene; micro 2/2 + regression 16/16
+  - 835567dc S344: COV-0 аудит-хвост — финальные вердикты четырёх флагов (ноль AUDIT-NEEDED, COV-GC-04 закрыт); D31/D34 §7.10; AA7-якорь удаления телепорт-ветки; doc-only
 
 ### Последние записи MUTATIONS.md:
   - (MUTATIONS.md не найден)
@@ -83,13 +86,8 @@ _(баги не обнаружены в этой сессии)_
 (не определено — обнови MUTATIONS.md)
 
 ### Состояние рендеринга (из последней сессии игры):
-- NPC с известными координатами (6):
-  - `guard_borko`: x=16.7 y=3.8
-  - `merchant_goran`: x=8.3 y=5.8
-  - `maid_lusya`: x=9.8 y=2.2
-  - `blacksmith_orm`: x=9.2 y=4.5
-  - `thief_shadow`: x=11.5 y=11.0
-  - `tavern_keeper_tornin`: x=6.0 y=2.6
+- NPC с известными координатами (0):
+  - _(нет данных о координатах — SNAPSHOT-паттерн не сработал)_
 - NPC без координат (lerp не работает, 0):
   - _(нет)_
 - Граф-fallback локаций: нет
@@ -111,24 +109,17 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 ### Состояние симуляции (последняя сессия игры):
 
 **Tick Pipeline:**
-Тиков: 2 | Decisions > 0: 1/2 | LLM: 2 вызовов / 2 ответов | Симуляция: ✅ живёт
+Тиков: 0 | Decisions > 0: 0/0 | LLM: 0 вызовов / 0 ответов | Симуляция: ✅ живёт
 - LLM "Ничего не произошло": 0 раз
 - LLM CJK-галлюцинации: 0 строк
 - Стартап backend: ✅
-- LLM сервер: ✅
+- LLM сервер: ❌ (не доступен при старте)
 
 **Предупреждения:**
   - _(нет)_
 
 **Movement Pipeline (по NPC):**
-| NPC | Intent | Score | Traversal | Координаты | Виден игроку |
-|-----|--------|-------|-----------|------------|--------------|
-| blacksmith_orm | request_service | 0.747 | ✅ | x=9.2 y=4.5 | ❌ |
-| guard_borko | block_path | 0.330 | ✅ | x=16.7 y=3.8 | ❌ |
-| maid_lusya | flee | 0.511 | ✅ | x=9.8 y=2.2 | ❌ |
-| merchant_goran | offer_job | 0.558 | ✅ | x=8.3 y=5.8 | ❌ |
-| tavern_keeper_tornin | call_for_help | 0.333 | ✅ | x=6.0 y=2.6 | ❌ |
-| thief_shadow | observe | 0.185 | ✅ | x=11.5 y=11.0 | ❌ |
+_Нет данных по NPC_
 
 **NPC с разрывом в pipeline (intent есть, traversal нет):**
   - _(нет разрывов в movement pipeline)_

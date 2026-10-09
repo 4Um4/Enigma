@@ -680,7 +680,7 @@ def _enrich_with_chronicle_relations(npcs: List[Dict[str, Any]]) -> None:
         return
     for _npc in npcs:
         if not isinstance(_npc, dict):
-            continue
+            continue  # type: ignore[unreachable]  # runtime-гвард: пайплайн загрузки может передать не-dict
         _src = _npc.get("npc_id") or _npc.get("id")
         if not _src:
             continue

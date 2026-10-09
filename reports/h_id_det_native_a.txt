@@ -1,0 +1,724 @@
+[LLM_COMPRESSOR] Unexpected error: timed out
+Запускаю LLM-сервер для probe corpus...
+[LLM_MANAGER] llama-server уже запущен.
+[DET-ENV] mode=REUSE — identity NOT verified | model=Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-IQ3_M.gguf | port=8181 | owner_pid=15572
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'semantic_acts': [], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.0}, 'actor': 'player', 'target_zone': None, 'target': None, 'addressee': None, 'actor_role': 'player', 'target_role': None, 'proposition': None, 'requested_outcome': 'initiate_contact', 'offered_outcom"
+[RECOVERY] applied=['semantic_acts']
+
+=== SEMANTIC PROBE CORPUS v0 ===
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 's"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Быть добру! Привет! Здоровеньки булы!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 6.75s
+[DIAG-LLM] slow-path: None (LLM мертва)
+
+[H-GREET] TEXT: 'Здавствуй и процветай!'
+  ACTION: UNCERTAIN | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: GREETING | latency: 60.03s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.6, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 's"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Рад встрече!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 3.46s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'apology', 'social_intent': 'repair_relationship', 'proposition': None, 'requested_outcome': 'seek forgiveness or clarification', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure': 0.3, 'semantic':"
+
+[H-GREET] TEXT: 'Извините, а ....'
+  ACTION: DIALOGUE | SPEECH_ACT: apology
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: NEUTRAL/обрыв | latency: 3.44s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'greeting', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 's"
+[RECOVERY] applied=['semantic_acts']
+
+[H-GREET] TEXT: 'Утро доброе!'
+  ACTION: DIALOGUE | SPEECH_ACT: greeting
+  ACTS: GREETING()*
+  PROP: None
+  EXPECTED: GREETING | latency: 3.39s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[H-INTRO] TEXT: 'Разрешите представиться - я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: GREETING(); SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.34s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[H-INTRO] TEXT: 'Имя моё Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.04s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[H-INTRO] TEXT: 'Слушай сюда, звать меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: GREETING(); SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.35s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'player', 'speech_act': 'order', 'social_intent': 'obtain_compliance', 'proposition': None, 'requested_outcome': 'NPC будет обращаться к игроку как Мю', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.7, 'semanti"
+
+[H-INTRO] TEXT: 'Помни и запоминай, обращайся ко мне Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.54s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать имя собеседника', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.1, 'semantic': {'aggressi"
+[RECOVERY] applied=['semantic_acts']
+
+[H-INTRO] TEXT: 'Мю ВАн - а вы?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать имя собеседника)*
+  PROP: None
+  EXPECTED: SELF_INTRO+ASK_IDENTITY | latency: 2.21s
+[RECOVERY] multi-sentence fast=MOVE → LLM comprehension
+
+[H-AGGRO] TEXT: 'Эй! Гнида, сюда иди...'
+  ACTION: MOVE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT/INSULT | latency: 3.46s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать, кто именно произнёс информацию', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure': 0.3, 'seman"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Это ты сказал? Или твоя мама?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, кто именно произнёс информацию)*
+  PROP: None
+  EXPECTED: QUESTION-провокация | latency: 7.01s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'player', 'speech_act': 'question', 'social_intent': 'provoke', 'proposition': None, 'requested_outcome': 'force the target to reveal their true nature or admit deception', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.8, 'social_pres"
+[RECOVERY] applied=['semantic_acts']
+
+[H-AGGRO] TEXT: 'Ты идиот или притворяешься?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(force the target to reveal their true nature or admit deception)*
+  PROP: None
+  EXPECTED: INSULT/QUESTION | latency: 3.56s
+
+[H-AGGRO] TEXT: 'Херню не неси! Что за чушь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, что именно игрок называет херней/чушью)*
+  PROP: None
+  EXPECTED: CHALLENGE-грубый | latency: 3.66s
+[DIAG-LLM] slow-path: "{'action': 'THREATEN', 'actor': 'player', 'target': 'npc', 'speech_act': 'threat', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'immediate compliance and silence', 'offered_outcome': None, 'condition': 'immediate obedience or face unspecified consequences', 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': "
+[RECOVERY] multi-sentence fast=THREATEN → LLM comprehension
+
+[H-AGGRO] TEXT: 'Слышь, дура! Слушайся меня, а не то...'
+  ACTION: THREATEN | SPEECH_ACT: threat
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: THREAT | latency: 7.18s
+
+[H-PROV] TEXT: 'Кто рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.1s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'источник информации о предыдущем высказывании'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.0}, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'proposition': None,"
+
+[H-PROV] TEXT: 'Это я говорил?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(источник информации о предыдущем высказывании)
+  PROP: None
+  EXPECTED: META/QUESTION | latency: 2.7s
+
+[H-PROV] TEXT: 'откуда знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.49s
+[RECONCILE] proposition raw-entity 'информации' снята/заменена (LLM)
+[RECONCILE] action overridden: fast=ATTACK → llm=DIALOGUE (phantom proposition)
+
+[H-PROV] TEXT: 'источник данной информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.53s
+
+[H-PROV] TEXT: 'Кто подсказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.49s
+
+[H-PROV] TEXT: 'Ты уверен, или просто краем уха услышал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of the source of the information)*
+  PROP: None
+  EXPECTED: PROVENANCE/CHALLENGE | latency: 3.49s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'deceive', 'proposition': None, 'requested_outcome': 'вызвать сомнение в правдивости информации', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.6, 'social_pressure': 0.5, 'semantic': {'"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-PROV] TEXT: 'Выдумываешь? может тебе показалось?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(вызвать сомнение в правдивости информации)*
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 7.14s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'ASK_PROVENANCE', 'params': {'about': 'источник информации'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.2}, 'actor': 'player', 'target_zone': 'UNDEFINED', 'addressee': None, 'target': None, 'proposition': None, 'requested_outcome'"
+
+[H-PROV] TEXT: 'Откуда информация?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 2.56s
+[DIAG-LLM] slow-path: "{'action': 'ATTACK', 'actor': 'player', 'target': 'her', 'speech_act': 'order', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'force a kiss', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'GROIN', 'physical_force': 0.9, 'emotional_charge': 0.8, 'social_pressure': 0.7, 'semantic': {'aggression': 0.85, 'fear': 0.3, 's"
+
+[H-ACTION] TEXT: 'Поцеловать её'
+  ACTION: ATTACK | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION/INTERACT | latency: 3.48s
+
+[H-ACTION] TEXT: 'Спросить кто тут главный'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, кто является главным в данной ситуации)*
+  PROP: None
+  EXPECTED: QUESTION-об мир | latency: 3.62s
+[DIAG-LLM] slow-path: "{'action': 'ATTACK', 'actor': 'player', 'target': 'him', 'speech_act': 'order', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'strip the target of clothing', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'GROIN', 'physical_force': 0.9, 'emotional_charge': 0.7, 'social_pressure': 0.8, 'semantic': {'aggression': 0.9, "
+
+[H-ACTION] TEXT: 'Стянуть с него штаны'
+  ACTION: ATTACK | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ACTION | latency: 3.6s
+[RECONCILE] proposition raw-entity 'пояса' снята/заменена (LLM)
+[RECONCILE] CONFLICT target: fast='пояса' llm='him' (v0: fast)
+
+[H-ACTION] TEXT: 'Выхватить у него меч из-за пояса и ударить им его же'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ATTACK+tool | latency: 3.58s
+
+[H-ACTION] TEXT: 'Осмотреть его - как он выглядит? (что при нем из вещей?)'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(detailed visual and inventory description of the target)*
+  PROP: None
+  EXPECTED: OBSERVE+QUESTION | latency: 3.58s
+[DIAG-LLM] slow-path: "{'action': 'STEAL', 'actor': 'player', 'target': None, 'speech_act': 'order', 'social_intent': 'obtain_cooperation', 'proposition': None, 'requested_outcome': 'совершение кражи', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.5, 'semantic': {'aggression': 0.4, 'f"
+
+[H-ACTION] TEXT: 'Украсть'
+  ACTION: STEAL | SPEECH_ACT: order
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: STEAL | latency: 3.43s
+[RECOVERY] multi-sentence fast=PERSUADE → LLM comprehension
+
+[H-ACTION] TEXT: 'Сесть на стул. И попросить служанку обслужить меня'
+  ACTION: PERSUADE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: MULTI-действие | latency: 3.59s
+[RECONCILE] proposition raw-entity 'денег' снята/заменена (LLM)
+[RECONCILE] action overridden: fast=ATTACK → llm=DIALOGUE (phantom proposition)
+
+[H-ACTION] TEXT: 'Эй! а денег дашь?'
+  ACTION: DIALOGUE | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: QUESTION/GIVE-запрос | latency: 3.55s
+
+[H-ACTION] TEXT: 'Что у вас можно купить?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(available_goods)
+  PROP: None
+  EXPECTED: TRADE-вопрос | latency: 2.46s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'possessability'}}], 'proposition': None, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'requested_outcome': 'узнать, можно ли купить адресата', 'offered_outcome': None, 'condition': None, 'phy"
+
+[H-ACTION] TEXT: 'А тебя купить можно?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(possessability)
+  PROP: None
+  EXPECTED: TRADE/FLIRT-провокация | latency: 2.54s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'location_of_information'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.2}, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure': 0.2, 'addressee': None, 'targ"
+
+[H-ACTION] TEXT: 'Где мне найти информацию об...'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(location_of_information)
+  PROP: None
+  EXPECTED: QUESTION-обрыв | latency: 2.51s
+[RECONCILE] proposition raw-entity 'зад' снята/заменена (LLM)
+[RECONCILE] CONFLICT target: fast='зад' llm='unspecified' (v0: fast)
+
+[H-ACTION] TEXT: 'Пнуть под зад'
+  ACTION: ATTACK | SPEECH_ACT: 
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: ATTACK | latency: 3.6s
+
+[H-CHAT] TEXT: 'Ты куешь? А что куешь посуду или оружие?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(профессия/занятие)
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 2.58s
+
+[H-CHAT] TEXT: 'А что там за таверной есть? Или вы тут все и ночуете?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, есть ли в таверне свободные места/место для ночлега)*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 3.65s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать, где спит NPC и как часто он питается', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.3, "
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[H-CHAT] TEXT: 'Где вы спите? И часто вы едите?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, где спит npc и как часто он питается)*
+  PROP: None
+  EXPECTED: QUESTION-поток | latency: 7.15s
+
+[H-CHAT] TEXT: 'Ну рассказывайте - кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, кто из присутствующих был в интимной связи с люсей)*
+  PROP: None
+  EXPECTED: QUESTION-сплетни | latency: 3.7s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': None, 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0."
+
+[SELF_INTRO] TEXT: 'Я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 2.13s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[SELF_INTRO] TEXT: 'Меня зовут Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.42s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'sha"
+
+[SELF_INTRO] TEXT: 'Это я Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: SELF_INTRODUCTION()
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 4.04s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'build_rapport', 'proposition': None, 'requested_outcome': 'чтобы меня называли Мю', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.0, 'semantic': {'aggression': 0."
+[RECOVERY] applied=['semantic_acts']
+
+[SELF_INTRO] TEXT: 'Зови меня Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.5s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'clarify', 'proposition': None, 'requested_outcome': 'confirmation of identity', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression': 0.0, '"
+[RECOVERY] applied=['semantic_acts']
+
+[CORRECTION] TEXT: 'Нет, я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION{name:Ворг} | latency: 3.48s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'clarify', 'proposition': None, 'requested_outcome': 'correction of player identity', 'offered_outcome': 'accurate identification of the speaker', 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure"
+[RECOVERY] applied=['semantic_acts']
+
+[CORRECTION] TEXT: 'Поправка: я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION | latency: 3.53s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'Мю', 'speech_act': 'assert', 'social_intent': 'intimidate', 'proposition': None, 'requested_outcome': 'чтобы игрок забыл о Мю и принял Ворга как новую фигуру', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.7, 'social_pressure': 0.6, "
+[RECOVERY] applied=['semantic_acts']
+
+[CORRECTION] TEXT: 'Забудь Мю, я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: SELF_INTRODUCTION+отрицание | latency: 3.64s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'deceive', 'semantic_acts': [{'type': 'ASSERT', 'params': {'claim': 'я соврал', 'subject': 'player'}}, {'type': 'QUESTION', 'params': {'topic': 'последствия моего лжи'}}], 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'proposition': None, 'requested_outcome': 'выяснить, что будет, если я признаюсь"
+
+[CHALLENGE] TEXT: 'А если я соврал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASSERT(); QUESTION(последствия моего лжи)
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 2.89s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'QUESTION', 'params': {'topic': 'certainty'}}], 'proposition': None, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'requested_outcome': 'узнать, наскольк"
+
+[CHALLENGE] TEXT: 'Ты уверен?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(certainty)
+  PROP: None
+  EXPECTED: CHALLENGE/QUESTION | latency: 2.69s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'confirmation or denial of a previously stated fact', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.4, 'social_pressure':"
+[RECOVERY] applied=['semantic_acts']
+
+[CHALLENGE] TEXT: 'А вдруг это неправда?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation or denial of a previously stated fact)*
+  PROP: None
+  EXPECTED: CHALLENGE | latency: 3.56s
+
+[PROVENANCE] TEXT: 'Кто тебе сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 3.45s
+
+[PROVENANCE] TEXT: 'Откуда ты это знаешь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 3.51s
+
+[PROVENANCE] TEXT: 'Кто сообщил тебе, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: PROVENANCE_QUERY | latency: 4.2s
+
+[META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of player's name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 3.5s
+[DIAG-LLM] slow-path: '{\'action\': \'DIALOGUE\', \'speech_act\': \'question\', \'social_intent\': \'obtain_information\', \'semantic_acts\': [{\'type\': \'QUESTION\', \'params\': {\'topic\': "player\'s name"}}], \'actor\': \'player\', \'target\': None, \'addressee\': \'player\', \'target_zone\': \'UNDEFINED\', \'proposition\': None, \'requested_outcome\': \'player confirms or reveals their name\', \'offered_outcome\': None, \'condition\': None, \'tool_reference\': No'
+
+[META] TEXT: 'Ты помнишь моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(player's name)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.62s
+
+[META] TEXT: 'Ты уверен, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of the player's name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 3.51s
+
+[MULTI] TEXT: 'Привет, я Мю. А кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: GREETING(); SELF_INTRODUCTION(); ASK_IDENTITY()
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_IDENTITY | latency: 4.66s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'deceive', 'proposition': None, 'requested_outcome': None, 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0"
+
+[MULTI] TEXT: 'Я Мю, но вообще-то я Ворг'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: (пусто)
+  PROP: None
+  EXPECTED: SELF_INTRO x2 / коррекция | latency: 3.41s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать текущее местоположение', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.2, 'social_pressure': 0.1, 'semantic': {'a"
+[RECOVERY] multi-sentence fast=DIALOGUE → LLM comprehension
+[RECOVERY] applied=['semantic_acts']
+
+[MULTI] TEXT: 'Привет! Меня зовут Мю. Где мы?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать текущее местоположение)*
+  PROP: None
+  EXPECTED: GREETING+SELF_INTRO+ASK_LOCATION | latency: 7.07s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'ASK_IDENTITY', 'params': {'about': 'имя игрока'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.0, 'desperation': 0.0}, 'actor': 'player', 'target': 'player', 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'proposition': None, 'r"
+
+[CONTRAST] TEXT: 'Ты Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_IDENTITY()
+  PROP: None
+  EXPECTED: QUESTION о собеседнике | latency: 2.6s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': 'Мю', 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'подтверждение или опровержение того, что игрок — Мю', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure'"
+[RECOVERY] applied=['semantic_acts']
+
+[CONTRAST] TEXT: 'Ты ведь Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(подтверждение или опровержение того, что игрок — мю)*
+  PROP: None
+  EXPECTED: CONFIRMATION_SEEKING | latency: 4.36s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'assert', 'social_intent': 'clarify', 'proposition': None, 'requested_outcome': 'correction of identity assumption', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.2, 'semantic': {'aggression"
+[RECOVERY] applied=['semantic_acts']
+
+[CONTRAST] TEXT: 'Я не Мю'
+  ACTION: DIALOGUE | SPEECH_ACT: assert
+  ACTS: ASSERT()*
+  PROP: None
+  EXPECTED: отрицание идентичности | latency: 3.79s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'player wants to know the source of the information about their name', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, '"
+
+[GEN-PROV] TEXT: 'Откуда у тебя сведения о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.82s
+
+[GEN-PROV] TEXT: 'Кто тебя просветил насчёт моего имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.51s
+
+[GEN-PROV] TEXT: 'Ты сам это узнал или тебе кто-то сказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*[LLM_COMPRESSOR] Unexpected error: timed out
+[RECONCILE] llm None: fast остаётся
+[LLM_COMPRESSOR] Unexpected error: timed out
+[RECONCILE] llm None: fast остаётся
+
+  PROP: None
+  EXPECTED: ASK_PROVENANCE/boundary | latency: 3.48s
+[RECOVERY] applied=['semantic_acts']
+
+[GEN-3RD] TEXT: 'Кто вчера был с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 60.03s
+
+[GEN-3RD] TEXT: 'Кто ей об этом рассказал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn the source of the information)*
+  PROP: None
+  EXPECTED: boundary — не назначать заранее | latency: 3.63s
+
+[GEN-3RD] TEXT: 'Кто с ней вообще разговаривал?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(who spoke to her)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.66s
+
+[GEN-3RD] TEXT: 'Кто что-то делал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(кто совершил действие с Люсей)
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 2.64s
+
+[AB-PROV] TEXT: 'Кто тебе сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.2s
+
+[AB-PROV] TEXT: 'Кто сказал, что я Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.27s
+
+[AB-PROV] TEXT: 'Кто сообщил тебе моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.54s
+
+[AB-PROV] TEXT: 'Откуда ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.52s
+
+[AB-3RD] TEXT: 'Кто уже разговаривал с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, кто из присутствующих уже общался с люсей)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 3.66s
+
+[AB-3RD] TEXT: 'Кто уже трахался с Люсей?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(sexual activity with Luse)
+  PROP: None
+  EXPECTED: QUESTION | latency: 2.68s
+
+[AB-EDGE] TEXT: 'Кто рассказал Люсе про меня?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(learn the identity of the person who informed luce about the player)*
+  PROP: None
+  EXPECTED: context-dependent | latency: 3.61s
+
+[AB-PROV] TEXT: 'Кто источник этой информации?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.47s
+
+[AB-META] TEXT: 'Ты знаешь, что меня зовут Мю?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of player's name)*
+  PROP: None
+  EXPECTED: QUESTION не-provenance | latency: 3.51s
+
+[AB-META] TEXT: 'Кто ты?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_IDENTITY()
+  PROP: None
+  EXPECTED: ASK_IDENTITY | latency: 2.44s
+
+[IND-PROV] TEXT: 'Кто тебе проинформировал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.52s
+
+[IND-PROV] TEXT: 'Откуда вам известно моё имя?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.5s
+
+[IND-PROV] TEXT: 'Вам кто-то рассказал, как меня зовут?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.51s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'actor': 'player', 'target': None, 'speech_act': 'question', 'social_intent': 'obtain_information', 'proposition': None, 'requested_outcome': 'узнать источник информации о имени игрока', 'offered_outcome': None, 'condition': None, 'tool_reference': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'physical_force': 0.0, 'emotional_charge': 0.3, 'social_pressure': 0.4, 'se"
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Источник твоих знаний о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о имени игрока)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.52s
+[DIAG-LLM] slow-path: "{'action': 'DIALOGUE', 'speech_act': 'question', 'social_intent': 'obtain_information', 'semantic_acts': [{'type': 'ASK_PROVENANCE', 'params': {'about': 'имя игрока'}}], 'semantic': {'aggression': 0.0, 'fear': 0.0, 'shame': 0.0, 'confidence': 0.3, 'desperation': 0.0}, 'actor': 'player', 'target': None, 'addressee': None, 'target_zone': 'UNDEFINED', 'tool_reference': None, 'proposition': None, 'req"
+
+[IND-PROV] TEXT: 'Тебе сказали, как я зовусь?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 2.62s
+
+[IND-PROV] TEXT: 'Кто-то тебе рассказал о моём имени?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать источник информации о своём имени)*
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 3.5s
+
+[IND-PROV] TEXT: 'Откуда тебе стало известно, как меня зовут?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: ASK_PROVENANCE()
+  PROP: None
+  EXPECTED: ASK_PROVENANCE | latency: 4.25s
+[DIAG-LLM] slow-path: '{\'action\': \'DIALOGUE\', \'actor\': \'player\', \'target\': None, \'speech_act\': \'question\', \'social_intent\': \'obtain_information\', \'proposition\': None, \'requested_outcome\': "confirmation of the source of the player\'s name", \'offered_outcome\': None, \'condition\': None, \'tool_reference\': None, \'addressee\': None, \'target_zone\': \'UNDEFINED\', \'physical_force\': 0.0, \'emotional_charge\': 0.3, \'social_pressure\': 0.'
+[RECOVERY] applied=['semantic_acts']
+
+[IND-PROV] TEXT: 'Ты узнал моё имя сам?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: CONFIRMATION_SEEKING(confirmation of the source of the player's name)*
+  PROP: None
+  EXPECTED: boundary/challenge | latency: 3.52s
+
+[IND-3RD] TEXT: 'Кто с Люсей разговаривал вчера вечером?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(who spoke with Lusea)
+  PROP: None
+  EXPECTED: QUESTION | latency: 2.6s
+[RECOVERY] applied=['semantic_acts']
+
+[IND-3RD] TEXT: 'Тебе говорили, кто ходил к Люсе?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION()*
+  PROP: None
+  EXPECTED: QUESTION/boundary | latency: 60.03s
+
+[IND-3RD] TEXT: 'Кто-нибудь говорил с служанкой?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(узнать, общался ли кто-то со служанкой)*
+  PROP: None
+  EXPECTED: QUESTION | latency: 4.94s
+
+[IND-3RD] TEXT: 'Кто ходил к Торнину с новостями?'
+  ACTION: DIALOGUE | SPEECH_ACT: question
+  ACTS: QUESTION(who visited Torrin with news)
+  PROP: None
+  EXPECTED: QUESTION | latency: 2.74s
+
+=== СВОДКА ДЛЯ RCA-КАРТЫ ===
+[H-GREET] 'Быть добру! Привет! Здоровеньки булы!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-GREET] 'Здавствуй и процветай!' -> action=UNCERTAIN acts=[] prov_topic=False
+[H-GREET] 'Рад встрече!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-GREET] 'Извините, а ....' -> action=DIALOGUE acts=[] prov_topic=False
+[H-GREET] 'Утро доброе!' -> action=DIALOGUE acts=['GREETING'] prov_topic=False
+[H-INTRO] 'Разрешите представиться - я Мю' -> action=DIALOGUE acts=['GREETING', 'SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Имя моё Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Слушай сюда, звать меня Мю' -> action=DIALOGUE acts=['GREETING', 'SELF_INTRODUCTION'] prov_topic=False
+[H-INTRO] 'Помни и запоминай, обращайся ко мне Мю' -> action=DIALOGUE acts=[] prov_topic=False
+[H-INTRO] 'Мю ВАн - а вы?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Эй! Гнида, сюда иди...' -> action=MOVE acts=[] prov_topic=False
+[H-AGGRO] 'Это ты сказал? Или твоя мама?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Ты идиот или притворяешься?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Херню не неси! Что за чушь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-AGGRO] 'Слышь, дура! Слушайся меня, а не то...' -> action=THREATEN acts=[] prov_topic=False
+[H-PROV] 'Кто рассказал?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[H-PROV] 'Это я говорил?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'откуда знаешь?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[H-PROV] 'источник данной информации?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[H-PROV] 'Кто подсказал?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[H-PROV] 'Ты уверен, или просто краем уха услышал?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[H-PROV] 'Выдумываешь? может тебе показалось?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-PROV] 'Откуда информация?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[H-ACTION] 'Поцеловать её' -> action=ATTACK acts=[] prov_topic=False
+[H-ACTION] 'Спросить кто тут главный' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Стянуть с него штаны' -> action=ATTACK acts=[] prov_topic=False
+[H-ACTION] 'Выхватить у него меч из-за пояса и ударить им его же' -> action=ATTACK acts=[] prov_topic=False
+[H-ACTION] 'Осмотреть его - как он выглядит? (что при нем из вещей?)' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Украсть' -> action=STEAL acts=[] prov_topic=False
+[H-ACTION] 'Сесть на стул. И попросить служанку обслужить меня' -> action=PERSUADE acts=[] prov_topic=False
+[H-ACTION] 'Эй! а денег дашь?' -> action=DIALOGUE acts=[] prov_topic=False
+[H-ACTION] 'Что у вас можно купить?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'А тебя купить можно?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Где мне найти информацию об...' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-ACTION] 'Пнуть под зад' -> action=ATTACK acts=[] prov_topic=False
+[H-CHAT] 'Ты куешь? А что куешь посуду или оружие?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'А что там за таверной есть? Или вы тут все и ночуете?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'Где вы спите? И часто вы едите?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[H-CHAT] 'Ну рассказывайте - кто уже трахался с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[SELF_INTRO] 'Я Мю' -> action=DIALOGUE acts=[] prov_topic=False
+[SELF_INTRO] 'Меня зовут Мю' -> action=DIALOGUE acts=[] prov_topic=False
+[SELF_INTRO] 'Это я Мю' -> action=DIALOGUE acts=['SELF_INTRODUCTION'] prov_topic=False
+[SELF_INTRO] 'Зови меня Мю' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[CORRECTION] 'Нет, я Ворг' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[CORRECTION] 'Поправка: я Ворг' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[CORRECTION] 'Забудь Мю, я Ворг' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[CHALLENGE] 'А если я соврал?' -> action=DIALOGUE acts=['ASSERT', 'QUESTION'] prov_topic=False
+[CHALLENGE] 'Ты уверен?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[CHALLENGE] 'А вдруг это неправда?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[PROVENANCE] 'Кто тебе сказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[PROVENANCE] 'Откуда ты это знаешь?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[PROVENANCE] 'Кто сообщил тебе, что я Мю?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[META] 'Ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[META] 'Ты помнишь моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[META] 'Ты уверен, что меня зовут Мю?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[MULTI] 'Привет, я Мю. А кто ты?' -> action=DIALOGUE acts=['GREETING', 'SELF_INTRODUCTION', 'ASK_IDENTITY'] prov_topic=False
+[MULTI] 'Я Мю, но вообще-то я Ворг' -> action=DIALOGUE acts=[] prov_topic=False
+[MULTI] 'Привет! Меня зовут Мю. Где мы?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[CONTRAST] 'Ты Мю?' -> action=DIALOGUE acts=['ASK_IDENTITY'] prov_topic=False
+[CONTRAST] 'Ты ведь Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[CONTRAST] 'Я не Мю' -> action=DIALOGUE acts=['ASSERT'] prov_topic=False
+[GEN-PROV] 'Откуда у тебя сведения о моём имени?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[GEN-PROV] 'Кто тебя просветил насчёт моего имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-PROV] 'Ты сам это узнал или тебе кто-то сказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто вчера был с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто ей об этом рассказал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[GEN-3RD] 'Кто с ней вообще разговаривал?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[GEN-3RD] 'Кто что-то делал с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Кто тебе сказал, что я Мю?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[AB-PROV] 'Кто сказал, что я Мю?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[AB-PROV] 'Кто сообщил тебе моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-PROV] 'Откуда ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-3RD] 'Кто уже разговаривал с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-3RD] 'Кто уже трахался с Люсей?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-EDGE] 'Кто рассказал Люсе про меня?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[AB-PROV] 'Кто источник этой информации?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[AB-META] 'Ты знаешь, что меня зовут Мю?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[AB-META] 'Кто ты?' -> action=DIALOGUE acts=['ASK_IDENTITY'] prov_topic=False
+[IND-PROV] 'Кто тебе проинформировал о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Откуда вам известно моё имя?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Вам кто-то рассказал, как меня зовут?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Источник твоих знаний о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Тебе сказали, как я зовусь?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[IND-PROV] 'Кто-то тебе рассказал о моём имени?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-PROV] 'Откуда тебе стало известно, как меня зовут?' -> action=DIALOGUE acts=['ASK_PROVENANCE'] prov_topic=False
+[IND-PROV] 'Ты узнал моё имя сам?' -> action=DIALOGUE acts=['CONFIRMATION_SEEKING'] prov_topic=False
+[IND-3RD] 'Кто с Люсей разговаривал вчера вечером?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+[IND-3RD] 'Тебе говорили, кто ходил к Люсе?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Кто-нибудь говорил с служанкой?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=False
+[IND-3RD] 'Кто ходил к Торнину с новостями?' -> action=DIALOGUE acts=['QUESTION'] prov_topic=True
+
+(RCA-разметка: FAILURE_BOUNDARY по каждому промаху — вручную по trace выше)
