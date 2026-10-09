@@ -38,6 +38,12 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: enigma-flag-registry
+        name: ENIGMA Flag Registry (COV-0 / COV-D73)
+        entry: python scripts/lint_flags.py
+        language: system
+        pass_filenames: false
+
       - id: enigma-ast-arch
         name: ENIGMA AST Architecture Rules (§1)
         entry: python scripts/lint_enigma_ast.py

@@ -2239,8 +2239,46 @@ def inv_consumer_gap_orphan(world: TestWorld) -> InvariantResult:
         )
 
 
+def inv_flag_registry(*_ctx: object) -> InvariantResult:
+    """COV-0 (COV-D73 -> гейт COV-GC-04): flags.yaml <-> код. Реестр —
+    единственный источник вердиктов rollout-флагов; линтер сверяет
+    фактические флаги (env / module-const / pydantic AIDM_*) с записями.
+    Расхождение = RED: молчаливый дрейф дефолтов (D8P/COMMITMENT/
+    NAME_GATE-класс) больше невозможен. Цепочка Мастера: yaml -> lint -> IPT."""
+    import sys
+    from pathlib import Path
+    _scripts_dir = str(Path(__file__).resolve().parents[2] / "scripts")
+    if _scripts_dir not in sys.path:
+        sys.path.insert(0, _scripts_dir)
+
+    try:
+        from lint_flags import run_lint
+
+        violations, _stats = run_lint()
+
+        if violations:
+            _details = "; ".join(violations[:5])
+            return InvariantResult(
+                "INV-FLAG-REGISTRY",
+                "CRITICAL",
+                False,
+                f"FLAG-REGISTRY: {len(violations)} нарушений (COV-0/COV-GC-04). Первые: {_details}",
+                ["scripts/lint_flags.py", "architecture/flags.yaml"],
+            )
+        return InvariantResult("INV-FLAG-REGISTRY", "CRITICAL", True, "", [])
+    except Exception as e:
+        return InvariantResult(
+            "INV-FLAG-REGISTRY",
+            "CRITICAL",
+            False,
+            f"Ошибка запуска линтера: {e}",
+            ["scripts/lint_flags.py", "architecture/flags.yaml"],
+        )
+
+
 INVARIANTS: List[Callable] = [
     inv_re_cache_allowlist,  # ADR-O-415: freeze-поверхность relationship_cache (M1b.3.7)
+    inv_flag_registry,  # COV-0: флаг-реестр (COV-D73 -> COV-GC-04)
     inv_scene_entity_isolation,
     inv_replay_determinism,
     inv_save_load_integrity,

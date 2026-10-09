@@ -1,0 +1,422 @@
+# path: architecture/flags.yaml
+# Назначение: COV-0 Flag Registry (COV-D73 -> COV-GC-04). Вердикты Мастера:
+#   (1) цепочка flags.yaml -> lint -> IPT обязательна (ручная синхронизация запрещена);
+#   (2) философия включения: контур с игровым смыслом и закрытым гейтом по умолчанию
+#       ROLLOUT-ON-кандидат; OFF требует обоснования, а не наоборот.
+# КОНТРАКТ ПРИЁМКИ ROLLOUT-ON (урок 84a83767: micro-подмножество пропустило 11
+# из 16 падений): флип default OFF->ON обязан проходить FULL pytest + IPT.
+# Границы v1: doc-drift проверяется на def-site (±8 строк определения);
+# usage-site комментарии (кейс npc_dialogue_subscriber:307) — v2; числовые ручки —
+# verdict CALIBRATION (полнота без тумблерной семантики).
+
+domain: "COV-0"
+description: "Реестр rollout-флагов: единственный источник вердиктов; факты (имя/дефолт/режим чтения) добывает линтер из кода — расхождение = RED."
+
+verdicts:
+  ROLLOUT-ON: "включён в проде; контур жив; приёмка = full-pytest + IPT"
+  ROLLOUT-PENDING: "контур готов; включение — отдельный вердикт Мастера (цикл: включили -> погоняли -> разобрали)"
+  KEEP-LOG: "диагностический/lab-флаг; не прод-семантика"
+  BURY: "мёртвый/легаси; кандидат удаления (удаление = отдельный шаг)"
+  INFRA: "инфраструктурный (кодировка, токены, URL); проверяется только полнота"
+  AUDIT-NEEDED: "не исследован; С ЭТИМ СТАТУСОМ COV-GC-04 НЕ ЗАКРЫВАЕТСЯ"
+  CALIBRATION: "числовая ручка; не тумблер"
+
+flags:
+  # ── ROLLOUT-ON (живые контуры) ──────────────────────────────────────────
+  NAME_GATE_ENABLED:
+    type: env
+    read_mode: import
+    default: "1"
+    verdict: ROLLOUT-ON
+    adr: ADR-O-409
+    owner: master
+    note: "S306/S308 закрыты; флип + CI-fix 84a83767 (16 падений: UnboundLocalError + стабы)"
+  COMMITMENT_REGISTRY_ENABLED:
+    type: module-const
+    read_mode: import
+    default: "true"
+    verdict: ROLLOUT-ON
+    adr: ADR-O-363
+    owner: master
+    note: "born-True c4b75107 (GORAN 12/12); вся эпоха S215+ при ON"
+  D8P_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    effective_default: "1"
+    verdict: ROLLOUT-ON
+    adr: ADR-O-382
+    owner: A
+    note: "модульный default OFF; main.py setdefault -> прод ON (вердикт Мастера)"
+  IDLE_EVENTS_PROJECTION_ENABLED:
+    type: env
+    read_mode: call
+    default: "1"
+    verdict: ROLLOUT-ON
+    adr: ADR-O-421
+    owner: B
+    note: "вердикт В4, коммит D; OFF только явным env"
+  R3_DIRECT_MODE:
+    type: module-const
+    read_mode: import
+    default: "true"
+    verdict: ROLLOUT-ON
+    adr: ADR-TZ08
+    owner: B
+    note: "прямой DM-путь turn_pipeline"
+  replay_mode:
+    type: pydantic
+    read_mode: pydantic
+    default: "passive"
+    verdict: ROLLOUT-ON
+    adr: ADR-O-351
+    owner: B
+    note: "SSOT replay-контура (вердикт Мастера); active сейчас ~ passive (известное ограничение); env-имя AIDM_REPLAY_MODE"
+
+  # ── ROLLOUT-PENDING (готовые контуры — кандидаты цикла «включили -> погоняли») ──
+  ARBITER_ENFORCEMENT:
+    type: env
+    read_mode: import
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-363
+    owner: master
+  S203_4_ARBITER_INTERRUPT:
+    type: env
+    read_mode: import
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-365
+    owner: master
+    aliases: ["S203.4_ARBITER_INTERRUPT"]
+  S203_4_OWNERSHIP_MIRRORS:
+    type: env
+    read_mode: import
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-365
+    owner: master
+    aliases: ["S203.4_OWNERSHIP_MIRRORS"]
+  TRAVERSAL_OWNERSHIP_ENFORCEMENT:
+    type: env
+    read_mode: import
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-363
+    owner: master
+  W3_G3_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-410
+    owner: B
+  W3_G2_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-378
+    owner: B
+  W3_SHADOW_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: W-track
+    owner: B
+  WORK_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-391
+    owner: B
+    note: "экономика; следующий вердиктный фронт COV-3"
+  ACTIVITY_LIFECYCLE_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-384
+    owner: B
+    note: "Living Activity; требует DESIRES_ENABLED для полного контура"
+  RELATIONSHIP_EVENTS_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-418
+    owner: A
+  RELATIONSHIP_DYNAMICS_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-419
+    owner: A
+  BC1_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: ADR-O-381
+    owner: A
+    note: "открывается вместе с BC-2 (CONCLUSION->EXPECTATION)"
+  DESIRES_ENABLED:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: roadmap NL-4
+    owner: A
+    note: "флаговый протокол: F5-лаборатория -> калибровка -> прод"
+  COGNITION_V0:
+    type: env
+    read_mode: import
+    default: ""
+    verdict: ROLLOUT-PENDING
+    adr: Understanding S294-S296
+    owner: A
+
+  # ── KEEP-LOG (диагностика / lab) ────────────────────────────────────────
+  COGNITION_DIAG:
+    type: env
+    read_mode: mixed
+    default: ""
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: A
+  R2_DIAG:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: A
+  N18_EXP:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: A
+  PATTERN_WATERMARK:
+    type: env
+    read_mode: call
+    default: "0"
+    verdict: KEEP-LOG
+    adr: S274
+    owner: master
+  ENIGMA_DET_TRACE:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: S316
+    owner: B
+  ENIGMA_PROV_X2:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: S313
+    owner: B
+  ENIGMA_PROV_XCLEAN:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: S313
+    owner: B
+  ENIGMA_PROV_B2:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: S313
+    owner: B
+  ENIGMA_PROV_B:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: S313
+    owner: B
+  ENIGMA_SEM_LIB:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: KEEP-LOG
+    adr: P0-audit
+    owner: B
+  ENIGMA_SEM_LIB_MODULES:
+    type: env
+    read_mode: call
+    default: "dialogue_provenance"
+    verdict: KEEP-LOG
+    adr: P0-audit
+    owner: B
+  ENIGMA_SEM_ROUTER:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: KEEP-LOG
+    adr: P0-audit
+    owner: B
+    note: "oracle-режим = измерительный, не прод"
+  ENIGMA_SEM_ROUTER_ORACLE_LABELS:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: KEEP-LOG
+    adr: P0-audit
+    owner: B
+  ENIGMA_SEM_ROUTER_ORACLE_FAMILIES:
+    type: env
+    read_mode: call
+    default: "PROV,ID"
+    verdict: KEEP-LOG
+    adr: P0-audit
+    owner: B
+  movement_debug:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: B
+  orchestrator_debug:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: B
+  dm_debug:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: KEEP-LOG
+    adr: "-"
+    owner: B
+  replay_playback:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: KEEP-LOG
+    adr: ADR-O-351
+    owner: B
+    note: "runtime-производная (ReplayPlayer); ручной env не предусмотрен"
+  replay_record:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: KEEP-LOG
+    adr: ADR-O-351
+    owner: B
+    note: "runtime-производная replay_mode (game_loop форсирует True); ручной env не предусмотрен"
+
+  # ── BURY (кандидаты удаления — удаление отдельным шагом) ────────────────
+  ENIGMA_RC8_STATE:
+    type: env
+    read_mode: call
+    default: "none"
+    verdict: BURY
+    adr: S316
+    owner: B
+    note: "легаси RC8 STATE-B; few-shot удалён из production"
+  llm_fallback_enabled:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: BURY
+    adr: COV-D61
+    owner: B
+    note: "dead: пул=1, fallback не существует"
+  hardcore_mode:
+    type: pydantic
+    read_mode: pydantic
+    default: "true"
+    verdict: BURY
+    adr: ContentPolicy
+    owner: B
+    note: "DEPRECATED: заменено ContentPolicy (читается только как fallback миграции)"
+
+  # ── AUDIT-NEEDED (блокирует закрытие COV-GC-04, пока не исследованы) ────
+  EPOCH_OWNERSHIP_ENFORCEMENT:
+    type: env
+    read_mode: call
+    default: "0"
+    verdict: AUDIT-NEEDED
+    adr: DEGOD/TEMPORAL
+    owner: master
+  EPOCH_INPUT_TRANSPORT:
+    type: env
+    read_mode: call
+    default: "copy"
+    verdict: AUDIT-NEEDED
+    adr: TEMPORAL
+    owner: master
+  CROSS_LOC_MATERIALIZE_ENABLED:
+    type: module-const
+    read_mode: import
+    default: "false"
+    verdict: AUDIT-NEEDED
+    adr: ADR-O-328/341
+    owner: B
+  enforce_system_requirements:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: AUDIT-NEEDED
+    adr: "-"
+    owner: B
+
+  # ── CALIBRATION (числовые ручки) ────────────────────────────────────────
+  D8P_MAX_AGE_TICKS:
+    type: env
+    read_mode: call
+    default: "3"
+    verdict: CALIBRATION
+    adr: ADR-O-382
+    owner: A
+  DRIFT_WORKER_LATENCY_MS:
+    type: env
+    read_mode: call
+    default: "0"
+    verdict: CALIBRATION
+    adr: "-"
+    owner: B
+
+  # ── INFRA ───────────────────────────────────────────────────────────────
+  ENIGMA_DISABLE_FILE_LOGS:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: INFRA
+    adr: §15.2
+    owner: master
+    note: "инвертированная семантика: значение в TRUTHY = логи ВЫКЛЮЧЕНЫ"
+  HF_TOKEN:
+    type: env
+    read_mode: call
+    default: ""
+    verdict: INFRA
+    adr: "-"
+    owner: B
+  ENIGMA_BACKEND_URL:
+    type: env
+    read_mode: call
+    default: "http://127.0.0.1:8000"
+    verdict: INFRA
+    adr: "-"
+    owner: B
+  environment:
+    type: pydantic
+    read_mode: pydantic
+    default: "production"
+    verdict: INFRA
+    adr: B4-FIX
+    owner: B
+    note: "production|development|test; MockProvider-гейт (ADR-113-класс)"

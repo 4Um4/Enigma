@@ -304,7 +304,7 @@ class NpcDialogueSubscriber:
                     # M17-recognition ниже НЕ гардим: tentative-распознавание
                     # адресата легально и для player-спикера.
                     if speaker != "player":
-                        # ADR-O-409 writer-gate (флаг, default OFF):
+                        # ADR-O-409 writer-gate (флаг, default ON — ROLLOUT-ON, 84a83767):
                         # журнал хранит display_name по NAME-оси — имя
                         # появляется, когда заработано. OFF = прежний
                         # резолв из npc_positions (байтовый паритет).
