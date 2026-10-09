@@ -28,7 +28,10 @@ class ChronicleEditorApp:
         self._font = pygame.font.SysFont("consolas", 16)
         self._font_big = pygame.font.SysFont("consolas", 22, bold=True)
         self._api = ChronicleApi(HttpClient(base_url))
-        self._npcs = ["maid_lusya", "tavern_keeper_tornin", "guard_borko", "blacksmith_orm", "thief_shadow", "merchant_goran"]
+        # C0.5: список NPC — ТОЛЬКО с сервера (устранение второго источника
+        # истины). self._roster несёт статусы хроник для панели.
+        self._roster: list = []
+        self._npcs: list[str] = []
         self._npc_idx = 0
         self._doc: dict | None = None
         self._items: list = []
@@ -36,9 +39,22 @@ class ChronicleEditorApp:
         self._current_q: dict | None = None
         self._status = "Готов. F1 — разобрать первый фрагмент черновика (MVP:Ord-0)."
         self._running = True
+        self._load_roster()
+
+    def _load_roster(self) -> None:
+        self._roster = self._api.list_roster(CAMPAIGN)
+        self._npcs = [r["npc_id"] for r in self._roster]
+        self._npc_idx = 0
+        if not self._npcs:
+            self._doc = None
+            self._items = []
+            self._status = "Ростер пуст: сервер недоступен или персонажи не найдены"
+            return
         self._reload()
 
     def _reload(self) -> None:
+        if not self._npcs:
+            return
         npc = self._npcs[self._npc_idx]
         self._doc = self._api.get_draft(CAMPAIGN, npc)
         self._items = []

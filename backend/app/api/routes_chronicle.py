@@ -72,6 +72,27 @@ async def list_chronicles() -> Dict[str, Any]:
     return {"canonical": canon}
 
 
+@chronicle_router.get("/chronicle/roster/{campaign_id}")
+async def get_roster(campaign_id: str) -> dict[str, any]:
+    """c0.5: полный ростер npc со статусом хроники. устранение второго
+    источника истины (вердикт владельца): редактор берёт список только
+    отсюда. источник имён — list_individual_ids (единый читатель
+    individuals); статус — по файлам store: canon > draft > none."""
+    from app.services.npc.npc_loader import list_individual_ids
+
+    store = _get_store()
+    roster = []
+    for npc_id in list_individual_ids():
+        if store.canonical_path(npc_id).exists():
+            status = "canon"
+        elif store.draft_path(campaign_id, npc_id).exists():
+            status = "draft"
+        else:
+            status = "none"
+        roster.append({"npc_id": npc_id, "chronicle": status})
+    return {"roster": roster}
+
+
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")
 async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeRequest) -> Dict[str, Any]:
     """FR-2.x: фрагмент → декомпозиция (transient). Не пишет ни канон, ни draft."""

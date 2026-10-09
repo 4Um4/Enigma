@@ -25,6 +25,17 @@ class ChronicleApi:
         except BackendError:
             return []
 
+    def list_roster(self, campaign: str) -> List[Dict[str, Any]]:
+        """C0.5: полный ростер NPC со статусом хроники (canon/draft/none).
+        Единственный источник списка — сервер (вшитый дубликат устранён).
+        Пустой список при недоступном сервере — приложение покажет статус
+        (прецедент list_npcs)."""
+        try:
+            data = self._http.get(f"/api/chronicle/roster/{campaign}")
+            return list(data.get("roster", []))
+        except BackendError:
+            return []
+
     def get_draft(self, campaign: str, npc_id: str) -> Optional[Dict[str, Any]]:
         try:
             data = self._http.get(f"/api/chronicle/{campaign}/{npc_id}/draft")

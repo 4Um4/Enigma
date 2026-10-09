@@ -727,6 +727,33 @@ def known_secrets(npc_id: str, npc_states: List[Any]) -> List[str]:
     return _out
 
 
+def list_individual_ids() -> List[str]:
+    """C0.5 (ADR-O-420 CCH-4): ростер NPC для редактора хроник. Единый
+    читатель config/npc/individuals (прецедент enrichment: источник
+    конфигурации читает один владелец). id — из JSON («maid_lusya»),
+    НЕ из stem файла (lusya.json): имя файла не есть идентичность.
+    Отказ одного файла — warning + пропуск (ростер — инструмент отображения;
+    полный load_npcs_merged роняет битый конфиг громко, как и прежде)."""
+    individuals_dir = _CONFIG_NPC_ROOT / "individuals"
+    out: List[str] = []
+    if not individuals_dir.exists():
+        logger.warning(f"[NPC_LOADER] roster: individuals не найдены: {individuals_dir}")
+        return out
+    for json_file in sorted(individuals_dir.glob("*.json")):
+        try:
+            data = _load_json_file(json_file)
+        except Exception as e:  # noqa: ENIGMA001
+            logger.warning(f"[NPC_LOADER] roster: {json_file.name} не читается: {e}")
+            continue
+        _id = data.get("id")
+        if _id:
+            out.append(str(_id))
+        else:
+            logger.warning(f"[NPC_LOADER] roster: {json_file.name} без 'id' — fallback на stem")
+            out.append(json_file.stem)
+    return out
+
+
 def _restore_narrative_cache(cache_list: List[Dict]) -> Tuple[Any, ...]:
     """Восстанавливает narrative_cache из JSON в кортеж EventMemory."""
     if not cache_list:
