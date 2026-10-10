@@ -527,7 +527,12 @@ class ModelRouter:
             if _store:
                 _current_session = getattr(self, "_current_session_id", "unknown")
                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
-                if _cached and _cached.get("response"):
+                # COV-2/D67b (находка T2): различать «нет записи» (None → miss,
+                # громкий RuntimeError) и «запись с пустым ответом» (валидный
+                # кэш — пустой ответ ЛОКАЛЕН и честен). Прежний truthiness-гейт
+                # `_cached.get("response")` объявлял законную пустую запись
+                # отсутствующей и проваливал её в miss-ветку.
+                if _cached is not None and "response" in _cached:
                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
                     return str(_cached["response"])
                 # Cache miss в playback mode — критическая ошибка
@@ -539,7 +544,8 @@ class ModelRouter:
             if _store:
                 _current_session = getattr(self, "_current_session_id", "unknown")
                 _cached = _store.get_llm_call(_current_session, agent_name, _prompt_hash)
-                if _cached and _cached.get("response"):
+                # COV-2/D67b: симметричное различение miss/empty (см. ветку выше).
+                if _cached is not None and "response" in _cached:
                     logger.debug(f"[LLM_CACHE] HIT: agent={agent_name} hash={_prompt_hash[:8]}")
                     return str(_cached["response"])
 
@@ -616,9 +622,15 @@ class ModelRouter:
 
         _result = ""
         if settings.replay_playback:
-            # В режиме playback мы уже вернули ответ из кэша выше, если он был.
-            # Если мы здесь — cache miss, возвращаем пустую строку.
-            _result = ""
+            # COV-2/D67 (вердикт Мастера): cache miss в playback — нарушение
+            # детерминизма записанной сессии, а НЕ «пустой ответ». Тихая пустышка
+            # маскировала разрыв реплея как ложный успех потребителя. Симметрия
+            # с main-loop-веткой (miss там уже RuntimeError) + стандарт
+            # NEW-DLG-004: исключение вместо пустой строки.
+            raise RuntimeError(
+                "Replay determinism broken: LLM cache miss in playback "
+                f"(agent={agent_name}, prompt_hash={_prompt_hash[:8]})"
+            )
         else:
             coro = self.request(capability, prompt, params, system_prompt)
             try:

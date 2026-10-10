@@ -151,8 +151,8 @@ class StreamingLlmProvider(LlmProvider):
         return result
 
 
-# Типизация для создания провайдеров
-ProviderFactory = LlmProvider | None
+# Типизация для создания провайдеров (D74-хвост: мёртвый алиас, тенящий
+# имя класса ProviderFactory из factory.py, удалён; потребителей нет)
 
 
 # ── Типы LLM-маршрутизации (перенесены из router.py для разрыва цикла) ──
