@@ -1,13 +1,12 @@
-"""
-path: /frontend/map_editor/chronicle/editor_screen.py
+"""path: /frontend/map_editor/chronicle/editor_screen.py
 Назначение: полноэкранный режим F7 — ТОНКАЯ обёртка над единым ядром
             chronicle_editor.chronicle_app.ChronicleEditorCore (вердикт
             «один редактор — два входа»; кода интерфейса один экземпляр).
             Кампания — открытая в Map Editor (cm.campaign_path.name);
             ESC/F7 — выход в MODE_WORLD (паттерн MODE_LAB).
 Зависимости: pygame, chronicle_editor.{api,chronicle_app}, tools.constants
-Основные сущности: ChronicleScreen
-"""
+Основные сущности: ChronicleScreen"""
+
 from __future__ import annotations
 
 import sys

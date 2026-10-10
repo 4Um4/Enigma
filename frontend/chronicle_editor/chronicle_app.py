@@ -1,5 +1,4 @@
-"""
-path: /frontend/chronicle_editor/chronicle_app.py
+"""path: /frontend/chronicle_editor/chronicle_app.py
 Назначение: ЕДИНОЕ ядро редактора хроник (вердикт владельца «один редактор —
             два входа»): 3 панели + мышь + клавиши + строка подсказок.
             Входы: (1) F7 в Map Editor — тонкая обёртка editor_screen.py;
@@ -7,8 +6,8 @@ path: /frontend/chronicle_editor/chronicle_app.py
             ChronicleEditorApp. Встраиваемое ядро берёт surface и API извне;
             выход — флаг exit_requested (каждый вход решает сам, куда выйти).
 Зависимости: pygame, api_client.HttpClient, chronicle_editor.api.ChronicleApi
-Основные сущности: ChronicleEditorCore (embeddable), ChronicleEditorApp
-"""
+Основные сущности: ChronicleEditorCore (embeddable), ChronicleEditorApp"""
+
 from __future__ import annotations
 
 import pygame
