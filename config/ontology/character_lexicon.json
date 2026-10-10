@@ -1,0 +1,150 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "purpose": "Единый словарь машинной онтологии характера ENIGMA (CCH-4/S345): фундамент детектора-лампочки и Character Calibration",
+    "rule": "каждая запись подтверждена кодом; status=working только при живом потребителе, влияющем на решение/поведение NPC",
+    "master_verdict": "не считать параметр работающей чертой характера, пока не подтверждено влияние на решения или поведение NPC",
+    "archaeology_session": "S345 (греп-факты; каждая строка-доказательство проверена чтением)"
+  },
+  "axes": [
+    {
+      "id": "control", "ru": "контроль", "kind": "drive",
+      "definition": "потребность держать ситуацию под управлением; стратег, планирует",
+      "binding": {"config": "config/npc/archetypes/_base_humanoid.json:drives", "model": "NPCPersonality.drives_base"},
+      "readers": ["decision/risk_profile.py:54", "decision/social_deltas.py:151", "resonance_engine:277 (модуляция черт)", "phases/integration.py:462", "break_progress_engine (TIFL-дрейф)"],
+      "status": "working",
+      "status_evidence": "меняет восприятие риска и соц-дельты (чистые функции); мутирует от травм (карта сдвигов break_progress:208)"
+    },
+    {
+      "id": "significance", "ru": "значимость/признание", "kind": "drive",
+      "definition": "потребность в статусе и признании",
+      "binding": {"config": "там же", "model": "drives_base"},
+      "readers": ["decision/relationship_profile.py:53", "belief_crystallization_engine.py:100 (чувствительность к значимым событиям)"],
+      "status": "working",
+      "status_evidence": "живой читатель в профиле отношений + порог кристаллизации"
+    },
+    {
+      "id": "fear", "ru": "страх (тяга)", "kind": "drive",
+      "definition": "гипервигильность, избегание риска (психоэкономика :56)",
+      "binding": {"config": "там же", "model": "drives_base"},
+      "readers": ["decision/risk_profile.py:53", "decision/relationship_profile.py:52 (пример: трус fear=0.6 → страх от удара ×2.12)", "emotion_transition (пороги паники)", "belief_crystallization_engine.py:94"],
+      "status": "working",
+      "status_evidence": "число доказано в доках relationship_profile:28-29"
+    },
+    {
+      "id": "desire", "ru": "желание (импульс)", "kind": "drive",
+      "definition": "импульсивность, сиюминутное удовольствие (психоэкономика :64)",
+      "binding": {"config": "там же", "model": "drives_base"},
+      "readers": ["decision_hub.py:947", "decision/relationship_profile.py:54"],
+      "status": "working",
+      "status_evidence": "живой читатель decision_hub; в риск НЕ входит (risk_profile:14 — осознанный запрет ADR-O-146)"
+    }
+  ],
+  "psyche_scalars": [
+    {
+      "id": "willpower", "ru": "воля", "kind": "psyche_scalar",
+      "definition": "сопротивление принуждению, 0-100",
+      "binding": {"config": "archetypes:psyche.willpower", "model": "NPCPersonality.willpower"},
+      "readers": ["affective_integrator.py:44-48 (телесная устойчивость)", "emotion_transition.py:28-33 (пороги паники/страха/тревоги!)", "break_progress_engine.py:106 (делитель давления)", "reaction_subscriber.py:117 (выдержка реакции)", "phases/decision.py:220 (гейт бегства при страхе)", "manifestation_physics_engine.py:59"],
+      "status": "working",
+      "status_evidence": "самая нагруженная психо-переменная: от порогов эмоций до гейта бегства"
+    },
+    {
+      "id": "breakpoint", "ru": "точка излома", "kind": "psyche_scalar",
+      "definition": "порог стресса для слома воли",
+      "binding": {"config": "archetypes:psyche.breakpoint", "model": "NPCPersonality.breakpoint"},
+      "readers": [],
+      "status": "dormant",
+      "status_evidence": "живой читатель не найден; манифест ADR-O-414 клеймит DEBT (CG-D-10) — подтверждено грепом"
+    },
+    {
+      "id": "loyalty_true", "ru": "базовая лояльность", "kind": "psyche_scalar",
+      "definition": "стартовое доверие-база к игроку (не состояние — параметр дрейфа, S322/S328)",
+      "binding": {"config": "archetypes:psyche.loyalty_true", "model": "NPCPersonality.loyalty_base"},
+      "readers": ["tick_utils.py:70/134 → base_values[player]", "directive_interpretation_subscriber.py:126-128 (фолбэк Obedience)"],
+      "status": "working-narrow",
+      "status_evidence": "кормит базу доверия к игроку и obedience-фолбэк; шире не читается"
+    }
+  ],
+  "traits": [
+    {
+      "id": "distrust_player", "ru": "недоверие к игроку", "kind": "trait",
+      "definition": "рождается паттерном «цепь предательств» (3+ события BETRAYAL от одного актора, порог важности)",
+      "binding": {"writer": "resonance_engine._detect_betrayal_chain:143", "reader": "decision_hub._trait_modifier:1323 + life_engine"},
+      "status": "working",
+      "status_evidence": "writer+reader подтверждены; модулируется drives_base (paranoid/vindictive-варианты)"
+    },
+    {
+      "id": "trust_bias", "ru": "склонность доверять", "kind": "trait",
+      "definition": "рождается паттерном «хроническая помощь» (3+ события HELP)",
+      "binding": {"writer": "resonance_engine._detect_chronic_help:175", "reader": "decision_hub._trait_modifier"},
+      "status": "working",
+      "status_evidence": "writer+reader подтверждены"
+    },
+    {
+      "id": "<gaslighting-черта>", "ru": "жертва газлайтинга", "kind": "trait",
+      "definition": "третий резонанс-паттерн (имя черты в теле _detect_gaslighting — не снято)",
+      "binding": {"writer": "resonance_engine._detect_gaslighting", "reader": "decision_hub._trait_modifier"},
+      "status": "working",
+      "status_evidence": "порождается и читается; точное имя — при первой живой генерации"
+    },
+    {
+      "id": "traumatized", "ru": "травмирован", "kind": "trait",
+      "definition": "читается движком выживания",
+      "binding": {"writer": "НЕ НАЙДЕН", "reader": "life_engine.py:1913 (буст выживания 0.25×вес)"},
+      "status": "orphan-reader",
+      "status_evidence": "читатель есть, писатель не найден грепом — класс Consumer Gap (CG); резонанс его не порождает"
+    }
+  ],
+  "emotions": {
+    "note": "ADR-O-206: эмоция — ПРОЕКЦИЯ, не причина решений (специальный запрет). Канон тегов — вход вербализации и проявлений, НЕ DecisionHub",
+    "canonical": ["neutral", "angry", "fearful", "happy", "suspicious", "grateful", "disgusted", "sad"],
+    "pipeline_mapping": "fear/panic→fearful; rage→angry; anxious/confusion→… (npc_state.py:1185-1191)",
+    "status": "projection-only-by-design"
+  },
+  "pressure_axes": {
+    "id": "intent_pressure", "ru": "давление намерения",
+    "axes": ["violence/насилие", "humiliation/унижение", "self_risk/риск себе", "social_exposure/позор", "moral_violation/мораль", "identity_deviation/не-я", "trauma_trigger/триггер травмы", "taboo_intensity/табу"],
+    "binding": {"model": "will.py:IntentPressureProfile:41", "consumer": "WillpowerGate (compute_willpower)"},
+    "status": "working",
+    "status_evidence": "вход Gate (игрок + NPC-директивы); trauma_trigger — механический носитель «звон кружки»"
+  },
+  "imprints": {
+    "id": "affective_imprint", "ru": "травма-отпечаток",
+    "axes": ["pain/боль", "fear/страх", "humiliation/унижение", "trigger_tags/крючки", "decay/затухание"],
+    "binding": {"model": "affect.py:19", "reader": "affect.py:91-111 (резонанс → давление на волю)", "writer_seed": "chronicle_seeder (S345, decay=0)"},
+    "status": "working",
+    "status_evidence": "пересечение крючков → сила триггера → аккумуляторы давления"
+  },
+  "embodied": {
+    "id": "embodied_vector", "ru": "телесный импульс",
+    "axes": ["avoidance/избегание", "destroy/агрессия", "collapse/коллапс", "submit/подчинение", "freeze/оцепенение"],
+    "binding": {"model": "will.py:30", "resolver": "will.py:307-345 (соц-сигнал → импульс, ЖИВОЙ)", "consumer": "WillResponseDTO.embodied_vector «для UI»"},
+    "status": "player-presentation",
+    "status_evidence": "резолвер жив; NPC-путь решений не подтверждён — честная граница"
+  },
+  "needs": [
+    {"id": "sexual", "ru": "плотское влечение", "binding": {"registry": "relationship_contracts.RE_NEED_SLOTS", "writer": "StateApplicator.update_needs (M2/D, S326)"}, "status": "working-partial", "status_evidence": "писатель жив; потребители по фазам RE (G/H динамика за флагом)"},
+    {"id": "intimacy", "ru": "близость", "binding": {"registry": "там же"}, "status": "working-partial", "status_evidence": "как sexual"}
+  ],
+  "beliefs": {
+    "registry": ["danger", "player_hostile"],
+    "binding": {"model": "npc/beliefs.py:45", "writer": "BeliefTransitionEngine (R7) + CoherenceAggregator (R8)", "reader": "BeliefModifierResolver → DecisionHub"},
+    "status": "working-narrow",
+    "status_evidence": "канал жив, реестр из 2 типов — узкое горлышко для авторских мировоззрений (см. разрывы)"
+  },
+  "desires": {
+    "id": "desire", "ru": "направленное желание",
+    "sources": ["NEED", "DRIVE", "VALUE", "RELATIONSHIP", "OBLIGATION", "LEARNED"],
+    "binding": {"model": "dom/desire.py (provenance, born_tick, learned_from)", "flag": "DESIRES_ENABLED default OFF"},
+    "status": "dormant-format-ready",
+    "status_evidence": "контракт с происхождением готов; контур спит за флагом"
+  },
+  "body": {
+    "id": "dnd_abilities", "ru": "телесные способности (D&D)",
+    "axes": ["strength/сила", "dexterity/ловкость", "constitution/телосложение", "intelligence/интеллект", "wisdom/мудрость", "charisma/обаяние", "max_hp"],
+    "binding": {"config": "archetypes:body_profile.abilities", "consumers": "бой (combat_math:204-206, impact_engine:55-69) + физика тела (BodyCapabilities: ходьба/прыжок/скорость, movement_engine:802-892) + ньюгейм-профили"},
+    "status": "working-body-not-psyche",
+    "status_evidence": "кубики D&D и физика движения живы; на решения характера НЕ влияет — другой домен (тело ≠ психика)"
+  }
+}
