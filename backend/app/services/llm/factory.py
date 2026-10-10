@@ -13,10 +13,6 @@ LLM Provider Factory
 from __future__ import annotations
 
 from app.core.config import settings
-from app.core.settings_dm import dm_settings
-from app.core.settings_npc import npc_settings
-from app.core.settings_rules import rules_settings
-from app.core.settings_world import world_settings
 from app.services.llm.llama_cpp_provider import create_llama_cpp_provider
 
 # C5-FIX: Удалены импорты мёртвых провайдеров
@@ -87,12 +83,7 @@ class ProviderFactory:
                 raise ValueError(f"Unknown provider type: {provider_type}")
 
     @staticmethod
-    def create_default() -> LlmProvider:
-        """Создать провайдер по умолчанию (llama.cpp)."""
-        return create_llama_cpp_provider()
-
-    @staticmethod
-    def create_for_agent(agent_name: str) -> LlmProvider:
+    def check_health_all() -> dict[str, bool]:
         """
         Создать провайдер для конкретного агента с правильным URL сервера.
 
@@ -126,13 +117,6 @@ class ProviderFactory:
         # Передаём temperature и repeat_penalty из настроек агента
         _temp = getattr(agent_settings, "temperature", 0.9)
         _rep = getattr(agent_settings, "repeat_penalty", 1.12)
-        return create_llama_cpp_provider(
-            model_path=model_path,
-            server_url=server_url,
-            temperature=_temp,
-            repeat_penalty=_rep,
-        )
-
     @staticmethod
     def check_health_all() -> dict[str, bool]:
         """
