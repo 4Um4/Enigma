@@ -186,19 +186,10 @@ class GameMenu:
                 C["btn_secondary_hover"],
                 lambda: self._set_action(MenuAction.EDITOR),
             ),
+
             _MenuButton(
                 x,
                 start_y + 3 * (btn_h + gap),
-                btn_w,
-                btn_h,
-                t("ui:menu_chronicle"),
-                C["btn_secondary"],
-                C["btn_secondary_hover"],
-                lambda: self._set_action(MenuAction.CHRONICLE_EDITOR),
-            ),
-            _MenuButton(
-                x,
-                start_y + 4 * (btn_h + gap),
                 btn_w,
                 btn_h,
                 t("ui:menu_settings"),
@@ -208,7 +199,7 @@ class GameMenu:
             ),
             _MenuButton(
                 x,
-                start_y + 5 * (btn_h + gap),
+                start_y + 4 * (btn_h + gap),
                 btn_w,
                 btn_h,
                 t("ui:menu_exit"),
@@ -246,6 +237,13 @@ class GameMenu:
                         )
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         self._buttons[self._selected_idx].on_click()
+                    elif (
+                        event.key == pygame.K_F7
+                        and pygame.key.get_mods() & pygame.KMOD_SHIFT
+                    ):
+                        # Shift+F7 (вердикт владельца): скрытый вход в редактор
+                        # хроник из меню; пункт из видимого списка убран.
+                        self._result = MenuAction.CHRONICLE_EDITOR
                     elif event.key == pygame.K_ESCAPE:
                         self._result = MenuAction.EXIT
                 elif event.type == pygame.MOUSEMOTION:

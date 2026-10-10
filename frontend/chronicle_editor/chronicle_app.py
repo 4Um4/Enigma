@@ -19,13 +19,26 @@ _BG = (18, 18, 23)
 _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
-_HINT = "↑↓/мышь: список · клик ленты: фрагмент · F1/F2: разбор · C: вопрос · 1-4: ответ · F9: канон · Ctrl+S: сводка · ESC: выход"
+_HINT = "мышь/↑↓: персонаж · клик ленты: кусок истории · F1/F2: понять · C: вопрос · 1-4: ответ · F9: утвердить · Ctrl+S: сводка · ESC: выход"
 
 _OPTION_BY_KEY = {
     pygame.K_1: "SELECT_EXISTING_NPC",
     pygame.K_2: "CREATE_NEW_NPC",
     pygame.K_3: "UNKNOWN_PERSON",
     pygame.K_4: "LEAVE_WHITE_SPOT",
+}
+
+# Отображение типов записей по-русски (машино-контракт не меняется —
+# только отрисовка; «не понять ленту» — вердикт владельца).
+_KIND_RU = {
+    "EVENT": "Событие",
+    "RELATIONSHIP": "Отношение",
+    "EFFECT": "Последствие",
+    "BELIEF_SEED": "Убеждение",
+    "TRAIT_SEED": "Черта",
+    "KNOWLEDGE_LINK": "Знание",
+    "OBSERVATION": "Наблюдение",
+    "LOCATION": "Место",
 }
 
 
@@ -222,6 +235,25 @@ class ChronicleEditorCore:
                 return q
         return None
 
+    # ── Человекочитаемые подписи (пустые строки ленты — дефект: у каждого
+    #    типа записи своё поле текста, лента читала только summary) ────────
+
+    @staticmethod
+    def _kind_ru(kind: str) -> str:
+        return _KIND_RU.get(kind, kind)
+
+    @staticmethod
+    def _entry_text(e: dict) -> str:
+        p = e.get("payload", {}) or {}
+        k = e.get("kind", "")
+        if k == "BELIEF_SEED":
+            return str(p.get("statement", ""))
+        if k == "TRAIT_SEED":
+            return f"{p.get('trait', '')}: {p.get('evidence', '')}"
+        if k == "KNOWLEDGE_LINK":
+            return f"узнал(а) в {p.get('learned_age', '?')} лет — {p.get('about_hint', '')}"
+        return str(p.get("summary", ""))
+
     # ── Отрисовка ─────────────────────────────────────────────────────────
 
     def draw(self, surface) -> None:
@@ -241,31 +273,40 @@ class ChronicleEditorCore:
             for i, e in enumerate((self._doc.get("entries") or [])[:24]):
                 age = e.get("historical_age")
                 marker = f"[{age}]" if age is not None else "[?]"
-                line = f"{marker} {e.get('kind','')}: {str(e.get('payload', {}).get('summary', ''))[:70]}"
+                line = f"{marker} {self._kind_ru(e.get('kind',''))}: {self._entry_text(e)[:60]}"
                 surface.blit(self._font.render(line, True, _TEXT), (280, 100 + i * 22))
         # Правая панель: Разбор
         pygame.draw.rect(surface, _PANEL, (900, 90, 370, 560))
-        surface.blit(self._font_big.render("РАЗБОР ENIGMA", True, _ACCENT), (910, 55))
+        surface.blit(self._font_big.render("ЧТО ПОНЯЛ ENIGMA", True, _ACCENT), (910, 55))
         for i, item in enumerate(self._items[:22]):
             q = " ?" if item.get("needs_confirmation") else ""
-            line = f"{item.get('kind','')}{q} {item.get('confidence', 0):.2f}"
+            line = f"{self._kind_ru(item.get('kind',''))}{q} {item.get('confidence', 0):.2f}"
             surface.blit(self._font.render(line, True, _TEXT), (910, 100 + i * 22))
-        # Кнопки
+        # Кнопки (формулировки — человеческим языком, вердикт «не понять»)
         pygame.draw.rect(surface, _PANEL, (300, 700, 220, 30))
-        surface.blit(self._font.render(f"F1: Разобрать #{self._frag_ord}", True, _ACCENT), (310, 706))
+        surface.blit(self._font.render(f"F1: Понять фрагмент №{self._frag_ord}", True, _ACCENT), (310, 706))
         pygame.draw.rect(surface, _PANEL, (900, 700, 220, 30))
-        surface.blit(self._font.render("F9: Принять как канон", True, _ACCENT), (910, 706))
+        surface.blit(self._font.render("F9: Утвердить как правду", True, _ACCENT), (910, 706))
+        # Нижняя зона — три строки во всю ширину под кнопками, без наложений:
+        # статус → вопрос автора → подсказка клавиш.
+        surface.blit(self._font.render(self._status[:130], True, _TEXT), (20, 736))
         q = self._current_q or self._next_open_question()
         if q:
-            qline = f"? {q.get('question_id','')}: {q.get('target_span','')[:44]}"
-            hint = "1:NPC 2:Новый 3:Массовка 4:Пятно (C — взять)"
-            surface.blit(self._font.render(qline, True, _ACCENT), (910, 735))
-            surface.blit(self._font.render(hint, True, _TEXT), (910, 752))
+            qline = (
+                f"❓ {q.get('target_span','')[:48]} — кто это?  "
+                "1:из списка · 2:новый · 3:массовка · 4:белое пятно (C — взять вопрос)"
+            )
+            surface.blit(self._font.render(qline[:150], True, _ACCENT), (20, 758))
         else:
-            surface.blit(self._font.render("Открытых вопросов нет", True, _TEXT), (910, 735))
-        # Подсказка клавиш (UX-дефект «я не знал про стрелочки» закрыт)
-        surface.blit(self._font.render(_HINT[:150], True, (150, 150, 150)), (20, 752))
-        surface.blit(self._font.render(self._status[:120], True, _TEXT), (20, 770))
+            surface.blit(
+                self._font.render(
+                    "Вопросов нет. F9 утверждает историю как правду персонажа.",
+                    True,
+                    (150, 150, 150),
+                ),
+                (20, 758),
+            )
+        surface.blit(self._font.render(_HINT, True, (110, 110, 110)), (20, 780))
 
 
 class ChronicleEditorApp:
@@ -292,7 +333,10 @@ class ChronicleEditorApp:
             self._core.draw(self.screen)
             pygame.display.flip()
             clock.tick(30)
-        pygame.quit()
+        # pygame.quit() НЕ вызывается (прецедент EditorCore, game_launcher:525):
+        # при запуске из меню (Shift+F7) он ронял pygame-контекст всего
+        # приложения — «Esc вылетает». Окно закрывает владелец цикла
+        # (_init_menu_display пересоздаёт дисплей).
 
 
 def main() -> None:
