@@ -59,7 +59,7 @@ class ProviderFactory:
 
             case ProviderType.OPENAI:
                 from app.services.llm.openai_compatible_provider import OpenAICompatibleProvider
-                # endpoint: https://api.openai.com/v1 или https://open.bigmodel.cn/api/paas/v4
+                # endpoint: https://api.openai.com/v1 или https://api.bigmodel.cn/api/paas/v4
                 # api_key: берётся из config.py (settings.openai_api_key)
                 return OpenAICompatibleProvider(
                     model_name=model_path or "gpt-4o-mini",
@@ -82,41 +82,6 @@ class ProviderFactory:
             case _:
                 raise ValueError(f"Unknown provider type: {provider_type}")
 
-    @staticmethod
-    def check_health_all() -> dict[str, bool]:
-        """
-        Создать провайдер для конкретного агента с правильным URL сервера.
-
-        Args:
-            agent_name: Имя агента (dm, npc, world, rules, memory)
-
-        Returns:
-            Настроенный LlamaCppProvider с правильным URL
-        """
-        agent_map = {
-            "dm": dm_settings,
-            "npc": npc_settings,
-            "world": world_settings,
-            "rules": rules_settings,
-        }
-        agent_settings = agent_map.get(agent_name, settings)
-        # Не перезаписываем server_url из runtime_ports — используем settings
-        server_url = None
-        # getattr: agent_settings типизирован как BaseSettings, поле живёт в Settings
-        _agent_model_map = getattr(agent_settings, "agent_model_map", settings.agent_model_map)  # noqa: ENIGMA002
-        model_key = _agent_model_map.get(
-            agent_name,
-            settings.agent_model_map.get(agent_name, "qwen_7b"),
-        )
-        model_path = None
-        if (
-            hasattr(agent_settings, "available_models")
-            and model_key in agent_settings.available_models
-        ):
-            model_path = agent_settings.available_models[model_key].path
-        # Передаём temperature и repeat_penalty из настроек агента
-        _temp = getattr(agent_settings, "temperature", 0.9)
-        _rep = getattr(agent_settings, "repeat_penalty", 1.12)
     @staticmethod
     def check_health_all() -> dict[str, bool]:
         """
