@@ -1010,6 +1010,18 @@ class DmAgent:
             }
         )
 
+        # COV-2/D65: playback — стрим обслуживается из replay-кэша ДО запроса
+        # провайдера (модель не запрашивается); miss = громко (стандарт D67).
+        _cached_stream = self.router.playback_stream_lookup(
+            "dm_narrative", prompt, system_prompt,
+            GenerationParams(max_tokens=settings.dm_max_tokens),
+        )
+        if _cached_stream is not None:
+            for _i in range(0, len(_cached_stream), 8):
+                yield _cached_stream[_i:_i + 8]
+            return
+
+        _stream_params = GenerationParams(max_tokens=settings.dm_max_tokens)
         provider = await self._get_provider_async("narrative")
 
         if provider is None or not hasattr(provider, "stream_tokens"):
@@ -1017,7 +1029,7 @@ class DmAgent:
                 capability="narrative",
                 prompt=prompt,
                 system_prompt=system_prompt,
-                params=GenerationParams(max_tokens=settings.dm_max_tokens),
+                params=_stream_params,
             )
             if isinstance(result, dict):
                 yield result.get("dm_response", "")
@@ -1027,8 +1039,12 @@ class DmAgent:
 
         # Router observability: streaming проходит ЧЕРЕЗ Router, не в обход (ADR-147)
         _router = self.router
-        _stream_ctx = _router.notify_stream_start("dm_narrative", "narrative")
+        _stream_ctx = _router.notify_stream_start(
+            "dm_narrative", "narrative",
+            prompt=prompt, system_prompt=system_prompt, params=_stream_params,
+        )
         _total_chars = [0]  # mutable counter для closure (thread-safe via GIL)
+        _full_text: list[str] = []  # COV-2/D65: буфер полного ответа для replay-кэша
 
         q: asyncio.Queue[str | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
@@ -1093,6 +1109,7 @@ class DmAgent:
                         continue
                     buffer += token
                     _total_chars[0] += len(token)
+                    _full_text.append(token)  # COV-2/D65: полный ответ для кэша
 
                     if _has_stop_token(buffer):
                         clean = _strip_stop_tokens(buffer)
@@ -1122,7 +1139,10 @@ class DmAgent:
                 # Router observability: streaming завершён (ADR-147)
                 if _stream_ctx is not None:
                     try:
-                        _router.notify_stream_end(_stream_ctx, _total_chars[0])
+                        # COV-2/D65: полный декодированный ответ уходит в кэш
+                        _router.notify_stream_end(
+                            _stream_ctx, _total_chars[0], full_text="".join(_full_text)
+                        )
                     except Exception as e:
                         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 if not loop.is_closed():

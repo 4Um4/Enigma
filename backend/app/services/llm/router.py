@@ -688,9 +688,19 @@ class ModelRouter:
     # Streaming проходит ЧЕРЕЗ Router, не в обход.
 
     def notify_stream_start(
-        self, agent_name: str, capability: str | Capability
+        self,
+        agent_name: str,
+        capability: str | Capability,
+        prompt: str | None = None,
+        system_prompt: str | None = None,
+        params: GenerationParams | None = None,
     ) -> dict:
-        """Уведомляет Router о начале streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS."""
+        """Уведомляет Router о начале streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS.
+
+        COV-2/D65: prompt/system_prompt/params (опционально, back-compat) —
+        контекст для записи стрим-ответа в replay-кэш: вызывающий буферизует
+        полный декодированный ответ и передаёт его в notify_stream_end(full_text=...).
+        Хеш вычисляет стор (prompt|system|params) — ключи совместимы с не-стрим путями."""
         cap = self._normalize_capability(capability)
         _root_logger.info(
             f"[R4A_STREAM] calling stream_tokens(), agent={agent_name}, capability={cap.value}"
@@ -699,13 +709,83 @@ class ModelRouter:
             "start_time": time.time(),
             "agent_name": agent_name,
             "capability": cap.value,
+            "prompt": prompt,
+            "system_prompt": system_prompt,
+            "params": params,
         }
 
-    def notify_stream_end(self, ctx: dict, chars_produced: int) -> None:
-        """Уведомляет Router о завершении streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS."""
+    def notify_stream_end(
+        self, ctx: dict, chars_produced: int, full_text: str | None = None
+    ) -> None:
+        """Уведомляет Router о завершении streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS.
+
+        COV-2/D65: при full_text (буфер декодированного стрима) и активном
+        replay_record — запись в кэш по контракту не-стрим путей. Отказ записи
+        наблюдаем (warning, L4): недозапись вскроется громким playback-miss (D67)."""
         elapsed_ms = (time.time() - ctx["start_time"]) * 1000
         _root_logger.info(
             f"[R4A_STREAM] stream complete, {chars_produced} chars in {elapsed_ms:.0f}ms"
+        )
+        if full_text is None or ctx.get("prompt") is None:
+            return
+        from app.core.config import settings as _settings
+
+        if not _settings.replay_record:
+            return
+        _store = getattr(self, "_replay_store", None)
+        if _store is None:
+            return
+        try:
+            _store.record_llm_call(
+                session_id=getattr(self, "_current_session_id", "unknown"),
+                tick_id=getattr(self, "_current_tick_id", 0),
+                agent_name=ctx["agent_name"],
+                prompt=ctx["prompt"],
+                response=full_text,
+                model_name=self.get_model_for_agent(ctx["agent_name"]),
+                latency_ms=int(elapsed_ms),
+                system_prompt=ctx.get("system_prompt"),
+                params=ctx.get("params"),
+            )
+        except Exception as e:  # наблюдаемо; тишина = ложный успех реплея
+            logger.warning(f"[LLM_CACHE] stream record failed: {e}")
+
+    def playback_stream_lookup(
+        self,
+        agent_name: str,
+        prompt: str,
+        system_prompt: str | None = None,
+        params: GenerationParams | None = None,
+    ) -> str | None:
+        """COV-2/D65: playback для стрим-пути.
+
+        Returns:
+            None — не playback-режим: вызывающий идёт в живой стрим;
+            str  — кэш найден: эмуляция стрима из кэша, модель НЕ запрашивается.
+        Raises:
+            RuntimeError — playback без стора или cache miss: громко, стандарт D67
+            (тихая пустышка = ложный успех воспроизведения записанной сессии)."""
+        from app.core.config import settings as _settings
+
+        if not _settings.replay_playback:
+            return None
+        _store = getattr(self, "_replay_store", None)
+        if _store is None:
+            raise RuntimeError(
+                "Replay determinism broken: playback mode without replay store "
+                f"(agent={agent_name})"
+            )
+        from app.services.replay.llm_cache import compute_prompt_hash
+
+        _hash = compute_prompt_hash(prompt, system_prompt, params)
+        _cached = _store.get_llm_call(
+            getattr(self, "_current_session_id", "unknown"), agent_name, _hash
+        )
+        if _cached is not None and "response" in _cached:
+            return str(_cached["response"])
+        raise RuntimeError(
+            "Replay determinism broken: LLM stream cache miss in playback "
+            f"(agent={agent_name}, hash={_hash[:8]})"
         )
 
     def set_capability_for_agent(

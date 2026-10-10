@@ -52,3 +52,93 @@ def test_playback_valid_empty_response_is_returned(monkeypatch):
     )
     result = router.request_for_agent("dm", "probe: валидная пустая запись")
     assert result == ""
+
+
+# ── T3: D65 — стрим в едином replay-контракте ─────────────────────────────
+
+def test_stream_record_via_notify_end(monkeypatch):
+    """D65: полный стрим-ответ пишется в кэш через notify_stream_end."""
+    from app.core.config import settings
+    from app.services.llm.router import ModelRouter
+
+    monkeypatch.setattr(settings, "replay_record", True)
+    calls = []
+
+    class _RecStore:
+        def get_llm_call(self, s, a, h):
+            return None
+
+        def record_llm_call(self, **kw):
+            calls.append(kw)
+
+    r = ModelRouter()
+    r.set_replay_context(_RecStore(), "sess-t3")
+    ctx = r.notify_stream_start(
+        "dm_narrative", "narrative", prompt="PROMPT", system_prompt="SYS", params=None
+    )
+    r.notify_stream_end(ctx, 42, full_text="ПОЛНЫЙ ОТВЕТ")
+    assert len(calls) == 1
+    assert calls[0]["prompt"] == "PROMPT"
+    assert calls[0]["response"] == "ПОЛНЫЙ ОТВЕТ"
+    assert calls[0]["session_id"] == "sess-t3"
+    assert calls[0]["agent_name"] == "dm_narrative"
+
+
+def test_stream_notify_end_without_full_text_no_record(monkeypatch):
+    """D65 back-compat: без full_text запись не происходит."""
+    from app.core.config import settings
+    from app.services.llm.router import ModelRouter
+
+    monkeypatch.setattr(settings, "replay_record", True)
+    calls = []
+
+    class _RecStore:
+        def get_llm_call(self, s, a, h):
+            return None
+
+        def record_llm_call(self, **kw):
+            calls.append(kw)
+
+    r = ModelRouter()
+    r.set_replay_context(_RecStore(), "sess-t3")
+    ctx = r.notify_stream_start("dm_narrative", "narrative")
+    r.notify_stream_end(ctx, 42)
+    assert calls == []
+
+
+def test_stream_playback_hit_returns_cached_no_model(monkeypatch):
+    """D65: playback-hit возвращает кэш; провайдер не участвует by construction."""
+    from app.core.config import settings
+    from app.services.replay.llm_cache import compute_prompt_hash
+    from app.services.llm.router import ModelRouter
+
+    monkeypatch.setattr(settings, "replay_playback", True)
+    _h = compute_prompt_hash("PROMPT", "SYS", None)
+    r = ModelRouter()
+    r.set_replay_context(
+        _StubStore(entries={("sess-t3", "dm_narrative", _h): {"response": "ОТВЕТ"}}),
+        "sess-t3",
+    )
+    assert r.playback_stream_lookup("dm_narrative", "PROMPT", "SYS", None) == "ОТВЕТ"
+
+
+def test_stream_playback_miss_is_loud(monkeypatch):
+    """D65+D67: playback-miss стрима — RuntimeError, не пустота."""
+    from app.core.config import settings
+    from app.services.llm.router import ModelRouter
+
+    monkeypatch.setattr(settings, "replay_playback", True)
+    r = ModelRouter()
+    r.set_replay_context(_StubStore(entries={}), "sess-t3")
+    with pytest.raises(RuntimeError, match="stream cache miss"):
+        r.playback_stream_lookup("dm_narrative", "NOPE", None, None)
+
+
+def test_stream_live_when_not_playback(monkeypatch):
+    """D65: вне playback — None, живой стрим продолжается."""
+    from app.core.config import settings
+    from app.services.llm.router import ModelRouter
+
+    monkeypatch.setattr(settings, "replay_playback", False)
+    r = ModelRouter()
+    assert r.playback_stream_lookup("dm_narrative", "PROMPT", "SYS", None) is None
