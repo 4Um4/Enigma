@@ -1025,9 +1025,16 @@ class DmAgent:
         provider = await self._get_provider_async("narrative")
 
         if provider is None or not hasattr(provider, "stream_tokens"):
-            result: Any = await self.router.request(
-                capability="narrative",
-                prompt=prompt,
+            # COV-2/D66-мин (вердикт Мастера — безусловно): семафорная ветка
+            # router.request исполняет СИНХРОННЫЙ urllib внутри async → loop
+            # замораживается на таймауты провайдера (probe П4a: ~3с; худший
+            # случай до 9с+backoff-sleep). to_thread — преемник RE-D2: тяжёлый
+            # вызов не имеет права стоять на потоке петли. Сериализация к
+            # модели сохранена (внутри worker-ветки — свой lock).
+            result: Any = await asyncio.to_thread(
+                self.router.request,
+                "narrative",
+                prompt,
                 system_prompt=system_prompt,
                 params=_stream_params,
             )

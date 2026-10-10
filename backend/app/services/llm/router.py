@@ -552,6 +552,9 @@ class ModelRouter:
         # Worker thread (to_thread): прямой синхронный вызов без semaphore
         # Semaphore привязан к main loop — в новом loop он мёртв
         if threading.current_thread() is not threading.main_thread():
+            # COV-2/D64-ядро: фактическая латентность worker-пути (раньше
+            # кэш/телеметрия писали константный ноль).
+            _worker_start = time.perf_counter()
             with self._worker_lock: # H-11 FIX: Потокобезопасная проверка и установка флага
                 capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
                 preferred_keys = self.get_capability_preferences(capability_obj)
@@ -594,7 +597,7 @@ class ModelRouter:
                             prompt=prompt,
                             response=_result,
                             model_name=self.get_model_for_agent(agent_name),
-                            latency_ms=0,
+                            latency_ms=int((time.perf_counter() - _worker_start) * 1000),
                             system_prompt=system_prompt,
                             params=params
                         )
@@ -609,7 +612,8 @@ class ModelRouter:
                     "prompt_hash": _prompt_hash,
                     "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
                     "model": self.get_model_for_agent(agent_name),
-                    "latency": 0.0, # В worker-thread точная latency недоступна без start_time
+                    # COV-2/D64-ядро: фактическая latency worker-пути (perf_counter)
+                    "latency": round((time.perf_counter() - _worker_start) * 1000, 1),
                     "cache_hit": False
                 })
                 return _result
