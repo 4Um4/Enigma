@@ -371,6 +371,19 @@ def build_full_seed(npc_id: str) -> Optional[Dict[str, Any]]:
     doc = docs.get(npc_id)
     if doc is None:
         return None
+    _skipped: Dict[str, int] = {}
+    for _e in _author_entries(doc):
+        if _e.kind not in (
+            EntryKind.EVENT,
+            EntryKind.KNOWLEDGE_LINK,
+            EntryKind.RELATIONSHIP,
+            EntryKind.EFFECT,
+            EntryKind.BELIEF_SEED,
+        ):
+            _skipped[_e.kind.value] = _skipped.get(_e.kind.value, 0) + 1
+    if _skipped:
+        # L4: несеемое (Портрет/Мечта/Черта/…) — не тишина, а ждущий контур
+        logger.info(f"[CCH_SEED] {npc_id}: вне seed (ждут Calibration/Desire): {_skipped}")
     return {
         "memories": build_seed_memories(npc_id, doc),
         "knowledge": build_seed_knowledge(npc_id, docs),

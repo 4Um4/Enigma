@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pygame
 from api_client import HttpClient
 
@@ -19,7 +21,9 @@ _BG = (18, 18, 23)
 _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
-_HINT = "мышь/↑↓: персонаж · клик ленты: кусок истории · F1/F2: понять · C: вопрос · 1-4: ответ · F9: утвердить · Ctrl+S: сводка · ESC: выход"
+_HINT1 = "Enter: читать целиком · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять · C: вопрос · 1-4: ответ"
+_HINT2 = "F9: утвердить как правду · F4: чистый черновик · Ctrl+O: загрузить историю · Ctrl+S: сводка убеждений · ESC: выход"
+
 
 _OPTION_BY_KEY = {
     pygame.K_1: "SELECT_EXISTING_NPC",
@@ -39,6 +43,8 @@ _KIND_RU = {
     "KNOWLEDGE_LINK": "Знание",
     "OBSERVATION": "Наблюдение",
     "LOCATION": "Место",
+    "PORTRET": "Портрет",
+    "DESIRE_SEED": "Мечта",
 }
 
 
@@ -61,6 +67,8 @@ class ChronicleEditorCore:
         self._current_q: dict | None = None
         self._status = "Готов."
         self.exit_requested = False
+        self._view_history = False  # TAB: ЛЕНТА (разборы) ⇄ ИСТОРИЯ (пункты автора)
+        self._detail: tuple | None = None  # Enter: чтение выбранного ЦЕЛИКОМ
         self._load_roster()
 
     # ── Данные ────────────────────────────────────────────────────────────
@@ -88,6 +96,10 @@ class ChronicleEditorCore:
     # ── Ввод (клавиатура + мышь; UX-вердикт: редактор обязан понимать мышь) ─
 
     def handle_event(self, event: pygame.event.Event) -> None:
+        if self._detail is not None:
+            if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
+                self._detail = None
+            return
         if event.type == pygame.KEYDOWN:
             self._on_key(event.key)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -103,13 +115,22 @@ class ChronicleEditorCore:
             self._npc_idx = (self._npc_idx - 1) % len(self._npcs)
             self._reload()
         elif key == pygame.K_F1:
-            self._decompose_ordinal(self._frag_ord)
+            self._decompose_ordinal(self._frag_ord if not self._view_history else self._frag_index_by_number(self._frag_ord + 1) - 1 if False else self._frag_ord)
         elif key == pygame.K_F2:
             self._decompose_ordinal(self._frag_ord + 1)
         elif key == pygame.K_F9:
             self._canonize()
         elif key == pygame.K_s and pygame.key.get_pressed()[pygame.K_LCTRL]:
             self._export_beliefs()
+        elif key == pygame.K_o and pygame.key.get_pressed()[pygame.K_LCTRL]:
+            self._import_history()
+        elif key == pygame.K_F4:
+            self._new_clean_draft()
+        elif key == pygame.K_TAB:
+            self._view_history = not self._view_history
+            self._status = "ИСТОРИЯ (твой текст)" if self._view_history else "ЛЕНТА (разборы)"
+        elif key == pygame.K_RETURN:
+            self._open_detail()
         elif key == pygame.K_c:
             self._current_q = self._next_open_question()
             self._status = (
@@ -130,7 +151,12 @@ class ChronicleEditorCore:
             self._reload()
         elif 300 <= x <= 520 and 100 <= y <= 100 + 24 * 22:
             self._frag_ord = (y - 100) // 22
-            self._status = f"Выбран фрагмент #{self._frag_ord} (F1 — разобрать)"
+            if self._view_history:
+                frs = self._history_fragments()
+                num = frs[self._frag_ord][0] if self._frag_ord < len(frs) else None
+                self._status = f"Пункт {num if num is not None else self._frag_ord + 1} выбран (Enter — читать, F1 — понять)"
+            else:
+                self._status = f"Выбран фрагмент #{self._frag_ord} (F1 — понять)"
         elif 300 <= x <= 520 and 700 <= y <= 730:
             self._decompose_ordinal(self._frag_ord)
         elif 900 <= x <= 1120 and 700 <= y <= 730:
@@ -162,6 +188,102 @@ class ChronicleEditorCore:
             f.write(data.get("text", ""))
         self._status = f"Сводка сохранена: {path} ({data.get('count', 0)} записей)"
 
+    def _import_history(self) -> None:
+        """Ctrl+O «Загрузить историю…» (вердикт Мастера): файл .md/.txt →
+        авторский текст ДОПИСЫВАЕТСЯ к author_text черновика текущего NPC
+        (append-only по абзацам, FR-1.5: декомпозиция обратима, слово автора
+        не теряется) → draft PUT через существующий канал. Файл читает фронт,
+        сервер контракта файла не знает (Закон 1.1)."""
+        from tkinter import filedialog
+
+        path = filedialog.askopenfilename(
+            title="Загрузить историю персонажа",
+            filetypes=[("История (.md/.txt)", "*.md *.txt"), ("Все файлы", "*.*")],
+        )
+        if not path:
+            self._status = "Загрузка отменена"
+            return
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                text = f.read().strip()
+        except (OSError, UnicodeDecodeError) as e:
+            self._status = f"Файл не читается: {e}"
+            return
+        if not text:
+            self._status = "Файл пуст"
+            return
+        doc = dict(self._doc or {"npc_ref": self._npcs[self._npc_idx], "entries": [], "canonical": False})
+        old = str(doc.get("author_text", "") or "")
+        if old and text[:200] in old:
+            # Урок склейки: тот же файл грузится повторно → дубликаты пунктов.
+            import tkinter as tk
+            from tkinter import messagebox
+
+            root = tk.Tk()
+            root.withdraw()
+            replace = messagebox.askyesno(
+                "Текст уже содержит эти пункты",
+                "Заменить текст целиком на загружаемый?\n"
+                "(«Нет» = дописать — может создать дубли)",
+                parent=root,
+            )
+            root.destroy()
+            if replace:
+                doc["author_text"] = text
+                old = ""
+            else:
+                self._status = "Дописано (осторожно: возможны дубли пунктов)"
+                doc["author_text"] = old + "\n\n" + text
+        else:
+            doc["author_text"] = (old + ("\n\n" if old else "") + text) if old else text
+        doc.setdefault("chronicle_id", doc["npc_ref"])
+        doc.setdefault("schema_version", 1)
+        if self._api.save_draft(self._campaign, self._npcs[self._npc_idx], doc):
+            self._status = f"История загружена из {Path(path).name} ({len(text)} знаков) — F1 по пунктам"
+            self._reload()
+        else:
+            self._status = "PUT черновика не прошёл (сервер?)"
+
+    def _new_clean_draft(self) -> None:
+        """F4: чистый черновик (урок Люси: старые прогоны смешались с новым
+        текстом). Бэкап author_text в <npc>.bak.txt рядом — слово автора
+        не теряется (FR-1.5); подтверждение — обязательное."""
+        from tkinter import messagebox
+
+        npc = self._npcs[self._npc_idx]
+        import tkinter as tk
+
+        tk_root = tk.Tk()
+        tk_root.withdraw()
+        ok = messagebox.askyesno(
+            "Чистый черновик",
+            f"Обнулить черновик {npc}? (текст сохранится в бэкап-файл)",
+            parent=tk_root,
+        )
+        tk_root.destroy()
+        if not ok:
+            return
+        old_text = str((self._doc or {}).get("author_text", "") or "")
+        if old_text:
+            from pathlib import Path as _P
+
+            _bak = _P("saves") / self._campaign / "chronicle_drafts" / f"{npc}.bak.txt"
+            _bak.parent.mkdir(parents=True, exist_ok=True)
+            _bak.write_text(old_text, encoding="utf-8")
+        doc = {
+            "chronicle_id": npc,
+            "npc_ref": npc,
+            "author_text": "",
+            "entries": [],
+            "canonical": False,
+            "schema_version": 1,
+        }
+        if self._api.save_draft(self._campaign, npc, doc):
+            self._status = f"Чистый черновик (бэкап: {npc}.bak.txt) — Ctrl+O: загрузить историю"
+            self._reload()
+        else:
+            self._status = "PUT не прошёл (сервер?)"
+
     def _ask_format(self) -> bool:
         import tkinter as tk
         from tkinter import messagebox
@@ -174,10 +296,24 @@ class ChronicleEditorCore:
         root.destroy()
         return answer
 
+    @staticmethod
+    def _split_fragments(author_text: str) -> list:
+        """Фрагменты = нумерованные пункты «1.» … «N.» (формат Мастера,
+        Люся.md). Нет ни одного номера → fallback на пустые строки (старый
+        формат черновиков). Пункт без номера в нумерованном тексте —
+        сохранён как хвост предыдущего (абзац того же пункта)."""
+        import re
+
+        numbered = re.findall(r"(?m)^(\d+)\.\s", author_text)
+        if not numbered:
+            return [f for f in author_text.split("\n\n") if f.strip()]
+        parts = re.split(r"(?m)^(?=\d+\.\s)", author_text)
+        return [p.strip() for p in parts if p.strip()]
+
     def _decompose_ordinal(self, ord_: int) -> None:
         """FR-2.x для произвольного фрагмента (клик по ленте / F1/F2)."""
         npc = self._npcs[self._npc_idx]
-        frags = [f for f in (self._doc or {}).get("author_text", "").split("\n\n") if f.strip()]
+        frags = self._split_fragments((self._doc or {}).get("author_text", ""))
         if not frags:
             self._status = "author_text пуст — черновик без текста"
             return
@@ -185,13 +321,15 @@ class ChronicleEditorCore:
             self._status = f"Фрагмента #{ord_} нет (всего {len(frags)})"
             return
         self._frag_ord = ord_
-        self._status = f"Разбор #{ord_}... (LLM, до 60 с)"
+        _frs = self._history_fragments()
+        _label = f"пункт {_frs[ord_][0]}" if self._view_history and ord_ < len(_frs) and _frs[ord_][0] is not None else f"фрагмент №{ord_}"
+        self._status = f"Разбор {_label}... (LLM, до 60 с)"
         self.draw(pygame.display.get_surface())
         pygame.display.flip()
         res = self._api.decompose(self._campaign, npc, ord_, frags[ord_])
         if res.get("status") == "OK":
             self._items = list(res.get("items", []))
-            self._status = f"Разбор #{ord_}: {len(self._items)} items"
+            self._status = f"{_label}: понял {len(self._items)} записей"
         else:
             self._status = f"НЕ разобрано: {res.get('error', '')[:80]}"
 
@@ -246,13 +384,69 @@ class ChronicleEditorCore:
     def _entry_text(e: dict) -> str:
         p = e.get("payload", {}) or {}
         k = e.get("kind", "")
-        if k == "BELIEF_SEED":
+        if k in ("BELIEF_SEED", "DESIRE_SEED", "PORTRET"):
             return str(p.get("statement", ""))
         if k == "TRAIT_SEED":
             return f"{p.get('trait', '')}: {p.get('evidence', '')}"
         if k == "KNOWLEDGE_LINK":
             return f"узнал(а) в {p.get('learned_age', '?')} лет — {p.get('about_hint', '')}"
         return str(p.get("summary", ""))
+
+    def _history_fragments(self) -> list:
+        """Пункты истории с АВТОРСКОЙ нумерацией: [(номер, текст)]. Возвращает
+        [(None, абзац)] для текста без номеров. Урок Люси: «фрагмент №11» —
+        говно-нумерация; автор мыслит СВОИМИ номерами."""
+        import re
+
+        text = str((self._doc or {}).get("author_text", "") or "")
+        marks = re.findall(r"(?m)^(\d+)\.\s", text)
+        if not marks:
+            return [(None, p.strip()) for p in text.split("\n\n") if p.strip()]
+        parts = re.split(r"(?m)^(?=\d+\.\s)", text)
+        out = []
+        for p in parts:
+            p = p.strip()
+            if not p:
+                continue
+            m = re.match(r"^(\d+)\.\s*", p)
+            if m:
+                # «1. 1.» лечится здесь: номер — метка строки, из текста
+                # фрагмента вырезается (урок скринов Мастера)
+                out.append((int(m.group(1)), p[m.end():].strip()))
+            else:
+                out.append((None, p))
+        return out
+
+    def _frag_index_by_number(self, num: int) -> int:
+        """Индекс фрагмента (для _decompose_ordinal) по авторскому номеру."""
+        for i, (n, _t) in enumerate(self._history_fragments()):
+            if n == num:
+                return i
+        return num
+
+    @staticmethod
+    def _wrap(text: str, width: int) -> list:
+        import textwrap
+
+        return textwrap.wrap(str(text), width=width) or [""]
+
+    def _open_detail(self) -> None:
+        """Enter: читать выбранное ЦЕЛИКОМ (вердикт «всё обрезано — как
+        выбирать?»). История — пункт; лента — запись. Любая клавиша — назад."""
+        if self._view_history:
+            frs = self._history_fragments()
+            if self._frag_ord < len(frs):
+                num, txt = frs[self._frag_ord]
+                self._detail = (f"Пункт {num}" if num is not None else "Фрагмент", txt)
+        elif self._doc:
+            entries = self._doc.get("entries") or []
+            if self._frag_ord < len(entries):
+                e = entries[self._frag_ord]
+                age = e.get("historical_age")
+                self._detail = (
+                    f"{self._kind_ru(e.get('kind',''))} [{age if age is not None else '?'}]",
+                    self._entry_text(e),
+                )
 
     # ── Отрисовка ─────────────────────────────────────────────────────────
 
@@ -266,11 +460,17 @@ class ChronicleEditorCore:
         for i, npc in enumerate(self._npcs):
             color = _ACCENT if i == self._npc_idx else _TEXT
             surface.blit(self._font.render(npc, True, color), (20, 100 + i * 26))
-        # Центр: лента entries
+        # Центр: ЛЕНТА (разборы) ⇄ ИСТОРИЯ (пункты автора) — TAB
         pygame.draw.rect(surface, _PANEL, (270, 90, 620, 560))
-        surface.blit(self._font_big.render("ЛЕНТА (draft)", True, _ACCENT), (280, 55))
-        if self._doc:
-            for i, e in enumerate((self._doc.get("entries") or [])[:24]):
+        mode_title = "ИСТОРИЯ (твой текст — TAB: лента)" if self._view_history else "ЛЕНТА (разборы — TAB: история)"
+        surface.blit(self._font_big.render(mode_title, True, _ACCENT), (280, 55))
+        if self._view_history:
+            for i, (num, txt) in enumerate(self._history_fragments()[:25]):
+                label = f"{num}." if num is not None else "·"
+                color = _ACCENT if i == self._frag_ord else _TEXT
+                surface.blit(self._font.render(f"{label} {txt[:58]}", True, color), (280, 100 + i * 22))
+        elif self._doc:
+            for i, e in enumerate((self._doc.get("entries") or [])[:25]):
                 age = e.get("historical_age")
                 marker = f"[{age}]" if age is not None else "[?]"
                 line = f"{marker} {self._kind_ru(e.get('kind',''))}: {self._entry_text(e)[:60]}"
@@ -278,25 +478,39 @@ class ChronicleEditorCore:
         # Правая панель: Разбор
         pygame.draw.rect(surface, _PANEL, (900, 90, 370, 560))
         surface.blit(self._font_big.render("ЧТО ПОНЯЛ ENIGMA", True, _ACCENT), (910, 55))
-        for i, item in enumerate(self._items[:22]):
+        _ry = 100
+        for item in self._items[:22]:
             q = " ?" if item.get("needs_confirmation") else ""
-            line = f"{self._kind_ru(item.get('kind',''))}{q} {item.get('confidence', 0):.2f}"
-            surface.blit(self._font.render(line, True, _TEXT), (910, 100 + i * 22))
-        # Кнопки (формулировки — человеческим языком, вердикт «не понять»)
-        pygame.draw.rect(surface, _PANEL, (300, 700, 220, 30))
-        surface.blit(self._font.render(f"F1: Понять фрагмент №{self._frag_ord}", True, _ACCENT), (310, 706))
-        pygame.draw.rect(surface, _PANEL, (900, 700, 220, 30))
-        surface.blit(self._font.render("F9: Утвердить как правду", True, _ACCENT), (910, 706))
-        # Нижняя зона — три строки во всю ширину под кнопками, без наложений:
-        # статус → вопрос автора → подсказка клавиш.
-        surface.blit(self._font.render(self._status[:130], True, _TEXT), (20, 736))
+            dp = item.get("draft_payload", {}) or {}
+            txt = str(dp.get("summary") or dp.get("statement") or dp.get("trait") or "")
+            color = _ACCENT if q else _TEXT
+            surface.blit(
+                self._font.render(f"{self._kind_ru(item.get('kind',''))}{q}:", True, color),
+                (910, _ry),
+            )
+            for _ln in self._wrap(txt, 34)[:6]:
+                _ry += 20
+                if _ry > 640:
+                    break
+                surface.blit(self._font.render(_ln, True, _TEXT), (910, _ry))
+            _ry += 26
+            if _ry > 645:
+                surface.blit(self._font.render("…", True, (120, 120, 120)), (910, _ry))
+                break
+        # Кнопки
+        pygame.draw.rect(surface, _PANEL, (300, 690, 220, 30))
+        surface.blit(self._font.render("F1: Понять выбранное", True, _ACCENT), (310, 696))
+        pygame.draw.rect(surface, _PANEL, (900, 690, 220, 30))
+        surface.blit(self._font.render("F9: Утвердить как правду", True, _ACCENT), (910, 696))
+        # Нижняя зона: статус → вопрос → подсказка (2 строки, без обрезки)
+        surface.blit(self._font.render(self._status[:130], True, _TEXT), (20, 726))
         q = self._current_q or self._next_open_question()
         if q:
             qline = (
                 f"❓ {q.get('target_span','')[:48]} — кто это?  "
-                "1:из списка · 2:новый · 3:массовка · 4:белое пятно (C — взять вопрос)"
+                "1:из списка · 2:новый · 3:массовка · 4:белое пятно (C — взять)"
             )
-            surface.blit(self._font.render(qline[:150], True, _ACCENT), (20, 758))
+            surface.blit(self._font.render(qline[:150], True, _ACCENT), (20, 746))
         else:
             surface.blit(
                 self._font.render(
@@ -304,9 +518,28 @@ class ChronicleEditorCore:
                     True,
                     (150, 150, 150),
                 ),
-                (20, 758),
+                (20, 746),
             )
-        surface.blit(self._font.render(_HINT, True, (110, 110, 110)), (20, 780))
+        surface.blit(self._font.render(_HINT1, True, (110, 110, 110)), (20, 766))
+        surface.blit(self._font.render(_HINT2, True, (110, 110, 110)), (20, 782))
+        if self._detail is not None:
+            title, txt = self._detail
+            surface.fill((12, 12, 16))
+            surface.blit(self._font_big.render(title, True, _ACCENT), (30, 30))
+            _dy = 70
+            for _ln in self._wrap(txt, 110):
+                surface.blit(self._font.render(_ln, True, _TEXT), (30, _dy))
+                _dy += 22
+                if _dy > 750:
+                    surface.blit(
+                        self._font.render("… (дальше — в файле истории)", True, (120, 120, 120)),
+                        (30, _dy),
+                    )
+                    break
+            surface.blit(
+                self._font.render("любая клавиша / клик — назад", True, (110, 110, 110)),
+                (30, 782),
+            )
 
 
 class ChronicleEditorApp:

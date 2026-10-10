@@ -38,6 +38,10 @@ _KIND_BELIEF_SEED: Final[str] = "BELIEF_SEED"
 _KIND_OBSERVATION: Final[str] = "OBSERVATION"
 _KIND_KNOWLEDGE_LINK: Final[str] = "KNOWLEDGE_LINK"
 _KIND_TRAIT_SEED: Final[str] = "TRAIT_SEED"
+_KIND_PORTRET: Final[str] = "PORTRET"  # вердикт владельца: авторский монолог-портрет
+                                       # сохраняется целиком (оригинал > интерпретация)
+_KIND_DESIRE_SEED: Final[str] = "DESIRE_SEED"  # вердикт владельца (п.11 Люси):
+                                               # мечта/план — ещё не событие
 
 
 class EntryKind(str, Enum):
@@ -51,6 +55,8 @@ class EntryKind(str, Enum):
     OBSERVATION = _KIND_OBSERVATION
     KNOWLEDGE_LINK = _KIND_KNOWLEDGE_LINK
     TRAIT_SEED = _KIND_TRAIT_SEED
+    PORTRET = _KIND_PORTRET
+    DESIRE_SEED = _KIND_DESIRE_SEED
 
 
 class EntryProvenance(str, Enum):
