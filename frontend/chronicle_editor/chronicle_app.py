@@ -22,7 +22,7 @@ _TEXT = (220, 220, 220)
 _ACCENT = (180, 160, 90)
 _PANEL = (28, 28, 36)
 _HINT1 = "Enter: читать целиком · мышь/↑↓: персонаж · клик: выбрать · TAB: лента⇄история · F1/F2: понять · C: вопрос · 1-4: ответ"
-_HINT2 = "F9: утвердить как правду · F4: чистый черновик · Ctrl+O: загрузить историю · Ctrl+S: сводка убеждений · ESC: выход"
+_HINT2 = "F9: утвердить как правду · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+S: сводка убеждений · ESC: выход"
 
 
 _OPTION_BY_KEY = {
@@ -124,6 +124,8 @@ class ChronicleEditorCore:
             self._export_beliefs()
         elif key == pygame.K_o and pygame.key.get_pressed()[pygame.K_LCTRL]:
             self._import_history()
+        elif key == pygame.K_d and pygame.key.get_pressed()[pygame.K_LCTRL]:
+            self._export_gaps()
         elif key == pygame.K_F4:
             self._new_clean_draft()
         elif key == pygame.K_TAB:
@@ -187,6 +189,28 @@ class ChronicleEditorCore:
         with open(path, "w", encoding="utf-8") as f:
             f.write(data.get("text", ""))
         self._status = f"Сводка сохранена: {path} ({data.get('count', 0)} записей)"
+
+    def _export_gaps(self) -> None:
+        """Ctrl+D: карта разрывов (лампочка) — один файл по ВСЕМ НПС."""
+        from tkinter import filedialog
+
+        fmt = "json" if self._ask_format() else "md"
+        data = self._api.export_trait_gaps(self._campaign, fmt)
+        if not data or data.get("status") != "OK":
+            self._status = "Карта недоступна (сервер?)"
+            return
+        path = filedialog.asksaveasfilename(
+            title="Сохранить карту разрывов",
+            defaultextension=f".{fmt}",
+            filetypes=[(fmt.upper(), f"*.{fmt}"), ("Все файлы", "*.*")],
+            initialfile=f"trait_gaps_{self._campaign}.{fmt}",
+        )
+        if not path:
+            self._status = "Сохранение отменено"
+            return
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(data.get("text", ""))
+        self._status = f"Карта разрывов: {path} ({data.get('count', 0)} слов)"
 
     def _import_history(self) -> None:
         """Ctrl+O «Загрузить историю…» (вердикт Мастера): файл .md/.txt →

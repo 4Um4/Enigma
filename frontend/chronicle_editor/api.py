@@ -45,6 +45,13 @@ class ChronicleApi:
         except BackendError:
             return None
 
+    def export_trait_gaps(self, campaign: str, format: str) -> Optional[Dict[str, Any]]:
+        """Детектор-лампочка: карта разрывов языка автора vs онтология."""
+        try:
+            return self._http.get(f"/api/chronicle/{campaign}/trait-gaps?format={format}")
+        except BackendError:
+            return None
+
     def get_draft(self, campaign: str, npc_id: str) -> Optional[Dict[str, Any]]:
         try:
             data = self._http.get(f"/api/chronicle/{campaign}/{npc_id}/draft")

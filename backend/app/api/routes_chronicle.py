@@ -133,6 +133,41 @@ async def beliefs_export(campaign_id: str, format: str = "md") -> Dict[str, Any]
     return {"status": "OK", "format": format, "count": len(records), "text": text}
 
 
+@chronicle_router.get("/chronicle/{campaign_id}/trait-gaps")
+async def trait_gaps_export(campaign_id: str, format: str = "md") -> Dict[str, Any]:
+    """Детектор-лампочка (вердикт Мастера): слова-характеристики всех NPC
+    (записи + Портреты + Мечты) против словаря онтологии. Частоты, соседи,
+    статусы. md|json. Файл пишет фронт."""
+    from app.services.chronicle import trait_gap_detector
+    from fastapi import HTTPException
+
+    if format not in ("md", "json"):
+        raise HTTPException(status_code=422, detail="format: только md|json")
+    store = _get_store()
+    from app.services.npc.npc_loader import list_individual_ids
+
+    docs: Dict[str, Any] = {}
+    for npc_id in list_individual_ids():
+        canon = store.load_canonical(npc_id)
+        if canon is not None:
+            docs[npc_id] = canon
+            continue
+        try:
+            draft = store.load_draft(campaign_id, npc_id)
+        except ValueError as e:
+            logger.warning(f"[CCH_GAPS] {npc_id}: draft невалиден — пропущен: {e}")
+            continue
+        if draft is not None:
+            docs[npc_id] = draft
+    rep = trait_gap_detector.build_report(docs, campaign_id)
+    text = (
+        trait_gap_detector.render_json(rep)
+        if format == "json"
+        else trait_gap_detector.render_markdown(rep)
+    )
+    return {"status": "OK", "format": format, "count": rep["total"], "text": text}
+
+
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/decompose")
 async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeRequest) -> Dict[str, Any]:
     """FR-2.x: фрагмент → декомпозиция (transient). Не пишет ни канон, ни draft."""
