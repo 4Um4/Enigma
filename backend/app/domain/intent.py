@@ -48,6 +48,9 @@ class IntentParametersDTO:
     # S-UE Блок 2: кандидаты при неоднозначной ссылке (fail-closed резолвер;
     # None = ветка неоднозначности не встречена — старые читатели не затронуты)
     reference_candidates: Optional[List[str]] = None
+    # S-UE Блок 3: готовность намерения (5 значений IntentReadiness; None =
+    # путь без semantic_field — легаси-фоллбэк UNCERTAIN без гейта)
+    intent_readiness: Optional[str] = None
 
 
 @dataclass(frozen=True)

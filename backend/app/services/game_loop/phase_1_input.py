@@ -36,7 +36,7 @@ from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
 from app.services.will import resolve_intent_pressure
 
-import re  # S-UE Блок 2: чистая токенизация (пунктуация отравляет pymorphy-разбор)
+import re  # S-UE Блок 2: токенизация _content_words (регекс; пункт «не»-детектора — Блок 3)
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +112,47 @@ def _content_words(text: str) -> set:
     return _out
 
 
+_UNRESOLVED_NEGATION_LEMMAS = {"не", "ни", "нет", "нес"}
+
+
+def compute_intent_readiness(
+    field: IntentSemanticField,
+    resolved_target_id: str,
+    reference_candidates: list,
+) -> str:
+    """S-UE Блок 3 (поеапный GO): готовность НАМЕРЕНИЯ к исполнению —
+    вычисляется ПОСЛЕ резолва ссылок (поправка №1 Мастера; компрессор не
+    решает на данных, которых у него нет). Пять значений IntentReadiness;
+    семантическая неоднозначность ≠ PARTIAL. Fail-closed без регрессии боя:
+    'Ударь его' (без 'не') = RESOLVED; 'Не бей его' при negated=None
+    (признак появится в Блоке 4) = PARTIAL — исполнение закрыто, PLAYER_SPOKE
+    остаётся (наблюдение живо). Детектор негации — лемма-частица в raw_text
+    без per-act negated: до Блока 4 честно консервативен ('бей, не
+    промахнись' блокируется; цена fail-closed документирована)."""
+    _facts = field.comprehension_facts or {}
+    _action = str(getattr(field.action, "value", field.action) or "")
+    _acts = field.semantic_acts or []
+
+    if _action == "UNCERTAIN" and not _facts.get("llm_status") == "OK":
+        return "FAILED"
+    if reference_candidates:
+        return "REFERENCE_AMBIGUOUS"
+    if str(getattr(field.ambiguity, "value", "CLEAR")) == "AMBIGUOUS":
+        return "SEMANTIC_AMBIGUOUS"
+
+    _world_changing = _action in ("ATTACK", "STEAL", "THREATEN", "MOVE", "GIVE")
+    if _world_changing:
+        # U-9: решение по структуре, не по самооценке модели
+        if not resolved_target_id:
+            return "PARTIAL"
+        _negated_known = any(a.get("negated") is not None for a in _acts)
+        if not _negated_known and any(
+            w in _UNRESOLVED_NEGATION_LEMMAS for w in _content_words(field.raw_text)
+        ):
+            return "PARTIAL"
+    return "RESOLVED"
+
+
 def resolve_target_with_candidates(
     field: IntentSemanticField, scene_context: Any
 ) -> tuple[str, list]:
@@ -145,6 +186,19 @@ def resolve_target_with_candidates(
 
     if not entries or not field.raw_text:
         return _resolve_target_reference(field, scene_context), []
+
+    # s-ue-b2-ремонт: r14b (verbalized-id: 'tavern keeper tornin') был
+    # замещён обёрткой блока 2 — восстановлен как пре-чек fallback-пути
+    # (та же механика, что в _resolve_target_reference l62-68)
+    if isinstance(scene_context, dict) and field.target_reference:
+        _ref_norm = " ".join(field.target_reference.lower().split())
+        _npc_ids = {str(k).lower() for k in scene_context.get("npc_positions", {})}
+        for _npc in scene_context.get("all_npcs_raw", []) or []:
+            if isinstance(_npc, dict) and _npc.get("npc_id"):
+                _npc_ids.add(str(_npc["npc_id"]).lower())
+        for _nid in _npc_ids:
+            if _ref_norm == _nid.replace("_", " "):
+                return _nid, []
 
     raw_words = _content_words(field.raw_text)
     full = [nid for nid, w in entries if w and w.issubset(raw_words)]
@@ -269,6 +323,11 @@ def resolve_player_intent(
         proposition_polarity=(semantic_field.proposition.polarity if semantic_field.proposition else None),  # noqa: ENIGMA001
         # S-UE Блок 2: кандидаты неоднозначной ссылки доезжают до потребителей
         reference_candidates=(_ref_candidates if _ref_candidates else None),
+        # S-UE Блок 3: readiness — после резолва (поправка №1); гейт
+        # исполнения в publish_classified_player_event
+        intent_readiness=compute_intent_readiness(
+            semantic_field, resolved_target_id, _ref_candidates
+        ),
     )
 
     intent = IntentDTO(
@@ -483,6 +542,7 @@ def publish_classified_player_event(
     _physical_force = 0.1
     _social_pressure = 0.0
     _semantic_acts: list = []
+    _params = None  # S-UE Блок 3: гейт читает readiness — гвард отсутствия DTO (UnboundLocal-урок)
     if (
         hasattr(shared_context, "intent_resolution")
         and shared_context.intent_resolution
@@ -529,6 +589,25 @@ def publish_classified_player_event(
             _raw_type = _ic_override
             _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
             _evt_radius = action_perception_radius(_raw_type)
+
+    # S-UE Блок 3: fail-closed гейт исполнения. Не-RESOLVED намерение не
+    # материализуется как игровое событие — деградирует до PLAYER_SPOKE
+    # (наблюдение живо, исполнение закрыто; прецедент WV-вердикта L761:
+    # «попытка ≠ событие»). Перекрывает И S122-лексический перехват, И
+    # ADR-091 IC-override: даже переклассифицированный 'attack' не
+    # становится PLAYER_ATTACKED при не-RESOLVED. Readiness вычислена в
+    # resolve_player_intent (после резолва ссылок).
+    _readiness = getattr(_params, "intent_readiness", None) if (
+        _params is not None and isinstance(_params, IntentParametersDTO)
+    ) else None
+    if _readiness and _readiness != "RESOLVED" and _resolved_type != EventType.PLAYER_SPOKE:
+        logger.warning(
+            f"[UE-GATE] intent_readiness={_readiness}: '{_raw_type}' деградирует до PLAYER_SPOKE "
+            f"(исполнение закрыто; raw='{raw_input[:60]}')"
+        )
+        _raw_type = "dialogue"
+        _resolved_type = EventType.PLAYER_SPOKE
+        _evt_radius = action_perception_radius("dialogue")
 
     _payload = {
         "location": location,
