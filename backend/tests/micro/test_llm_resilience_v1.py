@@ -376,3 +376,219 @@ def test_queue_flag_off_old_abort_mechanics(monkeypatch):
     t1.join(timeout=5); t2.join(timeout=5)
     assert ab.n >= 1
     assert res1 == ["A"] and res2 == ["B"]
+
+# ── T-D61: детектор / рестарт / сброс backoff ─────────────────────────────
+
+import asyncio as _aio
+
+class _FakeResp:
+    status = 200
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+class _FakeProc:
+    def poll(self):
+        return None
+
+
+def test_outage_proven_backoff_immediate(monkeypatch):
+    """Доказанный отказ (пул в backoff) — 'outage' без дебаунса."""
+    import app.services.llm.health as _health_mod
+    import app.services.llm.provider_manager as _pm
+    from app.api.routes import llm_outage
+
+    class _Pool:
+        def pool_backoff_status(self):
+            return {
+                "degraded": True,
+                "models": {"qwen_7b": {"backoff_until": 12345.0, "active": True}},
+            }
+
+    monkeypatch.setattr(_pm, "get_model_pool", lambda: _Pool())
+    monkeypatch.setattr(
+        _health_mod, "check_llm_health", lambda use_cache=True: {"status": "online"}
+    )
+    result = _aio.run(llm_outage())
+    assert result == {
+        "status": "outage",
+        "reason": "pool_backoff",
+        "backoff_until": 12345.0,
+    }
+
+
+def test_outage_health_only_unconfirmed(monkeypatch):
+    """Health-offline при чистом пуле — 'unconfirmed' (дебаунс на фронте)."""
+    import app.services.llm.health as _health_mod
+    import app.services.llm.provider_manager as _pm
+    from app.api.routes import llm_outage
+
+    class _Pool:
+        def pool_backoff_status(self):
+            return {"degraded": False, "models": {}}
+
+    monkeypatch.setattr(_pm, "get_model_pool", lambda: _Pool())
+    monkeypatch.setattr(
+        _health_mod,
+        "check_llm_health",
+        lambda use_cache=True: {"status": "offline", "details": "Connection refused"},
+    )
+    result = _aio.run(llm_outage())
+    assert result["status"] == "unconfirmed"
+    assert result["reason"] == "Connection refused"
+
+
+def test_outage_online(monkeypatch):
+    import app.services.llm.health as _health_mod
+    import app.services.llm.provider_manager as _pm
+    from app.api.routes import llm_outage
+
+    class _Pool:
+        def pool_backoff_status(self):
+            return {"degraded": False, "models": {}}
+
+    monkeypatch.setattr(_pm, "get_model_pool", lambda: _Pool())
+    monkeypatch.setattr(
+        _health_mod, "check_llm_health", lambda use_cache=True: {"status": "online"}
+    )
+    assert _aio.run(llm_outage())["status"] == "online"
+
+
+def test_pool_backoff_status_and_reset():
+    """Пулевые проекции: active-расчёт + сброс (failure_cache + metrics)."""
+    import logging as _log
+
+    from app.services.llm.provider_manager import ModelPool
+
+    class _FakeMetrics:
+        def __init__(self):
+            self.reset_called = False
+
+        def reset_errors(self):
+            self.reset_called = True
+
+    p = object.__new__(ModelPool)
+    p._failure_cache = {"m1": _t.time() + 100.0, "m2": _t.time() - 5.0}
+    p._metrics = {"m1": _FakeMetrics()}
+    p._logger = _log.getLogger("t-pool")
+
+    st = p.pool_backoff_status()
+    assert st["degraded"] is True
+    assert st["models"]["m1"]["active"] is True
+    assert st["models"]["m2"]["active"] is False
+
+    p.pool_reset_backoff()
+    assert p._failure_cache == {}
+    assert p._metrics["m1"].reset_called is True
+
+
+def test_restart_already_ready_resets_backoff(monkeypatch):
+    """Идемпотентность: готовый сервер — немедленный успех + сброс backoff."""
+    import app.services.llm.server_lifecycle as _sl
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **k: _FakeResp())
+    _calls = []
+    monkeypatch.setattr(_sl, "_reset_backoff_if_pool", lambda: _calls.append(1))
+    result = _aio.run(_sl.restart_llama_server())
+    assert result["restarted"] is True and result["reason"] == "not_needed"
+    assert _calls == [1]
+
+
+def test_restart_refuses_foreign_port_owner(monkeypatch):
+    """Вердикт Мастера: чужой процесс на порту — рестарт отказан, не убит."""
+    import app.services.llm.server_lifecycle as _sl
+
+    def _boom(*a, **k):
+        raise ConnectionError("refused")
+
+    monkeypatch.setattr("urllib.request.urlopen", _boom)
+    monkeypatch.setattr(
+        _sl, "_stop_llama_server", lambda: "refused: порт занят notepad.exe (pid=1)"
+    )
+    result = _aio.run(_sl.restart_llama_server())
+    assert result["restarted"] is False
+    assert result["reason"] == "port_busy_unknown_owner"
+
+
+def test_restart_load_timeout_loud(monkeypatch):
+    """Неготовность за бюджет — структурированный load_timeout."""
+    import app.services.llm.server_lifecycle as _sl
+    from app.core.config import settings
+
+    def _boom(*a, **k):
+        raise ConnectionError("refused")
+
+    monkeypatch.setattr("urllib.request.urlopen", _boom)
+
+    class _NeverReadyOpener:
+        def open(self, *a, **k):
+            raise ConnectionError("not ready")
+
+    monkeypatch.setattr(
+        "urllib.request.build_opener", lambda *a, **k: _NeverReadyOpener()
+    )
+    monkeypatch.setattr(_sl, "_stop_llama_server", lambda: "stopped")
+    monkeypatch.setattr(
+        _sl,
+        "_spawn_llama_server",
+        lambda: {"started": True, "reason": "ok", "detail": "", "proc": _FakeProc()},
+    )
+    monkeypatch.setattr(settings, "model_load_timeout_sec", 2)
+    result = _aio.run(_sl.restart_llama_server())
+    assert result["restarted"] is False and result["reason"] == "load_timeout"
+
+
+def test_restart_serialized_by_lock():
+    """Сериализация: рестарт ждёт занятый lock (TimeoutError доказывает)."""
+    import app.services.llm.server_lifecycle as _sl
+
+    async def _scenario():
+        _lock = _sl._get_restart_lock()
+        await _lock.acquire()
+
+        async def _release_later():
+            await _aio.sleep(0.3)
+            _lock.release()
+
+        _aio.get_running_loop().create_task(_release_later())
+        with pytest.raises(_aio.TimeoutError):
+            await _aio.wait_for(_sl.restart_llama_server(), timeout=0.1)
+
+    _aio.run(_scenario())
+
+
+def test_start_reuses_ready_server(monkeypatch):
+    import app.services.llm.server_lifecycle as _sl
+
+    monkeypatch.setattr(
+        _sl, "acquire_llama_server_lock", lambda port, url: ("reuse", "health ok")
+    )
+    result = _aio.run(_sl.start_llama_server())
+    assert result == {
+        "started": True,
+        "reason": "not_needed",
+        "detail": "health ok",
+    }
+
+
+def test_start_reports_missing_model(monkeypatch):
+    import app.services.llm.server_lifecycle as _sl
+
+    monkeypatch.setattr(
+        _sl, "acquire_llama_server_lock", lambda port, url: ("spawn", "free")
+    )
+    monkeypatch.setattr(
+        _sl,
+        "_spawn_llama_server",
+        lambda: {
+            "started": False,
+            "reason": "model_missing",
+            "detail": "X:/nope.gguf",
+        },
+    )
+    result = _aio.run(_sl.start_llama_server())
+    assert result["started"] is False and result["reason"] == "model_missing"

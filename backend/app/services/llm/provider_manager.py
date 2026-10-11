@@ -376,6 +376,36 @@ class ModelPool:
         self._failure_cache[key] = time.time() + backoff
         self._logger.warning(f"Model '{key}' backoff {backoff}s")
 
+    def pool_backoff_status(self) -> dict:
+        """COV-2/D61: пулевая проекция отказов для outage-детектора.
+
+        Доказанный отказ (record_failure вызван реальным провалом запроса) —
+        немедленный outage БЕЗ дебаунса: это факт, а не наблюдение health-проб
+        (вердикт Мастера). Дебаунс двух проб применяется фронтендом только к
+        неподтверждённым (health-only) случаям — см. routes /llm/outage."""
+        _now = time.time()
+        _models: dict = {}
+        _degraded = False
+        for _key, _until in self._failure_cache.items():
+            _active = _until > _now
+            _models[_key] = {
+                "backoff_until": _until if _active else 0.0,
+                "active": _active,
+            }
+            if _active:
+                _degraded = True
+        return {"degraded": _degraded, "models": _models}
+
+    def pool_reset_backoff(self) -> None:
+        """COV-2/D61: сброс доказанного отказа после ПОДТВЕРЖДЁННОГО рестарта.
+
+        Вызывается только после фактической готовности модели (HTTP /health
+        200): восстановление подтверждается готовностью, а не временем."""
+        self._failure_cache.clear()
+        for _metrics in self._metrics.values():
+            _metrics.reset_errors()
+        self._logger.info("[MODEL_POOL] backoff сброшен после подтверждённого рестарта")
+
     def get_metrics(self, key: str) -> Optional[ModelMetrics]:
         return self._metrics.get(key)
 

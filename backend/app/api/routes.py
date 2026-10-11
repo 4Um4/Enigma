@@ -328,17 +328,26 @@ def system_status(game_loop: Any = Depends(get_game_loop)) -> dict:
     }
 
 
+@router.post("/api/llm/restart")
+async def restart_llm_production() -> dict:
+    """COV-2/D61: прод-роут рестарта (вердикт Мастера: отдельный production
+    маршрут; debug-алиас сохраняется). Настоящий перезапуск: сериализация →
+    kill проверенного владельца → спавн → поллинг готовности модели →
+    сброс backoff. Долгий (до model_load_timeout_sec) — фронт зовёт из
+    состояния модалки RESTARTING."""
+    from app.services.llm.server_lifecycle import restart_llama_server
+
+    try:
+        return await restart_llama_server()
+    except Exception as e:
+        logger.error(f"[LLM_RESTART_ROUTE] failed: {e}")
+        return {"restarted": False, "reason": "error", "detail": str(e)}
+
+
 @router.post("/api/debug/llm/restart")
 async def restart_llm() -> dict:
-    """Перезапуск llama-server при падении. Используется лаунчером и recovery-механизмом."""
-    try:
-        from app.services.llm.server_lifecycle import restart_llama_server as _restart_llama_server
-
-        success = _restart_llama_server()
-        return {"restarted": success, "url": settings.llama_cpp_server_url}
-    except Exception as e:
-        logger.error(f"Restart llama server failed: {e}")
-        return {"restarted": False, "error": str(e)}
+    """Перезапуск llama-server (debug-алиас; прод-путь — /api/llm/restart)."""
+    return await restart_llm_production()
 
 # --- LLM Downloader API ---
 from app.services.llm.downloader import download_model, get_model_status
@@ -366,6 +375,46 @@ async def llm_status() -> dict:
         _status["error_reason"] = None
 
     return _status
+
+
+@router.get("/llm/outage")
+async def llm_outage() -> dict:
+    """COV-2/D61: outage-детектор для фронт-watcher'а.
+
+    Доказанный отказ (пул в backoff — реальный провал запроса) => 'outage'
+    НЕМЕДЛЕННО, без дебаунса (вердикт Мастера). Неподтверждённый (health
+    offline при чистом пуле) => 'unconfirmed' — дебаунс двух проб применяет
+    фронт, чтобы не мигать на загрузке модели."""
+    from app.services.llm.health import check_llm_health
+    from app.services.llm.provider_manager import get_model_pool
+
+    _pool = get_model_pool()
+    _pool_status = (
+        _pool.pool_backoff_status()
+        if _pool is not None
+        else {"degraded": False, "models": {}}
+    )
+    if _pool_status["degraded"]:
+        _until = max(
+            (m["backoff_until"] for m in _pool_status["models"].values()),
+            default=0.0,
+        )
+        return {
+            "status": "outage",
+            "reason": "pool_backoff",
+            "backoff_until": _until,
+        }
+    _health = check_llm_health(use_cache=False)
+    if _health.get("status") != "online":
+        return {
+            "status": "unconfirmed",
+            "reason": str(
+                _health.get("details", _health.get("status", "unknown"))
+            ),
+            "backoff_until": 0.0,
+        }
+    return {"status": "online", "reason": None, "backoff_until": 0.0}
+
 
 @router.post("/llm/download/{model_key}")
 async def llm_download(model_key: str, background_tasks: BackgroundTasks, force: bool = False) -> dict:

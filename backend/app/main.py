@@ -27,7 +27,6 @@ os.environ.setdefault("D8P_ENABLED", "1")
 
 import asyncio
 import logging
-import subprocess
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -213,121 +212,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     # исполнение уходит в except-ветку со спавн-блоком ниже
                     raise ConnectionError(_why)
             except ConnectionError:
-                # Не запущен — стартуем
-                # Фикс C: Жёсткая проверка наличия файла модели перед Popen
-                import os
-                if not os.path.exists(settings.llama_cpp_model_path):
-                    _err = f"Файл модели не найден: {settings.llama_cpp_model_path}. LLM недоступен."
-                    logger.error(f"[STARTUP] {_err}")
-                    print(f"✗ {_err}")
-                    app.state.startup_status["llm_server"] = "failed"
-                    app.state.startup_status["llm_error"] = "model_file_missing"
-                    return
-                try:
-                    server_cmd = [
-                        settings.llama_cpp_server_executable,
-                        "-m",
-                        settings.llama_cpp_model_path,  # ADR-087: Без флага модели сервер крашит!
-                        "--port",
-                        str(settings.llama_cpp_port),  # C2 FIX: Порт из settings
-                        "--host",
-                        "localhost",
-                        "-ngl",
-                        str(
-                            settings.effective_gpu_layers
-                        ),  # GPU offload — без этого 5.4ГБ грузится на CPU → таймаут
-                        "-c",
-                        str(settings.ctx_size),  # размер контекста
-                        "-t",
-                        str(settings.threads),  # потоки
-                    ]
-                    _llama_stderr_path = str(
-                        BASE_DIR / "backend" / "logs" / "llama_server_stderr.log"
-                    )
-                    _llama_stderr_file = open(_llama_stderr_path, "a", encoding="utf-8")
-                    try:
-                        _proc = subprocess.Popen(
-                            server_cmd,
-                            stdout=subprocess.DEVNULL,
-                            stderr=_llama_stderr_file,
-                            creationflags=subprocess.CREATE_NO_WINDOW
-                            if hasattr(subprocess, "CREATE_NO_WINDOW")
-                            else 0,
-                        )
-                    finally:
-                        _llama_stderr_file.close()
-                    # Проверка: процесс жив после spawn?
-                    await asyncio.sleep(1)
-                    if _proc.poll() is not None:
-                        _exit_code = _proc.returncode
-                        _llama_stderr_file.close()
-                        _err_lines = ""
-                        try:
-                            with open(_llama_stderr_path, "r", encoding="utf-8") as f:
-                                _err_lines = "".join(f.readlines()[-20:])
-                        except Exception as e:
-                            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-                        print(f"✗ llama-server упал при старте (exit={_exit_code})")
-                        print(f"  stderr: {_err_lines[:500]}")
-                        logger.error(
-                            f"[STARTUP] llama-server exited immediately (code={_exit_code}): {_err_lines[:500]}"
-                        )
-                        app.state.startup_status["llm_server"] = "failed"
-                    else:
-                        # Процесс жив — ждём HTTP readiness (неблокирующе)
-                        import urllib.request
+                # COV-2/D61: единственный владелец спавна — server_lifecycle
+                # (de-dup: тот же код обслуживает и рестарт из модалки).
+                # startup_status остаётся собственностью main; контракт
+                # результата: {started, reason, detail}. Очистка сироты при
+                # load_timeout — ответственность server_lifecycle.
+                from app.services.llm.server_lifecycle import start_llama_server
 
-                        _server_ready = False
-                        for _attempt in range(int(settings.model_load_timeout_sec / 2)):
-                            try:
-                                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-                                _opener.open(
-                                    f"{settings.llama_cpp_server_url}/health", timeout=2
-                                )
-                                _server_ready = True
-                                break
-                            except Exception:
-                                await asyncio.sleep(2)
-                        if _server_ready:
-                            print(
-                                f"✓ llama-server запущен ({settings.llama_cpp_server_url}, GPU={settings.effective_gpu_layers}, ctx={settings.ctx_size})"
-                            )
-                            logger.info(
-                                f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})"
-                            )
-                            _llama_state["proc"] = _proc
-                            _llama_state["started_by_us"] = True
-                            _llama_server_proc = _proc
-                            _llama_started_by_us = True
-                            app.state.startup_status["llm_server"] = "ready"
-                        else:
-                            print(
-                                f"⚠️ llama-server не ответил за {settings.model_load_timeout_sec}с — убиваем сироту"
-                            )
-                            logger.warning(
-                                "[STARTUP] llama-server timeout — killing orphan process"
-                            )
-                            try:
-                                _proc.terminate()
-                                _proc.wait(timeout=5)
-                            except Exception:
-                                try:
-                                    _proc.kill()
-                                except Exception as e:
-                                    logger.warning(
-                                        f"[B5-FIX] silent failure suppressed: {e}"
-                                    )
-                            _llama_stderr_file.close()
-                            app.state.startup_status["llm_server"] = "failed"
-                except Exception as e:
-                    logger.warning(f"[STARTUP] llama-server start failed: {e}")
-                    print(f"⚠️ llama-server не запущен: {e}")
-                    if _llama_state["proc"] is not None:
-                        try:
-                            _llama_state["proc"].kill()
-                        except Exception as e:
-                            logger.warning(f"Failed to kill llama process: {e}")
+                _start = await start_llama_server()
+                if _start["started"]:
+                    print(
+                        f"✓ llama-server запущен ({settings.llama_cpp_server_url}): {_start['detail']}"
+                    )
+                    app.state.startup_status["llm_server"] = "ready"
+                else:
+                    print(f"✗ llama-server не запущен: {_start['reason']}: {_start['detail']}")
+                    logger.warning(
+                        f"[STARTUP] llama-server: {_start['reason']}: {_start['detail']}"
+                    )
                     app.state.startup_status["llm_server"] = "failed"
+                    app.state.startup_status["llm_error"] = _start["reason"]
         else:
             app.state.startup_status["llm_server"] = "skipped"
 
