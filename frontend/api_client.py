@@ -165,13 +165,15 @@ class HttpClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_sec = timeout_sec
 
-    def post(self, path: str, payload: dict | None = None) -> dict:
-        """POST запрос → распарсенный JSON."""
+    def post(
+        self, path: str, payload: dict | None = None, timeout_sec: int | None = None
+    ) -> dict:
+        """POST запрос → распарсенный JSON (timeout_sec: per-call override)."""
         url = self.base_url + path
         data = json.dumps(payload).encode("utf-8") if payload else b"{}"
         headers = {"Content-Type": "application/json"}
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        return self._execute(req)
+        return self._execute(req, timeout_sec=timeout_sec)
 
     def put(self, path: str, payload: dict | None = None) -> dict:
         """PUT запрос → распарсенный JSON (CCH-3: chronicle draft)."""
@@ -187,10 +189,13 @@ class HttpClient:
         req = urllib.request.Request(url, method="GET")
         return self._execute(req)
 
-    def _execute(self, req: urllib.request.Request) -> dict:
+    def _execute(
+        self, req: urllib.request.Request, timeout_sec: int | None = None
+    ) -> dict:
         """Выполняет запрос, возвращает dict. При ошибке — BackendError."""
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_sec) as resp:
+            _timeout = timeout_sec if timeout_sec is not None else self.timeout_sec
+            with urllib.request.urlopen(req, timeout=_timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             body = ""
@@ -208,6 +213,15 @@ class HttpClient:
             raise BackendError(
                 f"Backend недоступен ({self.base_url}): {e.reason}"
             ) from e
+
+
+# COV-2/D61: таймаут HTTP-транспорта для рестарта llama-server.
+# Авторитет длительности — backend model_load_timeout_sec (загрузка
+# модели до ~90с); импорт backend-настроек во frontend запрещён
+# (Закон 6.2), поэтому константа фронта с запасом. Дефолт транспорта
+# 30с даёт ложный FAILED при штатно долгом рестарте (находка живого
+# прогона D61, доктрина №4 — только честные причины провала).
+_LLM_RESTART_TIMEOUT_SEC = 180
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -264,8 +278,16 @@ class BackendContract:
         return self._t.get("/api/llm/outage")
 
     def restart_llm(self) -> dict:
-        """COV-2/D61: перезапуск llama-server (прод-роут lifecycle)."""
-        return self._t.post("/api/llm/restart", {})
+        """COV-2/D61: перезапуск llama-server (прод-роут lifecycle).
+
+        Таймаут транспорта — _LLM_RESTART_TIMEOUT_SEC: прод-роут живёт
+        до model_load_timeout_sec бэкенда; дефолт транспорта 30с давал
+        ложный FAILED при штатно долгом рестарте (доктрина №4 — только
+        честные причины провала).
+        """
+        return self._t.post(
+            "/api/llm/restart", {}, timeout_sec=_LLM_RESTART_TIMEOUT_SEC
+        )
 
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
         return self._t.post(
